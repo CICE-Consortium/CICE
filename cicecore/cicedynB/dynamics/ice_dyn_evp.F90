@@ -502,13 +502,40 @@
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
+            select case (trim(grid_system))
+            case('B')
+
+               if ( seabed_stress_method == 'LKD' ) then
+
+                  call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                                 icellu  (iblk),                   &
+                                                 indxui(:,iblk),   indxuj(:,iblk), &
+                                                 vice(:,:,iblk),   aice(:,:,iblk), &
+                                                 hwater(:,:,iblk), Tbu(:,:,iblk))
+
+               elseif ( seabed_stress_method == 'probabilistic' ) then
+
+                  call seabed_stress_factor_prob (nx_block,         ny_block,                   &
+                                                  icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                                  icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                                  aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                                  hwater(:,:,iblk), Tbu(:,:,iblk))
+               endif
+
+         case('CD')
+
             if ( seabed_stress_method == 'LKD' ) then
 
                call seabed_stress_factor_LKD (nx_block,         ny_block,       &
-                                              icellu  (iblk),                   &
-                                              indxui(:,iblk),   indxuj(:,iblk), &
+                                              icelle  (iblk),                   &
+                                              indxei(:,iblk),   indxej(:,iblk), &
                                               vice(:,:,iblk),   aice(:,:,iblk), &
-                                              hwater(:,:,iblk), Tbu(:,:,iblk))
+                                              hwater(:,:,iblk), TbE(:,:,iblk))
+               call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                              icelln  (iblk),                   &
+                                              indxni(:,iblk),   indxnj(:,iblk), &
+                                              vice(:,:,iblk),   aice(:,:,iblk), &
+                                              hwater(:,:,iblk), TbN(:,:,iblk))
 
             elseif ( seabed_stress_method == 'probabilistic' ) then
 
@@ -516,8 +543,13 @@
                                                icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                                icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
-                                               hwater(:,:,iblk), Tbu(:,:,iblk))
+                                               hwater(:,:,iblk), Tbu(:,:,iblk),              &
+                                               TbE(:,:,iblk),    TbN(:,:,iblk),              &
+                                               icelle(iblk), indxei(:,iblk), indxej(:,iblk), &
+                                               icelln(iblk), indxni(:,iblk), indxnj(:,iblk)  )
             endif
+
+         end select
          
          enddo
        !$OMP END PARALLEL DO

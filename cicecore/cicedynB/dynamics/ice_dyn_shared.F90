@@ -930,11 +930,14 @@
                                            icellu,                     &
                                            indxui,   indxuj,           &
                                            vice,     aice,             &
-                                           hwater,   Tbu)
+                                           hwater,   Tbu,              &
+                                           grid_location)
+
+      use ice_grid, only: grid_neighbor_min, grid_neighbor_max
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellu                 ! no. of cells where icetmask = 1
+         icellu                 ! no. of cells where ice[uen]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
@@ -946,31 +949,44 @@
          hwater      ! water depth at tracer location (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Tbu         ! seabed stress factor (N/m^2)
+         Tbu         ! seabed stress factor at 'grid_location' (N/m^2)
+
+      character(len=*), optional, intent(inout) :: &
+         grid_location    ! grid location (U, E, N), U assumed if not present
 
       real (kind=dbl_kind) :: &
-         au,  & ! concentration of ice at u location
-         hu,  & ! volume per unit area of ice at u location (mean thickness, m)
-         hwu, & ! water depth at u location (m)
-         hcu    ! critical thickness at u location (m)
+         au,  & ! concentration of ice at 'grid_location' 
+         hu,  & ! volume per unit area of ice at 'grid_location' (mean thickness, m)
+         hwu, & ! water depth at 'grid_location' (m)
+         hcu    ! critical thickness at 'grid_location' (m)
 
       integer (kind=int_kind) :: &
          i, j, ij
 
-      character(len=*), parameter :: subname = '(seabed1_stress_coeff)'
+      character(len=char_len) :: &
+         l_grid_location    ! local version of 'grid_location'
+
+      character(len=*), parameter :: subname = '(seabed_stress_factor_LKD)'
       
+      ! Assume U location (NE corner) if grid_location not present
+      if (.not. (present(grid_location))) then
+         l_grid_location = 'U'
+      else
+         l_grid_location = grid_location
+      endif
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
-         ! convert quantities to u-location
+         ! convert quantities to grid_location
          
-         hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
+         hwu = grid_neighbor_min(hwater, i, j, l_grid_location)
 
          if (hwu < threshold_hw) then
          
-            au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
-            hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
+            au  = grid_neighbor_max(aice, i, j, l_grid_location)
+            hu  = grid_neighbor_max(vice, i, j, l_grid_location)
 
             ! 1- calculate critical thickness
             hcu = au * hwu / k1
@@ -1002,15 +1018,19 @@
                                             icellt, indxti,   indxtj,    &
                                             icellu, indxui,   indxuj,    &
                                             aicen,  vicen,               &
-                                            hwater, Tbu)
+                                            hwater, Tbu,                 &
+                                            TbE,    TbN,                 &
+                                            icelle, indxei,   indxej,    &
+                                            icelln, indxni,   indxnj)
 ! use modules
         
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: ncat
+      use ice_grid, only: grid_neighbor_min, grid_neighbor_max
 
       integer (kind=int_kind), intent(in) :: &
            nx_block, ny_block, &  ! block dimensions
-           icellt, icellu         ! no. of cells where icetmask = 1
+           icellt, icellu         ! no. of cells where ice[tu]mask = 1
       
       integer (kind=int_kind), dimension (nx_block*ny_block), &
            intent(in) :: &
@@ -1027,7 +1047,21 @@
            vicen       ! partial volume for last thickness category in ITD (m)
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-           Tbu         ! seabed stress factor (N/m^2)
+           Tbu         ! seabed stress factor at U location (N/m^2)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
+           TbE,      & ! seabed stress factor at E location (N/m^2)
+           TbN         ! seabed stress factor at N location (N/m^2)
+
+      integer (kind=int_kind), intent(in), optional :: &
+           icelle, icelln         ! no. of cells where ice[en]mask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), &
+           intent(in), optional :: &
+           indxei  , & ! compressed index in i-direction
+           indxej  , & ! compressed index in j-direction
+           indxni  , & ! compressed index in i-direction
+           indxnj      ! compressed index in j-direction
 
 ! local variables 
 
@@ -1068,7 +1102,7 @@
       real (kind=dbl_kind) :: atot, x_kmax
       real (kind=dbl_kind) :: cut, rhoi, rhow, gravit, pi, puny
 
-      character(len=*), parameter :: subname = '(seabed2_stress_coeff)'
+      character(len=*), parameter :: subname = '(seabed_stress_factor_prob)'
 
       call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
       call icepack_query_parameters(gravit_out=gravit)
@@ -1149,12 +1183,37 @@
          endif
       enddo
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
-         ! convert quantities to u-location            
-         Tbu(i,j)  = max(Tbt(i,j),Tbt(i+1,j),Tbt(i,j+1),Tbt(i+1,j+1))
-      enddo                     ! ij          
+      select case (trim(grid_system))
+         case('B')
+            do ij = 1, icellu
+               i = indxui(ij)
+               j = indxuj(ij)
+               ! convert quantities to U-location            
+               Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
+            enddo                     ! ij          
+         case('CD')
+            if(present(Tbe)    .and. present(TbN)    .and. &
+               present(icelle) .and. present(icelln) .and. &
+               present(indxei) .and. present(indxej) .and. &
+               present(indxni) .and. present(indxnj)) then
+
+                  do ij = 1, icelle
+                     i = indxei(ij)
+                     j = indxej(ij)
+                     ! convert quantities to E-location
+                     TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
+                  enddo
+                  do ij = 1, icelln
+                     i = indxni(ij)
+                     j = indxnj(ij)
+                     ! convert quantities to N-location
+                     TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
+                  enddo
+
+            else
+               call abort_ice(subname // ' insufficient number of arguments for grid_system:' // grid_system)
+            endif
+      end select
       
     end subroutine seabed_stress_factor_prob
       
