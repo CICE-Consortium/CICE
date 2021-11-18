@@ -1070,6 +1070,10 @@ EOF2
     end
 
     ${casescr}/parse_settings.sh cice.settings ${fsmods}
+    if ($status != 0) then
+      echo "${0}: ERROR, parse_namelist.sh aborted"
+      exit -1
+    endif
     ${casescr}/parse_namelist.sh ice_in ${fimods}
     if ($status != 0) then
       echo "${0}: ERROR, parse_namelist.sh aborted"

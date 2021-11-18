@@ -10,7 +10,7 @@ filename=$1
 filemods=$2
 
 #echo "$0 $1 $2" 
-echo "running parse_namelist.sh"
+echo "running ${scriptname}"
 foundstring="FoundSTRING"
 vnamearray=()
 valuearray=()
