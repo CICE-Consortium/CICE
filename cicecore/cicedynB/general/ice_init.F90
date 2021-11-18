@@ -962,6 +962,10 @@
          abort_list = trim(abort_list)//":1"
       endif
 
+      if (ktransport <= 0) then
+         advection = 'none'
+      endif
+
       if (ktransport > 0 .and. advection /= 'remap' .and. advection /= 'upwind') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: invalid advection=',trim(advection)
          abort_list = trim(abort_list)//":3"
@@ -1473,9 +1477,6 @@
             endif
             write(nu_diag,1030) ' ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
-            if (ktransport <= 0) then
-               advection = 'none'
-            endif
             if (trim(advection) == 'remap') then
                tmpstr2 = ' : linear remapping advection'
             elseif (trim(advection) == 'upwind') then
