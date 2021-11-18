@@ -38,6 +38,7 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: field_loc_center, field_loc_NEcorner, &
+          field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
@@ -483,6 +484,23 @@
       call unstack_velocity_field(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
+      if (grid_system == 'CD') then
+
+         call ice_timer_start(timer_bound)
+         ! velocities may have changed in dyn_prep2
+         call stack_velocity_field(uvelN, vvelN, fld2)
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call unstack_velocity_field(fld2, uvelN, vvelN)
+         ! velocities may have changed in dyn_prep2
+         call stack_velocity_field(uvelE, vvelE, fld2)
+         call ice_HaloUpdate (fld2,               halo_info, &
+                              field_loc_Eface, field_type_vector)
+         call unstack_velocity_field(fld2, uvelE, vvelE)
+         call ice_timer_stop(timer_bound)
+
+      endif
+
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
          halomask = 0
@@ -657,6 +675,23 @@
             call ice_timer_stop(timer_bound)
             call unstack_velocity_field(fld2, uvel, vvel)
          
+            if (grid_system == 'CD') then
+
+               call ice_timer_start(timer_bound)
+               ! velocities may have changed in dyn_prep2
+               call stack_velocity_field(uvelN, vvelN, fld2)
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
+               call unstack_velocity_field(fld2, uvelN, vvelN)
+               ! velocities may have changed in dyn_prep2
+               call stack_velocity_field(uvelE, vvelE, fld2)
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_Eface, field_type_vector)
+               call unstack_velocity_field(fld2, uvelE, vvelE)
+               call ice_timer_stop(timer_bound)
+
+            endif
+
          enddo                     ! subcycling
       endif  ! evp_algorithm
 
