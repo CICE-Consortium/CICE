@@ -145,6 +145,7 @@
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_grid, only: grid_system
 
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers
@@ -275,6 +276,15 @@
          call define_rest_field(File,'stress12_2',dims)
          call define_rest_field(File,'stress12_3',dims)
          call define_rest_field(File,'stress12_4',dims)
+
+         if (grid_system == 'CD') then
+            call define_rest_field(File,'stresspT' ,dims)
+            call define_rest_field(File,'stressmT' ,dims)
+            call define_rest_field(File,'stress12T',dims)
+            call define_rest_field(File,'stresspU' ,dims)
+            call define_rest_field(File,'stressmU' ,dims)
+            call define_rest_field(File,'stress12U',dims)
+         endif
 
          call define_rest_field(File,'iceumask',dims)
 

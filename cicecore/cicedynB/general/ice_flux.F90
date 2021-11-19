@@ -134,7 +134,10 @@
        ! ice stress tensor in each corner of T cell (kg/s^2)
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
-         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
+         stress12_1,stress12_2,stress12_3,stress12_4, & ! sigma12
+       ! ice stress tensor at U and T locations (grid_system = 'CD') (kg/s^2)
+         stresspT, stressmT, stress12T, & ! sigma11+sigma22, sigma11-sigma22, sigma12
+         stresspU, stressmU, stress12U    ! "
 
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
@@ -623,6 +626,12 @@
          iceemask   (nx_block,ny_block,max_blocks), & ! ice extent mask (E-cell)
          fmE        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
          TbE        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         stresspT   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+         stressmT   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+         stress12T  (nx_block,ny_block,max_blocks), & ! sigma12
+         stresspU   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+         stressmU   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+         stress12U  (nx_block,ny_block,max_blocks), & ! sigma12
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 

@@ -94,6 +94,7 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character(len=char_len) :: description
       character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
@@ -1199,19 +1200,26 @@
              "none", secday*c100, c0,                                &
              ns1, f_shear)
       
+         select case (grid_system)
+         case('B')
+            description = ", on U grid  (NE corner values)"
+         case ('CD')
+            description = ", on T grid"
+         end select
+
          call define_hist_field(n_sig1,"sig1","1",ustr2D, ucstr, &
              "norm. principal stress 1",                       &
-             "sig1 is instantaneous", c1, c0,                  &
+             "sig1 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig1)
       
          call define_hist_field(n_sig2,"sig2","1",ustr2D, ucstr, &
              "norm. principal stress 2",                       &
-             "sig2 is instantaneous", c1, c0,                  &
+             "sig2 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig2)
              
          call define_hist_field(n_sigP,"sigP","1",ustr2D, ucstr, &
              "ice pressure",                       &
-             "sigP is instantaneous", c1, c0,                  &
+             "sigP is instantaneous" // trim(description), c1, c0, &
              ns1, f_sigP)
       
          call define_hist_field(n_dvidtt,"dvidtt","cm/day",tstr2D, tcstr, &
@@ -1979,7 +1987,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: nfsd
-      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu
+      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu, grid_system
       use ice_calendar, only: new_year, write_history, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
@@ -2001,6 +2009,7 @@
           fm, fmN, fmE, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
           fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
+          stresspT, stressmT, stress12T, &
           stressp_2, &
           stressp_3, &
           stressp_4, sig1, sig2, sigP, &
@@ -4287,17 +4296,28 @@
       ! snapshots
       !---------------------------------------------------------------
 
-          ! compute sig1 and sig2
-        
-           call principal_stress (nx_block,  ny_block,  &
-                                  stressp_1 (:,:,iblk), &
-                                  stressm_1 (:,:,iblk), &
-                                  stress12_1(:,:,iblk), &
-                                  strength  (:,:,iblk), &
-                                  sig1      (:,:,iblk), &
-                                  sig2      (:,:,iblk), &
-                                  sigP      (:,:,iblk))
- 
+            ! compute sig1 and sig2
+            select case (grid_system)
+            case('B')
+               call principal_stress (nx_block,  ny_block,  &
+                                      stressp_1 (:,:,iblk), &
+                                      stressm_1 (:,:,iblk), &
+                                      stress12_1(:,:,iblk), &
+                                      strength  (:,:,iblk), &
+                                      sig1      (:,:,iblk), &
+                                      sig2      (:,:,iblk), &
+                                      sigP      (:,:,iblk))
+            case('CD')
+               call principal_stress (nx_block,  ny_block,  &
+                                      stresspT  (:,:,iblk), &
+                                      stressmT  (:,:,iblk), &
+                                      stress12T (:,:,iblk), &
+                                      strength  (:,:,iblk), &
+                                      sig1      (:,:,iblk), &
+                                      sig2      (:,:,iblk), &
+                                      sigP      (:,:,iblk))
+            end select
+
            do j = jlo, jhi
            do i = ilo, ihi
               if (.not. tmask(i,j,iblk)) then ! mask out land points

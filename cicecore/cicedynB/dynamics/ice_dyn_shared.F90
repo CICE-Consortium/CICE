@@ -158,7 +158,9 @@
       use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+          stress12_1, stress12_2, stress12_3, stress12_4, &
+          stresspT, stressmT, stress12T, &
+          stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
       use ice_grid, only: ULAT, NLAT, ELAT
 
@@ -246,6 +248,15 @@
          stress12_2(i,j,iblk) = c0
          stress12_3(i,j,iblk) = c0
          stress12_4(i,j,iblk) = c0
+
+         if (grid_system == 'CD') then
+            stresspT  (i,j,iblk) = c0
+            stressmT  (i,j,iblk) = c0
+            stress12T (i,j,iblk) = c0
+            stresspU  (i,j,iblk) = c0
+            stressmU  (i,j,iblk) = c0
+            stress12U (i,j,iblk) = c0
+         endif
 
          ! ice extent mask on velocity points
          iceumask(i,j,iblk) = .false.
@@ -1341,13 +1352,13 @@
 !=======================================================================
 
 ! Computes principal stresses for comparison with the theoretical
-! yield curve; northeast values
+! yield curve
 !
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine principal_stress(nx_block,   ny_block,  &
-                                  stressp_1,  stressm_1, &
-                                  stress12_1, strength,  &
+                                  stressp,    stressm,   &
+                                  stress12,   strength,  &
                                   sig1,       sig2,      &
                                   sigP)
 
@@ -1355,9 +1366,9 @@
          nx_block, ny_block  ! block dimensions
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         stressp_1 , & ! sigma11 + sigma22
-         stressm_1 , & ! sigma11 - sigma22
-         stress12_1, & ! sigma12
+         stressp   , & ! sigma11 + sigma22
+         stressm   , & ! sigma11 - sigma22
+         stress12  , & ! sigma12
          strength      ! for normalization of sig1 and sig2
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
@@ -1382,14 +1393,14 @@
       do i = 1, nx_block
          if (strength(i,j) > puny) then
             ! ice internal pressure          
-            sigP(i,j) = -p5*stressp_1(i,j) 
+            sigP(i,j) = -p5*stressp(i,j) 
             
             ! normalized principal stresses
-            sig1(i,j) = (p5*(stressp_1(i,j) &
-                      + sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
+            sig1(i,j) = (p5*(stressp(i,j) &
+                      + sqrt(stressm(i,j)**2+c4*stress12(i,j)**2))) &
                       / strength(i,j)
-            sig2(i,j) = (p5*(stressp_1(i,j) &
-                      - sqrt(stressm_1(i,j)**2+c4*stress12_1(i,j)**2))) &
+            sig2(i,j) = (p5*(stressp(i,j) &
+                      - sqrt(stressm(i,j)**2+c4*stress12(i,j)**2))) &
                       / strength(i,j)         
          else
             sig1(i,j) = spval_dbl

@@ -95,7 +95,9 @@
           Tbu, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+          stress12_1, stress12_2, stress12_3, stress12_4, &
+          stresspT, stressmT, stress12T, &
+          stresspU, stressmU, stress12U
       use ice_grid, only: tmask, umask, nmask, emask, dxt, dyt, &
           dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, grid_average_X2Y, &
@@ -410,11 +412,11 @@
                          taubxN    (:,:,iblk), taubyN    (:,:,iblk), & 
                          waterxN   (:,:,iblk), wateryN   (:,:,iblk), & 
                          forcexN   (:,:,iblk), forceyN   (:,:,iblk), & 
-                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stresspT  (:,:,iblk), stressp_2 (:,:,iblk), & 
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressmT  (:,:,iblk), stressm_2 (:,:,iblk), & 
                          stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12T (:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvelN_init (:,:,iblk), vvelN_init (:,:,iblk), &
                          uvelN      (:,:,iblk), vvelN      (:,:,iblk), &
@@ -443,11 +445,11 @@
                          taubxE    (:,:,iblk), taubyE    (:,:,iblk), & 
                          waterxE   (:,:,iblk), wateryE   (:,:,iblk), & 
                          forcexE   (:,:,iblk), forceyE   (:,:,iblk), & 
-                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stresspU  (:,:,iblk), stressp_2 (:,:,iblk), & 
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressmU  (:,:,iblk), stressm_2 (:,:,iblk), & 
                          stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12U (:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvelE_init (:,:,iblk), vvelE_init (:,:,iblk), &
                          uvelE      (:,:,iblk), vvelE      (:,:,iblk), &
@@ -726,6 +728,7 @@
 
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
+         ! TODO: CD-grid
       if (maskhalo_dyn) then
          !-------------------------------------------------------
          ! set halomask to zero because ice_HaloMask always keeps
