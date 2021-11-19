@@ -28,7 +28,7 @@
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, &
                 deformations, deformations_T, &
-                strain_rates, strain_rates_T, &
+                strain_rates, strain_rates_T, strain_rates_U, &
                 viscous_coeffs_and_rep_pressure, &
                 viscous_coeffs_and_rep_pressure_T, &
                 stack_velocity_field, unstack_velocity_field

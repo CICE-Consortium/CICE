@@ -98,7 +98,9 @@
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_grid, only: tmask, umask, nmask, emask, dxt, dyt, &
+      use ice_grid, only: tmask, umask, nmask, emask, uvm, epm, npm, &
+          dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
+          ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, & 
           dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, tinyarea, grid_average_X2Y, &
           grid_type, grid_system
@@ -168,6 +170,10 @@
 
       real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
 
+      real (kind=dbl_kind), allocatable :: &
+         zetax2T(:,:,:), & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2T(:,:,:)     ! etax2  = 2*eta  (shear viscous coeff)
+      
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
 
@@ -195,6 +201,13 @@
 
       allocate(fld2(nx_block,ny_block,2,max_blocks))
 
+      if (grid_system == 'CD') then
+
+         allocate(zetax2T(nx_block,ny_block,max_blocks))
+         allocate(etax2T(nx_block,ny_block,max_blocks))
+         
+      endif
+      
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
 
@@ -608,7 +621,8 @@
             !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
             do iblk = 1, nblocks
 
-!               if (trim(yield_curve) == 'ellipse') then
+               select case (grid_system)
+               case('B')
                   call stress (nx_block,             ny_block,             &
                                ksub,                 icellt(iblk),         &
                                indxti      (:,iblk), indxtj      (:,iblk), &
@@ -628,14 +642,10 @@
                                shear     (:,:,iblk), divu      (:,:,iblk), &
                                rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                                strtmp    (:,:,:) )
-!               endif               ! yield_curve
 
          !-----------------------------------------------------------------
          ! momentum equation
          !-----------------------------------------------------------------
-
-               select case (grid_system)
-               case('B')
 
                   call stepu (nx_block,            ny_block,           &
                               icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -655,7 +665,38 @@
 
                case('CD')
 
-                  call step_vel (nx_block,             ny_block,             &
+                  call stress_T (nx_block,             ny_block,             &
+                                 ksub,                 icellt(iblk),         &
+                                 indxti      (:,iblk), indxtj      (:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 dxN       (:,:,iblk), dyE       (:,:,iblk), &
+                                 dxT       (:,:,iblk), dyT       (:,:,iblk), &
+                                 tarear    (:,:,iblk), tinyarea  (:,:,iblk), &
+                                 strength  (:,:,iblk),                       &
+                                 zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
+                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
+                                 stress12T (:,:,iblk),                       &
+                                 shear     (:,:,iblk), divu      (:,:,iblk), &
+                                 rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk)  )
+
+                  call stress_U (nx_block,             ny_block,             &
+                                 ksub,                 icellu(iblk),         &
+                                 indxui      (:,iblk), indxuj      (:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                                 dxE       (:,:,iblk), dyN       (:,:,iblk), &
+                                 dxU       (:,:,iblk), dyU       (:,:,iblk), &
+                                 ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
+                                 ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
+                                 epm       (:,:,iblk), npm       (:,:,iblk), &
+                                 uvm       (:,:,iblk),                       &
+                                 zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
+                                 stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
+                                 stress12U (:,:,iblk))                       
+                  
+                  call step_vel (nx_block,             ny_block,             & ! E point
                                  icelle        (iblk), Cdn_ocn   (:,:,iblk), &
                                  indxei      (:,iblk), indxej      (:,iblk), &
                                  ksub,                 aiE       (:,:,iblk), &
@@ -669,7 +710,7 @@
                                  uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
                                  TbE       (:,:,iblk))
 
-                  call step_vel (nx_block,             ny_block,             &
+                  call step_vel (nx_block,             ny_block,             & ! N point
                                  icelln        (iblk), Cdn_ocn   (:,:,iblk), &
                                  indxni      (:,iblk), indxnj      (:,iblk), &
                                  ksub,                 aiN       (:,:,iblk), &
@@ -682,7 +723,6 @@
                                  uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
                                  TbN       (:,:,iblk))
-
 
                end select
 
@@ -724,6 +764,10 @@
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
+      if (grid_system == 'CD') then
+         deallocate(zetax2T, etax2T)
+      endif
+      
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       ! Force symmetry across the tripole seam
@@ -1161,7 +1205,6 @@
 !=======================================================================
 
 ! Computes the strain rates and internal stress components for T points
-! Computes stress terms for the momentum equation
       
 ! author: JF Lemieux, ECCC
 ! Nov 2021      
@@ -1174,7 +1217,8 @@
                              dxN,        dyE,        &
                              dxT,        dyT,        &
                              tarear,     tinyarea,   & 
-                             strength,               & 
+                             strength,               &
+                             zetax2T,    etax2T,     &
                              stresspT,   stressmT,   & 
                              stress12T,              & 
                              shear,      divu,       & 
@@ -1207,9 +1251,11 @@
          tinyarea     ! puny*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2T   , & ! etax2  = 2*eta  (shear viscous coeff)
          stresspT , & ! sigma11+sigma22
          stressmT , & ! sigma11-sigma22
-         stress12T   ! sigma12
+         stress12T    ! sigma12
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          shear    , & ! strain rate II component (1/s)
@@ -1224,8 +1270,6 @@
 
       real (kind=dbl_kind) :: &
         divT, tensionT, shearT, DeltaT, & ! strain rates at T point
-        zetax2T ,                       & ! 2 x zeta (visc coeff) at T point
-        etax2T  ,                       & ! 2 x eta (visc coeff) at T point
         rep_prsT                          ! replacement pressure at T point
 
       logical :: capping ! of the viscous coef
@@ -1262,7 +1306,8 @@
 
          call viscous_coeffs_and_rep_pressure_T (strength(i,j),           &
                                                  tinyarea(i,j),           &
-                                                 DeltaT, zetax2T, etax2T, &
+                                                 DeltaT,                  &
+                                                 zetax2T(i,j),etax2T(i,j),&
                                                  rep_prsT, capping        )
          
       !-----------------------------------------------------------------
@@ -1272,13 +1317,13 @@
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
          
          stresspT(i,j)  = (stresspT(i,j)*(c1-arlx1i*revp) + &
-                           arlx1i*(zetax2T*divT - rep_prsT)) * denom1
+                           arlx1i*(zetax2T(i,j)*divT - rep_prsT)) * denom1
 
          stressmT(i,j)  = (stressmT(i,j)*(c1-arlx1i*revp) + &
-                           arlx1i*etax2T*tensionT) * denom1
+                           arlx1i*etax2T(i,j)*tensionT) * denom1
 
          stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) + &
-                            arlx1i*p5*etax2T*shearT) * denom1
+                            arlx1i*p5*etax2T(i,j)*shearT) * denom1
 
       enddo                     ! ij
 
@@ -1296,13 +1341,141 @@
                               dxT,        dyT,        &
                               tarear    ,             &
                               shear     , divu      , &
-                              rdg_conv  , rdg_shear )
+                              rdg_conv  , rdg_shear   )
 
       endif
 
     end subroutine stress_T
 
-    !=======================================================================
+!=======================================================================
+
+! Computes the strain rates and internal stress components for U points
+      
+! author: JF Lemieux, ECCC
+! Nov 2021      
+
+      subroutine stress_U   (nx_block,   ny_block,  & 
+                             ksub,       icellu,    &  
+                             indxui,     indxuj,    &
+                             uvelE,      vvelE,     &
+                             uvelN,      vvelN,     &
+                             uvelU,      vvelU,     &
+                             dxE,        dyN,       &
+                             dxU,        dyU,       &
+                             ratiodxN,   ratiodxNr, &
+                             ratiodyE,   ratiodyEr, &
+                             epm,  npm,  uvm,       &
+                             zetax2T,    etax2T,    &
+                             stresspU,   stressmU,  & 
+                             stress12U              )
+
+        use ice_dyn_shared, only: strain_rates_U!, &
+                             !     viscous_coeffs_and_rep_pressure_U
+        
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         ksub              , & ! subcycling step
+         icellu                ! no. of cells where iceumask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxui   , & ! compressed index in i-direction
+         indxuj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         uvelU    , & ! x-component of velocity (m/s) at the U point
+         vvelU    , & ! y-component of velocity (m/s) at the U point
+         dxE      , & ! width of E-cell through the middle (m)
+         dyN      , & ! height of N-cell through the middle (m)
+         dxU      , & ! width of U-cell through the middle (m)
+         dyU      , & ! height of U-cell through the middle (m)
+         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) for BCs
+         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) for BCs
+         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
+         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
+         epm      , & ! E-cell mask
+         npm      , & ! E-cell mask
+         uvm      , & ! U-cell mask
+         zetax2T  , & ! 2*zeta at the T point
+         etax2T       ! 2*eta at the T point
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         stresspU , & ! sigma11+sigma22
+         stressmU , & ! sigma11-sigma22
+         stress12U    ! sigma12
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divU, tensionU, shearU, DeltaU, & ! strain rates at U point
+        zetax2U, etax2U, rep_prsU         ! replacement pressure at U point
+
+      character(len=*), parameter :: subname = '(stress_U)'
+
+      do ij = 1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+
+      !-----------------------------------------------------------------
+      ! strain rates at T point
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+         call strain_rates_U (nx_block,   ny_block,  &
+                              i,          j,         &
+                              uvelE,      vvelE,     &
+                              uvelN,      vvelN,     &
+                              uvelU,      vvelU,     &
+                              dxE,        dyN,       &
+                              dxU,        dyU,       &
+                              ratiodxN,   ratiodxNr, &
+                              ratiodyE,   ratiodyEr, &
+                              epm,  npm,  uvm,       &
+                              divU,       tensionU,  &
+                              shearU,     DeltaU     )
+         
+      !-----------------------------------------------------------------
+      ! viscous coefficients and replacement pressure at T point
+      !-----------------------------------------------------------------
+
+! COMING SOON!!!
+         
+!         call viscous_coeffs_and_rep_pressure_U (zetax2T(i,j),    zetax2T(i,j+1), &
+!                                                 zetax2T(i+1,j+1),zetax2T(i+1,j), &
+!                                                 etax2T(i,j),     etax2T(i,j+1),  &
+!                                                 etax2T(i+1,j+1), etax2T(i+1,j),  &
+!                                                 hm(i,j),         hm(i,j+1),      &
+!                                                 hm(i+1,j+1),     hm(i+1,j),      &
+!                                                 tarea(i,j),      tarea(i,j+1),   &
+!                                                 tarea(i+1,j+1),  tarea(i+1,j),   &
+!                                                 DeltaU                          )
+
+      !-----------------------------------------------------------------
+      ! the stresses                            ! kg/s^2
+      !-----------------------------------------------------------------
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
+         
+         stresspU(i,j)  = (stresspU(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2U*divU - rep_prsU)) * denom1
+
+         stressmU(i,j)  = (stressmU(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2U*tensionU) * denom1
+
+         stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2U*shearU) * denom1
+
+      enddo                     ! ij
+
+    end subroutine stress_U
+    
+!=======================================================================
 
 ! Computes divergence of stress tensor at the E or N point for the mom equation
       
