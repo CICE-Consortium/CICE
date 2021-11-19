@@ -381,6 +381,9 @@
       call read_restart_field(nu_restart,0,stress12_4,'ruf8', &
            'stress12_4',1,diag,field_loc_center,field_type_scalar) ! stress12_4
 
+! tcraig, comment these out now to allow restarts from B grid file
+! this will affect exact restart when we get to that point
+#if (1 == 0)
       if (grid_system == 'CD') then
          call read_restart_field(nu_restart,0,stresspT,'ruf8', &
             'stresspT' ,1,diag,field_loc_center,field_type_scalar) ! stresspT
@@ -395,6 +398,7 @@
          call read_restart_field(nu_restart,0,stress12U,'ruf8', &
             'stress12U',1,diag,field_loc_center,field_type_scalar) ! stress12U
       endif
+#endif
 
       if (trim(grid_type) == 'tripole') then
          call ice_HaloUpdate_stress(stressp_1, stressp_3, halo_info, &
