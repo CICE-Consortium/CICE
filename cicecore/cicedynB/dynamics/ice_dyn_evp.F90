@@ -266,7 +266,7 @@
          call grid_average_X2Y('T2EF',tmass,emass)
          call grid_average_X2Y('T2EF',aice_init, aie)
          call grid_average_X2Y('T2NF',tmass,nmass)
-         call grid_average_X2Y('T2NF',aice_init, aie)
+         call grid_average_X2Y('T2NF',aice_init, ain)
       endif
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -420,21 +420,9 @@
                          uvelN      (:,:,iblk), vvelN      (:,:,iblk), &
                          TbN       (:,:,iblk))
 
-      enddo  ! iblk
-      !$TCXOMP END PARALLEL DO
-
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-
       !-----------------------------------------------------------------
       ! more preparation for dynamics on E grid
       !-----------------------------------------------------------------
-
-         this_block = get_block(blocks_ice(iblk),iblk)         
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
 
          call dyn_prep2 (nx_block,             ny_block,             & 
                          ilo, ihi,             jlo, jhi,             &

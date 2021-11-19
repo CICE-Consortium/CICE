@@ -2441,7 +2441,7 @@
       select case (trim(dir))
 
          case('NE')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2466,7 +2466,7 @@
             !$OMP END PARALLEL DO
 
          case('SW')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2491,7 +2491,7 @@
             !$OMP END PARALLEL DO
 
          case('NW')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2516,7 +2516,7 @@
             !$OMP END PARALLEL DO
 
          case('SE')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2541,7 +2541,7 @@
             !$OMP END PARALLEL DO
 
          case('E')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2562,7 +2562,7 @@
             !$OMP END PARALLEL DO
 
          case('W')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2583,7 +2583,7 @@
             !$OMP END PARALLEL DO
 
          case('N')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -2604,7 +2604,7 @@
             !$OMP END PARALLEL DO
 
          case('S')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo

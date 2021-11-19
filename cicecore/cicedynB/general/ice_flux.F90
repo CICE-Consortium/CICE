@@ -641,7 +641,7 @@
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, fiso_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
-      use ice_grid, only: bathymetry
+      use ice_grid, only: bathymetry, grid_system
 
       integer (kind=int_kind) :: n
 
@@ -738,13 +738,24 @@
       ! fluxes received from ocean
       !-----------------------------------------------------------------
 
-      ss_tltx(:,:,:)= c0              ! sea surface tilt (m/m)
-      ss_tlty(:,:,:)= c0
-      uocn  (:,:,:) = c0              ! surface ocean currents (m/s)
-      vocn  (:,:,:) = c0
-      frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
-      frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
-      sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
+      ss_tltx (:,:,:) = c0              ! sea surface tilt (m/m)
+      ss_tlty (:,:,:) = c0
+      uocn    (:,:,:) = c0              ! surface ocean currents (m/s)
+      vocn    (:,:,:) = c0
+      frzmlt  (:,:,:) = c0              ! freezing/melting potential (W/m^2)
+      frzmlt_init(:,:,:) = c0           ! freezing/melting potential (W/m^2)
+      sss     (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
+
+      if (grid_system == 'CD') then
+         ss_tltxN(:,:,:) = c0           ! sea surface tilt (m/m)
+         ss_tltyN(:,:,:) = c0
+         ss_tltxE(:,:,:) = c0           ! sea surface tilt (m/m)
+         ss_tltyE(:,:,:) = c0
+         uocnN   (:,:,:) = c0           ! surface ocean currents (m/s)
+         vocnN   (:,:,:) = c0
+         uocnE   (:,:,:) = c0           ! surface ocean currents (m/s)
+         vocnE   (:,:,:) = c0
+      endif
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)
