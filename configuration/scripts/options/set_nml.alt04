@@ -1,7 +1,7 @@
 ice_ic = 'default'
 bfbflag = 'reprosum'
 distribution_type = 'rake'
-processor_shape   = 'square-ice'
+processor_shape   = 'slenderX2'
 distribution_wght = 'block'
 tr_iage      = .true.
 tr_FY        = .true.
