@@ -1518,7 +1518,9 @@
       !-----------------------------------------------------------------
 
 ! COMING SOON!!!
-         
+  zetax2U = c0
+  etax2U = c0
+  rep_prsU = c0
 !         call viscous_coeffs_and_rep_pressure_U (zetax2T(i,j),    zetax2T(i,j+1), &
 !                                                 zetax2T(i+1,j+1),zetax2T(i+1,j), &
 !                                                 etax2T(i,j),     etax2T(i,j+1),  &
