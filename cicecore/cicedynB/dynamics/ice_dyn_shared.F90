@@ -999,7 +999,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (present(strocnxT)) then
+      if (present(strocnxT) .and. present(strocnyT)) then
 
          do j = 1, ny_block
          do i = 1, nx_block
@@ -1035,7 +1035,7 @@
 !         strocnx(i,j) = -(strairx(i,j) + strintx(i,j))
 !         strocny(i,j) = -(strairy(i,j) + strinty(i,j))
 
-         if (present(strocnxT)) then
+         if (present(strocnxT) .and. present(strocnyT)) then
 
             ! Prepare to convert to T grid
             ! divide by aice for coupling
