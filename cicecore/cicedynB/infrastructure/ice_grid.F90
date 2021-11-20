@@ -78,6 +78,8 @@
          earea  , & ! area of E-cell (m^2)
          tarear , & ! 1/tarea
          uarear , & ! 1/uarea
+         narear , & ! 1/narea
+         earear , & ! 1/earea
          tinyarea,& ! puny*tarea
          tarean , & ! area of NH T-cells
          tareas , & ! area of SH T-cells
@@ -208,6 +210,8 @@
          earea    (nx_block,ny_block,max_blocks), & ! area of E-cell (m^2)
          tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
          uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
+         narear   (nx_block,ny_block,max_blocks), & ! 1/narea
+         earear   (nx_block,ny_block,max_blocks), & ! 1/earea
          tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
          tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
          tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
@@ -496,6 +500,16 @@
                uarear(i,j,iblk) = c1/uarea(i,j,iblk)
             else
                uarear(i,j,iblk) = c0 ! possible on boundaries
+            endif
+            if (narea(i,j,iblk) > c0) then
+               narear(i,j,iblk) = c1/narea(i,j,iblk)
+            else
+               narear(i,j,iblk) = c0 ! possible on boundaries
+            endif
+            if (earea(i,j,iblk) > c0) then
+               earear(i,j,iblk) = c1/earea(i,j,iblk)
+            else
+               earear(i,j,iblk) = c0 ! possible on boundaries
             endif
             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
          enddo
