@@ -19,7 +19,7 @@ restart        gx3     16x1       gx3ncarbulk,iobinary
 restart        gx3     12x1       alt01
 restart        gx3     16x1       alt02
 restart        gx3     8x1        alt03
-restart        gx3     16x1       alt04
+restart        gx3     16x1x5x29x6 alt04
 restart        gx3     16x1       alt05
 restart        gx3     20x1       alt06
 restart        gx3     18x1       alt01,debug,short
@@ -66,7 +66,7 @@ restart        gx3     16x1x8x10x10  droundrobin        restart_gx3_8x1x25x29x2_
 restart        gx3     6x1x50x58x1   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     8x1x19x19x5   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     20x1x5x29x20  dsectrobin,short   restart_gx3_8x1x25x29x2_dslenderX2
-restart        gx3     32x1x5x10x10  drakeX2            restart_gx3_8x1x25x29x2_dslenderX2
+restart        gx3     32x1x5x10x12  drakeX2            restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     16x1x8x10x10  droundrobin,maskhalo   restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     4x1x25x29x4   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2
 
