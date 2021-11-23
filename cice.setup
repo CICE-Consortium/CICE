@@ -938,9 +938,9 @@ EOF
 
     # Use an existing ice_in file from the suite if it exists
     # to reduce time spend in parse_namelist
-    set iceinfn = ../ice_in_save_${grid}${soptions}
     set skip_parse_namelist = spval
     if (${dosuite} == 1) then
+      set iceinfn = ../ice_in_save_${grid}${soptions}
       if (-e ${iceinfn}) then
         echo "use ${iceinfn}"
         cp ${iceinfn} ice_in
