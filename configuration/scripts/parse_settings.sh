@@ -46,26 +46,20 @@ do
       fi
     done
 
-    #sed -i 's|\(^\s*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
-    cp ${filename} ${filename}.check
-    sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$foundstring"' |g' $filename.check
-    grep -q ${foundstring} ${filename}.check
-    if [ $? -eq 0 ]; then
-      sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+    grep -q "^[[:space:]]*set.* ${vname}[[:space:]]*" $filename
+    grepout=$?
+    if [ ${grepout} -eq 0 ]; then
+      sed -i -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
       if [[ "${found}" == "${foundstring}" ]]; then
         vnamearray+=($vname)
         valuearray+=($value)
       else
         valuearray[$found]=${value}
       fi
-      if [[ -e "${filename}.sedbak" ]]; then
-        rm ${filename}.sedbak
-      fi
     else
       echo "${scriptname} ERROR: parsing error for ${vname}"
       exit -99
     fi
-    rm ${filename}.check ${filename}.check.sedbak
 
   fi
 
