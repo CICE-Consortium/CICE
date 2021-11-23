@@ -49,7 +49,7 @@ do
     grep -q "^[[:space:]]*set.* ${vname}[[:space:]]*" $filename
     grepout=$?
     if [ ${grepout} -eq 0 ]; then
-      sed -i -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+      sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
       if [[ "${found}" == "${foundstring}" ]]; then
         vnamearray+=($vname)
         valuearray+=($value)
@@ -64,5 +64,9 @@ do
   fi
 
 done < "$filemods"
+
+if [[ -e "${filename}.sedbak" ]]; then
+  rm ${filename}.sedbak
+fi
 
 exit 0
