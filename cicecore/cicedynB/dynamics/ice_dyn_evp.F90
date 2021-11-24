@@ -98,11 +98,11 @@
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_grid, only: tmask, umask, nmask, emask, uvm, epm, npm, &
+      use ice_grid, only: hm, tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
           dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, & 
           dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, earea, narea, tinyarea, grid_average_X2Y, &
+          tarear, uarear, earea, narea, tinyarea, grid_average_X2Y, tarea, &
           grid_type, grid_system
       use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, &
@@ -341,35 +341,67 @@
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
+         
+         if (trim(grid_system) == 'B') then
+            call dyn_prep2 (nx_block,             ny_block,             & 
+                            ilo, ihi,             jlo, jhi,             &
+                            icellt(iblk),         icellu(iblk),         & 
+                            indxti      (:,iblk), indxtj      (:,iblk), & 
+                            indxui      (:,iblk), indxuj      (:,iblk), & 
+                            aiu       (:,:,iblk), umass     (:,:,iblk), & 
+                            umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), & 
+                            umask     (:,:,iblk),                       & 
+                            uocn      (:,:,iblk), vocn      (:,:,iblk), & 
+                            strairx   (:,:,iblk), strairy   (:,:,iblk), & 
+                            ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &  
+                            icetmask  (:,:,iblk), iceumask  (:,:,iblk), & 
+                            fm        (:,:,iblk), dt,                   & 
+                            strtltx   (:,:,iblk), strtlty   (:,:,iblk), & 
+                            strocnx   (:,:,iblk), strocny   (:,:,iblk), & 
+                            strintx   (:,:,iblk), strinty   (:,:,iblk), & 
+                            taubx     (:,:,iblk), tauby     (:,:,iblk), & 
+                            waterx    (:,:,iblk), watery    (:,:,iblk), & 
+                            forcex    (:,:,iblk), forcey    (:,:,iblk), & 
+                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
+                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
+                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
+                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
+                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
+                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
+                            uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
+                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                            Tbu       (:,:,iblk))
 
-         call dyn_prep2 (nx_block,             ny_block,             & 
-                         ilo, ihi,             jlo, jhi,             &
-                         icellt(iblk),         icellu(iblk),         & 
-                         indxti      (:,iblk), indxtj      (:,iblk), & 
-                         indxui      (:,iblk), indxuj      (:,iblk), & 
-                         aiu       (:,:,iblk), umass     (:,:,iblk), & 
-                         umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), & 
-                         umask     (:,:,iblk),                       & 
-                         uocn      (:,:,iblk), vocn      (:,:,iblk), & 
-                         strairx   (:,:,iblk), strairy   (:,:,iblk), & 
-                         ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &  
-                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), & 
-                         fm        (:,:,iblk), dt,                   & 
-                         strtltx   (:,:,iblk), strtlty   (:,:,iblk), & 
-                         strocnx   (:,:,iblk), strocny   (:,:,iblk), & 
-                         strintx   (:,:,iblk), strinty   (:,:,iblk), & 
-                         taubx     (:,:,iblk), tauby     (:,:,iblk), & 
-                         waterx    (:,:,iblk), watery    (:,:,iblk), & 
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), & 
-                         stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), & 
-                         stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), & 
-                         stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), & 
-                         stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
-                         uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
-                         uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                         Tbu       (:,:,iblk))
+         elseif (trim(grid_system) == 'CD') then
+            call dyn_prep2 (nx_block,             ny_block,             &
+                            ilo, ihi,             jlo, jhi,             &
+                            icellt(iblk),         icellu(iblk),         &
+                            indxti      (:,iblk), indxtj      (:,iblk), &
+                            indxui      (:,iblk), indxuj      (:,iblk), &
+                            aiu       (:,:,iblk), umass     (:,:,iblk), &
+                            umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
+                            umaskCD   (:,:,iblk),                       &
+                            uocn      (:,:,iblk), vocn      (:,:,iblk), &
+                            strairx   (:,:,iblk), strairy   (:,:,iblk), &
+                            ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &
+                            icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                            fm        (:,:,iblk), dt,                   &
+                            strtltx   (:,:,iblk), strtlty   (:,:,iblk), &
+                            strocnx   (:,:,iblk), strocny   (:,:,iblk), &
+                            strintx   (:,:,iblk), strinty   (:,:,iblk), &
+                            taubx     (:,:,iblk), tauby     (:,:,iblk), &
+                            waterx    (:,:,iblk), watery    (:,:,iblk), &
+                            forcex    (:,:,iblk), forcey    (:,:,iblk), &
+                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
+                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
+                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
+                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
+                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
+                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
+                            uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
+                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                            Tbu       (:,:,iblk))
+         endif
 
       !-----------------------------------------------------------------
       ! ice strength
@@ -412,8 +444,8 @@
                          indxti      (:,iblk), indxtj      (:,iblk), & 
                          indxni      (:,iblk), indxnj      (:,iblk), & 
                          aiN       (:,:,iblk), nmass     (:,:,iblk), & 
-                         nmassdti  (:,:,iblk), fcorN_blk  (:,:,iblk), & 
-                         nmask     (:,:,iblk),                       & 
+                         nmassdti  (:,:,iblk), fcorN_blk  (:,:,iblk),& 
+                         nmask     (:,:,iblk),                       &
                          uocnN     (:,:,iblk), vocnN     (:,:,iblk), & 
                          strairxN  (:,:,iblk), strairyN  (:,:,iblk), & 
                          ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &  
@@ -445,7 +477,7 @@
                          indxti      (:,iblk), indxtj      (:,iblk), & 
                          indxei      (:,iblk), indxej      (:,iblk), & 
                          aiE       (:,:,iblk), emass     (:,:,iblk), & 
-                         emassdti  (:,:,iblk), fcorE_blk  (:,:,iblk), & 
+                         emassdti  (:,:,iblk), fcorE_blk  (:,:,iblk),& 
                          emask     (:,:,iblk),                       & 
                          uocnE     (:,:,iblk), vocnE     (:,:,iblk), & 
                          strairxE  (:,:,iblk), strairyE  (:,:,iblk), & 
@@ -643,10 +675,9 @@
                                rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                                strtmp    (:,:,:) )
 
-         !-----------------------------------------------------------------
-         ! momentum equation
-         !-----------------------------------------------------------------
-
+            !-----------------------------------------------------------------
+            ! momentum equation
+            !-----------------------------------------------------------------
                   call stepu (nx_block,            ny_block,           &
                               icellu       (iblk), Cdn_ocn (:,:,iblk), &
                               indxui     (:,iblk), indxuj    (:,iblk), &
@@ -688,13 +719,14 @@
                                  uvel      (:,:,iblk), vvel      (:,:,iblk), &
                                  dxE       (:,:,iblk), dyN       (:,:,iblk), &
                                  dxU       (:,:,iblk), dyU       (:,:,iblk), &
+                                 tarea     (:,:,iblk),                       &
                                  ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
                                  ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
                                  epm       (:,:,iblk), npm       (:,:,iblk), &
-                                 uvm       (:,:,iblk),                       &
+                                 hm        (:,:,iblk), uvm       (:,:,iblk), &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
-                                 stress12U (:,:,iblk))                       
+                                 stress12U (:,:,iblk))                   
 
                   call div_stress (nx_block,             ny_block,             & ! E point
                                    ksub,                 icelle(iblk),         &
@@ -977,7 +1009,7 @@
                          rdg_conv,   rdg_shear,  & 
                          str )
 
-        use ice_dyn_shared, only: strain_rates, deformations, viscous_coeffs_and_rep_pressure
+      use ice_dyn_shared, only: strain_rates, deformations, viscous_coeffs_and_rep_pressure_T
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1041,8 +1073,8 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
-      logical :: capping ! of the viscous coef
-      
+      real(kind=dbl_kind),parameter :: capping = c1 ! of the viscous coef
+
       character(len=*), parameter :: subname = '(stress)'
 
       !-----------------------------------------------------------------
@@ -1050,7 +1082,6 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
-      capping = .true. ! could be later included in ice_in
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -1079,17 +1110,27 @@
       !-----------------------------------------------------------------
       ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
-         
-         call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
-                                               Deltane,       Deltanw,      &
-                                               Deltasw,       Deltase,      &
-                                               zetax2ne,      zetax2nw,     &
-                                               zetax2sw,      zetax2se,     &
-                                               etax2ne,       etax2nw,      &
-                                               etax2sw,       etax2se,      &
-                                               rep_prsne,     rep_prsnw,    &
-                                               rep_prssw,     rep_prsse,    &
-                                               capping)
+
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
+                                                 Deltane,       zetax2ne,     &
+                                                 etax2ne,       rep_prsne,    &
+                                                 capping)
+ 
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
+                                                 Deltanw,       zetax2nw,     &
+                                                 etax2nw,       rep_prsnw,    &
+                                                 capping)
+
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
+                                                 Deltasw,       zetax2sw,     &
+                                                 etax2sw,       rep_prssw,    &
+                                                 capping)
+
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
+                                                 Deltase,       zetax2se,     &
+                                                 etax2se,       rep_prsse,    &
+                                                 capping)
+
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1345,15 +1386,14 @@
         divT, tensionT, shearT, DeltaT, & ! strain rates at T point
         rep_prsT                          ! replacement pressure at T point
 
-      logical :: capping ! of the viscous coef
-      
+      real(kind=dbl_kind), parameter :: capping = c1 ! of the viscous coef
+
       character(len=*), parameter :: subname = '(stress_T)'
 
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
 
-      capping = .true. ! could be later included in ice_in
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -1435,15 +1475,16 @@
                              uvelU,      vvelU,     &
                              dxE,        dyN,       &
                              dxU,        dyU,       &
+                             tarea,                 &
                              ratiodxN,   ratiodxNr, &
                              ratiodyE,   ratiodyEr, &
-                             epm,  npm,  uvm,       &
+                             epm,  npm, hm, uvm,    &
                              zetax2T,    etax2T,    &
                              stresspU,   stressmU,  & 
-                             stress12U              )
+                             stress12U            )
 
-        use ice_dyn_shared, only: strain_rates_U!, &
-                             !     viscous_coeffs_and_rep_pressure_U
+      use ice_dyn_shared, only: strain_rates_U, &
+                                viscous_coeffs_and_rep_pressure_T2U
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1456,21 +1497,23 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the E point
+         uvelN    , & ! x-component of velocity (m/s) at the N point
          vvelN    , & ! y-component of velocity (m/s) at the N point
          uvelU    , & ! x-component of velocity (m/s) at the U point
          vvelU    , & ! y-component of velocity (m/s) at the U point
-         dxE      , & ! width of E-cell through the middle (m)
+         dxE      , & ! width  of E-cell through the middle (m)
          dyN      , & ! height of N-cell through the middle (m)
-         dxU      , & ! width of U-cell through the middle (m)
+         dxU      , & ! width  of U-cell through the middle (m)
          dyU      , & ! height of U-cell through the middle (m)
-         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) for BCs
-         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) for BCs
-         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
-         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
+         tarea    , & ! area of T-cell (m^2)
+         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) factor for BCs across coastline
+         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) factor for BCs across coastline
+         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) factor for BCs across coastline
+         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) factor for BCs across coastline
          epm      , & ! E-cell mask
          npm      , & ! E-cell mask
+         hm       , & ! T-cell mask
          uvm      , & ! U-cell mask
          zetax2T  , & ! 2*zeta at the T point
          etax2T       ! 2*eta at the T point
@@ -1517,19 +1560,15 @@
       ! viscous coefficients and replacement pressure at T point
       !-----------------------------------------------------------------
 
-! COMING SOON!!!
-  zetax2U = c0
-  etax2U = c0
-  rep_prsU = c0
-!         call viscous_coeffs_and_rep_pressure_U (zetax2T(i,j),    zetax2T(i,j+1), &
-!                                                 zetax2T(i+1,j+1),zetax2T(i+1,j), &
-!                                                 etax2T(i,j),     etax2T(i,j+1),  &
-!                                                 etax2T(i+1,j+1), etax2T(i+1,j),  &
-!                                                 hm(i,j),         hm(i,j+1),      &
-!                                                 hm(i+1,j+1),     hm(i+1,j),      &
-!                                                 tarea(i,j),      tarea(i,j+1),   &
-!                                                 tarea(i+1,j+1),  tarea(i+1,j),   &
-!                                                 DeltaU                          )
+         call viscous_coeffs_and_rep_pressure_T2U (zetax2T(i  ,j  ), zetax2T(i  ,j+1), &
+                                                   zetax2T(i+1,j+1), zetax2T(i+1,j  ), &
+                                                   etax2T (i  ,j  ), etax2T (i  ,j+1), &
+                                                   etax2T (i+1,j+1), etax2T (i+1,j  ), &
+                                                   hm     (i  ,j  ), hm     (i  ,j+1), &
+                                                   hm     (i+1,j+1), hm     (i+1,j  ), &
+                                                   tarea  (i  ,j  ), tarea  (i  ,j+1), &
+                                                   tarea  (i+1,j+1), tarea  (i+1,j  ), &
+                                                   DeltaU,zetax2U, etax2U, rep_prsU)
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2

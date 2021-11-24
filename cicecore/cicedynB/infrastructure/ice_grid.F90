@@ -155,7 +155,7 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
-         uvm    , & ! land/boundary mask, velocity (U-cell)
+         uvm    , & ! land/boundary mask, velocity (U-cell) 
          npm    , & ! land/boundary mask (N-cell)
          epm    , & ! land/boundary mask (E-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
@@ -167,7 +167,8 @@
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
-         umask  , & ! land/boundary mask, velocity (U-cell)
+         umask  , & ! land/boundary mask, velocity (U-cell) (1 if all surrounding T cells are ocean)
+         umaskCD, & ! land/boundary mask, velocity (U-cell) (1 if at least two surrounding T cells are ocean)
          nmask  , & ! land/boundary mask, (N-cell)
          emask  , & ! land/boundary mask, (E-cell)
          lmask_n, & ! northern hemisphere mask
@@ -239,12 +240,13 @@
          yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
          npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
          tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
@@ -1925,7 +1927,7 @@
 
       subroutine makemask
 
-      use ice_constants, only: c0, p5, &
+      use ice_constants, only: c0, p5, c1p5, &
           field_loc_center, field_loc_NEcorner, field_type_scalar, &
           field_loc_Nface, field_loc_Eface
 
@@ -1935,6 +1937,9 @@
 
       real (kind=dbl_kind) :: &
          puny
+
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+            uvmCD
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1958,6 +1963,7 @@
       !-----------------------------------------------------------------
 
       bm = c0
+      allocate(uvmCD(nx_block,ny_block,max_blocks))
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -1974,6 +1980,8 @@
             npm(i,j,iblk) = min (hm(i,j,  iblk), hm(i,j+1,iblk))
             epm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,iblk))
             bm(i,j,iblk) = my_task + iblk/100.0_dbl_kind
+            uvmCD(i,j,iblk) = (hm(i,j,  iblk)+hm(i+1,j,  iblk) &
+                            +  hm(i,j+1,iblk)+hm(i+1,j+1,iblk))
          enddo
          enddo
       enddo
@@ -1981,6 +1989,8 @@
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (uvm,                halo_info, &
+                           field_loc_NEcorner, field_type_scalar)
+      call ice_HaloUpdate (uvmCD,              halo_info, &
                            field_loc_NEcorner, field_type_scalar)
       call ice_HaloUpdate (npm,                halo_info, &
                            field_loc_Nface,    field_type_scalar)
@@ -1999,18 +2009,31 @@
          jhi = this_block%jhi
 
          ! needs to cover halo (no halo update for logicals)
-         tmask(:,:,iblk) = .false.
-         umask(:,:,iblk) = .false.
-         nmask(:,:,iblk) = .false.
-         emask(:,:,iblk) = .false.
+         tmask(:,:,iblk)   = .false.
+         umask(:,:,iblk)   = .false.
+         umaskCD(:,:,iblk) = .false.
+         nmask(:,:,iblk)   = .false.
+         emask(:,:,iblk)   = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
-            if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
-            if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
-            if (npm(i,j,iblk) > p5) nmask(i,j,iblk) = .true.
-            if (epm(i,j,iblk) > p5) emask(i,j,iblk) = .true.
+            if ( hm(i,j,iblk)   > p5  ) tmask  (i,j,iblk)   = .true.
+            if (uvm(i,j,iblk)   > p5  ) umask  (i,j,iblk)   = .true.
+            if (uvmCD(i,j,iblk) > c1p5) umaskCD(i,j,iblk)   = .true.
+            if (npm(i,j,iblk)   > p5  ) nmask  (i,j,iblk)   = .true.
+            if (epm(i,j,iblk)   > p5  ) emask  (i,j,iblk)   = .true.
          enddo
          enddo
+
+      enddo
+      !$OMP END PARALLEL DO
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
 
       !-----------------------------------------------------------------
       ! create hemisphere masks
@@ -2044,6 +2067,8 @@
 
       enddo  ! iblk
       !$OMP END PARALLEL DO
+
+      deallocate(uvmCD)
 
       end subroutine makemask
 
