@@ -937,7 +937,7 @@ EOF
     if (-e ${fsmods}) rm ${fsmods}
 
     # Use an existing ice_in file from the suite if it exists
-    # to reduce time spend in parse_namelist
+    # to reduce time spent in parse_namelist
     set skip_parse_namelist = spval
     if (${dosuite} == 1) then
       set iceinfn = ../ice_in_save_${grid}${soptions}
@@ -1116,7 +1116,7 @@ EOF2
 #@ pdd = ( $pd1 - $pd0 ) / 1000000
 #echo "tcxp after parse $pdd"
 
-    # Save ice_in in the suite to reduce time spend in parse_namelist
+    # Save ice_in in the suite to reduce time spent in parse_namelist
     if (${dosuite} == 1) then
       if !(-e ${iceinfn}) then
         cp ice_in ${iceinfn}
