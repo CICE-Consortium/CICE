@@ -915,8 +915,6 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if(profile_memory) call ESMF_VMLogMemInfo("Entering CICE Model_ADVANCE: ")
-
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! query the Component for its clock, importState and exportState
@@ -1126,8 +1124,6 @@ contains
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
-
-    if(profile_memory) call ESMF_VMLogMemInfo("Leaving CICE Model_ADVANCE: ")
 
   end subroutine ModelAdvance
 

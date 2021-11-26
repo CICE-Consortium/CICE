@@ -77,7 +77,7 @@ using `runtype` = ‘initial’. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
 the default CICE v5 and later configuration (7 layers). In addition, CICE’s
-default restart file format is now  instead of binary.
+default restart file format is now NetCDF instead of binary.
 
 Restarting a run using `runtype` = ‘continue’ requires restart data for
 all tracers used in the new run. If tracer restart data is not
@@ -126,7 +126,7 @@ conflicts in module dependencies.
 *print\_state* (**ice\_diagnostics.F90**)
     Print the ice state and forcing fields for a given grid cell.
 
-`forcing\_diag` = true (**ice\_in**)
+`debug\_forcing` = true (**ice\_in**)
     Print numerous diagnostic quantities associated with input forcing.
 
 `debug\_blocks` = true (**ice\_in**)

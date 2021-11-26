@@ -58,9 +58,9 @@ restart        gx3     4x2        fsd12,debug,short
 smoke          gx3     8x2        fsd12ww3,diag24,run1day
 smoke          gx3     4x1        isotope,debug
 restart        gx3     8x2        isotope
-smoke          gx3     4x1        snwITDrdg,snwgrain,icdefault,debug
+smoke          gx3     4x1        snwitdrdg,snwgrain,icdefault,debug
 smoke          gx3     4x1        snw30percent,icdefault,debug
-restart        gx3     8x2        snwITDrdg,icdefault,snwgrain
+restart        gx3     8x2        snwitdrdg,icdefault,snwgrain
 restart        gx3     4x4        gx3ncarbulk,iobinary
 restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
@@ -70,5 +70,6 @@ smoke          gx3     8x2        diag24,run5day,zsal,debug
 restart        gx3     8x2        zsal
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        gx3ncarbulk,diag1
-restart        gx1    24x1        gx1coreii,short
 smoke          gx3     4x1        calcdragio
+restart        gx3     4x2        atmbndyconstant
+restart        gx3     4x2        atmbndymixed

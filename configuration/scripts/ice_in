@@ -141,7 +141,8 @@
     Cstar           = 20
     Cf              = 17.
     Ktens           = 0.
-    e_ratio         = 2.
+    e_yieldcurve    = 2.
+    e_plasticpot    = 2.
     seabed_stress   = .false.
     seabed_stress_method = 'LKD'
     k1              = 7.5
@@ -223,7 +224,7 @@
 
 &forcing_nml
     formdrag        = .false.
-    atmbndy         = 'default'
+    atmbndy         = 'similarity'
     rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.

@@ -105,9 +105,10 @@
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 evp_algorithm, &
                                 seabed_stress, seabed_stress_method, &
-                                k1, k2, alphab, threshold_hw, &
-                                Ktens, e_ratio, coriolis, ssh_stress, &
-                                kridge, brlx, arlx
+                                k1, k2, alphab, threshold_hw, Ktens, &
+                                e_yieldcurve, e_plasticpot, coriolis, &
+                                ssh_stress, kridge, brlx, arlx
+
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
                             monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
@@ -208,20 +209,20 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_algorithm,                                                    &
+        evp_algorithm,                                                  &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_ratio,        Ktens,          Cf,             seabed_stress,  &
-        k1,             maxits_nonlin,  precond,        dim_fgmres,     &
+        e_yieldcurve,   e_plasticpot,   Ktens,                          &
+        maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
         reltol_pgmres,  algo_nonlin,    dim_andacc,     reltol_andacc,  &
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
-        ortho_type,                                                     &
-        k2,             alphab,         threshold_hw,                   &
-        seabed_stress_method,           Pstar,          Cstar
-
+        ortho_type,     seabed_stress,  seabed_stress_method,           &
+        k1, k2,         alphab,         threshold_hw,                   &
+        Cf,             Pstar,          Cstar
+      
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
         albicev,        albicei,         albsnowv,      albsnowi,       &
@@ -367,7 +368,8 @@
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-      e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
+      e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
+      e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50        ! size of fgmres Krylov subspace
@@ -448,7 +450,7 @@
       albsnowv  = 0.98_dbl_kind   ! cold snow albedo, visible
       albsnowi  = 0.70_dbl_kind   ! cold snow albedo, near IR
       ahmax     = 0.3_dbl_kind    ! thickness above which ice albedo is constant (m)
-      atmbndy   = 'default'       ! or 'constant'
+      atmbndy   = 'similarity'    ! Atm boundary layer: 'similarity', 'constant' or 'mixed'
       default_season  = 'winter'  ! default forcing data, if data is not read in
       fyear_init = 1900           ! first year of forcing cycle
       ycycle = 1                  ! number of years in forcing cycle
@@ -729,7 +731,8 @@
       call broadcast_scalar(alphab,               master_task)
       call broadcast_scalar(threshold_hw,         master_task)
       call broadcast_scalar(Ktens,                master_task)
-      call broadcast_scalar(e_ratio,              master_task)
+      call broadcast_scalar(e_yieldcurve,         master_task)
+      call broadcast_scalar(e_plasticpot,         master_task)
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
@@ -1214,6 +1217,14 @@
          endif
       endif
 
+      if (trim(atmbndy) == 'default') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: atmbndy = default is deprecated'
+            write(nu_diag,*) subname//' WARNING:   setting atmbndy = similarity'
+         endif
+         atmbndy = 'similarity'
+      endif
+
       if (formdrag) then
          if (trim(atmbndy) == 'constant') then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and atmbndy=constant'
@@ -1432,9 +1443,10 @@
             if (kdyn == 1 .or. kdyn == 3) then
                write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve)
                if (trim(yield_curve) == 'ellipse') &
-               write(nu_diag,1002) ' e_ratio          = ', e_ratio, ' : aspect ratio of ellipse'
+                    write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
+                    write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
             endif
-
+            
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ' : latitude-dependent Coriolis parameter'
             elseif (trim(coriolis) == 'contant') then
@@ -1641,13 +1653,18 @@
          write(nu_diag,1010) ' rotate_wind      = ', rotate_wind,' : rotate wind/stress to computational grid'
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
          write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
-         if (trim(atmbndy) == 'default') then
-            tmpstr2 = ' : stability-based boundary layer'
+         if (trim(atmbndy) == 'constant') then
+            tmpstr2 = ' : constant-based boundary layer'
+         elseif (trim(atmbndy) == 'similarity' .or. &
+                 trim(atmbndy) == 'mixed') then
             write(nu_diag,1010) ' highfreq         = ', highfreq,' : high-frequency atmospheric coupling'
             write(nu_diag,1020) ' natmiter         = ', natmiter,' : number of atmo boundary layer iterations'
             write(nu_diag,1002) ' atmiter_conv     = ', atmiter_conv,' : convergence criterion for ustar'
-         elseif (trim(atmbndy) == 'constant') then
-            tmpstr2 = ' : boundary layer uses bulk transfer coefficients'
+            if (trim(atmbndy) == 'similarity') then
+               tmpstr2 = ' : stability-based boundary layer'
+            else
+               tmpstr2 = ' : stability-based boundary layer for wind stress, constant-based for sensible+latent heat fluxes'
+            endif
          else
             tmpstr2 = ' : unknown value'
          endif

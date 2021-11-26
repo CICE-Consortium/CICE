@@ -297,6 +297,13 @@ results.csh script in the testsuite.[testid]::
   cd testsuite.[testid]
   ./results.csh
 
+The script **create_fails.csh** will process the output from results.csh and generate a new 
+test suite file, **fails.ts**, from the failed tests.  
+**fails.ts** can then be edited and passed into ``cice.setup --suite fails.ts ...`` to rerun 
+subsets of failed tests to more efficiently move thru the development, testing, and 
+validation process.  However, a full test suite should be run on the final development
+version of the code.
+
 To report the test results, as is required for Pull Requests to be accepted into 
 the master the CICE Consortium code see :ref:`testreporting`.
 
@@ -411,8 +418,10 @@ The *cice.setup** options ``--setup-only``, ``--setup-build``, and ``--setup-bui
 
 which means by default the test suite builds and submits the jobs.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  
 
-By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See below for an example.
+By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See :ref:`examplesuites` for an example.
 
+
+.. _examplesuites:
 
 Test Suite Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1121,7 +1130,7 @@ If the regression comparisons fail, then you may want to run the QC test,
   # From the updated sandbox
   # Generate the same test case(s) as the baseline using options or namelist changes to activate new code modifications
 
-  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 -testid qc_test -s qc,medium
+  ./cice.setup -m onyx -e intel --test smoke -g gx1 -p 44x1 --testid qc_test -s qc,medium
   cd onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
   # modify ice_in to activate the namelist options that were determined above
   ./cice.build
@@ -1130,7 +1139,8 @@ If the regression comparisons fail, then you may want to run the QC test,
   # Wait for runs to finish
   # Perform the QC test
 
-  cp configuration/scripts/tests/QC/cice.t-test.py
+  # From the updated sandbox
+  cp configuration/scripts/tests/QC/cice.t-test.py .
   ./cice.t-test.py /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_base \
                    /p/work/turner/CICE_RUNS/onyx_intel_smoke_gx1_44x1_medium_qc.qc_test
 

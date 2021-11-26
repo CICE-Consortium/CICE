@@ -1624,6 +1624,8 @@
         write(nu_diag,*) 'The following variables will be ', &
                          'written to the history tape: '
         write(nu_diag,101) 'description','units','variable','frequency','x'
+        if (num_avail_hist_fields_tot == 0) &
+           write(nu_diag,*) '*** WARNING: NO HISTORY FIELDS WILL BE WRITTEN ***'
         do n=1,num_avail_hist_fields_tot
            if (avail_hist_fields(n)%vhistfreq_n /= 0) &
            write(nu_diag,100) avail_hist_fields(n)%vdesc, &
@@ -1888,12 +1890,15 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
+
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
+
+         if (allocated(a2D)) then
 
          workb(:,:) = aice_init(:,:,iblk)
 
@@ -2879,6 +2884,10 @@
            call accum_hist_field(n_siforceintstry, iblk, worka(:,:), a2D)
          endif
 
+         endif ! if (allocated(a2D))
+
+         if (allocated(a3Dc)) then
+
          ! 3D category fields
          if (f_aicen   (1:1) /= 'x') &
              call accum_hist_field(n_aicen-n2D, iblk, ncat_hist, &
@@ -2959,6 +2968,10 @@
            call accum_hist_field(n_siitdsnthick-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
          endif
 
+         endif ! if (allocated(a3Dc))
+
+         if (allocated(a4Di)) then
+
 ! example for 3D field (x,y,z)
 !         if (f_field3dz   (1:1) /= 'x') &
 !             call accum_hist_field(n_field3dz-n3Dccum, iblk, nzilyr, &
@@ -2996,6 +3009,10 @@
                                   Sinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
          
+         endif ! if (allocated(a3Dc))
+
+         if (allocated(a4Ds)) then
+
          if (f_Tsnz   (1:1) /= 'x') then
             Tsnz4d(:,:,:,:) = c0
             do n = 1, ncat_hist
@@ -3012,25 +3029,30 @@
                                   Tsnz4d(:,:,1:nzslyr,1:ncat_hist), a4Ds)
          endif
          
-        ! Calculate aggregate surface melt flux by summing category values
-        if (f_fmeltt_ai(1:1) /= 'x') then
-         do ns = 1, nstreams
-           if (n_fmeltt_ai(ns) /= 0) then
-              worka(:,:) = c0
-              do j = jlo, jhi
-              do i = ilo, ihi
-               if (tmask(i,j,iblk)) then
-                 do n=1,ncat_hist
-                    worka(i,j)  = worka(i,j) + a3Dc(i,j,n,n_fmelttn_ai(ns)-n2D,iblk)
-                 enddo            ! n
-               endif              ! tmask
-              enddo                ! i
-              enddo                ! j
-              a2D(:,:,n_fmeltt_ai(ns),iblk) = worka(:,:)
-           endif
-         enddo
-        endif
+         endif ! if (allocated(a4Ds))
 
+         if (allocated(a3Dc) .and. allocated(a2D)) then
+
+         ! Calculate aggregate surface melt flux by summing category values
+         if (f_fmeltt_ai(1:1) /= 'x') then
+          do ns = 1, nstreams
+            if (n_fmeltt_ai(ns) /= 0) then
+               worka(:,:) = c0
+               do j = jlo, jhi
+               do i = ilo, ihi
+                if (tmask(i,j,iblk)) then
+                  do n=1,ncat_hist
+                     worka(i,j)  = worka(i,j) + a3Dc(i,j,n,n_fmelttn_ai(ns)-n2D,iblk)
+                  enddo            ! n
+                endif              ! tmask
+               enddo                ! i
+               enddo                ! j
+               a2D(:,:,n_fmeltt_ai(ns),iblk) = worka(:,:)
+            endif
+          enddo
+         endif
+
+         endif 
       !---------------------------------------------------------------
       ! accumulate other history output
       !---------------------------------------------------------------

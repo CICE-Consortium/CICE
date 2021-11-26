@@ -1,0 +1,10 @@
+tr_snow    = .true.
+snwredist  = 'ITDrdg'
+nslyr      = 5
+rhosnew    =  100.0
+rhosmin    =  100.0
+rhosmax    =  450.0
+windmin    =   10.0
+drhosdwind =   27.3
+snwlvlfac  =    0.3
+

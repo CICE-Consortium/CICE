@@ -1,0 +1,36 @@
+
+cp ${ICE_SANDBOX}/configuration/scripts/tests/QC/CICE_t_critical_p0.8.nc .
+cp ${ICE_SANDBOX}/configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc .
+
+#----------------------------------------------------
+# Run the CICE model
+# cice.run returns -1 if run did not complete successfully
+
+./cice.run
+set res="$status"
+
+set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
+set ttimeloop = `grep TimeLoop ${log_file} | grep Timer | cut -c 22-32`
+set tdynamics = `grep Dynamics ${log_file} | grep Timer | cut -c 22-32`
+set tcolumn   = `grep Column   ${log_file} | grep Timer | cut -c 22-32`
+if (${ttimeloop} == "") set ttimeloop = -1
+if (${tdynamics} == "") set tdynamics = -1
+if (${tcolumn}   == "") set tcolumn = -1
+
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
+
+set grade = PASS
+if ( $res != 0 ) then
+  set grade = FAIL
+  echo "$grade ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
+  echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  exit 99
+endif
+
+echo "$grade ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
+echo "$grade ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+
