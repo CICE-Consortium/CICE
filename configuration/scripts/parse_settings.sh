@@ -10,7 +10,7 @@ filename=$1
 filemods=$2
 
 #echo "$0 $1 $2" 
-echo "running parse_settings.sh"
+echo "running ${scriptname}"
 foundstring="FoundSTRING"
 vnamearray=()
 valuearray=()
@@ -23,8 +23,11 @@ do
   else
     #vname=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\2|g"`
     #value=`echo $line | sed "s|\(^\s*set\S*\)\s\{1,100\}\(\S*\)\s\{1,100\}\(\S*\).*$|\3|g"`
-    vname=`echo $line | sed "s|\(^[[:space:]]*set[^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\).*$|\2|g"`
+    vname=`echo $line | sed "s|\(^[[:space:]]*set[^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\).*$|\2|g"`
     value=`echo $line | sed "s|\(^[[:space:]]*set[^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\)[[:space:]][[:space:]]*\([^[:space:]]*\).*$|\3|g"`
+    if [[ "${value}" == "${line}" ]]; then
+       value=""
+    fi
 #    echo "$line $vname $value"
 
     found=${foundstring}
@@ -43,22 +46,27 @@ do
       fi
     done
 
-    #sed -i 's|\(^\s*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
-    sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
-
-    if [[ "${found}" == "${foundstring}" ]]; then
-      vnamearray+=($vname)
-      valuearray+=($value)
+    grep -q "^[[:space:]]*set.* ${vname}[[:space:]]*" $filename
+    grepout=$?
+    if [ ${grepout} -eq 0 ]; then
+      sed -i.sedbak -e 's|\(^[[:space:]]*set.* '"$vname"' \)[^#]*\(#*.*$\)|\1 '"$value"'  \2|g' $filename
+      if [[ "${found}" == "${foundstring}" ]]; then
+        vnamearray+=($vname)
+        valuearray+=($value)
+      else
+        valuearray[$found]=${value}
+      fi
     else
-      valuearray[$found]=${value}
-    fi
-
-    if [[ -e "${filename}.sedbak" ]]; then
-      rm ${filename}.sedbak
+      echo "${scriptname} ERROR: parsing error for ${vname}"
+      exit -99
     fi
 
   fi
 
 done < "$filemods"
+
+if [[ -e "${filename}.sedbak" ]]; then
+  rm ${filename}.sedbak
+fi
 
 exit 0

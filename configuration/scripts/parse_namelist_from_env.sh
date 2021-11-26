@@ -5,10 +5,11 @@ if [[ "$#" -ne 1 ]]; then
   exit -1
 fi
 
+scriptname=`basename "$0"`
 filename=$1
 
 #echo "$0 $1" 
-echo "running parse_namelist_from_env.sh"
+echo "running $scriptname"
 
 sed -i.sedbak -e 's|ICE_SANDBOX|'"${ICE_SANDBOX}"'|g' $filename
 sed -i.sedbak -e 's|ICE_MACHINE_INPUTDATA|'"${ICE_MACHINE_INPUTDATA}"'|g' $filename
