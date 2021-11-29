@@ -6,23 +6,25 @@
 ! See:
 !
 ! Hunke, E. C., and J. K. Dukowicz (1997). An elastic-viscous-plastic model
-! for sea ice dynamics. {\em J. Phys. Oceanogr.}, {\bf 27}, 1849--1867.
+! for sea ice dynamics. J. Phys. Oceanogr., 27, 1849-1867.
 !
 ! Hunke, E. C. (2001).  Viscous-Plastic Sea Ice Dynamics with the EVP Model:
-! Linearization Issues. {\em Journal of Computational Physics}, {\bf 170},
-! 18--38.
+! Linearization Issues. J. Comput. Phys., 170, 18-38.
 !
 ! Hunke, E. C., and J. K. Dukowicz (2002).  The Elastic-Viscous-Plastic
 ! Sea Ice Dynamics Model in General Orthogonal Curvilinear Coordinates
-! on a Sphere---Incorporation of Metric Terms. {\em Monthly Weather Review},
-! {\bf 130}, 1848--1865.
+! on a Sphere - Incorporation of Metric Terms. Mon. Weather Rev.,
+! 130, 1848-1865.
 !
 ! Hunke, E. C., and J. K. Dukowicz (2003).  The sea ice momentum
 ! equation in the free drift regime.  Los Alamos Tech. Rep. LA-UR-03-2219.
 !
-! Bouillon, S., T. Fichefet, V. Legat and G. Madec (submitted 2013).  The 
-! revised elastic-viscous-plastic method.  Ocean Modelling.
+! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+! Oceanogr., 9, 817-846.
 !
+! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013).  The 
+! elastic-viscous-plastic method revisited.  Ocean Model., 71, 2-12.
+! 
 ! author: Elizabeth C. Hunke, LANL
 !
 ! 2003: Vectorized by Clifford Chen (Fujitsu) and William Lipscomb (LANL)
@@ -590,8 +592,8 @@
                          rdg_conv,   rdg_shear,  & 
                          str )
 
-      use ice_dyn_shared, only: strain_rates, deformations
-
+        use ice_dyn_shared, only: strain_rates, deformations, viscous_coeffs_and_rep_pressure
+        
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
@@ -640,9 +642,10 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (visc coeff) 
+        etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (visc coeff)
+        rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !       puny                                      , & ! puny
-        c0ne, c0nw, c0se, c0sw                    , & ! useful combinations
-        c1ne, c1nw, c1se, c1sw                    , &
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -653,6 +656,8 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
+      logical :: capping ! of the viscous coef
+      
       character(len=*), parameter :: subname = '(stress)'
 
       !-----------------------------------------------------------------
@@ -660,6 +665,7 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
+      capping = .true. ! could be later included in ice_in
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -669,6 +675,7 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
+
          call strain_rates (nx_block,   ny_block,   &
                             i,          j,          &
                             uvel,       vvel,       &
@@ -685,46 +692,53 @@
                             Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
-      ! strength/Delta                   ! kg/s
+      ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
-         c0ne = strength(i,j)/max(Deltane,tinyarea(i,j))
-         c0nw = strength(i,j)/max(Deltanw,tinyarea(i,j))
-         c0sw = strength(i,j)/max(Deltasw,tinyarea(i,j))
-         c0se = strength(i,j)/max(Deltase,tinyarea(i,j))
-
-         c1ne = c0ne*arlx1i
-         c1nw = c0nw*arlx1i
-         c1sw = c0sw*arlx1i
-         c1se = c0se*arlx1i
-
-         c0ne = c1ne*ecci
-         c0nw = c1nw*ecci
-         c0sw = c1sw*ecci
-         c0se = c1se*ecci
-
+         
+         call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
+                                               Deltane,       Deltanw,      &
+                                               Deltasw,       Deltase,      &
+                                               zetax2ne,      zetax2nw,     &
+                                               zetax2sw,      zetax2se,     &
+                                               etax2ne,       etax2nw,      &
+                                               etax2sw,       etax2se,      &
+                                               rep_prsne,     rep_prsnw,    &
+                                               rep_prssw,     rep_prsse,    &
+                                               capping)
+         
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + c1ne*(divune*(c1+Ktens) - Deltane*(c1-Ktens))) &
-                          * denom1
-         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + c1nw*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))) &
-                          * denom1
-         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + c1sw*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))) &
-                          * denom1
-         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + c1se*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))) &
-                          * denom1
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
+         
+         stressp_1(i,j) = (stressp_1(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
+         stressp_2(i,j) = (stressp_2(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2nw*divunw - rep_prsnw)) * denom1
+         stressp_3(i,j) = (stressp_3(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2sw*divusw - rep_prssw)) * denom1
+         stressp_4(i,j) = (stressp_4(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2se*divuse - rep_prsse)) * denom1
 
-         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + c0ne*tensionne*(c1+Ktens)) * denom1
-         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + c0nw*tensionnw*(c1+Ktens)) * denom1
-         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + c0sw*tensionsw*(c1+Ktens)) * denom1
-         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + c0se*tensionse*(c1+Ktens)) * denom1
+         stressm_1(i,j) = (stressm_1(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2ne*tensionne) * denom1
+         stressm_2(i,j) = (stressm_2(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2nw*tensionnw) * denom1
+         stressm_3(i,j) = (stressm_3(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2sw*tensionsw) * denom1
+         stressm_4(i,j) = (stressm_4(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2se*tensionse) * denom1
 
-         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + c0ne*shearne*p5*(c1+Ktens)) * denom1
-         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + c0nw*shearnw*p5*(c1+Ktens)) * denom1
-         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + c0sw*shearsw*p5*(c1+Ktens)) * denom1
-         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + c0se*shearse*p5*(c1+Ktens)) * denom1
+         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2ne*shearne) * denom1
+         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2nw*shearnw) * denom1
+         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2sw*shearsw) * denom1
+         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2se*shearse) * denom1
 
       !-----------------------------------------------------------------
       ! Eliminate underflows.

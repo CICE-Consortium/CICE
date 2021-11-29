@@ -177,7 +177,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
         df = n_eff - 1
 
         # Read in t_crit table
-        nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_t_critical_p0.8.nc", 'r')
+        if os.path.exists('./CICE_t_critical_p0.8.nc'):
+          nfid = nc.Dataset("./CICE_t_critical_p0.8.nc", 'r')
+        else:
+          nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_t_critical_p0.8.nc", 'r')
         df_table = nfid.variables['df'][:]
         t_crit_table = nfid.variables['tcrit'][:]
         nfid.close()
@@ -238,7 +241,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     t_val = mean_d / np.sqrt(variance_d / num_files)
 
     # Find t_crit from the nearest value on the Lookup Table Test
-    nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc", 'r')
+    if os.path.exists('./CICE_Lookup_Table_p0.8_n1825.nc'):
+      nfid = nc.Dataset("./CICE_Lookup_Table_p0.8_n1825.nc", 'r')
+    else:
+      nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc", 'r')
     r1_table = nfid.variables['r1'][:]
     t_crit_table = nfid.variables['tcrit'][:]
     nfid.close()
