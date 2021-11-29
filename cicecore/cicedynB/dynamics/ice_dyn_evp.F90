@@ -646,6 +646,13 @@
 
          do ksub = 1,ndte        ! subcycling
 
+         ! shift velocity components from CD grid locations (N, E) to B grid location (U) for stress_U
+
+            if (grid_system == 'CD') then
+                call grid_average_X2Y('E2US',uvelE,uvel)
+                call grid_average_X2Y('N2US',vvelN,vvel)
+            endif
+
          !-----------------------------------------------------------------
          ! stress tensor equation, total surface stress
          !-----------------------------------------------------------------
