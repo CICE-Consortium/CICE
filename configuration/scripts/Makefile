@@ -73,7 +73,6 @@ RM    := rm
 AR    := ar
 
 .SUFFIXES:
-.SUFFIXES: .F90 .F .c .o
 
 .PHONY: all cice libcice targets target db_files db_flags clean realclean helloworld calchk sumchk bcstchk gridavgchk
 all: $(EXEC)
@@ -169,13 +168,13 @@ libcice: $(OBJS)
 	@ echo "$(AR) -r $(EXEC) $(OBJS)"
 	$(AR) -r $(EXEC) $(OBJS)
 
-.c.o:
+%.o : %.c
 	$(CC) $(CFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
-.F.o:
+%.o : %.F %.d
 	$(FC) -c $(FFLAGS) $(FIXEDFLAGS) $(CPPDEFS) $(INCLDIR) $<
 
-.F90.o:
+%.o : %.F90 %.d
 	$(FC) -c $(FFLAGS) $(FREEFLAGS) $(CPPDEFS) $(MODDIR) $(INCLDIR) $<
 
 clean:

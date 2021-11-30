@@ -1,5 +1,7 @@
 #!/bin/csh -f
 
+#set pd0 = `date -u "+%s%N"`
+
 set ICE_SANDBOX = `pwd`
 set ICE_VERSION = unknown
 if (-e cicecore/version.txt) then
@@ -824,8 +826,8 @@ EOF
     # set default test output as failure
     if (${docase} == 0) then
       echo "#---" >! test_output
-      echo "FAIL ${testname_noid} build" >> test_output
-      echo "FAIL ${testname_noid} run" >> test_output
+      echo "PEND ${testname_noid} build" >> test_output
+      echo "PEND ${testname_noid} run" >> test_output
     endif
 
     # from basic script dir to case
@@ -934,9 +936,21 @@ EOF
     if (-e ${fimods}) rm ${fimods}
     if (-e ${fsmods}) rm ${fsmods}
 
+    # Use an existing ice_in file from the suite if it exists
+    # to reduce time spent in parse_namelist
+    set skip_parse_namelist = spval
+    if (${dosuite} == 1) then
+      set iceinfn = ../ice_in_save_${grid}${soptions}
+      if (-e ${iceinfn}) then
+        echo "use ${iceinfn}"
+        cp ${iceinfn} ice_in
+        set skip_parse_namelist = true
+      endif
+    endif
+
+    # Set decomp info in namelist
     cat >! ${fimods} << EOF1
 # cice.setup settings
-
 nprocs            = ${task}
 nx_global         = ${ICE_DECOMP_NXGLOB}
 ny_global         = ${ICE_DECOMP_NYGLOB}
@@ -965,7 +979,6 @@ EOF1
 
     cat >! ${fsmods} << EOF1
 # cice.setup settings
-
 setenv ICE_SANDBOX  ${ICE_SANDBOX}
 setenv ICE_SCRIPTS  ${ICE_SCRIPTS}
 setenv ICE_CASENAME ${casename}
@@ -1034,44 +1047,57 @@ EOF1
 
     foreach name (${grid} $setsx)
       set found = 0
+
       if (-e ${ICE_SCRIPTS}/options/set_nml.${name}) then
         cat >> ${fimods} << EOF2
 
 # set_nml.${name}
-
 EOF2
-        cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
-        cat >> ${fimods} << EOF2
-
+        if ("${skip_parse_namelist}" == "true") then
+          # need to make sure the decomp info from the set_nml is picked up.  each case
+          # has a slightly different decomp that is independent of the ice_in_save file.
+          # compute that then overwrite by set_nml as needed.
+          grep -i "distribution_type" ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+          grep -i "processor_shape"   ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+          cat >> ${fimods} << EOF2
+#   using saved ice_in
 EOF2
+        else
+          cat ${ICE_SCRIPTS}/options/set_nml.${name} >> ${fimods}
+          cat >> ${fimods} << EOF2
+EOF2
+        endif
         echo "adding namelist mods set_nml.${name}"
         echo "`date` ${0} adding namelist modes set_nml.${name}" >> ${casedir}/README.case
         set found = 1
       endif
+
       if (-e ${ICE_SCRIPTS}/options/set_env.${name}) then
 
         cat >> ${fsmods} << EOF2
 
 # set_env.${name}
-
 EOF2
         cat ${ICE_SCRIPTS}/options/set_env.${name} >> ${fsmods}
         cat >> ${fsmods} << EOF2
-
 EOF2
         echo "adding env mods set_env.${name}"
         echo "`date` ${0} adding namelist modes set_env.${name}" >> ${casedir}/README.case
         set found = 1
       endif
+
       if (${found} == 0) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/options/set_[nml,env].${name} not found"
         exit -1
       endif
     end
 
+#set pd1 = `date -u "+%s%N"`
+#@ pdd = ( $pd1 - $pd0 ) / 1000000
+#echo "tcxp b4 parse $pdd"
     ${casescr}/parse_settings.sh cice.settings ${fsmods}
     if ($status != 0) then
-      echo "${0}: ERROR, parse_namelist.sh aborted"
+      echo "${0}: ERROR, parse_settings.sh aborted"
       exit -1
     endif
     ${casescr}/parse_namelist.sh ice_in ${fimods}
@@ -1082,6 +1108,20 @@ EOF2
     source ./cice.settings
     source ./env.${machcomp} -nomodules || exit 2
     ${casescr}/parse_namelist_from_env.sh ice_in
+    if ($status != 0) then
+      echo "${0}: ERROR, parse_namelist_from_env.sh aborted"
+      exit -1
+    endif
+#set pd1 = `date -u "+%s%N"`
+#@ pdd = ( $pd1 - $pd0 ) / 1000000
+#echo "tcxp after parse $pdd"
+
+    # Save ice_in in the suite to reduce time spent in parse_namelist
+    if (${dosuite} == 1) then
+      if !(-e ${iceinfn}) then
+        cp ice_in ${iceinfn}
+      endif
+    endif
 
     #------------------------------------------------------------
     # Generate run script
@@ -1166,6 +1206,10 @@ EOF
       echo "" 
     endif
 
+#set pd1 = `date -u "+%s%N"`
+#@ pdd = ( $pd1 - $pd0 ) / 1000000
+#echo "tcxp case done $pdd"
+
    # This is the foreach end for the testsuite
   end
 # This is the foreach end for the envnames
@@ -1180,6 +1224,7 @@ if ( ${dosuite} == 1 ) then
   cat >> ${tsdir}/suite.submit << EOF0
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
+set nonomatch && rm -f ice_in_save* && unset nonomatch
 
 EOF0
 
@@ -1221,6 +1266,10 @@ EOF0
 endif
 
 #---------------------------------------------
+
+#set pd1 = `date -u "+%s%N"`
+#@ pdd = ( $pd1 - $pd0 ) / 1000000
+#echo "tcxp done $pdd"
 
 echo " "
 echo "${0} done"
