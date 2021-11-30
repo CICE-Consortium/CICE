@@ -102,7 +102,7 @@
           dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, & 
           dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, earea, narea, tinyarea, grid_average_X2Y, tarea, &
+          tarear, uarear, earear, narear, tinyarea, grid_average_X2Y, tarea, &
           grid_type, grid_system
       use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, &
@@ -740,7 +740,7 @@
                                    indxei      (:,iblk), indxej      (:,iblk), &
                                    dxE       (:,:,iblk), dyE       (:,:,iblk), &
                                    dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earea     (:,:,iblk),                       &
+                                   earear    (:,:,iblk),                       &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12U (:,:,iblk),                       &
                                    stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
@@ -753,7 +753,7 @@
                                    indxni      (:,iblk), indxnj      (:,iblk), &
                                    dxN       (:,:,iblk), dyN       (:,:,iblk), &
                                    dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narea     (:,:,iblk),                       &
+                                   narear    (:,:,iblk),                       &
                                    stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                    stress12T (:,:,iblk),                       &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
@@ -1608,7 +1608,7 @@
                               indxi,     indxj,       &
                               dxE_N,   dyE_N,         &
                               dxT_U,   dyT_U,         &
-                              area,                   &
+                              arear,                  &
                               stresspF1,   stressmF1, & 
                               stress12F1,             &
                               stresspF2,   stressmF2, &
@@ -1632,7 +1632,7 @@
          dyE_N , & ! height of E or N-cell through the middle (m)
          dxT_U , & ! width of T or U-cell through the middle (m)
          dyT_U , & ! height of T or U-cell through the middle (m)
-         area    , & ! earea or narea
+         arear , & ! earear or narear
          stresspF1  , & ! stressp  (U or T) used for F1 calculation
          stressmF1  , & ! stressm  (U or T) used for F1 calculation 
          stress12F1 , & ! stress12 (U or T) used for F1 calculation 
@@ -1668,14 +1668,14 @@
          select case (trim(grid_location))
          case('E')
             
-            F1(i,j) = (c1/area(i,j)) * &
+            F1(i,j) = arear(i,j) * &
                  ( p5 * dyE_N(i,j) * ( stresspF1(i+1,j)-stresspF1(i,j) )     &
                  + (p5/dyE_N(i,j)) * ( (dyT_U(i+1,j)**2) * stressmF1(i+1,j)  &
                                       -(dyT_U(i,j)**2)*stressmF1(i,j) )      &
                  + (c1/dxE_N(i,j)) * ( (dxT_U(i,j)**2) * stress12F1(i,j)     &
                                       -(dxT_U(i,j-1)**2)*stress12F1(i,j-1) ) )
 
-            F2(i,j) = (c1/area(i,j)) * &
+            F2(i,j) = arear(i,j) * &
                  ( p5 * dxE_N(i,j) * ( stresspF2(i,j)-stresspF2(i,j-1) )     &
                  - (p5/dxE_N(i,j)) * ( (dxT_U(i,j)**2) * stressmF2(i,j)      &
                                       -(dxT_U(i,j-1)**2)*stressmF2(i,j-1) )  &
@@ -1684,14 +1684,14 @@
 
          case('N')
 
-            F1(i,j) = (c1/area(i,j)) * &
+            F1(i,j) = arear(i,j) * &
                  ( p5 * dyE_N(i,j) * ( stresspF1(i,j)-stresspF1(i-1,j) )     &
                  + (p5/dyE_N(i,j)) * ( (dyT_U(i,j)**2) * stressmF1(i,j)      &
                                       -(dyT_U(i-1,j)**2)*stressmF1(i-1,j) )  &
                  + (c1/dxE_N(i,j)) * ( (dxT_U(i,j+1)**2) * stress12F1(i,j+1) &
                                       -(dxT_U(i,j)**2)*stress12F1(i,j) ) )
 
-            F2(i,j) = (c1/area(i,j)) * &
+            F2(i,j) = arear(i,j) * &
                  ( p5 * dxE_N(i,j) * ( stresspF2(i,j+1)-stresspF2(i,j) )     &
                  - (p5/dxE_N(i,j)) * ( (dxT_U(i,j+1)**2) * stressmF2(i,j+1)  &
                                       -(dxT_U(i,j)**2)*stressmF2(i,j) )      &

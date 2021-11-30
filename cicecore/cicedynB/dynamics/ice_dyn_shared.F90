@@ -1863,7 +1863,7 @@
       shearU = dxU(i,j) * ( uEijp1 - uEij ) &
                - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
                + dyU(i,j) * ( vNip1j - vNij ) &
-               + vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+               - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
       
       ! Delta (in the denominator of zeta, eta)
       DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
@@ -2031,7 +2031,7 @@
                  maskT_11*Tarea_11 *etax2T_11   + &
                  maskT_01*Tarea_01 *etax2T_01)/Totarea
  
-      rep_prsU = (c1-ktens)/(1+Ktens)*zetax2U*deltaU
+      rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
 
        end subroutine viscous_coeffs_and_rep_pressure_T2U
 
