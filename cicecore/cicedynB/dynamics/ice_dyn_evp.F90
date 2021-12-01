@@ -552,7 +552,8 @@
       
       if (seabed_stress) then
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         ! tcraig, causes abort with pgi compiler on cheyenne
+         !$TCXOMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
             select case (trim(grid_system))
@@ -605,7 +606,7 @@
          end select
          
          enddo
-       !$OMP END PARALLEL DO
+       !$TCXOMP END PARALLEL DO
       endif
 
       call ice_timer_start(timer_evp_2d)

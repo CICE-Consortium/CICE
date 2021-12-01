@@ -446,7 +446,8 @@
       
       if (seabed_stress) then
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         ! tcraig, evp omp causes abort on cheyenne with pgi, turn off here too
+         !$TCXOMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
             if ( seabed_stress_method == 'LKD' ) then
@@ -467,7 +468,7 @@
             endif
 
          enddo
-         !$OMP END PARALLEL DO
+         !$TCXOMP END PARALLEL DO
       endif
       
       !-----------------------------------------------------------------
