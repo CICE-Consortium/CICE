@@ -613,7 +613,7 @@
       call broadcast_scalar(nml_error, master_task)
       call broadcast_scalar(tmpstr2,   master_task)
       if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading namelist' // &
+         call abort_ice(subname//'ERROR: reading namelist: ' // &
               trim(tmpstr2), &
               file=__FILE__, line=__LINE__)
       endif

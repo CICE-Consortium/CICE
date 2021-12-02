@@ -154,7 +154,7 @@
       call broadcast_scalar(tmpstr2,   master_task)
       if (nml_error /= 0) then
          close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_nml ' // &
+         call abort_ice(subname//'ERROR: reading icefields_nml: ' // &
               trim(tmpstr2), &
               file=__FILE__, line=__LINE__)
       endif
