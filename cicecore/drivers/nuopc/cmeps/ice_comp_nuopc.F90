@@ -376,8 +376,7 @@ contains
        depressT_in         = 0.054_dbl_kind,                  &
        Tocnfrz_in          = -34.0_dbl_kind*0.054_dbl_kind,   &
        pi_in               = SHR_CONST_PI,                    &
-       snowpatch_in        = 0.005_dbl_kind,                  &
-       dragio_in           = 0.00536_dbl_kind)
+       snowpatch_in        = 0.005_dbl_kind)
 
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
