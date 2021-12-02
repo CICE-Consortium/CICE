@@ -183,9 +183,9 @@ endif
 # Generate the non-BFB but non-climate-changing case
 echo "Generating nonbfb case"
 if ($testid != $spval) then
-  set result = `./cice.setup $options -s qc_nonbfb,long --testid qc_test_$testid | grep 'Test case dir\|already exists'`
+  set result = `./cice.setup $options -s qcnonbfb,long --testid qc_test_$testid | grep 'Test case dir\|already exists'`
 else
-  set result = `./cice.setup $options -s qc_nonbfb,long --testid qc_test | grep 'Test case dir\|already exists'`
+  set result = `./cice.setup $options -s qcnonbfb,long --testid qc_test | grep 'Test case dir\|already exists'`
 endif
 set nonbfb_dir = `echo "$result" | awk '{print$NF}'`
 if ($nonbfb_dir == "exists") then

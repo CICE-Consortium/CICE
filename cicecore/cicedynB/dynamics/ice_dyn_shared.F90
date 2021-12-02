@@ -63,8 +63,11 @@
 
       real (kind=dbl_kind), public :: &
          revp     , & ! 0 for classic EVP, 1 for revised EVP
-         e_ratio  , & ! e = EVP ellipse aspect ratio 
-         ecci     , & ! 1/e^2
+         e_yieldcurve, & ! VP aspect ratio of elliptical yield curve
+         e_plasticpot, & ! VP aspect ratio of elliptical plastic potential
+         epp2i    , & ! 1/(e_plasticpot)^2
+         e_factor , & ! (e_yieldcurve)^2/(e_plasticpot)^4
+         ecci     , & ! temporary for 1d evp
          dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
 !         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
@@ -220,7 +223,6 @@
 
       !real (kind=dbl_kind) :: &
          !dte         , & ! subcycling timestep for EVP dynamics, s
-         !ecc         , & ! (ratio of major to minor ellipse axes)^2
          !tdamp2          ! 2*(wave damping time scale T)
 
       character(len=*), parameter :: subname = '(set_evp_parameters)'
@@ -230,10 +232,10 @@
       !dtei = c1/dte              ! 1/s
       dtei = real(ndte,kind=dbl_kind)/dt 
 
-      ! major/minor axis length ratio, squared
-      !ecc  = e_ratio**2
-      !ecci = c1/ecc               ! 1/ecc
-      ecci = c1/e_ratio**2               ! 1/ecc
+      ! variables for elliptical yield curve and plastic potential
+      epp2i = c1/e_plasticpot**2
+      e_factor = e_yieldcurve**2 / e_plasticpot**4
+      ecci = c1/e_yieldcurve**2 ! temporary for 1d evp
 
       ! constants for stress equation
       !tdamp2 = c2*eyc*dt                    ! s
@@ -1352,10 +1354,10 @@
               -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
       
       ! Delta (in the denominator of zeta, eta)
-      Deltane = sqrt(divune**2 + ecci*(tensionne**2 + shearne**2))
-      Deltanw = sqrt(divunw**2 + ecci*(tensionnw**2 + shearnw**2))
-      Deltasw = sqrt(divusw**2 + ecci*(tensionsw**2 + shearsw**2))
-      Deltase = sqrt(divuse**2 + ecci*(tensionse**2 + shearse**2))
+      Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
+      Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
+      Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
+      Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates
 
@@ -1375,53 +1377,64 @@
       
       subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
                                                   Deltane,   Deltanw,  &
-                                                  Deltase,   Deltasw,  &
+                                                  Deltasw,   Deltase,  &
                                                   zetax2ne,  zetax2nw, &
-                                                  zetax2se,  zetax2sw, &
+                                                  zetax2sw,  zetax2se, &
                                                   etax2ne,   etax2nw,  &
-                                                  etax2se,   etax2sw,  &
+                                                  etax2sw,   etax2se,  &
                                                   rep_prsne, rep_prsnw,&
-                                                  rep_prsse, rep_prssw )
+                                                  rep_prssw, rep_prsse,&
+                                                  capping)
 
       real (kind=dbl_kind), intent(in)::  &
         strength, tinyarea                  ! at the t-point
         
       real (kind=dbl_kind), intent(in)::  &  
-        Deltane, Deltanw, Deltase, Deltasw  ! Delta at each corner
+        Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
 
+      logical , intent(in):: capping
+      
       real (kind=dbl_kind), intent(out):: &  
-        zetax2ne, zetax2nw, zetax2se, zetax2sw,  & ! zetax2 at each corner 
-        etax2ne, etax2nw, etax2se, etax2sw,      & ! etax2 at each corner
-        rep_prsne, rep_prsnw, rep_prsse, rep_prssw ! replacement pressure
+        zetax2ne, zetax2nw, zetax2sw, zetax2se,  & ! zetax2 at each corner 
+        etax2ne, etax2nw, etax2sw, etax2se,      & ! etax2 at each corner
+        rep_prsne, rep_prsnw, rep_prssw, rep_prsse ! replacement pressure
 
       ! local variables
       real (kind=dbl_kind) :: &
-        tmpcalc
+        tmpcalcne, tmpcalcnw, tmpcalcsw, tmpcalcse
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
 !      if (trim(yield_curve) == 'ellipse') then
 
-         tmpcalc = strength/max(Deltane,tinyarea) ! northeast
-         zetax2ne = (c1+Ktens)*tmpcalc
-         rep_prsne = (c1-Ktens)*tmpcalc*Deltane
-         etax2ne = ecci*zetax2ne ! CHANGE FOR e_plasticpot
-         
-         tmpcalc = strength/max(Deltanw,tinyarea) ! northwest
-         zetax2nw = (c1+Ktens)*tmpcalc
-         rep_prsnw = (c1-Ktens)*tmpcalc*Deltanw
-         etax2nw = ecci*zetax2nw ! CHANGE FOR e_plasticpot
+      if (capping) then
+         tmpcalcne = strength/max(Deltane,tinyarea)
+         tmpcalcnw = strength/max(Deltanw,tinyarea)
+         tmpcalcsw = strength/max(Deltasw,tinyarea)
+         tmpcalcse = strength/max(Deltase,tinyarea)
+      else
+         tmpcalcne = strength/(Deltane + tinyarea)
+         tmpcalcnw = strength/(Deltanw + tinyarea)
+         tmpcalcsw = strength/(Deltasw + tinyarea)
+         tmpcalcse = strength/(Deltase + tinyarea)
+      endif
 
-         tmpcalc = strength/max(Deltase,tinyarea) ! southeast
-         zetax2se = (c1+Ktens)*tmpcalc
-         rep_prsse = (c1-Ktens)*tmpcalc*Deltase
-         etax2se = ecci*zetax2se ! CHANGE FOR e_plasticpot
-
-         tmpcalc = strength/max(Deltasw,tinyarea) ! southwest
-         zetax2sw = (c1+Ktens)*tmpcalc
-         rep_prssw = (c1-Ktens)*tmpcalc*Deltasw
-         etax2sw = ecci*zetax2sw ! CHANGE FOR e_plasticpot
+         zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
+         rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
+         etax2ne = epp2i*zetax2ne
          
+         zetax2nw = (c1+Ktens)*tmpcalcnw ! northwest 
+         rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
+         etax2nw = epp2i*zetax2nw
+
+         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest  
+         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
+         etax2sw = epp2i*zetax2sw
+         
+         zetax2se = (c1+Ktens)*tmpcalcse ! southeast
+         rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
+         etax2se = epp2i*zetax2se
+
 !      else
 
 !      endif

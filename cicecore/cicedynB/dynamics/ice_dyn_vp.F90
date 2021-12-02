@@ -46,7 +46,7 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
-          ecci, cosw, sinw, fcor_blk, uvel_init, vvel_init, &
+          cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_velocity_field,  unstack_velocity_field
       use ice_fileunits, only: nu_diag
@@ -234,8 +234,10 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
-         zetaD        ! zetaD = 2zeta (viscous coeff)
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure
+         
       logical (kind=log_kind) :: calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
@@ -488,8 +490,9 @@
                             bxfix   , byfix , &
                             umassdti, sol   , &
                             fpresx  , fpresy, &
-                            zetaD   , Cb    , &
-                            halo_info_mask)
+                            zetax2  , etax2 , &
+                            rep_prs ,         &
+                            Cb, halo_info_mask)
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
       !-----------------------------------------------------------------
@@ -510,7 +513,8 @@
                          dxt       (:,:,iblk), dyt       (:,:,iblk), &
                          cxp       (:,:,iblk), cyp       (:,:,iblk), &
                          cxm       (:,:,iblk), cym       (:,:,iblk), &
-                         zetaD   (:,:,iblk,:),                       &
+                         zetax2  (:,:,iblk,:), etax2   (:,:,iblk,:), &
+                         rep_prs (:,:,iblk,:),                       &
                          stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
                          stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
@@ -671,8 +675,9 @@
                                   bxfix   , byfix , &
                                   umassdti, sol   , &
                                   fpresx  , fpresy, &
-                                  zetaD   , Cb    , &
-                                  halo_info_mask)
+                                  zetax2  , etax2 , &
+                                  rep_prs ,         &
+                                  Cb, halo_info_mask)
 
       use ice_arrays_column, only: Cdn_ocn
       use ice_blocks, only: nx_block, ny_block
@@ -708,8 +713,10 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
-         zetaD        ! zetaD = 2zeta (viscous coeff)
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure
+      
       type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
 
@@ -805,7 +812,7 @@
       do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop
          ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
          !-----------------------------------------------------------------
-         ! Calc zetaD, dPr/dx, dPr/dy, Cb and vrel = f(uprev_k, vprev_k)
+         ! Calc zetax2, etax2, dPr/dx, dPr/dy, Cb and vrel = f(uprev_k, vprev_k)
          !-----------------------------------------------------------------
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -828,9 +835,9 @@
                                 dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
                                 cxp      (:,:,iblk), cyp     (:,:,iblk), &
                                 cxm      (:,:,iblk), cym     (:,:,iblk), &
-                                tinyarea (:,:,iblk),                     &
-                                strength (:,:,iblk), zetaD (:,:,iblk,:), &
-                                stress_Pr  (:,:,:))
+                                tinyarea (:,:,iblk), strength (:,:,iblk),&
+                                zetax2 (:,:,iblk,:), etax2  (:,:,iblk,:),&
+                                rep_prs(:,:,iblk,:), stress_Pr  (:,:,:))
             
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -861,7 +868,7 @@
                          cxm      (:,:,iblk)  , cym      (:,:,iblk), &
                          uprev_k  (:,:,iblk)  , vprev_k  (:,:,iblk), &
                          vrel     (:,:,iblk)  , Cb       (:,:,iblk), &
-                         zetaD    (:,:,iblk,:),                      &
+                         zetax2   (:,:,iblk,:), etax2  (:,:,iblk,:), &
                          umassdti (:,:,iblk)  , fm       (:,:,iblk), &
                          uarear   (:,:,iblk)  ,                      &
                          Au       (:,:,iblk)  , Av       (:,:,iblk))
@@ -908,14 +915,15 @@
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
                   ! first compute diagonal contributions due to rheology term
-                  call formDiag_step1 (nx_block             , ny_block      , &
-                                       icellu       (iblk)  ,                 &
-                                       indxui     (:,iblk)  , indxuj(:,iblk), &
-                                       dxt      (:,:,iblk)  , dyt (:,:,iblk), &
-                                       dxhy     (:,:,iblk)  , dyhx(:,:,iblk), &
-                                       cxp      (:,:,iblk)  , cyp (:,:,iblk), &
-                                       cxm      (:,:,iblk)  , cym (:,:,iblk), &
-                                       zetaD    (:,:,iblk,:), diag_rheo(:,:,:))
+                  call formDiag_step1 (nx_block           , ny_block      ,    &
+                                       icellu     (iblk)  ,                    &
+                                       indxui   (:,iblk)  , indxuj(:,iblk),    &
+                                       dxt    (:,:,iblk)  , dyt (:,:,iblk),    &
+                                       dxhy   (:,:,iblk)  , dyhx(:,:,iblk),    &
+                                       cxp    (:,:,iblk)  , cyp (:,:,iblk),    &
+                                       cxm    (:,:,iblk)  , cym (:,:,iblk),    &
+                                       zetax2 (:,:,iblk,:), etax2(:,:,iblk,:), &
+                                       diag_rheo(:,:,:))
                   ! second compute the full diagonal
                   call formDiag_step2 (nx_block           , ny_block          , &
                                        icellu       (iblk),                     &
@@ -929,7 +937,7 @@
             endif
             
             ! FGMRES linear solver
-            call fgmres (zetaD         ,             &
+            call fgmres (zetax2        , etax2     , &
                          Cb            , vrel      , &
                          umassdti      ,             &
                          halo_info_mask,             &
@@ -1119,7 +1127,7 @@
 
 !=======================================================================
 
-! Computes the viscous coefficients (in fact zetaD=2*zeta) and dPr/dx, dPr/dy
+! Computes the viscous coefficients and dPr/dx, dPr/dy
 
       subroutine calc_zeta_dPr (nx_block, ny_block, &
                                 icellt  ,           &
@@ -1129,11 +1137,11 @@
                                 dxhy    , dyhx    , &
                                 cxp     , cyp     , &
                                 cxm     , cym     , &
-                                tinyarea,           &
-                                strength, zetaD   , &
-                                stPr)
+                                tinyarea, strength, &
+                                zetax2  , etax2   , &
+                                rep_prs , stPr)
 
-      use ice_dyn_shared, only: strain_rates
+      use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1158,8 +1166,10 @@
          tinyarea     ! min_strain_rate*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
-         zetaD          ! 2*zeta
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         rep_prs      ! replacement pressure 
+      
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          stPr          ! stress combinations from replacement pressure
 
@@ -1186,9 +1196,11 @@
 
       capping = .false.
       
-      ! Initialize stPr and zetaD to zero (for cells where icetmask is false)
-      stPr  = c0
-      zetaD = c0
+      ! Initialize stPr, zetax2 and etax2 to zero
+      ! (for cells where icetmask is false)
+      stPr   = c0
+      zetax2 = c0
+      etax2  = c0
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -1213,27 +1225,30 @@
                             Deltane  , Deltanw  , &
                             Deltase  , Deltasw)
 
-         if (capping) then
-            zetaD(i,j,1) = strength(i,j)/max(Deltane,tinyarea(i,j))
-            zetaD(i,j,2) = strength(i,j)/max(Deltanw,tinyarea(i,j))
-            zetaD(i,j,3) = strength(i,j)/max(Deltasw,tinyarea(i,j))
-            zetaD(i,j,4) = strength(i,j)/max(Deltase,tinyarea(i,j))
-         else
-            zetaD(i,j,1) = strength(i,j)/(Deltane + tinyarea(i,j))
-            zetaD(i,j,2) = strength(i,j)/(Deltanw + tinyarea(i,j))
-            zetaD(i,j,3) = strength(i,j)/(Deltasw + tinyarea(i,j))
-            zetaD(i,j,4) = strength(i,j)/(Deltase + tinyarea(i,j))
-         endif
+      !-----------------------------------------------------------------        
+      ! viscous coefficients and replacement pressure                           
+      !-----------------------------------------------------------------        
+
+         call viscous_coeffs_and_rep_pressure (strength(i,j),  tinyarea(i,j),  &
+                                               Deltane,        Deltanw,        &
+                                               Deltasw,        Deltase,        &
+                                               zetax2(i,j,1),  zetax2(i,j,2),  &
+                                               zetax2(i,j,3),  zetax2(i,j,4),  &
+                                               etax2(i,j,1),   etax2(i,j,2),   &
+                                               etax2(i,j,3),   etax2(i,j,4),   &
+                                               rep_prs(i,j,1), rep_prs(i,j,2), &
+                                               rep_prs(i,j,3), rep_prs(i,j,4), &
+                                               capping)
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
 
-         stressp_1 = -zetaD(i,j,1)*(Deltane*(c1-Ktens))
-         stressp_2 = -zetaD(i,j,2)*(Deltanw*(c1-Ktens))
-         stressp_3 = -zetaD(i,j,3)*(Deltasw*(c1-Ktens))
-         stressp_4 = -zetaD(i,j,4)*(Deltase*(c1-Ktens))
+         stressp_1 = -rep_prs(i,j,1)
+         stressp_2 = -rep_prs(i,j,2)
+         stressp_3 = -rep_prs(i,j,3)
+         stressp_4 = -rep_prs(i,j,4)
          
       !-----------------------------------------------------------------
       ! combinations of the Pr related stresses for the momentum equation ! kg/s^2
@@ -1305,6 +1320,9 @@
 
 ! Computes the VP stresses (as diagnostic)
 
+! Lemieux, J.-F., and Dupont, F. (2020), On the calculation of normalized
+! viscous-plastic sea ice stresses, Geosci. Model Dev., 13, 1763–1769,
+      
       subroutine stress_vp (nx_block  , ny_block  , &
                             icellt    ,             &
                             indxti    , indxtj    , &
@@ -1312,7 +1330,8 @@
                             dxt       , dyt       , &
                             cxp       , cyp       , &
                             cxm       , cym       , &
-                            zetaD     ,             &
+                            zetax2    , etax2     , &
+                            rep_prs   ,             &
                             stressp_1 , stressp_2 , &
                             stressp_3 , stressp_4 , &
                             stressm_1 , stressm_2 , &
@@ -1341,8 +1360,10 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetaD          ! 2*zeta
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         rep_prs
+      
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -1388,21 +1409,21 @@
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
-
-         stressp_1(i,j) = zetaD(i,j,1)*(divune*(c1+Ktens) - Deltane*(c1-Ktens))
-         stressp_2(i,j) = zetaD(i,j,2)*(divunw*(c1+Ktens) - Deltanw*(c1-Ktens))
-         stressp_3(i,j) = zetaD(i,j,3)*(divusw*(c1+Ktens) - Deltasw*(c1-Ktens))
-         stressp_4(i,j) = zetaD(i,j,4)*(divuse*(c1+Ktens) - Deltase*(c1-Ktens))
          
-         stressm_1(i,j) = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
-         stressm_2(i,j) = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
-         stressm_3(i,j) = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
-         stressm_4(i,j) = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+         stressp_1(i,j) = zetax2(i,j,1)*divune - rep_prs(i,j,1)
+         stressp_2(i,j) = zetax2(i,j,2)*divunw - rep_prs(i,j,2)
+         stressp_3(i,j) = zetax2(i,j,3)*divusw - rep_prs(i,j,3)
+         stressp_4(i,j) = zetax2(i,j,4)*divuse - rep_prs(i,j,4)
          
-         stress12_1(i,j) = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
-         stress12_2(i,j) = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
-         stress12_3(i,j) = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
-         stress12_4(i,j) = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+         stressm_1(i,j) = etax2(i,j,1)*tensionne
+         stressm_2(i,j) = etax2(i,j,2)*tensionnw
+         stressm_3(i,j) = etax2(i,j,3)*tensionsw
+         stressm_4(i,j) = etax2(i,j,4)*tensionse
+         
+         stress12_1(i,j) = etax2(i,j,1)*shearne*p5
+         stress12_2(i,j) = etax2(i,j,2)*shearnw*p5
+         stress12_3(i,j) = etax2(i,j,3)*shearsw*p5
+         stress12_4(i,j) = etax2(i,j,4)*shearse*p5
 
       enddo                     ! ij
 
@@ -1534,7 +1555,7 @@
                          cxm     , cym     , &
                          uvel    , vvel    , &
                          vrel    , Cb      , &
-                         zetaD   ,           &
+                         zetax2  , etax2   , &
                          umassdti, fm      , &
                          uarear  ,           &
                          Au      , Av)
@@ -1572,7 +1593,8 @@
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetaD          ! 2*zeta
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
@@ -1647,20 +1669,20 @@
       ! NOTE: commented part of stressp is from the replacement pressure Pr
       !-----------------------------------------------------------------
 
-         stressp_1 = zetaD(i,j,1)*(divune*(c1+Ktens))! - Deltane*(c1-Ktens))
-         stressp_2 = zetaD(i,j,2)*(divunw*(c1+Ktens))! - Deltanw*(c1-Ktens))
-         stressp_3 = zetaD(i,j,3)*(divusw*(c1+Ktens))! - Deltasw*(c1-Ktens))
-         stressp_4 = zetaD(i,j,4)*(divuse*(c1+Ktens))! - Deltase*(c1-Ktens))
+         stressp_1 = zetax2(i,j,1)*divune! - Deltane*(c1-Ktens))
+         stressp_2 = zetax2(i,j,2)*divunw! - Deltanw*(c1-Ktens))
+         stressp_3 = zetax2(i,j,3)*divusw! - Deltasw*(c1-Ktens))
+         stressp_4 = zetax2(i,j,4)*divuse! - Deltase*(c1-Ktens))
          
-         stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
-         stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
-         stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
-         stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+         stressm_1 = etax2(i,j,1)*tensionne
+         stressm_2 = etax2(i,j,2)*tensionnw
+         stressm_3 = etax2(i,j,3)*tensionsw
+         stressm_4 = etax2(i,j,4)*tensionse
          
-         stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
-         stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
-         stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
-         stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+         stress12_1 = etax2(i,j,1)*shearne*p5
+         stress12_2 = etax2(i,j,2)*shearnw*p5
+         stress12_3 = etax2(i,j,3)*shearsw*p5
+         stress12_4 = etax2(i,j,4)*shearse*p5
 
       !-----------------------------------------------------------------
       ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -1991,7 +2013,8 @@
                                   dxhy    , dyhx    , &
                                   cxp     , cyp     , &
                                   cxm     , cym     , &
-                                  zetaD   , Drheo)
+                                  zetax2  , etax2   , &
+                                  Drheo)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2012,7 +2035,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetaD          ! 2*zeta
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          Drheo          ! intermediate value for diagonal components of matrix A associated
@@ -2200,20 +2224,20 @@
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
             
-            stressp_1 = zetaD(i,j,1)*divune*(c1+Ktens)
-            stressp_2 = zetaD(i,j,2)*divunw*(c1+Ktens)
-            stressp_3 = zetaD(i,j,3)*divusw*(c1+Ktens)
-            stressp_4 = zetaD(i,j,4)*divuse*(c1+Ktens)
+            stressp_1 = zetax2(i,j,1)*divune
+            stressp_2 = zetax2(i,j,2)*divunw
+            stressp_3 = zetax2(i,j,3)*divusw
+            stressp_4 = zetax2(i,j,4)*divuse
             
-            stressm_1 = zetaD(i,j,1)*tensionne*(c1+Ktens)*ecci
-            stressm_2 = zetaD(i,j,2)*tensionnw*(c1+Ktens)*ecci
-            stressm_3 = zetaD(i,j,3)*tensionsw*(c1+Ktens)*ecci
-            stressm_4 = zetaD(i,j,4)*tensionse*(c1+Ktens)*ecci
+            stressm_1 = etax2(i,j,1)*tensionne
+            stressm_2 = etax2(i,j,2)*tensionnw
+            stressm_3 = etax2(i,j,3)*tensionsw
+            stressm_4 = etax2(i,j,4)*tensionse
             
-            stress12_1 = zetaD(i,j,1)*shearne*p5*(c1+Ktens)*ecci
-            stress12_2 = zetaD(i,j,2)*shearnw*p5*(c1+Ktens)*ecci
-            stress12_3 = zetaD(i,j,3)*shearsw*p5*(c1+Ktens)*ecci
-            stress12_4 = zetaD(i,j,4)*shearse*p5*(c1+Ktens)*ecci
+            stress12_1 = etax2(i,j,1)*shearne*p5
+            stress12_2 = etax2(i,j,2)*shearnw*p5
+            stress12_3 = etax2(i,j,3)*shearsw*p5
+            stress12_4 = etax2(i,j,4)*shearse*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -2657,7 +2681,7 @@
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
-      subroutine fgmres (zetaD    ,           &
+      subroutine fgmres (zetax2   , etax2   , &
                          Cb       , vrel    , &
                          umassdti ,           &
                          halo_info_mask     , &
@@ -2673,8 +2697,9 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetaD   ! zetaD = 2*zeta (viscous coefficient)
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+      
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -2784,7 +2809,7 @@
                       cxm        (:,:,iblk)  , cym        (:,:,iblk), &
                       solx       (:,:,iblk)  , soly       (:,:,iblk), &
                       vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
-                      zetaD      (:,:,iblk,:),                        &
+                      zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
                       umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
@@ -2855,7 +2880,7 @@
             initer = initer + 1
             nextit = initer + 1
             ! precondition the current Arnoldi vector
-            call precondition(zetaD       ,                  &
+            call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
                               arnoldi_basis_x(:,:,:,initer), &
@@ -2891,7 +2916,7 @@
                             cxm        (:,:,iblk)  , cym        (:,:,iblk), &
                             workspace_x(:,:,iblk)  , workspace_y(:,:,iblk), &
                             vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
-                            zetaD      (:,:,iblk,:),                        &
+                            zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
                             umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
                             uarear     (:,:,iblk)  ,                        &
                             arnoldi_basis_x(:,:,iblk,nextit),               &
@@ -3057,7 +3082,7 @@
 !
 ! authors: Stéphane Gaudreault, Abdessamad Qaddouri, Philippe Blain, ECCC
 
-      subroutine pgmres (zetaD    ,           &
+      subroutine pgmres (zetax2   , etax2   , &
                          Cb       , vrel    , &
                          umassdti ,           &
                          bx       , by      , &
@@ -3068,8 +3093,9 @@
                          nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetaD   ! zetaD = 2*zeta (viscous coefficient)
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+      
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -3176,7 +3202,7 @@
                       cxm        (:,:,iblk)  , cym        (:,:,iblk), &
                       solx       (:,:,iblk)  , soly       (:,:,iblk), &
                       vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
-                      zetaD      (:,:,iblk,:),                        &
+                      zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
                       umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
@@ -3248,7 +3274,7 @@
             nextit = initer + 1
             
             ! precondition the current Arnoldi vector
-            call precondition(zetaD       ,                  &
+            call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
                               arnoldi_basis_x(:,:,:,initer), &
@@ -3272,7 +3298,7 @@
                             cxm        (:,:,iblk)  , cym        (:,:,iblk), &
                             workspace_x(:,:,iblk)  , workspace_y(:,:,iblk), &
                             vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
-                            zetaD      (:,:,iblk,:),                        &
+                            zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
                             umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
                             uarear     (:,:,iblk)  ,                        &
                             arnoldi_basis_x(:,:,iblk,nextit),               &
@@ -3385,7 +3411,7 @@
          end do
          
          ! Call preconditioner
-         call precondition(zetaD       ,              &
+         call precondition(zetax2      , etax2      , &
                            Cb          , vrel       , &
                            umassdti    ,              &
                            workspace_x , workspace_y, &
@@ -3451,7 +3477,7 @@
 !
 ! authors: Philippe Blain, ECCC
 
-      subroutine precondition(zetaD       ,        &
+      subroutine precondition(zetax2      , etax2, &
                               Cb          , vrel , &
                               umassdti    ,        &
                               vx          , vy   , &
@@ -3460,8 +3486,9 @@
                               wx          , wy)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetaD   ! zetaD = 2*zeta (viscous coefficient)
-
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+      
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -3525,7 +3552,7 @@
          tolerance = reltol_pgmres
          maxinner = dim_pgmres
          maxouter = maxits_pgmres
-         call pgmres (zetaD,               &
+         call pgmres (zetax2,    etax2   , &
                       Cb       , vrel    , &
                       umassdti ,           &
                       vx       , vy      , &

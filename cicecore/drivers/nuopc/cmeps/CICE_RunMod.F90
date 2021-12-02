@@ -110,7 +110,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_calendar, only: idate, msec
-      use ice_diagnostics, only: init_mass_diags, runtime_diags
+      use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
@@ -150,6 +150,15 @@
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
+
+      character (len=char_len) :: plabeld
+
+      if (debug_model) then
+         plabeld = 'beginning time step'
+         do iblk = 1, nblocks
+            call debug_ice (iblk, plabeld)
+         enddo
+      endif
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
@@ -213,15 +222,33 @@
       !-----------------------------------------------------------------
 
                if (calc_Tsfc) call prep_radiation (iblk)
+               if (debug_model) then
+                  plabeld = 'post prep_radiation'
+                  call debug_ice (iblk, plabeld)
+               endif
 
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
             
                call step_therm1     (dt, iblk) ! vertical thermodynamics
+               if (debug_model) then
+                  plabeld = 'post step_therm1'
+                  call debug_ice (iblk, plabeld)
+               endif
+
                call biogeochemistry (dt, iblk) ! biogeochemistry
+               if (debug_model) then
+                  plabeld = 'post biogeochemistry'
+                  call debug_ice (iblk, plabeld)
+               endif
+
                if (.not.prescribed_ice) &
                   call step_therm2  (dt, iblk) ! ice thickness distribution thermo
+                  if (debug_model) then
+                     plabeld = 'post step_therm2'
+                     call debug_ice (iblk, plabeld)
+                  endif
 
             endif ! ktherm > 0
 
@@ -249,6 +276,12 @@
 
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
+            if (debug_model) then
+               plabeld = 'post step_dyn_horiz'
+               do iblk = 1, nblocks
+                  call debug_ice (iblk, plabeld)
+               enddo ! iblk
+            endif
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -256,12 +289,24 @@
                if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
             !$OMP END PARALLEL DO
+            if (debug_model) then
+               plabeld = 'post step_dyn_ridge'
+               do iblk = 1, nblocks
+                  call debug_ice (iblk, plabeld)
+               enddo ! iblk
+            endif
 
             ! clean up, update tendency diagnostics
             offset = c0
             call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
 
          enddo
+         if (debug_model) then
+            plabeld = 'post dynamics'
+            do iblk = 1, nblocks
+               call debug_ice (iblk, plabeld)
+            enddo
+         endif
 
          endif  ! not prescribed ice
 
@@ -272,18 +317,36 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
+      !-----------------------------------------------------------------
+      ! snow redistribution and metamorphosis
+      !-----------------------------------------------------------------
+
+         if (tr_snow) then         ! advanced snow physics
+            do iblk = 1, nblocks
+               call step_snow (dt, iblk)
+            enddo
+            call update_state (dt) ! clean up
+         endif
+
 !MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
             if (ktherm >= 0) call step_radiation (dt, iblk)
+            if (debug_model) then
+               plabeld = 'post step_radiation'
+               call debug_ice (iblk, plabeld)
+            endif
 
       !-----------------------------------------------------------------
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
             call coupling_prep (iblk)
-
+            if (debug_model) then
+               plabeld = 'post coupling_prep'
+               call debug_ice (iblk, plabeld)
+            endif
          enddo ! iblk
          !$OMP END PARALLEL DO
 
@@ -321,6 +384,7 @@
             if (tr_pond_cesm) call write_restart_pond_cesm
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
+            if (tr_snow)      call write_restart_snow
             if (tr_fsd)       call write_restart_fsd
             if (tr_snow)      call write_restart_snow
             if (tr_iso)       call write_restart_iso
@@ -647,11 +711,12 @@
       
       real (kind=dbl_kind)    :: &
           puny, &          !
+          Lsub, &          !
           rLsub            ! 1/Lsub
 
       character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)

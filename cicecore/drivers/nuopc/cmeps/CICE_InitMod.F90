@@ -144,7 +144,7 @@ contains
     call ice_HaloRestore_init ! restored boundary conditions
 
     call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
-         wave_spec_out=wave_spec,snw_aging_table_out=snw_aging_table)
+         wave_spec_out=wave_spec, snw_aging_table_out=snw_aging_table)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
@@ -157,7 +157,7 @@ contains
     call init_history_dyn     ! initialize dynamic history variables
 
     call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
-    call icepack_query_tracer_flags(tr_iso_out=tr_iso,tr_snow_out=tr_snow)
+    call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
@@ -176,6 +176,17 @@ contains
     if (tr_aero .or. tr_zaero) then
        call faero_optics !initialize aerosol optical property tables
     end if
+
+    ! snow aging lookup table initialization
+    if (tr_snow) then         ! advanced snow physics
+       call icepack_init_snow()
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+       if (snw_aging_table(1:4) /= 'test') then
+          call init_snowtable()
+       endif
+    endif
 
     ! Initialize shortwave components using swdn from previous timestep
     ! if restarting. These components will be scaled to current forcing
@@ -237,14 +248,14 @@ contains
          iblk            ! block index
     logical(kind=log_kind) :: &
          tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-         tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
+         tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, tr_snow, &
          skl_bgc, z_tracers, solve_zsal
     integer(kind=int_kind) :: &
          ntrcr
     integer(kind=int_kind) :: &
-         nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_smliq, nt_smice, &
-         nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice, &
-         nt_rhos, nt_rsnw
+         nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
+         nt_smice, nt_smliq, nt_rhos, nt_rsnw, &
+         nt_iage, nt_FY, nt_aero, nt_fsd, nt_isosno, nt_isoice
 
     character(len=*), parameter :: subname = '(init_restart)'
     !----------------------------------------------------
@@ -375,6 +386,7 @@ contains
           enddo ! iblk
        endif
     endif
+
     ! floe size distribution
     if (tr_fsd) then
        if (trim(runtype) == 'continue') restart_fsd = .true.
@@ -468,7 +480,6 @@ contains
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
   end subroutine init_restart
 
   !=======================================================================

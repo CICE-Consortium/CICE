@@ -656,6 +656,8 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
+      logical :: capping ! of the viscous coef
+      
       character(len=*), parameter :: subname = '(stress)'
 
       !-----------------------------------------------------------------
@@ -663,6 +665,7 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
+      capping = .true. ! could be later included in ice_in
 
       do ij = 1, icellt
          i = indxti(ij)
@@ -694,13 +697,14 @@
          
          call viscous_coeffs_and_rep_pressure (strength(i,j), tinyarea(i,j),&
                                                Deltane,       Deltanw,      &
-                                               Deltase,       Deltasw,      &
+                                               Deltasw,       Deltase,      &
                                                zetax2ne,      zetax2nw,     &
-                                               zetax2se,      zetax2sw,     &
+                                               zetax2sw,      zetax2se,     &
                                                etax2ne,       etax2nw,      &
-                                               etax2se,       etax2sw,      &
+                                               etax2sw,       etax2se,      &
                                                rep_prsne,     rep_prsnw,    &
-                                               rep_prsse,     rep_prssw     )
+                                               rep_prssw,     rep_prsse,    &
+                                               capping)
          
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2

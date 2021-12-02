@@ -105,9 +105,10 @@
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 evp_algorithm, &
                                 seabed_stress, seabed_stress_method, &
-                                k1, k2, alphab, threshold_hw, &
-                                Ktens, e_ratio, coriolis, ssh_stress, &
-                                kridge, brlx, arlx
+                                k1, k2, alphab, threshold_hw, Ktens, &
+                                e_yieldcurve, e_plasticpot, coriolis, &
+                                ssh_stress, kridge, brlx, arlx
+
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
                             monitor_pgmres, reltol_nonlin, reltol_fgmres, reltol_pgmres, &
@@ -208,20 +209,20 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_algorithm,                                                    &
+        evp_algorithm,                                                  &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_ratio,        Ktens,          Cf,             seabed_stress,  &
-        k1,             maxits_nonlin,  precond,        dim_fgmres,     &
+        e_yieldcurve,   e_plasticpot,   Ktens,                          &
+        maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
         reltol_pgmres,  algo_nonlin,    dim_andacc,     reltol_andacc,  &
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
-        ortho_type,                                                     &
-        k2,             alphab,         threshold_hw,                   &
-        seabed_stress_method,           Pstar,          Cstar
-
+        ortho_type,     seabed_stress,  seabed_stress_method,           &
+        k1, k2,         alphab,         threshold_hw,                   &
+        Cf,             Pstar,          Cstar
+      
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
         albicev,        albicei,         albsnowv,      albsnowi,       &
@@ -367,7 +368,8 @@
       alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-      e_ratio = 2.0_dbl_kind ! VP ellipse aspect ratio
+      e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
+      e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50        ! size of fgmres Krylov subspace
@@ -729,7 +731,8 @@
       call broadcast_scalar(alphab,               master_task)
       call broadcast_scalar(threshold_hw,         master_task)
       call broadcast_scalar(Ktens,                master_task)
-      call broadcast_scalar(e_ratio,              master_task)
+      call broadcast_scalar(e_yieldcurve,         master_task)
+      call broadcast_scalar(e_plasticpot,         master_task)
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
@@ -953,6 +956,10 @@
             write(nu_diag,*) subname//' ERROR: runtype unknown = ',trim(runtype)
          endif
          abort_list = trim(abort_list)//":1"
+      endif
+
+      if (ktransport <= 0) then
+         advection = 'none'
       endif
 
       if (ktransport > 0 .and. advection /= 'remap' .and. advection /= 'upwind') then
@@ -1440,9 +1447,10 @@
             if (kdyn == 1 .or. kdyn == 3) then
                write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve)
                if (trim(yield_curve) == 'ellipse') &
-               write(nu_diag,1002) ' e_ratio          = ', e_ratio, ' : aspect ratio of ellipse'
+                    write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
+                    write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
             endif
-
+            
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ' : latitude-dependent Coriolis parameter'
             elseif (trim(coriolis) == 'contant') then
@@ -1463,9 +1471,6 @@
             endif
             write(nu_diag,1030) ' ssh_stress       = ',trim(ssh_stress),trim(tmpstr2)
 
-            if (ktransport <= 0) then
-               advection = 'none'
-            endif
             if (trim(advection) == 'remap') then
                tmpstr2 = ' : linear remapping advection'
             elseif (trim(advection) == 'upwind') then
