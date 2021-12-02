@@ -205,6 +205,8 @@
 
          allocate(zetax2T(nx_block,ny_block,max_blocks))
          allocate(etax2T(nx_block,ny_block,max_blocks))
+         zetax2T(:,:,:) = c0
+         etax2T (:,:,:) = c0
          
       endif
       
