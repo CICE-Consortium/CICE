@@ -162,17 +162,6 @@ contains
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
 
-    ! snow aging lookup table initialization
-    if (tr_snow) then         ! advanced snow physics
-       call icepack_init_snow()
-       call icepack_warnings_flush(nu_diag)
-       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
-       if (snw_aging_table(1:4) /= 'test') then
-          call init_snowtable()
-       endif
-    endif
-
     if (tr_aero .or. tr_zaero) then
        call faero_optics !initialize aerosol optical property tables
     end if

@@ -201,17 +201,6 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
-         !-----------------------------------------------------------------
-         ! snow redistribution and metamorphosis
-         !-----------------------------------------------------------------
-
-         if (tr_snow) then         ! advanced snow physics
-            do iblk = 1, nblocks
-               call step_snow (dt, iblk)
-            enddo
-            call update_state (dt) ! clean up
-         endif
-
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 
@@ -386,7 +375,6 @@
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_snow)      call write_restart_snow
             if (tr_fsd)       call write_restart_fsd
-            if (tr_snow)      call write_restart_snow
             if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
