@@ -395,30 +395,32 @@
       !-----------------------------------------------------------------
       
       if (seabed_stress) then
+         if ( seabed_stress_method == 'LKD' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
+               call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                              icellu  (iblk),                   &
+                                              indxui(:,iblk),   indxuj(:,iblk), &
+                                              vice(:,:,iblk),   aice(:,:,iblk), &
+                                              hwater(:,:,iblk), Tbu(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
 
-       !$OMP PARALLEL DO PRIVATE(iblk)
-       do iblk = 1, nblocks
-          
-          if ( seabed_stress_method == 'LKD' ) then
-             
-             call seabed_stress_factor_LKD (nx_block,         ny_block,       &
-                                            icellu  (iblk),                   &
-                                            indxui(:,iblk),   indxuj(:,iblk), &
-                                            vice(:,:,iblk),   aice(:,:,iblk), &
-                                            hwater(:,:,iblk), Tbu(:,:,iblk))
+         elseif ( seabed_stress_method == 'probabilistic' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
 
-          elseif ( seabed_stress_method == 'probabilistic' ) then
-             
-             call seabed_stress_factor_prob (nx_block,         ny_block,                   &
-                                             icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
-                                             icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
-                                             aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
-                                             hwater(:,:,iblk), Tbu(:,:,iblk))
-          endif
+               call seabed_stress_factor_prob (nx_block,         ny_block,                   &
+                                               icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                               icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                               aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                               hwater(:,:,iblk), Tbu(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
 
-       enddo
-       !$OMP END PARALLEL DO 
+         endif
       endif
+
       
       do ksub = 1,ndte        ! subcycling
 

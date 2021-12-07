@@ -742,13 +742,10 @@
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
       ! calculate seabed stress component for outputs
-         if (ksub == ndte) then ! on last subcycling iteration
-          if ( seabed_stress ) then
-           taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
-           tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
-          endif
+         if (ksub == ndte) then
+            taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
+            tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
          endif
-
       enddo                     ! ij
 
       end subroutine stepu
