@@ -1070,6 +1070,7 @@
          nml_error, & ! namelist i/o error flag
          abort_flag
 
+      character (len=char_len_long) :: tmpstr2
       character(len=*), parameter :: subname='(input_zbgc)'
 
       !-----------------------------------------------------------------
@@ -1314,12 +1315,23 @@
          print*,'Reading zbgc_nml'
          do while (nml_error > 0)
             read(nu_nml, nml=zbgc_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
          end do
-         if (nml_error == 0) close(nu_nml)
+         if (nml_error == 0) then
+            close(nu_nml)  ! no error. close file
+         else              ! nml_error not zero
+            ! backspace, re-read erroneous line, then print
+            backspace(nu_nml)
+            read(nu_nml,fmt='(A)') tmpstr2
+         endif
       endif
+
       call broadcast_scalar(nml_error, master_task)
+      call broadcast_scalar(tmpstr2,   master_task)
       if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading zbgc namelist')
+         call abort_ice(subname//'ERROR: reading zbgc namelist: ' // &
+              trim(tmpstr2), &
+              file=__FILE__, line=__LINE__)
       endif
       call release_fileunit(nu_nml)
 

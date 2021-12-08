@@ -563,39 +563,59 @@
 
          do while (nml_error > 0)
             print*,'Reading setup_nml'
-               read(nu_nml, nml=setup_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=setup_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading grid_nml'
-               read(nu_nml, nml=grid_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=grid_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading tracer_nml'
-               read(nu_nml, nml=tracer_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=tracer_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading thermo_nml'
-               read(nu_nml, nml=thermo_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=thermo_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading dynamics_nml'
-               read(nu_nml, nml=dynamics_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=dynamics_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading shortwave_nml'
-               read(nu_nml, nml=shortwave_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=shortwave_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading ponds_nml'
-               read(nu_nml, nml=ponds_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=ponds_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading snow_nml'
-               read(nu_nml, nml=snow_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
+            read(nu_nml, nml=snow_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+
             print*,'Reading forcing_nml'
-               read(nu_nml, nml=forcing_nml,iostat=nml_error)
-               if (nml_error /= 0) exit
-         end do
-         if (nml_error == 0) close(nu_nml)
-      endif
+            read(nu_nml, nml=forcing_nml,iostat=nml_error)
+            if (nml_error /= 0) exit
+            
+         end do ! while nml_error > 0 
+
+         ! check if there was an error.
+         if (nml_error == 0) then
+            close(nu_nml)  ! no error. close file
+         else              ! nml_error not zero
+            ! backspace, re-read erroneous line
+            backspace(nu_nml) 
+            read(nu_nml,fmt='(A)') tmpstr2 
+         endif
+      endif  ! if my_task == master_task
+
       call broadcast_scalar(nml_error, master_task)
+      call broadcast_scalar(tmpstr2,   master_task)
       if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading namelist', &
-            file=__FILE__, line=__LINE__)
+         call abort_ice(subname//'ERROR: reading namelist: ' // &
+              trim(tmpstr2), &
+              file=__FILE__, line=__LINE__)
       endif
       call release_fileunit(nu_nml)
 
