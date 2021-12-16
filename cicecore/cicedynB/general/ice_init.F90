@@ -99,7 +99,10 @@
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
                           bathymetry_format, kmt_type, &
-                          grid_type, grid_format, grid_system, &
+                          grid_type, grid_format, &
+                          grid_ice, grid_ice_thrm, grid_ice_dynu, grid_ice_dynv, &
+                          grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, & 
+                          grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
@@ -185,7 +188,8 @@
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries, orca_halogrid, grid_system,   kmt_type
+        close_boundaries, orca_halogrid, grid_ice,      kmt_type,       &
+        grid_atm,       grid_ocn
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -325,8 +329,10 @@
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
       grid_type    = 'rectangular'  ! define rectangular grid internally
-      grid_system  = 'B'            ! underlying grid system
       grid_file    = 'unknown_grid_file'
+      grid_ice     = 'B'            ! underlying grid system
+      grid_atm     = 'A'            ! underlying atm forcing/coupling grid
+      grid_ocn     = 'A'            ! underlying atm forcing/coupling grid
       gridcpl_file = 'unknown_gridcpl_file'
       orca_halogrid = .false.  ! orca haloed grid
       bathymetry_file   = 'unknown_bathymetry_file'
@@ -700,7 +706,9 @@
       call broadcast_scalar(dyrect,               master_task)
       call broadcast_scalar(close_boundaries,     master_task)
       call broadcast_scalar(grid_type,            master_task)
-      call broadcast_scalar(grid_system,          master_task)
+      call broadcast_scalar(grid_ice,             master_task)
+      call broadcast_scalar(grid_ocn,             master_task)
+      call broadcast_scalar(grid_atm,             master_task)
       call broadcast_scalar(grid_file,            master_task)
       call broadcast_scalar(gridcpl_file,         master_task)
       call broadcast_scalar(orca_halogrid,        master_task)
@@ -1336,6 +1344,68 @@
       wave_spec = .false.
       if (tr_fsd .and. (trim(wave_spec_type) /= 'none')) wave_spec = .true.
 
+      ! compute grid locations for thermo, u and v fields
+
+      grid_ice_thrm = 'T'
+      if (grid_ice == 'A') then
+         grid_ice_dynu = 'T'
+         grid_ice_dynv = 'T'
+      elseif (grid_ice == 'B') then
+         grid_ice_dynu = 'U'
+         grid_ice_dynv = 'U'
+      elseif (grid_ice == 'C') then
+         grid_ice_dynu = 'E'
+         grid_ice_dynv = 'N'
+      elseif (grid_ice == 'CD') then
+         grid_ice_dynu = 'NE'
+         grid_ice_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_ice: '//trim(grid_ice)
+         endif
+         abort_list = trim(abort_list)//":64"
+      endif
+
+      grid_atm_thrm = 'T'
+      if (grid_atm == 'A') then
+         grid_atm_dynu = 'T'
+         grid_atm_dynv = 'T'
+      elseif (grid_atm == 'B') then
+         grid_atm_dynu = 'U'
+         grid_atm_dynv = 'U'
+      elseif (grid_atm == 'C') then
+         grid_atm_dynu = 'E'
+         grid_atm_dynv = 'N'
+      elseif (grid_atm == 'CD') then
+         grid_atm_dynu = 'NE'
+         grid_atm_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_atm: '//trim(grid_atm)
+         endif
+         abort_list = trim(abort_list)//":65"
+      endif
+
+      grid_ocn_thrm = 'T'
+      if (grid_ocn == 'A') then
+         grid_ocn_dynu = 'T'
+         grid_ocn_dynv = 'T'
+      elseif (grid_ocn == 'B') then
+         grid_ocn_dynu = 'U'
+         grid_ocn_dynv = 'U'
+      elseif (grid_ocn == 'C') then
+         grid_ocn_dynu = 'E'
+         grid_ocn_dynv = 'N'
+      elseif (grid_ocn == 'CD') then
+         grid_ocn_dynu = 'NE'
+         grid_ocn_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_ocn: '//trim(grid_ocn)
+         endif
+         abort_list = trim(abort_list)//":66"
+      endif
+
       !-----------------------------------------------------------------
       ! spew
       !-----------------------------------------------------------------
@@ -1367,7 +1437,18 @@
          if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : user-defined grid with rotated north pole'
          if (trim(grid_type) == 'tripole')        tmpstr2 = ' : user-defined grid with northern hemisphere zipper'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
-         write(nu_diag,1030) ' grid_system      = ',trim(grid_system)
+         write(nu_diag,1030) ' grid_ice         = ',trim(grid_ice)
+         write(nu_diag,1030) '   grid_ice_thrm  = ',trim(grid_ice_thrm)
+         write(nu_diag,1030) '   grid_ice_dynu  = ',trim(grid_ice_dynu)
+         write(nu_diag,1030) '   grid_ice_dynv  = ',trim(grid_ice_dynv)
+         write(nu_diag,1030) ' grid_atm         = ',trim(grid_atm)
+         write(nu_diag,1030) '   grid_atm_thrm  = ',trim(grid_atm_thrm)
+         write(nu_diag,1030) '   grid_atm_dynu  = ',trim(grid_atm_dynu)
+         write(nu_diag,1030) '   grid_atm_dynv  = ',trim(grid_atm_dynv)
+         write(nu_diag,1030) ' grid_ocn         = ',trim(grid_ocn)
+         write(nu_diag,1030) '   grid_ocn_thrm  = ',trim(grid_ocn_thrm)
+         write(nu_diag,1030) '   grid_ocn_dynu  = ',trim(grid_ocn_dynu)
+         write(nu_diag,1030) '   grid_ocn_dynv  = ',trim(grid_ocn_dynv)
          write(nu_diag,1030) ' kmt_type         = ',trim(kmt_type)
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
@@ -2036,9 +2117,9 @@
          abort_list = trim(abort_list)//":20"
       endif
 
-      if (grid_system /=  'B' .and. &
-          grid_system /=  'CD' ) then
-         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_system=',trim(grid_system)
+      if (grid_ice /=  'B' .and. &
+          grid_ice /=  'CD' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_ice=',trim(grid_ice)
          abort_list = trim(abort_list)//":26"
       endif
 
@@ -2137,7 +2218,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, TLAT, grid_system, grid_average_X2Y
+      use ice_grid, only: tmask, ULON, TLAT, grid_ice, grid_average_X2Y
       use ice_boundary, only: ice_HaloUpdate
       use ice_forcing, only: ice_data_type
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
@@ -2376,14 +2457,14 @@
                         vicen, vsnon, &
                         ntrcr, trcrn)
 
-      if (trim(grid_system) == 'CD') then
+      if (trim(grid_ice) == 'CD') then
 
          ! move from B-grid to CD-grid for boxslotcyl test 
          if (trim(ice_data_type) == 'boxslotcyl') then 
-            call grid_average_X2Y('U2NS',uvel,uvelN)
-            call grid_average_X2Y('U2NS',vvel,vvelN)
-            call grid_average_X2Y('U2ES',uvel,uvelE)
-            call grid_average_X2Y('U2ES',vvel,vvelE)
+            call grid_average_X2Y('S',uvel,'U',uvelN,'N')
+            call grid_average_X2Y('S',vvel,'U',vvelN,'N')
+            call grid_average_X2Y('S',uvel,'U',uvelE,'E')
+            call grid_average_X2Y('S',vvel,'U',vvelE,'E')
          endif
          
          ! Halo update on North, East faces

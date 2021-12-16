@@ -516,7 +516,7 @@
       elseif (trim(ocn_data_type) == 'hycom') then
          call ocn_data_hycom_init
 
-      elseif (trim(atm_data_type) == 'box2001') then
+      elseif (trim(ocn_data_type) == 'box2001') then
          call box2001_data_ocn
 
       ! uniform forcing options
@@ -751,7 +751,7 @@
       elseif (trim(ocn_data_type) == 'hycom') then
 !         call ocn_data_hycom(dt)
 !MHRI: NOT IMPLEMENTED YET
-      elseif (trim(atm_data_type) == 'box2001') then
+      elseif (trim(ocn_data_type) == 'box2001') then
          call box2001_data_ocn
       ! uniform forcing options
       elseif (trim(ocn_data_type) == 'uniform_northeast') then
@@ -4110,8 +4110,8 @@
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
-             call grid_average_X2Y('T2UF',work1,ocn_frc_m(:,:,:,n  ,m))
-             call grid_average_X2Y('T2UF',work2,ocn_frc_m(:,:,:,n+1,m))
+             call grid_average_X2Y('F',work1,'T',ocn_frc_m(:,:,:,n  ,m),'U')
+             call grid_average_X2Y('F',work2,'T',ocn_frc_m(:,:,:,n+1,m),'U')
 
           enddo               ! month loop
         enddo               ! field loop
@@ -4368,6 +4368,9 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
           sstdat              ! data value toward which SST is restored
 
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+          work1               ! temporary array
+
       real (kind=dbl_kind) :: workx, worky
 
       logical (kind=log_kind) :: readm
@@ -4512,8 +4515,11 @@
      ! Interpolate to U grid 
      !----------------------------------------------------------------- 
 
-         call grid_average_X2Y('T2UF',uocn)
-         call grid_average_X2Y('T2UF',vocn)
+         ! tcraig, this is now computed in dynamics for consistency
+         !work1 = uocn
+         !call grid_average_X2Y('F',work1,'T',uocn,'U')
+         !work1 = vocn
+         !call grid_average_X2Y('F',work1,'T',vocn,'U')
 
      endif    !   ocn_data_type = hadgem_sst_uvocn
 
@@ -5316,7 +5322,7 @@
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
 
-      call grid_average_X2Y('T2UF',aice, aiu)
+      call grid_average_X2Y('F',aice,'T',aiu,'U')
 
       period = c4*secday
 
@@ -5443,7 +5449,7 @@
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
 
       character(len=*), intent(in) :: dir
-      real(kind=dbl_kind), intent(in), optional :: spd ! speed for test
+      real(kind=dbl_kind), intent(in), optional :: spd ! velocity
 
       ! local parameters
 
@@ -5509,7 +5515,7 @@
 
       character(len=*), intent(in) :: dir
 
-      real(kind=dbl_kind), intent(in), optional :: spd ! speed for test
+      real(kind=dbl_kind), intent(in), optional :: spd ! velocity 
 
       ! local parameters
 

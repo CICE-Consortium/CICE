@@ -9,7 +9,7 @@ module ice_import_export
   use ice_constants     , only: field_type_vector, c100
   use ice_constants     , only: p001, p5
   use ice_blocks        , only: block, get_block, nx_block, ny_block
-  use ice_flux          , only: strairxt, strairyt, strocnxt, strocnyt           
+  use ice_flux          , only: strairxT, strairyT, strocnxT, strocnyT
   use ice_flux          , only: alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux          , only: flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux          , only: fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
@@ -65,6 +65,7 @@ contains
     type(block) :: this_block         ! block information for current block
     integer,parameter       :: nflds=17,nfldv=6,nfldb=27
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
+    real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work
     real (kind=dbl_kind)    :: workx, worky
     real (kind=dbl_kind)    :: MIN_RAIN_TEMP, MAX_SNOW_TEMP 
     character(len=char_len) :: tfrz_option
@@ -472,10 +473,15 @@ contains
        call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
-       call grid_average_X2Y('T2UF',uocn)
-       call grid_average_X2Y('T2UF',vocn)
-       call grid_average_X2Y('T2UF',ss_tltx)
-       call grid_average_X2Y('T2UF',ss_tlty)
+       ! tcraig, moved to dynamics for consistency
+       !work = uocn
+       !call grid_average_X2Y('F',work,'T',uocn,'U')
+       !work = vocn
+       !call grid_average_X2Y('F',work,'T',vocn,'U')
+       !work = ss_tltx
+       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
+       !work = ss_tlty
+       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
        call t_stopf ('cice_imp_t2u')
     end if
 

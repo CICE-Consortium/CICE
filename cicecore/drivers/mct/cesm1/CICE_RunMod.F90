@@ -157,7 +157,7 @@
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
-          biogeochemistry, save_init, step_dyn_wave
+          biogeochemistry, step_prep, step_dyn_wave
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
@@ -213,7 +213,7 @@
             call t_stopf ('cice_run_presc')
          endif
 
-         call save_init
+         call step_prep
 
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics

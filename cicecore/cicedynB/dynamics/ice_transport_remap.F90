@@ -319,7 +319,7 @@
                                    tracer_type,       depend,  &
                                    has_dependents,             &
                                    integral_order,             &
-                                   l_dp_midpt, grid_system,    &
+                                   l_dp_midpt, grid_ice,    &
                                    uvelE,  vvelN)
 
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
@@ -353,7 +353,7 @@
       real (kind=dbl_kind), intent(inout), dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
          tm           ! mean tracer values in each grid cell
 
-      character (len=char_len_long), intent(in) :: grid_system
+      character (len=char_len_long), intent(in) :: grid_ice
 
     !-------------------------------------------------------------------
     ! If l_fixed_area is true, the area of each departure region is
@@ -670,7 +670,7 @@
          enddo
 
          if (l_fixed_area) then
-            if (grid_system == 'CD') then ! velocities are already on the center
+            if (grid_ice == 'CD') then ! velocities are already on the center
                do j = jlo, jhi
                do i = ilo-1, ihi
                   edgearea_e(i,j) = uvelE(i,j,iblk) * HTE(i,j,iblk) * dt

@@ -261,7 +261,7 @@
       use ice_blocks, only: nx_block, ny_block, block, get_block, nghost
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, bound_state, uvelE, vvelN
-      use ice_grid, only: tarea, grid_system
+      use ice_grid, only: tarea, grid_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_advect, timer_bound
@@ -538,14 +538,14 @@
     !-------------------------------------------------------------------
     ! Main remapping routine: Step ice area and tracers forward in time.
     !-------------------------------------------------------------------
-         if (grid_system == 'CD') then
+         if (grid_ice == 'CD') then
              call horizontal_remap (dt,                ntrace,         &
                                 uvel      (:,:,:), vvel      (:,:,:),  &
                                 aim     (:,:,:,:), trm   (:,:,:,:,:),  &
                                 l_fixed_area,                          &
                                 tracer_type,       depend,             &
                                 has_dependents,    integral_order,     &
-                                l_dp_midpt, grid_system,               &
+                                l_dp_midpt, grid_ice,               &
                                 uvelE(:,:,:),vvelN(:,:,:))                
          else
              call horizontal_remap (dt,                ntrace,             &
@@ -554,7 +554,7 @@
                                 l_fixed_area,                          &
                                 tracer_type,       depend,             &
                                 has_dependents,    integral_order,     &
-                                l_dp_midpt, grid_system)
+                                l_dp_midpt, grid_ice)
          endif
          
     !-------------------------------------------------------------------
@@ -720,7 +720,7 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata, uvelE, vvelN
-      use ice_grid, only: HTE, HTN, tarea, grid_system
+      use ice_grid, only: HTE, HTN, tarea, grid_ice
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
 
@@ -771,7 +771,7 @@
     !-------------------------------------------------------------------
     ! Average corner velocities to edges.
     !-------------------------------------------------------------------
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
               uee(:,:,:)=uvelE(:,:,:)
               vnn(:,:,:)=vvelN(:,:,:)
       else

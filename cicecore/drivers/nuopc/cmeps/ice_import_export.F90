@@ -10,7 +10,7 @@ module ice_import_export
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
   use ice_exit           , only : abort_ice
-  use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
+  use ice_flux           , only : strairxT, strairyT, strocnxT, strocnyT
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
@@ -405,6 +405,7 @@ contains
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
+    real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
     real (kind=dbl_kind)             :: Tffresh
@@ -801,10 +802,15 @@ contains
        call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
        call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
-       call grid_average_X2Y('T2UF',uocn)
-       call grid_average_X2Y('T2UF',vocn)
-       call grid_average_X2Y('T2UF',ss_tltx)
-       call grid_average_X2Y('T2UF',ss_tlty)
+       ! tcraig, moved to dynamics for consistency
+       !work = uocn
+       !call grid_average_X2Y('F',work,'T',uocn,'U')
+       !work = vocn
+       !call grid_average_X2Y('F',work,'T',vocn,'U')
+       !work = ss_tltx
+       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
+       !work = ss_tlty
+       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
        call t_stopf ('cice_imp_t2u')
     end if
 

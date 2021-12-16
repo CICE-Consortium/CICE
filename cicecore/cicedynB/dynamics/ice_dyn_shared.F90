@@ -17,7 +17,7 @@
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
 
@@ -134,7 +134,7 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
 
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          allocate( &
             uvelE_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
             vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
@@ -186,7 +186,7 @@
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
 
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          allocate(fcorE_blk(nx_block,ny_block,max_blocks))
          allocate(fcorN_blk(nx_block,ny_block,max_blocks))
       endif
@@ -199,7 +199,7 @@
          ! velocity
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
-         if (grid_system == 'CD') then ! extra velocity variables
+         if (grid_ice == 'CD') then ! extra velocity variables
             uvelE(i,j,iblk) = c0
             vvelE(i,j,iblk) = c0
             uvelN(i,j,iblk) = c0
@@ -221,7 +221,7 @@
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
 
-         if (grid_system == 'CD') then
+         if (grid_ice == 'CD') then
 
             if (trim(coriolis) == 'constant') then
                fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
@@ -250,7 +250,7 @@
          stress12_3(i,j,iblk) = c0
          stress12_4(i,j,iblk) = c0
 
-         if (grid_system == 'CD') then
+         if (grid_ice == 'CD') then
             stresspT  (i,j,iblk) = c0
             stressmT  (i,j,iblk) = c0
             stress12T (i,j,iblk) = c0
@@ -339,8 +339,6 @@
                             ilo, ihi,  jlo, jhi, &
                             aice,      vice,     & 
                             vsno,      tmask,    & 
-                            strairxT,  strairyT, & 
-                            strairx,   strairy,  & 
                             tmass,     icetmask)
 
       integer (kind=int_kind), intent(in) :: &
@@ -350,16 +348,12 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice    , & ! concentration of ice
          vice    , & ! volume per unit area of ice          (m)
-         vsno    , & ! volume per unit area of snow         (m)
-         strairxT, & ! stress on ice by air, x-direction
-         strairyT    ! stress on ice by air, y-direction
+         vsno        ! volume per unit area of snow         (m)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          tmask       ! land/boundary mask, thickness (T-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         strairx , & ! stress on ice by air, x-direction
-         strairy , & ! stress on ice by air, y-direction
          tmass       ! total mass of ice and snow (kg/m^2)
 
       integer (kind=int_kind), dimension (nx_block,ny_block), intent(out) :: &
@@ -402,14 +396,6 @@
       !-----------------------------------------------------------------
          tmphm(i,j) = tmask(i,j) .and. (aice (i,j) > a_min) & 
                                  .and. (tmass(i,j) > m_min)
-
-      !-----------------------------------------------------------------
-      ! prep to convert to U grid
-      !-----------------------------------------------------------------
-         ! these quantities include the factor of aice needed for 
-         ! correct treatment of free drift
-         strairx(i,j) = strairxT(i,j)
-         strairy(i,j) = strairyT(i,j)
 
       !-----------------------------------------------------------------
       ! augmented mask (land + open ocean)
@@ -610,7 +596,7 @@
       do j = jlo, jhi
       do i = ilo, ihi
          iceumask_old(i,j) = iceumask(i,j) ! save
-!         if (grid_system == 'B') then ! include ice mask.
+!         if (grid_ice == 'B') then ! include ice mask.
          ! ice extent mask (U-cells)
          iceumask(i,j) = (umask(i,j)) .and. (aiu  (i,j) > a_min) & 
                                          .and. (umass(i,j) > m_min)
@@ -954,8 +940,7 @@
                              aiu,      fm,       &
                              strintx,  strinty,  &
                              strairx,  strairy,  &
-                             strocnx,  strocny,  &
-                             strocnxT, strocnyT) 
+                             strocnx,  strocny)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -981,10 +966,6 @@
          strocnx , & ! ice-ocean stress, x-direction
          strocny     ! ice-ocean stress, y-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out), optional :: &
-         strocnxT, & ! ice-ocean stress, x-direction
-         strocnyT    ! ice-ocean stress, y-direction
-
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1000,17 +981,6 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
-      if (present(strocnxT) .and. present(strocnyT)) then
-
-         do j = 1, ny_block
-         do i = 1, nx_block
-            strocnxT(i,j) = c0
-            strocnyT(i,j) = c0
-         enddo
-         enddo
-
-      endif
 
       ! ocean-ice stress for coupling
       do ij =1, icellu
@@ -1037,14 +1007,6 @@
 !         strocnx(i,j) = -(strairx(i,j) + strintx(i,j))
 !         strocny(i,j) = -(strairy(i,j) + strinty(i,j))
 
-         if (present(strocnxT) .and. present(strocnyT)) then
-
-            ! Prepare to convert to T grid
-            ! divide by aice for coupling
-            strocnxT(i,j) = strocnx(i,j) / aiu(i,j)
-            strocnyT(i,j) = strocny(i,j) / aiu(i,j)
-
-         endif
       enddo
 
       end subroutine dyn_finish
@@ -1325,7 +1287,7 @@
          endif
       enddo
 
-      select case (trim(grid_system))
+      select case (trim(grid_ice))
          case('B')
             do ij = 1, icellu
                i = indxui(ij)
@@ -1353,7 +1315,7 @@
                   enddo
 
             else
-               call abort_ice(subname // ' insufficient number of arguments for grid_system:' // grid_system)
+               call abort_ice(subname // ' insufficient number of arguments for grid_ice:' // grid_ice)
             endif
       end select
       

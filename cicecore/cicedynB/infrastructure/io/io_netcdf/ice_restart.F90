@@ -137,7 +137,7 @@
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -274,7 +274,7 @@
          call define_rest_field(ncid,'stress12_3',dims)
          call define_rest_field(ncid,'stress12_4',dims)
 
-         if (grid_system == 'CD') then
+         if (grid_ice == 'CD') then
             call define_rest_field(ncid,'stresspT' ,dims)
             call define_rest_field(ncid,'stressmT' ,dims)
             call define_rest_field(ncid,'stress12T',dims)

@@ -60,7 +60,9 @@
 &grid_nml
     grid_format  = 'bin'
     grid_type    = 'displaced_pole'
-    grid_system  = 'B'
+    grid_ice     = 'B'
+    grid_atm     = 'A'
+    grid_ocn     = 'A'
     grid_file    = 'grid'
     kmt_type     = 'file'
     kmt_file     = 'kmt'

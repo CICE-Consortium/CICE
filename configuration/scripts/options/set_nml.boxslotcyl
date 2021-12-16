@@ -1,3 +1,5 @@
+grid_atm = 'B'
+grid_ocn = 'B'
 nilyr = 1
 ice_ic = 'default'
 restart_ext = .false.
@@ -17,6 +19,8 @@ ktherm = -1
 kdyn   = -1
 kridge = -1
 ktransport = 1
+atm_data_type = 'box2001'
+ocn_data_type = 'box2001'
 ice_data_type = 'boxslotcyl'
 histfreq       = 'h','x','x','x','x'
 histfreq_n     =  6 , 1 , 1 , 1 , 1

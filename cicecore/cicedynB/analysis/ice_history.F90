@@ -68,7 +68,9 @@
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice, &
+          grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
+          grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -94,8 +96,107 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character (len=25) :: &
+         str2D_gat, str2d_gau, str2d_gav, &  ! dimensions for t, u, v atm grid (ga)
+         str2D_got, str2d_gou, str2d_gov     ! dimensions for t, u, v ocn grid (go)
+      character (len=25) :: &
+         cstr_gat, cstr_gau, cstr_gav, &     ! mask area name for t, u, v atm grid (ga)
+         cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
       character(len=char_len) :: description
       character(len=*), parameter :: subname = '(init_hist)'
+
+      !-----------------------------------------------------------------
+      ! set atm/ocn forcing grids
+      !-----------------------------------------------------------------
+
+      !--- ATM ---
+
+      if     (grid_atm_thrm == 'T') then
+         str2D_gat = tstr2D
+         cstr_gat  = tcstr
+      elseif (grid_atm_thrm == 'U') then
+         str2D_gat = ustr2D
+         cstr_gat  = ucstr
+      elseif (grid_atm_thrm == 'N') then
+         str2D_gat = nstr2D
+         cstr_gat  = ncstr
+      elseif (grid_atm_thrm == 'E') then
+         str2D_gat = estr2D
+         cstr_gat  = ecstr
+      endif
+
+      if     (grid_atm_dynu == 'T') then
+         str2D_gau = tstr2D
+         cstr_gau  = tcstr
+      elseif (grid_atm_dynu == 'U') then
+         str2D_gau = ustr2D
+         cstr_gau  = ucstr
+      elseif (grid_atm_dynu == 'N') then
+         str2D_gau = nstr2D
+         cstr_gau  = ncstr
+      elseif (grid_atm_dynu == 'E') then
+         str2D_gau = estr2D
+         cstr_gau  = ecstr
+      endif
+
+      if     (grid_atm_dynv == 'T') then
+         str2D_gav = tstr2D
+         cstr_gav  = tcstr
+      elseif (grid_atm_dynv == 'U') then
+         str2D_gav = ustr2D
+         cstr_gav  = ucstr
+      elseif (grid_atm_dynv == 'N') then
+         str2D_gav = nstr2D
+         cstr_gav  = ncstr
+      elseif (grid_atm_dynv == 'E') then
+         str2D_gav = estr2D
+         cstr_gav  = ecstr
+      endif
+
+      !--- OCN ---
+
+      if     (grid_ocn_thrm == 'T') then
+         str2D_got = tstr2D
+         cstr_got  = tcstr
+      elseif (grid_ocn_thrm == 'U') then
+         str2D_got = ustr2D
+         cstr_got  = ucstr
+      elseif (grid_ocn_thrm == 'N') then
+         str2D_got = nstr2D
+         cstr_got  = ncstr
+      elseif (grid_ocn_thrm == 'E') then
+         str2D_got = estr2D
+         cstr_got  = ecstr
+      endif
+
+      if     (grid_ocn_dynu == 'T') then
+         str2D_gou = tstr2D
+         cstr_gou  = tcstr
+      elseif (grid_ocn_dynu == 'U') then
+         str2D_gou = ustr2D
+         cstr_gou  = ucstr
+      elseif (grid_ocn_dynu == 'N') then
+         str2D_gou = nstr2D
+         cstr_gou  = ncstr
+      elseif (grid_ocn_dynu == 'E') then
+         str2D_gou = estr2D
+         cstr_gou  = ecstr
+      endif
+
+      if     (grid_ocn_dynv == 'T') then
+         str2D_gov = tstr2D
+         cstr_gov  = tcstr
+      elseif (grid_ocn_dynv == 'U') then
+         str2D_gov = ustr2D
+         cstr_gov  = ucstr
+      elseif (grid_ocn_dynv == 'N') then
+         str2D_gov = nstr2D
+         cstr_gov  = ncstr
+      elseif (grid_ocn_dynv == 'E') then
+         str2D_gov = estr2D
+         cstr_gov  = ecstr
+      endif
+
 
       !-----------------------------------------------------------------
       ! set history dimensions
@@ -279,7 +380,7 @@
          f_sispeed = f_CMIP
       endif
 
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          f_uvelE = f_uvel
          f_vvelE = f_vvel
          f_icespdE = f_icespd
@@ -684,22 +785,22 @@
              "vector direction - coming from", c1, c0,                 &
              ns1, f_icedir)
       
-         call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_uatm,"uatm","m/s",str2D_gau, cstr_gau,  &
              "atm velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
              ns1, f_uatm)
       
-         call define_hist_field(n_vatm,"vatm","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_vatm,"vatm","m/s",str2D_gav, cstr_gav,  &
              "atm velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vatm)
 
-         call define_hist_field(n_atmspd,"atmspd","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_atmspd,"atmspd","m/s",str2D_gau, cstr_gau, &
              "atmosphere wind speed",                                  &
              "vector magnitude", c1, c0,                               &
              ns1, f_atmspd)
       
-         call define_hist_field(n_atmdir,"atmdir","deg",ustr2D, ucstr, &
+         call define_hist_field(n_atmdir,"atmdir","deg",str2D_gau, cstr_gau, &
              "atmosphere wind direction",                              &
              "vector direction - coming from", c1, c0,                 &
              ns1, f_atmdir)
@@ -754,22 +855,22 @@
              "none", c1, c0,                                   &
              ns1, f_sss)
       
-         call define_hist_field(n_uocn,"uocn","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_uocn,"uocn","m/s",str2D_gou, cstr_gou, &
              "ocean current (x)",                                &
              "positive is x direction on U grid", c1, c0,        &
              ns1, f_uocn)
       
-         call define_hist_field(n_vocn,"vocn","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_vocn,"vocn","m/s",str2D_gov, cstr_gov, &
              "ocean current (y)",                                &
              "positive is y direction on U grid", c1, c0,        &
              ns1, f_vocn)
 
-         call define_hist_field(n_ocnspd,"ocnspd","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_ocnspd,"ocnspd","m/s",str2D_gou, cstr_gou, &
              "ocean current speed",                                    &
              "vector magnitude", c1, c0,                               &
              ns1, f_ocnspd)
       
-         call define_hist_field(n_ocndir,"ocndir","deg",ustr2D, ucstr, &
+         call define_hist_field(n_ocndir,"ocndir","deg",str2D_gou, cstr_gou, &
              "ocean current direction",                                &
              "vector direction - going to", c1, c0,                    &
              ns1, f_ocndir)
@@ -1200,7 +1301,7 @@
              "none", secday*c100, c0,                                &
              ns1, f_shear)
       
-         select case (grid_system)
+         select case (grid_ice)
          case('B')
             description = ", on U grid  (NE corner values)"
          case ('CD')
@@ -1987,7 +2088,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: nfsd
-      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu, grid_system
+      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu, grid_ice
       use ice_calendar, only: new_year, write_history, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
@@ -4297,7 +4398,7 @@
       !---------------------------------------------------------------
 
             ! compute sig1 and sig2
-            select case (grid_system)
+            select case (grid_ice)
             case('B')
                call principal_stress (nx_block,  ny_block,  &
                                       stressp_1 (:,:,iblk), &

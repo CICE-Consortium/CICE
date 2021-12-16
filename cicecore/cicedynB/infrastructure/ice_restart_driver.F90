@@ -61,7 +61,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
 
       character(len=char_len_long), intent(in), optional :: filename_spec
@@ -167,7 +167,7 @@
       call write_restart_field(nu_dump,0,stress12_2,'ruf8','stress12_2',1,diag)
       call write_restart_field(nu_dump,0,stress12_4,'ruf8','stress12_4',1,diag)
 
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          call write_restart_field(nu_dump,0,stresspT ,'ruf8','stresspT' ,1,diag)
          call write_restart_field(nu_dump,0,stressmT ,'ruf8','stressmT' ,1,diag)
          call write_restart_field(nu_dump,0,stress12T,'ruf8','stress12T',1,diag)
@@ -222,7 +222,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: tmask, grid_type, grid_system
+      use ice_grid, only: tmask, grid_type, grid_ice
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
@@ -384,7 +384,7 @@
 ! tcraig, comment these out now to allow restarts from B grid file
 ! this will affect exact restart when we get to that point
 #if (1 == 0)
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          call read_restart_field(nu_restart,0,stresspT,'ruf8', &
             'stresspT' ,1,diag,field_loc_center,field_type_scalar) ! stresspT
          call read_restart_field(nu_restart,0,stressmT,'ruf8', &

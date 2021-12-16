@@ -127,7 +127,7 @@
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_system
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_ice
       use ice_state   ! everything
 ! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
@@ -297,7 +297,7 @@
          enddo
       enddo
       ! Eventually do energy diagnostic on T points.
-!     if (grid_system == 'CD') then
+!     if (grid_ice == 'CD') then
 !     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
 !     do iblk = 1, nblocks
 !        do j = 1, ny_block
@@ -403,7 +403,7 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
@@ -1663,7 +1663,7 @@
 
       subroutine print_state(plabel,i,j,iblk)
 
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, nfsd
@@ -1790,7 +1790,7 @@
 
       write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
       write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
          write(nu_diag,*) 'vvelE(i,j)',vvelE(i,j,iblk)
          write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
@@ -1843,7 +1843,7 @@
 
       subroutine print_points_state(plabel,ilabel)
 
-      use ice_grid, only: grid_system
+      use ice_grid, only: grid_ice
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
@@ -1940,7 +1940,7 @@
 
       write(nu_diag,*) trim(llabel),'uvel=',uvel(i,j,iblk)
       write(nu_diag,*) trim(llabel),'vvel=',vvel(i,j,iblk)
-      if (grid_system == 'CD') then
+      if (grid_ice == 'CD') then
          write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
          write(nu_diag,*) trim(llabel),'vvelE=',vvelE(i,j,iblk)
          write(nu_diag,*) trim(llabel),'uvelN=',uvelN(i,j,iblk)
