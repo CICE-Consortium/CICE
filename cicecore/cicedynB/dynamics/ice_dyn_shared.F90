@@ -627,7 +627,6 @@
       subroutine stepu (nx_block,   ny_block, &
                         icellu,     Cw,       &
                         indxui,     indxuj,   &
-                        ksub,                 &
                         aiu,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
@@ -642,8 +641,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         ksub                  ! subcycling iteration
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -1388,7 +1386,7 @@
       real (kind=dbl_kind), intent(in)::  &  
         Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
 
-      logical , intent(in):: capping
+      real(kind=dbl_kind) , intent(in):: capping
       
       real (kind=dbl_kind), intent(out):: &  
         zetax2ne, zetax2nw, zetax2sw, zetax2se,  & ! zetax2 at each corner 
@@ -1401,42 +1399,33 @@
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
-!      if (trim(yield_curve) == 'ellipse') then
+        tmpcalcne = capping     *(strength/max(Deltane, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltane+ tinyarea)   
+        tmpcalcnw = capping     *(strength/max(Deltanw, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltanw+ tinyarea)   
+        tmpcalcsw = capping     *(strength/max(Deltasw, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltasw+ tinyarea)  
+        tmpcalcse = capping     *(strength/max(Deltase, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltase+ tinyarea)
 
-      if (capping) then
-         tmpcalcne = strength/max(Deltane,tinyarea)
-         tmpcalcnw = strength/max(Deltanw,tinyarea)
-         tmpcalcsw = strength/max(Deltasw,tinyarea)
-         tmpcalcse = strength/max(Deltase,tinyarea)
-      else
-         tmpcalcne = strength/(Deltane + tinyarea)
-         tmpcalcnw = strength/(Deltanw + tinyarea)
-         tmpcalcsw = strength/(Deltasw + tinyarea)
-         tmpcalcse = strength/(Deltase + tinyarea)
-      endif
-
-         zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
-         rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
-         etax2ne = epp2i*zetax2ne
+        zetax2ne  = (c1+Ktens)*tmpcalcne ! northeast 
+        rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
+        etax2ne   = epp2i*zetax2ne
          
-         zetax2nw = (c1+Ktens)*tmpcalcnw ! northwest 
-         rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
-         etax2nw = epp2i*zetax2nw
+        zetax2nw  = (c1+Ktens)*tmpcalcnw ! northwest 
+        rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
+        etax2nw   = epp2i*zetax2nw
 
-         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest  
-         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
-         etax2sw = epp2i*zetax2sw
+        zetax2sw  = (c1+Ktens)*tmpcalcsw ! southwest  
+        rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
+        etax2sw   = epp2i*zetax2sw
          
-         zetax2se = (c1+Ktens)*tmpcalcse ! southeast
-         rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
-         etax2se = epp2i*zetax2se
-
-!      else
-
-!      endif
+        zetax2se  = (c1+Ktens)*tmpcalcse ! southeast
+        rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
+        etax2se   = epp2i*zetax2se
       
        end subroutine viscous_coeffs_and_rep_pressure
-      
+
 !=======================================================================
 
 ! Load velocity components into array for boundary updates

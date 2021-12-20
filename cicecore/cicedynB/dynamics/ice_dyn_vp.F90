@@ -1190,14 +1190,10 @@
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
 
-      logical :: capping ! of the viscous coeff
+      real(kind=dbl_kind),parameter :: capping = c0 ! of the viscous coef
 
       character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
-      ! Initialize
-
-      capping = .false.
-      
       ! Initialize stPr, zetax2 and etax2 to zero
       ! (for cells where icetmask is false)
       stPr   = c0

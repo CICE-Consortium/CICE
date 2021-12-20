@@ -473,7 +473,6 @@
             call stepu (nx_block,            ny_block,           & 
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                         indxui     (:,iblk), indxuj    (:,iblk), & 
-                        ksub,                                    &
                         aiu      (:,:,iblk), strtmp  (:,:,:),    & 
                         uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                         waterx   (:,:,iblk), watery  (:,:,iblk), & 
