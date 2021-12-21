@@ -1706,7 +1706,7 @@
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
 !         if (tr_fsd) then
 !         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
-!            print*,'afsdn not normal', &
+!            write(nu_diag,*) 'afsdn not normal', &
 !                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
 !                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
 !         endif
