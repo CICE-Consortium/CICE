@@ -1770,7 +1770,7 @@
          ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
          ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
          epm      , & ! E-cell mask
-         npm      , & ! E-cell mask
+         npm      , & ! N-cell mask
          uvm          ! U-cell mask
          
          

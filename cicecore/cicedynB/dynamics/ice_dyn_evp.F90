@@ -493,7 +493,7 @@
                          uocnE     (:,:,iblk), vocnE     (:,:,iblk), & 
                          strairxE  (:,:,iblk), strairyE  (:,:,iblk), & 
                          ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &  
-                         icetmask  (:,:,iblk), icenmask  (:,:,iblk), & 
+                         icetmask  (:,:,iblk), iceemask  (:,:,iblk), & 
                          fmE       (:,:,iblk), dt,                   & 
                          strtltxE  (:,:,iblk), strtltyE  (:,:,iblk), & 
                          strocnxE  (:,:,iblk), strocnyE  (:,:,iblk), & 
@@ -520,16 +520,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (strength,           halo_info, &
-                           field_loc_center,   field_type_scalar)
-      ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
-      call ice_HaloUpdate (fld2,               halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call unstack_velocity_field(fld2, uvel, vvel)
-      call ice_timer_stop(timer_bound)
-
       if (grid_ice == 'CD') then
 
          call ice_timer_start(timer_bound)
@@ -545,7 +535,20 @@
          call unstack_velocity_field(fld2, uvelE, vvelE)
          call ice_timer_stop(timer_bound)
 
+         call grid_average_X2Y('S',uvelE,'E',uvel,'U')
+         call grid_average_X2Y('S',vvelN,'N',vvel,'U')
       endif
+
+      call ice_timer_start(timer_bound)
+      call ice_HaloUpdate (strength,           halo_info, &
+                           field_loc_center,   field_type_scalar)
+
+      ! velocities may have changed in dyn_prep2
+      call stack_velocity_field(uvel, vvel, fld2)
+      call ice_HaloUpdate (fld2,               halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call unstack_velocity_field(fld2, uvel, vvel)
+      call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
@@ -657,13 +660,6 @@
       else ! evp_algorithm == standard_2d (Standard CICE)
 
          do ksub = 1,ndte        ! subcycling
-
-         ! shift velocity components from CD grid locations (N, E) to B grid location (U) for stress_U
-
-            if (grid_ice == 'CD') then
-                call grid_average_X2Y('S',uvelE,'E',uvel,'U')
-                call grid_average_X2Y('S',vvelN,'N',vvel,'U')
-            endif
 
          !-----------------------------------------------------------------
          ! stress tensor equation, total surface stress
@@ -806,8 +802,26 @@
             enddo
             !$TCXOMP END PARALLEL DO
 
-            call stack_velocity_field(uvel, vvel, fld2)
+            if (grid_ice == 'CD') then
+
+               call ice_timer_start(timer_bound)
+               call stack_velocity_field(uvelN, vvelN, fld2)
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
+               call unstack_velocity_field(fld2, uvelN, vvelN)
+               call stack_velocity_field(uvelE, vvelE, fld2)
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_Eface, field_type_vector)
+               call unstack_velocity_field(fld2, uvelE, vvelE)
+               call ice_timer_stop(timer_bound)
+
+               call grid_average_X2Y('S',uvelE,'E',uvel,'U')
+               call grid_average_X2Y('S',vvelN,'N',vvel,'U')
+
+            endif
+
             call ice_timer_start(timer_bound)
+            call stack_velocity_field(uvel, vvel, fld2)
             if (maskhalo_dyn) then
                call ice_HaloUpdate (fld2,               halo_info_mask, &
                                     field_loc_NEcorner, field_type_vector)
@@ -815,26 +829,9 @@
                call ice_HaloUpdate (fld2,               halo_info, &
                                     field_loc_NEcorner, field_type_vector)
             endif
-            call ice_timer_stop(timer_bound)
             call unstack_velocity_field(fld2, uvel, vvel)
+            call ice_timer_stop(timer_bound)
          
-            if (grid_ice == 'CD') then
-
-               call ice_timer_start(timer_bound)
-               ! velocities may have changed in dyn_prep2
-               call stack_velocity_field(uvelN, vvelN, fld2)
-               call ice_HaloUpdate (fld2,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call unstack_velocity_field(fld2, uvelN, vvelN)
-               ! velocities may have changed in dyn_prep2
-               call stack_velocity_field(uvelE, vvelE, fld2)
-               call ice_HaloUpdate (fld2,               halo_info, &
-                                    field_loc_Eface, field_type_vector)
-               call unstack_velocity_field(fld2, uvelE, vvelE)
-               call ice_timer_stop(timer_bound)
-
-            endif
-
          enddo                     ! subcycling
       endif  ! evp_algorithm
 
@@ -991,12 +988,6 @@
                            field_loc_NEcorner, field_type_vector)
       call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
       call grid_average_X2Y('F',work2,'U',strocnyT,'T')
-
-! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
-      if (grid_ice == 'CD') then
-          call grid_average_X2Y('S',uvelE,'E',uvel,'U')
-          call grid_average_X2Y('S',vvelN,'N',vvel,'U')
-      endif
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
@@ -1533,7 +1524,7 @@
          ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) factor for BCs across coastline
          ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) factor for BCs across coastline
          epm      , & ! E-cell mask
-         npm      , & ! E-cell mask
+         npm      , & ! N-cell mask
          hm       , & ! T-cell mask
          uvm      , & ! U-cell mask
          zetax2T  , & ! 2*zeta at the T point
@@ -1714,7 +1705,6 @@
          case default
             call abort_ice(subname // ' unknown grid_location: ' // grid_location)
          end select
-         
 
       enddo                     ! ij
 
