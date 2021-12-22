@@ -73,8 +73,7 @@
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       logical (kind=log_kind) :: tr_pond
-      character(len=char_len_long) :: tmpstr2 ! for namelist errors
-      
+
       character(len=*), parameter :: subname = '(init_hist_pond_2D)'
 
       call icepack_query_tracer_flags(tr_pond_out=tr_pond)
@@ -86,40 +85,27 @@
       ! read namelist
       !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+         write(nu_diag,*) subname,' Reading icefields_pond_nml'
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
+            call abort_ice(subname//'ERROR: icefields_pond_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
+
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_pond_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
          end do
-
-         ! check if there was an error.
-         ! Write out errorneous line.
-         if (nml_error == 0) then
-            close(nu_nml)  ! no error. close file
-         else              ! nml_error not zero
-            ! backspace, re-read erroneous line
-            backspace(nu_nml)
-            read(nu_nml,fmt='(A)') tmpstr2
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: icefields_pond_nml reading ', &
+               file=__FILE__, line=__LINE__)
          endif
-
-         
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      call broadcast_scalar(tmpstr2,   master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_pond_nml: ' // &
-              trim(tmpstr2), &
-              file=__FILE__, line=__LINE__)
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
 
       if (.not. tr_pond) then

@@ -551,73 +551,154 @@
       nml_filename  = 'ice_in'//trim(inst_suffix)
 #endif
 
-      call get_fileunit(nu_nml)
-
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
-         endif 
-
-         do while (nml_error > 0)
-            print*,'Reading setup_nml'
-            read(nu_nml, nml=setup_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading grid_nml'
-            read(nu_nml, nml=grid_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading tracer_nml'
-            read(nu_nml, nml=tracer_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading thermo_nml'
-            read(nu_nml, nml=thermo_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading dynamics_nml'
-            read(nu_nml, nml=dynamics_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading shortwave_nml'
-            read(nu_nml, nml=shortwave_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading ponds_nml'
-            read(nu_nml, nml=ponds_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading snow_nml'
-            read(nu_nml, nml=snow_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-
-            print*,'Reading forcing_nml'
-            read(nu_nml, nml=forcing_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
-            
-         end do ! while nml_error > 0 
-
-         ! check if there was an error.
-         if (nml_error == 0) then
-            close(nu_nml)  ! no error. close file
-         else              ! nml_error not zero
-            ! backspace, re-read erroneous line
-            backspace(nu_nml) 
-            read(nu_nml,fmt='(A)') tmpstr2 
+            call abort_ice(subname//'ERROR: open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
-      endif  ! if my_task == master_task
 
-      call broadcast_scalar(nml_error, master_task)
-      call broadcast_scalar(tmpstr2,   master_task)
-      if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading namelist: ' // &
-              trim(tmpstr2), &
-              file=__FILE__, line=__LINE__)
+         write(nu_diag,*) subname,' Reading setup_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: setup_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=setup_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: setup_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading grid_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: grid_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=grid_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: grid_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading tracer_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: tracer_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=tracer_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: tracer_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading thermo_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: thermo_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=thermo_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: thermo_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading dynamics_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: dynamics_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=dynamics_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: dynamics_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading shortwave_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: shortwave_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=shortwave_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: shortwave_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading ponds_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: ponds_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=ponds_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: ponds_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading snow_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: snow_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=snow_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: snow_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         write(nu_diag,*) subname,' Reading forcing_nml'
+         rewind(unit=nu_nml, iostat=nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: forcing_nml rewind ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         nml_error =  1
+         do while (nml_error > 0)
+            read(nu_nml, nml=forcing_nml,iostat=nml_error)
+         end do
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: forcing_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
-      call release_fileunit(nu_nml)
 
       !-----------------------------------------------------------------
       ! set up diagnostics output and resolve conflicts

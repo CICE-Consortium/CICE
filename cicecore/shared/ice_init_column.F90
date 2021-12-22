@@ -1070,7 +1070,6 @@
          nml_error, & ! namelist i/o error flag
          abort_flag
 
-      character (len=char_len_long) :: tmpstr2
       character(len=*), parameter :: subname='(input_zbgc)'
 
       !-----------------------------------------------------------------
@@ -1302,38 +1301,28 @@
       ! read from input file
       !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
-
       if (my_task == master_task) then
+         write(nu_diag,*) subname,' Reading zbgc_nml'
+
+         call get_fileunit(nu_nml)
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
-         endif 
+            call abort_ice(subname//'ERROR: zbgc_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
+         endif
 
-         print*,'Reading zbgc_nml'
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=zbgc_nml,iostat=nml_error)
-            if (nml_error /= 0) exit
          end do
-         if (nml_error == 0) then
-            close(nu_nml)  ! no error. close file
-         else              ! nml_error not zero
-            ! backspace, re-read erroneous line, then print
-            backspace(nu_nml)
-            read(nu_nml,fmt='(A)') tmpstr2
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: zbgc_nml reading ', &
+               file=__FILE__, line=__LINE__)
          endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
-
-      call broadcast_scalar(nml_error, master_task)
-      call broadcast_scalar(tmpstr2,   master_task)
-      if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading zbgc namelist: ' // &
-              trim(tmpstr2), &
-              file=__FILE__, line=__LINE__)
-      endif
-      call release_fileunit(nu_nml)
 
       !-----------------------------------------------------------------
       ! broadcast
