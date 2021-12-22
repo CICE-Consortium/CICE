@@ -616,8 +616,6 @@
                uvel    (:,:,iblk), vvel    (:,:,iblk), & 
                uocn    (:,:,iblk), vocn    (:,:,iblk), & 
                aiu     (:,:,iblk), fm      (:,:,iblk), & 
-               strintx (:,:,iblk), strinty (:,:,iblk), &
-               strairx (:,:,iblk), strairy (:,:,iblk), &
                strocnx (:,:,iblk), strocny (:,:,iblk), & 
                strocnxT(:,:,iblk), strocnyT(:,:,iblk))
 

@@ -675,7 +675,7 @@
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby       ! seabed stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Cw                   ! ocean-ice neutral drag coefficient
 
       ! local variables
@@ -741,8 +741,8 @@
 
          ! calculate seabed stress component for outputs 
          ! only needed on last iteration.
-         taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
-         tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
+         taubx(i,j) = -uvel(i,j)*Cb
+         tauby(i,j) = -vvel(i,j)*Cb
       enddo                     ! ij
 
       end subroutine stepu
@@ -760,8 +760,6 @@
                              uvel,     vvel,     &
                              uocn,     vocn,     &
                              aiu,      fm,       &
-                             strintx,  strinty,  &
-                             strairx,  strairy,  &
                              strocnx,  strocny,  &
                              strocnxT, strocnyT) 
 
@@ -779,11 +777,7 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          aiu     , & ! ice fraction on u-grid
-         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         strairx , & ! stress on ice by air, x-direction
-         strairy     ! stress on ice by air, y-direction
+         fm          ! Coriolis param. * mass in U-cell (kg/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
@@ -793,14 +787,15 @@
          strocnxT, & ! ice-ocean stress, x-direction
          strocnyT    ! ice-ocean stress, y-direction
 
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Cw                   ! ocean-ice neutral drag coefficient 
+
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij
 
       real (kind=dbl_kind) :: vrel, rhow
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Cw                   ! ocean-ice neutral drag coefficient 
 
       character(len=*), parameter :: subname = '(dyn_finish)'
 
@@ -891,9 +886,10 @@
          Tbu         ! seabed stress factor (N/m^2)
 
       real (kind=dbl_kind) :: &
-         au,  & ! concentration of ice at u location
-         hu,  & ! volume per unit area of ice at u location (mean thickness, m)
-         hwu, & ! water depth at u location (m)
+         au        , & ! concentration of ice at u location
+         hu        , & ! volume per unit area of ice at u location (mean thickness, m)
+         hwu       , & ! water depth at u location (m)
+         docalc_tbu, & ! logical as real (C0,C1) decides whether c0 is 0 or
          hcu    ! critical thickness at u location (m)
 
       integer (kind=int_kind) :: &
@@ -909,18 +905,19 @@
          
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
 
-         if (hwu < threshold_hw) then
+!         if (hwu < threshold_hw) then
+         docalc_tbu = max(sign(c1,threshold_hw-hwu),c0)
          
-            au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
-            hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
+         au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+         hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-            ! 1- calculate critical thickness
-            hcu = au * hwu / k1
+         ! 1- calculate critical thickness
+         hcu = au * hwu / k1
 
-            ! 2- calculate seabed stress factor                    
-            Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+         ! 2- calculate seabed stress factor                    
+         Tbu(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
-         endif
+!         endif
 
       enddo                     ! ij
 
