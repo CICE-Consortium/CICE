@@ -23,5 +23,5 @@ smoke        gx1     64x1x16x16x8    run2day,droundrobin,thread
 smoke        gx1     32x2x16x16x16   run2day,droundrobin  smoke_gx1_64x1x16x16x8_droundrobin_run2day_thread
 smoke        gx1     16x4x16x16x32   run2day,droundrobin  smoke_gx1_64x1x16x16x8_droundrobin_run2day_thread
 smoke        gx1      8x8x16x16x64   run2day,droundrobin  smoke_gx1_64x1x16x16x8_droundrobin_run2day_thread
-smoke        gx1     8x16x16x16x128  run2day,droundrobin  smoke_gx1_64x1x16x16x8_droundrobin_run2day_thread
+smoke        gx1     4x16x16x16x128  run2day,droundrobin  smoke_gx1_64x1x16x16x8_droundrobin_run2day_thread
 #
