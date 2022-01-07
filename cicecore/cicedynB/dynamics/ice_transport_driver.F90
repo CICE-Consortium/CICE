@@ -267,6 +267,12 @@
           timer_advect, timer_bound
       use ice_transport_remap, only: horizontal_remap, make_masks
 
+      use ice_fileunits, only: nu_diag, flush_fileunit
+      use ice_communicate, only: my_task, master_task
+#ifdef OMP_TIMERS
+      use OMP_LIB
+#endif
+
       real (kind=dbl_kind), intent(in) ::     &
          dt      ! time step
 
@@ -331,6 +337,11 @@
 
       character(len=char_len_long) :: fieldid
 
+#ifdef OMP_TIMERS
+      real (kind=dbl_kind) :: &
+         dtimes(nblocks),dtimee(nblocks)
+#endif
+
       character(len=*), parameter :: subname = '(transport_remap)'
 
       call ice_timer_start(timer_advect)  ! advection 
@@ -355,7 +366,7 @@
     !       Here we assume that aice0 is up to date.
     !-------------------------------------------------------------------
 
-!      !$OMP PARALLEL DO PRIVATE(i,j,iblk)
+!      !$OMP PARALLEL DO PRIVATE(i,j,iblk) SCHEDULE(runtime)
 !      do iblk = 1, nblocks
 !      do j = 1, ny_block
 !      do i = 1, nx_block
@@ -397,9 +408,15 @@
 !      call ice_timer_stop(timer_bound)
 
 
-! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
-      !$OMP PARALLEL DO PRIVATE(iblk)
+#ifdef OMP_TIMERS
+      dtimes = 0.
+      dtimee = 0.
+#endif
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
+#ifdef OMP_TIMERS
+         dtimes(iblk) = OMP_GET_WTIME()
+#endif
 
     !-------------------------------------------------------------------
     ! Fill arrays with fields to be remapped.
@@ -412,8 +429,18 @@
                                vicen(:,:,:,iblk), vsnon(:,:,  :,iblk),  &
                                aim  (:,:,:,iblk), trm  (:,:,:,:,iblk))
 
+#ifdef OMP_TIMERS
+         dtimee(iblk) = OMP_GET_WTIME()
+#endif
       enddo
       !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         do iblk = 1,nblocks
+            write(nu_diag,*) subname,'t1',iblk,dtimes(iblk),dtimee(iblk)-dtimes(iblk)
+         enddo
+      endif
+#endif
 
 !---!-------------------------------------------------------------------
 !---! Optional conservation and monotonicity checks.
@@ -471,8 +498,15 @@
          tmin(:,:,:,:,:) = c0
          tmax(:,:,:,:,:) = c0
 
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n)
+#ifdef OMP_TIMERS
+         dtimes = 0.
+         dtimee = 0.
+#endif
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n) SCHEDULE(runtime)
          do iblk = 1, nblocks
+#ifdef OMP_TIMERS
+            dtimes(iblk) = OMP_GET_WTIME()
+#endif
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
             ihi = this_block%ihi
@@ -506,8 +540,18 @@
                              tmin(:,:,:,n,iblk), tmax  (:,:,:,n,iblk), &
                              aimask(:,:,n,iblk), trmask(:,:,:,n,iblk))
             enddo
+#ifdef OMP_TIMERS
+            dtimee(iblk) = OMP_GET_WTIME()
+#endif
          enddo
          !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         do iblk = 1,nblocks
+            write(nu_diag,*) subname,'t2',iblk,dtimes(iblk),dtimee(iblk)-dtimes(iblk)
+         enddo
+      endif
+#endif
 
          call ice_timer_start(timer_bound)
          call ice_HaloUpdate (tmin,             halo_info,     &
@@ -516,8 +560,15 @@
                               field_loc_center, field_type_scalar)
          call ice_timer_stop(timer_bound)
 
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n)
+#ifdef OMP_TIMERS
+         dtimes = 0.
+         dtimee = 0.
+#endif
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n) SCHEDULE(runtime)
          do iblk = 1, nblocks
+#ifdef OMP_TIMERS
+            dtimes(iblk) = OMP_GET_WTIME()
+#endif
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
             ihi = this_block%ihi
@@ -530,8 +581,18 @@
                                         tmin(:,:,:,n,iblk),      &
                                         tmax(:,:,:,n,iblk))
             enddo
+#ifdef OMP_TIMERS
+            dtimee(iblk) = OMP_GET_WTIME()
+#endif
          enddo
          !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         do iblk = 1,nblocks
+            write(nu_diag,*) subname,'t3',iblk,dtimes(iblk),dtimee(iblk)-dtimes(iblk)
+         enddo
+      endif
+#endif
 
       endif                     ! l_monotonicity_check
 
@@ -551,10 +612,16 @@
     ! Given new fields, recompute state variables.
     !-------------------------------------------------------------------
 
-! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
-      !$OMP PARALLEL DO PRIVATE(iblk)
+#ifdef OMP_TIMERS
+      dtimes = 0.
+      dtimee = 0.
+#endif
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
+#ifdef OMP_TIMERS
+         dtimes(iblk) = OMP_GET_WTIME()
+#endif
          call tracers_to_state (nx_block,          ny_block,            &
                                 ntrcr,             ntrace,              &
                                 aim  (:,:,:,iblk), trm  (:,:,:,:,iblk), &
@@ -562,8 +629,18 @@
                                 trcrn(:,:,:,:,iblk),                    &
                                 vicen(:,:,:,iblk), vsnon(:,:,  :,iblk))
 
+#ifdef OMP_TIMERS
+         dtimee(iblk) = OMP_GET_WTIME()
+#endif
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         do iblk = 1,nblocks
+            write(nu_diag,*) subname,'t4',iblk,dtimes(iblk),dtimee(iblk)-dtimes(iblk)
+         enddo
+      endif
+#endif
 
     !-------------------------------------------------------------------
     ! Ghost cell updates for state variables.
@@ -655,9 +732,16 @@
     ! Check tracer monotonicity.  (Optional)
     !-------------------------------------------------------------------
 
+#ifdef OMP_TIMERS
+      dtimes = 0.
+      dtimee = 0.
+#endif
       if (l_monotonicity_check) then
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop) SCHEDULE(runtime)
          do iblk = 1, nblocks
+#ifdef OMP_TIMERS
+            dtimes(iblk) = OMP_GET_WTIME()
+#endif
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
             ihi = this_block%ihi
@@ -684,8 +768,18 @@
                endif
             enddo               ! n
 
+#ifdef OMP_TIMERS
+            dtimee(iblk) = OMP_GET_WTIME()
+#endif
          enddo                  ! iblk
          !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         do iblk = 1,nblocks
+            write(nu_diag,*) subname,'t5',iblk,dtimes(iblk),dtimee(iblk)-dtimes(iblk)
+         enddo
+      endif
+#endif
 
          deallocate(tmin, tmax, STAT=alloc_error)
          if (alloc_error /= 0) call abort_ice (subname//'ERROR: deallocation error')
@@ -762,7 +856,7 @@
     ! Average corner velocities to edges.
     !-------------------------------------------------------------------
       
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -786,7 +880,7 @@
                            field_loc_Nface, field_type_vector)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo

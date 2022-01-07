@@ -270,7 +270,7 @@
       ! Note: On a rectangular grid, the integral of any odd function
       !       of x or y = 0.
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -331,6 +331,11 @@
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_fileunits, only: nu_diag, flush_fileunit
+      use ice_communicate, only: my_task, master_task
+#ifdef OMP_TIMERS
+      use OMP_LIB
+#endif
 
       real (kind=dbl_kind), intent(in) ::     &
          dt      ! time step
@@ -448,6 +453,11 @@
       type (block) ::     &
          this_block       ! block information for current block
 
+#ifdef OMP_TIMERS
+      real (kind=dbl_kind) :: &
+         time0,time1
+#endif
+
       character(len=*), parameter :: subname = '(horizontal_remap)'
 
 !---!-------------------------------------------------------------------
@@ -455,10 +465,22 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
+#ifdef OMP_TIMERS
+      time0 = OMP_GET_WTIME()
+
+      if (my_task == master_task) then
+         time1 = OMP_GET_WTIME()
+         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t1'
+         time0 = time1
+         call flush_fileunit(nu_diag)
+      endif
+#endif
+
       !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
       !--- need to check private variables and debug further
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$TCXOMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,   &
+      !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop) &
+      !$OMP SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -560,7 +582,16 @@
          endif
 
       enddo                     ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
+
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         time1 = OMP_GET_WTIME()
+         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t2'
+         time0 = time1
+         call flush_fileunit(nu_diag)
+      endif
+#endif
 
     !-------------------------------------------------------------------
     ! Ghost cell updates
@@ -585,10 +616,18 @@
          call ice_HaloUpdate (my,               halo_info, &
                               field_loc_center, field_type_vector)
 
+#ifdef OMP_TIMERS
+         if (my_task == master_task) then
+            time1 = OMP_GET_WTIME()
+            write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t3'
+            time0 = time1
+            call flush_fileunit(nu_diag)
+         endif
+#endif
          ! tracer fields 
          if (maskhalo_remap) then
             halomask(:,:,:) = 0
-            !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,n,m,j,i)
+            !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,n,m,j,i) SCHEDULE(runtime)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)         
                ilo = this_block%ilo
@@ -609,6 +648,14 @@
                enddo
             enddo
             !$OMP END PARALLEL DO
+#ifdef OMP_TIMERS
+            if (my_task == master_task) then
+               time1 = OMP_GET_WTIME()
+               write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t4'
+               time0 = time1
+               call flush_fileunit(nu_diag)
+            endif
+#endif
             call ice_HaloUpdate(halomask, halo_info, &
                                 field_loc_center, field_type_scalar)
             call ice_HaloMask(halo_info_tracer, halo_info, halomask)
@@ -632,12 +679,21 @@
 
       endif  ! nghost
 
-      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         time1 = OMP_GET_WTIME()
+         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t5'
+         time0 = time1
+         call flush_fileunit(nu_diag)
+      endif
+#endif
+
       !--- need to check private variables and debug further
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$TCXOMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
-      !$TCXOMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
-      !$TCXOMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
+      !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
+      !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
+      !$OMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop) &
+      !$OMP SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -845,8 +901,17 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
+#ifdef OMP_TIMERS
+      if (my_task == master_task) then
+         time1 = OMP_GET_WTIME()
+         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t6'
+         time0 = time1
+         call flush_fileunit(nu_diag)
+      endif
+#endif
+       
       end subroutine horizontal_remap
 
 !=======================================================================

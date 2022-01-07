@@ -15,8 +15,9 @@
       module CICE_RunMod
 
       use ice_kinds_mod
-      use ice_fileunits, only: nu_diag
+      use ice_fileunits, only: nu_diag, flush_fileunit
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_constants, only: c0, c1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
@@ -160,7 +161,11 @@
           biogeochemistry, save_init, step_dyn_wave, step_snow
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
-          timer_hist, timer_readwrite
+          timer_hist, timer_readwrite, &
+          timer_tmp1, timer_tmp2, timer_tmp3, timer_tmp4, timer_tmp5, timer_tmp6
+#ifdef OMP_TIMERS
+      use OMP_LIB
+#endif
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index 
@@ -169,6 +174,13 @@
 
       real (kind=dbl_kind) :: &
          offset          ! d(age)/dt time offset
+
+#ifdef OMP_TIMERS
+      real (kind=dbl_kind) :: &
+         dtimes(nblocks,9), dtimee(nblocks,9)
+      integer(kind=omp_sched_kind) :: ompsk
+      integer :: ompcs, itim
+#endif
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
@@ -213,21 +225,46 @@
          call init_history_bgc
          call ice_timer_stop(timer_diags)   ! diagnostics/history
 
+#ifdef OMP_TIMERS
+         call ice_barrier()
+#endif
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
          call save_init
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
+#ifdef OMP_TIMERS
+         dtimes = 0.
+         dtimee = 0.
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
+            if (my_task == master_task) then
+               call omp_get_schedule(ompsk,ompcs)
+               if (iblk == 1) write(nu_diag,*) subname,'tcx omp3',ompsk,ompcs
+               write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk
+               call flush_fileunit(nu_diag)
+            endif
+         enddo
+         !$OMP END PARALLEL DO
+#endif
 
-            if (ktherm >= 0) then
+         if (ktherm >= 0) then
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
       ! scale radiation fields
       !-----------------------------------------------------------------
 
+#ifdef OMP_TIMERS
+               dtimes(iblk,1) = OMP_GET_WTIME()
+               call ice_timer_start(timer_tmp1,iblk)
+#endif
                if (calc_Tsfc) call prep_radiation (iblk)
+#ifdef OMP_TIMERS
+               call ice_timer_stop(timer_tmp1,iblk)
+               dtimee(iblk,1) = OMP_GET_WTIME()
+#endif
 
                if (debug_model) then
                   plabeld = 'post prep_radiation'
@@ -237,32 +274,56 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
+#ifdef OMP_TIMERS
+               dtimes(iblk,2) = OMP_GET_WTIME()
+               call ice_timer_start(timer_tmp2,iblk)
+#endif
                call step_therm1     (dt, iblk) ! vertical thermodynamics
+#ifdef OMP_TIMERS
+               call ice_timer_stop(timer_tmp2,iblk)
+               dtimee(iblk,2) = OMP_GET_WTIME()
+#endif
 
                if (debug_model) then
                   plabeld = 'post step_therm1'
                   call debug_ice (iblk, plabeld)
                endif
 
+#ifdef OMP_TIMERS
+               dtimes(iblk,3) = OMP_GET_WTIME()
+               call ice_timer_start(timer_tmp3,iblk)
+#endif
                call biogeochemistry (dt, iblk) ! biogeochemistry
+#ifdef OMP_TIMERS
+               call ice_timer_stop(timer_tmp3,iblk)
+               dtimee(iblk,3) = OMP_GET_WTIME()
+#endif
 
                if (debug_model) then
                   plabeld = 'post biogeochemistry'
                   call debug_ice (iblk, plabeld)
                endif
 
+#ifdef OMP_TIMERS
+               dtimes(iblk,4) = OMP_GET_WTIME()
+               call ice_timer_start(timer_tmp4,iblk)
+#endif
                call step_therm2     (dt, iblk) ! ice thickness distribution thermo
+#ifdef OMP_TIMERS
+               call ice_timer_stop(timer_tmp4,iblk)
+               dtimee(iblk,4) = OMP_GET_WTIME()
+#endif
 
                if (debug_model) then
                   plabeld = 'post step_therm2'
                   call debug_ice (iblk, plabeld)
                endif
 
-            endif ! ktherm > 0
+            enddo
+            !$OMP END PARALLEL DO
 
-         enddo ! iblk
-         !$OMP END PARALLEL DO
+         endif ! ktherm > 0
 
          ! clean up, update tendency diagnostics
          offset = dt
@@ -270,6 +331,10 @@
 
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
+
+#ifdef OMP_TIMERS
+         call ice_barrier()
+#endif
 
       !-----------------------------------------------------------------
       ! dynamics, transport, ridging
@@ -292,7 +357,7 @@
             endif
 
             ! ridging
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
@@ -318,6 +383,9 @@
             enddo
          endif
 
+#ifdef OMP_TIMERS
+         call ice_barrier()
+#endif
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
@@ -326,21 +394,30 @@
       !-----------------------------------------------------------------
 
          if (tr_snow) then         ! advanced snow physics
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                call step_snow (dt, iblk)
             enddo
+            !$OMP END PARALLEL DO
             call update_state (dt) ! clean up
          endif
 
-!MHRI: CHECK THIS OMP
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
       ! albedo, shortwave radiation
       !-----------------------------------------------------------------
 
+#ifdef OMP_TIMERS
+            dtimes(iblk,5) = OMP_GET_WTIME()
+            call ice_timer_start(timer_tmp5,iblk)
+#endif
             if (ktherm >= 0) call step_radiation (dt, iblk)
+#ifdef OMP_TIMERS
+            call ice_timer_stop(timer_tmp5,iblk)
+            dtimee(iblk,5) = OMP_GET_WTIME()
+#endif
 
             if (debug_model) then
                plabeld = 'post step_radiation'
@@ -351,14 +428,22 @@
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
+#ifdef OMP_TIMERS
+            dtimes(iblk,6) = OMP_GET_WTIME()
+            call ice_timer_start(timer_tmp6,iblk)
+#endif
             call coupling_prep (iblk)
+#ifdef OMP_TIMERS
+            call ice_timer_stop(timer_tmp6,iblk)
+            dtimee(iblk,6) = OMP_GET_WTIME()
+#endif
 
             if (debug_model) then
                plabeld = 'post coupling_prep'
                call debug_ice (iblk, plabeld)
             endif
 
-         enddo ! iblk
+         enddo
          !$OMP END PARALLEL DO
 
          call ice_timer_start(timer_bound)
@@ -368,6 +453,15 @@
 
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
+
+#ifdef OMP_TIMERS
+         do itim = 1,6
+         do iblk = 1,nblocks
+            write(nu_diag,'(2a,2i6,2g15.7)') subname,' omptime',itim,iblk,dtimes(iblk,itim),dtimee(iblk,itim)-dtimes(iblk,itim)
+         enddo
+         enddo
+         call ice_barrier()
+#endif
 
       !-----------------------------------------------------------------
       ! write data
@@ -386,6 +480,7 @@
          call accum_hist (dt)               ! history file
          call ice_timer_stop(timer_hist)    ! history
 
+         call ice_barrier()
          call ice_timer_start(timer_readwrite)  ! reading/writing
          if (write_restart == 1) then
             call dumpfile     ! core variables for restarting
@@ -405,7 +500,6 @@
             if (kdyn == 2)    call write_restart_eap
             call final_restart
          endif
-
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
@@ -488,7 +582,7 @@
          enddo
          enddo
 
-         call ice_timer_start(timer_couple)   ! atm/ocn coupling
+         call ice_timer_start(timer_couple,iblk)   ! atm/ocn coupling
 
          if (oceanmixed_ice) &
          call ocean_mixed_layer (dt,iblk) ! ocean surface fluxes and sst
@@ -655,7 +749,7 @@
          endif                 
 !echmod
 #endif
-         call ice_timer_stop(timer_couple)   ! atm/ocn coupling
+         call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
       end subroutine coupling_prep
 

@@ -277,7 +277,7 @@
 ! tcraig, tcx, turned off this threaded region, in evp, this block and 
 ! the icepack_ice_strength call seems to not be thread safe.  more
 ! debugging needed
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,ij)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -429,7 +429,7 @@
          !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
          do iblk = 1, nblocks
 
-!      call ice_timer_start(timer_tmp1) ! dynamics
+!      call ice_timer_start(timer_tmp1,iblk) ! dynamics
             call stress_eap  (nx_block,             ny_block,             &
                               ksub,                 ndte,                 &
                               icellt(iblk),                               &
@@ -462,7 +462,7 @@
 !                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                               rdg_conv  (:,:,iblk), &
                               strtmp    (:,:,:))
-!      call ice_timer_stop(timer_tmp1) ! dynamics
+!      call ice_timer_stop(timer_tmp1,iblk) ! dynamics
 
       !-----------------------------------------------------------------
       ! momentum equation
@@ -488,7 +488,7 @@
       ! evolution of structure tensor A
       !-----------------------------------------------------------------
 
-!      call ice_timer_start(timer_tmp3) ! dynamics
+!      call ice_timer_start(timer_tmp3,iblk) ! dynamics
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
             call stepa (nx_block,          ny_block,                &
                         dtei,              icellt     (iblk),       &
@@ -505,7 +505,7 @@
                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                         stress12_3(:,:,iblk), stress12_4(:,:,iblk))
             endif
-!      call ice_timer_stop(timer_tmp3) ! dynamics
+!      call ice_timer_stop(timer_tmp3,iblk) ! dynamics
          enddo
          !$TCXOMP END PARALLEL DO
 
