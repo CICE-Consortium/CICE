@@ -21,6 +21,7 @@ setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
 setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
+setenv ICE_OMPSCHED   "static,1"
 setenv ICE_TEST       undefined
 setenv ICE_TESTNAME   undefined
 setenv ICE_TESTID     undefined

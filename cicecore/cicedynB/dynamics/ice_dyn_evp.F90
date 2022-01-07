@@ -241,7 +241,7 @@
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
 ! need to do more debugging
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------

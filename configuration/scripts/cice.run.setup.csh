@@ -9,8 +9,6 @@ echo "running cice.run.setup.csh"
 set jobfile = cice.run
 set subfile = cice.submit
 
-set nthrds = ${ICE_NTHRDS}
-
 #==========================================
 
 # Write the batch code into the job file
@@ -43,7 +41,9 @@ set ICE_RUNLOG_FILE = "cice.runlog.\${stamp}"
 #--------------------------------------------
 cd \${ICE_RUNDIR}
 
-setenv OMP_NUM_THREADS ${nthrds}
+setenv OMP_NUM_THREADS \${ICE_NTHRDS}
+setenv OMP_SCHEDULE "\${ICE_OMPSCHED}"
+#setenv OMP_DISPLAY_ENV TRUE
 
 cp -f \${ICE_CASEDIR}/ice_in \${ICE_RUNDIR}
 cp -f \${ICE_CASEDIR}/env.${ICE_MACHCOMP} \${ICE_RUNDIR}
