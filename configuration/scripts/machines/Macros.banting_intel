@@ -13,7 +13,7 @@ FFLAGS     := -fp-model source -convert big_endian -assume byterecl -ftz -traceb
 #-xHost
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created
+  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
 # -heap-arrays 1024 
 else
   FFLAGS     += -O2

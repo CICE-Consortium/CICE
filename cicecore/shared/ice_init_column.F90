@@ -7,6 +7,7 @@
       module ice_init_column
 
       use ice_kinds_mod
+      use ice_blocks, only: nx_block, ny_block
       use ice_constants
       use ice_communicate, only: my_task, master_task, ice_barrier
       use ice_domain_size, only: ncat, max_blocks 
@@ -45,7 +46,7 @@
                 init_age, init_FY, init_lvl, init_fsd, &
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
-                count_tracers, init_isotope
+                count_tracers, init_isotope, init_snowtracers
 
       ! namelist parameters needed locally
 
@@ -129,7 +130,6 @@
 
       subroutine init_thermo_vertical
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_flux, only: salinz, Tmltz
 
       integer (kind=int_kind) :: &
@@ -186,9 +186,9 @@
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block
       use ice_calendar, only: dt, calendar_type, &
-          days_per_year, nextsw_cday, yday, sec
+          days_per_year, nextsw_cday, yday, msec
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
@@ -214,8 +214,9 @@
       logical (kind=log_kind) :: &
          l_print_point, & ! flag to print designated grid point diagnostics
          debug,         & ! if true, print diagnostics
-         dEdd_algae,    & ! from icepack
-         modal_aero       ! from icepack
+         dEdd_algae,    & ! use prognostic chla in dEdd radiation
+         modal_aero,    & ! use modal aerosol optical treatment
+         snwgrain         ! use variable snow radius
 
       character (char_len) :: shortwave
 
@@ -225,12 +226,13 @@
       real (kind=dbl_kind), dimension(ncat) :: &
          fbri                 ! brine height to ice thickness
 
-      real(kind=dbl_kind), allocatable :: &
-         ztrcr_sw(:,:)    !
+      real(kind= dbl_kind), dimension(:,:), allocatable :: &
+         ztrcr_sw,        & ! zaerosols (kg/m^3) and chla (mg/m^3)
+         rsnow              ! snow grain radius tracer (10^-6 m)
 
       logical (kind=log_kind) :: tr_brine, tr_zaero, tr_bgc_n
       integer (kind=int_kind) :: nt_alvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero, &
-         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw
+         nt_fbri, nt_tsfc, ntrcr, nbtrcr, nbtrcr_sw, nt_rsnw
       integer (kind=int_kind), dimension(icepack_max_algae) :: &
          nt_bgc_N
       integer (kind=int_kind), dimension(icepack_max_aero) :: &
@@ -243,17 +245,19 @@
       call icepack_query_parameters(shortwave_out=shortwave)
       call icepack_query_parameters(dEdd_algae_out=dEdd_algae)
       call icepack_query_parameters(modal_aero_out=modal_aero)
+      call icepack_query_parameters(snwgrain_out=snwgrain)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_zaero_out=tr_zaero, &
          tr_bgc_n_out=tr_bgc_n)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
          nt_ipnd_out=nt_ipnd, nt_aero_out=nt_aero, nt_fbri_out=nt_fbri, nt_tsfc_out=nt_tsfc, &
-         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero)
+         nt_bgc_N_out=nt_bgc_N, nt_zaero_out=nt_zaero, nt_rsnw_out=nt_rsnw)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
       allocate(ztrcr_sw(nbtrcr_sw, ncat))
+      allocate(rsnow(nslyr,ncat))
 
       do iblk=1,nblocks
 
@@ -330,8 +334,14 @@
 
             fbri(:) = c0
             ztrcr_sw(:,:) = c0
+            rsnow   (:,:) = c0
             do n = 1, ncat
-              if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (tr_brine)  fbri(n) = trcrn(i,j,nt_fbri,n,iblk)
+               if (snwgrain) then
+                  do k = 1, nslyr
+                     rsnow(k,n) = trcrn(i,j,nt_rsnw+k-1,n,iblk)
+                  enddo
+               endif
             enddo
 
             if (tmask(i,j,iblk)) then
@@ -356,7 +366,7 @@
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &
-                          sec=sec,                                             &
+                          sec=msec,                                             &
                           kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
                           waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
                           gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
@@ -379,6 +389,7 @@
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
                           snowfracn=snowfracn(i,j,:,iblk),                     &
                           dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
+                          rsnow=rsnow(:,:), &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
@@ -408,7 +419,7 @@
          do i = ilo, ihi
 
                if (aicen(i,j,n,iblk) > puny) then
-                  
+
                   alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                        + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -417,7 +428,7 @@
                        + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   alidr(i,j,iblk) = alidr(i,j,iblk) &
                        + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
-                  
+
                   netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                         + swvdf(i,j,iblk) + swidf(i,j,iblk)
                   if (netsw > puny) then ! sun above horizon
@@ -428,12 +439,12 @@
                      albpnd(i,j,iblk) = albpnd(i,j,iblk) &
                           + albpndn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   endif
-                  
+
                   apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &
                        + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
                   snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &
                        + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
                endif ! aicen > puny
 
          enddo ! i
@@ -475,6 +486,7 @@
       enddo ! iblk
 
       deallocate(ztrcr_sw)
+      deallocate(rsnow)
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -587,6 +599,29 @@
 
 !=======================================================================
 
+!  Initialize snow redistribution/metamorphosis tracers (call prior to reading restart data)
+
+      subroutine init_snowtracers(smice, smliq, rhos_cmp, rsnw)
+
+      real(kind=dbl_kind), dimension(:,:,:,:), intent(out) :: &
+         smice, smliq, rhos_cmp, rsnw
+      character(len=*),parameter :: subname='(init_snowtracers)'
+
+      real (kind=dbl_kind) :: &
+         rsnw_fall, & ! snow grain radius of new fallen snow  (10^-6 m)
+         rhos         ! snow density (kg/m^3)
+
+      call icepack_query_parameters(rsnw_fall_out=rsnw_fall, rhos_out=rhos)
+
+      rsnw    (:,:,:,:) = rsnw_fall
+      rhos_cmp(:,:,:,:) = rhos
+      smice   (:,:,:,:) = rhos
+      smliq   (:,:,:,:) = c0
+
+      end subroutine init_snowtracers
+
+!=======================================================================
+
 !  Initialize floe size distribution tracer (call prior to reading restart data)
 
       subroutine init_fsd(floesize)
@@ -594,7 +629,6 @@
       use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
          wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
-      use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
       use ice_state, only: aicen
@@ -1005,7 +1039,7 @@
 
       subroutine input_zbgc
 
-      use ice_arrays_column, only: restore_bgc
+      use ice_arrays_column, only: restore_bgc, optics_file, optics_file_fieldname
       use ice_broadcast, only: broadcast_scalar
       use ice_restart_column, only: restart_bgc, restart_zsal, &
           restart_hbrine
@@ -1048,7 +1082,7 @@
         restore_bgc, restart_bgc, scale_bgc, solve_zsal, restart_zsal, &
         tr_bgc_Nit, tr_bgc_C, tr_bgc_chl, tr_bgc_Am, tr_bgc_Sil, &
         tr_bgc_DMS, tr_bgc_PON, tr_bgc_hum, tr_bgc_DON, tr_bgc_Fe, &
-        grid_o, grid_o_t, l_sk, grid_oS, &   
+        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &   
         l_skS, phi_snow,  initbio_frac, frazil_scav, &
         ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
         ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
@@ -1105,6 +1139,8 @@
       tr_brine        = .false.  ! brine height differs from ice height
       tr_zaero        = .false.  ! z aerosol tracers
       modal_aero      = .false.  ! use modal aerosol treatment of aerosols
+      optics_file     = 'unknown_optics_file' ! modal aerosol optics file
+      optics_file_fieldname = 'unknown_optics_fieldname' ! modal aerosol optics file fieldname
       restore_bgc     = .false.  ! restore bgc if true
       solve_zsal      = .false.  ! update salinity tracer profile from solve_S_dt
       restart_bgc     = .false.  ! biogeochemistry restart
@@ -1265,27 +1301,28 @@
       ! read from input file
       !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
-
       if (my_task == master_task) then
+         write(nu_diag,*) subname,' Reading zbgc_nml'
+
+         call get_fileunit(nu_nml)
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
-         endif 
+            call abort_ice(subname//'ERROR: zbgc_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
+         endif
 
-         print*,'Reading zbgc_nml'
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=zbgc_nml,iostat=nml_error)
          end do
-         if (nml_error == 0) close(nu_nml)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: zbgc_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: reading zbgc namelist')
-      endif
-      call release_fileunit(nu_nml)
 
       !-----------------------------------------------------------------
       ! broadcast
@@ -1321,6 +1358,8 @@
       call broadcast_scalar(tr_zaero,           master_task)
       call broadcast_scalar(dEdd_algae,         master_task) 
       call broadcast_scalar(modal_aero,         master_task)
+      call broadcast_scalar(optics_file,        master_task)
+      call broadcast_scalar(optics_file_fieldname, master_task)
       call broadcast_scalar(grid_o,             master_task)
       call broadcast_scalar(grid_o_t,           master_task)
       call broadcast_scalar(l_sk,               master_task)
@@ -1690,6 +1729,8 @@
          write(nu_diag,1010) ' solve_zbgc                = ', solve_zbgc
          write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
          write(nu_diag,1020) ' number of aerosols        = ', n_zaero
+         write(nu_diag,1031) ' optics_file               = ', trim(optics_file)
+         write(nu_diag,1031) ' optics_file_fieldname     = ', trim(optics_file_fieldname)
          ! bio parameters
          write(nu_diag,1000) ' grid_o                    = ', grid_o
          write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t
@@ -1747,6 +1788,7 @@
  1010    format (a30,2x,l6)    ! logical
  1020    format (a30,2x,i6)    ! integer
  1030    format (a30,   a8)    ! character
+ 1031    format (a30,   a )    ! character
 
       end subroutine input_zbgc
 
@@ -1770,10 +1812,12 @@
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
+      logical (kind=log_kind) :: tr_snow
       logical (kind=log_kind) :: tr_iso, tr_pond_cesm, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
+      integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     &
@@ -1856,7 +1900,7 @@
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, &
+         tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
          tr_bgc_DMS_out=tr_bgc_DMS, tr_bgc_PON_out=tr_bgc_PON, &
          tr_bgc_N_out  =tr_bgc_N,   tr_bgc_C_out  =tr_bgc_C,   tr_bgc_chl_out=tr_bgc_chl,   &
@@ -1917,6 +1961,21 @@
               ntrcr = ntrcr + 1    ! 
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
+      endif
+
+      nt_smice = 0
+      nt_smliq = 0
+      nt_rhos = 0
+      nt_rsnw = 0
+      if (tr_snow) then
+         nt_smice = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of ice in nslyr snow layers
+         nt_smliq = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! mass of liquid in nslyr snow layers
+         nt_rhos = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow density in nslyr layers
+         nt_rsnw = ntrcr + 1
+         ntrcr = ntrcr + nslyr     ! snow grain radius in nslyr layers
       endif
 
       nt_fsd = 0
@@ -2206,7 +2265,7 @@
 !tcx, +1 here is the unused tracer, want to get rid of it
       ntrcr = ntrcr + 1
 
-!tcx, reset unusaed tracer index, eventually get rid of it.
+!tcx, reset unused tracer index, eventually get rid of it.
       if (nt_iage  <= 0) nt_iage  = ntrcr
       if (nt_FY    <= 0) nt_FY    = ntrcr
       if (nt_alvl  <= 0) nt_alvl  = ntrcr
@@ -2214,6 +2273,10 @@
       if (nt_apnd  <= 0) nt_apnd  = ntrcr
       if (nt_hpnd  <= 0) nt_hpnd  = ntrcr
       if (nt_ipnd  <= 0) nt_ipnd  = ntrcr
+      if (nt_smice <= 0) nt_smice = ntrcr
+      if (nt_smliq <= 0) nt_smliq = ntrcr
+      if (nt_rhos  <= 0) nt_rhos  = ntrcr
+      if (nt_rsnw  <= 0) nt_rsnw  = ntrcr
       if (nt_fsd   <= 0) nt_fsd   = ntrcr
       if (nt_isosno<= 0) nt_isosno= ntrcr
       if (nt_isoice<= 0) nt_isoice= ntrcr
@@ -2240,6 +2303,7 @@
          nt_qice_in=nt_qice, nt_qsno_in=nt_qsno, nt_iage_in=nt_iage, nt_fy_in=nt_fy, &
          nt_alvl_in=nt_alvl, nt_vlvl_in=nt_vlvl, nt_apnd_in=nt_apnd, nt_hpnd_in=nt_hpnd, &
          nt_ipnd_in=nt_ipnd, nt_fsd_in=nt_fsd, nt_aero_in=nt_aero, &
+         nt_smice_in=nt_smice, nt_smliq_in=nt_smliq, nt_rhos_in=nt_rhos, nt_rsnw_in=nt_rsnw, &
          nt_isosno_in=nt_isosno,     nt_isoice_in=nt_isoice,       nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
          nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
@@ -2280,7 +2344,7 @@
 
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata
-      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N
+      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N, trcrn_sw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     nt_fbri,       &
@@ -2947,6 +3011,10 @@
          call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
+
+      ! tcraig, added 6/1/21, why is nbtrcr_sw set here?
+      call icepack_init_tracer_sizes(nbtrcr_sw_in=nbtrcr_sw)
+      allocate(trcrn_sw(nx_block,ny_block,nbtrcr_sw,ncat,max_blocks)) ! bgc tracers active in the delta-Eddington shortwave
 
       !-----------------------------------------------------------------
       ! spew

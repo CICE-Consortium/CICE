@@ -14,6 +14,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1
       use ice_calendar, only: istep1
+      use ice_domain_size, only: nslyr
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
       use ice_exit, only: abort_ice
@@ -25,9 +26,8 @@
 
       implicit none
       private
-      public :: runtime_diags, init_mass_diags, init_diags, &
-                print_state, print_points_state, diagnostic_abort
-
+      public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
+                print_state, diagnostic_abort
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -35,8 +35,12 @@
       ! point print data
 
       logical (kind=log_kind), public :: &
+         debug_model      , & ! if true, debug model at high level
          print_points     , & ! if true, print point data
          print_global         ! if true, print global data
+
+      integer (kind=int_kind), public :: &
+         debug_model_step = 0 ! begin printing at istep1=debug_model_step
 
       integer (kind=int_kind), parameter, public :: &
          npnt = 2             ! total number of points to be printed
@@ -70,6 +74,12 @@
       integer (kind=int_kind), dimension(npnt), public :: &
          piloc, pjloc, pbloc, pmloc  ! location of diagnostic points
 
+      integer (kind=int_kind), public :: &
+         debug_model_i = -1,    &  ! location of debug_model point, local i index
+         debug_model_j = -1,    &  ! location of debug_model point, local j index
+         debug_model_iblk = -1, &  ! location of debug_model point, local block number
+         debug_model_task = -1   ! location of debug_model point, local task number
+
       ! for hemispheric water and heat budgets
       real (kind=dbl_kind) :: &
          totmn            , & ! total ice/snow water mass (nh)
@@ -86,16 +96,6 @@
       real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
-
-      ! printing info for routine print_state
-      ! iblkp, ip, jp, mtask identify the grid cell to print
-!     character (char_len) :: plabel
-      integer (kind=int_kind), parameter, public :: &
-         check_step = 999999999, & ! begin printing at istep1=check_step
-         iblkp = 1, &      ! block number 
-         ip = 72, &        ! i index
-         jp = 11, &        ! j index
-         mtask = 0         ! my_task
 
 !=======================================================================
 
@@ -143,14 +143,18 @@
          i, j, k, n, iblk, nc, &
          ktherm, &
          nt_tsfc, nt_aero, nt_fbri, nt_apnd, nt_hpnd, nt_fsd, &
-         nt_isosno, nt_isoice
+         nt_isosno, nt_isoice, nt_rsnw, nt_rhos, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
-         tr_pond_topo, tr_brine, tr_iso, tr_aero, calc_Tsfc, tr_fsd
+         tr_pond_topo, tr_brine, tr_iso, tr_aero, calc_Tsfc, tr_fsd, &
+         tr_snow, snwgrain
 
       real (kind=dbl_kind) :: &
          rhow, rhos, rhoi, puny, awtvdr, awtidr, awtvdf, awtidf, &
          rhofresh, lfresh, lvap, ice_ref_salinity, Tffresh
+
+      character (len=char_len) :: &
+         snwredist
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
@@ -191,7 +195,8 @@
          pTsfc, pevap, pfswabs, pflwout, pflat, pfsens, &
          pfsurf, pfcondtop, psst, psss, pTf, hiavg, hsavg, hbravg, &
          pfhocn, psalt, fsdavg, &
-         pmeltt, pmeltb, pmeltl, psnoice, pdsnow, pfrazil, pcongel
+         pmeltt, pmeltb, pmeltl, psnoice, pdsnow, pfrazil, pcongel, &
+         prsnwavg, prhosavg, psmicetot, psmliqtot, psmtot
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
@@ -200,15 +205,19 @@
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
-           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+           tr_pond_topo_out=tr_pond_topo, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, &
+           tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_Tsfc_out=nt_Tsfc, &
            nt_aero_out=nt_aero, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_fsd_out=nt_fsd,nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_rsnw_out=nt_rsnw, nt_rhos_out=nt_rhos, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq)
       call icepack_query_parameters(Tffresh_out=Tffresh, rhos_out=rhos, &
            rhow_out=rhow, rhoi_out=rhoi, puny_out=puny, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
            rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
-           ice_ref_salinity_out=ice_ref_salinity)
+           ice_ref_salinity_out=ice_ref_salinity,snwredist_out=snwredist, &
+           snwgrain_out=snwgrain)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -826,6 +835,27 @@
                      enddo
                   endif
                endif
+               if (tr_snow) then      ! snow tracer quantities
+                  prsnwavg (n) = c0   ! avg snow grain radius
+                  prhosavg (n) = c0   ! avg snow density
+                  psmicetot(n) = c0   ! total mass of ice in snow (kg/m2)
+                  psmliqtot(n) = c0   ! total mass of liquid in snow (kg/m2)
+                  psmtot   (n) = c0   ! total mass of snow volume (kg/m2)
+                  if (vsno(i,j,iblk) > c0) then
+                     do k = 1, nslyr
+                        prsnwavg (n) = prsnwavg (n) + trcr(i,j,nt_rsnw +k-1,iblk) ! snow grain radius
+                        prhosavg (n) = prhosavg (n) + trcr(i,j,nt_rhos +k-1,iblk) ! compacted snow density
+                        psmicetot(n) = psmicetot(n) + trcr(i,j,nt_smice+k-1,iblk) * vsno(i,j,iblk)
+                        psmliqtot(n) = psmliqtot(n) + trcr(i,j,nt_smliq+k-1,iblk) * vsno(i,j,iblk)
+                     end do
+                  endif
+                  psmtot   (n) = rhos * vsno(i,j,iblk) ! mass of ice in standard density snow
+                  prsnwavg (n) = prsnwavg (n) / real(nslyr,kind=dbl_kind) ! snow grain radius
+                  prhosavg (n) = prhosavg (n) / real(nslyr,kind=dbl_kind) ! compacted snow density
+                  psmicetot(n) = psmicetot(n) / real(nslyr,kind=dbl_kind) ! mass of ice in snow
+                  psmliqtot(n) = psmliqtot(n) / real(nslyr,kind=dbl_kind) ! mass of liquid in snow
+               end if
+               psalt(n) = c0
                if (vice(i,j,iblk) /= c0) psalt(n) = work2(i,j,iblk)/vice(i,j,iblk)
                pTsfc(n) = trcr(i,j,nt_Tsfc,iblk)   ! ice/snow sfc temperature
                pevap(n) = evap(i,j,iblk)*dt/rhoi   ! sublimation/condensation
@@ -877,6 +907,11 @@
             call broadcast_scalar(pmeltl   (n), pmloc(n))
             call broadcast_scalar(psnoice  (n), pmloc(n))
             call broadcast_scalar(pdsnow   (n), pmloc(n))
+            call broadcast_scalar(psmtot   (n), pmloc(n))
+            call broadcast_scalar(prsnwavg (n), pmloc(n))
+            call broadcast_scalar(prhosavg (n), pmloc(n))
+            call broadcast_scalar(psmicetot(n), pmloc(n))
+            call broadcast_scalar(psmliqtot(n), pmloc(n))
             call broadcast_scalar(pfrazil  (n), pmloc(n))
             call broadcast_scalar(pcongel  (n), pmloc(n))
             call broadcast_scalar(pdhi     (n), pmloc(n))
@@ -1060,6 +1095,26 @@
         write(nu_diag,900) 'effective dhi (m)      = ',pdhi(1),pdhi(2)
         write(nu_diag,900) 'effective dhs (m)      = ',pdhs(1),pdhs(2)
         write(nu_diag,900) 'intnl enrgy chng(W/m^2)= ',pde (1),pde (2)
+
+        if (tr_snow) then
+           if (trim(snwredist) /= 'none') then
+              write(nu_diag,900) 'avg snow density(kg/m3)= ',prhosavg(1) &
+                                                            ,prhosavg(2)
+           endif
+           if (snwgrain) then
+              write(nu_diag,900) 'avg snow grain radius  = ',prsnwavg(1) &
+                                                            ,prsnwavg(2)
+              write(nu_diag,900) 'mass ice in snow(kg/m2)= ',psmicetot(1) &
+                                                            ,psmicetot(2)
+              write(nu_diag,900) 'mass liq in snow(kg/m2)= ',psmliqtot(1) &
+                                                            ,psmliqtot(2)
+              write(nu_diag,900) 'mass std snow   (kg/m2)= ',psmtot(1) &
+                                                            ,psmtot(2)
+              write(nu_diag,900) 'max  ice+liq    (kg/m2)= ',rhow * hsavg(1) &
+                                                            ,rhow * hsavg(2)
+           endif
+        endif
+
         write(nu_diag,*) '----------ocn----------'
         write(nu_diag,900) 'sst (C)                = ',psst(1),psst(2)
         write(nu_diag,900) 'sss (ppt)              = ',psss(1),psss(2)
@@ -1439,9 +1494,9 @@
             write(nu_diag,*) ' Find indices of diagnostic points '
          endif
 
-         piloc(:) = 0
-         pjloc(:) = 0
-         pbloc(:) = 0
+         piloc(:) = -1
+         pjloc(:) = -1
+         pbloc(:) = -1
          pmloc(:) = -999
          plat(:)  = -999._dbl_kind
          plon(:)  = -999._dbl_kind
@@ -1525,20 +1580,52 @@
 
 !=======================================================================
 
+! This routine is useful for debugging
+! author Elizabeth C. Hunke, LANL
+
+      subroutine debug_ice(iblk, plabeld)
+
+      use ice_kinds_mod
+      use ice_calendar, only: istep1
+      use ice_communicate, only: my_task
+      use ice_blocks, only: nx_block, ny_block
+
+      character (char_len), intent(in) :: plabeld
+      integer (kind=int_kind), intent(in) :: iblk
+
+      ! local 
+      integer (kind=int_kind) :: i, j, m
+      character(len=*), parameter :: subname='(debug_ice)'
+
+      if (istep1 >= debug_model_step) then
+
+         ! set debug point to 1st global point if not set as local values
+         if (debug_model_i < 0 .and. debug_model_j < 0 .and. &
+             debug_model_iblk < 0 .and. debug_model_task < 0) then
+            debug_model_i    = piloc(1)
+            debug_model_j    = pjloc(1)
+            debug_model_task = pmloc(1)
+            debug_model_iblk = pbloc(1)
+         endif
+
+         ! if debug point is messed up, abort
+         if (debug_model_i < 0 .or. debug_model_j < 0 .or. &
+             debug_model_iblk < 0 .or. debug_model_task < 0) then
+            call abort_ice (subname//'ERROR: debug_model_[i,j,iblk,mytask] not set correctly')
+         endif
+
+         ! write out debug info
+         if (debug_model_iblk == iblk .and. debug_model_task == my_task) then
+            call print_state(plabeld,debug_model_i,debug_model_j,debug_model_iblk)
+         endif
+
+      endif
+
+      end subroutine debug_ice
+
+!=======================================================================
+
 ! This routine is useful for debugging.
-! Calls to it should be inserted in the form (after thermo, for example)
-!      do iblk = 1, nblocks
-!      do j=jlo,jhi
-!      do i=ilo,ihi
-!         plabel = 'post thermo'
-!         if (istep1 >= check_step .and. iblk==iblkp .and i==ip &
-!             .and. j==jp .and. my_task == mtask) &
-!         call print_state(plabel,i,j,iblk)
-!      enddo
-!      enddo
-!      enddo
-!
-! 'use ice_diagnostics' may need to be inserted also
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine print_state(plabel,i,j,iblk)
@@ -1565,19 +1652,21 @@
            rad_to_deg, puny, rhoi, lfresh, rhos, cp_ice
 
       integer (kind=int_kind) :: n, k, nt_Tsfc, nt_qice, nt_qsno, nt_fsd, &
-           nt_isosno, nt_isoice, nt_sice
+           nt_isosno, nt_isoice, nt_sice, nt_smice, nt_smliq
 
-      logical (kind=log_kind) :: tr_fsd, tr_iso
+      logical (kind=log_kind) :: tr_fsd, tr_iso, tr_snow
 
       type (block) :: &
          this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
-      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
+      call icepack_query_tracer_flags(tr_fsd_out=tr_fsd, tr_iso_out=tr_iso, &
+           tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fsd_out=nt_fsd, &
-           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
+           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_smice_out=nt_smice, nt_smliq_out=nt_smliq)
       call icepack_query_parameters( &
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
@@ -1587,7 +1676,7 @@
 
       this_block = get_block(blocks_ice(iblk),iblk)         
 
-      write(nu_diag,*) plabel
+      write(nu_diag,*) subname,plabel
       write(nu_diag,*) 'istep1, my_task, i, j, iblk:', &
                         istep1, my_task, i, j, iblk
       write(nu_diag,*) 'Global i and j:', &
@@ -1607,14 +1696,17 @@
          endif
          write(nu_diag,*) 'Tsfcn',trcrn(i,j,nt_Tsfc,n,iblk)
          if (tr_fsd) write(nu_diag,*) 'afsdn',trcrn(i,j,nt_fsd,n,iblk) ! fsd cat 1
-!         if (tr_iso) write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
-!         if (tr_iso) write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+! layer 1 diagnostics
+!         if (tr_iso)  write(nu_diag,*) 'isosno',trcrn(i,j,nt_isosno,n,iblk) ! isotopes in snow
+!         if (tr_iso)  write(nu_diag,*) 'isoice',trcrn(i,j,nt_isoice,n,iblk) ! isotopes in ice
+!         if (tr_snow) write(nu_diag,*) 'smice', trcrn(i,j,nt_smice, n,iblk) ! ice mass in snow
+!         if (tr_snow) write(nu_diag,*) 'smliq', trcrn(i,j,nt_smliq, n,iblk) ! liquid mass in snow
          write(nu_diag,*) ' '
 
 ! dynamics (transport and/or ridging) causes the floe size distribution to become non-normal
 !         if (tr_fsd) then
 !         if (abs(sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk))-c1) > puny) &
-!            print*,'afsdn not normal', &
+!            write(nu_diag,*) 'afsdn not normal', &
 !                 sum(trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)), &
 !                     trcrn(i,j,nt_fsd:nt_fsd+nfsd-1,n,iblk)
 !         endif
@@ -1699,16 +1791,14 @@
       write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
       write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
       write(nu_diag,*) ' '
+      call flush_fileunit(nu_diag)
 
       end subroutine print_state
 
 !=======================================================================
+#ifdef UNDEPRECATE_print_points_state
 
 ! This routine is useful for debugging.
-! Calls can be inserted anywhere and it will print info on print_points points
-!      call print_points_state(plabel)
-!
-! 'use ice_diagnostics' may need to be inserted also
 
       subroutine print_points_state(plabel,ilabel)
 
@@ -1764,6 +1854,7 @@
             write(llabel,'(a)') 'pps:'//trim(llabel)
          endif
 
+         write(nu_diag,*) subname
          write(nu_diag,*) trim(llabel),'istep1, my_task, i, j, iblk=', &
                            istep1, my_task, i, j, iblk
          write(nu_diag,*) trim(llabel),'Global i and j=', &
@@ -1842,12 +1933,13 @@
       write(nu_diag,*) '            evap    = ',evap  (i,j,iblk)
       write(nu_diag,*) '            flwout  = ',flwout(i,j,iblk)
       write(nu_diag,*) ' '
+      call flush_fileunit(nu_diag)
 
       endif   ! my_task
       enddo   ! ncnt
 
       end subroutine print_points_state
-
+#endif
 !=======================================================================
 
 ! prints error information prior to aborting

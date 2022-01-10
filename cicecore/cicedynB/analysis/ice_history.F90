@@ -32,7 +32,7 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, c2, c100, c360, c180, &
-          p001, p25, p5, mps_to_cmpdy, kg_to_g, spval
+          p001, p25, p5, mps_to_cmpdy, kg_to_g, spval_dbl
       use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
           get_fileunit, release_fileunit, flush_fileunit
       use ice_exit, only: abort_ice
@@ -67,10 +67,11 @@
           histfreq_n, nstreams
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: mlt_onset, frz_onset, albcnt
+      use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
+      use ice_history_snow, only: init_hist_snow_2D, init_hist_snow_3Dc
       use ice_history_bgc, only:init_hist_bgc_2D, init_hist_bgc_3Dc, &
           init_hist_bgc_3Db, init_hist_bgc_3Da
       use ice_history_drag, only: init_hist_drag_2D
@@ -86,12 +87,13 @@
       real (kind=dbl_kind) :: rhofresh, Tffresh, secday, rad_to_deg
       logical (kind=log_kind) :: formdrag
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_brine
-      logical (kind=log_kind) :: tr_fsd
+      logical (kind=log_kind) :: tr_fsd, tr_snow
       logical (kind=log_kind) :: skl_bgc, solve_zsal, solve_zbgc, z_tracers
       integer (kind=int_kind) :: n, ns, ns1, ns2
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+
       character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
@@ -115,30 +117,32 @@
          solve_zsal_out=solve_zsal, solve_zbgc_out=solve_zbgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-         tr_brine_out=tr_brine, tr_fsd_out=tr_fsd)
+         tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call get_fileunit(nu_nml)
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+         write(nu_diag,*) subname,' Reading icefields_nml'
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
+            call abort_ice(subname//'ERROR: icefields_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
+
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_nml,iostat=nml_error)
          end do
-         if (nml_error == 0) close(nu_nml)
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_nml')
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: icefields_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
 
       ! histfreq options ('1','h','d','m','y')
@@ -1426,6 +1430,9 @@
       ! floe size distribution
       call init_hist_fsd_2D
 
+      ! advanced snow physics
+      call init_hist_snow_2D (dt)
+
       !-----------------------------------------------------------------
       ! 3D (category) variables looped separately for ordering
       !-----------------------------------------------------------------
@@ -1500,6 +1507,9 @@
 
       ! biogeochemistry
       call init_hist_bgc_3Dc
+
+      ! advanced snow physics
+      call init_hist_snow_3Dc
 
       !-----------------------------------------------------------------
       ! 3D (vertical) variables must be looped separately
@@ -1617,6 +1627,8 @@
         write(nu_diag,*) 'The following variables will be ', &
                          'written to the history tape: '
         write(nu_diag,101) 'description','units','variable','frequency','x'
+        if (num_avail_hist_fields_tot == 0) &
+           write(nu_diag,*) '*** WARNING: NO HISTORY FIELDS WILL BE WRITTEN ***'
         do n=1,num_avail_hist_fields_tot
            if (avail_hist_fields(n)%vhistfreq_n /= 0) &
            write(nu_diag,100) avail_hist_fields(n)%vdesc, &
@@ -1688,6 +1700,7 @@
       if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
       avgct(:) = c0
       albcnt(:,:,:,:) = c0
+      snwcnt(:,:,:,:) = c0
 
       if (restart .and. yday >= c2) then
 ! restarting midyear gives erroneous onset dates
@@ -1713,7 +1726,7 @@
       use ice_domain_size, only: nfsd
       use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu
       use ice_calendar, only: new_year, write_history, &
-                              write_ic, time, histfreq, nstreams, month, &
+                              write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
@@ -1726,7 +1739,7 @@
           fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, &
           fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
           taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
-          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, &
+          fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
           stressp_2, &
           stressp_3, &
@@ -1739,6 +1752,8 @@
       use ice_history_bgc, only: accum_hist_bgc
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_pond, only: accum_hist_pond
+      use ice_history_snow, only: accum_hist_snow, &
+          f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
       use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
       use icepack_intfc, only: icepack_mushy_temperature_mush
@@ -1758,6 +1773,7 @@
            nstrm                ! nstreams (1 if writing initial condition)
 
       real (kind=dbl_kind) :: &
+           timedbl          , & ! temporary dbl for time bounds
            ravgct           , & ! 1/avgct
            ravgctz              ! 1/avgct
 
@@ -1775,7 +1791,7 @@
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt
       logical (kind=log_kind) :: formdrag, skl_bgc
-      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_vlvl
@@ -1791,7 +1807,7 @@
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-           tr_brine_out=tr_brine)
+           tr_brine_out=tr_brine, tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc, &
            nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
@@ -1814,7 +1830,7 @@
       n4Dfcum = n4Dscum + num_avail_hist_fields_4Df ! should equal num_avail_hist_fields_tot
 
       do ns = 1,nstreams
-         if (.not. hist_avg .or. histfreq(ns) == '1') then  ! write snapshots
+         if (.not. hist_avg) then  ! write snapshots
            do n = 1,n2D
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
                   a2D(:,:,n,:) = c0
@@ -1862,11 +1878,10 @@
            avgct(ns) = c1
          else                      ! write averages over time histfreq
            avgct(ns) = avgct(ns) + c1
-!           if (avgct(ns) == c1) time_beg(ns) = (time-dt)/int(secday)
-           if (avgct(ns) == c1) then
-              time_beg(ns) = (time-dt)/int(secday)
-              time_beg(ns) = real(time_beg(ns),kind=real_kind)
-           endif
+         endif
+         if (avgct(ns) == c1) then
+            timedbl = (timesecs-dt)/(secday)
+            time_beg(ns) = real(timedbl,kind=real_kind)
          endif
       enddo
 
@@ -1878,12 +1893,15 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
+
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
+
+         if (allocated(a2D)) then
 
          workb(:,:) = aice_init(:,:,iblk)
 
@@ -2869,6 +2887,10 @@
            call accum_hist_field(n_siforceintstry, iblk, worka(:,:), a2D)
          endif
 
+         endif ! if (allocated(a2D))
+
+         if (allocated(a3Dc)) then
+
          ! 3D category fields
          if (f_aicen   (1:1) /= 'x') &
              call accum_hist_field(n_aicen-n2D, iblk, ncat_hist, &
@@ -2949,6 +2971,10 @@
            call accum_hist_field(n_siitdsnthick-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
          endif
 
+         endif ! if (allocated(a3Dc))
+
+         if (allocated(a4Di)) then
+
 ! example for 3D field (x,y,z)
 !         if (f_field3dz   (1:1) /= 'x') &
 !             call accum_hist_field(n_field3dz-n3Dccum, iblk, nzilyr, &
@@ -2986,6 +3012,10 @@
                                   Sinz4d(:,:,1:nzilyr,1:ncat_hist), a4Di)
          endif
          
+         endif ! if (allocated(a3Dc))
+
+         if (allocated(a4Ds)) then
+
          if (f_Tsnz   (1:1) /= 'x') then
             Tsnz4d(:,:,:,:) = c0
             do n = 1, ncat_hist
@@ -3002,25 +3032,30 @@
                                   Tsnz4d(:,:,1:nzslyr,1:ncat_hist), a4Ds)
          endif
          
-        ! Calculate aggregate surface melt flux by summing category values
-        if (f_fmeltt_ai(1:1) /= 'x') then
-         do ns = 1, nstreams
-           if (n_fmeltt_ai(ns) /= 0) then
-              worka(:,:) = c0
-              do j = jlo, jhi
-              do i = ilo, ihi
-               if (tmask(i,j,iblk)) then
-                 do n=1,ncat_hist
-                    worka(i,j)  = worka(i,j) + a3Dc(i,j,n,n_fmelttn_ai(ns)-n2D,iblk)
-                 enddo            ! n
-               endif              ! tmask
-              enddo                ! i
-              enddo                ! j
-              a2D(:,:,n_fmeltt_ai(ns),iblk) = worka(:,:)
-           endif
-         enddo
-        endif
+         endif ! if (allocated(a4Ds))
 
+         if (allocated(a3Dc) .and. allocated(a2D)) then
+
+         ! Calculate aggregate surface melt flux by summing category values
+         if (f_fmeltt_ai(1:1) /= 'x') then
+          do ns = 1, nstreams
+            if (n_fmeltt_ai(ns) /= 0) then
+               worka(:,:) = c0
+               do j = jlo, jhi
+               do i = ilo, ihi
+                if (tmask(i,j,iblk)) then
+                  do n=1,ncat_hist
+                     worka(i,j)  = worka(i,j) + a3Dc(i,j,n,n_fmelttn_ai(ns)-n2D,iblk)
+                  enddo            ! n
+                endif              ! tmask
+               enddo                ! i
+               enddo                ! j
+               a2D(:,:,n_fmeltt_ai(ns),iblk) = worka(:,:)
+            endif
+          enddo
+         endif
+
+         endif 
       !---------------------------------------------------------------
       ! accumulate other history output
       !---------------------------------------------------------------
@@ -3039,6 +3074,9 @@
 
          ! floe size distribution
          call accum_hist_fsd (iblk)
+
+         ! advanced snow physics
+         call accum_hist_snow (iblk)
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
@@ -3105,7 +3143,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a2D(i,j,n,iblk) = spval
+                    a2D(i,j,n,iblk) = spval_dbl
                  else                            ! convert units
                     a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
                                    * ravgct + avail_hist_fields(n)%conb
@@ -3122,7 +3160,7 @@
                              a2D(i,j,n_sithick(ns),iblk) = &
                              a2D(i,j,n_sithick(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sithick(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sithick(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3135,7 +3173,7 @@
                              a2D(i,j,n_siage(ns),iblk) = &
                              a2D(i,j,n_siage(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siage(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siage(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3148,7 +3186,7 @@
                              a2D(i,j,n_sisnthick(ns),iblk) = &
                              a2D(i,j,n_sisnthick(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sisnthick(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sisnthick(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3161,7 +3199,7 @@
                              a2D(i,j,n_sitemptop(ns),iblk) = &
                              a2D(i,j,n_sitemptop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sitemptop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sitemptop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3174,7 +3212,7 @@
                              a2D(i,j,n_sitempsnic(ns),iblk) = &
                              a2D(i,j,n_sitempsnic(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sitempsnic(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sitempsnic(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3187,7 +3225,7 @@
                              a2D(i,j,n_sitempbot(ns),iblk) = &
                              a2D(i,j,n_sitempbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sitempbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sitempbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3200,7 +3238,7 @@
                              a2D(i,j,n_siu(ns),iblk) = &
                              a2D(i,j,n_siu(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siu(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siu(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3213,7 +3251,7 @@
                              a2D(i,j,n_siv(ns),iblk) = &
                              a2D(i,j,n_siv(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siv(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siv(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3226,7 +3264,7 @@
                              a2D(i,j,n_sistrxdtop(ns),iblk) = &
                              a2D(i,j,n_sistrxdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrxdtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrxdtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3239,7 +3277,7 @@
                              a2D(i,j,n_sistrydtop(ns),iblk) = &
                              a2D(i,j,n_sistrydtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrydtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrydtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3252,7 +3290,7 @@
                              a2D(i,j,n_sistrxubot(ns),iblk) = &
                              a2D(i,j,n_sistrxubot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrxubot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sistrxubot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3265,7 +3303,7 @@
                              a2D(i,j,n_sistryubot(ns),iblk) = &
                              a2D(i,j,n_sistryubot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sistryubot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sistryubot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3278,7 +3316,7 @@
                              a2D(i,j,n_sicompstren(ns),iblk) = &
                              a2D(i,j,n_sicompstren(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sicompstren(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sicompstren(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3291,7 +3329,7 @@
                              a2D(i,j,n_sispeed(ns),iblk) = &
                              a2D(i,j,n_sispeed(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sispeed(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sispeed(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3304,8 +3342,8 @@
                              a2D(i,j,n_sialb(ns),iblk) = &
                              a2D(i,j,n_sialb(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sialb(ns),iblk) = spval
-                       if (albcnt(i,j,iblk,ns) <= puny) a2D(i,j,n_sialb(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sialb(ns),iblk) = spval_dbl
+                       if (albcnt(i,j,iblk,ns) <= puny) a2D(i,j,n_sialb(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3318,7 +3356,7 @@
                              a2D(i,j,n_siflswdtop(ns),iblk) = &
                              a2D(i,j,n_siflswdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswdtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswdtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3331,7 +3369,7 @@
                              a2D(i,j,n_siflswutop(ns),iblk) = &
                              a2D(i,j,n_siflswutop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswutop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswutop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3344,7 +3382,7 @@
                              a2D(i,j,n_siflswdbot(ns),iblk) = &
                              a2D(i,j,n_siflswdbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswdbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflswdbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3357,7 +3395,7 @@
                              a2D(i,j,n_sifllwdtop(ns),iblk) = &
                              a2D(i,j,n_sifllwdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllwdtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllwdtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3370,7 +3408,7 @@
                              a2D(i,j,n_sifllwutop(ns),iblk) = &
                              a2D(i,j,n_sifllwutop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllwutop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllwutop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3383,7 +3421,7 @@
                              a2D(i,j,n_siflsenstop(ns),iblk) = &
                              a2D(i,j,n_siflsenstop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsenstop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsenstop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3396,7 +3434,7 @@
                              a2D(i,j,n_siflsensupbot(ns),iblk) = &
                              a2D(i,j,n_siflsensupbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsensupbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsensupbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3409,7 +3447,7 @@
                              a2D(i,j,n_sifllatstop(ns),iblk) = &
                              a2D(i,j,n_sifllatstop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllatstop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sifllatstop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3422,7 +3460,7 @@
                              a2D(i,j,n_sipr(ns),iblk) = &
                              a2D(i,j,n_sipr(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sipr(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sipr(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3435,7 +3473,7 @@
                              a2D(i,j,n_sifb(ns),iblk) = &
                              a2D(i,j,n_sifb(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sifb(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sifb(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3448,7 +3486,7 @@
                              a2D(i,j,n_siflcondtop(ns),iblk) = &
                              a2D(i,j,n_siflcondtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflcondtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflcondtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3461,7 +3499,7 @@
                              a2D(i,j,n_siflcondbot(ns),iblk) = &
                              a2D(i,j,n_siflcondbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflcondbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflcondbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3474,7 +3512,7 @@
                              a2D(i,j,n_siflsaltbot(ns),iblk) = &
                              a2D(i,j,n_siflsaltbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsaltbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflsaltbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3487,7 +3525,7 @@
                              a2D(i,j,n_siflfwbot(ns),iblk) = &
                              a2D(i,j,n_siflfwbot(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflfwbot(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflfwbot(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3500,7 +3538,7 @@
                              a2D(i,j,n_siflfwdrain(ns),iblk) = &
                              a2D(i,j,n_siflfwdrain(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siflfwdrain(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siflfwdrain(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3513,7 +3551,7 @@
                              a2D(i,j,n_sidragtop(ns),iblk) = &
                              a2D(i,j,n_sidragtop(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sidragtop(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sidragtop(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3526,7 +3564,7 @@
                              a2D(i,j,n_sirdgthick(ns),iblk) = &
                              a2D(i,j,n_sirdgthick(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_sirdgthick(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_sirdgthick(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3539,7 +3577,7 @@
                              a2D(i,j,n_siforcetiltx(ns),iblk) = &
                              a2D(i,j,n_siforcetiltx(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcetiltx(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcetiltx(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3552,7 +3590,7 @@
                              a2D(i,j,n_siforcetilty(ns),iblk) = &
                              a2D(i,j,n_siforcetilty(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcetilty(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcetilty(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3565,7 +3603,7 @@
                              a2D(i,j,n_siforcecoriolx(ns),iblk) = &
                              a2D(i,j,n_siforcecoriolx(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcecoriolx(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcecoriolx(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3578,7 +3616,7 @@
                              a2D(i,j,n_siforcecorioly(ns),iblk) = &
                              a2D(i,j,n_siforcecorioly(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcecorioly(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforcecorioly(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3591,7 +3629,7 @@
                              a2D(i,j,n_siforceintstrx(ns),iblk) = &
                              a2D(i,j,n_siforceintstrx(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstrx(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstrx(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3604,7 +3642,7 @@
                              a2D(i,j,n_siforceintstry(ns),iblk) = &
                              a2D(i,j,n_siforceintstry(ns),iblk)*avgct(ns)*ravgip(i,j)
                        endif
-                       if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstry(ns),iblk) = spval
+                       if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstry(ns),iblk) = spval_dbl
                     enddo             ! i
                     enddo             ! j
                  endif
@@ -3669,7 +3707,38 @@
               enddo             ! j
               endif
 
-              endif
+! snwcnt averaging is not working correctly
+! for now, these history fields will have zeroes includes in the averages
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cmp') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cmp (1:1) /= 'x' .and. n_rhos_cmp(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cmp(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+!              if (avail_hist_fields(n)%vname(1:8) == 'rhos_cnt') then
+!              do j = jlo, jhi
+!              do i = ilo, ihi
+!                 if (tmask(i,j,iblk)) then
+!                    ravgctz = c0
+!                    if (snwcnt(i,j,iblk,ns) > puny) &
+!                        ravgctz = c1/snwcnt(i,j,iblk,ns)
+!                    if (f_rhos_cnt (1:1) /= 'x' .and. n_rhos_cnt(ns) /= 0) &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk) = &
+!                       a2D(i,j,n_rhos_cnt(ns),iblk)*avgct(ns)*ravgctz
+!                 endif
+!              enddo             ! i
+!              enddo             ! j
+!              endif
+
+              endif             ! avail_hist_fields(n)%vhistfreq == histfreq(ns)
            enddo                ! n
 
            do n = 1, num_avail_hist_fields_3Dc
@@ -3680,7 +3749,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Dc(i,j,k,n,iblk) = spval
+                    a3Dc(i,j,k,n,iblk) = spval_dbl
                  else                            ! convert units
                     a3Dc(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dc(i,j,k,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3729,7 +3798,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Dz(i,j,k,n,iblk) = spval
+                    a3Dz(i,j,k,n,iblk) = spval_dbl
                  else                            ! convert units
                     a3Dz(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dz(i,j,k,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3746,7 +3815,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Db(i,j,k,n,iblk) = spval
+                    a3Db(i,j,k,n,iblk) = spval_dbl
                  else                            ! convert units
                     a3Db(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Db(i,j,k,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3764,7 +3833,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Da(i,j,k,n,iblk) = spval
+                    a3Da(i,j,k,n,iblk) = spval_dbl
                  else                            ! convert units
                     a3Da(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Da(i,j,k,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3782,7 +3851,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Df(i,j,k,n,iblk) = spval
+                    a3Df(i,j,k,n,iblk) = spval_dbl
                  else                            ! convert units
                     a3Df(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Df(i,j,k,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3801,7 +3870,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a4Di(i,j,k,ic,n,iblk) = spval
+                    a4Di(i,j,k,ic,n,iblk) = spval_dbl
                  else                            ! convert units
                     a4Di(i,j,k,ic,n,iblk) = avail_hist_fields(nn)%cona*a4Di(i,j,k,ic,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3821,7 +3890,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a4Ds(i,j,k,ic,n,iblk) = spval
+                    a4Ds(i,j,k,ic,n,iblk) = spval_dbl
                  else                            ! convert units
                     a4Ds(i,j,k,ic,n,iblk) = avail_hist_fields(nn)%cona*a4Ds(i,j,k,ic,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3841,7 +3910,7 @@
               do j = jlo, jhi
               do i = ilo, ihi
                  if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a4Df(i,j,k,ic,n,iblk) = spval
+                    a4Df(i,j,k,ic,n,iblk) = spval_dbl
                  else                            ! convert units
                     a4Df(i,j,k,ic,n,iblk) = avail_hist_fields(nn)%cona*a4Df(i,j,k,ic,n,iblk) &
                                    * ravgct + avail_hist_fields(nn)%conb
@@ -3871,33 +3940,33 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (.not. tmask(i,j,iblk)) then ! mask out land points
-                 if (n_divu     (ns) /= 0) a2D(i,j,n_divu(ns),     iblk) = spval
-                 if (n_shear    (ns) /= 0) a2D(i,j,n_shear(ns),    iblk) = spval
-                 if (n_sig1     (ns) /= 0) a2D(i,j,n_sig1(ns),     iblk) = spval
-                 if (n_sig2     (ns) /= 0) a2D(i,j,n_sig2(ns),     iblk) = spval
-                 if (n_sigP     (ns) /= 0) a2D(i,j,n_sigP(ns),     iblk) = spval
-                 if (n_sistreave(ns) /= 0) a2D(i,j,n_sistreave(ns),iblk) = spval
-                 if (n_sistremax(ns) /= 0) a2D(i,j,n_sistremax(ns),iblk) = spval
-                 if (n_mlt_onset(ns) /= 0) a2D(i,j,n_mlt_onset(ns),iblk) = spval
-                 if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = spval
-                 if (n_hisnap   (ns) /= 0) a2D(i,j,n_hisnap(ns),   iblk) = spval
-                 if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),   iblk) = spval
-                 if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),    iblk) = spval
-                 if (n_iage     (ns) /= 0) a2D(i,j,n_iage(ns),     iblk) = spval
-                 if (n_FY       (ns) /= 0) a2D(i,j,n_FY(ns),       iblk) = spval
+                 if (n_divu     (ns) /= 0) a2D(i,j,n_divu(ns),     iblk) = spval_dbl
+                 if (n_shear    (ns) /= 0) a2D(i,j,n_shear(ns),    iblk) = spval_dbl
+                 if (n_sig1     (ns) /= 0) a2D(i,j,n_sig1(ns),     iblk) = spval_dbl
+                 if (n_sig2     (ns) /= 0) a2D(i,j,n_sig2(ns),     iblk) = spval_dbl
+                 if (n_sigP     (ns) /= 0) a2D(i,j,n_sigP(ns),     iblk) = spval_dbl
+                 if (n_sistreave(ns) /= 0) a2D(i,j,n_sistreave(ns),iblk) = spval_dbl
+                 if (n_sistremax(ns) /= 0) a2D(i,j,n_sistremax(ns),iblk) = spval_dbl
+                 if (n_mlt_onset(ns) /= 0) a2D(i,j,n_mlt_onset(ns),iblk) = spval_dbl
+                 if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = spval_dbl
+                 if (n_hisnap   (ns) /= 0) a2D(i,j,n_hisnap(ns),   iblk) = spval_dbl
+                 if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),   iblk) = spval_dbl
+                 if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),    iblk) = spval_dbl
+                 if (n_iage     (ns) /= 0) a2D(i,j,n_iage(ns),     iblk) = spval_dbl
+                 if (n_FY       (ns) /= 0) a2D(i,j,n_FY(ns),       iblk) = spval_dbl
 
-                 if (n_a11      (ns) /= 0) a2D(i,j,n_a11(ns),      iblk) = spval
-                 if (n_a12      (ns) /= 0) a2D(i,j,n_a12(ns),      iblk) = spval
-                 if (n_e11      (ns) /= 0) a2D(i,j,n_e11(ns),      iblk) = spval
-                 if (n_e12      (ns) /= 0) a2D(i,j,n_e12(ns),      iblk) = spval
-                 if (n_e22      (ns) /= 0) a2D(i,j,n_e22(ns),      iblk) = spval
-                 if (n_s11      (ns) /= 0) a2D(i,j,n_s11(ns),      iblk) = spval
-                 if (n_s12      (ns) /= 0) a2D(i,j,n_s12(ns),      iblk) = spval
-                 if (n_s22      (ns) /= 0) a2D(i,j,n_s22(ns),      iblk) = spval
-                 if (n_yieldstress11 (ns) /= 0) a2D(i,j,n_yieldstress11(ns),iblk) = spval
-                 if (n_yieldstress12 (ns) /= 0) a2D(i,j,n_yieldstress12(ns),iblk) = spval
-                 if (n_yieldstress22 (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk) = spval
-                       else
+                 if (n_a11      (ns) /= 0) a2D(i,j,n_a11(ns),      iblk) = spval_dbl
+                 if (n_a12      (ns) /= 0) a2D(i,j,n_a12(ns),      iblk) = spval_dbl
+                 if (n_e11      (ns) /= 0) a2D(i,j,n_e11(ns),      iblk) = spval_dbl
+                 if (n_e12      (ns) /= 0) a2D(i,j,n_e12(ns),      iblk) = spval_dbl
+                 if (n_e22      (ns) /= 0) a2D(i,j,n_e22(ns),      iblk) = spval_dbl
+                 if (n_s11      (ns) /= 0) a2D(i,j,n_s11(ns),      iblk) = spval_dbl
+                 if (n_s12      (ns) /= 0) a2D(i,j,n_s12(ns),      iblk) = spval_dbl
+                 if (n_s22      (ns) /= 0) a2D(i,j,n_s22(ns),      iblk) = spval_dbl
+                 if (n_yieldstress11 (ns) /= 0) a2D(i,j,n_yieldstress11(ns),iblk) = spval_dbl
+                 if (n_yieldstress12 (ns) /= 0) a2D(i,j,n_yieldstress12(ns),iblk) = spval_dbl
+                 if (n_yieldstress22 (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk) = spval_dbl
+              else
                  if (n_divu     (ns) /= 0) a2D(i,j,n_divu(ns),iblk)      = &
                        divu (i,j,iblk)*avail_hist_fields(n_divu(ns))%cona
                  if (n_shear    (ns) /= 0) a2D(i,j,n_shear(ns),iblk)     = &
@@ -3965,8 +4034,8 @@
         enddo                   ! iblk
         !$OMP END PARALLEL DO
 
-        time_end(ns) = time/int(secday)
-        time_end(ns) = real(time_end(ns),kind=real_kind)
+        timedbl = timesecs/secday
+        time_end(ns) = real(timedbl,kind=real_kind)
 
       !---------------------------------------------------------------
       ! write file
@@ -3991,10 +4060,12 @@
            if (allocated(a4Df)) a4Df(:,:,:,:,:,:) = c0
            avgct(:) = c0
            albcnt(:,:,:,:) = c0
+           snwcnt(:,:,:,:) = c0
            write_ic = .false.        ! write initial condition once at most
         else
            avgct(ns) = c0
            albcnt(:,:,:,ns) = c0
+           snwcnt(:,:,:,ns) = c0
         endif
 !        if (write_history(ns)) albcnt(:,:,:,ns) = c0
 
@@ -4056,7 +4127,7 @@
             enddo
          endif                  ! new_year
 
-         if ( (month .eq. 7) .and. new_month ) then 
+         if ( (mmonth .eq. 7) .and. new_month ) then 
             do j=jlo,jhi
             do i=ilo,ihi
                ! reset SH Jul 1

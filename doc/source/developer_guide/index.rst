@@ -17,5 +17,6 @@ Developer Guide
    dg_forcing.rst
    dg_icepack.rst
    dg_scripts.rst
+   dg_tools.rst
    dg_other.rst
 

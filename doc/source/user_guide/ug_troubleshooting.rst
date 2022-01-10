@@ -77,7 +77,7 @@ using `runtype` = ‘initial’. Binary restart files that were provided with
 CICE v4.1 were made using the BL99 thermodynamics with 4 layers and 5
 thickness categories (`kcatbound` = 0) and therefore can not be used for
 the default CICE v5 and later configuration (7 layers). In addition, CICE’s
-default restart file format is now  instead of binary.
+default restart file format is now NetCDF instead of binary.
 
 Restarting a run using `runtype` = ‘continue’ requires restart data for
 all tracers used in the new run. If tracer restart data is not
@@ -119,17 +119,36 @@ Several utilities are available that can be helpful when debugging the
 code. Not all of these will work everywhere in the code, due to possible
 conflicts in module dependencies.
 
-*debug\_ice* (**CICE.F90**)
+*debug\_ice* (**ice\_diagnostics.F90**)
     A wrapper for *print\_state* that is easily called from numerous
-    points during the timestepping loop (see
-    **CICE\_RunMod.F90\_debug**, which can be substituted for
-    **CICE\_RunMod.F90**).
+    points during the timestepping loop.
 
 *print\_state* (**ice\_diagnostics.F90**)
     Print the ice state and forcing fields for a given grid cell.
 
-`dbug` = true (**ice\_in**)
-    Print numerous diagnostic quantities.
+`debug\_forcing` = true (**ice\_in**)
+    Print numerous diagnostic quantities associated with input forcing.
+
+`debug\_blocks` = true (**ice\_in**)
+    Print diagnostics during block decomposition and distribution.
+
+`debug\_model` = true (**ice\_in**)
+    Print extended diagnostics for the first point associated with `print\_points`.
+
+`debug\_model\_i` = integer (**ice\_in**)
+    Defines the local i index for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_j` = integer (**ice\_in**)
+    Defines the local j index for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_iblk` = integer (**ice\_in**)
+    Defines the local iblk value for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_task` = integer (**ice\_in**)
+    Defines the local task value for the point to be diagnosed with `debug\_model`.
+
+`debug\_model\_step` = true (**ice\_in**)
+    Timestep to starting printing diagnostics associated with `debug\_model`.
 
 `print\_global` (**ice\_in**)
     If true, compute and print numerous global sums for energy and mass
@@ -138,11 +157,11 @@ conflicts in module dependencies.
 
 `print\_points` (**ice\_in**)
     If true, print numerous diagnostic quantities for two grid cells,
-    one near the north pole and one in the Weddell Sea. This utility
+    defined by `lonpnt` and `latpnt` in the namelist file.
+    This utility
     also provides the local grid indices and block and processor numbers
     (`ip`, `jp`, `iblkp`, `mtask`) for these points, which can be used in
-    conjunction with `check\_step`, to call *print\_state*. These flags
-    are set in **ice\_diagnostics.F90**. This option can be fairly slow,
+    to call *print\_state*. This option can be fairly slow,
     due to gathering data from processors.
 
 `conserv\_check` = true (**ice\_in**)
@@ -192,9 +211,6 @@ Known bugs
 
 -  Latitude and longitude fields in the history output may be wrong when
    using padding.
-
--  History and restart files will not be written on the first timestep in
-   some cases.
 
 
 Interpretation of albedos

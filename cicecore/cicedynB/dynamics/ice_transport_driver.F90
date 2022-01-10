@@ -85,7 +85,9 @@
 
       integer (kind=int_kind) :: ntrcr, nt_Tsfc, nt_qice, nt_qsno, &
           nt_sice, nt_fbri, nt_iage, nt_FY, nt_alvl, nt_vlvl, &
-          nt_apnd, nt_hpnd, nt_ipnd, nt_fsd, nt_isosno, nt_isoice, nt_bgc_Nit, nt_bgc_S
+          nt_apnd, nt_hpnd, nt_ipnd, nt_fsd, &
+          nt_smice, nt_smliq, nt_rhos, nt_rsnw, &
+          nt_isosno, nt_isoice, nt_bgc_Nit, nt_bgc_S
 
       character(len=*), parameter :: subname = '(init_transport)'
 
@@ -94,9 +96,12 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_qice_out=nt_qice, &
           nt_qsno_out=nt_qsno, nt_sice_out=nt_sice, nt_fbri_out=nt_fbri, &
-          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_alvl_out=nt_alvl, nt_fsd_out=nt_fsd, &
-          nt_vlvl_out=nt_vlvl, nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
-          nt_ipnd_out=nt_ipnd, nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S, &
+          nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_fsd_out=nt_fsd, &
+          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
+          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
+          nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, nt_rhos_out=nt_rhos, &
+          nt_rsnw_out=nt_rsnw, &
+          nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S, &
           nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -195,6 +200,18 @@
              if (nt-k==nt_ipnd) &
                 write(nu_diag,1000) 'nt_ipnd     ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
+             if (nt-k==nt_smice) &
+                write(nu_diag,1000) 'nt_smice    ',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_smliq) &
+                write(nu_diag,1000) 'nt_smliq    ',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_rhos) &
+                write(nu_diag,1000) 'nt_rhos     ',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
+             if (nt-k==nt_rsnw) &
+                write(nu_diag,1000) 'nt_rsnw     ',nt,depend(nt),tracer_type(nt),&
+                                              has_dependents(nt)
              if (nt-k==nt_fsd) &
                 write(nu_diag,1000) 'nt_fsd      ',nt,depend(nt),tracer_type(nt),&
                                               has_dependents(nt)
@@ -272,7 +289,7 @@
          trmask           ! = 1. if tracer is present, = 0. otherwise
 
       logical (kind=log_kind) ::     &
-         l_stop           ! if true, abort the model
+         ckflag           ! if true, abort the model
 
       integer (kind=int_kind) ::     &
          istop, jstop     ! indices of grid cell where model aborts 
@@ -327,7 +344,7 @@
 !---! Initialize, update ghost cells, fill tracer arrays.
 !---!-------------------------------------------------------------------
 
-      l_stop = .false.
+      ckflag = .false.
       istop = 0
       jstop = 0
 
@@ -605,10 +622,10 @@
 
          if (my_task == master_task) then
             fieldid = subname//':000'
-            call global_conservation (l_stop, fieldid,     &
+            call global_conservation (ckflag, fieldid,     &
                                       asum_init(0), asum_final(0))
 
-            if (l_stop) then
+            if (ckflag) then
                write (nu_diag,*) 'istep1, my_task =',     &
                                   istep1, my_task
                write (nu_diag,*) 'transport: conservation error, cat 0'
@@ -618,11 +635,11 @@
             do n = 1, ncat
                write(fieldid,'(a,i3.3)') subname,n
                call global_conservation                                 &
-                                     (l_stop, fieldid,                  &
+                                     (ckflag, fieldid,                  &
                                       asum_init(n),    asum_final(n),   &
                                       atsum_init(:,n), atsum_final(:,n))
 
-               if (l_stop) then
+               if (ckflag) then
                   write (nu_diag,*) 'istep1, my_task, cat =',     &
                                      istep1, my_task, n
                   write (nu_diag,*) 'transport: conservation error, cat ',n
@@ -639,7 +656,7 @@
     !-------------------------------------------------------------------
 
       if (l_monotonicity_check) then
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,l_stop,istop,jstop)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
@@ -647,7 +664,7 @@
             jlo = this_block%jlo
             jhi = this_block%jhi
 
-            l_stop = .false.
+            ckflag = .false.
             istop = 0
             jstop = 0
 
@@ -657,10 +674,10 @@
                                 ilo, ihi, jlo, jhi,     &
                                 tmin(:,:,:,n,iblk), tmax(:,:,:,n,iblk),  &
                                 aim (:,:,  n,iblk), trm (:,:,:,n,iblk),  &
-                                l_stop,     &
+                                ckflag,     &
                                 istop,              jstop)
 
-               if (l_stop) then
+               if (ckflag) then
                   write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                      istep1, my_task, iblk, n
                   call abort_ice(subname//'ERROR: monotonicity error')
@@ -1083,7 +1100,7 @@
 !
 ! author William H. Lipscomb, LANL
 
-      subroutine global_conservation (l_stop, fieldid,            &
+      subroutine global_conservation (ckflag, fieldid,            &
                                       asum_init,  asum_final,     &
                                       atsum_init, atsum_final)
 
@@ -1099,7 +1116,7 @@
          atsum_final   ! final global ice area*tracer
 
       logical (kind=log_kind), intent(inout) ::     &
-         l_stop    ! if true, abort on return
+         ckflag    ! if true, abort on return
 
       ! local variables
 
@@ -1120,7 +1137,7 @@
       if (asum_init > puny) then
          diff = asum_final - asum_init
          if (abs(diff/asum_init) > puny) then
-            l_stop = .true.
+            ckflag = .true.
             write (nu_diag,*)
             write (nu_diag,*) subname,'Ice area conserv error ', trim(fieldid)
             write (nu_diag,*) subname,'  Initial global area  =', asum_init
@@ -1135,7 +1152,7 @@
          if (abs(atsum_init(nt)) > puny) then
             diff = atsum_final(nt) - atsum_init(nt)
             if (abs(diff/atsum_init(nt)) > puny) then
-               l_stop = .true.
+               ckflag = .true.
                write (nu_diag,*)
                write (nu_diag,*) subname,'Ice area*tracer conserv error ', trim(fieldid),nt
                write (nu_diag,*) subname,'  Tracer index               =', nt
@@ -1323,7 +1340,7 @@
                                      ilo, ihi, jlo, jhi,     &
                                      tmin,     tmax,         &
                                      aim,      trm,          &
-                                     l_stop,                 &
+                                     ckflag,                 &
                                      istop,    jstop)
 
       integer (kind=int_kind), intent(in) ::     &
@@ -1341,7 +1358,7 @@
            tmax           ! local max tracer
 
       logical (kind=log_kind), intent(inout) ::     &
-         l_stop    ! if true, abort on return
+         ckflag    ! if true, abort on return
 
       integer (kind=int_kind), intent(inout) ::     &
          istop, jstop     ! indices of grid cell where model aborts 
@@ -1425,7 +1442,7 @@
                w1 = max(c1, abs(tmin(i,j,nt)))
                w2 = max(c1, abs(tmax(i,j,nt)))
                if (trm(i,j,nt) < tmin(i,j,nt)-w1*puny) then
-                  l_stop = .true.
+                  ckflag = .true.
                   istop = i
                   jstop = j
                   write (nu_diag,*) ' '
@@ -1435,7 +1452,7 @@
                   write (nu_diag,*) 'tmin ='      , tmin(i,j,nt)
                   write (nu_diag,*) 'ice area ='  , aim(i,j)
                elseif (trm(i,j,nt) > tmax(i,j,nt)+w2*puny) then
-                  l_stop = .true.
+                  ckflag = .true.
                   istop = i
                   jstop = j
                   write (nu_diag,*) ' '

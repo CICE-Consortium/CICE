@@ -57,6 +57,15 @@ def gen_filenames(base_dir, test_dir):
               "   # of files: {}".format(len(files_b)))
         sys.exit(-1)
 
+    if len(files_a) < 1825:
+        logger.error("Number of output files too small, expecting at least 1825." + \
+              " Exiting...\n" + \
+              "Baseline directory: {}\n".format(path_a) + \
+              "   # of files: {}\n".format(len(files_a)) + \
+              "Test directory: {}\n".format(path_b) + \
+              "   # of files: {}".format(len(files_b)))
+        sys.exit(-1)
+
     logger.info("Number of files: %d", len(files_a))
 
     return path_a, path_b, files_a, files_b
@@ -168,7 +177,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
         df = n_eff - 1
 
         # Read in t_crit table
-        nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_t_critical_p0.8.nc", 'r')
+        if os.path.exists('./CICE_t_critical_p0.8.nc'):
+          nfid = nc.Dataset("./CICE_t_critical_p0.8.nc", 'r')
+        else:
+          nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_t_critical_p0.8.nc", 'r')
         df_table = nfid.variables['df'][:]
         t_crit_table = nfid.variables['tcrit'][:]
         nfid.close()
@@ -229,7 +241,10 @@ def two_stage_test(data_a, num_files, data_d, fname, path):
     t_val = mean_d / np.sqrt(variance_d / num_files)
 
     # Find t_crit from the nearest value on the Lookup Table Test
-    nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc", 'r')
+    if os.path.exists('./CICE_Lookup_Table_p0.8_n1825.nc'):
+      nfid = nc.Dataset("./CICE_Lookup_Table_p0.8_n1825.nc", 'r')
+    else:
+      nfid = nc.Dataset("configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc", 'r')
     r1_table = nfid.variables['r1'][:]
     t_crit_table = nfid.variables['tcrit'][:]
     nfid.close()

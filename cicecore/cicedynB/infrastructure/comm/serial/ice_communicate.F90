@@ -18,6 +18,7 @@
 
    public  :: init_communicate,          &
               get_num_procs,             &
+              get_rank,                  &
               ice_barrier,               &
               create_communicator
 
@@ -84,6 +85,29 @@
 !-----------------------------------------------------------------------
 
  end function get_num_procs
+
+!***********************************************************************
+
+ function get_rank()
+
+!  This function returns the number of processors assigned to
+!  the ice model.
+
+   integer (int_kind) :: get_rank
+
+   character(len=*), parameter :: subname = '(get_rank)'
+
+!-----------------------------------------------------------------------
+!
+!  serial execution, must be only 1
+!
+!-----------------------------------------------------------------------
+
+   get_rank = 0
+
+!-----------------------------------------------------------------------
+
+ end function get_rank
 
 !***********************************************************************
 

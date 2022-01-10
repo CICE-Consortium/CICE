@@ -1,16 +1,19 @@
 &setup_nml
     days_per_year  = 365
-    use_leap_years = .false.
-    year_init      = 1997
+    use_leap_years = .true.
+    year_init      = 2005
+    month_init     = 1
+    day_init       = 1
+    sec_init       = 0
     istep0         = 0
     dt             = 3600.0
+    npt_unit       = '1'
     npt            = 24
     ndtd           = 1
     runtype        = 'initial'
     ice_ic         = './restart/iced_gx3_v5.nc'
-    restart        = .true.
     restart_ext    = .false.
-    use_restart_time = .true.
+    use_restart_time = .false.
     restart_format = 'default'
     lcdf64         = .false.
     numin          = 21
@@ -20,11 +23,19 @@
     pointer_file   = './ice.restart_file'
     dumpfreq       = 'd'
     dumpfreq_n     = 1
+    dumpfreq_base  = 'init'
     dump_last      = .false.
     bfbflag        = 'off'
     diagfreq       = 24
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
+    debug_model    = .false.
+    debug_model_step = 0
+    debug_model_i  = -1
+    debug_model_j  = -1
+    debug_model_iblk = -1
+    debug_model_task = -1
+    debug_forcing  = .false.
     print_global   = .true.
     print_points   = .true.
     conserv_check  = .false.
@@ -32,9 +43,9 @@
     lonpnt(1)      =  0.
     latpnt(2)      = -65.
     lonpnt(2)      = -45.
-    dbug           = .false.
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
+    histfreq_base  = 'zero'
     hist_avg       = .true.
     history_dir    = './history/'
     history_file   = 'iceh'
@@ -89,6 +100,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_snow      = .false.
+    restart_snow = .false.
     tr_iso       = .false.
     restart_iso  = .false.
     tr_aero      = .false.
@@ -116,7 +129,7 @@
     kdyn            = 1
     ndte            = 240
     revised_evp     = .false.
-    kevp_kernel     = 0
+    evp_algorithm   = 'standard_2d'
     brlx            = 300.0
     arlx            = 300.0
     advection       = 'remap'
@@ -128,7 +141,8 @@
     Cstar           = 20
     Cf              = 17.
     Ktens           = 0.
-    e_ratio         = 2.
+    e_yieldcurve    = 2.
+    e_plasticpot    = 2.
     seabed_stress   = .false.
     seabed_stress_method = 'LKD'
     k1              = 7.5
@@ -186,9 +200,31 @@
     pndaspect       = 0.8
 /
 
+&snow_nml
+    snwredist       = 'none'
+    snwgrain        = .false.
+    use_smliq_pnd   = .false.
+    rsnw_fall       =  100.0
+    rsnw_tmax       = 1500.0
+    rhosnew         =  100.0
+    rhosmin         =  100.0
+    rhosmax         =  450.0
+    windmin         =   10.0
+    drhosdwind      =   27.3
+    snwlvlfac       =    0.3
+    snw_aging_table = 'test'
+    snw_filename    = 'unknown'
+    snw_rhos_fname  = 'unknown'
+    snw_Tgrd_fname  = 'unknown'
+    snw_T_fname     = 'unknown'
+    snw_tau_fname   = 'unknown'
+    snw_kappa_fname = 'unknown'
+    snw_drdt0_fname = 'unknown'
+/
+
 &forcing_nml
     formdrag        = .false.
-    atmbndy         = 'default'
+    atmbndy         = 'similarity'
     rotate_wind     = .true.
     calc_strair     = .true.
     calc_Tsfc       = .true.
@@ -196,6 +232,9 @@
     natmiter        = 5
     atmiter_conv    = 0.0d0
     ustar_min       = 0.0005
+    iceruf          = 0.0005
+    calc_dragio     = .false.
+    iceruf_ocn      = 0.03
     emissivity      = 0.985
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
@@ -216,7 +255,7 @@
     bgc_data_type   = 'default'
     fe_data_type    = 'default'
     ice_data_type   = 'default'
-    fyear_init      = 1997
+    fyear_init      = 2005
     ycycle          = 1
     atm_data_format = 'bin'
     atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
@@ -236,12 +275,14 @@
     processor_shape   = 'slenderX2'
     distribution_type = 'cartesian'
     distribution_wght = 'latitude'
+    distribution_wght_file = 'unknown'
     ew_boundary_type  = 'cyclic'
     ns_boundary_type  = 'open'
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
+    debug_blocks      = .false.
 /
 
 &zbgc_nml
@@ -249,6 +290,8 @@
     restart_hbrine  = .false.
     tr_zaero        = .false.
     modal_aero      = .false.
+    optics_file     = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/snicar_optics_5bnd_snow_and_aerosols.nc'
+    optics_file_fieldname = 'modalBCabsorptionParameter5band'
     skl_bgc         = .false.
     z_tracers       = .false.
     dEdd_algae      = .false.
@@ -564,6 +607,21 @@
     f_hpond_ai     = 'm'
     f_ipond_ai     = 'm'
     f_apeff_ai     = 'm'
+/
+
+&icefields_snow_nml
+    f_smassicen    = 'x'
+    f_smassliqn    = 'x'
+    f_rhos_cmpn    = 'x'
+    f_rhos_cntn    = 'x'
+    f_rsnwn        = 'x'
+    f_smassice     = 'm'
+    f_smassliq     = 'm'
+    f_rhos_cmp     = 'm'
+    f_rhos_cnt     = 'm'
+    f_rsnw         = 'm'
+    f_meltsliq     = 'm'
+    f_fsloss       = 'm'
 /
 
 &icefields_bgc_nml

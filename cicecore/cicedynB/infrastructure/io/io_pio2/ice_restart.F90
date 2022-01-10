@@ -41,8 +41,8 @@
 
       subroutine init_restart_read(ice_ic)
 
-      use ice_calendar, only: istep0, istep1, time, time_forc, nyr, month, &
-                              mday, sec, npt
+      use ice_calendar, only: istep0, istep1, myear, mmonth, &
+                              mday, msec, npt
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
@@ -54,7 +54,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status
+      integer (kind=int_kind) :: status, status1
 
       integer (kind=int_kind) :: iotype
 
@@ -83,32 +83,44 @@
          File%fh=-1
          call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
       
-         call ice_pio_initdecomp(iodesc=iodesc2d)
-         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true.)
+         call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
+         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
 
          if (use_restart_time) then
-         status = pio_get_att(File, pio_global, 'istep1', istep0)
-         status = pio_get_att(File, pio_global, 'time', time)
-         status = pio_get_att(File, pio_global, 'time_forc', time_forc)
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR)
-         status = pio_get_att(File, pio_global, 'nyr', nyr)
-         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
-         if (status == PIO_noerr) then
-            status = pio_get_att(File, pio_global, 'month', month)
+            status1 = PIO_noerr
+            status = pio_get_att(File, pio_global, 'istep1', istep0)
+!            status = pio_get_att(File, pio_global, 'time', time)
+!            status = pio_get_att(File, pio_global, 'time_forc', time_forc)
+            call pio_seterrorhandling(File, PIO_BCAST_ERROR)
+            status = pio_get_att(File, pio_global, 'myear', myear)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'nyr', myear)
+            if (status /= PIO_noerr) status1 = status
+            status = pio_get_att(File, pio_global, 'mmonth', mmonth)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'month', mmonth)
+            if (status /= PIO_noerr) status1 = status
             status = pio_get_att(File, pio_global, 'mday', mday)
-            status = pio_get_att(File, pio_global, 'sec', sec)
-         endif
+            if (status /= PIO_noerr) status1 = status
+            status = pio_get_att(File, pio_global, 'msec', msec)
+            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'sec', msec)
+            if (status /= PIO_noerr) status1 = status
+            if (status1 /= PIO_noerr) &
+               call abort_ice(subname//"ERROR: reading restart time ")
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
          endif ! use namelist values if use_restart_time = F
 !     endif
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'Restart read at istep=',istep0,time,time_forc
+         write(nu_diag,*) 'Restart read at istep=',istep0,myear,mmonth,mday,msec
       endif
 
       call broadcast_scalar(istep0,master_task)
-      call broadcast_scalar(time,master_task)
-      call broadcast_scalar(time_forc,master_task)
-      call broadcast_scalar(nyr,master_task)
+      call broadcast_scalar(myear,master_task)
+      call broadcast_scalar(mmonth,master_task)
+      call broadcast_scalar(mday,master_task)
+      call broadcast_scalar(msec,master_task)
+!      call broadcast_scalar(time,master_task)
+!      call broadcast_scalar(time_forc,master_task)
+      call broadcast_scalar(myear,master_task)
       
       istep1 = istep0
 
@@ -126,8 +138,7 @@
 
       subroutine init_restart_write(filename_spec)
 
-      use ice_calendar, only: sec, month, mday, nyr, istep1, &
-                              time, time_forc, year_init
+      use ice_calendar, only: msec, mmonth, mday, myear, istep1
       use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
@@ -140,7 +151,7 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-          tr_pond_topo, tr_pond_lvl, tr_brine, &
+          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
           tr_bgc_chl, tr_bgc_Am,  &
@@ -154,9 +165,6 @@
       character(len=char_len_long), intent(in), optional :: filename_spec
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-          iyear, imonth, iday     ! year, month, day
 
       character(len=char_len_long) :: filename
 
@@ -179,7 +187,8 @@
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
           tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, tr_brine_out=tr_brine, &
+          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
+          tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
           tr_bgc_chl_out=tr_bgc_chl,  tr_bgc_Am_out=tr_bgc_Am, &
@@ -196,14 +205,10 @@
       if (present(filename_spec)) then
          filename = trim(filename_spec)
       else
-         iyear = nyr + year_init - 1
-         imonth = month
-         iday = mday
-      
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
               restart_file(1:lenstr(restart_file)),'.', &
-              iyear,'-',month,'-',mday,'-',sec
+              myear,'-',mmonth,'-',mday,'-',msec
       end if
         
       if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
@@ -224,12 +229,12 @@
               clobber=.true., cdf64=lcdf64, iotype=iotype)
 
          status = pio_put_att(File,pio_global,'istep1',istep1)
-         status = pio_put_att(File,pio_global,'time',time)
-         status = pio_put_att(File,pio_global,'time_forc',time_forc)
-         status = pio_put_att(File,pio_global,'nyr',nyr)
-         status = pio_put_att(File,pio_global,'month',month)
+!         status = pio_put_att(File,pio_global,'time',time)
+!         status = pio_put_att(File,pio_global,'time_forc',time_forc)
+         status = pio_put_att(File,pio_global,'myear',myear)
+         status = pio_put_att(File,pio_global,'mmonth',mmonth)
          status = pio_put_att(File,pio_global,'mday',mday)
-         status = pio_put_att(File,pio_global,'sec',sec)
+         status = pio_put_att(File,pio_global,'msec',msec)
 
          status = pio_def_dim(File,'ni',nx_global,dimid_ni)
          status = pio_def_dim(File,'nj',ny_global,dimid_nj)
@@ -479,6 +484,16 @@
             call define_rest_field(File,'qsno'//trim(nchar),dims)
          enddo
 
+         if (tr_snow) then
+            do k=1,nslyr
+               write(nchar,'(i3.3)') k
+               call define_rest_field(File,'smice'//trim(nchar),dims)
+               call define_rest_field(File,'smliq'//trim(nchar),dims)
+               call define_rest_field(File, 'rhos'//trim(nchar),dims)
+               call define_rest_field(File, 'rsnw'//trim(nchar),dims)
+            enddo
+         endif
+
          if (tr_fsd) then
             do k=1,nfsd
                write(nchar,'(i3.3)') k
@@ -634,8 +649,8 @@
          deallocate(dims)
          status = pio_enddef(File)
 
-         call ice_pio_initdecomp(iodesc=iodesc2d)
-         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true.)
+         call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
+         call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true., precision=8)
 
 !     endif  ! restart_format
 
@@ -702,8 +717,9 @@
 
          status = pio_inq_varid(File,trim(vname),vardesc)
 
-         if (status /= 0) then
-            call abort_ice(subname//"ERROR: CICE restart? Missing variable: "//trim(vname))
+         if (status /= PIO_noerr) then
+            call abort_ice(subname// &
+               "ERROR: CICE restart? Missing variable: "//trim(vname))
          endif
 
          status = pio_inq_varndims(File, vardesc, ndims)
@@ -713,6 +729,10 @@
 !         if (ndim3 == ncat .and. ncat>1) then
          if (ndim3 == ncat .and. ndims == 3) then
             call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
+!#ifndef CESM1_PIO
+!!           This only works for PIO2
+!            where (work == PIO_FILL_DOUBLE) work = c0
+!#endif
             if (present(field_loc)) then
                do n=1,ndim3
                   call ice_HaloUpdate (work(:,:,n,:), halo_info, &
@@ -722,6 +742,10 @@
 !         elseif (ndim3 == 1) then
          elseif (ndim3 == 1 .and. ndims == 2) then
             call pio_read_darray(File, vardesc, iodesc2d, work, status)
+!#ifndef CESM1_PIO
+!!           This only works for PIO2
+!            where (work == PIO_FILL_DOUBLE) work = c0
+!#endif
             if (present(field_loc)) then
                call ice_HaloUpdate (work(:,:,1,:), halo_info, &
                                     field_loc, field_type)
@@ -854,7 +878,7 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, time, time_forc
+      use ice_calendar, only: istep1, idate, msec
       use ice_communicate, only: my_task, master_task
 
       character(len=*), parameter :: subname = '(final_restart)'
@@ -864,7 +888,7 @@
       call pio_closefile(File)
 
       if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,time,time_forc
+         write(nu_diag,*) 'Restart read/written ',istep1,idate,msec
 
       end subroutine final_restart
 

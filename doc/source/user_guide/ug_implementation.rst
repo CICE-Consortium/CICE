@@ -81,20 +81,35 @@ Grid, boundary conditions and masks
 
 The spatial discretization is specialized for a generalized orthogonal
 B-grid as in :cite:`Murray96` or
-:cite:`Smith95`. The ice and snow area, volume and energy are
-given at the center of the cell, velocity is defined at the corners, and
-the internal ice stress tensor takes four different values within a grid
+:cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
+B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
+is referred to as T-cell. The ice and snow area, volume and energy are
+given at the t-point. The velocity :math:`{\bf u}(i,j)`
+associated with :math:`t(i,j)` is defined in the northeast (NE)
+corner. The other corners of the T-cell are northwest (NW), southwest
+(SW) and southeast (SE). The lengths of the four edges of the T-cell
+are respectively HTN, HTW, HTS and HTE for the northern, western,
+southern and eastern edges. The lengths of the T-cell through the
+middle are respectively dxt and dyt along the x and y axis. 
+
+We also occasionally refer to “U-cells,” which are centered on the
+northeast corner of the corresponding T-cells and have velocity in the
+center of each. The velocity components are aligned along grid lines.
+
+The internal ice stress tensor takes four different values within a grid
 cell; bilinear approximations are used for the stress tensor and the ice
 velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
 B-grid. EVP is available on the C-grid through the MITgcm code
 distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
 
-Since ice thickness and thermodynamic variables such as temperature are given
-in the center of each cell, the grid cells are referred to as “T cells.”
-We also occasionally refer to “U cells,” which are centered on the
-northeast corner of the corresponding T cells and have velocity in the
-center of each. The velocity components are aligned along grid lines.
+.. _fig-Bgrid:
+
+.. figure:: ./figures/CICE_Bgrid.png
+   :align: center
+   :scale: 55%
+
+   Schematic of CICE B-grid. 
 
 The user has several choices of grid routines: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
@@ -163,18 +178,19 @@ information to the log file, and if the block size or max blocks is
 inconsistent with the task and thread size, the model will abort.  The 
 code will also print a warning if the maximum number of blocks is too large. 
 Although this is not fatal, it does use extra memory.  If ``max_blocks`` is
-set to -1, the code will compute a ``max_blocks`` on the fly.
+set to -1, the code will compute a tentative ``max_blocks`` on the fly.
 
 A loop at the end of routine *create\_blocks* in module
 **ice\_blocks.F90** will print the locations for all of the blocks on
-the global grid if dbug is set to be true. Likewise, a similar loop at
+the global grid if the namelist variable ``debug_blocks`` is set to be true. Likewise, a similar loop at
 the end of routine *create\_local\_block\_ids* in module
 **ice\_distribution.F90** will print the processor and local block
 number for each block. With this information, the grid decomposition
-into processors and blocks can be ascertained. The dbug flag must be
-manually set in the code in each case (independently of the dbug flag in
-**ice\_in**), as there may be hundreds or thousands of blocks to print
-and this information should be needed only rarely. This information is
+into processors and blocks can be ascertained. This ``debug_blocks`` variable 
+should be used carefully as there may be hundreds or thousands of blocks to print
+and this information should be needed only rarely. ``debug_blocks`` 
+can be set to true using the
+``debugblocks`` option with **cice.setup**. This information is
 much easier to look at using a debugger such as Totalview.  There is also
 an output field that can be activated in `icefields\_nml`, ``f_blkmask``, 
 that prints out the variable ``blkmask`` to the history file and 
@@ -202,11 +218,11 @@ middle of the row. The grid is constructed by “folding” the top row, so
 that the left-hand half and the right-hand half of it coincide. Two
 choices for constructing the tripole grid are available. The one first
 introduced to CICE is called “U-fold”, which means that the poles and
-the grid cells between them are U cells on the grid. Alternatively the
-poles and the cells between them can be grid T cells, making a “T-fold.”
+the grid cells between them are U-cells on the grid. Alternatively the
+poles and the cells between them can be grid T-cells, making a “T-fold.”
 Both of these options are also supported by the OPA/NEMO ocean model,
 which calls the U-fold an “f-fold” (because it uses the Arakawa C-grid
-in which U cells are on T-rows). The choice of tripole grid is given by
+in which U-cells are on T-rows). The choice of tripole grid is given by
 the namelist variable ``ns_boundary_type``, ‘tripole’ for the U-fold and
 ‘tripoleT’ for the T-fold grid.
 
@@ -268,11 +284,20 @@ routines, is adopted from POP. The boundary routines perform boundary
 communications among processors when MPI is in use and among blocks
 whenever there is more than one block per processor.
 
-Open/cyclic boundary conditions are the default in CICE; the physical
-domain can still be closed using the land mask. In our bipolar,
-displaced-pole grids, one row of grid cells along the north and south
-boundaries is located on land, and along east/west domain boundaries not
-masked by land, periodic conditions wrap the domain around the globe.
+Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
+namelist inputs.  Valid values are ``open`` and ``cyclic``.  In addition,
+``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
+Closed boundary conditions are not supported currently.  
+The domain can be physically closed with the ``close_boundaries``
+namelist which forces a land mask on the boundary with a two gridcell depth. 
+Where the boundary is land, the boundary_type settings play no role.
+For example, in the displaced-pole grids, at least one row of grid cells along the north 
+and south boundaries is land.  Along the east/west domain boundaries not
+masked by land, periodic conditions wrap the domain around the globe.  In
+this example,
+the appropriate namelist settings are ``nsboundary_type`` = ``open``,
+``ew_boundary_type`` = ``cyclic``, and ``close_boundaries`` = ``.false.``.
+
 CICE can be run on regional grids with open boundary conditions; except
 for variables describing grid lengths, non-land halo cells along the
 grid edge must be filled by restoring them to specified values. The
@@ -325,7 +350,7 @@ dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
 land masks ``hm`` and ``uvm``, the ice extent masks ``ice_tmask`` and ``ice_umask``
-are for T cells and U cells, respectively.
+are for T-cells and U-cells, respectively.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,
@@ -529,12 +554,131 @@ schemes and the aerosol tracers, and the level-ice pond
 parameterization additionally requires the level-ice tracers.
 
 
+.. _timemanagerplus:
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Time Manager and Initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The time manager is an important piece of the CICE model.
+
+.. _timemanager:
+
+****************************
+Time Manager
+****************************
+
+The primary prognostic variables in the time manager are ``myear``, 
+``mmonth``, ``mday``, and ``msec``.  These are integers and identify
+the current model year, month, day, and second respectively.
+The model timestep is ``dt`` with units of seconds.  See :ref:`parameters`
+for additional information about choosing an appropriate timestep.
+The internal variables ``istep``, ``istep0``, and ``istep1`` keep
+track of the number of timesteps.  ``istep`` is the counter for
+the current run and is set to 0 at the start of each run.  ``istep0``
+is the step count at the start of a long multi-restart run, and
+``istep1`` is the step count of a long multi-restart run and
+is continuous across model restarts.
+
+In general, the time manager should be advanced by calling
+*advance\_timestep*.  This subroutine in **ice\_calendar.F90**
+automatically advances the model time by ``dt``.  It also advances
+the istep numbers and calls subroutine *calendar* to update
+additional calendar data.  
+
+The namelist variable ``use_restart_time`` specifies whether to
+use the time and step numbers saved on a restart file or whether
+to set the initial model time to the namelist values defined by
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
+Normally, ``use_restart_time`` is set to false on the initial run.
+In continue mode, use_restart_time is ignored and the restart
+date is always used to initialize the model run.
+More information about the restart capability can be found in :ref:`restartfiles`.
+
+Several different calendars are supported including noleap (365 days
+per year), 360-day (twelve 30 day months per year), and gregorian
+(leap days every 4 years except every 100 years except every 400
+years).  The gregorian calendar in CICE is formally a proleptic gregorian
+calendar without any discontinuties over time.  The calendar is set
+by specifying ``days_per_year`` and ``use_leap_years`` in the
+namelist, and the following combinations are supported,
+
+.. _tab-cal:
+
+.. table:: Supported Calendar Options
+
+   +----------------------+----------------------+------------+
+   | ``days_per_year``    |  ``use_leap_years``  | calendar   |
+   +======================+======================+============+
+   | 365                  |  false               | noleap     |
+   +----------------------+----------------------+------------+
+   | 365                  |  true                | gregorian  |
+   +----------------------+----------------------+------------+
+   | 360                  |  false               | 360-day    |
+   +----------------------+----------------------+------------+
+
+
+The history (:ref:`history`) and restart (:ref:`restartfiles`) 
+outputs and frequencies are specified in namelist and
+are computed relative to a reference date defined by the namelist
+``histfreq_base`` and ``dumpfreq_base``.  Valid values for each are 
+`zero` and `init`.  If set to `zero`, all output will be relative 
+to the absolute reference year-month-day date, 0000-01-01.  This is the default
+value for ``histfreq_base``, so runs with different initial
+dates will have identical output.  If the ``histfreq_base`` or 
+``dumpfreq_base`` are set to `init`, all frequencies
+will be relative to the model initial date specified by ``year_init``,
+``month_init``, and ``day_init``.  ``sec_init`` plays no role
+in setting output frequencies.  `init` is the default for
+``dumpfreq_base`` and makes it easy to generate restarts
+5 or 10 model days after startup as we often do in testing.
+
+In general, output is always
+written at the start of the year, month, day, or hour without
+any ability to shift the phase.  For instance, monthly output
+is always written on the first of the month.  It is not possible,
+for instance, to write monthly data once a month on the 10th of the month.
+In the same way, quarterly data for Dec-Jan-Feb vs Jan-Feb-Mar
+is not easily controlled.  A better approach is to create monthly
+data and then to aggregate to quarters as a post-processing step.
+The history and restart (``histfreq``, ``dumpfreq``) setting `1` 
+indicates output at a frequency of timesteps.  This is the character
+`1` as opposed to the integer 1.  This frequency output
+is computed using ``istep1``, the model timestep.  This
+may vary with each run depending on several factors including the
+model timestep, initial date, and value of ``istep0``.  
+
+The model year is limited by some integer math.  In particular, calculation
+of elapsed hours in **ice\_calendar.F90**, and the model year is
+limited to the value of ``myear_max`` set in that file.  Currently, that's
+200,000 years.
+
+The time manager was updated in early 2021.  The standalone model
+was modified, and some tests were done in a coupled framework after
+modifications to the high level coupling interface.  For some coupled models, the 
+coupling interface may need to be updated when updating CICE with the new time manager.
+In particular, the old prognostic variable ``time`` no longer exists in CICE,
+``year_init`` only defines the model initial year, and
+the calendar subroutine is called without any arguments.  One can
+set the namelist variables  ``year_init``, ``month_init``, ``day_init``, 
+``sec_init``, and ``dt`` in conjuction with ``days_per_year`` and 
+``use_leap_years`` to initialize the model date, timestep, and calendar.
+To overwrite the default/namelist settings in the coupling layer,
+set the **ice\_calendar.F90** variables ``myear``, ``mmonth``, ``mday``, 
+``msec`` and ``dt`` after the namelists have been read.  Subroutine
+*calendar* should then be called to update all the calendar data.
+Finally, subroutine *advance\_timestep* should be used to advance
+the model time manager.  It advances the step numbers, advances
+time by ``dt``, and updates the calendar data.  The older method
+of manually advancing the steps and adding ``dt`` to ``time`` should
+be deprecated.
+
 
 .. _init:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Initialization and coupling
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+****************************
+Initialization and Restarts
+****************************
 
 The ice model’s parameters and variables are initialized in several
 steps. Many constants and physical parameters are set in
@@ -558,18 +702,68 @@ layers and the ice thickness distribution defined by ``kcatbound`` = 0.
 Restart information for some tracers is also included in the netCDF restart
 files.
 
-Three namelist variables control model initialization, ``ice_ic``, ``runtype``,
-and ``restart``, as described in :ref:`tab-ic`. It is possible to do an
-initial run from a file **filename** in two ways: (1) set runtype =
-‘initial’, restart = true and ice\_ic = **filename**, or (2) runtype =
-‘continue’ and pointer\_file = **./restart/ice.restart\_file** where
-**./restart/ice.restart\_file** contains the line
-“./restart/[filename]". The first option is convenient when repeatedly
-starting from a given file when subsequent restart files have been
-written. With this arrangement, the tracer restart flags can be set to
-true or false, depending on whether the tracer restart data exist. With
-the second option, tracer restart flags are set to ‘continue’ for all
-active tracers.
+Three namelist variables generally control model initialization, ``runtype``,
+``ice_ic``, and ``use_restart_time``.  The valid values for ``runtype``
+are ``initial`` or ``continue``.  When ``runtype`` = `continue`, the
+restart filename is stored in a small text (pointer) file, ``use_restart_time``
+is forced to true and ``ice_ic`` plays no role.  When ``runtype`` =
+`initial`, ``ice_ic`` has three options, ``none``, ``default``,
+or *filename*.  These initial states are no-ice, latitudinal dependent
+ice, and ice defined by a file respectively.  In `initial` mode,
+``use_restart_time`` should generally be set to false and the initial
+time is then defined by ``year_init``, ``month_init``, ``day_init``, 
+and ``sec_init``.  These combinations options are summarized in 
+:ref:`tab-ic`. 
+
+Restart files and initial condition files are generally the same format and
+can be the same files.
+They contain the model state from a particular instance in time.  In general,
+that state includes the physical and dynamical state as well as the
+state of optional tracers.  Reading of various tracer groups can
+be independently controlled by various restart flags.  In other
+words, a restart file can be used to initialize a new configuration
+where new tracers are used (i.e. bgc).  In that case, the physical
+state of the model will be read, but if bgc tracers don't exist on the
+restart file, they can be initialized from scratch.
+
+In ``continue`` mode, a pointer file is used to restart the model.
+In this mode, the CICE model writes out a small text (pointer) file
+to the run directory that names the most recent restart file.   On
+restart, the model reads the pointer file which defines the
+name of the restart file.  The model then reads that restart file.
+By having this feature, the ice namelist does not need to be constantly
+updated with the latest
+restart filename, and the model can be automatically resubmitted.
+Manually editing the pointer file in the middle of a run will reset
+the restart filename and allow the run to continue.
+
+Table :ref:`tab-ic` shows ``runtype``, ``ice_ic``, and ``use_restart_time``
+namelist combinations for initializing
+the model.  If namelist defines the start date, it's done with
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
+
+.. _tab-ic:
+
+.. table:: Ice Initialization
+
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | ``runtype``    | ``ice_ic``               | ``use_restart_time``                 | Note                                   |
+   +================+==========================+======================================+========================================+
+   | `initial`      | `none`                   | not used                             | no ice,                                |
+   |                |                          |                                      | namelist defines start date            |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
+   |                |                          |                                      | namelist defines start date            |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | *filename*               | false                                | read ice state from filename,          |
+   |                |                          |                                      | namelist defines start date            |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `initial`      | *filename*               | true                                 | read ice state from filename,          |
+   |                |                          |                                      | restart file defines start date        |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
+   | `continue`     | not used                 | not used                             | pointer file defines restart file,     |
+   |                |                          |                                      | restart file defines start date        |
+   +----------------+--------------------------+--------------------------------------+----------------------------------------+
 
 An additional namelist option, ``restart_ext`` specifies whether halo cells
 are included in the restart files. This option is useful for tripole and
@@ -589,32 +783,11 @@ and are intended merely to provide guidance for the user to write his or
 her own routines. Whether the code is to be run in stand-alone or
 coupled mode is determined at compile time, as described below.
 
-Table :ref:`tab-ic` shows ice initial state resulting from combinations of
-``ice_ic``, ``runtype`` and ``restart``. :math:`^a`\ If false, restart is reset to
-true. :math:`^b`\ restart is reset to false. :math:`^c`\ ice_ic is
-reset to ‘none.’
-
-.. _tab-ic:
-
-.. table:: Ice Initial State
-
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | ice\_ic        |                          |                                      |                                        |
-   +================+==========================+======================================+========================================+
-   |                | initial/false            | initial/true                         | continue/true (or false\ :math:`^a`)   |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | none           | no ice                   | no ice\ :math:`^b`                   | restart using **pointer\_file**        |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | default        | SST/latitude dependent   | SST/latitude dependent\ :math:`^b`   | restart using **pointer\_file**        |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | **filename**   | no ice\ :math:`^c`       | start from **filename**              | restart using **pointer\_file**        |
-   +----------------+--------------------------+--------------------------------------+----------------------------------------+
-
 .. _parameters:
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**********************************
 Choosing an appropriate time step
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**********************************
 
 The time step is chosen based on stability of the transport component
 (both horizontal and in thickness space) and on resolution of the
@@ -705,6 +878,8 @@ the problem, and ``brlx`` represents the effective subcycling
 Model output
 ~~~~~~~~~~~~
 
+There are a number of model output streams and formats.
+
 .. _history:
 
 *************
@@ -720,8 +895,10 @@ for history and restart files, and history and restart file must use the same
 io package.  The namelist variable ``history_format`` further refines the
 format approach or style for some io packages.
 
-Model output data is averaged over the period(s) given by ``histfreq`` and
-``histfreq_n``, and written to binary or netCDF files prepended by ``history_file``
+Model output data can be written as instantaneous or average data as specified
+by the ``hist_avg`` namelist flag.  The data is written at the period(s) given by ``histfreq`` and
+``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
+The files are written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
 If ``history_file`` = ‘iceh’ then the 
@@ -759,20 +936,25 @@ is now a character string corresponding to ``histfreq`` or ‘x’ for none.
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
-discerned from the filenames.
+discerned from the filenames.  All history streams will be either instantaneous
+or averaged as specified by the ``hist_avg`` namelist setting and the frequency
+will be relative to a reference date specified by ``histfreq_base``.  More
+information about how the frequency is computed is found in :ref:`timemanager`.
 
 For example, in the namelist:
 
 ::
 
-  ``histfreq`` = ’1’, ’h’, ’d’, ’m’, ’y’
-  ``histfreq_n`` = 1, 6, 0, 1, 1
-  ``f_hi`` = ’1’
-  ``f_hs`` = ’h’
-  ``f_Tsfc`` = ’d’
-  ``f_aice`` = ’m’
-  ``f_meltb`` = ’mh’
-  ``f_iage`` = ’x’
+  histfreq = ’1’, ’h’, ’d’, ’m’, ’y’
+  histfreq_n = 1, 6, 0, 1, 1
+  histfreq_base = 'zero'
+  hist_avg = .true.
+  f_hi = ’1’
+  f_hs = ’h’
+  f_Tsfc = ’d’
+  f_aice = ’m’
+  f_meltb = ’mh’
+  f_iage = ’x’
 
 Here, ``hi`` will be written to a file on every timestep, ``hs`` will be
 written once every 6 hours, ``aice`` once a month, ``meltb`` once a month AND
@@ -783,6 +965,14 @@ From an efficiency standpoint, it is best to set unused frequencies in
 as long as for a single frequency. If you only want monthly output, the
 most efficient setting is ``histfreq`` = ’m’,’x’,’x’,’x’,’x’. The code counts
 the number of desired streams (``nstreams``) based on ``histfreq``.
+
+There is no restart capability built into the history implementation.  If the
+model stops in the middle of a history accumulation period, that data is lost
+on restart, and the accumulation is zeroed out at startup.  That means the
+dump frequency (see :ref:`restartfiles`) and history frequency need to be 
+somewhat coordinated.  For
+example, if monthly history files are requested, the dump frequency should be
+set to an integer number of months.
 
 The history variable names must be unique for netCDF, so in cases where
 a variable is written at more than one frequency, the variable name is
@@ -799,7 +989,7 @@ every 3 months, for example.
 If ``write_ic`` is set to true in **ice\_in**, a snapshot of the same set
 of history fields at the start of the run will be written to the history
 directory in **iceh\_ic.[timeID].nc(da)**. Several history variables are
-hard-coded for instantaneous output regardless of the averaging flag, at
+hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
 The normalized principal components of internal ice stress are computed
@@ -839,15 +1029,28 @@ output is written to a log file. The log file unit to which diagnostic
 output is written is set in **ice\_fileunits.F90**. If ``diag_type`` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
 you redirect standard out as in **cice.run**); otherwise it is written
-to the file given by ``diag_file``. In addition to the standard diagnostic
+to the file given by ``diag_file``. 
+
+In addition to the standard diagnostic
 output (maximum area-averaged thickness, velocity, average albedo, total
 ice area, and total ice and snow volumes), the namelist options
 ``print_points`` and ``print_global`` cause additional diagnostic information
 to be computed and written. ``print_global`` outputs global sums that are
 useful for checking global conservation of mass and energy.
-``print_points`` writes data for two specific grid points. Currently, one
+``print_points`` writes data for two specific grid points defined by the
+input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
-may be changed in **ice\_in**.
+may be changed in **ice\_in**.  
+
+The namelist ``debug_model`` prints detailed
+debug diagnostics for a single point as the model advances.  The point is defined
+by the namelist ``debug_model_i``, ``debug_model_j``, ``debug_model_iblk``,
+and ``debug_model_task``.  These are the local i, j, block, and mpi task index values
+of the point to be diagnosed.  This point is defined in local index space
+and can be values in the array halo.  If the local point is not defined in
+namelist, the point associated with ``lonpnt(1)`` and ``latpnt(1)`` is used.
+``debug_model`` is normally used when the model aborts and needs to be debugged
+in detail at a particular (usually failing) grid point.
 
 Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
@@ -908,6 +1111,8 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    | 16           | BGC         | biogeochemistry                                    |
    +--------------+-------------+----------------------------------------------------+
 
+.. _restartfiles:
+
 *************
 Restart files
 *************
@@ -924,7 +1129,8 @@ format approach or style for some io packages.
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
 ‘iced.’, and the restart dump frequency is given by the namelist
-variables ``dumpfreq`` and ``dumpfreq_n``. The pointer to the filename from
+variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
+specified by ``dumpfreq_base``. The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 ``pointer_file``. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,
@@ -936,8 +1142,9 @@ Additional namelist flags provide further control of restart behavior.
 ``dump_last`` = true causes a set of restart files to be written at the end
 of a run when it is otherwise not scheduled to occur. The flag
 ``use_restart_time`` enables the user to choose to use the model date
-provided in the restart files. If ``use_restart_time`` = false then the
-initial model date stamp is determined from the namelist parameters.
+provided in the restart files for initial runs.  If ``use_restart_time`` = false then the
+initial model date stamp is determined from the namelist parameters,
+``year_init``, ``month_init``, ``day_init``, and ``sec_init``.
 lcdf64 = true sets 64-bit netCDF output, allowing larger file sizes.
 
 Routines for gathering, scattering and (unformatted) reading and writing
@@ -949,13 +1156,7 @@ restarts on the various tripole grids. They are accessed by setting
 available when using PIO; in this case extra halo update calls fill
 ghost cells for tripole grids (do not use PIO for regional grids).
 
-Two netCDF restart files are available for the CICE v5 and v6 code distributions 
+Restart files are available for the CICE code distributions 
 for the gx3 and gx1 grids (see :ref:`force` for information about obtaining these files).
-They were created using the default v5 model
-configuration, but
-initialized with no ice. The gx3 case was run for 1 year using the 1997
-forcing data provided with the code. The gx1 case was run for 20 years,
-so that the date of restart in the file is 1978-01-01. Note that the
-restart dates provided in the restart files can be overridden using the
-namelist variables ``use_restart_time``, ``year_init`` and ``istep0``. The
-forcing time can also be overridden using ``fyear_init``.
+They were created using the default model
+configuration and run for multiple years using the JRA55 forcing.

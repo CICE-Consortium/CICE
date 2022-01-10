@@ -19,14 +19,15 @@
 
       use ice_kinds_mod
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
+      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate, &
+          primary_grid_lengths_global_ext
       use ice_communicate, only: my_task, master_task
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
           ew_boundary_type, ns_boundary_type, init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
-          get_fileunit, release_fileunit
+          get_fileunit, release_fileunit, flush_fileunit
       use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
@@ -34,13 +35,13 @@
       use ice_exit, only: abort_ice
       use ice_global_reductions, only: global_minval, global_maxval
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_parameters, icepack_init_parameters
 
       implicit none
       private
       public :: init_grid1, init_grid2, &
                 t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid
+                to_ugrid, to_tgrid, alloc_grid, makemask
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
@@ -77,13 +78,17 @@
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
+         G_HTE  , & ! length of eastern edge of T-cell (global ext.)
+         G_HTN      ! length of northern edge of T-cell (global ext.)
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         cyp    , & ! 1.5*HTE - 0.5*HTE
-         cxp    , & ! 1.5*HTN - 0.5*HTN
-         cym    , & ! 0.5*HTE - 1.5*HTE
-         cxm    , & ! 0.5*HTN - 1.5*HTN
-         dxhy   , & ! 0.5*(HTE - HTE)
-         dyhx       ! 0.5*(HTN - HTN)
+         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j) 
+         cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
+         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j) 
+         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1) 
+         dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
+         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
@@ -125,7 +130,8 @@
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
-         use_bathymetry     ! flag for reading in bathymetry_file
+         use_bathymetry, & ! flag for reading in bathymetry_file
+         pgl_global_ext    ! flag for init primary grid lengths (global ext.)
 
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
@@ -153,6 +159,8 @@
 
       integer (int_kind) :: ierr
 
+      character(len=*), parameter :: subname = '(alloc_grid)'
+
       allocate( &
          dxt      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
          dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
@@ -175,12 +183,12 @@
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
-         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTE
-         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTN
-         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTE
-         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTN
-         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTE)
-         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTN)
+         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
+         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
+         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
+         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
+         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
          xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
          yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
          xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
@@ -203,7 +211,15 @@
          mse  (2,2,nx_block,ny_block,max_blocks), &
          msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_grid): Out of memory')
+      if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+
+      if (pgl_global_ext) then
+         allocate( &
+            G_HTE(nx_global+2*nghost, ny_global+2*nghost), & ! length of eastern edge of T-cell (global ext.)
+            G_HTN(nx_global+2*nghost, ny_global+2*nghost), & ! length of northern edge of T-cell (global ext.)
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+      endif
 
       end subroutine alloc_grid
 
@@ -246,6 +262,16 @@
 
       allocate(work_g1(nx_global,ny_global))
       allocate(work_g2(nx_global,ny_global))
+
+      ! check tripole flags here
+      ! can't check in init_data because ns_boundary_type is not yet read
+      ! can't check in init_domain_blocks because grid_type is not accessible due to circular logic
+
+      if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
+          ns_boundary_type /= 'tripoleT') then
+         call abort_ice(subname//'ERROR: grid_type tripole needs tripole ns_boundary_type', &
+                        file=__FILE__, line=__LINE__)
+      endif
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
@@ -384,11 +410,9 @@
       ! T-grid cell and U-grid cell quantities
       !-----------------------------------------------------------------
 
-!     tarea(:,:,:) = c0
-
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -486,7 +510,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     angle_0,angle_w,angle_s,angle_sw)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -642,7 +666,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -785,7 +809,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1104,7 +1128,7 @@
 
      !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,i,j)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1162,7 +1186,6 @@
 
       end subroutine latlongrid
 #endif
-
 !=======================================================================
 
 ! Regular rectangular grid and mask
@@ -1198,15 +1221,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ANGLE(i,j,iblk) = c0              ! "square with the world"
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
+      angle(:,:,:) = c0   ! "square with the world"
 
       allocate(work_g1(nx_global,ny_global))
 
@@ -1396,7 +1413,7 @@
       kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1498,6 +1515,10 @@
       enddo
       enddo
       endif
+      if (pgl_global_ext) then
+         call primary_grid_lengths_global_ext( &
+            G_HTN, work_g, ew_boundary_type, ns_boundary_type)
+      endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
       call scatter_global(dxu, work_g2, master_task, distrb_info, &
@@ -1572,6 +1593,10 @@
             enddo
          endif
       endif
+      if (pgl_global_ext) then
+         call primary_grid_lengths_global_ext( &
+            G_HTE, work_g, ew_boundary_type, ns_boundary_type)
+      endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
       call scatter_global(dyu, work_g2, master_task, distrb_info, &
@@ -1636,11 +1661,10 @@
       !-----------------------------------------------------------------
 
       bm = c0
-!     uvm = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1663,12 +1687,19 @@
                            field_loc_center, field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            tmask(i,j,iblk) = .false.
-            umask(i,j,iblk) = .false.
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         ! needs to cover halo (no halo update for logicals)
+         tmask(:,:,iblk) = .false.
+         umask(:,:,iblk) = .false.
+         do j = jlo-nghost, jhi+nghost
+         do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
             if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
          enddo
@@ -1684,11 +1715,14 @@
          tarean(:,:,iblk) = c0
          tareas(:,:,iblk) = c0
 
-         do j = 1, ny_block
-         do i = 1, nx_block
+         do j = jlo,jhi
+         do i = ilo,ihi
 
-            if (ULAT(i,j,iblk) >= -puny) lmask_n(i,j,iblk) = .true. ! N. Hem.
-            if (ULAT(i,j,iblk) <  -puny) lmask_s(i,j,iblk) = .true. ! S. Hem.
+            if (ULAT(i,j,iblk) >= -puny) then
+               lmask_n(i,j,iblk) = .true. ! N. Hem.
+            else
+               lmask_s(i,j,iblk) = .true. ! S. Hem.
+            endif
 
             ! N hemisphere area mask (m^2)
             if (lmask_n(i,j,iblk)) tarean(i,j,iblk) = tarea(i,j,iblk) &
@@ -1743,7 +1777,7 @@
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
       !$OMP                     tx,ty,tz,da)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1915,7 +1949,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2000,7 +2034,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2073,7 +2107,7 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2361,6 +2395,9 @@
       real (kind=dbl_kind) :: &
          puny
 
+      logical (kind=log_kind) :: &
+         calc_dragio
+
       real (kind=dbl_kind), dimension(nlevel), parameter :: &
          thick  = (/ &                        ! ocean layer thickness, m
             10.01244_dbl_kind,  10.11258_dbl_kind,  10.31682_dbl_kind, &
@@ -2380,7 +2417,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry)'
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny, calc_dragio_out=calc_dragio)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2400,11 +2437,20 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = kmt(i,j,iblk)
-               if (k > puny) bathymetry(i,j,iblk) = depth(k)
+               k = min(nint(kmt(i,j,iblk)),nlevel)
+               if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
+               if (k > 0) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
          enddo
+
+         ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+         if (calc_dragio) then
+            call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+               file=__FILE__, line=__LINE__)
+         endif
 
       endif ! bathymetry_file
 
@@ -2429,9 +2475,12 @@
          depth          , & ! total depth, m
          thick              ! layer thickness, cm -> m
 
+      logical (kind=log_kind) :: &
+         calc_dragio
+
       character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
 
-      ntmp = maxval(KMT)
+      ntmp = maxval(nint(KMT))
       nlevel = global_maxval(ntmp,distrb_info)
 
       if (my_task==master_task) then
@@ -2491,12 +2540,21 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            k = kmt(i,j,iblk)
-            if (k > nlevel) call abort_ice(subname//' kmt/nlevel error')
+            k = nint(kmt(i,j,iblk))
+            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
             if (k > 0) bathymetry(i,j,iblk) = depth(k)
          enddo
          enddo
       enddo
+
+      ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
+      call icepack_query_parameters(calc_dragio_out=calc_dragio)
+      if (calc_dragio) then
+         call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
+      endif
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       deallocate(depth,thick)
 

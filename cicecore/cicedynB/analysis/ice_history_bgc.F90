@@ -282,7 +282,8 @@
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
           skl_bgc, solve_zsal, z_tracers
-      character(len=*), parameter :: subname = '(init_hist_bgc_2D)'
+
+      character(len=*), parameter  :: subname = '(init_hist_bgc_2D)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
@@ -303,25 +304,27 @@
       ! read namelist
       !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+         write(nu_diag,*) subname,' Reading icefields_bgc_nml'
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
+            call abort_ice(subname//'ERROR: icefields_bgc_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
+
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_bgc_nml,iostat=nml_error)
          end do
-         if (nml_error == 0) close(nu_nml)
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_bgc_nml')
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: icefields_bgc_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
 
       if (.not. tr_iso) then
@@ -778,9 +781,9 @@
 
       ! 2D variables
 
-    if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
-    do ns = 1, nstreams
+     do ns = 1, nstreams
        if (histfreq(ns) /= 'x') then
 
       if (f_iso(1:1) /= 'x') then
@@ -1782,9 +1785,9 @@
              ns, f_hbri)
 
        endif ! histfreq(ns) /= 'x'
-    enddo ! nstreams
+     enddo ! nstreams
 
-    endif ! tr_aero, etc 
+     endif ! tr_aero, etc 
       
       end subroutine init_hist_bgc_2D
 
@@ -1841,7 +1844,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    if (z_tracers .or. solve_zsal) then
+     if (z_tracers .or. solve_zsal) then
 
       do ns = 1, nstreams
          if (histfreq(ns) /= 'x') then
@@ -1880,7 +1883,7 @@
          endif ! histfreq(ns) /= 'x'
       enddo  ! ns
 
-    endif  ! z_tracers or solve_zsal
+     endif  ! z_tracers or solve_zsal
 
       end subroutine init_hist_bgc_3Db
 
@@ -2017,10 +2020,10 @@
       ! increment field
       !---------------------------------------------------------------
 
-    ! 2d bgc fields
-    if (allocated(a2D)) then
+     ! 2d bgc fields
+     if (allocated(a2D)) then
 
-    if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
 
       ! zsalinity
       if (f_fzsal  (1:1) /= 'x') &  
@@ -2082,7 +2085,7 @@
          enddo
       endif
 
-    if (skl_bgc) then
+     if (skl_bgc) then
 
       ! skeletal layer bgc
 
@@ -2159,7 +2162,7 @@
          call accum_hist_field(n_bgc_DMS,  iblk, &
                 sk_l*trcr(:,:,nt_bgc_DMS,  iblk), a2D)   
 
-    endif  !skl_bgc 
+     endif  !skl_bgc 
 
       ! skeletal layer and vertical bgc 
 
@@ -2354,7 +2357,7 @@
 
       ! vertical biogeochemistry  
 
-    if (z_tracers) then
+     if (z_tracers) then
 
       if (f_fzaero(1:1)/= 'x') then
          do n=1,n_zaero
@@ -2634,30 +2637,30 @@
          call accum_hist_field(n_PONfrac,   iblk, &
                    trcr(:,:,nt_zbgc_frac - 1 + nlt_bgc_PON, iblk), a2D)
 
-    endif  ! z_tracers
+     endif  ! z_tracers
 
       ! brine
       if (f_hbri  (1:1) /= 'x') &
          call accum_hist_field(n_hbri,     iblk, &
                         hbri(:,:,iblk), a2D)
 
-    endif ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
-    endif ! allocated(a2D)
+     endif ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
+     endif ! allocated(a2D)
 
       ! 3D category fields
 
-    if (allocated(a3Dc)) then
-    if (tr_brine) then
+     if (allocated(a3Dc)) then
+     if (tr_brine) then
       ! 3Dc bgc category fields
 
       if (f_fbri   (1:1) /= 'x') &
          call accum_hist_field(n_fbri-n2D, iblk, ncat_hist, &
                                trcrn(:,:,nt_fbri,1:ncat_hist,iblk), a3Dc)
-    endif
-    endif ! allocated(a3Dc)
+     endif
+     endif ! allocated(a3Dc)
 
-    if (allocated(a3Db)) then
-    if (z_tracers .or. solve_zsal) then
+     if (allocated(a3Db)) then
+     if (z_tracers .or. solve_zsal) then
       ! 3Db category fields
 
       if (f_bTin  (1:1) /= 'x')  then
@@ -2763,11 +2766,11 @@
                                   workz(:,:,1:nzblyr), a3Db)
       endif
 
-    endif ! 3Db fields
-    endif ! allocated(a3Db)
+     endif ! 3Db fields
+     endif ! allocated(a3Db)
 
-    if (allocated(a3Da)) then
-    if (z_tracers) then
+     if (allocated(a3Da)) then
+     if (z_tracers) then
       ! 3Da category fields
 
       if (f_zaero   (1:1) /= 'x') then
@@ -3223,11 +3226,11 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-    ! snow+bio grid
+     ! snow+bio grid
+ 
+     if (z_tracers) then
 
-    if (z_tracers) then
-
-    do ns = 1, nstreams
+     do ns = 1, nstreams
        if (histfreq(ns) /= 'x') then
  
 !----------------------------------------------------------------------------

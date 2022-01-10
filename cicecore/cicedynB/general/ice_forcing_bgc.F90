@@ -14,10 +14,10 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_communicate, only: my_task, master_task
-      use ice_calendar, only: dt, istep, sec, mday, month
+      use ice_calendar, only: dt, istep, msec, mday, mmonth
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
-         bgc_data_dir, fe_data_type
+         bgc_data_dir, fe_data_type, optics_file, optics_file_fieldname
       use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
@@ -163,12 +163,12 @@
     !-------------------------------------------------------------------
 
          midmonth = 15          ! data is given on 15th of every month
-!!!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!!!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
          ! Compute record numbers for surrounding months
          maxrec = 12
-         ixm  = mod(month+maxrec-2,maxrec) + 1
-         ixp  = mod(month,         maxrec) + 1
+         ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+         ixp  = mod(mmonth,         maxrec) + 1
          if (mday >= midmonth) ixm = -99 ! other two points will be used
          if (mday <  midmonth) ixp = -99
 
@@ -184,7 +184,7 @@
          call interp_coeff_monthly (recslot)
 
          readm = .false.
-         if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+         if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
       endif   ! 'clim prep'
 
@@ -194,11 +194,11 @@
     !-------------------------------------------------------------------
     
       if (trim(bgc_data_type)=='clim'  .AND. tr_bgc_Sil) then
-        ! call read_clim_data (readm, 0, ixm, month, ixp, &
+        ! call read_clim_data (readm, 0, ixm, mmonth, ixp, &
         !                      sil_file,  sil_data, &
         !                      field_loc_center, field_type_scalar)
          fieldname = 'silicate'
-         call read_clim_data_nc (readm, 0, ixm, month, ixp, &
+         call read_clim_data_nc (readm, 0, ixm, mmonth, ixp, &
                               sil_file, fieldname, sil_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (sil_data, sildat)
@@ -276,11 +276,11 @@
     !-------------------------------------------------------------------
 
       if (trim(bgc_data_type)=='clim' .AND. tr_bgc_Nit) then 
-        ! call read_clim_data (readm, 0, ixm, month, ixp, &
+        ! call read_clim_data (readm, 0, ixm, mmonth, ixp, &
         !                      nit_file, nit_data, &
         !                      field_loc_center, field_type_scalar)
          fieldname = 'nitrate'
-         call read_clim_data_nc (readm, 0, ixm, month, ixp, &
+         call read_clim_data_nc (readm, 0, ixm, mmonth, ixp, &
                               nit_file, fieldname, nit_data, &
                               field_loc_center, field_type_scalar)
          call interpolate_data (nit_data, nitdat)
@@ -584,7 +584,7 @@
 
       subroutine faero_data
 
-      use ice_calendar, only: month, mday, istep, sec
+      use ice_calendar, only: mmonth, mday, istep, msec
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block
       use ice_flux_bgc, only: faero_atm
@@ -625,12 +625,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = 99  ! other two points will be used
       if (mday <  midmonth) ixp = 99
 
@@ -647,23 +647,23 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
 !      aero_file = trim(atm_data_dir)//'faero.nc'   
       aero_file = '/usr/projects/climate/eclare/DATA/gx1v3/faero.nc'   
 
       fieldname='faero_atm001'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero1_data, &
                               field_loc_center, field_type_scalar)
 
       fieldname='faero_atm002'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero2_data, &
                               field_loc_center, field_type_scalar)
 
       fieldname='faero_atm003'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero3_data, &
                               field_loc_center, field_type_scalar)
 
@@ -727,12 +727,12 @@
     !-------------------------------------------------------------------
 
       midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(month)))  ! exact middle
+!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
 
       ! Compute record numbers for surrounding months
       maxrec = 12
-      ixm  = mod(month+maxrec-2,maxrec) + 1
-      ixp  = mod(month,         maxrec) + 1
+      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
+      ixp  = mod(mmonth,         maxrec) + 1
       if (mday >= midmonth) ixm = -99  ! other two points will be used
       if (mday <  midmonth) ixp = -99
 
@@ -749,14 +749,14 @@
 
       ! Read 2 monthly values 
       readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. sec==0)) readm = .true.
+      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
 
 !      aero_file = trim(atm_data_dir)//'faero.nc'   
       ! Cam5 monthly total black carbon deposition on the gx1 grid"
       aero_file = '/usr/projects/climate/njeffery/DATA/CAM/Hailong_Wang/Cam5_bc_monthly_popgrid.nc'   
 
       fieldname='bcd'
-      call read_clim_data_nc (readm, 0,  ixm, month, ixp, &
+      call read_clim_data_nc (readm, 0,  ixm, mmonth, ixp, &
                               aero_file, fieldname, aero_data, &
                               field_loc_center, field_type_scalar)
 
@@ -861,7 +861,7 @@
          kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
          waer_bc_tab, & ! BC single scatter albedo (fraction)
          gaer_bc_tab, & ! BC aerosol asymmetry parameter (cos(theta))
-         bcenh          ! BC absorption enhancement facto
+         bcenh          ! BC absorption enhancement factor
 
 #ifdef USE_NETCDF
       use netcdf
@@ -883,7 +883,6 @@
          fid                ! file id for netCDF file 
 
       character (char_len_long) :: & 
-         optics_file,   &   ! netcdf filename
          fieldname          ! field name in netcdf file
 
       character(len=*), parameter :: subname = '(faero_optics)'
@@ -963,20 +962,16 @@
 
     if (modal_aero) then
 #ifdef USE_NETCDF
-       optics_file =  &
-        '/usr/projects/climate/njeffery/DATA/CAM/snicar/snicar_optics_5bnd_mam_c140303.nc'
-
         if (my_task == master_task) then
-            write (nu_diag,*) ' '
-            write (nu_diag,*) 'Read optics for modal aerosol treament in'
-            write (nu_diag,*) trim(optics_file)
-            call ice_open_nc(optics_file,fid)
-        endif
+           write (nu_diag,*) ' '
+           write (nu_diag,*) 'Read optics for modal aerosol treament in'
+           write (nu_diag,*) trim(optics_file)
+           write (nu_diag,*) 'Read optics file field name = ',trim(optics_file_fieldname)
+           call ice_open_nc(optics_file,fid)
 
-        fieldname='bcint_enh_mam_cice'
-        if (my_task == master_task) then
+           fieldname=optics_file_fieldname
 
-          status = nf90_inq_varid(fid, trim(fieldname), varid)
+           status = nf90_inq_varid(fid, trim(fieldname), varid)
  
            if (status /= nf90_noerr) then
              call abort_ice (subname//'ERROR: Cannot find variable '//trim(fieldname))
@@ -985,20 +980,20 @@
                start=(/1,1,1,1/), & 
                count=(/3,10,8,1/) )
            do n=1,10
-            amin = minval(bcenh(:,n,:))
-            amax = maxval(bcenh(:,n,:))
-            asum = sum   (bcenh(:,n,:))
-            write(nu_diag,*) ' min, max, sum =', amin, amax, asum
+              amin = minval(bcenh(:,n,:))
+              amax = maxval(bcenh(:,n,:))
+              asum = sum   (bcenh(:,n,:))
+              write(nu_diag,*) ' min, max, sum =', amin, amax, asum
            enddo
            call ice_close_nc(fid)      
-         endif  !master_task
-         do n=1,3
-            do k=1,8
-                call broadcast_array(bcenh(n,:,k),      master_task)
-            enddo
-         enddo          
+        endif  !master_task
+        do n=1,3
+           do k=1,8
+               call broadcast_array(bcenh(n,:,k),      master_task)
+           enddo
+        enddo          
 #else
-         call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+        call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
              file=__FILE__, line=__LINE__)
 #endif
       endif      ! modal_aero

@@ -91,7 +91,26 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang) then
+else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*  || ${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${shortcase}
+#PBS -q ${queue}
+#PBS -A ${acct}
+#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
+#PBS -l walltime=${batchtime}
+#PBS -j oe
+#PBS -W umask=022
+###PBS -M username@domain.com
+###PBS -m be
+EOFB
+
+else if (${ICE_MACHINE} =~ narwhal*) then
+if (${runlength} <= 0) then
+  set batchtime = "00:29:59"
+  set queue = "debug"
+else
+  set queue = "standard"
+endif
 cat >> ${jobfile} << EOFB
 #PBS -N ${shortcase}
 #PBS -q ${queue}
@@ -105,11 +124,20 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ onyx*) then
+# special for onyx with 44 cores per node and constraint on mpiprocs
+set tpn1 = ${taskpernode}
+if (${taskpernode} < 44) set tpn1 = 22
+if (${taskpernode} < 22) set tpn1 = 11
+if (${taskpernode} < 11) set tpn1 =  4
+if (${taskpernode} <  4) set tpn1 =  2
+if (${taskpernode} <  2) set tpn1 =  1
+@ nn1 = ${ntasks} / ${tpn1}
+if (${nn1} * ${tpn1} < ${ntasks}) @ nn1 = $nn1 + 1
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -q ${queue}
 #PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${maxtpn}:mpiprocs=${taskpernode}
+#PBS -l select=${nn1}:ncpus=${maxtpn}:mpiprocs=${tpn1}
 #PBS -l walltime=${batchtime}
 #PBS -j oe
 ###PBS -M username@domain.com
@@ -127,6 +155,22 @@ cat >> ${jobfile} << EOFB
 #SBATCH --ntasks ${ntasks}
 #SBATCH --cpus-per-task ${nthrds2}
 #SBATCH --constraint haswell
+###SBATCH -e filename
+###SBATCH -o filename
+###SBATCH --mail-type FAIL
+###SBATCH --mail-user username@domain.com
+EOFB
+
+else if (${ICE_MACHINE} =~ compy*) then
+if (${runlength} <= 2) set queue = "short"
+cat >> ${jobfile} <<EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -A ${acct}
+#SBATCH --qos ${queue}
+#SBATCH --time ${batchtime}
+#SBATCH --nodes ${nnodes}
+#SBATCH --ntasks ${ntasks}
+#SBATCH --cpus-per-task ${nthrds}
 ###SBATCH -e filename
 ###SBATCH -o filename
 ###SBATCH --mail-type FAIL
@@ -199,6 +243,23 @@ cat >> ${jobfile} << EOFB
 #PBS -j oe
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${batchtime}
+EOFB
+
+else if (${ICE_MACHINE} =~ gaea*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH --partition=batch
+#SBATCH --qos=${queue}
+#SBATCH --account=nggps_emc
+#SBATCH --clusters=c3
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
 else if (${ICE_MACHINE} =~ hera*) then

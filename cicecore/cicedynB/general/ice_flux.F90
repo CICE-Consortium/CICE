@@ -121,7 +121,8 @@
        ! in from atmosphere (if calc_Tsfc)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zlvl    , & ! atm level height (m)
+         zlvl    , & ! atm level height (momentum) (m)
+         zlvs    , & ! atm level height (scalar quantities) (m)
          uatm    , & ! wind velocity components (m/s)
          vatm    , &
          wind    , & ! wind speed (m/s)
@@ -217,6 +218,7 @@
          fresh   , & ! fresh water flux to ocean (kg/m^2/s)
          fsalt   , & ! salt flux to ocean (kg/m^2/s)
          fhocn   , & ! net heat flux to ocean (W/m^2)
+         fsloss  , & ! rate of snow loss to leads (kg/m^2/s)
          fswthru , & ! shortwave penetrating to ocean (W/m^2)
          fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
@@ -292,6 +294,10 @@
          fcondbotn,& ! category fcondbot
          fsensn,   & ! category sensible heat flux
          flatn       ! category latent heat flux
+
+      real (kind=dbl_kind), &
+         dimension (:,:,:,:), allocatable, public :: &
+         snwcnt       ! counter for presence of snow
 
       ! As above but these remain grid box mean values i.e. they are not
       ! divided by aice at end of ice_dynamics.  These are used in
@@ -391,7 +397,8 @@
          iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
          fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
          Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
-         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (m)
+         zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
+         zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
          vatm       (nx_block,ny_block,max_blocks), &
          wind       (nx_block,ny_block,max_blocks), & ! wind speed (m/s)
@@ -446,6 +453,7 @@
          fresh      (nx_block,ny_block,max_blocks), & ! fresh water flux to ocean (kg/m^2/s)
          fsalt      (nx_block,ny_block,max_blocks), & ! salt flux to ocean (kg/m^2/s)
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
+         fsloss     (nx_block,ny_block,max_blocks), & ! rate of snow loss to leads (kg/m^2/s)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
          fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
@@ -523,6 +531,7 @@
          fsensn     (nx_block,ny_block,ncat,max_blocks), & ! category sensible heat flux
          flatn      (nx_block,ny_block,ncat,max_blocks), & ! category latent heat flux
          albcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for zenith angle
+         snwcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for snow
          salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)   
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
          stat=ierr)
@@ -547,7 +556,8 @@
 
       integer (kind=int_kind) :: n
 
-      real (kind=dbl_kind) :: fcondtopn_d(6), fsurfn_d(6)
+      integer (kind=int_kind), parameter :: max_d = 6
+      real (kind=dbl_kind) :: fcondtopn_d(max_d), fsurfn_d(max_d)
       real (kind=dbl_kind) :: stefan_boltzmann, Tffresh
       real (kind=dbl_kind) :: vonkar, zref, iceruf
 
@@ -569,7 +579,8 @@
       !-----------------------------------------------------------------
       ! fluxes received from atmosphere
       !-----------------------------------------------------------------
-      zlvl  (:,:,:) = c10             ! atm level height (m)
+      zlvl  (:,:,:) = c10             ! atm level height (momentum) (m)
+      zlvs  (:,:,:) = c10             ! atm level height (scalar quantities) (m)
       rhoa  (:,:,:) = 1.3_dbl_kind    ! air density (kg/m^3)
       uatm  (:,:,:) = c5              ! wind velocity    (m/s)
       vatm  (:,:,:) = c5
@@ -589,7 +600,7 @@
          flw   (:,:,:) = c180            ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat              ! conductive heat flux (W/m^2)
-            fcondtopn_f(:,:,n,:) = fcondtopn_d(n)
+            fcondtopn_f(:,:,n,:) = fcondtopn_d(min(n,max_d))
          enddo
          fsurfn_f = fcondtopn_f      ! surface heat flux (W/m^2)
          flatn_f (:,:,:,:) = c0          ! latent heat flux (kg/m2/s)
@@ -606,7 +617,7 @@
          flw   (:,:,:) = 280.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  0.0_dbl_kind ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -2.0_dbl_kind ! latent heat flux (W/m^2)
@@ -623,7 +634,7 @@
          flw   (:,:,:) = 230.0_dbl_kind  ! incoming longwave rad (W/m^2)
          frain (:,:,:) = c0              ! rainfall rate (kg/m2/s)
          do n = 1, ncat                   ! surface heat flux (W/m^2)
-            fsurfn_f(:,:,n,:) = fsurfn_d(n)
+            fsurfn_f(:,:,n,:) = fsurfn_d(min(n,max_d))
          enddo
          fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)
@@ -654,9 +665,7 @@
       enddo
       enddo
 
-#ifndef CICE_IN_NEMO
       sst   (:,:,:) = Tf(:,:,:)       ! sea surface temp (C)
-#endif
       qdp   (:,:,:) = c0              ! deep ocean heat flux (W/m^2)
       hmix  (:,:,:) = c20             ! ocean mixed layer depth (m)
       hwater(:,:,:) = bathymetry(:,:,:) ! ocean water depth (m)
@@ -718,10 +727,8 @@
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
       
-      if (send_i2x_per_cat) then
-         allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
-         fswthrun_ai(:,:,:,:) = c0
-      endif
+      allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
+      fswthrun_ai(:,:,:,:) = c0
 
       !-----------------------------------------------------------------
       ! derived or computed fields

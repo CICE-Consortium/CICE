@@ -120,8 +120,8 @@ Time interpolation coefficients are computed in the **JRA55_data** subroutine.
 The forcing data is converted to model inputs in the subroutine **prepare_forcing**
 called in **get_forcing_atmo**.  To clarify, the JRA55 input data includes
 
-- uatm    = model grid i-direction wind velocity component (m/s)
-- vatm    = model grid j-direction wind velocity component (m/s)
+- uatm    = T-cell centered, model grid i-direction wind velocity component (m/s)
+- vatm    = T-cell-centered, model grid j-direction wind velocity component (m/s)
 - Tair    = air temperature  (K)
 - Qa      = specific humidity (kg/kg)
 - flw     = incoming longwave radiation (W/m^2)
@@ -150,21 +150,6 @@ Users are encouraged to switch to the JRA55 (see :ref:`JRA55forcing`) dataset.  
 atmosphere forcing dataset may be deprecated in the future.
 
 
-.. _LYqforcing:
-
-LYq Atmosphere Forcing
--------------------------
-
-The LYq (:cite:`Hunke07`) forcing was used in earlier standalone 
-runs on the gx1 grid, and the
-Consortium continues to do some very limited testing with this forcing dataset.
-This dataset is largely based on the CORE II data.
-Monthly average data for cldf and fsnow is read while 6-hourly data for Qa, Tair, 
-uatm, and vatm are read with other fields derived or set by default.
-Users are encouraged to switch to the JRA55 (see :ref:`JRA55forcing`) dataset. This
-atmosphere forcing dataset may be deprecated in the future.
-
-
 .. _defaultforcing:
 
 Default Atmosphere Forcing
@@ -180,7 +165,7 @@ constant thereafter.  Different conditions can be specified thru the
 .. _box2001forcing:
 
 Box2001 Atmosphere Forcing
--------------------------
+---------------------------
 
 The box2001 forcing dataset in generated internally.  No files are read.  The
 dataset is used to test an idealized box case as defined in :cite:`Hunke01`.

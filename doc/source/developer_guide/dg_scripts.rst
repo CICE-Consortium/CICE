@@ -78,7 +78,8 @@ are the three scripts that modify **ice_in** and **cice.settings**.
 To add new options, just add new files to the **configurations/scripts/options/** directory
 with appropriate names and syntax.  The set_nml file syntax is the same as namelist
 syntax and the set_env files are consistent with csh setenv syntax.  See other files for
-examples of the syntax.
+examples of the syntax.  The name of the option (i.e. diag1, debug, bgcISPOL) should not
+have any special characters in the name as this can impact scripts usage.
 
 .. _build:
 
@@ -161,25 +162,25 @@ To add a new test (for example newtest), several files may be needed,
 Generating a new test, particularly the **test_newtest.script** usually takes some iteration before
 it's working properly.
 
-.. _dev_compliance:
+.. _dev_validation:
 
-Code Compliance Script
+QC Process Validation
 ----------------------
 
-The code compliance test validates non bit-for-bit model changes.  The directory 
-**configuration/scripts/tests/QC** contains scripts related to the compliance testing,
-and this process is described in :ref:`compliance`.  This section will describe a set
-of scripts that test and validate the code compliance process.  This should be done 
-when the compliance test or compliance test scripts (i.e., ``cice.t-test.py``) are modified.  
-Again, this section **documents a validation process for the compliance scripts**; it does not
-describe to how run the compliance test itself.  
+The code validation (aka QC or quality control) test validates non bit-for-bit model changes.  The directory 
+**configuration/scripts/tests/QC** contains scripts related to the validation testing,
+and this process is described in :ref:`validation`.  This section will describe a set
+of scripts that test and validate the QC process.  This should be done 
+when the QC test or QC test scripts (i.e., ``cice.t-test.py``) are modified.  
+Again, this section **documents a validation process for the QC scripts**; it does not
+describe to how run the validation test itself.  
 
-Two scripts have been created to automatically validate the code compliance script.  
+Two scripts have been created to automatically validate the QC script.  
 These scripts are:
 
 * ``gen_qc_cases.csh``, which creates the 4 test cases required for validation,
   builds the executable, and submits to the queue.
-* ``compare_qc_cases.csh``, which runs the code compliance script on three combinations
+* ``compare_qc_cases.csh``, which runs the QC script on three combinations
   of the 4 test cases and outputs whether or not the correct response was received.
 
 The ``gen_qc_cases.csh`` script allows users to pass some arguments similar
@@ -193,9 +194,9 @@ to the ``cice.setup`` script.  These options include:
 * ``--queue``   : Queue for the batch submission
 * ``--testid``  : test ID, user-defined id for testing
 
-The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_nonbfb``,
+The script creates 4 test cases, with testIDs ``qc_base``, ``qc_bfb``, ``qc_test``,
 and ``qc_fail``.  ``qc_base`` is the base test case with the default QC namelist.
-``qc_bfb`` is identical to ``qc_base``.  ``qc_nonbfb`` is a test that is not bit-for-bit
+``qc_bfb`` is identical to ``qc_base``.  ``qc_test`` is a test that is not bit-for-bit
 when compared to ``qc_base``, but not climate changing.  ``qc_fail`` is a test that is not
 bit-for-bit and also climate changing.
 
@@ -216,13 +217,13 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
 check to see if there is any Python module (``module avail python``) that you might need
 to load prior to using ``pip``.
 
-To perform the validation, execute the following commands.
+To perform the QC validation, execute the following commands.
 
 .. code-block:: bash
 
   # From the CICE base directory
   cp configuration/scripts/tests/QC/gen_qc_cases.csh .
-  cp configuration/scripts/tests/QC/compare_qc_cases.csh
+  cp configuration/scripts/tests/QC/compare_qc_cases.csh .
   
   # Create the required test cases
   ./gen_qc_cases.csh -m <machine> --acct <acct>
