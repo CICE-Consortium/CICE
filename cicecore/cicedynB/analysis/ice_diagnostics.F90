@@ -720,7 +720,7 @@
             fisoon(n) = fisoon(n)*dt
             fisoos(n) = fisoos(n)*dt
 
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,k)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
@@ -1214,7 +1214,7 @@
 
       if (tr_iso) then
          do n=1,n_iso
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,k)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
@@ -1317,7 +1317,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 
@@ -1405,7 +1404,6 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-! MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,k,ij,icells,indxi,indxj)
       do iblk = 1, nblocks
 
@@ -1513,7 +1511,8 @@
             if (abs(latpnt(n)) < c360 .and. abs(lonpnt(n)) < c360) then
 
             ! MDT, 09/2017: Comment out OpenMP directives since loop is not thread-safe
-            !!$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,latdis,londis,totdis)
+            ! This is computing closest point, Could add a CRITICAL but it's just initialization
+            !!$XXXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,latdis,londis,totdis)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)         
                ilo = this_block%ilo
@@ -1538,7 +1537,7 @@
                enddo            ! i
                enddo            ! j
             enddo               ! iblk
-            !!$OMP END PARALLEL DO
+            !!$XXXOMP END PARALLEL DO
 
             endif
 

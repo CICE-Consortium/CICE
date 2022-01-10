@@ -1056,7 +1056,8 @@ Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
 *ice\_timer\_stop*. Finally, *ice\_timer\_print* writes the results to
 the log file. The optional “stats" argument (true/false) prints
-additional statistics. Calling *ice\_timer\_print\_all* prints all of
+additional statistics. The "stats" argument can be set by the ``timer_stats``
+namelist.  Calling *ice\_timer\_print\_all* prints all of
 the timings at once, rather than having to call each individually.
 Currently, the timers are set up as in :ref:`timers`.
 Section :ref:`addtimer` contains instructions for adding timers.
@@ -1080,7 +1081,7 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 1            | Total       | the entire run                                     |
    +--------------+-------------+----------------------------------------------------+
-   | 2            | Step        | total minus initialization and exit                |
+   | 2            | Timeloop    | total minus initialization and exit                |
    +--------------+-------------+----------------------------------------------------+
    | 3            | Dynamics    | EVP                                                |
    +--------------+-------------+----------------------------------------------------+
@@ -1092,23 +1093,29 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 7            | Shortwave   | SW radiation and albedo                            |
    +--------------+-------------+----------------------------------------------------+
-   | 8            | Meltponds   | melt ponds                                         |
+   | 8            | Ridging     | mechanical redistribution                          |
    +--------------+-------------+----------------------------------------------------+
-   | 9            | Ridging     | mechanical redistribution                          |
+   | 9            | FloeSize    | flow size                                          |
    +--------------+-------------+----------------------------------------------------+
-   | 10           | Cat Conv    | transport in thickness space                       |
+   | 10           | Coupling    | sending/receiving coupler messages                 |
    +--------------+-------------+----------------------------------------------------+
-   | 11           | Coupling    | sending/receiving coupler messages                 |
+   | 11           | ReadWrite   | reading/writing files                              |
    +--------------+-------------+----------------------------------------------------+
-   | 12           | ReadWrite   | reading/writing files                              |
+   | 12           | Diags       | diagnostics (log file)                             |
    +--------------+-------------+----------------------------------------------------+
-   | 13           | Diags       | diagnostics (log file)                             |
+   | 13           | History     | history output                                     |
    +--------------+-------------+----------------------------------------------------+
-   | 14           | History     | history output                                     |
+   | 14           | Bound       | boundary conditions and subdomain communications   |
    +--------------+-------------+----------------------------------------------------+
-   | 15           | Bound       | boundary conditions and subdomain communications   |
+   | 15           | BGC         | biogeochemistry                                    |
    +--------------+-------------+----------------------------------------------------+
-   | 16           | BGC         | biogeochemistry                                    |
+   | 16           | Forcing     | forcing                                            |
+   +--------------+-------------+----------------------------------------------------+
+   | 17           | 1d-evp      | 1d evp                                             |
+   +--------------+-------------+----------------------------------------------------+
+   | 18           | 2d-evp      | 2d evp                                             |
+   +--------------+-------------+----------------------------------------------------+
+   | 19           | UpdState    | update state                                       |
    +--------------+-------------+----------------------------------------------------+
 
 .. _restartfiles:

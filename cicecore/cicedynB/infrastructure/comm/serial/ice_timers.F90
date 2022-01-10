@@ -30,6 +30,9 @@
              ice_timer_print_all, &
              ice_timer_check
 
+   logical(log_kind),  public ::      &
+      timer_stats              ! controls printing of timer statistics
+
 !-----------------------------------------------------------------------
 ! public timers
 !-----------------------------------------------------------------------
