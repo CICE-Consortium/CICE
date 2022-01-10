@@ -243,6 +243,7 @@
     oceanmixed_ice  = .true.
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
+    wave_solver     = 'ml'
     nfreq           = 25
     restart_coszen  = .false.
     restore_ice     = .false.

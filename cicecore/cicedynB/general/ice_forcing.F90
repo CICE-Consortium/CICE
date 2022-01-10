@@ -5467,7 +5467,7 @@
 !
 !   Read in wave spectrum forcing as a function of time. 6 hourly
 !   LR started working from JRA55_data routine
-!   Change fields, and change 3 hourly to 6 hourly
+!   Changed fields, and changed 3 hourly to 6 hourly
 !
       subroutine wave_spec_data
 
