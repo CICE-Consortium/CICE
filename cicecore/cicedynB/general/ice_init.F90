@@ -1843,10 +1843,10 @@
                   tmpstr2 = ' : no wave data provided, no wave-ice interactions'
                elseif (trim(wave_spec_type) == 'profile') then
                   tmpstr2 = ' : use fixed dummy wave spectrum for testing'
-               elseif (trim(wave_spec_type) == 'constant') then
+               elseif (trim(wave_spec_type) == 'constant_file') then
                   tmpstr2 = ' : constant wave spectrum data file provided for testing'
-               elseif (trim(wave_spec_type) == 'random') then
-                  tmpstr2 = ' : wave data file provided, spectrum generated using random number'
+               elseif (trim(wave_spec_type) == 'forcing_file') then
+                  tmpstr2 = ' : wave data file provided with 6 hourly forcing data'
                else
                   tmpstr2 = ' : unknown value'
                endif

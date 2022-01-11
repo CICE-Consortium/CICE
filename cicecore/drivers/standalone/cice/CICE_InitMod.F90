@@ -18,7 +18,6 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave 
-      use icepack_intfc, only: icepack_init_spwf_fullnet, icepack_init_spwf_class
       use icepack_intfc, only: icepack_init_snow
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -79,7 +78,7 @@
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, &
-          get_wave_spec, wave_spec_data, init_snowtable
+          get_wave_spec, init_wave_solver, init_snowtable
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, faero_optics, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid
@@ -94,7 +93,7 @@
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec, tr_snow
-      character(len=char_len) :: snw_aging_table
+      character(len=char_len) :: snw_aging_table, wave_solver
       character(len=*), parameter :: subname = '(cice_init)'
 
       call init_communicate     ! initial setup for message passing
@@ -166,7 +165,7 @@
       call ice_HaloRestore_init ! restored boundary conditions
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
-          wave_spec_out=wave_spec, snw_aging_table_out=snw_aging_table)
+          wave_spec_out=wave_spec, wave_solver_out=wave_solver, snw_aging_table_out=snw_aging_table)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
@@ -207,13 +206,10 @@
 
       call init_forcing_atmo    ! initialize atmospheric forcing (standalone)
 
-      ! LR needs to revisit this
-      !if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice (from coupling)
-      if (tr_fsd .and. wave_spec) call wave_spec_data ! wave spectrum in ice (as forcing)
-
-      ! LR wave ML fullnet - revisit
-      if (tr_fsd .and. wave_spec) call icepack_init_spwf_fullnet
-      if (tr_fsd .and. wave_spec) call icepack_init_spwf_class
+      if (tr_fsd .and. wave_spec) then
+          call get_wave_spec ! wave spectrum in ice
+          if (trim(wave_solver) == 'ml') call init_wave_solver ! read in neural network coefficients for wave fracture
+      end if
 
       call get_forcing_atmo     ! atmospheric forcing from data
       call get_forcing_ocn(dt)  ! ocean forcing from data

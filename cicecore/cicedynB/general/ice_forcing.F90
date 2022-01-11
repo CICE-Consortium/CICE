@@ -48,7 +48,7 @@
       private
       public :: init_forcing_atmo, init_forcing_ocn, alloc_forcing, &
                 get_forcing_atmo, get_forcing_ocn, &
-                get_wave_spec, wave_spec_data, &
+                get_wave_spec, init_wave_solver,  &
                 read_clim_data, read_clim_data_nc, &
                 interpolate_data, interp_coeff_monthly, &
                 read_data_nc_point, interp_coeff, &
@@ -137,7 +137,6 @@
       character(char_len_long), public :: & 
          atm_data_dir , & ! top directory for atmospheric data
          ocn_data_dir , & ! top directory for ocean data
-         wave_spec_dir, & ! dir name for wave spectrum
          wave_spec_file,& ! file name for wave spectrum
          oceanmixed_file  ! file name for ocean forcing data
 
@@ -5414,7 +5413,7 @@
 
       call ice_timer_start(timer_fsd)
 
-      call icepack_query_parameters(wave_spec_out=wave_spec, &
+      call icepack_query_parameters(wave_spec_out=wave_spec,& 
                                     wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -5422,7 +5421,6 @@
 
       ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
-      wave_spec_dir = ocn_data_dir ! LR to double check this
       debug_forcing = .false.
 
       ! wave spectrum and frequencies
@@ -5439,16 +5437,20 @@
 
 
          ! read more realistic data from a file
-         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
+         if (wave_spec) then
             if (trim(wave_spec_file(1:4)) == 'unkn') then
                call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file), &
                   file=__FILE__, line=__LINE__)
             else
 #ifdef USE_NETCDF
-               call ice_open_nc(wave_spec_file,fid)
-               call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), debug_forcing, &
+               if (trim(wave_spec_type) == 'constant_file') then
+                   call ice_open_nc(wave_spec_file,fid)
+                   call ice_read_nc_xyf (fid, 1, 'efreq', wave_spectrum(:,:,:,:), debug_forcing, &
                                      field_loc_center, field_type_scalar)
-               call ice_close_nc(fid)
+                   call ice_close_nc(fid)
+               else if (trim(wave_spec_type) == 'forcing_file') then
+                   call wave_spec_data
+               end if
 #else
                write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
                write (nu_diag,*) "wave spectrum file not available, using default profile"
@@ -5518,8 +5520,7 @@
 
       debug_n_d = .false.  !usually false
 
-      call icepack_query_parameters(wave_spec_out=wave_spec, &
-                                    wave_spec_type_out=wave_spec_type,secday_out=secday)
+      call icepack_query_parameters(secday_out=secday)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -5529,13 +5530,10 @@
                                 wavefreq, dwavefreq)
 
 
-    if (wave_spec_type.ne.'profile') then
-      wave_spec_dir = '/glade/work/lettier/WWATCH/forcing_data/'
-      !spec_file = trim(wave_spec_dir)//'/'//trim(wave_spec_file)
-      spec_file = trim(wave_spec_file)
+      spec_file = trim(ocn_data_dir)//'/'//trim(wave_spec_file)
       wave_spectrum_data = c0
       wave_spectrum = c0
-      yr = fyear_init + mod(nyr-1,ycycle)  ! current year
+      yr = fyear  ! current year
     !-------------------------------------------------------------------
     ! 6-hourly data
     ! 
@@ -5556,7 +5554,7 @@
       end if
 
       ! current record number
-      recnum = 4*int(yday) - 3 + int(real(sec,kind=dbl_kind)/sec6hr)
+      recnum = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec6hr)
 
       ! Compute record numbers for surrounding data (2 on each side)
 
@@ -5596,16 +5594,165 @@
       ! Save record number
       oldrecnum = recnum
 
-         if (dbug) then
+         if (local_debug) then
            if (my_task == master_task) write (nu_diag,*) &
               'wave_spec_data ',spec_file
            if (my_task.eq.master_task)  &
                write (nu_diag,*) 'maxrec',maxrec
                write (nu_diag,*) 'days_per_year', days_per_year
 
-        endif                   ! dbug
-      end if
+        endif                   ! local debug
+
       end subroutine wave_spec_data
+
+!=======================================================================
+!
+!   Read in neural network coefficients (computed offline) for wave fracture
+!   For both the classifier and the full network
+!
+!   Author: Lettie Roach, 2021
+!
+      subroutine init_wave_solver
+
+      use ice_broadcast, only: broadcast_array
+
+      ! local variables
+
+      character(char_len_long) :: wave_class_file, wave_fullnet_file
+      real (kind=dbl_kind), dimension(13102)   :: filelist
+      real (kind=dbl_kind), dimension(44412)   :: filelist_full
+
+      ! neural network coefficients
+      real (kind=dbl_kind), dimension(:), allocatable :: & 
+          full_weight2, full_weight4, full_weight6, full_weight8, &
+          full_weight10, full_weight12, class_weight2, class_weight4, class_weight6
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: & 
+          full_weight1, full_weight3, full_weight5, full_weight7, &
+          full_weight9, full_weight11, class_weight1, class_weight3, class_weight5
+
+
+      ! allocate arrays
+      allocate(class_weight1(27,100))
+      allocate(class_weight2(100))
+      allocate(class_weight3(100,100))
+      allocate(class_weight4(100))
+      allocate(class_weight5(100,2))
+      allocate(class_weight6(2))
+
+      allocate(full_weight1(27,100))
+      allocate(full_weight2(100))
+      allocate(full_weight3(100,100))
+      allocate(full_weight4(100))
+      allocate(full_weight5(100,100))
+      allocate(full_weight6(100))
+      allocate(full_weight7(100,100))
+      allocate(full_weight8(100))      
+      allocate(full_weight9(100,100))
+      allocate(full_weight10(100))
+      allocate(full_weight11(100,12))
+      allocate(full_weight12(12))
+ 
+     
+      ! read in coefficients from text files
+      wave_class_file = &
+       trim(ocn_data_dir)//'/'//trim('wavefrac_nn_classifier_202201.txt')
+
+      open (unit = 1, file = wave_class_file)
+      read (1, *) filelist
+      close(1)
+
+      class_weight1 = TRANSPOSE(RESHAPE(filelist(1:2700), (/100, 27/)))
+      class_weight2 = filelist(2701:2800)
+      class_weight3 = TRANSPOSE(RESHAPE(filelist(2801:12800), (/100, 100/)))
+      class_weight4 = filelist(12801:12900)
+      class_weight5 = TRANSPOSE(RESHAPE(filelist(12901:13100), (/2, 100/)))
+      class_weight6 = filelist(13101:13102)
+
+      wave_fullnet_file = &
+       trim(ocn_data_dir)//'/'//trim('wavefrac_nn_fullnet_202201.txt')
+
+      open (unit = 2, file = wave_fullnet_file)
+      read (2, *) filelist_full
+      close(2)
+
+      full_weight1 = TRANSPOSE(RESHAPE(filelist(1:2700), (/100, 27/)))
+      full_weight2 = filelist(2701:2800)
+      full_weight3 = TRANSPOSE(RESHAPE(filelist(2801:12800), (/100, 100/)))
+      full_weight4 = filelist(12801:12900)
+      full_weight5 = TRANSPOSE(RESHAPE(filelist(12901:22900), (/100, 100/)))
+      full_weight6 = filelist(22901:23000)
+      full_weight7 = TRANSPOSE(RESHAPE(filelist(23001:33000), (/100, 100/)))
+      full_weight8 = filelist(33001:33100)
+      full_weight9 = TRANSPOSE(RESHAPE(filelist(33101:43100), (/100, 100/)))
+      full_weight10 = filelist(43101:43200)
+      full_weight11 = TRANSPOSE(RESHAPE(filelist(43201:44400), (/12, 100/)))
+      full_weight12 = filelist(44401:44412)
+
+      ! broadcast arrays
+      call broadcast_array(class_weight1  , master_task)
+      call broadcast_array(class_weight2  , master_task)
+      call broadcast_array(class_weight3  , master_task)
+      call broadcast_array(class_weight4  , master_task)
+      call broadcast_array(class_weight5  , master_task)
+      call broadcast_array(class_weight6  , master_task)
+      call broadcast_array(full_weight1   , master_task)
+      call broadcast_array(full_weight2   , master_task)
+      call broadcast_array(full_weight3   , master_task)
+      call broadcast_array(full_weight4   , master_task)
+      call broadcast_array(full_weight5   , master_task)
+      call broadcast_array(full_weight6   , master_task)
+      call broadcast_array(full_weight7   , master_task)
+      call broadcast_array(full_weight8   , master_task)
+      call broadcast_array(full_weight9   , master_task)
+      call broadcast_array(full_weight10  , master_task)
+      call broadcast_array(full_weight11  , master_task)
+      call broadcast_array(full_weight12  , master_task)
+
+      ! set icepack parameters
+         call icepack_init_parameters(        &
+            class_weight1_in = class_weight1, &
+            class_weight2_in = class_weight2, &
+            class_weight3_in = class_weight3, &
+            class_weight4_in = class_weight4, &
+            class_weight5_in = class_weight5, &
+            class_weight6_in = class_weight6, &
+            full_weight1_in  = full_weight1, &
+            full_weight2_in  = full_weight2, &
+            full_weight3_in  = full_weight3, &
+            full_weight4_in  = full_weight4, &
+            full_weight5_in  = full_weight5, &
+            full_weight6_in  = full_weight6, &
+            full_weight7_in  = full_weight7, &
+            full_weight8_in  = full_weight8, &
+            full_weight9_in  = full_weight9, &
+            full_weight10_in  = full_weight10, &
+            full_weight11_in  = full_weight11, &
+            full_weight12_in  = full_weight12 )
+
+      ! deallocate arrays
+      deallocate(class_weight1)
+      deallocate(class_weight2)
+      deallocate(class_weight3)
+      deallocate(class_weight4)
+      deallocate(class_weight5)
+      deallocate(class_weight6)
+
+      deallocate(full_weight1)
+      deallocate(full_weight2)
+      deallocate(full_weight3)
+      deallocate(full_weight4)
+      deallocate(full_weight5)
+      deallocate(full_weight6)
+      deallocate(full_weight7)
+      deallocate(full_weight8)      
+      deallocate(full_weight9)
+      deallocate(full_weight10)
+      deallocate(full_weight11)
+      deallocate(full_weight12)
+ 
+
+      end subroutine init_wave_solver
 
 
 !=======================================================================
