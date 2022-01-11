@@ -1063,9 +1063,11 @@ Currently, the timers are set up as in :ref:`timers`.
 Section :ref:`addtimer` contains instructions for adding timers.
 
 The timings provided by these timers are not mutually exclusive. For
-example, the column timer (5) includes the timings from 6–10, and
-subroutine *bound* (timer 15) is called from many different places in
-the code, including the dynamics and advection routines.
+example, the Column timer includes the timings from several other
+timers, while timer Bound is called from many different places in
+the code, including the dynamics and advection routines.  The
+Dynamics, Advection, and Column timers do not overlap and represent 
+most of the overall model work.
 
 The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 *system\_clock* for single-processor runs.
@@ -1083,19 +1085,19 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 2            | Timeloop    | total minus initialization and exit                |
    +--------------+-------------+----------------------------------------------------+
-   | 3            | Dynamics    | EVP                                                |
+   | 3            | Dynamics    | dynamics                                           |
    +--------------+-------------+----------------------------------------------------+
    | 4            | Advection   | horizontal transport                               |
    +--------------+-------------+----------------------------------------------------+
    | 5            | Column      | all vertical (column) processes                    |
    +--------------+-------------+----------------------------------------------------+
-   | 6            | Thermo      | vertical thermodynamics                            |
+   | 6            | Thermo      | vertical thermodynamics, part of Column timer      |
    +--------------+-------------+----------------------------------------------------+
-   | 7            | Shortwave   | SW radiation and albedo                            |
+   | 7            | Shortwave   | SW radiation and albedo, part of Thermo timer      |
    +--------------+-------------+----------------------------------------------------+
-   | 8            | Ridging     | mechanical redistribution                          |
+   | 8            | Ridging     | mechanical redistribution, part of Column timer    |
    +--------------+-------------+----------------------------------------------------+
-   | 9            | FloeSize    | flow size                                          |
+   | 9            | FloeSize    | flow size, part of Column timer                    |
    +--------------+-------------+----------------------------------------------------+
    | 10           | Coupling    | sending/receiving coupler messages                 |
    +--------------+-------------+----------------------------------------------------+
@@ -1107,13 +1109,13 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 14           | Bound       | boundary conditions and subdomain communications   |
    +--------------+-------------+----------------------------------------------------+
-   | 15           | BGC         | biogeochemistry                                    |
+   | 15           | BGC         | biogeochemistry, part of Thermo timer              |
    +--------------+-------------+----------------------------------------------------+
    | 16           | Forcing     | forcing                                            |
    +--------------+-------------+----------------------------------------------------+
-   | 17           | 1d-evp      | 1d evp                                             |
+   | 17           | 1d-evp      | 1d evp, part of Dynamics timer                     |
    +--------------+-------------+----------------------------------------------------+
-   | 18           | 2d-evp      | 2d evp                                             |
+   | 18           | 2d-evp      | 2d evp, part of Dynamics timer                     |
    +--------------+-------------+----------------------------------------------------+
    | 19           | UpdState    | update state                                       |
    +--------------+-------------+----------------------------------------------------+

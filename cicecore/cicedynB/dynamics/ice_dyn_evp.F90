@@ -239,9 +239,7 @@
          call t2ugrid_vector(strairy)
       endif      
 
-! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
-! need to do more debugging
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -301,7 +299,7 @@
          enddo  ! ij
 
       enddo  ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -354,7 +352,7 @@
             endif
          
          enddo
-       !$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
       endif
 
       call ice_timer_start(timer_evp_2d)
@@ -399,7 +397,7 @@
          ! stress tensor equation, total surface stress
          !-----------------------------------------------------------------
 
-            !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
+            !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
             do iblk = 1, nblocks
 
 !               if (trim(yield_curve) == 'ellipse') then
@@ -445,7 +443,7 @@
                            Tbu      (:,:,iblk))
 
             enddo
-            !$TCXOMP END PARALLEL DO
+            !$OMP END PARALLEL DO
 
             call stack_velocity_field(uvel, vvel, fld2)
             call ice_timer_start(timer_bound)
