@@ -177,7 +177,7 @@
 !                           field_loc_center,  field_type_scalar)
 !      call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          do j = 1, ny_block 
@@ -239,7 +239,7 @@
          call t2ugrid_vector(strairy)
       endif      
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -331,7 +331,7 @@
       
       if (seabed_stress) then
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
 
             if ( seabed_stress_method == 'LKD' ) then
@@ -397,7 +397,7 @@
          ! stress tensor equation, total surface stress
          !-----------------------------------------------------------------
 
-            !$OMP PARALLEL DO PRIVATE(iblk,strtmp)
+            !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
             do iblk = 1, nblocks
 
 !               if (trim(yield_curve) == 'ellipse') then
@@ -537,7 +537,7 @@
       ! ice-ocean stress
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          call dyn_finish                               & 

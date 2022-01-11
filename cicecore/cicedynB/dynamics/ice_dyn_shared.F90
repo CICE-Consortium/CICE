@@ -157,7 +157,7 @@
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
@@ -1464,7 +1464,7 @@
       character(len=*), parameter :: subname = '(stack_velocity_field)'
 
       ! load velocity into array for boundary updates
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
          fld2(:,:,1,iblk) = uvel(:,:,iblk)
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
@@ -1496,7 +1496,7 @@
       character(len=*), parameter :: subname = '(unstack_velocity_field)'
 
       ! Unload velocity from array after boundary updates
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
          uvel(:,:,iblk) = fld2(:,:,1,iblk)
          vvel(:,:,iblk) = fld2(:,:,2,iblk)
