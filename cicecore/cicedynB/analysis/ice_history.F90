@@ -1018,7 +1018,7 @@
              "none", c1, c0,                              &
              ns1, f_aisnap)
       
-        call define_hist_field(n_trsig,"trsig","N/m",tstr2D, tcstr, &
+         call define_hist_field(n_trsig,"trsig","N/m",tstr2D, tcstr, &
              "internal stress tensor trace",                         &
              "ice strength approximation", c1, c0,                   &
              ns1, f_trsig)
@@ -1746,7 +1746,7 @@
           stressp_4, sig1, sig2, sigP, &
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
           snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, update_ocn_f
-      use ice_arrays_column, only: snowfracn, Cdn_atm, frachist
+      use ice_arrays_column, only: snowfracn, Cdn_atm
       use ice_history_shared ! almost everything
       use ice_history_write, only: ice_write_hist
       use ice_history_bgc, only: accum_hist_bgc
@@ -1757,7 +1757,7 @@
       use ice_history_drag, only: accum_hist_drag
       use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
       use icepack_intfc, only: icepack_mushy_temperature_mush
-      use ice_history_fsd! LR, only: accum_hist_fsd
+      use ice_history_fsd, only: accum_hist_fsd
       use ice_state ! almost everything
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
 
@@ -3989,7 +3989,8 @@
                        vice(i,j,iblk)
                  if (n_aisnap   (ns) /= 0) a2D(i,j,n_aisnap(ns),iblk)    = &
                        aice(i,j,iblk)
-                if (kdyn == 2) then  ! for EAP dynamics different time of output
+
+                 if (kdyn == 2) then  ! for EAP dynamics different time of output
                     if (n_trsig    (ns) /= 0) a2D(i,j,n_trsig(ns),iblk ) = &
                                         strength(i,j,iblk)
                  else

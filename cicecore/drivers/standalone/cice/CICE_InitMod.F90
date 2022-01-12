@@ -17,7 +17,7 @@
       use ice_fileunits, only: init_fileunits, nu_diag
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
-      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave 
+      use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
       use icepack_intfc, only: icepack_init_snow
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted

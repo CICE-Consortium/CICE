@@ -5413,7 +5413,7 @@
 
       call ice_timer_start(timer_fsd)
 
-      call icepack_query_parameters(wave_spec_out=wave_spec,& 
+      call icepack_query_parameters(wave_spec_out=wave_spec, &
                                     wave_spec_type_out=wave_spec_type)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
