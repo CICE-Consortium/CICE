@@ -111,14 +111,13 @@
          sublim_data, &
           frain_data
 
-      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
-          wave_spectrum_data ! field values at 2 temporal data points
- 
-      real (kind=dbl_kind), & 
-           dimension(:,:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
         topmelt_data, &
         botmelt_data
 
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
+          wave_spectrum_data ! field values at 2 temporal data points
+ 
       character(char_len), public :: & 
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
