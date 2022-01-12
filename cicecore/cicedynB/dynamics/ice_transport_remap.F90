@@ -331,11 +331,6 @@
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
-      use ice_fileunits, only: nu_diag, flush_fileunit
-      use ice_communicate, only: my_task, master_task
-#ifdef OMP_TIMERS
-      use OMP_LIB
-#endif
 
       real (kind=dbl_kind), intent(in) ::     &
          dt      ! time step
@@ -453,11 +448,6 @@
       type (block) ::     &
          this_block       ! block information for current block
 
-#ifdef OMP_TIMERS
-      real (kind=dbl_kind) :: &
-         time0,time1
-#endif
-
       character(len=*), parameter :: subname = '(horizontal_remap)'
 
 !---!-------------------------------------------------------------------
@@ -465,19 +455,6 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
-#ifdef OMP_TIMERS
-      time0 = OMP_GET_WTIME()
-
-      if (my_task == master_task) then
-         time1 = OMP_GET_WTIME()
-         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t1'
-         time0 = time1
-         call flush_fileunit(nu_diag)
-      endif
-#endif
-
-      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
-      !--- need to check private variables and debug further
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,   &
       !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop) &
       !$OMP SCHEDULE(runtime)
@@ -584,15 +561,6 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-#ifdef OMP_TIMERS
-      if (my_task == master_task) then
-         time1 = OMP_GET_WTIME()
-         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t2'
-         time0 = time1
-         call flush_fileunit(nu_diag)
-      endif
-#endif
-
     !-------------------------------------------------------------------
     ! Ghost cell updates
     ! If nghost >= 2, these calls are not needed
@@ -616,14 +584,6 @@
          call ice_HaloUpdate (my,               halo_info, &
                               field_loc_center, field_type_vector)
 
-#ifdef OMP_TIMERS
-         if (my_task == master_task) then
-            time1 = OMP_GET_WTIME()
-            write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t3'
-            time0 = time1
-            call flush_fileunit(nu_diag)
-         endif
-#endif
          ! tracer fields 
          if (maskhalo_remap) then
             halomask(:,:,:) = 0
@@ -648,14 +608,6 @@
                enddo
             enddo
             !$OMP END PARALLEL DO
-#ifdef OMP_TIMERS
-            if (my_task == master_task) then
-               time1 = OMP_GET_WTIME()
-               write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t4'
-               time0 = time1
-               call flush_fileunit(nu_diag)
-            endif
-#endif
             call ice_HaloUpdate(halomask, halo_info, &
                                 field_loc_center, field_type_scalar)
             call ice_HaloMask(halo_info_tracer, halo_info, halomask)
@@ -679,16 +631,6 @@
 
       endif  ! nghost
 
-#ifdef OMP_TIMERS
-      if (my_task == master_task) then
-         time1 = OMP_GET_WTIME()
-         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t5'
-         time0 = time1
-         call flush_fileunit(nu_diag)
-      endif
-#endif
-
-      !--- need to check private variables and debug further
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
       !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
       !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
@@ -903,15 +845,6 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-#ifdef OMP_TIMERS
-      if (my_task == master_task) then
-         time1 = OMP_GET_WTIME()
-         write(nu_diag,*) trim(subname),OMP_GET_THREAD_NUM(),iblk,time1-time0,'t6'
-         time0 = time1
-         call flush_fileunit(nu_diag)
-      endif
-#endif
-       
       end subroutine horizontal_remap
 
 !=======================================================================

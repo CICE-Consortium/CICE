@@ -816,7 +816,7 @@
          !-----------------------------------------------------------------
          !$OMP PARALLEL DO PRIVATE(iblk,stress_Pr)
          do iblk = 1, nblocks
-            
+
             if (use_mean_vrel) then
                ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
                vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)

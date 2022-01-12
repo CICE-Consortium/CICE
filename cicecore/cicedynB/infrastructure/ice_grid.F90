@@ -358,6 +358,9 @@
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_domain_size, only: max_blocks
+#if defined (_OPENMP)
+      use OMP_LIB
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -375,6 +378,11 @@
 
       type (block) :: &
          this_block           ! block information for current block
+
+#if defined (_OPENMP)
+      integer(kind=omp_sched_kind) :: ompsk  ! openmp schedule
+      integer(kind=int_kind) :: ompcs        ! openmp schedule count
+#endif
 
       character(len=*), parameter :: subname = '(init_grid2)'
 
@@ -405,6 +413,29 @@
       else
          call rectgrid          ! regular rectangular grid
       endif
+
+      !-----------------------------------------------------------------
+      ! Diagnose OpenMP thread schedule, force order in output
+      !-----------------------------------------------------------------
+
+#if defined (_OPENMP)
+      !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         if (my_task == master_task) then
+            !$OMP ORDERED 
+            if (iblk == 1) then
+               call omp_get_schedule(ompsk,ompcs)
+               write(nu_diag,*) ''
+               write(nu_diag,*) subname,' OpenMP runtime thread schedule:'
+               write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
+            endif
+            write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
+            call flush_fileunit(nu_diag)
+            !$OMP END ORDERED 
+         endif
+      enddo
+      !$OMP END PARALLEL DO
+#endif
 
       !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
