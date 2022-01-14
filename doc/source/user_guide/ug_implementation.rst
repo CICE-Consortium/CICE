@@ -169,7 +169,8 @@ and chooses a block size ``block_size_x`` :math:`\times`\ ``block_size_y``,
 and ``distribution_type`` in **ice\_in**. That information is used to
 determine how the blocks are
 distributed across the processors, and how the processors are
-distributed across the grid domain. Recommended combinations of these
+distributed across the grid domain. The model is parallelized over blocks
+for both MPI and OpenMP.  Some suggested combinations for these
 parameters for best performance are given in Section :ref:`performance`.
 The script **cice.setup** computes some default decompositions and layouts
 but the user can overwrite the defaults by manually changing the values in 
@@ -384,7 +385,8 @@ The user specifies the total number of tasks and threads in **cice.settings**
 and the block size and decompostion in the namelist file. The main trades 
 offs are the relative
 efficiency of large square blocks versus model internal load balance
-as CICE computation cost is very small for ice-free blocks.
+as CICE computation cost is very small for ice-free blocks.  The code
+is parallelized over blocks for both MPI and OpenMP.
 Smaller, more numerous blocks provides an opportunity for better load
 balance by allocating each processor both ice-covered and ice-free
 blocks.  But smaller, more numerous blocks becomes
@@ -394,6 +396,18 @@ cells in each direction, and more square blocks tend to optimize the
 volume-to-surface ratio important for communication cost.  Often 3 to 8
 blocks per processor provide the decompositions flexiblity to
 create reasonable load balance configurations.
+
+Like MPI, load balance
+of blocks across threads is important for efficient performance.  Most of the OpenMP
+threading is implemented with ``SCHEDULE(runtime)``, so the OMP_SCHEDULE env
+variable can be used to set the OpenMPI schedule.  The default ``OMP_SCHEDULE``
+setting is defined by the
+variable ``ICE_OMPSCHE`` in **cice.settings**.  ``OMP_SCHEDULE`` values of "STATIC,1"
+and "DYNAMIC,1" are worth testing.  The OpenMP implementation in
+CICE is constantly under review, but users should validate results and
+performance on their machine.  CICE should be bit-for-bit with different block sizes,
+different decompositions, different MPI task counts, and different OpenMP threads.
+Finally, we recommend the ``OMP_STACKSIZE`` env variable should be set to 32M or greater.
 
 The ``distribution_type`` options allow standard cartesian distributions 
 of blocks, redistribution via a ‘rake’ algorithm for improved load
