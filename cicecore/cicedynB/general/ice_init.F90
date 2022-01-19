@@ -2413,7 +2413,6 @@
       ! Set state variables
       !-----------------------------------------------------------------
 
-!MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
@@ -2627,7 +2626,11 @@
             aicen(i,j,n) = c0
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
-            trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            if (tmask(i,j)) then
+               trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            else
+               trcrn(i,j,nt_Tsfc,n) = c0       ! at land grid cells (for clean history/restart files)
+            endif
             if (ntrcr >= 2) then
                do it = 2, ntrcr
                   trcrn(i,j,it,n) = c0

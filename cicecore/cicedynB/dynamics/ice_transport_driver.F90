@@ -17,6 +17,7 @@
       use ice_constants, only: c0, c1, p5, &
           field_loc_center, &
           field_type_scalar, field_type_vector, &
+          field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -708,7 +709,7 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata
-      use ice_grid, only: HTE, HTN, tarea
+      use ice_grid, only: HTE, HTN, tarea, tmask
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
 
@@ -755,6 +756,13 @@
 !      call bound_state (aicen,        &
 !                        vicen, vsnon, &
 !                        ntrcr, trcrn)
+
+!      call ice_timer_start(timer_bound)
+!      call ice_HaloUpdate (uvel,             halo_info,     &
+!                           field_loc_NEcorner, field_type_vector)
+!      call ice_HaloUpdate (vvel,             halo_info,     &
+!                           field_loc_NEcorner, field_type_vector)
+!      call ice_timer_stop(timer_bound)
 
     !-------------------------------------------------------------------
     ! Average corner velocities to edges.
@@ -824,6 +832,7 @@
                              ntrcr,               narr,                 &
                              trcr_depend(:),      trcr_base(:,:),       &
                              n_trcr_strata(:),    nt_strata(:,:),       &
+                             tmask(:,:,    iblk),                       &
                              aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk)) 
@@ -1628,6 +1637,7 @@
                                 trcr_base,          &
                                 n_trcr_strata,      &
                                 nt_strata,          &
+                                tmask,              &
                                 aicen,    trcrn,    &
                                 vicen,    vsnon,    &
                                 aice0,    works)
@@ -1650,6 +1660,9 @@
       integer (kind=int_kind), dimension (ntrcr,2), intent(in) :: &
          nt_strata      ! indices of underlying tracer layers
 
+      logical (kind=log_kind), intent (in) ::                       &
+         tmask (nx_block,ny_block)
+
       real (kind=dbl_kind), intent (in) ::                          &
          works (nx_block,ny_block,narr)
 
@@ -1669,6 +1682,7 @@
       integer (kind=int_kind) ::      &
          i, j, ij, n    ,&! counting indices
          narrays        ,&! counter for number of state variable arrays
+         nt_Tsfc        ,&! Tsfc tracer number
          icells           ! number of ocean/ice cells
 
       integer (kind=int_kind), dimension (nx_block*ny_block) ::        &
@@ -1678,6 +1692,11 @@
          work 
 
       character(len=*), parameter :: subname = '(work_to_state)'
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       ! for call to compute_tracers
       icells = 0
@@ -1721,7 +1740,14 @@
                                          n_trcr_strata = n_trcr_strata(:), &
                                          nt_strata     = nt_strata(:,:),   &
                                          trcrn  = trcrn(i,j,:,n))
+
+            ! tcraig, don't let land points get non-zero Tsfc
+            if (.not.tmask(i,j)) then
+               trcrn(i,j,nt_Tsfc,n) = c0
+            endif
+
          enddo
+
          narrays = narrays + ntrcr
 
       enddo                     ! ncat
