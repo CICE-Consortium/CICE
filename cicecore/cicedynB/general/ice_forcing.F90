@@ -312,10 +312,14 @@
          call box2001_data_atm
       elseif (trim(atm_data_type) == 'uniform_northeast') then
          call uniform_data_atm('NE')
-      elseif (trim(atm_data_type) == 'uniform_east') then
-         call uniform_data_atm('E')
       elseif (trim(atm_data_type) == 'uniform_north') then
          call uniform_data_atm('N')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data_atm('E')
+      elseif (trim(atm_data_type) == 'uniform_south') then
+         call uniform_data_atm('S')
+      elseif (trim(atm_data_type) == 'uniform_west') then
+         call uniform_data_atm('W')
       elseif (trim(atm_data_type) == 'calm') then
          call uniform_data_atm('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
@@ -5480,6 +5484,12 @@
          vatm = atm_val
       elseif (dir == 'E') then
          uatm = atm_val
+         vatm = c0
+      elseif (dir == 'S') then
+         uatm = c0
+         vatm = -atm_val
+      elseif (dir == 'W') then
+         uatm = -atm_val
          vatm = c0
       else
          call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
