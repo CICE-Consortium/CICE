@@ -127,9 +127,9 @@
 
       integer (kind=int_kind), dimension(max_blocks) :: & 
          icellt   , & ! no. of cells where icetmask = 1
-         icelln   , & ! no. of cells where icenmask = 1
-         icelle   , & ! no. of cells where iceemask = 1
-         icellu       ! no. of cells where iceumask = 1
+         icelln   , & ! no. of cells where icenmask = .true.
+         icelle   , & ! no. of cells where iceemask = .true.
+         icellu       ! no. of cells where iceumask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti   , & ! compressed index in i-direction
@@ -468,11 +468,11 @@
                          taubxN    (:,:,iblk), taubyN    (:,:,iblk), & 
                          waterxN   (:,:,iblk), wateryN   (:,:,iblk), & 
                          forcexN   (:,:,iblk), forceyN   (:,:,iblk), & 
-                         stresspT  (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stressp_1  (:,:,iblk), stressp_2 (:,:,iblk), & 
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressmT  (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressm_1  (:,:,iblk), stressm_2 (:,:,iblk), & 
                          stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12T (:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12_1 (:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvelN_init (:,:,iblk), vvelN_init (:,:,iblk), &
                          uvelN      (:,:,iblk), vvelN      (:,:,iblk), &
@@ -501,16 +501,31 @@
                          taubxE    (:,:,iblk), taubyE    (:,:,iblk), & 
                          waterxE   (:,:,iblk), wateryE   (:,:,iblk), & 
                          forcexE   (:,:,iblk), forceyE   (:,:,iblk), & 
-                         stresspU  (:,:,iblk), stressp_2 (:,:,iblk), & 
+                         stressp_1  (:,:,iblk), stressp_2 (:,:,iblk), & 
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), & 
-                         stressmU  (:,:,iblk), stressm_2 (:,:,iblk), & 
+                         stressm_1  (:,:,iblk), stressm_2 (:,:,iblk), & 
                          stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), & 
-                         stress12U (:,:,iblk), stress12_2(:,:,iblk), & 
+                         stress12_1 (:,:,iblk), stress12_2(:,:,iblk), & 
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), & 
                          uvelE_init (:,:,iblk), vvelE_init (:,:,iblk), &
                          uvelE      (:,:,iblk), vvelE      (:,:,iblk), &
                          TbE       (:,:,iblk))
 
+
+         do i=1,nx_block
+         do j=1,ny_block
+            if (.not.iceumask(i,j,iblk)) then
+               stresspU(i,j,iblk) = c0
+               stressmU(i,j,iblk) = c0
+               stress12U(i,j,iblk) = c0
+            endif
+            if (icetmask(i,j,iblk) == 0) then
+               stresspT(i,j,iblk) = c0
+               stressmT(i,j,iblk) = c0
+               stress12T(i,j,iblk) = c0
+            endif
+         enddo
+         enddo
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
       
@@ -537,6 +552,9 @@
 
          call grid_average_X2Y('S',uvelE,'E',uvel,'U')
          call grid_average_X2Y('S',vvelN,'N',vvel,'U')
+
+         uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
+         vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
       endif
 
       call ice_timer_start(timer_bound)
@@ -665,11 +683,12 @@
          ! stress tensor equation, total surface stress
          !-----------------------------------------------------------------
 
+            select case (grid_ice)
+            case('B')
+
             !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
             do iblk = 1, nblocks
 
-               select case (grid_ice)
-               case('B')
                   call stress (nx_block,             ny_block,             &
                                ksub,                 icellt(iblk),         &
                                indxti      (:,iblk), indxtj      (:,iblk), &
@@ -709,7 +728,13 @@
                               uvel     (:,:,iblk), vvel    (:,:,iblk), &
                               Tbu      (:,:,iblk))
 
-               case('CD')
+            enddo
+            !$TCXOMP END PARALLEL DO
+
+            case('CD')
+
+               !$TCXOMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
 
                   call stress_T (nx_block,             ny_block,             &
                                  ksub,                 icellt(iblk),         &
@@ -725,6 +750,19 @@
                                  stress12T (:,:,iblk),                       &
                                  shear     (:,:,iblk), divu      (:,:,iblk), &
                                  rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk)  )
+
+               enddo
+
+               ! Need to update the halos for the stress components
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (zetax2T,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (etax2T,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_timer_stop(timer_bound)
+
+               !$TCXOMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
 
                   call stress_U (nx_block,             ny_block,             &
                                  ksub,                 icellu(iblk),         &
@@ -742,6 +780,28 @@
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                  stress12U (:,:,iblk))                   
+
+               enddo
+               !$TCXOMP END PARALLEL DO
+
+               ! Need to update the halos for the stress components
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (stresspT,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stressmT,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stress12T,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stresspU,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_HaloUpdate (stressmU,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_HaloUpdate (stress12U,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_timer_stop(timer_bound)
+
+               !$TCXOMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
 
                   call div_stress (nx_block,             ny_block,             & ! E point
                                    ksub,                 icelle(iblk),         &
@@ -769,6 +829,12 @@
                                    strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
                                    'N')
                   
+               enddo
+               !$TCXOMP END PARALLEL DO
+
+               !$TCXOMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+
                   call step_vel (nx_block,             ny_block,             & ! E point
                                  icelle        (iblk), Cdn_ocn   (:,:,iblk), &
                                  indxei      (:,iblk), indxej      (:,iblk), &
@@ -797,12 +863,8 @@
                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
                                  TbN       (:,:,iblk))
 
-               end select
-
-            enddo
-            !$TCXOMP END PARALLEL DO
-
-            if (grid_ice == 'CD') then
+               enddo
+               !$TCXOMP END PARALLEL DO
 
                call ice_timer_start(timer_bound)
                call stack_velocity_field(uvelN, vvelN, fld2)
@@ -818,7 +880,10 @@
                call grid_average_X2Y('S',uvelE,'E',uvel,'U')
                call grid_average_X2Y('S',vvelN,'N',vvel,'U')
 
-            endif
+               uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
+               vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+
+            end select
 
             call ice_timer_start(timer_bound)
             call stack_velocity_field(uvel, vvel, fld2)
@@ -988,6 +1053,11 @@
                            field_loc_NEcorner, field_type_vector)
       call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
       call grid_average_X2Y('F',work2,'U',strocnyT,'T')
+
+      if (grid_ice == 'CD') then
+         call grid_average_X2Y('S',strintxE,'E',strintx,'U')    ! diagnostic
+         call grid_average_X2Y('S',strintyN,'N',strinty,'U')    ! diagnostic
+      endif
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
