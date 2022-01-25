@@ -2687,7 +2687,7 @@
 
       if (trim(ice_ic) == 'default') then
 
-         if (trim(ice_data_type) == 'box2001') then
+         if (trim(ice_data_type) == 'box2001' .or. trim(ice_data_type) == 'smallblock') then
 
             hbar = c2  ! initial ice thickness
             do n = 1, ncat
@@ -2758,6 +2758,20 @@
             do j = jlo, jhi
             do i = ilo, ihi
                if (tmask(i,j)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         else if (trim(ice_data_type) == 'smallblock') then
+            ! 2x2 ice in center of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if ((iglob(i) == nx_global/2 .or. iglob(i) == nx_global/2+1) .and. &
+                   (jglob(j) == ny_global/2 .or. jglob(j) == ny_global/2+1)) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
