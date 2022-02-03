@@ -1621,7 +1621,7 @@
          j = indxuj(ij)
 
       !-----------------------------------------------------------------
-      ! strain rates at T point
+      ! strain rates at U point
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
@@ -1639,7 +1639,7 @@
                               shearU,     DeltaU     )
          
       !-----------------------------------------------------------------
-      ! viscous coefficients and replacement pressure at T point
+      ! viscous coefficients and replacement pressure at U point
       !-----------------------------------------------------------------
 
          call viscous_coeffs_and_rep_pressure_T2U (zetax2T(i  ,j  ), zetax2T(i  ,j+1), &

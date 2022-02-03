@@ -23,8 +23,8 @@
 
       implicit none
       private
-      public :: init_dyn, set_evp_parameters, stepu, step_vel, principal_stress, &
-                dyn_prep1, dyn_prep2, dyn_finish, &
+      public :: set_evp_parameters, stepu, step_vel, stepu_Cgrid, stepv_Cgrid, &
+                principal_stress, init_dyn, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, &
                 deformations, deformations_T, &
@@ -925,6 +925,210 @@
 
       end subroutine step_vel
 
+!=======================================================================
+
+! Integration of the momentum equation to find velocity u at E location on C grid
+
+      subroutine stepu_Cgrid (nx_block,   ny_block, &
+                              icell,      Cw,       &
+                              indxi,      indxj,    &
+                              ksub,       aiu,      &
+                              uocn,       vocn,     &
+                              waterx,     forcex,   &
+                              massdti,    fm,       &
+                              strintx,    taubx,    &
+                              uvel_init,            &
+                              uvel,       vvel,     &
+                              Tb)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icell,              & ! total count when ice[en]mask is true
+         ksub                  ! subcycling iteration
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxi   , & ! compressed index in i-direction
+         indxj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Tb,       & ! seabed stress factor (N/m^2)
+         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
+         aiu     , & ! ice fraction on [en]-grid
+         waterx  , & ! for ocean stress calculation, x (m/s)
+         forcex  , & ! work array: combined atm stress and ocn tilt, x
+         massdti , & ! mass of [EN]-cell/dt (kg/m^2 s)
+         uocn    , & ! ocean current, x-direction (m/s)
+         vocn    , & ! ocean current, y-direction (m/s)
+         fm      , & ! Coriolis param. * mass in [EN]-cell (kg/s)
+         strintx , & ! divergence of internal ice stress, x (N/m^2)
+         Cw      , & ! ocean-ice neutral drag coefficient
+         vvel        ! y-component of velocity (m/s) interpolated to E location
+         
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         uvel    , & ! x-component of velocity (m/s)
+         taubx       ! seabed stress, x-direction (N/m^2)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+         uold, vold         , & ! old-time uvel, vvel
+         vrel               , & ! relative ice-ocean velocity
+         cca,ccb,ccc,cc1    , & ! intermediate variables
+         taux               , & ! part of ocean stress term
+         Cb                 , & ! complete seabed (basal) stress coeff
+         rhow                   !
+
+      character(len=*), parameter :: subname = '(stepu_Cgrid)'
+
+      !-----------------------------------------------------------------
+      ! integrate the momentum equation
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      do ij =1, icell
+         i = indxi(ij)
+         j = indxj(ij)
+
+         uold = uvel(i,j)
+         vold = vvel(i,j)
+
+         ! (magnitude of relative ocean current)*rhow*drag*aice
+         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+                                           (vocn(i,j) - vold)**2)  ! m/s
+         ! ice/ocean stress
+         taux = vrel*waterx(i,j) ! NOTE this is not the entire
+
+         ccc = sqrt(uold**2 + vold**2) + u0
+         Cb  = Tb(i,j) / ccc ! for seabed stress
+         ! revp = 0 for classic evp, 1 for revised evp
+         cca = (brlx + revp)*massdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+
+         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+
+         ! compute the velocity components
+         cc1 = strintx(i,j) + forcex(i,j) + taux &
+             + massdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
+
+         uvel(i,j) = (ccb*vold + cc1) / cca ! m/s
+
+         ! calculate seabed stress component for outputs
+         if (ksub == ndte .and. seabed_stress) then ! on last subcycling iteration
+            taubx(i,j) = -uvel(i,j)*Tb(i,j) / ccc
+         endif
+
+      enddo                     ! ij
+
+    end subroutine stepu_Cgrid
+
+!=======================================================================
+
+! Integration of the momentum equation to find velocity v at N location on C grid
+
+      subroutine stepv_Cgrid (nx_block,   ny_block, &
+                              icell,      Cw,       &
+                              indxi,      indxj,    &
+                              ksub,       aiu,      &
+                              uocn,       vocn,     &
+                              watery,     forcey,   &
+                              massdti,    fm,       &
+                              strinty,    tauby,    &
+                              vvel_init,            &
+                              uvel,       vvel,     &
+                              Tb)
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icell,              & ! total count when ice[en]mask is true
+         ksub                  ! subcycling iteration
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxi   , & ! compressed index in i-direction
+         indxj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Tb,       & ! seabed stress factor (N/m^2)
+         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
+         aiu     , & ! ice fraction on [en]-grid
+         watery  , & ! for ocean stress calculation, y (m/s)
+         forcey  , & ! work array: combined atm stress and ocn tilt, y
+         massdti , & ! mass of [EN]-cell/dt (kg/m^2 s)
+         uocn    , & ! ocean current, x-direction (m/s)
+         vocn    , & ! ocean current, y-direction (m/s)
+         fm      , & ! Coriolis param. * mass in [EN]-cell (kg/s)
+         strinty , & ! divergence of internal ice stress, y (N/m^2)
+         Cw      , & ! ocean-ice neutral drag coefficient
+         uvel        ! x-component of velocity (m/s) interpolated to N location
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         vvel    , & ! y-component of velocity (m/s)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+         uold, vold         , & ! old-time uvel, vvel
+         vrel               , & ! relative ice-ocean velocity
+         cca,ccb,ccc,cc2    , & ! intermediate variables
+         tauy               , & ! part of ocean stress term
+         Cb                 , & ! complete seabed (basal) stress coeff
+         rhow                   !
+
+      character(len=*), parameter :: subname = '(stepv_Cgrid)'
+
+      !-----------------------------------------------------------------
+      ! integrate the momentum equation
+      !-----------------------------------------------------------------
+
+      call icepack_query_parameters(rhow_out=rhow)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      do ij =1, icell
+         i = indxi(ij)
+         j = indxj(ij)
+
+         uold = uvel(i,j)
+         vold = vvel(i,j)
+
+         ! (magnitude of relative ocean current)*rhow*drag*aice
+         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+                                           (vocn(i,j) - vold)**2)  ! m/s
+         ! ice/ocean stress
+         tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
+
+         ccc = sqrt(uold**2 + vold**2) + u0
+         Cb  = Tb(i,j) / ccc ! for seabed stress
+         ! revp = 0 for classic evp, 1 for revised evp
+         cca = (brlx + revp)*massdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+
+         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+
+         ! compute the velocity components
+         cc2 = strinty(i,j) + forcey(i,j) + tauy &
+             + massdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+
+         vvel(i,j) = (-ccb*uold + cc2) / cca
+          
+         ! calculate seabed stress component for outputs
+         if (ksub == ndte .and. seabed_stress) then ! on last subcycling iteration
+            tauby(i,j) = -vvel(i,j)*Tb(i,j) / ccc
+         endif
+
+      enddo                     ! ij
+
+    end subroutine stepv_Cgrid
+    
 !=======================================================================
 
 ! Calculation of the ice-ocean stress.
