@@ -28,3 +28,18 @@ smoke	       gbox80  4x2        boxsymne,kmtislands,gridcd
 smoke	       gbox80  8x1        boxislandsn,gridcd
 smoke	       gbox80  4x2        boxislandse,gridcd
 smoke	       gbox80  2x4        boxislandsne,gridcd
+
+smoke          gx3     8x2        diag1,run5day,gridc
+restart        gx3     4x2        debug,diag1,gridc
+smoke          gbox80  1x1        box2001,gridc
+smoke          gbox80  1x1        boxslotcyl,gridc
+smoke          gbox80  2x4        boxnodyn,gridc
+smoke	       gbox80  2x2        boxsymn,gridc
+smoke	       gbox80  4x2        boxsyme,gridc
+smoke	       gbox80  4x1        boxsymne,gridc
+smoke	       gbox80  2x2        boxsymn,kmtislands,gridc
+smoke	       gbox80  4x1        boxsyme,kmtislands,gridc
+smoke	       gbox80  4x2        boxsymne,kmtislands,gridc
+smoke	       gbox80  8x1        boxislandsn,gridc
+smoke	       gbox80  4x2        boxislandse,gridc
+smoke	       gbox80  2x4        boxislandsne,gridc

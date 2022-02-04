@@ -380,7 +380,7 @@
          f_sispeed = f_CMIP
       endif
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          f_uvelE = f_uvel
          f_vvelE = f_vvel
          f_icespdE = f_icespd
@@ -1304,7 +1304,7 @@
          select case (grid_ice)
          case('B')
             description = ", on U grid  (NE corner values)"
-         case ('CD')
+         case ('CD','C')
             description = ", on T grid"
          end select
 
@@ -4408,7 +4408,7 @@
                                       sig1      (:,:,iblk), &
                                       sig2      (:,:,iblk), &
                                       sigP      (:,:,iblk))
-            case('CD')
+            case('CD','C')
                call principal_stress (nx_block,  ny_block,  &
                                       stresspT  (:,:,iblk), &
                                       stressmT  (:,:,iblk), &

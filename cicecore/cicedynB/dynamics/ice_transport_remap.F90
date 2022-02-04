@@ -670,7 +670,7 @@
          enddo
 
          if (l_fixed_area) then
-            if (grid_ice == 'CD') then ! velocities are already on the center
+            if (grid_ice == 'CD' .or. grid_ice == 'C') then ! velocities are already on the center
                do j = jlo, jhi
                do i = ilo-1, ihi
                   edgearea_e(i,j) = uvelE(i,j,iblk) * HTE(i,j,iblk) * dt

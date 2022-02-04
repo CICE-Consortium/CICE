@@ -683,7 +683,7 @@
 ! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
 ! commented out in order to focus on EVP for now within the cdgrid
 ! should be used when routine is ready
-!      if (grid_ice == 'CD') then
+!      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 !          call grid_average_X2Y('E2US',uvelE,uvel)
 !          call grid_average_X2Y('N2US',vvelN,vvel)
 !      endif

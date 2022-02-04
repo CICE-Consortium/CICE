@@ -134,7 +134,7 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_dyn_shared): Out of memory')
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate( &
             uvelE_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
             vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
@@ -186,7 +186,7 @@
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate(fcorE_blk(nx_block,ny_block,max_blocks))
          allocate(fcorN_blk(nx_block,ny_block,max_blocks))
       endif
@@ -199,7 +199,7 @@
          ! velocity
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
-         if (grid_ice == 'CD') then ! extra velocity variables
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then ! extra velocity variables
             uvelE(i,j,iblk) = c0
             vvelE(i,j,iblk) = c0
             uvelN(i,j,iblk) = c0
@@ -221,7 +221,7 @@
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
 
-         if (grid_ice == 'CD') then
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
             if (trim(coriolis) == 'constant') then
                fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
@@ -250,7 +250,7 @@
          stress12_3(i,j,iblk) = c0
          stress12_4(i,j,iblk) = c0
 
-         if (grid_ice == 'CD') then
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
             stresspT  (i,j,iblk) = c0
             stressmT  (i,j,iblk) = c0
             stress12T (i,j,iblk) = c0
@@ -1499,7 +1499,7 @@
                ! convert quantities to U-location            
                Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
             enddo                     ! ij          
-         case('CD')
+         case('CD','C')
             if(present(Tbe)    .and. present(TbN)    .and. &
                present(icelle) .and. present(icelln) .and. &
                present(indxei) .and. present(indxej) .and. &

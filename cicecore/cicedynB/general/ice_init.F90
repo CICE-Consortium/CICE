@@ -2118,6 +2118,7 @@
       endif
 
       if (grid_ice /=  'B' .and. &
+          grid_ice /=  'C' .and. &
           grid_ice /=  'CD' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_ice=',trim(grid_ice)
          abort_list = trim(abort_list)//":26"
@@ -2457,7 +2458,7 @@
                         vicen, vsnon, &
                         ntrcr, trcrn)
 
-      if (trim(grid_ice) == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          ! move from B-grid to CD-grid for boxslotcyl test 
          if (trim(ice_data_type) == 'boxslotcyl') then 
@@ -2600,13 +2601,15 @@
          k           , & ! ice layer index
          n           , & ! thickness category index
          it          , & ! tracer index
+         iedge       , & ! edge around big block
+         jedge       , & ! edge around big block
          icells          ! number of cells initialized with ice
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall
+         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2687,7 +2690,10 @@
 
       if (trim(ice_ic) == 'default') then
 
-         if (trim(ice_data_type) == 'box2001' .or. trim(ice_data_type) == 'smallblock') then
+         if (trim(ice_data_type) == 'box2001' .or. &
+             trim(ice_data_type) == 'smallblock' .or. &
+             trim(ice_data_type) == 'bigblock' .or. &
+             trim(ice_data_type) == 'gauss') then
 
             hbar = c2  ! initial ice thickness
             do n = 1, ncat
@@ -2779,6 +2785,23 @@
             enddo
             enddo
             
+         else if (trim(ice_data_type) == 'bigblock'  .or. &
+                  trim(ice_data_type) == 'gauss') then
+            ! ice in 90% of domain, not at edges
+            icells = 0
+            iedge = int(real(nx_global,kind=dbl_kind) * 0.05) + 1
+            jedge = int(real(ny_global,kind=dbl_kind) * 0.05) + 1
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
+                   (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
          else ! default behavior
 
             !-----------------------------------------------------------------
@@ -2845,6 +2868,17 @@
                                              nx_block, ny_block, &
                                              n,        ainit,    &
                                              iglob,    jglob)
+                  endif
+                  vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+
+               elseif (trim(ice_data_type) == 'gauss') then
+                  if (hinit(n) > c0) then
+                     dist_ratio = 8._dbl_kind * &
+                                  sqrt((real(iglob(i),kind=dbl_kind)-real(nx_global+1,kind=dbl_kind)/c2)**2 + &
+                                       (real(jglob(j),kind=dbl_kind)-real(ny_global+1,kind=dbl_kind)/c2)**2) / &
+                                  sqrt((real(nx_global,kind=dbl_kind))**2 + &
+                                       (real(ny_global,kind=dbl_kind))**2)
+                     aicen(i,j,n) = ainit(n) * exp(-dist_ratio)
                   endif
                   vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
 

@@ -580,7 +580,7 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
-      if (grid_ice == "CD") &
+      if (grid_ice == "CD" .or. grid_ice == "C") &
          allocate( &
          taubxN     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
          taubyN     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
@@ -632,7 +632,7 @@
       use ice_flux_bgc, only: flux_bio_atm, flux_bio, faero_atm, fiso_atm, &
            fnit, famm, fsil, fdmsp, fdms, fhum, fdust, falgalN, &
            fdoc, fdon, fdic, ffed, ffep
-      use ice_grid, only: bathymetry, grid_ice
+      use ice_grid, only: bathymetry
 
       integer (kind=int_kind) :: n
 

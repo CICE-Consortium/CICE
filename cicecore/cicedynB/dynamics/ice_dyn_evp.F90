@@ -218,7 +218,7 @@
 
       allocate(fld2(nx_block,ny_block,2,max_blocks))
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          allocate(zetax2T(nx_block,ny_block,max_blocks))
          allocate(etax2T(nx_block,ny_block,max_blocks))
@@ -292,7 +292,7 @@
       call grid_average_X2Y('S',ss_tltx,grid_ocn_dynu,ss_tltxU,'U')
       call grid_average_X2Y('S',ss_tlty,grid_ocn_dynv,ss_tltyU,'U')
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('F',tmass,'T',emass,'E')
          call grid_average_X2Y('F',aice_init,'T', aie,'E')
          call grid_average_X2Y('F',tmass,'T',nmass,'N')
@@ -324,7 +324,7 @@
          call grid_average_X2Y('F',strairyT,'T',strairy,'U')
       endif
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          if (.not. calc_strair) then
             call grid_average_X2Y('F', strax, grid_atm_dynu, strairxN, 'N')
             call grid_average_X2Y('F', stray, grid_atm_dynv, strairyN, 'N')
@@ -383,7 +383,7 @@
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
                             Tbu       (:,:,iblk))
 
-         elseif (trim(grid_ice) == 'CD') then
+         elseif (trim(grid_ice) == 'CD' .or. grid_ice == 'C') then
             call dyn_prep2 (nx_block,             ny_block,             &
                             ilo, ihi,             jlo, jhi,             &
                             icellt(iblk),         icellu(iblk),         &
@@ -434,7 +434,7 @@
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
       !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -535,7 +535,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          call ice_timer_start(timer_bound)
          ! velocities may have changed in dyn_prep2
@@ -608,7 +608,7 @@
                                                   hwater(:,:,iblk), Tbu(:,:,iblk))
                endif
 
-         case('CD')
+         case('CD','C')
 
             if ( seabed_stress_method == 'LKD' ) then
 
@@ -731,7 +731,7 @@
             enddo
             !$TCXOMP END PARALLEL DO
 
-            case('CD')
+            case('CD','C')
 
                !$TCXOMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -903,7 +903,7 @@
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          deallocate(zetax2T, etax2T)
       endif
       
@@ -999,7 +999,7 @@
       enddo
       !$OMP END PARALLEL DO
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -1054,7 +1054,7 @@
       call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
       call grid_average_X2Y('F',work2,'U',strocnyT,'T')
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('S',strintxE,'E',strintx,'U')    ! diagnostic
          call grid_average_X2Y('S',strintyN,'N',strinty,'U')    ! diagnostic
       endif

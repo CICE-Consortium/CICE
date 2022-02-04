@@ -393,29 +393,41 @@
       hmaxs = global_maxval(vice, distrb_info, lmask_s)
 
       ! maximum ice speed
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 &
-                                 + vvel(i,j,iblk)**2)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
       if (grid_ice == 'CD') then
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 &
-                                     + vvelE(i,j,iblk)**2), &
-                                  sqrt(uvelN(i,j,iblk)**2 &
-                                     + vvelN(i,j,iblk)**2))
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 &
+                                        + vvelE(i,j,iblk)**2), &
+                                     sqrt(uvelN(i,j,iblk)**2 &
+                                        + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
          enddo
+         !$OMP END PARALLEL DO
+      elseif (grid_ice == 'C') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = sqrt(uvelE(i,j,iblk)**2 &
+                                    + vvelN(i,j,iblk)**2)
+            enddo
+            enddo
          enddo
-      enddo
-      !$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 &
+                                    + vvel(i,j,iblk)**2)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
       endif
 
       umaxn = global_maxval(work1, distrb_info, lmask_n)
@@ -1790,7 +1802,10 @@
 
       write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
       write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'C') then
+         write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
+         write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
+      elseif (grid_ice == 'CD') then
          write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
          write(nu_diag,*) 'vvelE(i,j)',vvelE(i,j,iblk)
          write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
@@ -1940,7 +1955,10 @@
 
       write(nu_diag,*) trim(llabel),'uvel=',uvel(i,j,iblk)
       write(nu_diag,*) trim(llabel),'vvel=',vvel(i,j,iblk)
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'C') then
+         write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelN=',vvelN(i,j,iblk)
+      elseif (grid_ice == 'CD') then
          write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
          write(nu_diag,*) trim(llabel),'vvelE=',vvelE(i,j,iblk)
          write(nu_diag,*) trim(llabel),'uvelN=',uvelN(i,j,iblk)

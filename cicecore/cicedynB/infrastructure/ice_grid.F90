@@ -284,7 +284,7 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
 
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate( &
             ratiodxN (nx_block,ny_block,max_blocks), &
             ratiodyE (nx_block,ny_block,max_blocks), &
@@ -551,7 +551,7 @@
          enddo
          enddo
 
-         if (grid_ice == 'CD') then
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
             do j = jlo, jhi
             do i = ilo, ihi
                ratiodxN (i,j,iblk) = - dxn(i+1,j  ,iblk) / dxn(i,j,iblk)

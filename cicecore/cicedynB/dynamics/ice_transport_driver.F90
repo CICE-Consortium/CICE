@@ -538,7 +538,7 @@
     !-------------------------------------------------------------------
     ! Main remapping routine: Step ice area and tracers forward in time.
     !-------------------------------------------------------------------
-         if (grid_ice == 'CD') then
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
              call horizontal_remap (dt,                ntrace,         &
                                 uvel      (:,:,:), vvel      (:,:,:),  &
                                 aim     (:,:,:,:), trm   (:,:,:,:,:),  &
@@ -771,7 +771,7 @@
     !-------------------------------------------------------------------
     ! Average corner velocities to edges.
     !-------------------------------------------------------------------
-      if (grid_ice == 'CD') then
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
               uee(:,:,:)=uvelE(:,:,:)
               vnn(:,:,:)=vvelN(:,:,:)
       else
