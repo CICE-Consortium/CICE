@@ -42,7 +42,8 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, step_vel, dyn_prep1, dyn_prep2, dyn_finish, &
+      use ice_dyn_shared, only: stepu, step_vel, stepu_Cgrid, stepv_Cgrid, &
+          dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
           uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
@@ -733,6 +734,11 @@
 
             case('CD','C')
 
+               if (grid_ice == 'C') then
+                  call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
+                  call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
+               endif
+               
                !$TCXOMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
 
@@ -832,40 +838,76 @@
                enddo
                !$TCXOMP END PARALLEL DO
 
+               if (grid_ice == 'CD') then
+               
                !$TCXOMP PARALLEL DO PRIVATE(iblk)
-               do iblk = 1, nblocks
+                  do iblk = 1, nblocks
 
-                  call step_vel (nx_block,             ny_block,             & ! E point
-                                 icelle        (iblk), Cdn_ocn   (:,:,iblk), &
-                                 indxei      (:,iblk), indxej      (:,iblk), &
-                                 ksub,                 aiE       (:,:,iblk), &
-                                 uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                                 waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
-                                 forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
-                                 emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                                 strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
-                                 taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
-                                 uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
-                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                 TbE       (:,:,iblk))
+                     call step_vel (nx_block,             ny_block,             & ! E point
+                                    icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                    indxei      (:,iblk), indxej      (:,iblk), &
+                                    ksub,                 aiE       (:,:,iblk), &
+                                    uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                    waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
+                                    forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
+                                    emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                    strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
+                                    taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
+                                    uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                                    uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                    TbE       (:,:,iblk))
 
-                  call step_vel (nx_block,             ny_block,             & ! N point
-                                 icelln        (iblk), Cdn_ocn   (:,:,iblk), &
-                                 indxni      (:,iblk), indxnj      (:,iblk), &
-                                 ksub,                 aiN       (:,:,iblk), &
-                                 uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                                 waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
-                                 forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
-                                 nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                                 strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
-                                 taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
-                                 uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
-                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                 TbN       (:,:,iblk))
+                     call step_vel (nx_block,             ny_block,             & ! N point
+                                    icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                    indxni      (:,iblk), indxnj      (:,iblk), &
+                                    ksub,                 aiN       (:,:,iblk), &
+                                    uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                    waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
+                                    forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                    nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                    strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
+                                    taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
+                                    uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                                    uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                    TbN       (:,:,iblk))
 
-               enddo
+                  enddo
                !$TCXOMP END PARALLEL DO
 
+               elseif (grid_ice == 'C') then
+
+               !$TCXOMP PARALLEL DO PRIVATE(iblk)
+                  do iblk = 1, nblocks
+
+                      call stepu_Cgrid (nx_block,            ny_block,              & ! u, E point
+                                        icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                        indxei      (:,iblk), indxej      (:,iblk), &
+                                        ksub,                 aiE       (:,:,iblk), &
+                                        uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                        waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
+                                        emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                        strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
+                                        uvelE_init(:,:,iblk),                       &
+                                        uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                        TbE       (:,:,iblk))
+
+                      call stepv_Cgrid (nx_block,             ny_block,             & ! v, N point
+                                        icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                        indxni      (:,iblk), indxnj      (:,iblk), &
+                                        ksub,                 aiN       (:,:,iblk), &
+                                        uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                        wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                        nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                        strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
+                                        vvelN_init(:,:,iblk),                       &
+                                        uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                        TbN       (:,:,iblk))
+
+                  enddo
+               !$TCXOMP END PARALLEL DO
+                  
+               endif
+                  
                call ice_timer_start(timer_bound)
                call stack_velocity_field(uvelN, vvelN, fld2)
                call ice_HaloUpdate (fld2,               halo_info, &
