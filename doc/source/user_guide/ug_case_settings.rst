@@ -578,6 +578,7 @@ forcing_nml
    "``ice_data_type``", "``boxslotcyl``", "initialize ice concentration and velocity for :ref:`boxslotcyl` test (:cite:`Zalesak79`)", "``default``"
    "", "``bigblock``", "uniform ice block covering about 90 percent of the area in center of domain", ""
    "", "``box2001``", "initialize ice concentration for :ref:`box2001` test (:cite:`Hunke01`)", ""
+   "", "``channel``", "uniform block ice concentration and thickness in i-direction in 50% of domain in j-direction", ""
    "", "``default``", "ice dependent on latitude and ocean temperature", ""
    "", "``gauss``", "gauss distributed ice block covering about 90 percent of the area in center of domain", ""
    "", "``smallblock``", "uniform 2x2 block ice concentration and thickness in center of domain", ""

@@ -19,7 +19,9 @@
       module ice_forcing
 
       use ice_kinds_mod
+      use ice_boundary, only: ice_HaloUpdate
       use ice_blocks, only: nx_block, ny_block
+      use ice_domain, only: halo_info
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
@@ -585,8 +587,7 @@
 ! Get atmospheric forcing data and interpolate as necessary
 
       use ice_blocks, only: block, get_block
-      use ice_boundary, only: ice_HaloUpdate
-      use ice_domain, only: nblocks, blocks_ice, halo_info
+      use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: Tair, fsw, flw, frain, fsnow, Qa, rhoa, &
           uatm, vatm, strax, stray, zlvl, wind, swvdr, swvdf, swidr, swidf, &
           potT, sst
@@ -653,6 +654,18 @@
          call oned_data
       elseif (trim(atm_data_type) == 'box2001') then
          call box2001_data_atm
+      elseif (trim(atm_data_type) == 'uniform_northeast') then
+         call uniform_data_atm('NE')
+      elseif (trim(atm_data_type) == 'uniform_north') then
+         call uniform_data_atm('N')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data_atm('E')
+      elseif (trim(atm_data_type) == 'uniform_south') then
+         call uniform_data_atm('S')
+      elseif (trim(atm_data_type) == 'uniform_west') then
+         call uniform_data_atm('W')
+      elseif (trim(atm_data_type) == 'calm') then
+         call uniform_data_atm('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
       !elseif (trim(atm_data_type) == 'uniform_northeast') then
@@ -5305,16 +5318,12 @@
       use ice_calendar, only: timesecs
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
-      use ice_grid, only: uvm, grid_average_X2Y
       use ice_state, only: aice
 
       ! local parameters
 
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         aiu                 ! ice fraction on u-grid 
 
       real (kind=dbl_kind) :: &
           secday, pi , puny, period, pi2, tau
@@ -5325,8 +5334,6 @@
 
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
-
-      call grid_average_X2Y('F',aice,'T',aiu,'U')
 
       period = c4*secday
 
@@ -5359,8 +5366,9 @@
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
          tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-         strax(i,j,iblk) = aiu(i,j,iblk) * tau * uatm(i,j,iblk)
-         stray(i,j,iblk) = aiu(i,j,iblk) * tau * vatm(i,j,iblk)
+
+         strax(i,j,iblk) = aice(i,j,iblk) * tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = aice(i,j,iblk) * tau * vatm(i,j,iblk)
 
 ! initialization test
        ! Diagonal wind vectors 1
@@ -5412,9 +5420,6 @@
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         aiu                 ! ice fraction on u-grid 
-
       real (kind=dbl_kind) :: &
           secday, pi , puny, period, pi2, tau
 
@@ -5451,6 +5456,7 @@
       use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
+      use ice_state, only: aice
 
       character(len=*), intent(in) :: dir
       real(kind=dbl_kind), intent(in), optional :: spd ! velocity
@@ -5503,8 +5509,8 @@
             ! wind stress
             wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
             tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-            strax(i,j,iblk) = tau * uatm(i,j,iblk)
-            stray(i,j,iblk) = tau * vatm(i,j,iblk)
+            strax(i,j,iblk) = aice(i,j,iblk) * tau * uatm(i,j,iblk)
+            stray(i,j,iblk) = aice(i,j,iblk) * tau * vatm(i,j,iblk)
             
          enddo
          enddo  

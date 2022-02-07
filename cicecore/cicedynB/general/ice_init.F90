@@ -2692,6 +2692,7 @@
 
          if (trim(ice_data_type) == 'box2001' .or. &
              trim(ice_data_type) == 'smallblock' .or. &
+             trim(ice_data_type) == 'channel' .or. &
              trim(ice_data_type) == 'bigblock' .or. &
              trim(ice_data_type) == 'gauss') then
 
@@ -2778,6 +2779,19 @@
             do i = ilo, ihi
                if ((iglob(i) == nx_global/2 .or. iglob(i) == nx_global/2+1) .and. &
                    (jglob(j) == ny_global/2 .or. jglob(j) == ny_global/2+1)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         else if (trim(ice_data_type) == 'channel') then
+            ! channel ice in center of domain in i direction
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
