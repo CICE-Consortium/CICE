@@ -539,21 +539,28 @@
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          call ice_timer_start(timer_bound)
-         ! velocities may have changed in dyn_prep2
-         call stack_velocity_field(uvelN, vvelN, fld2)
-         call ice_HaloUpdate (fld2,               halo_info, &
-                              field_loc_Nface, field_type_vector)
-         call unstack_velocity_field(fld2, uvelN, vvelN)
-         ! velocities may have changed in dyn_prep2
-         call stack_velocity_field(uvelE, vvelE, fld2)
-         call ice_HaloUpdate (fld2,               halo_info, &
+         call ice_HaloUpdate (uvelE,               halo_info, &
                               field_loc_Eface, field_type_vector)
-         call unstack_velocity_field(fld2, uvelE, vvelE)
+         call ice_HaloUpdate (vvelN,               halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call ice_timer_stop(timer_bound)
+
+         if (grid_ice == 'C') then
+            call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
+            call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
+            uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
+            vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
+         endif
+
+         call ice_timer_start(timer_bound)
+         call ice_HaloUpdate (uvelN,               halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call ice_HaloUpdate (vvelE,               halo_info, &
+                              field_loc_Eface, field_type_vector)
          call ice_timer_stop(timer_bound)
 
          call grid_average_X2Y('S',uvelE,'E',uvel,'U')
          call grid_average_X2Y('S',vvelN,'N',vvel,'U')
-
          uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
          vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
       endif
@@ -734,11 +741,6 @@
 
             case('CD','C')
 
-               if (grid_ice == 'C') then
-                  call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
-                  call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
-               endif
-               
                !$TCXOMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
 
@@ -835,7 +837,7 @@
                                    stress12U (:,:,iblk),                       &
                                    strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
                                    'N')
-                  
+                 
                enddo
                !$TCXOMP END PARALLEL DO
 
@@ -910,14 +912,24 @@
                endif
                   
                call ice_timer_start(timer_bound)
-               call stack_velocity_field(uvelN, vvelN, fld2)
-               call ice_HaloUpdate (fld2,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call unstack_velocity_field(fld2, uvelN, vvelN)
-               call stack_velocity_field(uvelE, vvelE, fld2)
-               call ice_HaloUpdate (fld2,               halo_info, &
+               call ice_HaloUpdate (uvelE,               halo_info, &
                                     field_loc_Eface, field_type_vector)
-               call unstack_velocity_field(fld2, uvelE, vvelE)
+               call ice_HaloUpdate (vvelN,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
+               call ice_timer_stop(timer_bound)
+
+               if (grid_ice == 'C') then
+                  call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
+                  call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
+                  uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
+                  vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
+               endif
+
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (uvelN,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
+               call ice_HaloUpdate (vvelE,               halo_info, &
+                                    field_loc_Eface, field_type_vector)
                call ice_timer_stop(timer_bound)
 
                call grid_average_X2Y('S',uvelE,'E',uvel,'U')
