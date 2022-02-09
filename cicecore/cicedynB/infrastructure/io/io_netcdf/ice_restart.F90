@@ -247,6 +247,18 @@
 
          call define_rest_field(ncid,'uvel',dims)
          call define_rest_field(ncid,'vvel',dims)
+
+         if (grid_ice == 'CD') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelE',dims)
+            call define_rest_field(ncid,'uvelN',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
+         
+         if (grid_ice == 'C') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
          
          if (restart_coszen) call define_rest_field(ncid,'coszen',dims)
 
@@ -274,16 +286,19 @@
          call define_rest_field(ncid,'stress12_3',dims)
          call define_rest_field(ncid,'stress12_4',dims)
 
-         if (grid_ice == 'CD') then
+         call define_rest_field(ncid,'iceumask',dims)
+
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
             call define_rest_field(ncid,'stresspT' ,dims)
             call define_rest_field(ncid,'stressmT' ,dims)
             call define_rest_field(ncid,'stress12T',dims)
             call define_rest_field(ncid,'stresspU' ,dims)
             call define_rest_field(ncid,'stressmU' ,dims)
             call define_rest_field(ncid,'stress12U',dims)
+            call define_rest_field(ncid,'icenmask',dims)
+            call define_rest_field(ncid,'iceemask',dims)
          endif
 
-         call define_rest_field(ncid,'iceumask',dims)
 
          if (oceanmixed_ice) then
             call define_rest_field(ncid,'sst',dims)
