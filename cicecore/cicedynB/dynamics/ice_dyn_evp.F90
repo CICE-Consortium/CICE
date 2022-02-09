@@ -103,7 +103,7 @@
           dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, & 
           dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, earear, narear, tinyarea, grid_average_X2Y, tarea, &
+          tarear, uarear, earear, narear, tinyarea, grid_average_X2Y, tarea, uarea, &
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
@@ -778,12 +778,13 @@
                                  uvel      (:,:,iblk), vvel      (:,:,iblk), &
                                  dxE       (:,:,iblk), dyN       (:,:,iblk), &
                                  dxU       (:,:,iblk), dyU       (:,:,iblk), &
-                                 tarea     (:,:,iblk),                       &
+                                 tarea     (:,:,iblk), uarea     (:,:,iblk), &
                                  ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
                                  ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
                                  epm       (:,:,iblk), npm       (:,:,iblk), &
                                  hm        (:,:,iblk), uvm       (:,:,iblk), &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
+                                 strength  (:,:,iblk),                       &
                                  stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                  stress12U (:,:,iblk))                   
 
@@ -1186,7 +1187,7 @@
         zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (visc coeff) 
         etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (visc coeff)
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
-!       puny                                      , & ! puny
+!        puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1599,16 +1600,18 @@
                              uvelU,      vvelU,     &
                              dxE,        dyN,       &
                              dxU,        dyU,       &
-                             tarea,                 &
+                             tarea,      uarea,     &
                              ratiodxN,   ratiodxNr, &
                              ratiodyE,   ratiodyEr, &
                              epm,  npm, hm, uvm,    &
                              zetax2T,    etax2T,    &
+                             strength,              &
                              stresspU,   stressmU,  & 
                              stress12U            )
 
       use ice_dyn_shared, only: strain_rates_U, &
-                                viscous_coeffs_and_rep_pressure_T2U
+                                viscous_coeffs_and_rep_pressure_T2U, &
+                                viscous_coeffs_and_rep_pressure_U
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1631,6 +1634,7 @@
          dxU      , & ! width  of U-cell through the middle (m)
          dyU      , & ! height of U-cell through the middle (m)
          tarea    , & ! area of T-cell (m^2)
+         uarea    , & ! area of U-cell (m^2)
          ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) factor for BCs across coastline
          ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) factor for BCs across coastline
          ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) factor for BCs across coastline
@@ -1640,7 +1644,8 @@
          hm       , & ! T-cell mask
          uvm      , & ! U-cell mask
          zetax2T  , & ! 2*zeta at the T point
-         etax2T       ! 2*eta at the T point
+         etax2T   , & ! 2*eta at the T point
+         strength     ! ice strength at the T point
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stresspU , & ! sigma11+sigma22
@@ -1650,14 +1655,26 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, method
 
       real (kind=dbl_kind) :: &
         divU, tensionU, shearU, DeltaU, & ! strain rates at U point
-        zetax2U, etax2U, rep_prsU         ! replacement pressure at U point
+        zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
+        puny, tinyareaU
 
+      real(kind=dbl_kind), parameter :: capping = c1 ! of the viscous coef
+      
       character(len=*), parameter :: subname = '(stress_U)'
+      
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) then
+         call abort_ice(error_message=subname, file=__FILE__, &
+            line=__LINE__)
+      end if
 
+      method=2
+      
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -1684,6 +1701,8 @@
       ! viscous coefficients and replacement pressure at U point
       !-----------------------------------------------------------------
 
+         if (method == 1) then
+         
          call viscous_coeffs_and_rep_pressure_T2U (zetax2T(i  ,j  ), zetax2T(i  ,j+1), &
                                                    zetax2T(i+1,j+1), zetax2T(i+1,j  ), &
                                                    etax2T (i  ,j  ), etax2T (i  ,j+1), &
@@ -1694,6 +1713,22 @@
                                                    tarea  (i+1,j+1), tarea  (i+1,j  ), &
                                                    DeltaU,zetax2U, etax2U, rep_prsU)
 
+         elseif (method == 2) then
+
+         tinyareaU = puny*uarea(i,j)
+            
+         call viscous_coeffs_and_rep_pressure_U (strength(i  ,j  ), strength(i  ,j+1), &
+                                                 strength(i+1,j+1), strength(i+1,j  ), &
+                                                 hm     (i  ,j  ) , hm     (i  ,j+1),  &
+                                                 hm     (i+1,j+1) , hm     (i+1,j  ),  &
+                                                 tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
+                                                 tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
+                                                 tinyareaU,                            &
+                                                 DeltaU           , capping,           &
+                                                 zetax2U, etax2U, rep_prsU)
+
+         endif
+         
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       !-----------------------------------------------------------------

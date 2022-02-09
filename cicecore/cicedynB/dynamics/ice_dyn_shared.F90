@@ -32,6 +32,7 @@
                 viscous_coeffs_and_rep_pressure, &
                 viscous_coeffs_and_rep_pressure_T, &
                 viscous_coeffs_and_rep_pressure_T2U, &
+                viscous_coeffs_and_rep_pressure_U, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -2168,7 +2169,7 @@
 
       real (kind=dbl_kind), intent(in):: &
         zetax2T_00,zetax2T_10,zetax2T_11,zetax2T_01, &
-         etax2T_00, etax2T_10, etax2T_11, etax2T_01,  & ! 2 x visous coeffs, replacement pressure
+         etax2T_00, etax2T_10, etax2T_11, etax2T_01,  & ! 2 x viscous coeffs, replacement pressure
          maskT_00, maskT_10, maskT_11, maskT_01, &
          tarea_00, tarea_10, tarea_11, tarea_01, &
          deltaU
@@ -2200,6 +2201,57 @@
       rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
 
        end subroutine viscous_coeffs_and_rep_pressure_T2U
+
+!=======================================================================
+
+        subroutine viscous_coeffs_and_rep_pressure_U (strength_00, strength_01, &
+                                                      strength_11, strength_10, &
+                                                      maskT_00,  maskT_01,      &
+                                                      maskT_11,  maskT_10,      &
+                                                      tarea_00,   tarea_01,     &
+                                                      tarea_11,   tarea_10,     &
+                                                      tinyareaU,                &
+                                                      deltaU, capping,          &
+                                                      zetax2U, etax2U,          &
+                                                      rep_prsU)
+                              
+
+      real (kind=dbl_kind), intent(in):: &
+         strength_00,strength_10,strength_11,strength_01, &
+         maskT_00, maskT_10, maskT_11, maskT_01, &
+         tarea_00, tarea_10, tarea_11, tarea_01, &
+         tinyareaU, deltaU, capping
+
+      real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
+
+      ! local variables
+     
+      real (kind=dbl_kind) :: &
+           Totarea, tmpcalc, strength
+
+      character(len=*), parameter :: subname = '(viscous_coeffs_and_rep_pressure_U)'
+
+      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
+      Totarea = maskT_00*Tarea_00   + &
+                maskT_10*Tarea_10   + &
+                maskT_11*Tarea_11   + &
+                maskT_01*Tarea_01
+      strength = (maskT_00*Tarea_00 *strength_00  + &
+                  maskT_10*Tarea_10 *strength_10  + &
+                  maskT_11*Tarea_11 *strength_11  + &
+                  maskT_01*Tarea_01 *strength_01)/Totarea
+
+ !     rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
+      ! IMPROVE the calc below are the same as in the other viscous coeff...could reduce redundency
+      ! we could have a strength_U subroutine and then calc the visc coeff
+      
+      tmpcalc =     capping *(strength/max(deltaU,tinyareaU))+ &
+                (c1-capping)*(strength/(deltaU + tinyareaU))
+      zetax2U = (c1+Ktens)*tmpcalc
+      rep_prsU = (c1-Ktens)*tmpcalc*deltaU
+      etax2U = epp2i*zetax2U
+      
+    end subroutine viscous_coeffs_and_rep_pressure_U
 
 !=======================================================================
 
