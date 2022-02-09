@@ -1404,71 +1404,60 @@
       if (my_task == master_task) then
          work_g1(:,:) = c0      ! initialize hm as land
 
-         if (trim(ew_boundary_type) == 'cyclic') then
+         if (trim(kmt_type) == 'boxislands') then
 
-            if (trim(kmt_type) == 'boxislands') then
+            call grid_boxislands_kmt(work_g1)
 
-               call grid_boxislands_kmt(work_g1)
+         elseif (trim(kmt_type) == 'channel') then
 
-            else ! default
+            do j = 3,ny_global-2      ! closed top and bottom
+            do i = 1,nx_global        ! open sides
+               work_g1(i,j) = c1    ! NOTE nx_global > 5
+            enddo
+            enddo
 
-               do j = 3,ny_global-2      ! closed top and bottom
-               do i = 1,nx_global        ! open sides
-                  work_g1(i,j) = c1    ! NOTE nx_global > 5
+         elseif (trim(kmt_type) == 'default') then
+
+            ! land in the upper left and lower right corners,
+            ! otherwise open boundaries
+            imid = nint(aint(real(nx_global)/c2))
+            jmid = nint(aint(real(ny_global)/c2))
+
+            do j = 3,ny_global-2
+            do i = 3,nx_global-2
+               work_g1(i,j) = c1    ! open central domain
+            enddo
+            enddo
+
+            if (nx_global > 5 .and. ny_global > 5) then
+
+               do j = 1, jmid+2
+               do i = 1, imid+2
+                  work_g1(i,j) = c1    ! open lower left corner
                enddo
                enddo
 
-            endif ! kmt_type
-
-         elseif (trim(ew_boundary_type) == 'open') then
-
-            if (trim(kmt_type) == 'boxislands') then
-
-               call grid_boxislands_kmt(work_g1)
-
-            else ! default
-
-               ! land in the upper left and lower right corners,
-               ! otherwise open boundaries
-               imid = nint(aint(real(nx_global)/c2))
-               jmid = nint(aint(real(ny_global)/c2))
-
-               do j = 3,ny_global-2
-               do i = 3,nx_global-2
-                  work_g1(i,j) = c1    ! open central domain
+               do j = max(jmid-2,1), ny_global
+               do i = max(imid-2,1), nx_global
+                  work_g1(i,j) = c1    ! open upper right corner
                enddo
                enddo
 
-               if (nx_global > 5 .and. ny_global > 5) then
+            endif ! > 5x5 grid
 
-                  do j = 1, jmid+2
-                  do i = 1, imid+2
-                     work_g1(i,j) = c1    ! open lower left corner
-                  enddo
-                  enddo
+         else
 
-                  do j = max(jmid-2,1), ny_global
-                  do i = max(imid-2,1), nx_global
-                     work_g1(i,j) = c1    ! open upper right corner
-                  enddo
-                  enddo
+            call abort_ice(subname//'ERROR: unknown kmt_type '//trim(kmt_type))
 
-               endif ! > 5x5 grid
+         endif ! kmt_type
 
-               if (close_boundaries) then
-                  work_g1(:, 1:2) = c0
-                  work_g1(:, ny_global-1:ny_global) = c0
-                  work_g1(1:2, :) = c0
-                  work_g1(nx_global-1:nx_global, :) = c0
-               endif
-
-            endif ! kmt_type
-
-         elseif (trim(ew_boundary_type) == 'closed') then
-
-            call abort_ice(subname//'ERROR: closed boundaries not available')
-
+         if (close_boundaries) then
+            work_g1(:, 1:2) = c0
+            work_g1(:, ny_global-1:ny_global) = c0
+            work_g1(1:2, :) = c0
+            work_g1(nx_global-1:nx_global, :) = c0
          endif
+
       endif
 
       call scatter_global(hm, work_g1, master_task, distrb_info, &

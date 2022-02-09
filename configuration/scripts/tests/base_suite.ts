@@ -40,6 +40,7 @@ restart        gbox128 4x4        boxrestore,short
 smoke          gbox128 4x4        boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
+smoke          gbox12  1x1x12x12x1  boxchan,diag1,debug
 smoke          gx3     8x2        bgcz
 smoke          gx3     8x2        bgcz,debug
 smoke          gx3     8x1        bgcskl,debug

@@ -2125,6 +2125,7 @@
       endif
 
       if (kmt_type  /=  'file' .and. &
+          kmt_type  /=  'channel' .and. &
           kmt_type  /=  'default' .and. &
           kmt_type  /=  'boxislands') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
@@ -2460,13 +2461,10 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-         ! move from B-grid to CD-grid for boxslotcyl test 
-         if (trim(ice_data_type) == 'boxslotcyl') then 
-            call grid_average_X2Y('S',uvel,'U',uvelN,'N')
-            call grid_average_X2Y('S',vvel,'U',vvelN,'N')
-            call grid_average_X2Y('S',uvel,'U',uvelE,'E')
-            call grid_average_X2Y('S',vvel,'U',vvelE,'E')
-         endif
+         call grid_average_X2Y('S',uvel,'U',uvelN,'N')
+         call grid_average_X2Y('S',vvel,'U',vvelN,'N')
+         call grid_average_X2Y('S',uvel,'U',uvelE,'E')
+         call grid_average_X2Y('S',vvel,'U',vvelE,'E')
          
          ! Halo update on North, East faces
          call ice_HaloUpdate(uvelN, halo_info, &
@@ -2690,6 +2688,10 @@
 
       if (trim(ice_ic) == 'default') then
 
+         !---------------------------------------------------------
+         ! ice concentration/thickness
+         !---------------------------------------------------------
+
          if (trim(ice_data_type) == 'box2001' .or. &
              trim(ice_data_type) == 'smallblock' .or. &
              trim(ice_data_type) == 'channel' .or. &
@@ -2742,6 +2744,10 @@
 
          endif ! ice_data_type
 
+         !---------------------------------------------------------
+         ! location of ice
+         !---------------------------------------------------------
+
          if ((trim(ice_data_type) == 'box2001')     .or. &
              (trim(ice_data_type) == 'boxslotcyl')) then
 
@@ -2758,8 +2764,8 @@
                endif               ! tmask
             enddo                  ! i
             enddo                  ! j
-            
-         else if (trim(ice_data_type) == 'uniform') then
+
+         elseif (trim(ice_data_type) == 'uniform') then
             ! all cells not land mask are ice
             icells = 0
             do j = jlo, jhi
@@ -2772,7 +2778,20 @@
             enddo
             enddo
 
-         else if (trim(ice_data_type) == 'smallblock') then
+         elseif (trim(ice_data_type) == 'channel') then
+            ! channel ice in center of domain in i direction
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'smallblock') then
             ! 2x2 ice in center of domain
             icells = 0
             do j = jlo, jhi
@@ -2786,21 +2805,24 @@
             enddo
             enddo
 
-         else if (trim(ice_data_type) == 'channel') then
-            ! channel ice in center of domain in i direction
+         elseif (trim(ice_data_type) == 'medblock') then
+            ! ice in 50% of domain, not at edges
             icells = 0
+            iedge = int(real(nx_global,kind=dbl_kind) * 0.25) + 1
+            jedge = int(real(ny_global,kind=dbl_kind) * 0.25) + 1
             do j = jlo, jhi
             do i = ilo, ihi
-               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
+               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
+                   (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
                endif
             enddo
             enddo
-            
-         else if (trim(ice_data_type) == 'bigblock'  .or. &
-                  trim(ice_data_type) == 'gauss') then
+
+         elseif (trim(ice_data_type) == 'bigblock'  .or. &
+                 trim(ice_data_type) == 'gauss') then
             ! ice in 90% of domain, not at edges
             icells = 0
             iedge = int(real(nx_global,kind=dbl_kind) * 0.05) + 1
@@ -2842,6 +2864,10 @@
             enddo                  ! j
 
          endif                     ! ice_data_type
+
+         !---------------------------------------------------------
+         ! ice distribution
+         !---------------------------------------------------------
 
          do n = 1, ncat
 
@@ -2928,8 +2954,11 @@
             enddo               ! ij
          enddo                  ! ncat
          
-         ! velocity initialization for special tests.
+         !---------------------------------------------------------
+         ! ice velocity
          ! these velocites are defined on B-grid
+         !---------------------------------------------------------
+
          if (trim(ice_data_type) == 'boxslotcyl') then
             do j = 1, ny_block
             do i = 1, nx_block
@@ -2939,6 +2968,9 @@
                                         uvel,     vvel)
             enddo               ! j
             enddo               ! i
+         else
+            uvel = c0
+            vvel = c0
          endif
       endif                     ! ice_ic
 

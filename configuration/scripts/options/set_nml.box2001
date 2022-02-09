@@ -7,6 +7,7 @@ ice_ic = 'default'
 restart_ext = .true.
 histfreq       = 'd','x','x','x','x'
 grid_type    = 'rectangular'
+kmt_type       = 'default'
 dxrect         = 16.e5
 dyrect         = 16.e5
 close_boundaries = .true.

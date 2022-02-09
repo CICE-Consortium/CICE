@@ -529,7 +529,7 @@
          enddo
       enddo  ! iblk
       !$TCXOMP END PARALLEL DO
-      
+
       endif ! grid_ice
 
       call icepack_warnings_flush(nu_diag)
