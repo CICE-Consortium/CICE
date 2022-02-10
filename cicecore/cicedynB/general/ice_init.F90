@@ -106,9 +106,9 @@
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                evp_algorithm, &
-                                seabed_stress, seabed_stress_method, &
-                                k1, k2, alphab, threshold_hw, Ktens, &
+                                evp_algorithm, visc_coeff_method,     &
+                                seabed_stress, seabed_stress_method,  &
+                                k1, k2, alphab, threshold_hw, Ktens,  &
                                 e_yieldcurve, e_plasticpot, coriolis, &
                                 ssh_stress, kridge, brlx, arlx
 
@@ -217,7 +217,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_yieldcurve,   e_plasticpot,   Ktens,                          &
+        e_yieldcurve,   e_plasticpot,   visc_coeff_method,              &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -225,7 +225,7 @@
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
-        Cf,             Pstar,          Cstar
+        Cf,             Pstar,          Cstar,          Ktens
       
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -378,6 +378,7 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
       e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
+      visc_coeff_method = 'avg_strength' ! calc visc coeff at U point: avg_strength, avg_zeta
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50        ! size of fgmres Krylov subspace
@@ -745,6 +746,7 @@
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
+      call broadcast_scalar(visc_coeff_method,    master_task)
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
@@ -1023,6 +1025,16 @@
          endif
       endif
 
+      if (grid_ice == 'C' .or. grid_ice == 'CD') then
+         if (visc_coeff_method /= 'avg_zeta' .and. visc_coeff_method /= 'avg_strength') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: invalid method for viscous coefficients'
+               write(nu_diag,*) subname//' ERROR: visc_coeff_method should be avg_zeta or avg_strength'
+            endif
+            abort_list = trim(abort_list)//":44"
+         endif
+      endif
+      
       rpcesm = 0
       rplvl  = 0
       rptopo = 0
@@ -1586,6 +1598,10 @@
                   write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
                endif
             endif
+            if (grid_ice == 'C' .or. grid_ice == 'CD') then
+               write(nu_diag,1030) 'viscous coeff method (U point) = ', trim(visc_coeff_method)
+            endif
+            
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
 
             if (kdyn == 3) then

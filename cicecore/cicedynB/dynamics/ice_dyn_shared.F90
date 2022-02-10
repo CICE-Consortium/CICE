@@ -56,8 +56,10 @@
 
       character (len=char_len), public :: & 
          yield_curve , &      ! 'ellipse' ('teardrop' needs further testing)
+         visc_coeff_method, & ! method for visc coeff at U points (C, CD grids)  
          seabed_stress_method ! method for seabed stress calculation
-                              ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.  
+                              ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.
+      
                                                                       
       real (kind=dbl_kind), parameter, public :: &
          eyc   = 0.36_dbl_kind, & ! coefficient for calculating the parameter E
