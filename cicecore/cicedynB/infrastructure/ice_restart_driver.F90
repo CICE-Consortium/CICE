@@ -358,21 +358,27 @@
            'vvel',1,diag,field_loc_NEcorner, field_type_vector)
 
       if (grid_ice == 'CD') then
-         call read_restart_field(nu_restart,0,uvelE,'ruf8', &
-              'uvelE',1,diag,field_loc_Eface, field_type_vector)
-         call read_restart_field(nu_restart,0,vvelE,'ruf8', &
-              'vvelE',1,diag,field_loc_Eface, field_type_vector)
-         call read_restart_field(nu_restart,0,uvelN,'ruf8', &
-              'uvelN',1,diag,field_loc_Nface, field_type_vector)
-         call read_restart_field(nu_restart,0,vvelN,'ruf8', &
-              'vvelN',1,diag,field_loc_Nface, field_type_vector)
+         if (query_field(nu_restart,'uvelE')) &
+            call read_restart_field(nu_restart,0,uvelE,'ruf8', &
+                 'uvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'vvelE')) &
+            call read_restart_field(nu_restart,0,vvelE,'ruf8', &
+                 'vvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'uvelN')) &
+            call read_restart_field(nu_restart,0,uvelN,'ruf8', &
+                 'uvelN',1,diag,field_loc_Nface, field_type_vector)
+         if (query_field(nu_restart,'vvelN')) &
+            call read_restart_field(nu_restart,0,vvelN,'ruf8', &
+                 'vvelN',1,diag,field_loc_Nface, field_type_vector)
       endif
 
       if (grid_ice == 'C') then
-         call read_restart_field(nu_restart,0,uvelE,'ruf8', &
-              'uvelE',1,diag,field_loc_Eface, field_type_vector)
-         call read_restart_field(nu_restart,0,vvelN,'ruf8', &
-              'vvelN',1,diag,field_loc_Nface, field_type_vector)
+         if (query_field(nu_restart,'uvelE')) &
+            call read_restart_field(nu_restart,0,uvelE,'ruf8', &
+                 'uvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'vvelN')) &
+            call read_restart_field(nu_restart,0,vvelN,'ruf8', &
+                 'vvelN',1,diag,field_loc_Nface, field_type_vector)
       endif
 
       !-----------------------------------------------------------------
@@ -443,18 +449,24 @@
            'stress12_4',1,diag,field_loc_center,field_type_scalar) ! stress12_4
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         call read_restart_field(nu_restart,0,stresspT,'ruf8', &
-            'stresspT' ,1,diag,field_loc_center,field_type_scalar) ! stresspT
-         call read_restart_field(nu_restart,0,stressmT,'ruf8', &
-            'stressmT' ,1,diag,field_loc_center,field_type_scalar) ! stressmT
-         call read_restart_field(nu_restart,0,stress12T,'ruf8', &
-            'stress12T',1,diag,field_loc_center,field_type_scalar) ! stress12T
-         call read_restart_field(nu_restart,0,stresspU,'ruf8', &
-            'stresspU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stresspU
-         call read_restart_field(nu_restart,0,stressmU,'ruf8', &
-            'stressmU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stressmU
-         call read_restart_field(nu_restart,0,stress12U,'ruf8', &
-            'stress12U',1,diag,field_loc_NEcorner,field_type_scalar) ! stress12U
+         if (query_field(nu_restart,'stresspT')) &
+            call read_restart_field(nu_restart,0,stresspT,'ruf8', &
+               'stresspT' ,1,diag,field_loc_center,field_type_scalar) ! stresspT
+         if (query_field(nu_restart,'stressmT')) &
+            call read_restart_field(nu_restart,0,stressmT,'ruf8', &
+               'stressmT' ,1,diag,field_loc_center,field_type_scalar) ! stressmT
+         if (query_field(nu_restart,'stress12T')) &
+            call read_restart_field(nu_restart,0,stress12T,'ruf8', &
+               'stress12T',1,diag,field_loc_center,field_type_scalar) ! stress12T
+         if (query_field(nu_restart,'stresspU')) &
+            call read_restart_field(nu_restart,0,stresspU,'ruf8', &
+               'stresspU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stresspU
+         if (query_field(nu_restart,'stressmU')) &
+            call read_restart_field(nu_restart,0,stressmU,'ruf8', &
+               'stressmU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stressmU
+         if (query_field(nu_restart,'stress12U')) &
+            call read_restart_field(nu_restart,0,stress12U,'ruf8', &
+               'stress12U',1,diag,field_loc_NEcorner,field_type_scalar) ! stress12U
       endif
 
       if (trim(grid_type) == 'tripole') then
@@ -509,33 +521,37 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-      call read_restart_field(nu_restart,0,work1,'ruf8', &
-           'icenmask',1,diag,field_loc_center, field_type_scalar)
+         if (query_field(nu_restart,'icenmask')) then
+            call read_restart_field(nu_restart,0,work1,'ruf8', &
+                 'icenmask',1,diag,field_loc_center, field_type_scalar)
 
-      icenmask(:,:,:) = .false.
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) icenmask(i,j,iblk) = .true.
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+            icenmask(:,:,:) = .false.
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (work1(i,j,iblk) > p5) icenmask(i,j,iblk) = .true.
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+         endif
 
-      call read_restart_field(nu_restart,0,work1,'ruf8', &
-           'iceemask',1,diag,field_loc_center, field_type_scalar)
+         if (query_field(nu_restart,'iceemask')) then
+            call read_restart_field(nu_restart,0,work1,'ruf8', &
+                 'iceemask',1,diag,field_loc_center, field_type_scalar)
 
-      iceemask(:,:,:) = .false.
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) iceemask(i,j,iblk) = .true.
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+            iceemask(:,:,:) = .false.
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (work1(i,j,iblk) > p5) iceemask(i,j,iblk) = .true.
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+         endif
 
       endif
 

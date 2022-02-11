@@ -22,7 +22,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       type(file_desc_t)     :: File
       type(var_desc_t)      :: vardesc
@@ -928,6 +929,32 @@
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
         
       end subroutine define_rest_field
+
+!=======================================================================
+
+! Inquire field existance
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      integer (kind=int_kind) :: status, varid
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .false.
+#ifdef USE_NETCDF
+      status = pio_inq_varid(File,trim(vname),vardesc)
+      if (status == PIO_noerr) query_field = .true.
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end function query_field
 
 !=======================================================================
 

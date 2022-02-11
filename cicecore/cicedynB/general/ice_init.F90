@@ -2142,6 +2142,7 @@
 
       if (kmt_type  /=  'file' .and. &
           kmt_type  /=  'channel' .and. &
+          kmt_type  /=  'wall' .and. &
           kmt_type  /=  'default' .and. &
           kmt_type  /=  'boxislands') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
@@ -2712,6 +2713,8 @@
              trim(ice_data_type) == 'smallblock' .or. &
              trim(ice_data_type) == 'channel' .or. &
              trim(ice_data_type) == 'bigblock' .or. &
+             trim(ice_data_type) == 'blockep5' .or. &
+             trim(ice_data_type) == 'uniformp5' .or. &
              trim(ice_data_type) == 'gauss') then
 
             hbar = c2  ! initial ice thickness
@@ -2724,7 +2727,9 @@
                endif
             enddo
 
-         elseif (trim(ice_data_type) == 'boxslotcyl') then
+         elseif (trim(ice_data_type) == 'boxslotcyl' .or. &
+                 trim(ice_data_type) == 'medblocke' .or. &
+                 trim(ice_data_type) == 'blocke') then
          
             hbar = c1  ! initial ice thickness (1 m)
             do n = 1, ncat
@@ -2781,7 +2786,8 @@
             enddo                  ! i
             enddo                  ! j
 
-         elseif (trim(ice_data_type) == 'uniform') then
+         elseif ((trim(ice_data_type) == 'uniform') .or. &
+                 (trim(ice_data_type) == 'uniformp5')) then
             ! all cells not land mask are ice
             icells = 0
             do j = jlo, jhi
@@ -2800,6 +2806,34 @@
             do j = jlo, jhi
             do i = ilo, ihi
                if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'blocke' .or. &
+                 trim(ice_data_type) == 'blockep5') then
+            ! block on east half of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (iglob(i) >= nx_global/2) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'medblocke') then
+            ! block on east half of domain in center of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4 .and. &
+                   iglob(i) >= nx_global/2) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j

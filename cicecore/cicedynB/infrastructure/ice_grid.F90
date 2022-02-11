@@ -1410,9 +1410,17 @@
 
          elseif (trim(kmt_type) == 'channel') then
 
-            do j = 3,ny_global-2      ! closed top and bottom
-            do i = 1,nx_global        ! open sides
-               work_g1(i,j) = c1    ! NOTE nx_global > 5
+            do j = 3,ny_global-2     ! closed top and bottom
+            do i = 1,nx_global       ! open sides
+               work_g1(i,j) = c1     ! NOTE nx_global > 5
+            enddo
+            enddo
+
+         elseif (trim(kmt_type) == 'wall') then
+
+            do j = 1,ny_global       ! open except
+            do i = 1,nx_global-2     ! closed east edge
+               work_g1(i,j) = c1
             enddo
             enddo
 
