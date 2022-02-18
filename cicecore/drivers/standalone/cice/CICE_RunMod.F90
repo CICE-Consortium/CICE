@@ -218,10 +218,9 @@
 
          call save_init
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-
-            if (ktherm >= 0) then
+         if (ktherm >= 0) then
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
       ! scale radiation fields
@@ -237,7 +236,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
 
                if (debug_model) then
@@ -259,10 +258,9 @@
                   call debug_ice (iblk, plabeld)
                endif
 
-            endif ! ktherm > 0
-
-         enddo ! iblk
-         !$OMP END PARALLEL DO
+            enddo
+            !$OMP END PARALLEL DO
+         endif ! ktherm > 0
 
          ! clean up, update tendency diagnostics
          offset = dt
@@ -292,7 +290,7 @@
             endif
 
             ! ridging
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
@@ -326,14 +324,15 @@
       !-----------------------------------------------------------------
 
          if (tr_snow) then         ! advanced snow physics
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                call step_snow (dt, iblk)
             enddo
+            !$OMP END PARALLEL DO
             call update_state (dt) ! clean up
          endif
 
-!MHRI: CHECK THIS OMP
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -405,7 +404,6 @@
             if (kdyn == 2)    call write_restart_eap
             call final_restart
          endif
-
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
@@ -488,7 +486,7 @@
          enddo
          enddo
 
-         call ice_timer_start(timer_couple)   ! atm/ocn coupling
+         call ice_timer_start(timer_couple,iblk)   ! atm/ocn coupling
 
          if (oceanmixed_ice) &
          call ocean_mixed_layer (dt,iblk) ! ocean surface fluxes and sst
@@ -655,7 +653,7 @@
          endif                 
 !echmod
 #endif
-         call ice_timer_stop(timer_couple)   ! atm/ocn coupling
+         call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
       end subroutine coupling_prep
 

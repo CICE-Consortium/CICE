@@ -17,6 +17,7 @@
       use ice_constants, only: c0, c1, p5, &
           field_loc_center, &
           field_type_scalar, field_type_vector, &
+          field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -355,7 +356,7 @@
     !       Here we assume that aice0 is up to date.
     !-------------------------------------------------------------------
 
-!      !$OMP PARALLEL DO PRIVATE(i,j,iblk)
+!      !$OMP PARALLEL DO PRIVATE(i,j,iblk) SCHEDULE(runtime)
 !      do iblk = 1, nblocks
 !      do j = 1, ny_block
 !      do i = 1, nx_block
@@ -397,8 +398,7 @@
 !      call ice_timer_stop(timer_bound)
 
 
-! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
     !-------------------------------------------------------------------
@@ -471,7 +471,7 @@
          tmin(:,:,:,:,:) = c0
          tmax(:,:,:,:,:) = c0
 
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n) SCHEDULE(runtime)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
@@ -516,7 +516,7 @@
                               field_loc_center, field_type_scalar)
          call ice_timer_stop(timer_bound)
 
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n) SCHEDULE(runtime)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
@@ -551,8 +551,7 @@
     ! Given new fields, recompute state variables.
     !-------------------------------------------------------------------
 
-! MHRI: CHECK THIS OMP ... maybe ok: Were trcrn(:,:,1:ntrcr,:,iblk) in my testcode
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          call tracers_to_state (nx_block,          ny_block,            &
@@ -656,7 +655,7 @@
     !-------------------------------------------------------------------
 
       if (l_monotonicity_check) then
-         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop)
+         !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,ckflag,istop,jstop) SCHEDULE(runtime)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)         
             ilo = this_block%ilo
@@ -710,7 +709,7 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata
-      use ice_grid, only: HTE, HTN, tarea
+      use ice_grid, only: HTE, HTN, tarea, tmask
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
 
@@ -758,11 +757,18 @@
 !                        vicen, vsnon, &
 !                        ntrcr, trcrn)
 
+!      call ice_timer_start(timer_bound)
+!      call ice_HaloUpdate (uvel,             halo_info,     &
+!                           field_loc_NEcorner, field_type_vector)
+!      call ice_HaloUpdate (vvel,             halo_info,     &
+!                           field_loc_NEcorner, field_type_vector)
+!      call ice_timer_stop(timer_bound)
+
     !-------------------------------------------------------------------
     ! Average corner velocities to edges.
     !-------------------------------------------------------------------
       
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -786,7 +792,7 @@
                            field_loc_Nface, field_type_vector)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -826,6 +832,7 @@
                              ntrcr,               narr,                 &
                              trcr_depend(:),      trcr_base(:,:),       &
                              n_trcr_strata(:),    nt_strata(:,:),       &
+                             tmask(:,:,    iblk),                       &
                              aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk)) 
@@ -1630,6 +1637,7 @@
                                 trcr_base,          &
                                 n_trcr_strata,      &
                                 nt_strata,          &
+                                tmask,              &
                                 aicen,    trcrn,    &
                                 vicen,    vsnon,    &
                                 aice0,    works)
@@ -1652,6 +1660,9 @@
       integer (kind=int_kind), dimension (ntrcr,2), intent(in) :: &
          nt_strata      ! indices of underlying tracer layers
 
+      logical (kind=log_kind), intent (in) ::                       &
+         tmask (nx_block,ny_block)
+
       real (kind=dbl_kind), intent (in) ::                          &
          works (nx_block,ny_block,narr)
 
@@ -1671,6 +1682,7 @@
       integer (kind=int_kind) ::      &
          i, j, ij, n    ,&! counting indices
          narrays        ,&! counter for number of state variable arrays
+         nt_Tsfc        ,&! Tsfc tracer number
          icells           ! number of ocean/ice cells
 
       integer (kind=int_kind), dimension (nx_block*ny_block) ::        &
@@ -1680,6 +1692,11 @@
          work 
 
       character(len=*), parameter :: subname = '(work_to_state)'
+
+      call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       ! for call to compute_tracers
       icells = 0
@@ -1723,7 +1740,14 @@
                                          n_trcr_strata = n_trcr_strata(:), &
                                          nt_strata     = nt_strata(:,:),   &
                                          trcrn  = trcrn(i,j,:,n))
+
+            ! tcraig, don't let land points get non-zero Tsfc
+            if (.not.tmask(i,j)) then
+               trcrn(i,j,nt_Tsfc,n) = c0
+            endif
+
          enddo
+
          narrays = narrays + ntrcr
 
       enddo                     ! ncat

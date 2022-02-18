@@ -107,7 +107,6 @@ EOFB
 else if (${ICE_MACHINE} =~ narwhal*) then
 if (${runlength} <= 0) then
   set batchtime = "00:29:59"
-  set queue = "debug"
 else
   set queue = "standard"
 endif

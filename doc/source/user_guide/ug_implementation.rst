@@ -169,7 +169,8 @@ and chooses a block size ``block_size_x`` :math:`\times`\ ``block_size_y``,
 and ``distribution_type`` in **ice\_in**. That information is used to
 determine how the blocks are
 distributed across the processors, and how the processors are
-distributed across the grid domain. Recommended combinations of these
+distributed across the grid domain. The model is parallelized over blocks
+for both MPI and OpenMP.  Some suggested combinations for these
 parameters for best performance are given in Section :ref:`performance`.
 The script **cice.setup** computes some default decompositions and layouts
 but the user can overwrite the defaults by manually changing the values in 
@@ -384,7 +385,8 @@ The user specifies the total number of tasks and threads in **cice.settings**
 and the block size and decompostion in the namelist file. The main trades 
 offs are the relative
 efficiency of large square blocks versus model internal load balance
-as CICE computation cost is very small for ice-free blocks.
+as CICE computation cost is very small for ice-free blocks.  The code
+is parallelized over blocks for both MPI and OpenMP.
 Smaller, more numerous blocks provides an opportunity for better load
 balance by allocating each processor both ice-covered and ice-free
 blocks.  But smaller, more numerous blocks becomes
@@ -394,6 +396,18 @@ cells in each direction, and more square blocks tend to optimize the
 volume-to-surface ratio important for communication cost.  Often 3 to 8
 blocks per processor provide the decompositions flexiblity to
 create reasonable load balance configurations.
+
+Like MPI, load balance
+of blocks across threads is important for efficient performance.  Most of the OpenMP
+threading is implemented with ``SCHEDULE(runtime)``, so the OMP_SCHEDULE env
+variable can be used to set the OpenMPI schedule.  The default ``OMP_SCHEDULE``
+setting is defined by the
+variable ``ICE_OMPSCHE`` in **cice.settings**.  ``OMP_SCHEDULE`` values of "STATIC,1"
+and "DYNAMIC,1" are worth testing.  The OpenMP implementation in
+CICE is constantly under review, but users should validate results and
+performance on their machine.  CICE should be bit-for-bit with different block sizes,
+different decompositions, different MPI task counts, and different OpenMP threads.
+Finally, we recommend the ``OMP_STACKSIZE`` env variable should be set to 32M or greater.
 
 The ``distribution_type`` options allow standard cartesian distributions 
 of blocks, redistribution via a ‘rake’ algorithm for improved load
@@ -1056,15 +1070,18 @@ Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
 *ice\_timer\_stop*. Finally, *ice\_timer\_print* writes the results to
 the log file. The optional “stats" argument (true/false) prints
-additional statistics. Calling *ice\_timer\_print\_all* prints all of
+additional statistics. The "stats" argument can be set by the ``timer_stats``
+namelist.  Calling *ice\_timer\_print\_all* prints all of
 the timings at once, rather than having to call each individually.
 Currently, the timers are set up as in :ref:`timers`.
 Section :ref:`addtimer` contains instructions for adding timers.
 
 The timings provided by these timers are not mutually exclusive. For
-example, the column timer (5) includes the timings from 6–10, and
-subroutine *bound* (timer 15) is called from many different places in
-the code, including the dynamics and advection routines.
+example, the Column timer includes the timings from several other
+timers, while timer Bound is called from many different places in
+the code, including the dynamics and advection routines.  The
+Dynamics, Advection, and Column timers do not overlap and represent 
+most of the overall model work.
 
 The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 *system\_clock* for single-processor runs.
@@ -1080,35 +1097,41 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 1            | Total       | the entire run                                     |
    +--------------+-------------+----------------------------------------------------+
-   | 2            | Step        | total minus initialization and exit                |
+   | 2            | Timeloop    | total minus initialization and exit                |
    +--------------+-------------+----------------------------------------------------+
-   | 3            | Dynamics    | EVP                                                |
+   | 3            | Dynamics    | dynamics                                           |
    +--------------+-------------+----------------------------------------------------+
    | 4            | Advection   | horizontal transport                               |
    +--------------+-------------+----------------------------------------------------+
    | 5            | Column      | all vertical (column) processes                    |
    +--------------+-------------+----------------------------------------------------+
-   | 6            | Thermo      | vertical thermodynamics                            |
+   | 6            | Thermo      | vertical thermodynamics, part of Column timer      |
    +--------------+-------------+----------------------------------------------------+
-   | 7            | Shortwave   | SW radiation and albedo                            |
+   | 7            | Shortwave   | SW radiation and albedo, part of Thermo timer      |
    +--------------+-------------+----------------------------------------------------+
-   | 8            | Meltponds   | melt ponds                                         |
+   | 8            | Ridging     | mechanical redistribution, part of Column timer    |
    +--------------+-------------+----------------------------------------------------+
-   | 9            | Ridging     | mechanical redistribution                          |
+   | 9            | FloeSize    | flow size, part of Column timer                    |
    +--------------+-------------+----------------------------------------------------+
-   | 10           | Cat Conv    | transport in thickness space                       |
+   | 10           | Coupling    | sending/receiving coupler messages                 |
    +--------------+-------------+----------------------------------------------------+
-   | 11           | Coupling    | sending/receiving coupler messages                 |
+   | 11           | ReadWrite   | reading/writing files                              |
    +--------------+-------------+----------------------------------------------------+
-   | 12           | ReadWrite   | reading/writing files                              |
+   | 12           | Diags       | diagnostics (log file)                             |
    +--------------+-------------+----------------------------------------------------+
-   | 13           | Diags       | diagnostics (log file)                             |
+   | 13           | History     | history output                                     |
    +--------------+-------------+----------------------------------------------------+
-   | 14           | History     | history output                                     |
+   | 14           | Bound       | boundary conditions and subdomain communications   |
    +--------------+-------------+----------------------------------------------------+
-   | 15           | Bound       | boundary conditions and subdomain communications   |
+   | 15           | BGC         | biogeochemistry, part of Thermo timer              |
    +--------------+-------------+----------------------------------------------------+
-   | 16           | BGC         | biogeochemistry                                    |
+   | 16           | Forcing     | forcing                                            |
+   +--------------+-------------+----------------------------------------------------+
+   | 17           | 1d-evp      | 1d evp, part of Dynamics timer                     |
+   +--------------+-------------+----------------------------------------------------+
+   | 18           | 2d-evp      | 2d evp, part of Dynamics timer                     |
+   +--------------+-------------+----------------------------------------------------+
+   | 19           | UpdState    | update state                                       |
    +--------------+-------------+----------------------------------------------------+
 
 .. _restartfiles:

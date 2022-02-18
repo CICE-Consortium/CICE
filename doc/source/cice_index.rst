@@ -650,6 +650,7 @@ either Celsius or Kelvin units).
    "Tffresh", "freezing temp of fresh ice", "273.15 K"
    "tfrz_option", "form of ocean freezing temperature", ""
    "thinS", "minimum ice thickness for brine tracer", ""
+   "timer_stats", "logical to turn on extra timer statistics", ".false."
    "timesecs", "total elapsed time in seconds", "s"
    "time_beg", "beginning time for history averages", ""
    "time_bounds", "beginning and ending time for history averages", ""

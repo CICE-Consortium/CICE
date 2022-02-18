@@ -116,6 +116,7 @@
                             damping_andacc, start_andacc, use_mean_vrel, ortho_type
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
+      use ice_timers, only: timer_stats
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -174,7 +175,7 @@
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
-        histfreq_base,  dumpfreq_base,                                  &
+        histfreq_base,  dumpfreq_base,  timer_stats,                    &
         conserv_check,  debug_model,    debug_model_step,               &
         debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
@@ -292,6 +293,7 @@
       debug_model_task = -1  ! debug model local task number
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
+      timer_stats = .false.  ! if true, print out detailed timer statistics
       bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
@@ -763,6 +765,7 @@
       call broadcast_scalar(debug_model_task,     master_task)
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
+      call broadcast_scalar(timer_stats,          master_task)
       call broadcast_scalar(bfbflag,              master_task)
       call broadcast_scalar(diag_type,            master_task)
       call broadcast_scalar(diag_file,            master_task)
@@ -2009,6 +2012,7 @@
          write(nu_diag,1021) ' debug_model_i    = ', debug_model_j
          write(nu_diag,1021) ' debug_model_iblk = ', debug_model_iblk
          write(nu_diag,1021) ' debug_model_task = ', debug_model_task
+         write(nu_diag,1011) ' timer_stats      = ', timer_stats
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
@@ -2409,7 +2413,6 @@
       ! Set state variables
       !-----------------------------------------------------------------
 
-!MHRI: CHECK THIS OMP
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     iglob,jglob)
       do iblk = 1, nblocks
@@ -2623,7 +2626,11 @@
             aicen(i,j,n) = c0
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
-            trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            if (tmask(i,j)) then
+               trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            else
+               trcrn(i,j,nt_Tsfc,n) = c0       ! at land grid cells (for clean history/restart files)
+            endif
             if (ntrcr >= 2) then
                do it = 2, ntrcr
                   trcrn(i,j,it,n) = c0

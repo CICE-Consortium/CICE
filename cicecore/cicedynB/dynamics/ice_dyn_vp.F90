@@ -343,7 +343,7 @@
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
 ! need to do more debugging
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -814,9 +814,9 @@
          !-----------------------------------------------------------------
          ! Calc zetax2, etax2, dPr/dx, dPr/dy, Cb and vrel = f(uprev_k, vprev_k)
          !-----------------------------------------------------------------
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk,stress_Pr)
          do iblk = 1, nblocks
-            
+
             if (use_mean_vrel) then
                ulin(:,:,iblk) = p5*uprev_k(:,:,iblk) + p5*uvel(:,:,iblk)
                vlin(:,:,iblk) = p5*vprev_k(:,:,iblk) + p5*vvel(:,:,iblk)
@@ -912,7 +912,7 @@
             
             ! Prepare diagonal for preconditioner
             if (precond == 'diag' .or. precond == 'pgmres') then
-               !$OMP PARALLEL DO PRIVATE(iblk)
+               !$OMP PARALLEL DO PRIVATE(iblk,diag_rheo)
                do iblk = 1, nblocks
                   ! first compute diagonal contributions due to rheology term
                   call formDiag_step1 (nx_block           , ny_block      ,    &
@@ -2851,7 +2851,7 @@
          
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
          do iblk = 1, nblocks
             do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
@@ -2947,7 +2947,7 @@
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
                ! Normalize next Arnoldi vector
                inverse_norm = c1 / hessenberg(nextit,initer)
-               !$OMP PARALLEL DO PRIVATE(iblk)
+               !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
                do iblk = 1, nblocks
                   do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
@@ -3013,7 +3013,7 @@
          ! Form linear combination to get new solution iterate
          do it = 1, initer
             t = rhs_hess(it)
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3057,7 +3057,7 @@
          workspace_x = c0
          workspace_y = c0
          do it = 1, nextit
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3244,7 +3244,7 @@
          
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
          do iblk = 1, nblocks
             do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
@@ -3329,7 +3329,7 @@
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
                ! Normalize next Arnoldi vector
                inverse_norm = c1 / hessenberg(nextit,initer)
-               !$OMP PARALLEL DO PRIVATE(iblk)
+               !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
                do iblk = 1, nblocks
                   do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
@@ -3397,7 +3397,7 @@
          workspace_y = c0
          do it = 1, initer
             t = rhs_hess(it)
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3453,7 +3453,7 @@
          workspace_x = c0
          workspace_y = c0
          do it = 1, nextit
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3534,7 +3534,7 @@
          wx = vx
          wy = vy
       elseif (precond_type == 'diag') then ! Jacobi preconditioner (diagonal)
-         !$OMP PARALLEL DO PRIVATE(iblk)
+         !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
          do iblk = 1, nblocks
             do ij = 1, icellu(iblk)
                i = indxui(ij, iblk)
@@ -3617,7 +3617,7 @@
          do it = 1, initer
             local_dot = c0
             
-            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3637,7 +3637,7 @@
 
          ! Second loop of Gram-Schmidt (orthonormalize)
          do it = 1, initer
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3656,7 +3656,7 @@
          do it = 1, initer
             local_dot = c0
             
-            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
@@ -3671,7 +3671,7 @@
             
             hessenberg(it,initer) = global_sum(sum(local_dot), distrb_info)
             
-            !$OMP PARALLEL DO PRIVATE(iblk, ij, i, j)
+            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
