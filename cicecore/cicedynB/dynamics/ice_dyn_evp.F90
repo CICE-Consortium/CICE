@@ -177,7 +177,7 @@
 !                           field_loc_center,  field_type_scalar)
 !      call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          do j = 1, ny_block 
@@ -239,9 +239,7 @@
          call t2ugrid_vector(strairy)
       endif      
 
-! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
-! need to do more debugging
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -301,7 +299,7 @@
          enddo  ! ij
 
       enddo  ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -333,7 +331,7 @@
       
       if (seabed_stress) then
          if ( seabed_stress_method == 'LKD' ) then
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                call seabed_stress_factor_LKD (nx_block,         ny_block,       &
                                               icellu  (iblk),                   &
@@ -344,9 +342,8 @@
             !$OMP END PARALLEL DO
 
          elseif ( seabed_stress_method == 'probabilistic' ) then
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk)  SCHEDULE(runtime)
             do iblk = 1, nblocks
-
                call seabed_stress_factor_prob (nx_block,         ny_block,                   &
                                                icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                                icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
@@ -400,7 +397,7 @@
             ! stress tensor equation, total surface stress
             !-----------------------------------------------------------------
 
-               !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
+            !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
                do iblk = 1, nblocks
 
                   call stress (nx_block,             ny_block,             &
@@ -441,7 +438,7 @@
                               Tbu      (:,:,iblk))
 
                enddo
-               !$TCXOMP END PARALLEL DO
+               !$OMP END PARALLEL DO
 
                call stack_velocity_field(uvel, vvel, fld2)
                call ice_timer_start(timer_bound)
@@ -514,20 +511,21 @@
                         Tbu      (:,:,iblk))
 
          enddo
-         !$TCXOMP END PARALLEL DO
+            !$OMP END PARALLEL DO
 
-         call stack_velocity_field(uvel, vvel, fld2)
-         call ice_timer_start(timer_bound)
-         if (maskhalo_dyn) then
-            call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                 field_loc_NEcorner, field_type_vector)
-         else
-            call ice_HaloUpdate (fld2,               halo_info, &
-                                 field_loc_NEcorner, field_type_vector)
-         endif
-         call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
-
+            call stack_velocity_field(uvel, vvel, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
+            endif
+            call ice_timer_stop(timer_bound)
+            call unstack_velocity_field(fld2, uvel, vvel)
+         
+         enddo                     ! subcycling
       endif  ! evp_algorithm
 
       call ice_timer_stop(timer_evp_2d)
@@ -606,7 +604,7 @@
       ! ice-ocean stress
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          call dyn_finish                               & 

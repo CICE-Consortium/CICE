@@ -56,9 +56,9 @@
           tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
       character(len=*), parameter :: subname = '(CICE_Run)'
 
-   !--------------------------------------------------------------------
-   !  initialize error code and step timer
-   !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      !  initialize error code and step timer
+      !--------------------------------------------------------------------
 
       call ice_timer_start(timer_step)   ! start timing entire run
 
@@ -73,13 +73,13 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-   !--------------------------------------------------------------------
-   ! timestep loop
-   !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! timestep loop
+      !--------------------------------------------------------------------
 
       call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-     call advance_timestep()  ! advance timestep and update calendar data
+      call advance_timestep()  ! advance timestep and update calendar data
 
       if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
@@ -90,9 +90,9 @@
 
       call ice_step
 
-   !--------------------------------------------------------------------
-   ! end of timestep loop
-   !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! end of timestep loop
+      !--------------------------------------------------------------------
 
       call ice_timer_stop(timer_step)   ! end timestepping loop timer
 

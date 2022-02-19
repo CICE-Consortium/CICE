@@ -87,30 +87,32 @@
 
       if (tr_snow) then
 
-      !-----------------------------------------------------------------
-      ! read namelist
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! read namelist
+         !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
-      if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
-         if (nml_error /= 0) then
-            nml_error = -1
-         else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' Reading icefields_snow_nml'
+
+            call get_fileunit(nu_nml)
+            open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
+            if (nml_error /= 0) then
+               call abort_ice(subname//'ERROR: icefields_snow_nml open file '// &
+                  trim(nml_filename), &
+                  file=__FILE__, line=__LINE__)
+            endif
+
             nml_error =  1
+            do while (nml_error > 0)
+               read(nu_nml, nml=icefields_snow_nml,iostat=nml_error)
+            end do
+            if (nml_error /= 0) then
+               call abort_ice(subname//'ERROR: icefields_snow_nml reading ', &
+                  file=__FILE__, line=__LINE__)
+            endif
+            close(nu_nml)
+            call release_fileunit(nu_nml)
          endif
-         do while (nml_error > 0)
-            read(nu_nml, nml=icefields_snow_nml,iostat=nml_error)
-         end do
-         if (nml_error == 0) close(nu_nml)
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice('ice: error reading icefields_snow_nml')
-      endif
 
       else ! .not. tr_snow
           f_smassice = 'x'

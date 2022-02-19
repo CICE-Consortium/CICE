@@ -93,6 +93,7 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+
       character(len=*), parameter :: subname = '(init_hist)'
 
       !-----------------------------------------------------------------
@@ -121,25 +122,27 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call get_fileunit(nu_nml)
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+         write(nu_diag,*) subname,' Reading icefields_nml'
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
+            call abort_ice(subname//'ERROR: icefields_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
+
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_nml,iostat=nml_error)
          end do
-         if (nml_error == 0) close(nu_nml)
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_nml')
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: icefields_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
 
       ! histfreq options ('1','h','d','m','y')
@@ -1886,7 +1889,6 @@
       ! increment field
       !---------------------------------------------------------------
 
-! MHRI: CHECK THIS OMP ... Maybe ok after "dfresh,dfsalt" added
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
