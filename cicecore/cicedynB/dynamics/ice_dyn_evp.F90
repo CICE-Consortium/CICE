@@ -454,7 +454,9 @@
          
             enddo                     ! subcycling
          endif ! only subcycle when ndte larger than 1
-         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
+
+         ! ksub = ndte last sub cycling step        
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
          do iblk = 1, nblocks
 
 !            if (trim(yield_curve) == 'ellipse') then
@@ -476,9 +478,11 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                             strtmp    (:,:,:) )
 !               endif               ! yield_curve
-      !-----------------------------------------------------------------
-      ! on last subcycle, save quantities for mechanical redistribution
-      !-----------------------------------------------------------------
+
+            !-----------------------------------------------------------------
+            ! on last subcycle, save quantities for mechanical redistribution
+            !-----------------------------------------------------------------
+
             call deformations (nx_block  , ny_block  , &
                                icellt(iblk)    ,             &
                                indxti(:,iblk)    , indxtj(:,iblk)    , &
@@ -491,9 +495,9 @@
                                rdg_conv(:,:,iblk)  , rdg_shear(:,:,iblk) )
 
 
-         !-----------------------------------------------------------------
-         ! momentum equation
-         !-----------------------------------------------------------------
+            !-----------------------------------------------------------------
+            ! momentum equation
+            !-----------------------------------------------------------------
 
             call stepu (nx_block,            ny_block,           &
                         icellu       (iblk), Cdn_ocn (:,:,iblk), &
@@ -511,21 +515,20 @@
                         Tbu      (:,:,iblk))
 
          enddo
-            !$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
 
-            call stack_velocity_field(uvel, vvel, fld2)
-            call ice_timer_start(timer_bound)
-            if (maskhalo_dyn) then
-               call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                    field_loc_NEcorner, field_type_vector)
-            else
-               call ice_HaloUpdate (fld2,               halo_info, &
-                                    field_loc_NEcorner, field_type_vector)
-            endif
-            call ice_timer_stop(timer_bound)
-            call unstack_velocity_field(fld2, uvel, vvel)
+         call stack_velocity_field(uvel, vvel, fld2)
+         call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector)
+         else
+            call ice_HaloUpdate (fld2,               halo_info, &
+                                 field_loc_NEcorner, field_type_vector)
+         endif
+         call ice_timer_stop(timer_bound)
+         call unstack_velocity_field(fld2, uvel, vvel)
          
-         enddo                     ! subcycling
       endif  ! evp_algorithm
 
       call ice_timer_stop(timer_evp_2d)
