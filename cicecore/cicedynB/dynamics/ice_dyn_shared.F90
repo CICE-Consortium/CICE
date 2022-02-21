@@ -176,7 +176,7 @@
          if (trim(coriolis) == 'constant') then
             fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
          else if (trim(coriolis) == 'zero') then
-            fcor_blk(i,j,iblk) = 0.0
+            fcor_blk(i,j,iblk) = c0
          else
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
@@ -760,6 +760,8 @@
                              uvel,     vvel,     &
                              uocn,     vocn,     &
                              aiu,      fm,       &
+!                             strintx,  strinty,  &
+!                             strairx,  strairy,  &
                              strocnx,  strocny,  &
                              strocnxT, strocnyT) 
 
@@ -778,6 +780,10 @@
          vocn    , & ! ocean current, y-direction (m/s)
          aiu     , & ! ice fraction on u-grid
          fm          ! Coriolis param. * mass in U-cell (kg/s)
+!         strintx , & ! divergence of internal ice stress, x (N/m^2)
+!         strinty , & ! divergence of internal ice stress, y (N/m^2)
+!         strairx , & ! stress on ice by air, x-direction
+!         strairy     ! stress on ice by air, y-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
@@ -905,8 +911,8 @@
          
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
 
-!         if (hwu < threshold_hw) then
-         docalc_tbu = max(sign(c1,threshold_hw-hwu),c0)
+         docalc_tbu = merge(c1,c0,hwu < threshold_hw) 
+        
          
          au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
          hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
@@ -1395,7 +1401,8 @@
         tmpcalcne, tmpcalcnw, tmpcalcsw, tmpcalcse
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-       
+
+      ! if (trim(yield_curve) == 'ellipse') then       
         tmpcalcne = capping     *(strength/max(Deltane, tinyarea))+ &
                     (c1-capping)* strength/   (Deltane+ tinyarea)   
         tmpcalcnw = capping     *(strength/max(Deltanw, tinyarea))+ &
@@ -1420,6 +1427,9 @@
         zetax2se  = (c1+Ktens)*tmpcalcse ! southeast
         rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
         etax2se   = epp2i*zetax2se
+       ! else
+
+       ! endif
       
        end subroutine viscous_coeffs_and_rep_pressure
 

@@ -483,16 +483,16 @@
             ! on last subcycle, save quantities for mechanical redistribution
             !-----------------------------------------------------------------
 
-            call deformations (nx_block  , ny_block  , &
-                               icellt(iblk)    ,             &
-                               indxti(:,iblk)    , indxtj(:,iblk)    , &
-                               uvel(:,:,iblk)      , vvel(:,:,iblk)      , &
-                               dxt(:,:,iblk)       , dyt(:,:,iblk)       , &
-                               cxp(:,:,iblk)       , cyp(:,:,iblk)       , &
-                               cxm(:,:,iblk)       , cym(:,:,iblk)       , &
-                               tarear(:,:,iblk)    ,             &
-                               shear(:,:,iblk)     , divu(:,:,iblk)      , &
-                               rdg_conv(:,:,iblk)  , rdg_shear(:,:,iblk) )
+            call deformations (nx_block          , ny_block            , &
+                               icellt(iblk)      ,                       &
+                               indxti(:,iblk)    , indxtj(:,iblk)      , &
+                               uvel(:,:,iblk)    , vvel(:,:,iblk)      , &
+                               dxt(:,:,iblk)     , dyt(:,:,iblk)       , &
+                               cxp(:,:,iblk)     , cyp(:,:,iblk)       , &
+                               cxm(:,:,iblk)     , cym(:,:,iblk)       , &
+                               tarear(:,:,iblk)  ,                       &
+                               shear(:,:,iblk)   , divu(:,:,iblk)      , &
+                               rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
 
 
             !-----------------------------------------------------------------
