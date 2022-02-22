@@ -390,77 +390,18 @@
             divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
 
       else ! evp_algorithm == standard_2d (Standard CICE)
-         if (ndte > 1) then 
-            do ksub = 1,ndte-1       ! subcycling
 
-            !-----------------------------------------------------------------
-            ! stress tensor equation, total surface stress
-            !-----------------------------------------------------------------
+         do ksub = 1,ndte        ! subcycling
+
+         !-----------------------------------------------------------------
+         ! stress tensor equation, total surface stress
+         !-----------------------------------------------------------------
 
             !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
-               do iblk = 1, nblocks
+            do iblk = 1, nblocks
 
-                  call stress (nx_block,             ny_block,             &
-                               icellt(iblk),                               &
-                               indxti      (:,iblk), indxtj      (:,iblk), &
-                               uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                               dxt       (:,:,iblk), dyt       (:,:,iblk), &
-                               dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
-                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
-                               cxm       (:,:,iblk), cym       (:,:,iblk), &
-                               tinyarea  (:,:,iblk),                       &
-                               strength  (:,:,iblk),                       &
-                               stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                               stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                               stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                               stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                               stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                               stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                               strtmp    (:,:,:) )
-
-            !-----------------------------------------------------------------
-            ! momentum equation
-            !-----------------------------------------------------------------
-
-                  call stepu (nx_block,            ny_block,           &
-                              icellu       (iblk), Cdn_ocn (:,:,iblk), &
-                              indxui     (:,iblk), indxuj    (:,iblk), &
-                              aiu      (:,:,iblk), strtmp  (:,:,:),    &
-                              uocn     (:,:,iblk), vocn    (:,:,iblk), &
-                              waterx   (:,:,iblk), watery  (:,:,iblk), &
-                              forcex   (:,:,iblk), forcey  (:,:,iblk), &
-                              umassdti (:,:,iblk), fm      (:,:,iblk), &
-                              uarear   (:,:,iblk),                     &
-                              strintx  (:,:,iblk), strinty (:,:,iblk), &
-                              taubx    (:,:,iblk), tauby   (:,:,iblk), &
-                              uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                              uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                              Tbu      (:,:,iblk))
-
-               enddo
-               !$OMP END PARALLEL DO
-
-               call stack_velocity_field(uvel, vvel, fld2)
-               call ice_timer_start(timer_bound)
-               if (maskhalo_dyn) then
-                  call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                       field_loc_NEcorner, field_type_vector)
-               else
-                  call ice_HaloUpdate (fld2,               halo_info, &
-                                       field_loc_NEcorner, field_type_vector)
-               endif
-               call ice_timer_stop(timer_bound)
-               call unstack_velocity_field(fld2, uvel, vvel)
-         
-            enddo                     ! subcycling
-         endif ! only subcycle when ndte larger than 1
-
-         ! ksub = ndte last sub cycling step        
-         !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
-         do iblk = 1, nblocks
-
-!            if (trim(yield_curve) == 'ellipse') then
-            call stress (nx_block,             ny_block,             &
+!               if (trim(yield_curve) == 'ellipse') then
+               call stress (nx_block,             ny_block,             &
                             icellt(iblk),                               &
                             indxti      (:,iblk), indxtj      (:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
@@ -477,64 +418,66 @@
                             stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                             strtmp    (:,:,:) )
-!               endif               ! yield_curve
+!               endif
 
-            !-----------------------------------------------------------------
-            ! on last subcycle, save quantities for mechanical redistribution
-            !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! on last subcycle, save quantities for mechanical redistribution
+         !-----------------------------------------------------------------
+               if (ksub == ndte) then
+                  call deformations (nx_block,           ny_block            , &
+                                     icellt(iblk)      ,                       &
+                                     indxti(:,iblk)    , indxtj(:,iblk)      , &
+                                     uvel(:,:,iblk)    , vvel(:,:,iblk)      , &
+                                     dxt(:,:,iblk)     , dyt(:,:,iblk)       , &
+                                     cxp(:,:,iblk)     , cyp(:,:,iblk)       , &
+                                     cxm(:,:,iblk)     , cym(:,:,iblk)       , &
+                                     tarear(:,:,iblk)  ,                       &
+                                     shear(:,:,iblk)   , divu(:,:,iblk)      , &
+                                     rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+               endif
+                
+         !-----------------------------------------------------------------
+         ! momentum equation
+         !-----------------------------------------------------------------
 
-            call deformations (nx_block          , ny_block            , &
-                               icellt(iblk)      ,                       &
-                               indxti(:,iblk)    , indxtj(:,iblk)      , &
-                               uvel(:,:,iblk)    , vvel(:,:,iblk)      , &
-                               dxt(:,:,iblk)     , dyt(:,:,iblk)       , &
-                               cxp(:,:,iblk)     , cyp(:,:,iblk)       , &
-                               cxm(:,:,iblk)     , cym(:,:,iblk)       , &
-                               tarear(:,:,iblk)  ,                       &
-                               shear(:,:,iblk)   , divu(:,:,iblk)      , &
-                               rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+               call stepu (nx_block,            ny_block,           &
+                           icellu       (iblk), Cdn_ocn (:,:,iblk), &
+                           indxui     (:,iblk), indxuj    (:,iblk), &
+                           aiu      (:,:,iblk), strtmp  (:,:,:),    &
+                           uocn     (:,:,iblk), vocn    (:,:,iblk), &
+                           waterx   (:,:,iblk), watery  (:,:,iblk), &
+                           forcex   (:,:,iblk), forcey  (:,:,iblk), &
+                           umassdti (:,:,iblk), fm      (:,:,iblk), &
+                           uarear   (:,:,iblk),                     &
+                           strintx  (:,:,iblk), strinty (:,:,iblk), &
+                           taubx    (:,:,iblk), tauby   (:,:,iblk), &
+                           uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
+                           uvel     (:,:,iblk), vvel    (:,:,iblk), &
+                           Tbu      (:,:,iblk))
 
+            enddo
+            !$OMP END PARALLEL DO
 
-            !-----------------------------------------------------------------
-            ! momentum equation
-            !-----------------------------------------------------------------
-
-            call stepu (nx_block,            ny_block,           &
-                        icellu       (iblk), Cdn_ocn (:,:,iblk), &
-                        indxui     (:,iblk), indxuj    (:,iblk), &
-                        aiu      (:,:,iblk), strtmp  (:,:,:),    &
-                        uocn     (:,:,iblk), vocn    (:,:,iblk), &
-                        waterx   (:,:,iblk), watery  (:,:,iblk), &
-                        forcex   (:,:,iblk), forcey  (:,:,iblk), &
-                        umassdti (:,:,iblk), fm      (:,:,iblk), &
-                        uarear   (:,:,iblk),                     &
-                        strintx  (:,:,iblk), strinty (:,:,iblk), &
-                        taubx    (:,:,iblk), tauby   (:,:,iblk), &
-                        uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                        uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                        Tbu      (:,:,iblk))
-
-         enddo
-         !$OMP END PARALLEL DO
-
-         call stack_velocity_field(uvel, vvel, fld2)
-         call ice_timer_start(timer_bound)
-         if (maskhalo_dyn) then
-            call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                 field_loc_NEcorner, field_type_vector)
-         else
-            call ice_HaloUpdate (fld2,               halo_info, &
-                                 field_loc_NEcorner, field_type_vector)
-         endif
-         call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
+            call stack_velocity_field(uvel, vvel, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
+            endif
+            call ice_timer_stop(timer_bound)
+            call unstack_velocity_field(fld2, uvel, vvel)
          
+         enddo                     ! subcycling
       endif  ! evp_algorithm
 
       call ice_timer_stop(timer_evp_2d)
 
       deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
+
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
       if (maskhalo_dyn) then
