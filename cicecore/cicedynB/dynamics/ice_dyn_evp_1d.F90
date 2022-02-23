@@ -869,10 +869,8 @@ contains
          vvel(iw) = (cca * cc2 - ccb * cc1) / ab2
 
          ! calculate seabed stress component for outputs
-         if (seabed_stress) then
-            taubx(iw) = -uvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
-            tauby(iw) = -vvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
-         end if
+         taubx(iw) = -uvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
+         tauby(iw) = -vvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
 
       end do
 #ifdef _OPENACC

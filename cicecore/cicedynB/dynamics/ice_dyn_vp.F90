@@ -440,32 +440,34 @@
       !-----------------------------------------------------------------
       ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
-      
+
       if (seabed_stress) then
-
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-
-            if ( seabed_stress_method == 'LKD' ) then
-
+         if ( seabed_stress_method == 'LKD' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
                call seabed_stress_factor_LKD (nx_block,         ny_block,       &
                                               icellu  (iblk),                   &
                                               indxui(:,iblk),   indxuj(:,iblk), &
                                               vice(:,:,iblk),   aice(:,:,iblk), &
                                               hwater(:,:,iblk), Tbu(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
 
-            elseif ( seabed_stress_method == 'probabilistic' ) then
+         elseif ( seabed_stress_method == 'probabilistic' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
 
                call seabed_stress_factor_prob (nx_block,         ny_block,                   &
                                                icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                                icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
                                                hwater(:,:,iblk), Tbu(:,:,iblk))
-            endif
+            enddo
+            !$OMP END PARALLEL DO
 
-         enddo
-         !$OMP END PARALLEL DO
+         endif
       endif
+      
       
       !-----------------------------------------------------------------
       ! calc size of problem (ntot) and allocate solution vector
@@ -640,8 +642,6 @@
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocn    (:,:,iblk), vocn    (:,:,iblk), &
                aiu     (:,:,iblk), fm      (:,:,iblk), &
-               strintx (:,:,iblk), strinty (:,:,iblk), &
-               strairx (:,:,iblk), strairy (:,:,iblk), &
                strocnx (:,:,iblk), strocny (:,:,iblk), &
                strocnxT(:,:,iblk), strocnyT(:,:,iblk))
 
@@ -1188,14 +1188,10 @@
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
 
-      logical :: capping ! of the viscous coeff
+      real(kind=dbl_kind),parameter :: capping = c0 ! of the viscous coef
 
       character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
-      ! Initialize
-
-      capping = .false.
-      
       ! Initialize stPr, zetax2 and etax2 to zero
       ! (for cells where icetmask is false)
       stPr   = c0
