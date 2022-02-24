@@ -2962,17 +2962,17 @@
             i = indxid(ij)
             j = indxjd(ij)
             if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then
-               print*, ''
-               print*, 'Areas do not add up: m, i, j, edge =',   &
+               write(nu_diag,*) ''
+               write(nu_diag,*) 'Areas do not add up: m, i, j, edge =',   &
                         my_task, i, j, trim(edge)
-               print*, 'edgearea =', edgearea(i,j)
-               print*, 'areasum =', areasum(i,j)
-               print*, 'areafac_c =', areafac_c(i,j)
-               print*, ''
-               print*, 'Triangle areas:'
+               write(nu_diag,*) 'edgearea =', edgearea(i,j)
+               write(nu_diag,*) 'areasum =', areasum(i,j)
+               write(nu_diag,*) 'areafac_c =', areafac_c(i,j)
+               write(nu_diag,*) ''
+               write(nu_diag,*) 'Triangle areas:'
                do ng = 1, ngroups   ! not vector friendly
                   if (abs(triarea(i,j,ng)) > eps16*abs(areafact(i,j,ng))) then
-                     print*, ng, triarea(i,j,ng)
+                     write(nu_diag,*) ng, triarea(i,j,ng)
                   endif
                enddo
             endif
@@ -3029,18 +3029,18 @@
             do i = ib, ie
                if (abs(triarea(i,j,ng)) > puny) then
                   if (abs(xp(i,j,nv,ng)) > p5+puny) then
-                     print*, ''
-                     print*, 'WARNING: xp =', xp(i,j,nv,ng)
-                     print*, 'm, i, j, ng, nv =', my_task, i, j, ng, nv
-!                     print*, 'yil,xdl,xcl,ydl=',yil,xdl,xcl,ydl
-!                     print*, 'yir,xdr,xcr,ydr=',yir,xdr,xcr,ydr
-!                     print*, 'ydm=',ydm
+                     write(nu_diag,*) ''
+                     write(nu_diag,*) 'WARNING: xp =', xp(i,j,nv,ng)
+                     write(nu_diag,*) 'm, i, j, ng, nv =', my_task, i, j, ng, nv
+!                     write(nu_diag,*) 'yil,xdl,xcl,ydl=',yil,xdl,xcl,ydl
+!                     write(nu_diag,*) 'yir,xdr,xcr,ydr=',yir,xdr,xcr,ydr
+!                     write(nu_diag,*) 'ydm=',ydm
 !                      stop
                   endif
                   if (abs(yp(i,j,nv,ng)) > p5+puny) then
-                     print*, ''
-                     print*, 'WARNING: yp =', yp(i,j,nv,ng)
-                     print*, 'm, i, j, ng, nv =', my_task, i, j, ng, nv
+                     write(nu_diag,*) ''
+                     write(nu_diag,*) 'WARNING: yp =', yp(i,j,nv,ng)
+                     write(nu_diag,*) 'm, i, j, ng, nv =', my_task, i, j, ng, nv
                   endif
                endif   ! triarea
             enddo

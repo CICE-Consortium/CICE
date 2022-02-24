@@ -237,6 +237,10 @@ contains
     integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     character(len=char_len_long) :: diag_filename = 'unset'
     character(len=char_len_long) :: logmsg
+    character(len=char_len_long) :: single_column_lnd_domainfile
+    real(dbl_kind)               :: scol_lon
+    real(dbl_kind)               :: scol_lat
+    real(dbl_kind)               :: scol_spval
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -376,8 +380,7 @@ contains
        depressT_in         = 0.054_dbl_kind,                  &
        Tocnfrz_in          = -34.0_dbl_kind*0.054_dbl_kind,   &
        pi_in               = SHR_CONST_PI,                    &
-       snowpatch_in        = 0.005_dbl_kind,                  &
-       dragio_in           = 0.00536_dbl_kind)
+       snowpatch_in        = 0.005_dbl_kind)
 
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -506,12 +509,67 @@ contains
     ! First cice initialization phase - before initializing grid info
     !----------------------------------------------------------------------------
 
+#ifdef CESMCOUPLED
+    ! Determine if single column
+
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scmlon
+    call NUOPC_CompAttributeGet(gcomp, name='scol_lat', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scmlat
+    call NUOPC_CompAttributeGet(gcomp, name='scol_spval', value=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    read(cvalue,*) scol_spval
+
+    if (scmlon > scol_spval .and. scmlat > scol_spval) then
+       call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', &
+            value=single_column_lnd_domainfile, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
+          single_column = .true.
+       else
+          call abort_ice('single_column_domainfile cannot be null for single column mode')
+       end if
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnmask', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_mask
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnfrac', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_frac
+       call NUOPC_CompAttributeGet(gcomp, name='scol_ni', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_ni
+       call NUOPC_CompAttributeGet(gcomp, name='scol_nj', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_nj
+
+       call ice_mesh_create_scolumn(scmlon, scmlat, ice_mesh, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       scol_valid = (scol_mask == 1)
+       if (.not. scol_valid) then
+          write(6,*)'DEBUG: i am here'
+          ! Advertise fields
+          call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+          if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+          call t_stopf ('cice_init_total')
+
+          ! *******************
+          ! *** RETURN HERE ***
+          ! *******************
+          RETURN
+       end if
+    end if
+
     ! Read the cice namelist as part of the call to cice_init1
+    ! Note that if single_column is true and scol_valid is not - will never get here
+
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
 
-#ifdef CESMCOUPLED
     ! Form of ocean freezing temperature
     ! 'minus1p8' = -1.8 C
     ! 'linear_salt' = -depressT * sss
@@ -559,12 +617,19 @@ contains
             ' must be the same as natmiter from cice namelist ',natmiter
        call abort_ice(trim(errmsg))
     endif
+
+#else
+
+    ! Read the cice namelist as part of the call to cice_init1
+    call t_startf ('cice_init1')
+    call cice_init1
+    call t_stopf ('cice_init1')
+
 #endif
+
     !----------------------------------------------------------------------------
     ! Initialize grid info
     !----------------------------------------------------------------------------
-
-    ! Initialize cice mesh and mask if appropriate
 
     if (single_column .and. scol_valid) then
        call ice_mesh_init_tlon_tlat_area_hm()
@@ -750,82 +815,43 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
 #ifdef CESMCOUPLED
-    call NUOPC_CompAttributeGet(gcomp, name='scol_lon', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) scmlon
-    call NUOPC_CompAttributeGet(gcomp, name='scol_lat', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) scmlat
-    call NUOPC_CompAttributeGet(gcomp, name='scol_spval', value=cvalue, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    read(cvalue,*) scol_spval
-
-    if (scmlon > scol_spval .and. scmlat > scol_spval) then
-       call NUOPC_CompAttributeGet(gcomp, name='single_column_lnd_domainfile', &
-            value=single_column_lnd_domainfile, rc=rc)
+    ! if single column is not valid - set all export state fields to zero and return
+    if (single_column .and. .not. scol_valid) then
+       write(nu_diag,'(a)')' (ice_comp_nuopc) single column mode point does not contain any ocn/ice '&
+            //' - setting all export data to 0'
+       call ice_realize_fields(gcomp, mesh=ice_mesh, &
+            flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (trim(single_column_lnd_domainfile) /= 'UNSET') then
-          single_column = .true.
-       else
-          call abort_ice('single_column_domainfile cannot be null for single column mode')
-       end if
-       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnmask', value=cvalue, rc=rc)
+       call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scol_mask
-       call NUOPC_CompAttributeGet(gcomp, name='scol_ocnfrac', value=cvalue, rc=rc)
+       allocate(lfieldnamelist(fieldCount))
+       call ESMF_StateGet(exportState, itemNameList=lfieldnamelist, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scol_frac
-       call NUOPC_CompAttributeGet(gcomp, name='scol_ni', value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scol_ni
-       call NUOPC_CompAttributeGet(gcomp, name='scol_nj', value=cvalue, rc=rc)
-       if (chkerr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) scol_nj
-
-       call ice_mesh_create_scolumn(scmlon, scmlat, ice_mesh, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       scol_valid = (scol_mask == 1)
-       if (.not. scol_valid) then
-          ! if single column is not valid - set all export state fields to zero and return
-          write(nu_diag,'(a)')' (ice_comp_nuopc) single column mode point does not contain any ocn/ice '&
-               //' - setting all export data to 0'
-          call ice_realize_fields(gcomp, mesh=ice_mesh, &
-               flds_scalar_name=flds_scalar_name, flds_scalar_num=flds_scalar_num, rc=rc)
-          if (ChkErr(rc,__LINE__,u_FILE_u)) return
-          call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          allocate(lfieldnamelist(fieldCount))
-          call ESMF_StateGet(exportState, itemNameList=lfieldnamelist, rc=rc)
-          if (chkerr(rc,__LINE__,u_FILE_u)) return
-          do n = 1, fieldCount
-             if (trim(lfieldnamelist(n)) /= flds_scalar_name) then
-                call ESMF_StateGet(exportState, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                call ESMF_FieldGet(lfield, rank=rank, rc=rc)
-                if (chkerr(rc,__LINE__,u_FILE_u)) return
-                if (rank == 2) then
-                   call ESMF_FieldGet(lfield, farrayPtr=fldptr2d, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   fldptr2d(:,:) = 0._dbl_kind
-                else
-                   call ESMF_FieldGet(lfield, farrayPtr=fldptr1d, rc=rc)
-                   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-                   fldptr1d(:) = 0._dbl_kind
-                end if
+       do n = 1, fieldCount
+          if (trim(lfieldnamelist(n)) /= flds_scalar_name) then
+             call ESMF_StateGet(exportState, itemName=trim(lfieldnamelist(n)), field=lfield, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             call ESMF_FieldGet(lfield, rank=rank, rc=rc)
+             if (chkerr(rc,__LINE__,u_FILE_u)) return
+             if (rank == 2) then
+                call ESMF_FieldGet(lfield, farrayPtr=fldptr2d, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                fldptr2d(:,:) = 0._dbl_kind
+             else
+                call ESMF_FieldGet(lfield, farrayPtr=fldptr1d, rc=rc)
+                if (ChkErr(rc,__LINE__,u_FILE_u)) return
+                fldptr1d(:) = 0._dbl_kind
              end if
-          enddo
-          deallocate(lfieldnamelist)
-          ! *******************
-          ! *** RETURN HERE ***
-          ! *******************
-          RETURN
-       else
-          write(nu_diag,'(a,3(f10.5,2x))')' (ice_comp_nuopc) single column mode lon/lat/frac is ',&
-               scmlon,scmlat,scol_frac
-       end if
+          end if
+       enddo
+       deallocate(lfieldnamelist)
+       ! *******************
+       ! *** RETURN HERE ***
+       ! *******************
+       RETURN
     else
-       single_column = .false.
+       write(nu_diag,'(a,3(f10.5,2x))')' (ice_comp_nuopc) single column mode lon/lat/frac is ',&
+            scmlon,scmlat,scol_frac
     end if
 #endif
 
@@ -915,6 +941,16 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
+
+    call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    if (single_column .and. .not. scol_valid) then
+       ! *******************
+       ! *** RETURN HERE ***
+       ! *******************
+       RETURN
+    end if
+
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     ! query the Component for its clock, importState and exportState

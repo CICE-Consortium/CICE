@@ -84,7 +84,7 @@ contains
     use ice_dyn_vp           , only: init_vp
     use ice_flux             , only: init_coupler_flux, init_history_therm
     use ice_flux             , only: init_history_dyn, init_flux_atm, init_flux_ocn
-    use ice_forcing          , only: init_forcing_ocn, init_snowtable
+    use ice_forcing          , only: init_snowtable
     use ice_forcing_bgc      , only: get_forcing_bgc, get_atm_bgc
     use ice_forcing_bgc      , only: faero_default, faero_optics, alloc_forcing_bgc, fiso_default
     use ice_history          , only: init_hist, accum_hist
@@ -138,9 +138,6 @@ contains
          file=__FILE__, line=__LINE__)
 
     call calendar()           ! determine the initial date
-
-    !TODO: - why is this being called when you are using CMEPS?
-    call init_forcing_ocn(dt) ! initialize sss and sst from data
 
     call init_state           ! initialize the ice state
     call init_transport       ! initialize horizontal transport
@@ -388,7 +385,6 @@ contains
           call init_fsd(trcrn(:,:,nt_fsd:nt_fsd+nfsd-1,:,:))
        endif
     endif
-
     ! isotopes
     if (tr_iso) then
        if (trim(runtype) == 'continue') restart_iso = .true.
