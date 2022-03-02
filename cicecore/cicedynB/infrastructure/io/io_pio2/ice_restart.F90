@@ -255,15 +255,15 @@
          call define_rest_field(File,'vvel',dims)
 
          if (grid_ice == 'CD') then
-            call define_rest_field(ncid,'uvelE',dims)
-            call define_rest_field(ncid,'vvelE',dims)
-            call define_rest_field(ncid,'uvelN',dims)
-            call define_rest_field(ncid,'vvelN',dims)
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelE',dims)
+            call define_rest_field(File,'uvelN',dims)
+            call define_rest_field(File,'vvelN',dims)
          endif
 
          if (grid_ice == 'C') then
-            call define_rest_field(ncid,'uvelE',dims)
-            call define_rest_field(ncid,'vvelN',dims)
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelN',dims)
          endif
 
 
