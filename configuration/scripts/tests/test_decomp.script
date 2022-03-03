@@ -26,7 +26,7 @@ foreach decomp (${decomps})
   ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/set_nml.d${decomp}
   cp ice_in ice_in.${decomp}
 
-  ./cice.run
+  ./cice.run -nomodules
   set res="$status"
 
   set grade = FAIL

@@ -7,7 +7,7 @@ cp ice_in ice_in.0
 ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart21
 cp ice_in ice_in.1
 
-./cice.run
+./cice.run -nomodules
 set res="$status"
 
 if ( $res != 0 ) then
@@ -44,7 +44,7 @@ perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",$1,$2,$3-1)/e' ${
 ${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart22
 cp ice_in ice_in.2
 
-./cice.run
+./cice.run -nomodules
 set res="$status"
 
 cp ice_in.0 ice_in

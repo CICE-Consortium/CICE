@@ -3,7 +3,7 @@
 # Run the CICE model
 # cice.run returns -1 if run did not complete successfully
 
-./cice.run
+./cice.run -nomodules
 set rres="$status"
 
 set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`

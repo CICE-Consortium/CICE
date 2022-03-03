@@ -6,7 +6,7 @@ cp ${ICE_SANDBOX}/configuration/scripts/tests/QC/CICE_Lookup_Table_p0.8_n1825.nc
 # Run the CICE model
 # cice.run returns -1 if run did not complete successfully
 
-./cice.run
+./cice.run -nomodules
 set res="$status"
 
 set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
