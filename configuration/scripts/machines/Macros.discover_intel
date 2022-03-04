@@ -41,14 +41,14 @@ PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs
 #PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
 
 INCLDIR := $(INCLDIR)
-INCLDIR += -I$(NETCDF_PATH)/include
+INCLDIR += -I$(NETCDF_PATH)/include/netcdf
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
 LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -lmfhdf -ldf -lhdf5_hl -lhdf5 -lm -lsz -ljpeg -lgpfs -lcurl -lssl -lcrypto -ldl -lz 
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp 
