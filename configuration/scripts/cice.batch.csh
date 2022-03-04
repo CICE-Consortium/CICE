@@ -293,6 +293,17 @@ cat >> ${jobfile} << EOFB
 ##SBATCH --mail-user=xxx@noaa.gov
 EOFB
 
+else if (${ICE_MACHINE} =~ discover*) then
+cat >> ${jobfile} << EOFB
+#SBATCH --job-name=${ICE_CASENAME}
+#SBATCH --account=${acct}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes} --ntasks-per-node=${taskpernodelimit}
+#SBATCH --constraint=hasw
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+EOFB
+
 else if (${ICE_MACHINE} =~ phase3*) then
 if ( ${nnodes} > 15) then
   setenv p3tile 16
