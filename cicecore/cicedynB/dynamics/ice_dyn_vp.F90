@@ -122,7 +122,7 @@
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
       use ice_domain, only: blocks_ice, halo_info
-      use ice_grid, only: tarea, tinyarea
+!      use ice_grid, only: tarea
 
       ! local variables
 
@@ -133,9 +133,6 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      real (kind=dbl_kind) :: &
-         min_strain_rate = 2e-09_dbl_kind      ! used for recomputing tinyarea
-      
       ! Initialize module variables
       allocate(icellt(max_blocks), icellu(max_blocks))
       allocate(indxti(nx_block*ny_block, max_blocks), &
@@ -143,28 +140,6 @@
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
       allocate(fld2(nx_block,ny_block,2,max_blocks))
-      
-      ! Redefine tinyarea using min_strain_rate
-      
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            tinyarea(i,j,iblk) = min_strain_rate*tarea(i,j,iblk)
-         enddo
-         enddo
-      enddo                     ! iblk
-      !$OMP END PARALLEL DO
-      
-      call ice_HaloUpdate (tinyarea,           halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
       
       end subroutine init_vp
 
@@ -725,7 +700,8 @@
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          uarear, tinyarea
+           uarear
+      use ice_dyn_shared, only: DminTarea
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -875,7 +851,7 @@
                                 dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
                                 cxp      (:,:,iblk), cyp     (:,:,iblk), &
                                 cxm      (:,:,iblk), cym     (:,:,iblk), &
-                                tinyarea (:,:,iblk), strength (:,:,iblk),&
+                                DminTarea (:,:,iblk),strength (:,:,iblk),&
                                 zetax2 (:,:,iblk,:), etax2  (:,:,iblk,:),&
                                 rep_prs(:,:,iblk,:), stress_Pr  (:,:,:))
             
@@ -1177,11 +1153,12 @@
                                 dxhy    , dyhx    , &
                                 cxp     , cyp     , &
                                 cxm     , cym     , &
-                                tinyarea, strength, &
+                                DminTarea,strength, &
                                 zetax2  , etax2   , &
                                 rep_prs , stPr)
 
-      use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure
+        use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure, &
+                                  capping
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1203,7 +1180,7 @@
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
          cxm      , & ! 0.5*HTN - 1.5*HTS
-         tinyarea     ! min_strain_rate*tarea
+         DminTarea    ! deltaminVP*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
@@ -1228,11 +1205,9 @@
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
 
-      real(kind=dbl_kind) ,parameter :: capping = c0 ! of the viscous coef
       character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
       ! Initialize
-
       
       ! Initialize stPr, zetax2 and etax2 to zero
       ! (for cells where icetmask is false)
@@ -1267,7 +1242,7 @@
       ! viscous coefficients and replacement pressure                           
       !-----------------------------------------------------------------        
 
-         call viscous_coeffs_and_rep_pressure (strength(i,j),  tinyarea(i,j),  &
+         call viscous_coeffs_and_rep_pressure (strength(i,j),  DminTarea(i,j), &
                                                Deltane,        Deltanw,        &
                                                Deltasw,        Deltase,        &
                                                zetax2(i,j,1),  zetax2(i,j,2),  &

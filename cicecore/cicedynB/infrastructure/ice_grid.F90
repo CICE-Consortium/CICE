@@ -91,7 +91,6 @@
          uarear , & ! 1/uarea
          narear , & ! 1/narea
          earear , & ! 1/earea
-         tinyarea,& ! puny*tarea
          tarean , & ! area of NH T-cells
          tareas , & ! area of SH T-cells
          ULON   , & ! longitude of velocity pts, NE corner of T pts (radians)
@@ -230,7 +229,6 @@
          uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
          narear   (nx_block,ny_block,max_blocks), & ! 1/narea
          earear   (nx_block,ny_block,max_blocks), & ! 1/earea
-         tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
          tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
          tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
          ULON     (nx_block,ny_block,max_blocks), & ! longitude of U pts, NE corner (radians)
@@ -530,7 +528,7 @@
             else
                earear(i,j,iblk) = c0 ! possible on boundaries
             endif
-            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+
          enddo
          enddo
 
@@ -1245,7 +1243,6 @@
             endif
             tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
             uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
-            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
 
             if (single_column) then
                ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/nj)  

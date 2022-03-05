@@ -436,7 +436,7 @@ contains
   subroutine ice_mesh_init_tlon_tlat_area_hm()
 
     use ice_grid      , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
-    use ice_grid      , only : uarea, uarear, tarear, tinyarea
+    use ice_grid      , only : uarea, uarear, tarear!, tinyarea
     use ice_grid      , only : dxt, dyt, dxu, dyu, dyhx, dxhy, cyp, cxp, cym, cxm
     use ice_grid      , only : makemask
     use ice_boundary  , only : ice_HaloUpdate
@@ -517,7 +517,7 @@ contains
              endif
              tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
              uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
-             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+!             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
 
              if (.not. single_column) then
                 if (ny_global == 1) then

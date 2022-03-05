@@ -103,7 +103,7 @@
           dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, & 
           dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, earear, narear, tinyarea, grid_average_X2Y, tarea, uarea, &
+          tarear, uarear, earear, narear, grid_average_X2Y, tarea, uarea, &
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
@@ -113,7 +113,7 @@
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field
+      use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field, DminTarea
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -705,7 +705,7 @@
                                dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
                                cxp       (:,:,iblk), cyp       (:,:,iblk), &
                                cxm       (:,:,iblk), cym       (:,:,iblk), &
-                               tarear    (:,:,iblk), tinyarea  (:,:,iblk), &
+                               tarear    (:,:,iblk), DminTarea(:,:,iblk),  &
                                strength  (:,:,iblk),                       &
                                stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
                                stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
@@ -751,7 +751,7 @@
                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
                                  dxN       (:,:,iblk), dyE       (:,:,iblk), &
                                  dxT       (:,:,iblk), dyT       (:,:,iblk), &
-                                 tarear    (:,:,iblk), tinyarea  (:,:,iblk), &
+                                 tarear    (:,:,iblk), DminTarea (:,:,iblk), &
                                  strength  (:,:,iblk),                       &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
@@ -1134,7 +1134,7 @@
                          dxhy,       dyhx,       & 
                          cxp,        cyp,        & 
                          cxm,        cym,        & 
-                         tarear,     tinyarea,   & 
+                         tarear,     DminTarea,  & 
                          strength,               & 
                          stressp_1,  stressp_2,  & 
                          stressp_3,  stressp_4,  & 
@@ -1146,7 +1146,8 @@
                          rdg_conv,   rdg_shear,  & 
                          str )
 
-      use ice_dyn_shared, only: strain_rates, deformations, viscous_coeffs_and_rep_pressure_T
+        use ice_dyn_shared, only: strain_rates, deformations, &
+                            viscous_coeffs_and_rep_pressure_T, capping
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1170,7 +1171,7 @@
          cym      , & ! 0.5*HTE - 1.5*HTW
          cxm      , & ! 0.5*HTN - 1.5*HTS
          tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea
+         DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
@@ -1210,8 +1211,6 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp, tmp
 
-      real(kind=dbl_kind),parameter :: capping = c1 ! of the viscous coef
-
       character(len=*), parameter :: subname = '(stress)'
 
       !-----------------------------------------------------------------
@@ -1248,24 +1247,24 @@
       ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
-                                                 Deltane,       zetax2ne,     &
-                                                 etax2ne,       rep_prsne,    &
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
+                                                 Deltane,       zetax2ne,      &
+                                                 etax2ne,       rep_prsne,     &
                                                  capping)
  
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
-                                                 Deltanw,       zetax2nw,     &
-                                                 etax2nw,       rep_prsnw,    &
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
+                                                 Deltanw,       zetax2nw,      &
+                                                 etax2nw,       rep_prsnw,     &
                                                  capping)
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
-                                                 Deltasw,       zetax2sw,     &
-                                                 etax2sw,       rep_prssw,    &
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
+                                                 Deltasw,       zetax2sw,      &
+                                                 etax2sw,       rep_prssw,     &
                                                  capping)
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), tinyarea(i,j),&
-                                                 Deltase,       zetax2se,     &
-                                                 etax2se,       rep_prsse,    &
+         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
+                                                 Deltase,       zetax2se,      &
+                                                 etax2se,       rep_prsse,     &
                                                  capping)
 
          
@@ -1467,7 +1466,7 @@
                              uvelN,      vvelN,      &
                              dxN,        dyE,        &
                              dxT,        dyT,        &
-                             tarear,     tinyarea,   & 
+                             tarear,     DminTarea,  & 
                              strength,               &
                              zetax2T,    etax2T,     &
                              stresspT,   stressmT,   & 
@@ -1476,7 +1475,7 @@
                              rdg_conv,   rdg_shear   )
 
         use ice_dyn_shared, only: strain_rates_T, deformations_T, &
-                                  viscous_coeffs_and_rep_pressure_T
+                            viscous_coeffs_and_rep_pressure_T, capping
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1486,7 +1485,6 @@
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
          indxtj       ! compressed index in j-direction
-
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -1499,7 +1497,7 @@
          dyT      , & ! height of T-cell through the middle (m)
          strength , & ! ice strength (N/m)
          tarear   , & ! 1/tarea
-         tinyarea     ! puny*tarea
+         DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          zetax2T  , & ! zetax2 = 2*zeta (bulk viscous coeff)
@@ -1522,8 +1520,6 @@
       real (kind=dbl_kind) :: &
         divT, tensionT, shearT, DeltaT, & ! strain rates at T point
         rep_prsT                          ! replacement pressure at T point
-
-      real(kind=dbl_kind), parameter :: capping = c1 ! of the viscous coef
 
       character(len=*), parameter :: subname = '(stress_T)'
 
@@ -1555,8 +1551,7 @@
       !-----------------------------------------------------------------
 
          call viscous_coeffs_and_rep_pressure_T (strength(i,j),           &
-                                                 tinyarea(i,j),           &
-                                                 DeltaT,                  &
+                                                 DminTarea(i,j), DeltaT,  &
                                                  zetax2T(i,j),etax2T(i,j),&
                                                  rep_prsT, capping        )
          
@@ -1624,7 +1619,7 @@
       use ice_dyn_shared, only: strain_rates_U, &
                                 viscous_coeffs_and_rep_pressure_T2U, &
                                 viscous_coeffs_and_rep_pressure_U, &
-                                visc_coeff_method
+                                visc_coeff_method, deltaminEVP, capping
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1673,18 +1668,9 @@
       real (kind=dbl_kind) :: &
         divU, tensionU, shearU, DeltaU, & ! strain rates at U point
         zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
-        puny, tinyareaU
+        DminUarea
 
-      real(kind=dbl_kind), parameter :: capping = c1 ! of the viscous coef
-      
       character(len=*), parameter :: subname = '(stress_U)'
-      
-      call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) then
-         call abort_ice(error_message=subname, file=__FILE__, &
-            line=__LINE__)
-      end if
       
       do ij = 1, icellu
          i = indxui(ij)
@@ -1726,15 +1712,15 @@
 
          elseif (visc_coeff_method == 'avg_strength') then
 
-         tinyareaU = puny*uarea(i,j)
-            
+         DminUarea = deltaminEVP*uarea(i,j)
+         
          call viscous_coeffs_and_rep_pressure_U (strength(i  ,j  ), strength(i  ,j+1), &
                                                  strength(i+1,j+1), strength(i+1,j  ), &
                                                  hm     (i  ,j  ) , hm     (i  ,j+1),  &
                                                  hm     (i+1,j+1) , hm     (i+1,j  ),  &
                                                  tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
                                                  tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
-                                                 tinyareaU,                            &
+                                                 DminUarea,                            &
                                                  DeltaU           , capping,           &
                                                  zetax2U, etax2U, rep_prsU)
 

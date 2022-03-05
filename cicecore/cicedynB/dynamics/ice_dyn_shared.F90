@@ -70,13 +70,16 @@
          m_min = p01              ! minimum ice mass (kg/m^2)
 
       real (kind=dbl_kind), public :: &
-         revp     , & ! 0 for classic EVP, 1 for revised EVP
+         revp        , & ! 0 for classic EVP, 1 for revised EVP
          e_yieldcurve, & ! VP aspect ratio of elliptical yield curve
          e_plasticpot, & ! VP aspect ratio of elliptical plastic potential
-         epp2i    , & ! 1/(e_plasticpot)^2
-         e_factor , & ! (e_yieldcurve)^2/(e_plasticpot)^4
-         ecci     , & ! temporary for 1d evp
-         dtei     , & ! 1/dte, where dte is subcycling timestep (1/s)
+         epp2i       , & ! 1/(e_plasticpot)^2
+         e_factor    , & ! (e_yieldcurve)^2/(e_plasticpot)^4
+         ecci        , & ! temporary for 1d evp
+         deltaminEVP , & ! minimum delta for viscous coefficients (EVP)
+         deltaminVP  , & ! minimum delta for viscous coefficients (VP)
+         capping     , & ! capping of visc coeff (1=Hibler79, 0=Kreyscher2000)
+         dtei        , & ! 1/dte, where dte is subcycling timestep (1/s)
 !         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
 
@@ -104,6 +107,9 @@
          uvelE_init, & ! x-component of velocity (m/s), beginning of timestep
          vvelE_init    ! y-component of velocity (m/s), beginning of timestep
 
+      real (kind=dbl_kind), allocatable, public :: & 
+         DminTarea(:,:,:)   ! deltamin * tarea (m^2/s)
+      
       ! ice isotropic tensile strength parameter
       real (kind=dbl_kind), public :: &
          Ktens        ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)   
@@ -166,7 +172,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
-      use ice_grid, only: ULAT, NLAT, ELAT
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -188,7 +194,8 @@
       endif
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
-
+      allocate(DminTarea(nx_block,ny_block,max_blocks))
+      
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate(fcorE_blk(nx_block,ny_block,max_blocks))
          allocate(fcorN_blk(nx_block,ny_block,max_blocks))
@@ -260,6 +267,12 @@
             stresspU  (i,j,iblk) = c0
             stressmU  (i,j,iblk) = c0
             stress12U (i,j,iblk) = c0
+         endif
+
+         if (kdyn == 1) then 
+            DminTarea(i,j,iblk) = deltaminEVP*tarea(i,j,iblk)
+         elseif (kdyn == 3) then 
+            DminTarea(i,j,iblk) = deltaminVP*tarea(i,j,iblk)
          endif
 
          ! ice extent mask on velocity points
@@ -2054,7 +2067,7 @@
  ! by combining tensile strength and a parameterization for grounded ridges.
  ! J. Geophys. Res. Oceans, 121, 7354-7368.
       
-      subroutine viscous_coeffs_and_rep_pressure (strength,  tinyarea, &
+      subroutine viscous_coeffs_and_rep_pressure (strength,  DminTarea,&
                                                   Deltane,   Deltanw,  &
                                                   Deltasw,   Deltase,  &
                                                   zetax2ne,  zetax2nw, &
@@ -2066,7 +2079,7 @@
                                                   capping)
 
       real (kind=dbl_kind), intent(in)::  &
-        strength, tinyarea                  ! at the t-point
+        strength, DminTarea             ! at the t-point
         
       real (kind=dbl_kind), intent(in)::  &  
         Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
@@ -2084,14 +2097,14 @@
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
        
-        tmpcalcne = capping     *(strength/max(Deltane, tinyarea))+ &
-                    (c1-capping)* strength/   (Deltane+ tinyarea)   
-        tmpcalcnw = capping     *(strength/max(Deltanw, tinyarea))+ &
-                    (c1-capping)* strength/   (Deltanw+ tinyarea)   
-        tmpcalcsw = capping     *(strength/max(Deltasw, tinyarea))+ &
-                    (c1-capping)* strength/   (Deltasw+ tinyarea)  
-        tmpcalcse = capping     *(strength/max(Deltase, tinyarea))+ &
-                    (c1-capping)* strength/   (Deltase+ tinyarea)
+        tmpcalcne = capping     *(strength/max(Deltane, DminTarea))+ &
+                    (c1-capping)* strength/   (Deltane+ DminTarea)   
+        tmpcalcnw = capping     *(strength/max(Deltanw, DminTarea))+ &
+                    (c1-capping)* strength/   (Deltanw+ DminTarea)   
+        tmpcalcsw = capping     *(strength/max(Deltasw, DminTarea))+ &
+                    (c1-capping)* strength/   (Deltasw+ DminTarea)  
+        tmpcalcse = capping     *(strength/max(Deltase, DminTarea))+ &
+                    (c1-capping)* strength/   (Deltase+ DminTarea)
 
         zetax2ne  = (c1+Ktens)*tmpcalcne ! northeast 
         rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
@@ -2124,15 +2137,14 @@
  ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
  ! by combining tensile strength and a parameterization for grounded ridges.
  ! J. Geophys. Res. Oceans, 121, 7354-7368.
-! capping must be 1 (c1) for evp and 0 for vp solver
 
-      subroutine viscous_coeffs_and_rep_pressure_T (strength, tinyarea, &
-                                                    Delta   , zetax2  , &
-                                                    etax2   , rep_prs , &
-                                                    capping)
+       subroutine viscous_coeffs_and_rep_pressure_T (strength, DminTarea, &
+                                                     Delta   , zetax2   , &
+                                                     etax2   , rep_prs  , &
+                                                     capping)
 
       real (kind=dbl_kind), intent(in)::  &
-        strength, tinyarea
+        strength, DminTarea
 
       real (kind=dbl_kind), intent(in)::  &
         Delta, capping
@@ -2148,8 +2160,8 @@
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-      tmpcalc =     capping *(strength/max(Delta,tinyarea))+ &
-                (c1-capping)*(strength/(Delta + tinyarea))
+      tmpcalc =     capping *(strength/max(Delta,DminTarea))+ &
+                (c1-capping)*(strength/(Delta + DminTarea))
       zetax2 = (c1+Ktens)*tmpcalc
       rep_prs = (c1-Ktens)*tmpcalc*Delta
       etax2 = epp2i*zetax2
@@ -2213,7 +2225,7 @@
                                                       maskT_11,  maskT_10,      &
                                                       tarea_00,   tarea_01,     &
                                                       tarea_11,   tarea_10,     &
-                                                      tinyareaU,                &
+                                                      DminUarea,                &
                                                       deltaU, capping,          &
                                                       zetax2U, etax2U,          &
                                                       rep_prsU)
@@ -2223,7 +2235,7 @@
          strength_00,strength_10,strength_11,strength_01, &
          maskT_00, maskT_10, maskT_11, maskT_01, &
          tarea_00, tarea_10, tarea_11, tarea_01, &
-         tinyareaU, deltaU, capping
+         DminUarea, deltaU, capping
 
       real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
 
@@ -2248,8 +2260,8 @@
       ! IMPROVE the calc below are the same as in the other viscous coeff...could reduce redundency
       ! we could have a strength_U subroutine and then calc the visc coeff
       
-      tmpcalc =     capping *(strength/max(deltaU,tinyareaU))+ &
-                (c1-capping)*(strength/(deltaU + tinyareaU))
+      tmpcalc =     capping *(strength/max(deltaU,DminUarea))+ &
+                (c1-capping)*(strength/(deltaU + DminUarea))
       zetax2U = (c1+Ktens)*tmpcalc
       rep_prsU = (c1-Ktens)*tmpcalc*deltaU
       etax2U = epp2i*zetax2U
