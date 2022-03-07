@@ -180,7 +180,7 @@ EOFR
 #=======
 else if (${ICE_MACHINE} =~ discover*) then
 cat >> ${jobfile} << EOFR
-srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
