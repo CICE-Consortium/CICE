@@ -69,15 +69,8 @@ mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
-
 #=======
-else if (${ICE_MACHINE} =~ onyx*) then
-cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-
-#=======
-else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
+else if (${ICE_MACHINE} =~ onyx* || ${ICE_MACHINE} =~ narwhal) then
 cat >> ${jobfile} << EOFR
 aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR

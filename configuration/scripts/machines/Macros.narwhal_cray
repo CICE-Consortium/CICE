@@ -1,22 +1,21 @@
 #==============================================================================
-# Macros file for NAVYDSRC conrad, cray compiler
+# Macros file for NAVYDSRC narwhal, cray compiler
 #==============================================================================
 
 CPP        := ftn -e P
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -h fp0 
+CFLAGS     := -c -O2
 
 FIXEDFLAGS := -132
 FREEFLAGS  := 
-FFLAGS     := -h fp0 -h byteswapio 
+FFLAGS     := -hbyteswapio
 FFLAGS_NOOPT:= -O0
-LDFLAGS    := -h byteswapio
-
+LDFLAGS    := -hbyteswapio
+ 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -Rbcdps
-#  FFLAGS     += -O0 -g -Rbcdps -ei
+  FFLAGS     += -O0 -hfp0 -g -Rbcdps -Ktrap=fp
 else
-  FFLAGS     += -O2
+  FFLAGS     += -O2 -hfp0     # -eo
 endif
 
 SCC   := cc 
@@ -49,9 +48,13 @@ INCLDIR := $(INCLDIR)
 #LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
-ifeq ($(ICE_THREADED), false) 
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
+else
    LDFLAGS += -hnoomp
-   CFLAGS += -hnoomp
+#   CFLAGS += -hnoomp
    FFLAGS += -hnoomp
 endif
 

@@ -496,7 +496,7 @@
          enddo
          enddo
 
-         call ice_timer_start(timer_couple)   ! atm/ocn coupling
+         call ice_timer_start(timer_couple,iblk)   ! atm/ocn coupling
 
          if (oceanmixed_ice) &
          call ocean_mixed_layer (dt,iblk) ! ocean surface fluxes and sst
@@ -663,7 +663,7 @@
          endif                 
 !echmod
 #endif
-         call ice_timer_stop(timer_couple)   ! atm/ocn coupling
+         call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
       end subroutine coupling_prep
 

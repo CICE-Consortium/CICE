@@ -121,7 +121,7 @@
 
       character(len=*), parameter :: subname = '(prep_radiation)'
 
-      call ice_timer_start(timer_sw)      ! shortwave
+      call ice_timer_start(timer_sw,iblk)      ! shortwave
 
       alvdr_init(:,:,iblk) = c0
       alvdf_init(:,:,iblk) = c0
@@ -169,7 +169,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call ice_timer_stop(timer_sw)     ! shortwave
+      call ice_timer_stop(timer_sw,iblk)     ! shortwave
 
       end subroutine prep_radiation
 
@@ -739,7 +739,7 @@
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
                            bound_state, trcr_base, nt_strata, n_trcr_strata
-      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound, timer_updstate
 
       real (kind=dbl_kind), intent(in) :: &
          dt       ! time step
@@ -763,6 +763,7 @@
 
       character(len=*), parameter :: subname='(update_state)'
 
+      call ice_timer_start(timer_updstate)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
@@ -780,7 +781,7 @@
                         ntrcr, trcrn)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -834,6 +835,7 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+      call ice_timer_stop(timer_updstate)
 
       end subroutine update_state
 
@@ -1009,8 +1011,8 @@
       ! Ridging
       !-----------------------------------------------------------------
 
-      call ice_timer_start(timer_column)
-      call ice_timer_start(timer_ridge)
+      call ice_timer_start(timer_column,iblk)
+      call ice_timer_start(timer_ridge,iblk)
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_warnings_flush(nu_diag)
@@ -1079,8 +1081,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call ice_timer_stop(timer_ridge)
-      call ice_timer_stop(timer_column)
+      call ice_timer_stop(timer_ridge,iblk)
+      call ice_timer_stop(timer_column,iblk)
 
       end subroutine step_dyn_ridge
 
@@ -1267,7 +1269,7 @@
 
       character(len=*), parameter :: subname = '(step_radiation)'
 
-      call ice_timer_start(timer_sw)      ! shortwave
+      call ice_timer_start(timer_sw,iblk)      ! shortwave
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, &
          nbtrcr_out=nbtrcr, nbtrcr_sw_out=nbtrcr_sw)
@@ -1386,7 +1388,7 @@
       deallocate(ztrcr_sw)
       deallocate(rsnow)
 
-      call ice_timer_stop(timer_sw)     ! shortwave
+      call ice_timer_stop(timer_sw,iblk)     ! shortwave
 
       end subroutine step_radiation
 
@@ -1614,7 +1616,7 @@
 
       if (tr_brine .or. skl_bgc) then
 
-      call ice_timer_start(timer_bgc) ! biogeochemistry
+      call ice_timer_start(timer_bgc,iblk) ! biogeochemistry
 
       this_block = get_block(blocks_ice(iblk),iblk)         
       ilo = this_block%ilo
@@ -1707,7 +1709,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      call ice_timer_stop(timer_bgc) ! biogeochemistry
+      call ice_timer_stop(timer_bgc,iblk) ! biogeochemistry
 
       endif  ! tr_brine .or. skl_bgc
 

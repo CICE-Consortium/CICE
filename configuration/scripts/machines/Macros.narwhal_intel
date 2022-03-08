@@ -1,18 +1,20 @@
 #==============================================================================
-# Macros file for NAVYDSRC conrad, gnu compiler
+# Macros file for NAVYDSRC narwhal, intel compiler
 #==============================================================================
 
-CPP        := ftn -E
+CPP        := fpp
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2
+CFLAGS     := -c -O2 -fp-model precise -fcommon
 
-FIXEDFLAGS := -ffixed-line-length-132
-FREEFLAGS  := -ffree-form
-FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback
+# -mcmodel medium -shared-intel
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
 else
   FFLAGS     += -O2
 endif
@@ -48,8 +50,8 @@ INCLDIR := $(INCLDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -fopenmp
-   CFLAGS += -fopenmp
-   FFLAGS += -fopenmp
+   LDFLAGS += -qopenmp
+   CFLAGS += -qopenmp
+   FFLAGS += -qopenmp
 endif
 

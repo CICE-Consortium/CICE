@@ -1,20 +1,20 @@
 #==============================================================================
-# Macros file for NAVYDSRC gordon, pgi compiler
+# Macros file for NAVYDSRC narwhal, aocc compiler
 #==============================================================================
 
-CPP        := pgcc -Mcpp
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -Kieee
+CPP        := ftn -E
+CPPDEFS    := -DNO_R16 -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2
 
-FIXEDFLAGS := -Mextend
-FREEFLAGS  := -Mfree
-FFLAGS     := -Kieee -Mbyteswapio -traceback 
+FIXEDFLAGS := -ffixed-form
+FREEFLAGS  := -ffree-form
+FFLAGS     := -byteswapio
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -Mbounds -Mchkptr
+  FFLAGS     += -O0 -g -fsanitize=integer-divide-by-zero,float-divide-by-zero,bounds
 else
-  FFLAGS     += -O -g
+  FFLAGS     += -O2
 endif
 
 SCC   := cc 
@@ -51,5 +51,9 @@ ifeq ($(ICE_THREADED), true)
    LDFLAGS += -mp
    CFLAGS += -mp
    FFLAGS += -mp
+else
+   LDFLAGS += -nomp
+#   CFLAGS += -nomp
+   FFLAGS += -nomp
 endif
 

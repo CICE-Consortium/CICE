@@ -30,6 +30,9 @@
              ice_timer_print_all, &
              ice_timer_check
 
+   logical(log_kind),  public ::      &
+      timer_stats              ! controls printing of timer statistics
+
 !-----------------------------------------------------------------------
 ! public timers
 !-----------------------------------------------------------------------
@@ -54,8 +57,18 @@
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
-      timer_evp_2d             ! timer including conversion 1d/2d
-!      timer_tmp               ! for temporary timings
+      timer_evp_2d,           &! timer including conversion 1d/2d
+      timer_updstate           ! update state
+!      timer_updstate,         &! update state
+!      timer_tmp1,             &! for temporary timings
+!      timer_tmp2,             &! for temporary timings
+!      timer_tmp3,             &! for temporary timings
+!      timer_tmp4,             &! for temporary timings
+!      timer_tmp5,             &! for temporary timings
+!      timer_tmp6,             &! for temporary timings
+!      timer_tmp7,             &! for temporary timings
+!      timer_tmp8,             &! for temporary timings
+!      timer_tmp9               ! for temporary timings
 
 !-----------------------------------------------------------------------
 !
@@ -187,7 +200,7 @@
 !   call get_ice_timer(timer_ponds,    'Meltponds',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_ridge,    'Ridging',  nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_catconv,  'Cat Conv', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_fsd,      'Floe size',nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_fsd,      'FloeSize', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_couple,   'Coupling', nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_readwrite,'ReadWrite',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_diags,    'Diags    ',nblocks,distrb_info%nprocs)
@@ -197,7 +210,16 @@
    call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp_1d,   '1d-evp',   nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp_2d,   '2d-evp',   nblocks,distrb_info%nprocs)
-!   call get_ice_timer(timer_tmp,      '         ',nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_updstate, 'UpdState', nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp1,     'tmp1',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp2,     'tmp2',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp3,     'tmp3',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp4,     'tmp4',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp5,     'tmp5',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp6,     'tmp6',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp7,     'tmp7',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp8,     'tmp8',     nblocks,distrb_info%nprocs)
+!   call get_ice_timer(timer_tmp9,     'tmp9',     nblocks,distrb_info%nprocs)
 
 !-----------------------------------------------------------------------
 
@@ -341,6 +363,8 @@
 
    character(len=*), parameter :: subname = '(ice_timer_start)'
 
+!   if (my_task == master_task) write(nu_diag,*) subname,trim(all_timers(timer_id)%name)
+
 !-----------------------------------------------------------------------
 !
 !  if timer is defined, start it up
@@ -443,6 +467,8 @@
       cycles                   ! count rate returned by sys_clock
 
    character(len=*), parameter :: subname = '(ice_timer_stop)'
+
+!   if (my_task == master_task) write(nu_diag,*) subname,trim(all_timers(timer_id)%name)
 
 !-----------------------------------------------------------------------
 !

@@ -21,6 +21,7 @@ setenv ICE_QUIETMODE  false
 setenv ICE_GRID       undefined
 setenv ICE_NTASKS     undefined
 setenv ICE_NTHRDS     undefined
+setenv ICE_OMPSCHED   "static,1"
 setenv ICE_TEST       undefined
 setenv ICE_TESTNAME   undefined
 setenv ICE_TESTID     undefined
@@ -28,6 +29,7 @@ setenv ICE_BASELINE   undefined
 setenv ICE_BASEGEN    undefined
 setenv ICE_BASECOM    undefined
 setenv ICE_BFBCOMP    undefined
+setenv ICE_BFBTYPE    restart
 setenv ICE_SPVAL      undefined
 setenv ICE_RUNLENGTH  -1
 setenv ICE_ACCOUNT    undefined

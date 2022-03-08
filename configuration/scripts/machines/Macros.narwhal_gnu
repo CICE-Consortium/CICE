@@ -1,22 +1,32 @@
 #==============================================================================
-# Macros file for NAVYDSRC gordon, cray compiler
+# Macros file for NAVYDSRC narwhal, gnu compiler
 #==============================================================================
 
-CPP        := ftn -e P
+CPP        := ftn -E
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -h fp0 
+CFLAGS     := -c
 
-FIXEDFLAGS := -132
-FREEFLAGS  := 
-FFLAGS     := -h fp0 -h byteswapio 
+FIXEDFLAGS := -ffixed-line-length-132
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none -fallow-argument-mismatch
 FFLAGS_NOOPT:= -O0
-LDFLAGS    := -h byteswapio
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -Rbcdps
-#  FFLAGS     += -O0 -g -Rbcdps -ei
-else
-  FFLAGS     += -O2
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  CFLAGS     += -O0
+endif
+
+ifeq ($(ICE_COVERAGE), true)
+  FFLAGS   += -O0 -g -fprofile-arcs -ftest-coverage
+  CFLAGS   += -O0 -g -coverage
+  LDFLAGS  += -g -ftest-coverage -fprofile-arcs
+endif
+
+ifneq ($(ICE_BLDDEBUG), true)
+ifneq ($(ICE_COVERAGE), true)
+  FFLAGS   += -O2
+  CFLAGS   += -O2
+endif
 endif
 
 SCC   := cc 
@@ -49,9 +59,9 @@ INCLDIR := $(INCLDIR)
 #LIB_MPI := $(IMPILIBDIR)
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
-ifeq ($(ICE_THREADED), false) 
-   LDFLAGS += -hnoomp
-   CFLAGS += -hnoomp
-   FFLAGS += -hnoomp
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
 endif
 

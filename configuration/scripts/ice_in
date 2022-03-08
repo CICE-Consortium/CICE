@@ -38,6 +38,7 @@
     debug_forcing  = .false.
     print_global   = .true.
     print_points   = .true.
+    timer_stats    = .false.
     conserv_check  = .false.
     latpnt(1)      =  90.
     lonpnt(1)      =  0.

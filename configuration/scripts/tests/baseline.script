@@ -36,7 +36,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} notcicefile
     set bfbstatus = $status
 
-  else if (${ICE_TEST} =~ qcchk*) then
+  else if (${ICE_BFBTYPE} =~ qcchk*) then
     set test_dir = ${ICE_RUNDIR}
     set base_dir  = ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}
     ${ICE_SANDBOX}/configuration/scripts/tests/QC/cice.t-test.py ${base_dir} ${test_dir}
@@ -151,7 +151,7 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     endif
   endif
 
-  if (${ICE_TEST} == "logbfb") then
+  if (${ICE_BFBTYPE} == "log") then
     set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
     set base_file = `ls -1t ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/cice.runlog* | head -1`
 
@@ -163,21 +163,61 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
     set bfbstatus = $status
 
-  else if (${ICE_TEST} =~ qcchk*) then
+  else if (${ICE_BFBTYPE} == "logrest") then
+    set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
+    set base_file = `ls -1t ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/cice.runlog* | head -1`
+
+    echo ""
+    echo "bfb Log Compare Mode:"
+    echo "base_file: ${base_file}"
+    echo "test_file: ${test_file}"
+
+    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+    set bfbstatusl = $status
+
+    set test_dir = ${ICE_RUNDIR}/restart
+    set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
+
+    echo ""
+    echo "bfb Restart Compare Mode:"
+    echo "base_dir: ${base_dir}"
+    echo "test_dir: ${test_dir}"
+
+    ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+    set bfbstatusr = $status
+
+    if ({$bfbstatusl} == ${bfbstatusr}) then
+       set bfbstatus = ${bfbstatusl}
+    else if (${bfbstatusl} == 1 || ${bfbstatusr} == 1) then
+       set bfbstatus = 1
+    else if ({$bfbstatusl} > ${bfbstatusr}) then
+       set bfbstatus = ${bfbstatusl}
+    else
+       set bfbstatus = ${bfbstatusr}
+    endif
+
+    echo "bfb log, rest, combined status = ${bfbstatusl},${bfbstatusr},${bfbstatus}"
+
+  else if (${ICE_BFBTYPE} =~ qcchk*) then
     set test_dir = ${ICE_RUNDIR}
     set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}
+    echo ""
+    echo "qcchk Compare Mode:"
+    echo "base_dir: ${base_dir}"
+    echo "test_dir: ${test_dir}"
     ${ICE_SANDBOX}/configuration/scripts/tests/QC/cice.t-test.py ${base_dir} ${test_dir}
     set bfbstatus = $status
     # expecting failure, so switch value
-    if (${ICE_TEST} =~ qcchkf*) then
+    if (${ICE_BFBTYPE} == "qcchkf") then
        @ bfbstatus = 1 - $bfbstatus
     endif
+
   else
     set test_dir = ${ICE_RUNDIR}/restart
     set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart
 
     echo ""
-    echo "bfb Compare Mode:"
+    echo "bfb Restart Compare Mode:"
     echo "base_dir: ${base_dir}"
     echo "test_dir: ${test_dir}"
 
@@ -190,10 +230,10 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
   rm -f ${ICE_CASEDIR}/test_output.prev
   if (${bfbstatus} == 0) then
     echo "PASS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP}" >> ${ICE_CASEDIR}/test_output
-    echo "bfb baseline and test dataset are identical"
+    echo "bfbcomp baseline and test dataset pass"
   else if (${bfbstatus} == 1) then
     echo "FAIL ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} different-data" >> ${ICE_CASEDIR}/test_output
-    echo "bfbcomp and test dataset are different"
+    echo "bfbcomp baseline and test dataset fail"
   else if (${bfbstatus} == 2) then
     echo "MISS ${ICE_TESTNAME} bfbcomp ${ICE_BFBCOMP} missing-data" >> ${ICE_CASEDIR}/test_output
     echo "Missing data"

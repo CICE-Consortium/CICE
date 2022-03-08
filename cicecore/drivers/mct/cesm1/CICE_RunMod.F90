@@ -287,7 +287,6 @@
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 
-!MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
 

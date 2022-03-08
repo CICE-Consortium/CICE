@@ -394,7 +394,11 @@
             aicen(i,j,n) = c0
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
-            trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            if (tmask(i,j)) then
+               trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+            else
+               trcrn(i,j,nt_Tsfc,n) = c0  ! on land gridcells
+            endif
             if (ntrcr >= 2) then
                do it = 2, ntrcr
                   trcrn(i,j,it,n) = c0

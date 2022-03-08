@@ -1,7 +1,7 @@
 # Test         Grid    PEs        Sets    BFB-compare
 
 restart        gx3     8x1x25x29x2   dslenderX2
-logbfb         gx3     8x1x25x29x2   dslenderX2,diag1,reprosum
+smoke          gx3     8x1x25x29x2   dslenderX2,diag1,reprosum
 
 smoke          gx3     16x1       diag1,run5day
 smoke          gx3     1x1        debug,diag1,run2day
@@ -70,9 +70,9 @@ restart        gx3     32x1x5x10x12  drakeX2            restart_gx3_8x1x25x29x2_
 restart        gx3     16x1x8x10x10  droundrobin,maskhalo   restart_gx3_8x1x25x29x2_dslenderX2
 restart        gx3     4x1x25x29x4   droundrobin        restart_gx3_8x1x25x29x2_dslenderX2
 
-logbfb         gx3     1x1x50x58x4   droundrobin,diag1,maskhalo,reprosum logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
-logbfb         gx3     4x1x25x116x1  dslenderX1,diag1,maskhalo,reprosum  logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
-logbfb         gx3     20x1x5x29x20  dsectrobin,diag1,short,reprosum     logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
-logbfb         gx3     16x1x8x10x10  droundrobin,diag1,reprosum          logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
-logbfb         gx3     6x1x50x58x1   droundrobin,diag1,reprosum          logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
-logbfb         gx3     12x1x4x29x9   dspacecurve,diag1,maskhalo,reprosum logbfb_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     1x1x50x58x4   droundrobin,diag1,maskhalo,reprosum,cmplog smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     4x1x25x116x1  dslenderX1,diag1,maskhalo,reprosum,cmplog  smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     20x1x5x29x20  dsectrobin,diag1,short,reprosum,cmplog     smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     16x1x8x10x10  droundrobin,diag1,reprosum,cmplog          smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     6x1x50x58x1   droundrobin,diag1,reprosum,cmplog          smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum
+smoke          gx3     12x1x4x29x9   dspacecurve,diag1,maskhalo,reprosum,cmplog smoke_gx3_8x1x25x29x2_diag1_dslenderX2_reprosum

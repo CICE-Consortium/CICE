@@ -131,7 +131,9 @@ contains
        write(nu_diag,*)'send_i2x_per_cat = ',send_i2x_per_cat
     end if
     if (.not.send_i2x_per_cat) then
-       deallocate(fswthrun_ai)
+       if (allocated(fswthrun_ai)) then
+          deallocate(fswthrun_ai)
+       end if
     end if
 
     ! Determine if the following attributes are sent by the driver and if so read them in
@@ -583,7 +585,7 @@ contains
                    rhoa(i,j,iblk) = inst_pres_height_lowest / &
                         (287.058_ESMF_KIND_R8*(1._ESMF_KIND_R8+0.608_ESMF_KIND_R8*Qa(i,j,iblk))*Tair(i,j,iblk))
                 else
-                   rhoa(i,j,iblk) = 0._ESMF_KIND_R8
+                   rhoa(i,j,iblk) = 1.2_ESMF_KIND_R8
                 endif
              end do !i
           end do !j

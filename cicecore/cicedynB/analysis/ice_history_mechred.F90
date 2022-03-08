@@ -89,6 +89,7 @@
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       real    (kind=dbl_kind) :: secday
       logical (kind=log_kind) :: tr_lvl
+
       character(len=*), parameter :: subname = '(init_hist_mechred_2D)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -101,25 +102,27 @@
       ! read namelist
       !-----------------------------------------------------------------
 
-      call get_fileunit(nu_nml)
       if (my_task == master_task) then
-         open (nu_nml, file=nml_filename, status='old',iostat=nml_error)
+         write(nu_diag,*) subname,' Reading icefields_mechred_nml'
+
+         call get_fileunit(nu_nml)
+         open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            nml_error = -1
-         else
-            nml_error =  1
+            call abort_ice(subname//'ERROR: icefields_mechred_nml open file '// &
+               trim(nml_filename), &
+               file=__FILE__, line=__LINE__)
          endif
+
+         nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_mechred_nml,iostat=nml_error)
          end do
-         if (nml_error == 0) close(nu_nml)
-      endif
-      call release_fileunit(nu_nml)
-
-      call broadcast_scalar(nml_error, master_task)
-      if (nml_error /= 0) then
-         close (nu_nml)
-         call abort_ice(subname//'ERROR: reading icefields_mechred_nml')
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: icefields_mechred_nml reading ', &
+               file=__FILE__, line=__LINE__)
+         endif
+         close(nu_nml)
+         call release_fileunit(nu_nml)
       endif
 
       if (.not. tr_lvl) then
