@@ -682,7 +682,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -2438,7 +2438,7 @@
         enddo
 
       ! AOMIP
-        this_block = get_block(blocks_ice(iblk),iblk)         
+        this_block = get_block(blocks_ice(iblk),iblk)
         ilo = this_block%ilo
         ihi = this_block%ihi
         jlo = this_block%jlo
@@ -3480,7 +3480,7 @@
         enddo
 
       ! AOMIP
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
@@ -5313,10 +5313,10 @@
 ! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
-      use ice_domain, only: nblocks
+      use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: max_blocks
       use ice_calendar, only: timesecs
-      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
       use ice_state, only: aice
 
@@ -5325,8 +5325,15 @@
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
+      integer (kind=int_kind) :: &
+         iglob(nx_block), & ! global indices
+         jglob(ny_block)    ! global indices
+
+      type (block) :: &
+         this_block           ! block information for current block
+
       real (kind=dbl_kind) :: &
-          secday, pi , puny, period, pi2, tau
+         secday, pi , puny, period, pi2, tau
 
       character(len=*), parameter :: subname = '(box2001_data_atm)'
 
@@ -5341,6 +5348,10 @@
          do j = 1, ny_block   
          do i = 1, nx_block   
 
+         this_block = get_block(blocks_ice(iblk),iblk)
+         iglob = this_block%i_glob
+         jglob = this_block%j_glob
+
 !tcraig, move to box2001_data_ocn
 !         ! ocean current
 !         ! constant in time, could be initialized in ice_flux.F90
@@ -5354,14 +5365,14 @@
 
          ! wind components
          uatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
-                              * sin(pi2*real(i-nghost, kind=dbl_kind)  &
+                              * sin(pi2*real(iglob(i), kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
-                              * sin(pi *real(j-nghost, kind=dbl_kind)  &
+                              * sin(pi *real(jglob(j), kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
          vatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
-                              * sin(pi *real(i-nghost, kind=dbl_kind)  &
+                              * sin(pi *real(iglob(i), kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
-                              * sin(pi2*real(j-nghost, kind=dbl_kind)  &
+                              * sin(pi2*real(jglob(j), kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
@@ -5408,10 +5419,10 @@
 ! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
-      use ice_domain, only: nblocks
+      use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: max_blocks
       use ice_calendar, only: timesecs
-      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn
       use ice_grid, only: uvm
 
@@ -5420,8 +5431,15 @@
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
+      integer (kind=int_kind) :: &
+         iglob(nx_block), & ! global indices
+         jglob(ny_block)    ! global indices
+
+      type (block) :: &
+         this_block           ! block information for current block
+
       real (kind=dbl_kind) :: &
-          secday, pi , puny, period, pi2, tau
+         secday, pi , puny, period, pi2, tau
 
       character(len=*), parameter :: subname = '(box2001_data_ocn)'
 
@@ -5431,12 +5449,16 @@
          do j = 1, ny_block   
          do i = 1, nx_block   
 
+         this_block = get_block(blocks_ice(iblk),iblk)
+         iglob = this_block%i_glob
+         jglob = this_block%j_glob
+
          ! ocean current
          ! constant in time, could be initialized in ice_flux.F90
-         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
-                            / real(nx_global,kind=dbl_kind) - p1
-         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
-                            / real(ny_global,kind=dbl_kind) + p1
+         uocn(i,j,iblk) =  p2*real(jglob(j), kind=dbl_kind) &
+                            / real(ny_global,kind=dbl_kind) - p1
+         vocn(i,j,iblk) = -p2*real(iglob(i), kind=dbl_kind) &
+                            / real(nx_global,kind=dbl_kind) + p1
 
          uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
          vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)

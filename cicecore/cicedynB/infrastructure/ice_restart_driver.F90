@@ -62,7 +62,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U 
       use ice_flux, only: coszen
-      use ice_grid, only: grid_ice
+      use ice_grid, only: grid_ice, tmask
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
                            uvelE, vvelE, uvelN, vvelN
 
@@ -96,6 +96,20 @@
       endif
 
       diag = .true.
+
+      !-----------------------------------------------------------------
+      ! Zero out tracers over land
+      !-----------------------------------------------------------------
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            if (.not. tmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
 
       !-----------------------------------------------------------------
       ! state variables

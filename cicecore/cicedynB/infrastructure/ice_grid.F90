@@ -4177,6 +4177,8 @@
 
       subroutine get_bathymetry
 
+      use ice_constants, only: c0
+
       integer (kind=int_kind) :: &
          i, j, k, iblk      ! loop indices
 
@@ -4228,6 +4230,7 @@
             depth(k) = depth(k-1) + thick(k)
          enddo
 
+         bathymetry = c0
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block

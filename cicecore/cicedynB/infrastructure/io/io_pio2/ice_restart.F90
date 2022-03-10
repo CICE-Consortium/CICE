@@ -788,8 +788,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -797,9 +796,7 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
-                  write(nu_diag,*) ''
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
          
@@ -878,8 +875,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -887,8 +883,7 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
          endif

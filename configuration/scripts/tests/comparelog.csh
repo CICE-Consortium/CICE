@@ -55,8 +55,8 @@ if (${filearg} == 1) then
       touch ${test_out}
 
       if (${cicefile} == 1) then
-        cat ${base_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" >&! ${base_out}
-        cat ${test_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" >&! ${test_out}
+        cat ${base_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" | grep -iv "init_vert" | grep -iv "ridge_ice"  >&! ${base_out}
+        cat ${test_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" | grep -iv "init_vert" | grep -iv "ridge_ice"  >&! ${test_out}
       else
         sed -n '/RunningUnitTest/,$p' ${base_data} >! ${base_out}
         sed -n '/RunningUnitTest/,$p' ${test_data} >! ${test_out}
