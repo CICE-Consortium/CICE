@@ -25,12 +25,13 @@ module CICE_InitMod
 contains
 !=======================================================================
 
-  subroutine cice_init1()
+  subroutine cice_init1(mpi_comm)
 
     !  Initialize the basic state, grid and all necessary parameters for
     !  running the CICE model.
 
     use ice_init          , only: input_data
+    use ice_communicate   , only: init_communicate, my_task, master_task
     use ice_init_column   , only: input_zbgc, count_tracers
     use ice_grid          , only: init_grid1, alloc_grid
     use ice_domain        , only: init_domain_blocks
@@ -41,8 +42,16 @@ contains
     use ice_flux          , only: alloc_flux
     use ice_timers        , only: timer_total, init_ice_timers, ice_timer_start
 
+    integer (kind=int_kind), optional, intent(in) :: &
+       mpi_comm ! communicator for sequential ccsm
+
     character(len=*), parameter :: subname = '(cice_init1)'
     !----------------------------------------------------
+    if (present(mpi_comm)) then
+        call init_communicate(mpi_comm)     ! initial setup for message passing
+    else
+        call init_communicate     ! initial setup for message passing
+    endif
 
     call init_fileunits       ! unit numbers
     call icepack_configure()  ! initialize icepack
