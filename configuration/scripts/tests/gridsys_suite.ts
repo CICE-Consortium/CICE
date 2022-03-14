@@ -1,6 +1,7 @@
 # Test         Grid    PEs        Sets    BFB-compare
 smoke          gx3     8x2        diag1,run5day
 restart        gx3     4x2        debug,diag1
+restart2       gx1     16x2       debug,diag1
 smoke          gbox12  1x1x12x12x1  boxchan
 smoke          gbox80  1x1        box2001
 smoke          gbox80  2x2        boxwallp5
@@ -28,6 +29,7 @@ smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest             
 
 smoke          gx3     8x2        diag1,run5day,gridcd
 restart        gx3     4x2        debug,diag1,gridcd
+restart2       gx1     16x2       debug,diag1,gridcd
 smoke          gbox12  1x1x12x12x1  boxchan,gridcd
 smoke          gbox80  1x1        box2001,gridcd
 smoke          gbox80  2x2        boxwallp5,gridcd
@@ -55,6 +57,7 @@ smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridcd      
 
 smoke          gx3     8x2        diag1,run5day,gridc
 restart        gx3     4x2        debug,diag1,gridc
+restart2       gx1     16x2       debug,diag1,gridc
 smoke          gbox12  1x1x12x12x1  boxchan,gridc
 smoke          gbox80  1x1        box2001,gridc
 smoke          gbox80  2x2        boxwallp5,gridc

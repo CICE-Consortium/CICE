@@ -1670,7 +1670,7 @@
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum
+            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
       endif
 
