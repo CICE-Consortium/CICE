@@ -971,7 +971,9 @@
 
             call ice_timer_start(timer_bound)
             call stack_velocity_field(uvel, vvel, fld2)
-            if (maskhalo_dyn) then
+            ! maskhalo_dyn causes non bit-for-bit results on different decomps 
+            ! with C/CD in some cases
+            if (grid_ice == 'B' .and. maskhalo_dyn) then
                call ice_HaloUpdate (fld2,               halo_info_mask, &
                                     field_loc_NEcorner, field_type_vector)
             else

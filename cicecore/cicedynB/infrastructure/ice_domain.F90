@@ -287,7 +287,7 @@
 
 !***********************************************************************
 
- subroutine init_domain_distribution(KMTG,ULATG)
+ subroutine init_domain_distribution(KMTG,ULATG,grid_ice)
 
 !  This routine calls appropriate setup routines to distribute blocks
 !  across processors and defines arrays with block ids for any local
@@ -301,6 +301,9 @@
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG           ,&! global topography
       ULATG            ! global latitude field (radians)
+
+   character(len=*), intent(in) :: &
+      grid_ice         ! grid_ice, B, C, CD, etc
 
 !----------------------------------------------------------------------
 !
@@ -319,6 +322,7 @@
    integer (int_kind) :: &
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
+      igm1,igp1,jgm1,jgp1,&! global indices
       ninfo              ,&! ice_distributionGet check
       work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
@@ -509,10 +513,25 @@
                   if (this_block%i_glob(i) > 0) then
                      ig = this_block%i_glob(i)
                      jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny .and.                      &
-                        (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
-                         ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
-                          nocn(n) = nocn(n) + flat(ig,jg)
+                     if (grid_ice == 'C' .or. grid_ice == 'CD') then
+                        ! Have to be careful about block elimination with C/CD
+                        ! Use a bigger stencil
+                        igm1 = mod(ig-2+nx_global,nx_global)+1
+                        igp1 = mod(ig,nx_global)+1
+                        jgm1 = max(jg-1,1)
+                        jgp1 = min(jg+1,ny_global)
+                        if ((KMTG(ig  ,jg  ) > puny .or.                             &
+                             KMTG(igm1,jg  ) > puny .or. KMTG(igp1,jg  ) > puny .or. &
+                             KMTG(ig  ,jgp1) > puny .or. KMTG(ig  ,jgm1) > puny) .and. &
+                            (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
+                             ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
+                             nocn(n) = nocn(n) + flat(ig,jg)
+                     else
+                        if (KMTG(ig,jg) > puny .and.                      &
+                           (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
+                            ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
+                             nocn(n) = nocn(n) + flat(ig,jg)
+                     endif
                   endif
                end do
             endif
@@ -529,10 +548,8 @@
          ! Keep all blocks even the ones only containing land points
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
-         if (distribution_wght == 'block' .and. &   ! POP style
-             nocn(n) > 0) nocn(n) = nx_block*ny_block
-         if (distribution_wght == 'blockall') &
-             nocn(n) = nx_block*ny_block
+         if (distribution_wght == 'block' .and. nocn(n) > 0) nocn(n) = nx_block*ny_block
+         if (.not. landblockelim) nocn(n) = max(nocn(n),1)
 #endif
       end do
    endif  ! distribution_wght = file
