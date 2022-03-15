@@ -755,7 +755,7 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
-            elseif (grid_ice == "C" .or. grid_ice == "CD") then
+            elseif (grid_ice == "C") then
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -868,75 +868,34 @@
                enddo
                !$OMP END PARALLEL DO
 
-               if (grid_ice == 'CD') then
-               
-                  !$OMP PARALLEL DO PRIVATE(iblk)
-                  do iblk = 1, nblocks
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
 
-                     call step_vel (nx_block,             ny_block,             & ! E point
-                                    icelle        (iblk), Cdn_ocn   (:,:,iblk), &
-                                    indxei      (:,iblk), indxej      (:,iblk), &
-                                                          aiE       (:,:,iblk), &
-                                    uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                                    waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
-                                    forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
-                                    emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                                    strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
-                                    taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
-                                    uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
-                                    uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                    TbE       (:,:,iblk))
+                   call stepu_Cgrid (nx_block,            ny_block,              & ! u, E point
+                                     icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                     indxei      (:,iblk), indxej      (:,iblk), &
+                                                           aiE       (:,:,iblk), &
+                                     uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                     waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
+                                     emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                     strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
+                                     uvelE_init(:,:,iblk),                       &
+                                     uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                     TbE       (:,:,iblk))
 
-                     call step_vel (nx_block,             ny_block,             & ! N point
-                                    icelln        (iblk), Cdn_ocn   (:,:,iblk), &
-                                    indxni      (:,iblk), indxnj      (:,iblk), &
-                                                          aiN       (:,:,iblk), &
-                                    uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                                    waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
-                                    forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
-                                    nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                                    strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
-                                    taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
-                                    uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
-                                    uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                    TbN       (:,:,iblk))
-
-                  enddo
-                  !$OMP END PARALLEL DO
-
-               elseif (grid_ice == 'C') then
-
-                  !$OMP PARALLEL DO PRIVATE(iblk)
-                  do iblk = 1, nblocks
-
-                      call stepu_Cgrid (nx_block,            ny_block,              & ! u, E point
-                                        icelle        (iblk), Cdn_ocn   (:,:,iblk), &
-                                        indxei      (:,iblk), indxej      (:,iblk), &
-                                                              aiE       (:,:,iblk), &
-                                        uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                                        waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
-                                        emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                                        strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
-                                        uvelE_init(:,:,iblk),                       &
-                                        uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                        TbE       (:,:,iblk))
-
-                      call stepv_Cgrid (nx_block,             ny_block,             & ! v, N point
-                                        icelln        (iblk), Cdn_ocn   (:,:,iblk), &
-                                        indxni      (:,iblk), indxnj      (:,iblk), &
-                                                              aiN       (:,:,iblk), &
-                                        uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                                        wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
-                                        nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                                        strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
-                                        vvelN_init(:,:,iblk),                       &
-                                        uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                        TbN       (:,:,iblk))
-
-                  enddo
-                  !$OMP END PARALLEL DO
-                  
-               endif
+                   call stepv_Cgrid (nx_block,             ny_block,             & ! v, N point
+                                     icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                     indxni      (:,iblk), indxnj      (:,iblk), &
+                                                           aiN       (:,:,iblk), &
+                                     uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                     wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                     nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                     strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
+                                     vvelN_init(:,:,iblk),                       &
+                                     uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                     TbN       (:,:,iblk))
+               enddo
+               !$OMP END PARALLEL DO
                   
                call ice_timer_start(timer_bound)
                call ice_HaloUpdate (uvelE,               halo_info, &
@@ -945,14 +904,175 @@
                                     field_loc_Nface, field_type_vector)
                call ice_timer_stop(timer_bound)
 
-               if (grid_ice == 'C') then
-                  call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
-                  call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
-                  uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
-                  vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
-               endif
+               call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
+               call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
+               uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
+               vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
 
                call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (uvelN,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
+               call ice_HaloUpdate (vvelE,               halo_info, &
+                                    field_loc_Eface, field_type_vector)
+               call ice_timer_stop(timer_bound)
+
+               call grid_average_X2Y('S',uvelE,'E',uvel,'U')
+               call grid_average_X2Y('S',vvelN,'N',vvel,'U')
+
+               uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
+               vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+
+            elseif (grid_ice == "CD") then
+
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+                  call stress_T (nx_block,             ny_block,             &
+                                                       icellt(iblk),         &
+                                 indxti      (:,iblk), indxtj      (:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 dxN       (:,:,iblk), dyE       (:,:,iblk), &
+                                 dxT       (:,:,iblk), dyT       (:,:,iblk), &
+                                                       DminTarea (:,:,iblk), &
+                                 strength  (:,:,iblk),                       &
+                                 zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
+                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
+                                 stress12T (:,:,iblk) )
+
+                  !-----------------------------------------------------------------
+                  ! on last subcycle, save quantities for mechanical redistribution
+                  !-----------------------------------------------------------------
+                  if (ksub == ndte) then
+                     call deformations_T (nx_block          , ny_block           , &
+                                          icellt      (iblk),                      &
+                                          indxti    (:,iblk), indxtj     (:,iblk), &
+                                          uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
+                                          uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
+                                          dxN     (:,:,iblk), dyE      (:,:,iblk), &
+                                          dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                                          tarear  (:,:,iblk),                      &
+                                          shear   (:,:,iblk), divu     (:,:,iblk), &
+                                          rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+                  endif
+               enddo
+               !$OMP END PARALLEL DO
+
+               ! Need to update the halos for the stress components
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (zetax2T,          halo_info, &
+                                    field_loc_center, field_type_scalar)
+               call ice_HaloUpdate (etax2T,           halo_info, &
+                                    field_loc_center, field_type_scalar)
+               call ice_timer_stop(timer_bound)
+
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+                  call stress_U (nx_block,             ny_block,             &
+                                                       icellu(iblk),         &
+                                 indxui      (:,iblk), indxuj      (:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                                 dxE       (:,:,iblk), dyN       (:,:,iblk), &
+                                 dxU       (:,:,iblk), dyU       (:,:,iblk), &
+                                 tarea     (:,:,iblk), uarea     (:,:,iblk), &
+                                 ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
+                                 ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
+                                 epm       (:,:,iblk), npm       (:,:,iblk), &
+                                 hm        (:,:,iblk), uvm       (:,:,iblk), &
+                                 zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
+                                 strength  (:,:,iblk),                       &
+                                 stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
+                                 stress12U (:,:,iblk))                   
+               enddo
+               !$OMP END PARALLEL DO
+
+               ! Need to update the halos for the stress components
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (stresspT,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stressmT,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stress12T,          halo_info, &
+                                    field_loc_center,  field_type_scalar)
+               call ice_HaloUpdate (stresspU,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_HaloUpdate (stressmU,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_HaloUpdate (stress12U,          halo_info, &
+                                    field_loc_NEcorner,  field_type_scalar)
+               call ice_timer_stop(timer_bound)
+
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+
+                  call div_stress (nx_block,             ny_block,             & ! E point
+                                                         icelle(iblk),         &
+                                   indxei      (:,iblk), indxej      (:,iblk), &
+                                   dxE       (:,:,iblk), dyE       (:,:,iblk), &
+                                   dxU       (:,:,iblk), dyT       (:,:,iblk), &
+                                   earear    (:,:,iblk),                       &
+                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
+                                   stress12U (:,:,iblk),                       &
+                                   stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
+                                   stress12T (:,:,iblk),                       &
+                                   strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
+                                   'E')
+
+                   call div_stress (nx_block,            ny_block,             & ! N point
+                                                         icelln(iblk),         &
+                                   indxni      (:,iblk), indxnj      (:,iblk), &
+                                   dxN       (:,:,iblk), dyN       (:,:,iblk), &
+                                   dxT       (:,:,iblk), dyU       (:,:,iblk), &
+                                   narear    (:,:,iblk),                       &
+                                   stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
+                                   stress12T (:,:,iblk),                       &
+                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
+                                   stress12U (:,:,iblk),                       &
+                                   strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
+                                   'N')
+                 
+               enddo
+               !$OMP END PARALLEL DO
+
+               !$OMP PARALLEL DO PRIVATE(iblk)
+               do iblk = 1, nblocks
+
+                  call step_vel (nx_block,             ny_block,             & ! E point
+                                 icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxei      (:,iblk), indxej      (:,iblk), &
+                                                       aiE       (:,:,iblk), &
+                                 uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                 waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
+                                 forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
+                                 emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                 strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
+                                 taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
+                                 uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 TbE       (:,:,iblk))
+
+                  call step_vel (nx_block,             ny_block,             & ! N point
+                                 icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxni      (:,iblk), indxnj      (:,iblk), &
+                                                       aiN       (:,:,iblk), &
+                                 uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                 waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
+                                 forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                 nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                 strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
+                                 taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
+                                 uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 TbN       (:,:,iblk))
+               enddo
+               !$OMP END PARALLEL DO
+
+               call ice_timer_start(timer_bound)
+               call ice_HaloUpdate (uvelE,               halo_info, &
+                                    field_loc_Eface, field_type_vector)
+               call ice_HaloUpdate (vvelN,               halo_info, &
+                                    field_loc_Nface, field_type_vector)
                call ice_HaloUpdate (uvelN,               halo_info, &
                                     field_loc_Nface, field_type_vector)
                call ice_HaloUpdate (vvelE,               halo_info, &
