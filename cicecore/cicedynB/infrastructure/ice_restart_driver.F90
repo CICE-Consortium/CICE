@@ -196,12 +196,18 @@
       call write_restart_field(nu_dump,0,stress12_2,'ruf8','stress12_2',1,diag)
       call write_restart_field(nu_dump,0,stress12_4,'ruf8','stress12_4',1,diag)
 
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+      if (grid_ice == 'CD') then
          call write_restart_field(nu_dump,0,stresspT ,'ruf8','stresspT' ,1,diag)
          call write_restart_field(nu_dump,0,stressmT ,'ruf8','stressmT' ,1,diag)
          call write_restart_field(nu_dump,0,stress12T,'ruf8','stress12T',1,diag)
          call write_restart_field(nu_dump,0,stresspU ,'ruf8','stresspU' ,1,diag)
          call write_restart_field(nu_dump,0,stressmU ,'ruf8','stressmU' ,1,diag)
+         call write_restart_field(nu_dump,0,stress12U,'ruf8','stress12U',1,diag)
+      endif
+
+      if (grid_ice == 'C') then
+         call write_restart_field(nu_dump,0,stresspT ,'ruf8','stresspT' ,1,diag)
+         call write_restart_field(nu_dump,0,stressmT ,'ruf8','stressmT' ,1,diag)
          call write_restart_field(nu_dump,0,stress12U,'ruf8','stress12U',1,diag)
       endif
 
