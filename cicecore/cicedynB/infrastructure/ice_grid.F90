@@ -400,7 +400,7 @@
       ! distribute blocks among processors
       !-----------------------------------------------------------------
 
-      call init_domain_distribution(work_g2, work_g1)  ! KMT, ULAT
+      call init_domain_distribution(work_g2, work_g1, grid_ice)  ! KMT, ULAT
 
       deallocate(work_g1)
       deallocate(work_g2)

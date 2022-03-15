@@ -19,6 +19,7 @@
 
       use ice_kinds_mod
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Eface, field_loc_Nface, &
@@ -222,29 +223,29 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = c0
-            if (icenmask(i,j,iblk)) work1(i,j,iblk) = c1
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               if (icenmask(i,j,iblk)) work1(i,j,iblk) = c1
+            enddo
+            enddo
          enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
+         !$OMP END PARALLEL DO
+         call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = c0
-            if (iceemask(i,j,iblk)) work1(i,j,iblk) = c1
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               if (iceemask(i,j,iblk)) work1(i,j,iblk) = c1
+            enddo
+            enddo
          enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
+         !$OMP END PARALLEL DO
+         call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
 
       endif
 
@@ -266,7 +267,6 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, npt, calendar
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
@@ -697,7 +697,6 @@
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
           set_date_from_timesecs
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks

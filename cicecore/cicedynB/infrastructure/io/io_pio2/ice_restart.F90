@@ -6,6 +6,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
       use ice_kinds_mod
@@ -44,7 +45,6 @@
 
       use ice_calendar, only: istep0, istep1, myear, mmonth, &
                               mday, msec, npt
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
 
@@ -140,7 +140,6 @@
       subroutine init_restart_write(filename_spec)
 
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
@@ -696,7 +695,6 @@
                                     field_loc, field_type)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: halo_info, distrb_info, nblocks
@@ -815,7 +813,6 @@
       subroutine write_restart_field(nu,nrec,work,atype,vname,ndim3,diag)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: max_blocks, ncat
@@ -901,7 +898,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate, msec
-      use ice_communicate, only: my_task, master_task
 
       character(len=*), parameter :: subname = '(final_restart)'
 
@@ -951,8 +947,11 @@
 
       query_field = .false.
 #ifdef USE_NETCDF
-      status = pio_inq_varid(File,trim(vname),vardesc)
-      if (status == PIO_noerr) query_field = .true.
+      if (my_task == master_task) then
+         status = pio_inq_varid(File,trim(vname),vardesc)
+         if (status == PIO_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)

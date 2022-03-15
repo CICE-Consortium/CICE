@@ -1,0 +1,7 @@
+npt            = 2
+npt_unit       = 'd'
+dumpfreq       = 'd'
+dumpfreq_n     = 1
+dumpfreq_base  = 'init'
+runtype        = 'initial'
+use_restart_time = .false.

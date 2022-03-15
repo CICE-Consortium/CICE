@@ -10,6 +10,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_kinds_mod
 #ifdef USE_NETCDF
       use netcdf
@@ -45,7 +46,6 @@
 
       use ice_calendar, only: msec, mmonth, mday, myear, &
                              istep0, istep1, npt
-      use ice_communicate, only: my_task, master_task
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -132,7 +132,6 @@
 
       use ice_blocks, only: nghost
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
@@ -841,7 +840,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate
-      use ice_communicate, only: my_task, master_task
 
       integer (kind=int_kind) :: status
 
@@ -904,8 +902,11 @@
 
       query_field = .false.
 #ifdef USE_NETCDF
-      status = nf90_inq_varid(ncid,trim(vname),varid)
-      if (status == nf90_noerr) query_field = .true.
+      if (my_task == master_task) then
+         status = nf90_inq_varid(ncid,trim(vname),varid)
+         if (status == nf90_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)
