@@ -1767,7 +1767,7 @@
                               dxT,        dyT,        &
                               divT,       tensionT,   &
                               shearT,     DeltaT      )
-         
+
       !-----------------------------------------------------------------
       ! deformations for mechanical redistribution
       !-----------------------------------------------------------------
@@ -1906,30 +1906,38 @@
          dxT      , & ! width of T-cell through the middle (m)
          dyT          ! height of T-cell through the middle (m)
          
-      real (kind=dbl_kind), intent(out):: &
+      real (kind=dbl_kind), optional, intent(out):: &
         divT, tensionT, shearT, DeltaT      ! strain rates at the T point
-         
+
       character(len=*), parameter :: subname = '(strain_rates_T)'
-         
+
       !-----------------------------------------------------------------
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
       ! divergence  =  e_11 + e_22
-      divT     = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
-               + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+      if (present(deltaT) .or. present(divT)) then
+         divT     = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
+                  + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+      endif
 
       ! tension strain rate  =  e_11 - e_22
-      tensionT = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
-               - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+      if (present(deltaT) .or. present(tensionT)) then
+         tensionT = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
+                  - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+      endif
 
       ! shearing strain rate  =  2*e_12
-      shearT   = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
-               + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+      if (present(deltaT) .or. present(shearT)) then
+         shearT   = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
+                  + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+      endif
       
       ! Delta (in the denominator of zeta, eta)
-      DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
+      if (present(deltaT)) then
+         DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
+      endif
 
       end subroutine strain_rates_T
 
@@ -2027,7 +2035,7 @@
          uvm          ! U-cell mask
          
          
-      real (kind=dbl_kind), intent(out):: &
+      real (kind=dbl_kind), optional, intent(out):: &
         divU, tensionU, shearU, DeltaU      ! strain rates at the U point
 
       ! local variables
@@ -2042,46 +2050,56 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      uNip1j = uvelN(i+1,j) * npm(i+1,j) &
-             +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
-      uNij   = uvelN(i,j) * npm(i,j) &
-             +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * uvelN(i+1,j)
-      vEijp1 = vvelE(i,j+1) * epm(i,j+1) &
-             +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
-      vEij   = vvelE(i,j) * epm(i,j) &
-             +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
+      if (present(divU) .or. present(tensionU) .or. present(DeltaU)) then
+         uNip1j = uvelN(i+1,j) * npm(i+1,j) &
+                +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
+         uNij   = uvelN(i,j) * npm(i,j) &
+                +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * uvelN(i+1,j)
+         vEijp1 = vvelE(i,j+1) * epm(i,j+1) &
+                +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
+         vEij   = vvelE(i,j) * epm(i,j) &
+                +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
+      endif
 
  ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
       
       ! divergence  =  e_11 + e_22
-      divU     = dyU(i,j) * ( uNip1j - uNij ) &
-               + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-               + dxU(i,j) * ( vEijp1 - vEij ) &
-               + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+      if (present(divU) .or. present(DeltaU)) then
+         divU     = dyU(i,j) * ( uNip1j - uNij ) &
+                  + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                  + dxU(i,j) * ( vEijp1 - vEij ) &
+                  + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+      endif
 
       ! tension strain rate  =  e_11 - e_22
-      tensionU = dyU(i,j) * ( uNip1j - uNij ) &
-               - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-               - dxU(i,j) * ( vEijp1 - vEij ) &
-               + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+      if (present(tensionU) .or. present(DeltaU)) then
+         tensionU = dyU(i,j) * ( uNip1j - uNij ) &
+                  - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                  - dxU(i,j) * ( vEijp1 - vEij ) &
+                  + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+      endif
 
-      uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
-             +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
-      uEij   = uvelE(i,j) * epm(i,j) &
-             +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
-      vNip1j = vvelN(i+1,j) * npm(i+1,j) &
-             +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
-      vNij   = vvelN(i,j) * npm(i,j) &
-             +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
+      if (present(shearU) .or. present(DeltaU)) then
+         uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
+                +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
+         uEij   = uvelE(i,j) * epm(i,j) &
+                +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
+         vNip1j = vvelN(i+1,j) * npm(i+1,j) &
+                +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
+         vNij   = vvelN(i,j) * npm(i,j) &
+                +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
                
-      ! shearing strain rate  =  2*e_12
-      shearU = dxU(i,j) * ( uEijp1 - uEij ) &
-               - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
-               + dyU(i,j) * ( vNip1j - vNij ) &
-               - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
-      
+         ! shearing strain rate  =  2*e_12
+         shearU = dxU(i,j) * ( uEijp1 - uEij ) &
+                  - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
+                  + dyU(i,j) * ( vNip1j - vNij ) &
+                  - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+      endif
+
       ! Delta (in the denominator of zeta, eta)
-      DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
+      if (present(DeltaU)) then
+         DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
+      endif
 
     end subroutine strain_rates_U
 
@@ -2225,7 +2243,8 @@
             area1,   area2,   area3,   area4, &
          deltaU
 
-      real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
+      real (kind=dbl_kind), optional, intent(out):: &
+         zetax2U, etax2U, rep_prsU
 
       ! local variables
 
@@ -2241,17 +2260,23 @@
                  mask3 * area3   + &
                  mask2 * area2)
 
-      zetax2U = (mask1 * area1 * zetax2T1  + &
-                 mask4 * area4 * zetax2T4  + &
-                 mask3 * area3 * zetax2T3  + &
-                 mask2 * area2 * zetax2T2) / areatmp
+      if (present(rep_prsU) .or. present(zetax2U)) then
+         zetax2U = (mask1 * area1 * zetax2T1  + &
+                    mask4 * area4 * zetax2T4  + &
+                    mask3 * area3 * zetax2T3  + &
+                    mask2 * area2 * zetax2T2) / areatmp
+      endif
 
-      etax2U  = (mask1 * area1 * etax2T1  + &
-                 mask4 * area4 * etax2T4  + &
-                 mask3 * area3 * etax2T3  + &
-                 mask2 * area2 * etax2T2) / areatmp
+      if (present(etax2U)) then
+         etax2U  = (mask1 * area1 * etax2T1  + &
+                    mask4 * area4 * etax2T4  + &
+                    mask3 * area3 * etax2T3  + &
+                    mask2 * area2 * etax2T2) / areatmp
+      endif
 
-      rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
+      if (present(rep_prsU)) then
+         rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
+      endif
 
       end subroutine visccoeff_replpress_avgzeta
 
