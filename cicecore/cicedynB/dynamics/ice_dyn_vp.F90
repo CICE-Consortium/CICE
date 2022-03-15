@@ -1157,8 +1157,8 @@
                                 zetax2  , etax2   , &
                                 rep_prs , stPr)
 
-        use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure, &
-                                  capping
+      use ice_dyn_shared, only: strain_rates, visccoeff_replpress, &
+                                capping
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1240,17 +1240,23 @@
       ! viscous coefficients and replacement pressure                           
       !-----------------------------------------------------------------        
 
-         call viscous_coeffs_and_rep_pressure (strength(i,j),  DminTarea(i,j), &
-                                               Deltane,        Deltanw,        &
-                                               Deltasw,        Deltase,        &
-                                               zetax2(i,j,1),  zetax2(i,j,2),  &
-                                               zetax2(i,j,3),  zetax2(i,j,4),  &
-                                               etax2(i,j,1),   etax2(i,j,2),   &
-                                               etax2(i,j,3),   etax2(i,j,4),   &
-                                               rep_prs(i,j,1), rep_prs(i,j,2), &
-                                               rep_prs(i,j,3), rep_prs(i,j,4), &
-                                               capping)
-         
+         call visccoeff_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                                   Deltane        , zetax2   (i,j,1), &
+                                   etax2   (i,j,1), rep_prs  (i,j,1), &
+                                   capping)
+         call visccoeff_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                                   Deltanw        , zetax2   (i,j,2), &
+                                   etax2   (i,j,2), rep_prs  (i,j,2), &
+                                   capping)
+         call visccoeff_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                                   Deltasw        , zetax2   (i,j,3), &
+                                   etax2   (i,j,3), rep_prs  (i,j,3), &
+                                   capping)
+         call visccoeff_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                                   Deltase        , zetax2   (i,j,4), &
+                                   etax2   (i,j,4), rep_prs  (i,j,4), &
+                                   capping)
+
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast

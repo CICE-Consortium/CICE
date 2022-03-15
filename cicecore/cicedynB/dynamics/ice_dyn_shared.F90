@@ -29,10 +29,9 @@
                 alloc_dyn_shared, &
                 deformations, deformations_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
-                viscous_coeffs_and_rep_pressure, &
-                viscous_coeffs_and_rep_pressure_T, &
-                viscous_coeffs_and_rep_pressure_T2U, &
-                viscous_coeffs_and_rep_pressure_U, &
+                visccoeff_replpress, &
+                visccoeff_replpress_avgstr, &
+                visccoeff_replpress_avgzeta, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -52,6 +51,10 @@
       character (len=char_len), public :: &
          evp_algorithm  ! standard_2d = 2D org version (standard)
                         ! shared_mem_1d = 1d without mpi call and refactorization to 1d 
+
+      real (kind=dbl_kind), public :: &
+         elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
+
       ! other EVP parameters
 
       character (len=char_len), public :: & 
@@ -62,7 +65,6 @@
       
                                                                       
       real (kind=dbl_kind), parameter, public :: &
-         eyc   = 0.36_dbl_kind, & ! coefficient for calculating the parameter E
          u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
          cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
          sinw  = c0           , & ! sin(ocean turning angle)  ! turning angle = 0
@@ -190,7 +192,7 @@
       if (my_task == master_task) then
          write(nu_diag,*) 'dt  = ',dt
          write(nu_diag,*) 'dte = ',dt/real(ndte,kind=dbl_kind)
-         write(nu_diag,*) 'tdamp =', eyc*dt
+         write(nu_diag,*) 'tdamp =', elasticDamp * dt
       endif
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
@@ -318,8 +320,8 @@
       ecci = c1/e_yieldcurve**2 ! temporary for 1d evp
 
       ! constants for stress equation
-      !tdamp2 = c2*eyc*dt                    ! s
-      !dte2T = dte/tdamp2    or c1/(c2*eyc*real(ndte,kind=dbl_kind))               ! ellipse (unitless)
+      !tdamp2 = c2 * elasticDamp * dt                 ! s
+      !dte2T = dte/tdamp2    or c1/(c2*elasticDamp*real(ndte,kind=dbl_kind))               ! ellipse (unitless)
 
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
@@ -330,7 +332,7 @@
          !arlx1i = dte2T
          !arlx   = c1/arlx1i
          !brlx   = dt*dtei
-         arlx   = c2*eyc*real(ndte,kind=dbl_kind)
+         arlx   = c2 * elasticDamp * real(ndte,kind=dbl_kind)
          arlx1i   = c1/arlx
          brlx   = real(ndte,kind=dbl_kind)
          denom1 = c1/(c1+arlx1i)
@@ -1032,7 +1034,7 @@
 
       enddo                     ! ij
 
-    end subroutine stepu_Cgrid
+      end subroutine stepu_Cgrid
 
 !=======================================================================
 
@@ -1132,7 +1134,7 @@
 
       enddo                     ! ij
 
-    end subroutine stepv_Cgrid
+      end subroutine stepv_Cgrid
     
 !=======================================================================
 
@@ -1306,7 +1308,7 @@
 
       enddo                     ! ij
 
-    end subroutine seabed_stress_factor_LKD
+      end subroutine seabed_stress_factor_LKD
 
 !=======================================================================
 ! Computes seabed (basal) stress factor Tbu (landfast ice) based on 
@@ -1491,39 +1493,38 @@
          endif
       enddo
 
-      select case (trim(grid_ice))
-         case('B')
-            do ij = 1, icellu
-               i = indxui(ij)
-               j = indxuj(ij)
-               ! convert quantities to U-location            
-               Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
-            enddo                     ! ij          
-         case('CD','C')
-            if(present(Tbe)    .and. present(TbN)    .and. &
-               present(icelle) .and. present(icelln) .and. &
-               present(indxei) .and. present(indxej) .and. &
-               present(indxni) .and. present(indxnj)) then
+      if (grid_ice == "B") then
+         do ij = 1, icellu
+            i = indxui(ij)
+            j = indxuj(ij)
+            ! convert quantities to U-location            
+            Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
+         enddo                     ! ij          
+      elseif (grid_ice == "C" .or. grid_ice == "CD") then
+         if (present(Tbe)    .and. present(TbN)    .and. &
+             present(icelle) .and. present(icelln) .and. &
+             present(indxei) .and. present(indxej) .and. &
+             present(indxni) .and. present(indxnj)) then
 
-                  do ij = 1, icelle
-                     i = indxei(ij)
-                     j = indxej(ij)
-                     ! convert quantities to E-location
-                     TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
-                  enddo
-                  do ij = 1, icelln
-                     i = indxni(ij)
-                     j = indxnj(ij)
-                     ! convert quantities to N-location
-                     TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
-                  enddo
+            do ij = 1, icelle
+               i = indxei(ij)
+               j = indxej(ij)
+               ! convert quantities to E-location
+                  TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
+            enddo
+            do ij = 1, icelln
+               i = indxni(ij)
+               j = indxnj(ij)
+               ! convert quantities to N-location
+               TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
+            enddo
 
-            else
-               call abort_ice(subname // ' insufficient number of arguments for grid_ice:' // grid_ice)
-            endif
-      end select
+         else
+            call abort_ice(subname // ' insufficient number of arguments for grid_ice:' // grid_ice)
+         endif
+      endif
       
-    end subroutine seabed_stress_factor_prob
+      end subroutine seabed_stress_factor_prob
       
 !=======================================================================
 
@@ -1688,7 +1689,7 @@
 
       enddo                     ! ij
 
-    end subroutine deformations
+      end subroutine deformations
     
 !=======================================================================
 
@@ -1780,7 +1781,7 @@
 
       enddo                     ! ij
 
-    end subroutine deformations_T
+      end subroutine deformations_T
     
 !=======================================================================
 
@@ -1929,9 +1930,8 @@
       ! Delta (in the denominator of zeta, eta)
       DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
 
-    end subroutine strain_rates_T
+      end subroutine strain_rates_T
 
-    
 !=======================================================================
 
 ! Compute strain rates at the U point including boundary conditions
@@ -2034,100 +2034,27 @@
       ! Delta (in the denominator of zeta, eta)
       DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
 
-    end subroutine strain_rates_U
-    
- !=======================================================================
- ! Computes viscous coefficients and replacement pressure for stress 
- ! calculations. Note that tensile strength is included here.
- !
- ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
- ! Oceanogr., 9, 817-846.
- !
- ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
- ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
- !
- ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
- ! by combining tensile strength and a parameterization for grounded ridges.
- ! J. Geophys. Res. Oceans, 121, 7354-7368.
-      
-      subroutine viscous_coeffs_and_rep_pressure (strength,  DminTarea,&
-                                                  Deltane,   Deltanw,  &
-                                                  Deltasw,   Deltase,  &
-                                                  zetax2ne,  zetax2nw, &
-                                                  zetax2sw,  zetax2se, &
-                                                  etax2ne,   etax2nw,  &
-                                                  etax2sw,   etax2se,  &
-                                                  rep_prsne, rep_prsnw,&
-                                                  rep_prssw, rep_prsse,&
-                                                  capping)
+      end subroutine strain_rates_U
+
+!=======================================================================
+! Computes viscous coefficients and replacement pressure for stress 
+! calculations. Note that tensile strength is included here.
+!
+! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
+! Oceanogr., 9, 817-846.
+!
+! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
+! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
+!
+! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
+! by combining tensile strength and a parameterization for grounded ridges.
+! J. Geophys. Res. Oceans, 121, 7354-7368.
+
+      subroutine visccoeff_replpress(strength, DminArea, Delta, &
+                                     zetax2, etax2, rep_prs, capping)
 
       real (kind=dbl_kind), intent(in)::  &
-        strength, DminTarea             ! at the t-point
-        
-      real (kind=dbl_kind), intent(in)::  &  
-        Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
-
-      real(kind=dbl_kind) , intent(in):: capping
-      
-      real (kind=dbl_kind), intent(out):: &  
-        zetax2ne, zetax2nw, zetax2sw, zetax2se,  & ! zetax2 at each corner 
-        etax2ne, etax2nw, etax2sw, etax2se,      & ! etax2 at each corner
-        rep_prsne, rep_prsnw, rep_prssw, rep_prsse ! replacement pressure
-
-      ! local variables
-      real (kind=dbl_kind) :: &
-        tmpcalcne, tmpcalcnw, tmpcalcsw, tmpcalcse
-
-      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-       
-        tmpcalcne = capping     *(strength/max(Deltane, DminTarea))+ &
-                    (c1-capping)* strength/   (Deltane+ DminTarea)   
-        tmpcalcnw = capping     *(strength/max(Deltanw, DminTarea))+ &
-                    (c1-capping)* strength/   (Deltanw+ DminTarea)   
-        tmpcalcsw = capping     *(strength/max(Deltasw, DminTarea))+ &
-                    (c1-capping)* strength/   (Deltasw+ DminTarea)  
-        tmpcalcse = capping     *(strength/max(Deltase, DminTarea))+ &
-                    (c1-capping)* strength/   (Deltase+ DminTarea)
-
-        zetax2ne  = (c1+Ktens)*tmpcalcne ! northeast 
-        rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
-        etax2ne   = epp2i*zetax2ne
-         
-        zetax2nw  = (c1+Ktens)*tmpcalcnw ! northwest 
-        rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
-        etax2nw   = epp2i*zetax2nw
-
-        zetax2sw  = (c1+Ktens)*tmpcalcsw ! southwest  
-        rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
-        etax2sw   = epp2i*zetax2sw
-         
-        zetax2se  = (c1+Ktens)*tmpcalcse ! southeast
-        rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
-        etax2se   = epp2i*zetax2se
-      
-       end subroutine viscous_coeffs_and_rep_pressure
-
- !=======================================================================
- ! Computes viscous coefficients and replacement pressure for stress 
- ! calculations. Note that tensile strength is included here.
- !
- ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
- ! Oceanogr., 9, 817-846.
- !
- ! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
- ! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
- !
- ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
- ! by combining tensile strength and a parameterization for grounded ridges.
- ! J. Geophys. Res. Oceans, 121, 7354-7368.
-
-       subroutine viscous_coeffs_and_rep_pressure_T (strength, DminTarea, &
-                                                     Delta   , zetax2   , &
-                                                     etax2   , rep_prs  , &
-                                                     capping)
-
-      real (kind=dbl_kind), intent(in)::  &
-        strength, DminTarea
+        strength, DminArea
 
       real (kind=dbl_kind), intent(in)::  &
         Delta, capping
@@ -2139,123 +2066,115 @@
       real (kind=dbl_kind) :: &
         tmpcalc
 
-      character(len=*), parameter :: subname = '(viscous_coeffs_and_rep_pressure_T)'
+      character(len=*), parameter :: subname = '(visccoeff_replpress)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-      tmpcalc =     capping *(strength/max(Delta,DminTarea))+ &
-                (c1-capping)*(strength/(Delta + DminTarea))
-      zetax2 = (c1+Ktens)*tmpcalc
+      tmpcalc =     capping *(strength/max(Delta,DminArea))+ &
+                (c1-capping)*(strength/(Delta + DminArea))
+      zetax2  = (c1+Ktens)*tmpcalc
       rep_prs = (c1-Ktens)*tmpcalc*Delta
-      etax2 = epp2i*zetax2
+      etax2   = epp2i*zetax2
 
-      end subroutine viscous_coeffs_and_rep_pressure_T
+      end subroutine visccoeff_replpress
 
+!=======================================================================
 
-      subroutine viscous_coeffs_and_rep_pressure_T2U (zetax2T_00, zetax2T_01, &
-                                                      zetax2T_11, zetax2T_10, &
-                                                       etax2T_00,  etax2T_01, &
-                                                       etax2T_11,  etax2T_10, & 
-                                                        maskT_00,  maskT_01, &
-                                                        maskT_11,  maskT_10, &
-                                                        tarea_00,   tarea_01, &
-                                                        tarea_11,   tarea_10, &
-                                                        deltaU,               &
-                                                        zetax2U, etax2U,      &
-                                                        rep_prsU)
-                              
+      subroutine visccoeff_replpress_avgzeta (zetax2T1, zetax2T2, &
+                                              zetax2T3, zetax2T4, &
+                                               etax2T1,  etax2T2, &
+                                               etax2T3,  etax2T4, & 
+                                                 mask1,    mask2, &
+                                                 mask3,    mask4, &
+                                                 area1,    area2, &
+                                                 area3,    area4, &
+                                 deltaU, zetax2U, etax2U, rep_prsU)
 
       real (kind=dbl_kind), intent(in):: &
-        zetax2T_00,zetax2T_10,zetax2T_11,zetax2T_01, &
-         etax2T_00, etax2T_10, etax2T_11, etax2T_01,  & ! 2 x viscous coeffs, replacement pressure
-         maskT_00, maskT_10, maskT_11, maskT_01, &
-         tarea_00, tarea_10, tarea_11, tarea_01, &
+         zetax2T1,zetax2T2,zetax2T3,zetax2T4, &
+          etax2T1, etax2T2, etax2T3, etax2T4, & ! 2 x viscous coeffs, replacement pressure
+            mask1,   mask2,   mask3,   mask4, &
+            area1,   area2,   area3,   area4, &
          deltaU
 
       real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
 
       ! local variables
-     
-      real (kind=dbl_kind) :: &
-           Totarea
 
-      character(len=*), parameter :: subname = '(viscous_coeffs_and_rep_pressure_T2U)'
+      real (kind=dbl_kind) :: &
+           areatmp
+
+      character(len=*), parameter :: subname = '(visccoeff_replpress_avgzeta)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-      Totarea = maskT_00*Tarea_00   + &
-                maskT_10*Tarea_10   + &
-                maskT_11*Tarea_11   + &
-                maskT_01*Tarea_01
-      zetax2U = (maskT_00*Tarea_00 *zetax2T_00  + &
-                 maskT_10*Tarea_10 *zetax2T_10  + &
-                 maskT_11*Tarea_11 *zetax2T_11  + &
-                 maskT_01*Tarea_01 *zetax2T_01)/Totarea
 
-      etax2U  = (maskT_00*Tarea_00 *etax2T_00   + &
-                 maskT_10*Tarea_10 *etax2T_10   + &
-                 maskT_11*Tarea_11 *etax2T_11   + &
-                 maskT_01*Tarea_01 *etax2T_01)/Totarea
- 
+      areatmp = (mask1 * area1   + &
+                 mask4 * area4   + &
+                 mask3 * area3   + &
+                 mask2 * area2)
+
+      zetax2U = (mask1 * area1 * zetax2T1  + &
+                 mask4 * area4 * zetax2T4  + &
+                 mask3 * area3 * zetax2T3  + &
+                 mask2 * area2 * zetax2T2) / areatmp
+
+      etax2U  = (mask1 * area1 * etax2T1  + &
+                 mask4 * area4 * etax2T4  + &
+                 mask3 * area3 * etax2T3  + &
+                 mask2 * area2 * etax2T2) / areatmp
+
       rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
 
-       end subroutine viscous_coeffs_and_rep_pressure_T2U
+      end subroutine visccoeff_replpress_avgzeta
 
 !=======================================================================
 
-        subroutine viscous_coeffs_and_rep_pressure_U (strength_00, strength_01, &
-                                                      strength_11, strength_10, &
-                                                      maskT_00,  maskT_01,      &
-                                                      maskT_11,  maskT_10,      &
-                                                      tarea_00,   tarea_01,     &
-                                                      tarea_11,   tarea_10,     &
-                                                      DminUarea,                &
-                                                      deltaU, capping,          &
-                                                      zetax2U, etax2U,          &
-                                                      rep_prsU)
-                              
+      subroutine visccoeff_replpress_avgstr (strength1, strength2, &
+                                             strength3, strength4, &
+                                                 mask1,     mask2, &
+                                                 mask3,     mask4, &
+                                                 area1,     area2, &
+                                                 area3,     area4, &
+                                             DminUarea, deltaU,    &
+                                 zetax2U, etax2U, rep_prsU, capping)
 
       real (kind=dbl_kind), intent(in):: &
-         strength_00,strength_10,strength_11,strength_01, &
-         maskT_00, maskT_10, maskT_11, maskT_01, &
-         tarea_00, tarea_10, tarea_11, tarea_01, &
+         strength1,strength2,strength3,strength4, &
+             mask1,    mask2,    mask3,    mask4, &
+             area1,    area2,    area3,    area4, &
          DminUarea, deltaU, capping
 
       real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
 
       ! local variables
-     
-      real (kind=dbl_kind) :: &
-           Totarea, tmpcalc, strength
 
-      character(len=*), parameter :: subname = '(viscous_coeffs_and_rep_pressure_U)'
+      real (kind=dbl_kind) :: &
+           areatmp, strtmp   ! area and strength average
+
+      character(len=*), parameter :: subname = '(visccoeff_replpress_avgstr)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-      Totarea = maskT_00*Tarea_00   + &
-                maskT_10*Tarea_10   + &
-                maskT_11*Tarea_11   + &
-                maskT_01*Tarea_01
-      strength = (maskT_00*Tarea_00 *strength_00  + &
-                  maskT_10*Tarea_10 *strength_10  + &
-                  maskT_11*Tarea_11 *strength_11  + &
-                  maskT_01*Tarea_01 *strength_01)/Totarea
 
- !     rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
-      ! IMPROVE the calc below are the same as in the other viscous coeff...could reduce redundency
-      ! we could have a strength_U subroutine and then calc the visc coeff
+      areatmp = (mask1 * area1 + &
+                 mask4 * area4 + &
+                 mask3 * area3 + &
+                 mask2 * area2)
+
+      strtmp  = (mask1 * area1 * strength1  + &
+                 mask4 * area4 * strength4  + &
+                 mask3 * area3 * strength3  + &
+                 mask2 * area2 * strength2) / areatmp
+
+      call visccoeff_replpress (strtmp, DminUarea, deltaU, &
+                                zetax2U, etax2U, rep_prsU, capping)
       
-      tmpcalc =     capping *(strength/max(deltaU,DminUarea))+ &
-                (c1-capping)*(strength/(deltaU + DminUarea))
-      zetax2U = (c1+Ktens)*tmpcalc
-      rep_prsU = (c1-Ktens)*tmpcalc*deltaU
-      etax2U = epp2i*zetax2U
-      
-    end subroutine viscous_coeffs_and_rep_pressure_U
+      end subroutine visccoeff_replpress_avgstr
 
 !=======================================================================
 
 ! Load velocity components into array for boundary updates
 
-   subroutine stack_velocity_field(uvel, vvel, fld2)
+      subroutine stack_velocity_field(uvel, vvel, fld2)
 
       use ice_domain, only: nblocks
 
@@ -2287,7 +2206,7 @@
 
 ! Unload velocity components from array after boundary updates
 
-   subroutine unstack_velocity_field(fld2, uvel, vvel)
+      subroutine unstack_velocity_field(fld2, uvel, vvel)
 
       use ice_domain, only: nblocks
 

@@ -111,7 +111,8 @@
                                 k1, k2, alphab, threshold_hw, Ktens,  &
                                 e_yieldcurve, e_plasticpot, coriolis, &
                                 ssh_stress, kridge, brlx, arlx,       &
-                                deltaminEVP, deltaminVP, capping
+                                deltaminEVP, deltaminVP, capping,     &
+                                elasticDamp
 
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
@@ -215,7 +216,7 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_algorithm,                                                  &
+        evp_algorithm,  elasticDamp,                                    &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
@@ -357,11 +358,12 @@
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       evp_algorithm = 'standard_2d'    ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
+      elasticDamp = 0.36_dbl_kind  ! coefficient for calculating the parameter E
       pgl_global_ext = .false. ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
-      yield_curve = 'ellipse'
+      yield_curve = 'ellipse'  ! yield curve 
       kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
@@ -833,6 +835,7 @@
       call broadcast_scalar(ndtd,                 master_task)
       call broadcast_scalar(ndte,                 master_task)
       call broadcast_scalar(evp_algorithm,        master_task)
+      call broadcast_scalar(elasticDamp,          master_task)
       call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
@@ -1666,10 +1669,10 @@
             endif
 
             if (kdyn == 1 .or. kdyn == 3) then
-               write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve)
+               write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve), ' : yield curve'
                if (trim(yield_curve) == 'ellipse') &
-                    write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
-                    write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
+                  write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
+                  write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
             endif
 
             if (kdyn == 1) then
@@ -1680,6 +1683,8 @@
                write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscous coefficients'
             endif
                
+            write(nu_diag,1002) ' elasticDamp  = ', elasticDamp, ' : coefficient for calculating the parameter E'
+
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ' : latitude-dependent Coriolis parameter'
             elseif (trim(coriolis) == 'contant') then
@@ -1729,7 +1734,7 @@
                endif
             endif
             if (grid_ice == 'C' .or. grid_ice == 'CD') then
-               write(nu_diag,1030) 'viscous coeff method (U point) = ', trim(visc_coeff_method)
+               write(nu_diag,1030) ' visc_coeff_method= ', trim(visc_coeff_method),' : viscous coeff method (U point)'
             endif
             
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
@@ -2341,7 +2346,7 @@
 
  1000    format (a20,1x,f13.6,1x,a) ! float
  1002    format (a20,5x,f9.2,1x,a)
- 1003    format (a20,1x,G11.4,1x,a)
+ 1003    format (a20,1x,G13.4,1x,a)
  1009    format (a20,1x,d13.6,1x,a)
  1010    format (a20,8x,l6,1x,a)  ! logical
  1011    format (a20,1x,l6)

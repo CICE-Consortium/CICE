@@ -457,7 +457,7 @@ for elastic waves, :math:`\Delta t_e < T < \Delta t`, as
 .. math::
    E = {\zeta\over T},
 
-where :math:`T=E_\circ\Delta t` and :math:`E_\circ` (eyc) is a tunable
+where :math:`T=E_\circ\Delta t` and :math:`E_\circ` (elasticDamp) is a tunable
 parameter less than one. Including the modification proposed by :cite:`Bouillon13` for equations :eq:`sig2` and :eq:`sig12` in order to improve numerical convergence, the stress equations become
 
 .. math::

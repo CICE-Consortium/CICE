@@ -1026,9 +1026,9 @@ t_e`) is thus
 .. math::
    dte = dt\_dyn/ndte.
 
-A second parameter, :math:`E_\circ` (``eyc``), defines the elastic wave
+A second parameter, :math:`E_\circ` (``elasticDamp``), defines the elastic wave
 damping timescale :math:`T`, described in Section :ref:`dynam`, as
-``eyc * dt_dyn``. The forcing terms are not updated during the subcycling.
+``elasticDamp * dt_dyn``. The forcing terms are not updated during the subcycling.
 Given the small step (``dte``) at which the EVP dynamics model is subcycled,
 the elastic parameter :math:`E` is also limited by stability
 constraints, as discussed in :cite:`Hunke97`. Linear stability

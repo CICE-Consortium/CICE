@@ -215,7 +215,7 @@ either Celsius or Kelvin units).
    "etax2", "2 x eta (shear viscous coefficient)", "kg/s"
    "evap", "evaporative water flux", "kg/m\ :math:`^2`/s"
    "ew_boundary_type", "type of east-west boundary condition", ""
-   "eyc", "coefficient for calculating the parameter E, 0\ :math:`<` eyc :math:`<`\ 1", "0.36"
+   "elasticDamp", "coefficient for calculating the parameter E, 0\ :math:`<` elasticDamp :math:`<`\ 1", "0.36"
    "e_yieldcurve", "yield curve minor/major axis ratio", "2"
    "e_plasticpot", "plastic potential minor/major axis ratio", "2"
    "**F**", "", ""

@@ -590,8 +590,7 @@
       
       if (seabed_stress) then
 
-         select case (trim(grid_ice))
-         case('B')
+         if (grid_ice == "B") then
 
             if ( seabed_stress_method == 'LKD' ) then
                !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
@@ -616,7 +615,7 @@
                !$OMP END PARALLEL DO
             endif
 
-         case('CD','C')
+         elseif (grid_ice == "C" .or. grid_ice == "CD") then
 
             if ( seabed_stress_method == 'LKD' ) then
                !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
@@ -649,7 +648,7 @@
                !$OMP END PARALLEL DO
             endif
 
-         end select
+         endif
          
       endif
 
@@ -691,8 +690,7 @@
 
          do ksub = 1,ndte        ! subcycling
 
-            select case (grid_ice)
-            case('B')
+            if (grid_ice == "B") then
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
                do iblk = 1, nblocks
@@ -757,7 +755,7 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
-            case('CD','C')
+            elseif (grid_ice == "C" .or. grid_ice == "CD") then
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -967,7 +965,7 @@
                uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
                vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
 
-            end select
+            endif   ! grid_ice
 
             call ice_timer_start(timer_bound)
             call stack_velocity_field(uvel, vvel, fld2)
@@ -1169,9 +1167,8 @@
                          stress12_3, stress12_4, & 
                          str )
 
-      use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure_T, &
-          capping
-        
+      use ice_dyn_shared, only: strain_rates, visccoeff_replpress, capping
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          icellt                ! no. of cells where icetmask = 1
@@ -1262,27 +1259,18 @@
       ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
-                                                 Deltane,       zetax2ne,      &
-                                                 etax2ne,       rep_prsne,     &
-                                                 capping)
- 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
-                                                 Deltanw,       zetax2nw,      &
-                                                 etax2nw,       rep_prsnw,     &
-                                                 capping)
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltane, &
+                                   zetax2ne, etax2ne, rep_prsne, capping)
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
-                                                 Deltasw,       zetax2sw,      &
-                                                 etax2sw,       rep_prssw,     &
-                                                 capping)
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltanw, &
+                                   zetax2nw, etax2nw, rep_prsnw, capping)
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j), DminTarea(i,j),&
-                                                 Deltase,       zetax2se,      &
-                                                 etax2se,       rep_prsse,     &
-                                                 capping)
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltasw, &
+                                   zetax2sw, etax2sw, rep_prssw, capping)
 
-         
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltase, &
+                                   zetax2se, etax2se, rep_prsse, capping)
+
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -1471,7 +1459,7 @@
                              stress12T               )
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
-                                viscous_coeffs_and_rep_pressure_T
+                                visccoeff_replpress
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1538,10 +1526,10 @@
          ! viscous coefficients and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call viscous_coeffs_and_rep_pressure_T (strength(i,j),           &
-                                                 DminTarea(i,j), DeltaT,  &
-                                                 zetax2T(i,j),etax2T(i,j),&
-                                                 rep_prsT, capping        )
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), &
+                                   DeltaT       , zetax2T  (i,j), &
+                                   etax2T  (i,j), rep_prsT      , &
+                                   capping)
          
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1587,10 +1575,10 @@
                              stress12U            )
 
       use ice_dyn_shared, only: strain_rates_U, &
-                                viscous_coeffs_and_rep_pressure_T2U, &
-                                viscous_coeffs_and_rep_pressure_U, &
+                                visccoeff_replpress_avgstr, &
+                                visccoeff_replpress_avgzeta, &
                                 visc_coeff_method, deltaminEVP, capping
-        
+
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          icellu                ! no. of cells where iceumask = 1
@@ -1637,7 +1625,7 @@
       real (kind=dbl_kind) :: &
         divU, tensionU, shearU, DeltaU, & ! strain rates at U point
         zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
-        DminUarea
+        DminUarea, strtmp, areatmp        ! Dmin on U and tmp variables
 
       character(len=*), parameter :: subname = '(stress_U)'
       
@@ -1668,28 +1656,26 @@
          !-----------------------------------------------------------------
 
          if (visc_coeff_method == 'avg_zeta') then
-            call viscous_coeffs_and_rep_pressure_T2U (zetax2T(i  ,j  ), zetax2T(i  ,j+1), &
-                                                      zetax2T(i+1,j+1), zetax2T(i+1,j  ), &
-                                                      etax2T (i  ,j  ), etax2T (i  ,j+1), &
-                                                      etax2T (i+1,j+1), etax2T (i+1,j  ), &
-                                                      hm     (i  ,j  ), hm     (i  ,j+1), &
-                                                      hm     (i+1,j+1), hm     (i+1,j  ), &
-                                                      tarea  (i  ,j  ), tarea  (i  ,j+1), &
-                                                      tarea  (i+1,j+1), tarea  (i+1,j  ), &
-                                                      DeltaU,zetax2U, etax2U, rep_prsU)
+            call visccoeff_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
+                                              zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
+                                              etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
+                                              etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
+                                              hm      (i  ,j  ), hm      (i  ,j+1), &
+                                              hm      (i+1,j+1), hm      (i+1,j  ), &
+                                              tarea   (i  ,j  ), tarea   (i  ,j+1), &
+                                              tarea   (i+1,j+1), tarea   (i+1,j  ), &
+                                              DeltaU, zetax2U, etax2U, rep_prsU)
+
          elseif (visc_coeff_method == 'avg_strength') then
-
             DminUarea = deltaminEVP*uarea(i,j)
-            call viscous_coeffs_and_rep_pressure_U (strength(i  ,j  ), strength(i  ,j+1), &
-                                                    strength(i+1,j+1), strength(i+1,j  ), &
-                                                    hm     (i  ,j  ) , hm     (i  ,j+1),  &
-                                                    hm     (i+1,j+1) , hm     (i+1,j  ),  &
-                                                    tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
-                                                    tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
-                                                    DminUarea,                            &
-                                                    DeltaU           , capping,           &
-                                                    zetax2U, etax2U, rep_prsU)
-
+            call visccoeff_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
+                                              strength(i+1,j+1), strength(i+1,j  ), &
+                                              hm     (i  ,j  ) , hm     (i  ,j+1),  &
+                                              hm     (i+1,j+1) , hm     (i+1,j  ),  &
+                                              tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
+                                              tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
+                                              DminUarea, DeltaU,                    &
+                                              zetax2U, etax2U, rep_prsU, capping)
          endif
          
          !-----------------------------------------------------------------
@@ -1779,8 +1765,7 @@
       ! F1,F2 : div of stress tensor for u,v components
       !-----------------------------------------------------------------
 
-         select case (trim(grid_location))
-         case('E')
+         if (grid_location == "E") then
             
             F1(i,j) = arear(i,j) * &
                  ( p5 * dyE_N(i,j) * ( stresspF1(i+1,j)-stresspF1(i,j) )     &
@@ -1796,7 +1781,7 @@
                  + (c1/dyE_N(i,j)) * ( (dyT_U(i+1,j)**2) * stress12F2(i+1,j) &
                                       -(dyT_U(i,j)**2)*stress12F2(i,j) ) )
 
-         case('N')
+         elseif (grid_location == "N") then
 
             F1(i,j) = arear(i,j) * &
                  ( p5 * dyE_N(i,j) * ( stresspF1(i,j)-stresspF1(i-1,j) )     &
@@ -1811,9 +1796,9 @@
                                       -(dxT_U(i,j)**2)*stressmF2(i,j) )      &
                  + (c1/dyE_N(i,j)) * ( (dyT_U(i,j)**2) * stress12F2(i,j)     &
                                       -(dyT_U(i-1,j)**2)*stress12F2(i-1,j) ) )
-         case default
+         else
             call abort_ice(subname // ' unknown grid_location: ' // grid_location)
-         end select
+         endif
 
       enddo                     ! ij
 

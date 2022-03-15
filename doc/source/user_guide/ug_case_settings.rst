@@ -424,6 +424,7 @@ dynamics_nml
    "``dim_pgmres``", "integer", "maximum number of Arnoldi iterations for PGMRES preconditioner", "5"
    "``e_plasticpot``", "real", "aspect ratio of elliptical plastic potential", "2.0"
    "``e_yieldcurve``", "real", "aspect ratio of elliptical yield curve", "2.0"
+   "``elasticDamp``", "real", "elastic damping parameter", "0.36"
    "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
    "", "``shared_mem_1d``", "1d shared memory solver", ""
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
