@@ -759,7 +759,7 @@
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
-                  call stress_T (nx_block,             ny_block,             &
+                  call stressC_T (nx_block,             ny_block,             &
                                                        icellt(iblk),         &
                                  indxti      (:,iblk), indxtj      (:,iblk), &
                                  uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
@@ -769,8 +769,7 @@
                                                        DminTarea (:,:,iblk), &
                                  strength  (:,:,iblk),                       &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
-                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                 stress12T (:,:,iblk) )
+                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk))
 
                   !-----------------------------------------------------------------
                   ! on last subcycle, save quantities for mechanical redistribution
@@ -800,7 +799,7 @@
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
-                  call stress_U (nx_block,             ny_block,             &
+                  call stressC_U (nx_block,             ny_block,             &
                                                        icellu(iblk),         &
                                  indxui      (:,iblk), indxuj      (:,iblk), &
                                  uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
@@ -815,7 +814,6 @@
                                  hm        (:,:,iblk), uvm       (:,:,iblk), &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  strength  (:,:,iblk),                       &
-                                 stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                  stress12U (:,:,iblk))                   
                enddo
                !$OMP END PARALLEL DO
@@ -826,12 +824,6 @@
                                     field_loc_center,  field_type_scalar)
                call ice_HaloUpdate (stressmT,          halo_info, &
                                     field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stress12T,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stresspU,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_HaloUpdate (stressmU,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
                call ice_HaloUpdate (stress12U,          halo_info, &
                                     field_loc_NEcorner,  field_type_scalar)
                call ice_timer_stop(timer_bound)
@@ -1557,6 +1549,253 @@
       enddo                     ! ij
 
       end subroutine stress
+
+!=======================================================================
+
+! Computes the strain rates and internal stress components for C grid
+      
+! author: JF Lemieux, ECCC
+! updated: D. Bailey, NCAR
+! Nov 2021      
+
+      subroutine stressC_T  (nx_block,   ny_block,   & 
+                                         icellt,     & 
+                             indxti,     indxtj,     &
+                             uvelE,      vvelE,      &
+                             uvelN,      vvelN,      &
+                             dxN,        dyE,        &
+                             dxT,        dyT,        &
+                                         DminTarea,  & 
+                             strength,               &
+                             zetax2T,    etax2T,     &
+                             stressp,   stressm)
+
+      use ice_dyn_shared, only: strain_rates_T, capping, &
+                                visccoeff_replpress
+        
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the E point
+         uvelN    , & ! x-component of velocity (m/s) at the N point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         strength , & ! ice strength (N/m)
+         DminTarea    ! deltaminEVP*tarea
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscous coeff)
+         etax2T   , & ! etax2  = 2*eta  (shear viscous coeff)
+         stressp  , & ! sigma11+sigma22
+         stressm      ! sigma11-sigma22
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divT, tensionT, shearT, DeltaT, & ! strain rates at T point
+        rep_prsT                          ! replacement pressure at T point
+
+      character(len=*), parameter :: subname = '(stressC_T)'
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+
+
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+         !-----------------------------------------------------------------
+         ! strain rates at T point
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+
+         call strain_rates_T (nx_block,   ny_block,   &
+                              i,          j,          &
+                              uvelE,      vvelE,      &
+                              uvelN,      vvelN,      &
+                              dxN,        dyE,        &
+                              dxT,        dyT,        &
+                              divT,       tensionT,   &
+                              shearT,     DeltaT      )
+
+         !-----------------------------------------------------------------
+         ! viscous coefficients and replacement pressure at T point
+         !-----------------------------------------------------------------
+
+         call visccoeff_replpress (strength(i,j), DminTarea(i,j), &
+                                   DeltaT       , zetax2T  (i,j), &
+                                   etax2T  (i,j), rep_prsT      , &
+                                   capping)
+         
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         !-----------------------------------------------------------------
+
+         ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
+         
+         stressp(i,j)  = (stressp(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*(zetax2T(i,j)*divT - rep_prsT)) * denom1
+
+         stressm(i,j)  = (stressm(i,j)*(c1-arlx1i*revp) + &
+                           arlx1i*etax2T(i,j)*tensionT) * denom1
+
+      enddo                     ! ij
+
+      end subroutine stressC_T
+ 
+!=======================================================================
+
+! Computes the strain rates and internal stress components for U points
+      
+! author: JF Lemieux, ECCC
+! Nov 2021      
+
+      subroutine stressC_U   (nx_block,   ny_block,  & 
+                                         icellu,    &  
+                             indxui,     indxuj,    &
+                             uvelE,      vvelE,     &
+                             uvelN,      vvelN,     &
+                             uvelU,      vvelU,     &
+                             dxE,        dyN,       &
+                             dxU,        dyU,       &
+                             tarea,      uarea,     &
+                             ratiodxN,   ratiodxNr, &
+                             ratiodyE,   ratiodyEr, &
+                             epm,  npm, hm, uvm,    &
+                             zetax2T,    etax2T,    &
+                             strength,              &
+                             stress12            )
+
+      use ice_dyn_shared, only: strain_rates_U, &
+                                visccoeff_replpress_avgstr, &
+                                visccoeff_replpress_avgzeta, &
+                                visc_coeff_method, deltaminEVP, capping
+
+      integer (kind=int_kind), intent(in) :: & 
+         nx_block, ny_block, & ! block dimensions
+         icellu                ! no. of cells where iceumask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxui   , & ! compressed index in i-direction
+         indxuj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the E point
+         uvelN    , & ! x-component of velocity (m/s) at the N point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         uvelU    , & ! x-component of velocity (m/s) at the U point
+         vvelU    , & ! y-component of velocity (m/s) at the U point
+         dxE      , & ! width  of E-cell through the middle (m)
+         dyN      , & ! height of N-cell through the middle (m)
+         dxU      , & ! width  of U-cell through the middle (m)
+         dyU      , & ! height of U-cell through the middle (m)
+         tarea    , & ! area of T-cell (m^2)
+         uarea    , & ! area of U-cell (m^2)
+         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) factor for BCs across coastline
+         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) factor for BCs across coastline
+         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) factor for BCs across coastline
+         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) factor for BCs across coastline
+         epm      , & ! E-cell mask
+         npm      , & ! N-cell mask
+         hm       , & ! T-cell mask
+         uvm      , & ! U-cell mask
+         zetax2T  , & ! 2*zeta at the T point
+         etax2T   , & ! 2*eta at the T point
+         strength     ! ice strength at the T point
+      
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         stress12    ! sigma12
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind) :: &
+        divU, tensionU, shearU, DeltaU, & ! strain rates at U point
+        zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
+        DminUarea, strtmp, areatmp        ! Dmin on U and tmp variables
+
+      character(len=*), parameter :: subname = '(stressC_U)'
+      
+      do ij = 1, icellu
+         i = indxui(ij)
+         j = indxuj(ij)
+
+         !-----------------------------------------------------------------
+         ! strain rates at U point
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+
+         call strain_rates_U (nx_block,   ny_block,  &
+                              i,          j,         &
+                              uvelE,      vvelE,     &
+                              uvelN,      vvelN,     &
+                              uvelU,      vvelU,     &
+                              dxE,        dyN,       &
+                              dxU,        dyU,       &
+                              ratiodxN,   ratiodxNr, &
+                              ratiodyE,   ratiodyEr, &
+                              epm,  npm,  uvm,       &
+                              divU,       tensionU,  &
+                              shearU,     DeltaU     )
+         
+         !-----------------------------------------------------------------
+         ! viscous coefficients and replacement pressure at U point
+         !-----------------------------------------------------------------
+
+         if (visc_coeff_method == 'avg_zeta') then
+            call visccoeff_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
+                                              zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
+                                              etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
+                                              etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
+                                              hm      (i  ,j  ), hm      (i  ,j+1), &
+                                              hm      (i+1,j+1), hm      (i+1,j  ), &
+                                              tarea   (i  ,j  ), tarea   (i  ,j+1), &
+                                              tarea   (i+1,j+1), tarea   (i+1,j  ), &
+                                              DeltaU, zetax2U, etax2U, rep_prsU)
+
+         elseif (visc_coeff_method == 'avg_strength') then
+            DminUarea = deltaminEVP*uarea(i,j)
+            call visccoeff_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
+                                              strength(i+1,j+1), strength(i+1,j  ), &
+                                              hm     (i  ,j  ) , hm     (i  ,j+1),  &
+                                              hm     (i+1,j+1) , hm     (i+1,j  ),  &
+                                              tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
+                                              tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
+                                              DminUarea, DeltaU,                    &
+                                              zetax2U, etax2U, rep_prsU, capping)
+         endif
+         
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         !-----------------------------------------------------------------
+
+         ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
+         
+         stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) + &
+                            arlx1i*p5*etax2U*shearU) * denom1
+
+      enddo                     ! ij
+
+           
+      end subroutine stressC_U
 
 !=======================================================================
 
