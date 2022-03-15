@@ -114,7 +114,7 @@
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
       use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field, DminTarea
-      use ice_dyn_shared, only: deformations, deformations_T
+      use ice_dyn_shared, only: deformations, deformations_T, shear_strain_rate_U
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -757,6 +757,28 @@
 
             elseif (grid_ice == "C") then
 
+!               !$OMP PARALLEL DO PRIVATE(iblk)
+!               do iblk = 1, nblocks
+!                  call shear_strain_rate_U (nx_block,             ny_block,             &
+!                                            icellu    (iblk)    ,                       &
+!                                            indxui    (:,iblk)  , indxuj      (:,iblk), &
+!                                            uvelE     (:,:,iblk), vvelN     (:,:,iblk), &
+!                                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+!                                            dxE       (:,:,iblk), dyN       (:,:,iblk), &
+!                                            dxU       (:,:,iblk), dyU       (:,:,iblk), &
+!                                            ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
+!                                            ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
+!                                            epm       (:,:,iblk), npm       (:,:,iblk), &
+!                                            uvm       (:,:,iblk),                       &
+!                                            shrU (:,:,iblk))   
+!               enddo
+!               !$OMP END PARALLEL DO
+
+!               call ice_timer_start(timer_bound)
+!               call ice_HaloUpdate (shrU,          halo_info, &
+!                                    field_loc_NEcorner,  field_type_scalar)
+!               call ice_timer_stop(timer_bound)
+               
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
                   call stressC_T (nx_block,             ny_block,             &
@@ -1571,7 +1593,7 @@
                              stressp,   stressm)
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
-                                visccoeff_replpress
+                                visccoeff_replpress !, calc_shearT_DeltaT
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1633,6 +1655,12 @@
                               divT,       tensionT,   &
                               shearT,     DeltaT      )
 
+         
+!         call calc_shearT_DeltaT (shrU(i,j),     shrU(i,j-1), &
+!                                  shrU(i-1,j-1), shrU(i-1,j), &
+!                                  divT,          tensionT,    &
+!                                  shearT,        DeltaT    )
+         
          !-----------------------------------------------------------------
          ! viscous coefficients and replacement pressure at T point
          !-----------------------------------------------------------------
