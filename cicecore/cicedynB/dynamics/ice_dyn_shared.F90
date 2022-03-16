@@ -2050,7 +2050,7 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      if (present(divU) .or. present(tensionU) .or. present(DeltaU)) then
+      if (present(DeltaU) .or. present(divU) .or. present(tensionU)) then
          uNip1j = uvelN(i+1,j) * npm(i+1,j) &
                 +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
          uNij   = uvelN(i,j) * npm(i,j) &
@@ -2059,27 +2059,23 @@
                 +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
          vEij   = vvelE(i,j) * epm(i,j) &
                 +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
-      endif
 
  ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
       
-      ! divergence  =  e_11 + e_22
-      if (present(divU) .or. present(DeltaU)) then
+         ! divergence  =  e_11 + e_22
          divU     = dyU(i,j) * ( uNip1j - uNij ) &
                   + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
                   + dxU(i,j) * ( vEijp1 - vEij ) &
                   + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
-      endif
 
-      ! tension strain rate  =  e_11 - e_22
-      if (present(tensionU) .or. present(DeltaU)) then
+         ! tension strain rate  =  e_11 - e_22
          tensionU = dyU(i,j) * ( uNip1j - uNij ) &
                   - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
                   - dxU(i,j) * ( vEijp1 - vEij ) &
                   + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
       endif
 
-      if (present(shearU) .or. present(DeltaU)) then
+      if (present(DeltaU) .or. present(shearU)) then
          uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
                 +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
          uEij   = uvelE(i,j) * epm(i,j) &
@@ -2096,8 +2092,8 @@
                   - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
       endif
 
-      ! Delta (in the denominator of zeta, eta)
       if (present(DeltaU)) then
+         ! Delta (in the denominator of zeta, eta)
          DeltaU = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
       endif
 
