@@ -149,6 +149,7 @@
     e_yieldcurve    = 2.
     e_plasticpot    = 2.
     visc_coeff_method = 'avg_strength'
+    elasticDamp     = 0.36d0
     deltaminEVP     = 1e-11
     deltaminVP      = 2e-9
     capping         = 1.
