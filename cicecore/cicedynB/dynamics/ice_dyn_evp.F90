@@ -774,7 +774,7 @@
                                        dxU     (:,:,iblk), dyU      (:,:,iblk), &
                                        ratiodxN(:,:,iblk), ratiodxNr(:,:,iblk), &
                                        ratiodyE(:,:,iblk), ratiodyEr(:,:,iblk), &
-                                       epm(:,:,iblk), npm(:,:,iblk), uvm(:,:,iblk), &
+                                       epm(:,:,iblk)     , npm(:,:,iblk)      , &
                                        shearU=shrU(:,:,iblk)                    )
 
                enddo  ! iblk
@@ -839,7 +839,7 @@
                                  ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
                                  ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
                                  epm       (:,:,iblk), npm       (:,:,iblk), &
-                                 hm        (:,:,iblk), uvm       (:,:,iblk), &
+                                 hm        (:,:,iblk),                       &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  strength  (:,:,iblk), shrU      (:,:,iblk), &
                                  stress12U (:,:,iblk))                   
@@ -997,7 +997,7 @@
                                    ratiodxN  (:,:,iblk), ratiodxNr (:,:,iblk), &
                                    ratiodyE  (:,:,iblk), ratiodyEr (:,:,iblk), &
                                    epm       (:,:,iblk), npm       (:,:,iblk), &
-                                   hm        (:,:,iblk), uvm       (:,:,iblk), &
+                                   hm        (:,:,iblk),                       &
                                    zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                    strength  (:,:,iblk),                       &
                                    stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
@@ -1721,7 +1721,7 @@
                              tarea   , uarea,     &
                              ratiodxN, ratiodxNr, &
                              ratiodyE, ratiodyEr, &
-                             epm, npm, hm, uvm,   &
+                             epm, npm, hm,        &
                              zetax2T , etax2T,    &
                              strength, shrU,      &
                              stress12             )
@@ -1759,7 +1759,6 @@
          epm      , & ! E-cell mask
          npm      , & ! N-cell mask
          hm       , & ! T-cell mask
-         uvm      , & ! U-cell mask
          zetax2T  , & ! 2*zeta at the T point
          etax2T   , & ! 2*eta at the T point
          shrU     , & ! shearU array
@@ -1798,7 +1797,7 @@
                               dxU     (:,:), dyU      (:,:), &
                               ratiodxN(:,:), ratiodxNr(:,:), &
                               ratiodyE(:,:), ratiodyEr(:,:), &
-                              epm(:,:), npm(:,:),  uvm(:,:), &
+                              epm(:,:)     , npm(:,:)      , &
                               DeltaU = DeltaU(:,:)           )
       endif
 
@@ -1980,7 +1979,7 @@
                              tarea,      uarea,     &
                              ratiodxN,   ratiodxNr, &
                              ratiodyE,   ratiodyEr, &
-                             epm,  npm, hm, uvm,    &
+                             epm,  npm, hm,         &
                              zetax2T,    etax2T,    &
                              strength,              &
                              stresspU,   stressmU,  & 
@@ -2019,7 +2018,6 @@
          epm      , & ! E-cell mask
          npm      , & ! N-cell mask
          hm       , & ! T-cell mask
-         uvm      , & ! U-cell mask
          zetax2T  , & ! 2*zeta at the T point
          etax2T   , & ! 2*eta at the T point
          strength     ! ice strength at the T point
@@ -2058,7 +2056,7 @@
                            dxU     (:,:), dyU(:,:)      , &
                            ratiodxN(:,:), ratiodxNr(:,:), &
                            ratiodyE(:,:), ratiodyEr(:,:), &
-                           epm(:,:), npm(:,:),  uvm(:,:), &
+                           epm(:,:)     , npm(:,:)      , &
                            divU    (:,:), tensionU (:,:), &
                            shearU  (:,:), DeltaU   (:,:)  )
 

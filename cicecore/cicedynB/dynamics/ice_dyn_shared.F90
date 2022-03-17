@@ -1995,7 +1995,7 @@
                                  dxU,        dyU,       &
                                  ratiodxN,   ratiodxNr, &
                                  ratiodyE,   ratiodyEr, &
-                                 epm,  npm,  uvm,       &
+                                 epm,        npm,       &
                                  divU,       tensionU,  &
                                  shearU,     DeltaU     )
 
@@ -2023,8 +2023,7 @@
          ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
          ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
          epm      , & ! E-cell mask
-         npm      , & ! N-cell mask
-         uvm          ! U-cell mask
+         npm          ! N-cell mask
          
       real (kind=dbl_kind), dimension (nx_block,ny_block), optional, intent(out):: &
          divU     , &
@@ -2071,22 +2070,21 @@
             vEij   = vvelE(i,j) * epm(i,j) &
                    +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
 
- ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
       
             ! divergence  =  e_11 + e_22
             ldivU    = dyU(i,j) * ( uNip1j - uNij ) &
-                     + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                     + uvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
                      + dxU(i,j) * ( vEijp1 - vEij ) &
-                     + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+                     + vvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) )
             if (present(divU)) then
                divU(i,j) = ldivU
             endif
 
             ! tension strain rate  =  e_11 - e_22
             ltensionU = dyU(i,j) * ( uNip1j - uNij ) &
-                      - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                      - uvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
                       - dxU(i,j) * ( vEijp1 - vEij ) &
-                      + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+                      + vvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) )
             if (present(tensionU)) then
                tensionU(i,j) = ltensionU
             endif
@@ -2104,9 +2102,9 @@
                
             ! shearing strain rate  =  2*e_12
             lshearU   = dxU(i,j) * ( uEijp1 - uEij ) &
-                      - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
+                      - uvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
                       + dyU(i,j) * ( vNip1j - vNij ) &
-                      - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+                      - vvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) )
             if (present(shearU)) then
                shearU(i,j) = lshearU
             endif
