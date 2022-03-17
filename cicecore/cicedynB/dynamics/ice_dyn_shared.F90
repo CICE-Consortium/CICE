@@ -23,18 +23,15 @@
 
       implicit none
       private
-      public :: set_evp_parameters, stepu, stepuCD, stepuC_E, stepuC_N, &
+      public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
                 principal_stress, init_dyn, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, &
                 deformations, deformations_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
-                strain_rates_T2, strain_rates_U2, &
-!                shear_strain_rate_U, &
-!                calc_shearT_DeltaT, &
-                visccoeff_replpress, &
-                visccoeff_replpress_avgstr, &
-                visccoeff_replpress_avgzeta, &
+                visc_replpress, &
+                visc_replpress_avgstr, &
+                visc_replpress_avgzeta, &
                 stack_velocity_field, unstack_velocity_field
 
       ! namelist parameters
@@ -825,7 +822,7 @@
 
 ! Integration of the momentum equation to find velocity (u,v) at E and N locations
 
-      subroutine stepuCD (nx_block,   ny_block, &
+      subroutine stepuv_CD (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
                                       aiu,      &
@@ -888,7 +885,7 @@
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
 
-      character(len=*), parameter :: subname = '(stepuCD)'
+      character(len=*), parameter :: subname = '(stepuv_CD)'
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
@@ -937,13 +934,13 @@
 
       enddo                     ! ij
 
-      end subroutine stepuCD
+      end subroutine stepuv_CD
 
 !=======================================================================
 
 ! Integration of the momentum equation to find velocity u at E location on C grid
 
-      subroutine stepuC_E (nx_block,   ny_block, &
+      subroutine stepu_C (nx_block,   ny_block, &
                            icell,      Cw,       &
                            indxi,      indxj,    &
                                        aiu,      &
@@ -994,7 +991,7 @@
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
 
-      character(len=*), parameter :: subname = '(stepuC_E)'
+      character(len=*), parameter :: subname = '(stepu_C)'
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
@@ -1037,13 +1034,13 @@
 
       enddo                     ! ij
 
-      end subroutine stepuC_E
+      end subroutine stepu_C
 
 !=======================================================================
 
 ! Integration of the momentum equation to find velocity v at N location on C grid
 
-      subroutine stepuC_N (nx_block,   ny_block, &
+      subroutine stepv_C (nx_block,   ny_block, &
                            icell,      Cw,       &
                            indxi,      indxj,    &
                                        aiu,      &
@@ -1094,7 +1091,7 @@
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
 
-      character(len=*), parameter :: subname = '(stepuC_N)'
+      character(len=*), parameter :: subname = '(stepv_C)'
 
       !-----------------------------------------------------------------
       ! integrate the momentum equation
@@ -1137,7 +1134,7 @@
 
       enddo                     ! ij
 
-      end subroutine stepuC_N
+      end subroutine stepv_C
     
 !=======================================================================
 
@@ -1758,7 +1755,7 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      call strain_rates_T2 (nx_block  ,   ny_block   , &
+      call strain_rates_T (nx_block   ,   ny_block   , &
                            icellt     ,                &
                            indxti(:)  , indxtj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
@@ -1886,74 +1883,6 @@
 ! Nov 2021
 
       subroutine strain_rates_T (nx_block,   ny_block, &
-                                 i,          j,        &
-                                 uvelE,      vvelE,    &
-                                 uvelN,      vvelN,    &
-                                 dxN,        dyE,      &
-                                 dxT,        dyT,      &
-                                 divT,       tensionT, &
-                                 shearT,     DeltaT    )
-
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block     ! block dimensions
-         
-      integer (kind=int_kind) :: &
-         i, j                  ! indices
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
-         dxN      , & ! width of N-cell through the middle (m)
-         dyE      , & ! height of E-cell through the middle (m)
-         dxT      , & ! width of T-cell through the middle (m)
-         dyT          ! height of T-cell through the middle (m)
-         
-      real (kind=dbl_kind), optional, intent(out):: &
-        divT, tensionT, shearT, DeltaT      ! strain rates at the T point
-
-      character(len=*), parameter :: subname = '(strain_rates_T)'
-
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-         ! divergence  =  e_11 + e_22
-         if (present(deltaT) .or. present(divT)) then
-            divT    = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
-                    + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
-         endif
-
-         ! tension strain rate  =  e_11 - e_22
-         if (present(deltaT) .or. present(tensionT)) then
-            tensionT = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
-                     - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
-         endif
-
-         ! shearing strain rate  =  2*e_12
-         if (present(deltaT) .or. present(shearT)) then
-            shearT   = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
-                     + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
-         endif
-      
-         ! Delta (in the denominator of zeta, eta)
-         if (present(deltaT)) then
-            DeltaT   = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))
-         endif
-
-      end subroutine strain_rates_T
-
-
-!=======================================================================
-
-! Compute strain rates at the T point
-!
-! author: JF Lemieux, ECCC
-! Nov 2021
-
-      subroutine strain_rates_T2 (nx_block,   ny_block, &
                                  icellt,               &
                                  indxti,     indxtj,   &
                                  uvelE,      vvelE,    &
@@ -1989,10 +1918,15 @@
 
       ! local variables
 
+      real (kind=dbl_kind) :: &
+         ldivT     , &
+         ltensionT , &
+         lshearT       ! local values
+
       integer (kind=int_kind) :: &
          ij, i, j                  ! indices
          
-      character(len=*), parameter :: subname = '(strain_rates_T2)'
+      character(len=*), parameter :: subname = '(strain_rates_T)'
 
       !-----------------------------------------------------------------
       ! strain rates
@@ -2010,79 +1944,40 @@
 
          ! divergence  =  e_11 + e_22
          if (present(deltaT) .or. present(divT)) then
-            divT    (i,j) = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
-                          + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+            ldivT    = dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
+                     + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+            if (present(divT)) then
+               divT(i,j) = ldivT
+            endif
          endif
 
          ! tension strain rate  =  e_11 - e_22
          if (present(deltaT) .or. present(tensionT)) then
-            tensionT(i,j) = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
-                          - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+            ltensionT= (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
+                     - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+            if (present(tensionT)) then
+               tensionT(i,j) = ltensionT
+            endif
          endif
 
          ! shearing strain rate  =  2*e_12
          if (present(deltaT) .or. present(shearT)) then
-            shearT  (i,j) = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
-                          + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+            lshearT  = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
+                     + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+            if (present(shearT)) then
+               shearT(i,j) = lshearT
+            endif
          endif
       
          ! Delta (in the denominator of zeta, eta)
          if (present(deltaT)) then
-            DeltaT  (i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearT(i,j)**2))
+            DeltaT  (i,j) = sqrt(ldivT**2 + e_factor*(ltensionT**2 + lshearT**2))
          endif
 
       enddo
 
-      end subroutine strain_rates_T2
+      end subroutine strain_rates_T
 
-
-!=======================================================================
-#if (1 == 0)
-      subroutine calc_shearT_DeltaT (shrUij,     shrUijm1, &
-                                     shrUim1jm1, shrUim1j, &
-                                     divT,       tensionT, &
-                                     shearT,     DeltaT    )
-
-        real (kind=dbl_kind), intent(in) :: &
-           shrUij    , & ! shear strain rate at U point (i,j)
-           shrUijm1  , & ! shear strain rate at U point (i,j-1)
-           shrUim1jm1, & ! shear strain rate at U point (i-1,j-1)
-           shrUim1j,   & ! shear strain rate at U point (i-1,j)
-           divT,       &
-           tensionT
-         
-        real (kind=dbl_kind), intent(inout):: &
-           shearT, DeltaT      ! strain rates at the T point
-         
-        character(len=*), parameter :: subname = '(calc_shearT_DeltaT)'
-
-      ! local variables
-        real (kind=dbl_kind) :: shearTsqr
-
-        logical (kind=log_kind) :: B2009
-      
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-      B2009 = .false.
-
-      shearT = ( shrUij + shrUijm1 + shrUim1jm1 + shrUim1j ) / 4d0
-      
-      if (B2009) then
-
-         DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearT**2))     
-
-      else
-         
-         shearTsqr = (shrUij**2 + shrUijm1**2 + shrUim1jm1**2 + shrUim1j**2)/4d0
-         DeltaT = sqrt(divT**2 + e_factor*(tensionT**2 + shearTsqr))
-
-      endif
-
-    end subroutine calc_shearT_DeltaT
-#endif
 !=======================================================================
 
 ! Compute strain rates at the U point including boundary conditions
@@ -2091,115 +1986,6 @@
 ! Nov 2021
 
       subroutine strain_rates_U (nx_block,   ny_block,  &
-                                 i,          j,         &
-                                 uvelE,      vvelE,     &
-                                 uvelN,      vvelN,     &
-                                 uvelU,      vvelU,     &
-                                 dxE,        dyN,       &
-                                 dxU,        dyU,       &
-                                 ratiodxN,   ratiodxNr, &
-                                 ratiodyE,   ratiodyEr, &
-                                 epm,  npm,  uvm,       &
-                                 divU,       tensionU,  &
-                                 shearU,     DeltaU     )
-
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block    ! block dimensions
-
-      integer (kind=int_kind) :: &
-         i, j                  ! indices
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
-         uvelU    , & ! x-component of velocity (m/s) interp. at U point
-         vvelU    , & ! y-component of velocity (m/s) interp. at U point
-         dxE      , & ! width of E-cell through the middle (m)
-         dyN      , & ! height of N-cell through the middle (m)
-         dxU      , & ! width of U-cell through the middle (m)
-         dyU      , & ! height of U-cell through the middle (m)
-         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) for BCs
-         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) for BCs
-         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
-         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
-         epm      , & ! E-cell mask
-         npm      , & ! N-cell mask
-         uvm          ! U-cell mask
-         
-      real (kind=dbl_kind), optional, intent(out):: &
-        divU, tensionU, shearU, DeltaU      ! strain rates at the U point
-
-      ! local variables
-
-      real (kind=dbl_kind) :: &                     
-        uNip1j, uNij, vEijp1, vEij, uEijp1, uEij, vNip1j, vNij
-      
-      character(len=*), parameter :: subname = '(strain_rates_U)'
-         
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-         if (present(DeltaU) .or. present(divU) .or. present(tensionU)) then
-            uNip1j = uvelN(i+1,j) * npm(i+1,j) &
-                   +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
-            uNij   = uvelN(i,j) * npm(i,j) &
-                   +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * uvelN(i+1,j)
-            vEijp1 = vvelE(i,j+1) * epm(i,j+1) &
-                   +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
-            vEij   = vvelE(i,j) * epm(i,j) &
-                   +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
-
- ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
-      
-            ! divergence  =  e_11 + e_22
-            divU     = dyU(i,j) * ( uNip1j - uNij ) &
-                     + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                     + dxU(i,j) * ( vEijp1 - vEij ) &
-                     + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
-
-            ! tension strain rate  =  e_11 - e_22
-            tensionU = dyU(i,j) * ( uNip1j - uNij ) &
-                     - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                     - dxU(i,j) * ( vEijp1 - vEij ) &
-                     + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
-         endif
-
-         if (present(DeltaU) .or. present(shearU)) then
-            uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
-                   +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
-            uEij   = uvelE(i,j) * epm(i,j) &
-                   +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
-            vNip1j = vvelN(i+1,j) * npm(i+1,j) &
-                   +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
-            vNij   = vvelN(i,j) * npm(i,j) &
-                   +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
-               
-            ! shearing strain rate  =  2*e_12
-            shearU   = dxU(i,j) * ( uEijp1 - uEij ) &
-                     - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
-                     + dyU(i,j) * ( vNip1j - vNij ) &
-                     - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
-         endif
-
-         if (present(DeltaU)) then
-            ! Delta (in the denominator of zeta, eta)
-            DeltaU   = sqrt(divU**2 + e_factor*(tensionU**2 + shearU**2))
-         endif
-
-      end subroutine strain_rates_U
-
-!=======================================================================
-
-! Compute strain rates at the U point including boundary conditions
-!
-! author: JF Lemieux, ECCC
-! Nov 2021
-
-      subroutine strain_rates_U2 (nx_block,   ny_block,  &
                                  icellu,                &
                                  indxui,     indxuj,    &
                                  uvelE,      vvelE,     &
@@ -2251,10 +2037,15 @@
       integer (kind=int_kind) :: &
          ij, i, j                  ! indices
          
+      real (kind=dbl_kind) :: &
+         ldivU     , &
+         ltensionU , &
+         lshearU       ! local values
+
       real (kind=dbl_kind) :: &                     
         uNip1j, uNij, vEijp1, vEij, uEijp1, uEij, vNip1j, vNij
       
-      character(len=*), parameter :: subname = '(strain_rates_U2)'
+      character(len=*), parameter :: subname = '(strain_rates_U)'
          
       !-----------------------------------------------------------------
       ! strain rates
@@ -2283,16 +2074,22 @@
  ! MIGHT NOT NEED TO mult by uvm...if done before in calc of uvelU...
       
             ! divergence  =  e_11 + e_22
-            divU    (i,j) = dyU(i,j) * ( uNip1j - uNij ) &
-                          + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                          + dxU(i,j) * ( vEijp1 - vEij ) &
-                          + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+            ldivU    = dyU(i,j) * ( uNip1j - uNij ) &
+                     + uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                     + dxU(i,j) * ( vEijp1 - vEij ) &
+                     + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+            if (present(divU)) then
+               divU(i,j) = ldivU
+            endif
 
             ! tension strain rate  =  e_11 - e_22
-            tensionU(i,j) = dyU(i,j) * ( uNip1j - uNij ) &
-                          - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                          - dxU(i,j) * ( vEijp1 - vEij ) &
-                          + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+            ltensionU = dyU(i,j) * ( uNip1j - uNij ) &
+                      - uvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
+                      - dxU(i,j) * ( vEijp1 - vEij ) &
+                      + vvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+            if (present(tensionU)) then
+               tensionU(i,j) = ltensionU
+            endif
          endif
 
          if (present(DeltaU) .or. present(shearU)) then
@@ -2306,99 +2103,24 @@
                    +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
                
             ! shearing strain rate  =  2*e_12
-            shearU(i,j)   = dxU(i,j) * ( uEijp1 - uEij ) &
-                          - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
-                          + dyU(i,j) * ( vNip1j - vNij ) &
-                          - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+            lshearU   = dxU(i,j) * ( uEijp1 - uEij ) &
+                      - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
+                      + dyU(i,j) * ( vNip1j - vNij ) &
+                      - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+            if (present(shearU)) then
+               shearU(i,j) = lshearU
+            endif
          endif
 
          if (present(DeltaU)) then
             ! Delta (in the denominator of zeta, eta)
-            DeltaU(i,j)   = sqrt(divU(i,j)**2 + e_factor*(tensionU(i,j)**2 + shearU(i,j)**2))
+            DeltaU(i,j)   = sqrt(ldivU**2 + e_factor*(ltensionU**2 + lshearU**2))
          endif
 
       enddo
 
-      end subroutine strain_rates_U2
+      end subroutine strain_rates_U
 
-!=======================================================================
-#if (1 == 0)      
-! Computes and stores the shear strain rate at U points based on C-grid
-! velocity components (uvelE and vvelN)
-      
-    subroutine shear_strain_rate_U (nx_block,   ny_block,  & 
-                                    icellu,    &  
-                                    indxui,     indxuj,    &
-                                    uvelE,      vvelN,     &
-                                    uvelU,      vvelU,     &
-                                    dxE,        dyN,       &
-                                    dxU,        dyU,       &
-                                    ratiodxN,   ratiodxNr, &
-                                    ratiodyE,   ratiodyEr, &
-                                    epm,  npm,  uvm,       &
-                                    shrU)
-
-      integer (kind=int_kind), intent(in) :: & 
-         nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = 1
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui   , & ! compressed index in i-direction
-         indxuj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
-         uvelU    , & ! x-component of velocity (m/s) at the U point
-         vvelU    , & ! y-component of velocity (m/s) at the U point
-         dxE      , & ! width  of E-cell through the middle (m)
-         dyN      , & ! height of N-cell through the middle (m)
-         dxU      , & ! width  of U-cell through the middle (m)
-         dyU      , & ! height of U-cell through the middle (m)
-         ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) factor for BCs across coastline
-         ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) factor for BCs across coastline
-         ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) factor for BCs across coastline
-         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) factor for BCs across coastline
-         epm      , & ! E-cell mask
-         npm      , & ! N-cell mask
-         uvm          ! U-cell mask
-      
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         shrU         ! shear strain rate at U point (m^2/s)
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij
-
-      real (kind=dbl_kind) :: &                     
-         uEijp1, uEij, vNip1j, vNij
-      
-      character(len=*), parameter :: subname = '(shear_strain_rate_U)'
-      
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
-
-         uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
-                +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
-         uEij   = uvelE(i,j) * epm(i,j) &
-                +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
-         vNip1j = vvelN(i+1,j) * npm(i+1,j) &
-                +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
-         vNij   = vvelN(i,j) * npm(i,j) &
-                +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
-
-         ! shear strain rate  =  2*e_12
-         ! NOTE these are actually strain rates * area  (m^2/s)
-         shrU(i,j) = dxU(i,j) * ( uEijp1 - uEij ) &
-                   - uvelU(i,j) * uvm(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
-                   + dyU(i,j) * ( vNip1j - vNij ) &
-                   - vvelU(i,j) * uvm(i,j) * ( dyN(i+1,j) - dyN(i,j) )
-      enddo                     ! ij
-
-    end subroutine shear_strain_rate_U
-#endif    
 !=======================================================================
 ! Computes viscous coefficients and replacement pressure for stress 
 ! calculations. Note that tensile strength is included here.
@@ -2413,8 +2135,8 @@
 ! by combining tensile strength and a parameterization for grounded ridges.
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
 
-      subroutine visccoeff_replpress(strength, DminArea, Delta, &
-                                     zetax2, etax2, rep_prs, capping)
+      subroutine visc_replpress(strength, DminArea, Delta, &
+                                zetax2, etax2, rep_prs, capping)
 
       real (kind=dbl_kind), intent(in)::  &
         strength, DminArea
@@ -2429,7 +2151,7 @@
       real (kind=dbl_kind) :: &
         tmpcalc
 
-      character(len=*), parameter :: subname = '(visccoeff_replpress)'
+      character(len=*), parameter :: subname = '(visc_replpress)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
@@ -2439,19 +2161,19 @@
       rep_prs = (c1-Ktens)*tmpcalc*Delta
       etax2   = epp2i*zetax2
 
-      end subroutine visccoeff_replpress
+      end subroutine visc_replpress
 
 !=======================================================================
 
-      subroutine visccoeff_replpress_avgzeta (zetax2T1, zetax2T2, &
-                                              zetax2T3, zetax2T4, &
-                                               etax2T1,  etax2T2, &
-                                               etax2T3,  etax2T4, & 
-                                                 mask1,    mask2, &
-                                                 mask3,    mask4, &
-                                                 area1,    area2, &
-                                                 area3,    area4, &
-                                 deltaU, zetax2U, etax2U, rep_prsU)
+      subroutine visc_replpress_avgzeta (zetax2T1, zetax2T2, &
+                                         zetax2T3, zetax2T4, &
+                                          etax2T1,  etax2T2, &
+                                          etax2T3,  etax2T4, & 
+                                            mask1,    mask2, &
+                                            mask3,    mask4, &
+                                            area1,    area2, &
+                                            area3,    area4, &
+                            deltaU, zetax2U, etax2U, rep_prsU)
 
       real (kind=dbl_kind), intent(in):: &
          zetax2T1,zetax2T2,zetax2T3,zetax2T4, &
@@ -2466,9 +2188,10 @@
       ! local variables
 
       real (kind=dbl_kind) :: &
-           areatmp
+         lzetax2U, &  ! local variable
+         areatmp
 
-      character(len=*), parameter :: subname = '(visccoeff_replpress_avgzeta)'
+      character(len=*), parameter :: subname = '(visc_replpress_avgzeta)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
@@ -2478,10 +2201,13 @@
                  mask2 * area2)
 
       if (present(rep_prsU) .or. present(zetax2U)) then
-         zetax2U = (mask1 * area1 * zetax2T1  + &
-                    mask4 * area4 * zetax2T4  + &
-                    mask3 * area3 * zetax2T3  + &
-                    mask2 * area2 * zetax2T2) / areatmp
+         lzetax2U = (mask1 * area1 * zetax2T1  + &
+                     mask4 * area4 * zetax2T4  + &
+                     mask3 * area3 * zetax2T3  + &
+                     mask2 * area2 * zetax2T2) / areatmp
+         if (present(zetax2U)) then
+            zetax2U = lzetax2U
+         endif
       endif
 
       if (present(etax2U)) then
@@ -2492,21 +2218,21 @@
       endif
 
       if (present(rep_prsU)) then
-         rep_prsU = (c1-Ktens)/(c1+Ktens)*zetax2U*deltaU
+         rep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU
       endif
 
-      end subroutine visccoeff_replpress_avgzeta
+      end subroutine visc_replpress_avgzeta
 
 !=======================================================================
 
-      subroutine visccoeff_replpress_avgstr (strength1, strength2, &
-                                             strength3, strength4, &
-                                                 mask1,     mask2, &
-                                                 mask3,     mask4, &
-                                                 area1,     area2, &
-                                                 area3,     area4, &
-                                             DminUarea, deltaU,    &
-                                 zetax2U, etax2U, rep_prsU, capping)
+      subroutine visc_replpress_avgstr (strength1, strength2, &
+                                        strength3, strength4, &
+                                            mask1,     mask2, &
+                                            mask3,     mask4, &
+                                            area1,     area2, &
+                                            area3,     area4, &
+                                        DminUarea, deltaU,    &
+                            zetax2U, etax2U, rep_prsU, capping)
 
       real (kind=dbl_kind), intent(in):: &
          strength1,strength2,strength3,strength4, &
@@ -2521,7 +2247,7 @@
       real (kind=dbl_kind) :: &
            areatmp, strtmp   ! area and strength average
 
-      character(len=*), parameter :: subname = '(visccoeff_replpress_avgstr)'
+      character(len=*), parameter :: subname = '(visc_replpress_avgstr)'
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
@@ -2535,10 +2261,10 @@
                  mask3 * area3 * strength3  + &
                  mask2 * area2 * strength2) / areatmp
 
-      call visccoeff_replpress (strtmp, DminUarea, deltaU, &
-                                zetax2U, etax2U, rep_prsU, capping)
+      call visc_replpress (strtmp, DminUarea, deltaU, &
+                           zetax2U, etax2U, rep_prsU, capping)
       
-      end subroutine visccoeff_replpress_avgstr
+      end subroutine visc_replpress_avgstr
 
 !=======================================================================
 

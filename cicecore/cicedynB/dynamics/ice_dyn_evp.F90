@@ -42,7 +42,7 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
-      use ice_dyn_shared, only: stepu, stepuCD, stepuC_E, stepuC_N, &
+      use ice_dyn_shared, only: stepu, stepuv_CD, stepu_C, stepv_C, &
           dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
           uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
@@ -114,7 +114,8 @@
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
       use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field, DminTarea
-      use ice_dyn_shared, only: deformations, deformations_T, strain_rates_U, strain_rates_U2 ! tcx, shear_strain_rate_U
+      use ice_dyn_shared, only: deformations, deformations_T, strain_rates_U
+
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -763,36 +764,7 @@
                !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
                do iblk = 1, nblocks
 
-#if (1 == 0) 
-                  call shear_strain_rate_U (nx_block           , ny_block            , &
-                                            icellu       (iblk),                       &
-                                            indxui     (:,iblk), indxuj      (:,iblk), &
-                                            uvelE    (:,:,iblk), vvelN     (:,:,iblk), &
-                                            uvel     (:,:,iblk), vvel      (:,:,iblk), &
-                                            dxE      (:,:,iblk), dyN       (:,:,iblk), &
-                                            dxU      (:,:,iblk), dyU       (:,:,iblk), &
-                                            ratiodxN (:,:,iblk), ratiodxNr (:,:,iblk), &
-                                            ratiodyE (:,:,iblk), ratiodyEr (:,:,iblk), &
-                                            epm      (:,:,iblk), npm       (:,:,iblk), &
-                                            uvm      (:,:,iblk), shrU      (:,:,iblk))
-#else
-#if (1 == 0) 
-                  do ij = 1, icellu(iblk)
-                     i = indxui(ij,iblk)
-                     j = indxuj(ij,iblk)
-                     call strain_rates_U (nx_block, ny_block, i, j,                &
-                                          uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                          uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                          uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                                          dxE     (:,:,iblk), dyN      (:,:,iblk), &
-                                          dxU     (:,:,iblk), dyU      (:,:,iblk), &
-                                          ratiodxN(:,:,iblk), ratiodxNr(:,:,iblk), &
-                                          ratiodyE(:,:,iblk), ratiodyEr(:,:,iblk), &
-                                          epm(:,:,iblk), npm(:,:,iblk), uvm(:,:,iblk), &
-                                          shearU=shrU(i,j,iblk)                    )
-                  enddo  ! ij
-#else
-                  call strain_rates_U2 (nx_block         , ny_block           , &
+                  call strain_rates_U (nx_block          , ny_block           , &
                                        icellu      (iblk),                      &
                                        indxui    (:,iblk), indxuj     (:,iblk), &
                                        uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
@@ -804,8 +776,6 @@
                                        ratiodyE(:,:,iblk), ratiodyEr(:,:,iblk), &
                                        epm(:,:,iblk), npm(:,:,iblk), uvm(:,:,iblk), &
                                        shearU=shrU(:,:,iblk)                    )
-#endif
-#endif
 
                enddo  ! iblk
                !$OMP END PARALLEL DO
@@ -919,29 +889,29 @@
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
 
-                   call stepuC_E (nx_block,            ny_block,              & ! u, E point
-                                  icelle        (iblk), Cdn_ocn   (:,:,iblk), &
-                                  indxei      (:,iblk), indxej      (:,iblk), &
-                                                        aiE       (:,:,iblk), &
-                                  uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                                  waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
-                                  emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                                  strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
-                                  uvelE_init(:,:,iblk),                       &
-                                  uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                  TbE       (:,:,iblk))
+                   call stepu_C (nx_block,            ny_block,              & ! u, E point
+                                 icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxei      (:,iblk), indxej      (:,iblk), &
+                                                       aiE       (:,:,iblk), &
+                                 uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                 waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
+                                 emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                 strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
+                                 uvelE_init(:,:,iblk),                       &
+                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                 TbE       (:,:,iblk))
 
-                   call stepuC_N (nx_block,             ny_block,             & ! v, N point
-                                  icelln        (iblk), Cdn_ocn   (:,:,iblk), &
-                                  indxni      (:,iblk), indxnj      (:,iblk), &
-                                                        aiN       (:,:,iblk), &
-                                  uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                                  wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
-                                  nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                                  strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
-                                  vvelN_init(:,:,iblk),                       &
-                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                  TbN       (:,:,iblk))
+                   call stepv_C (nx_block,             ny_block,             & ! v, N point
+                                 icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 indxni      (:,iblk), indxnj      (:,iblk), &
+                                                       aiN       (:,:,iblk), &
+                                 uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                 wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                 nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                 strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
+                                 vvelN_init(:,:,iblk),                       &
+                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                 TbN       (:,:,iblk))
                enddo
                !$OMP END PARALLEL DO
                   
@@ -1086,33 +1056,33 @@
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
 
-                  call stepuCD (nx_block,             ny_block,             & ! E point
-                                icelle        (iblk), Cdn_ocn   (:,:,iblk), &
-                                indxei      (:,iblk), indxej      (:,iblk), &
-                                                      aiE       (:,:,iblk), &
-                                uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                                waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
-                                forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
-                                emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                                strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
-                                taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
-                                uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
-                                uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                TbE       (:,:,iblk))
+                  call stepuv_CD (nx_block,             ny_block,             & ! E point
+                                  icelle        (iblk), Cdn_ocn   (:,:,iblk), &
+                                  indxei      (:,iblk), indxej      (:,iblk), &
+                                                        aiE       (:,:,iblk), &
+                                  uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
+                                  waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
+                                  forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
+                                  emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                                  strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
+                                  taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
+                                  uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                                  uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
+                                  TbE       (:,:,iblk))
 
-                  call stepuCD (nx_block,             ny_block,             & ! N point
-                                icelln        (iblk), Cdn_ocn   (:,:,iblk), &
-                                indxni      (:,iblk), indxnj      (:,iblk), &
-                                                      aiN       (:,:,iblk), &
-                                uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                                waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
-                                forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
-                                nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                                strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
-                                taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
-                                uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
-                                uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                TbN       (:,:,iblk))
+                  call stepuv_CD (nx_block,             ny_block,             & ! N point
+                                  icelln        (iblk), Cdn_ocn   (:,:,iblk), &
+                                  indxni      (:,iblk), indxnj      (:,iblk), &
+                                                        aiN       (:,:,iblk), &
+                                  uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
+                                  waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
+                                  forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
+                                  nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                                  strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
+                                  taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
+                                  uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
+                                  TbN       (:,:,iblk))
                enddo
                !$OMP END PARALLEL DO
 
@@ -1335,7 +1305,7 @@
                          stress12_3, stress12_4, & 
                          str )
 
-      use ice_dyn_shared, only: strain_rates, visccoeff_replpress, capping
+      use ice_dyn_shared, only: strain_rates, visc_replpress, capping
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1427,17 +1397,17 @@
       ! viscous coefficients and replacement pressure
       !-----------------------------------------------------------------
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltane, &
-                                   zetax2ne, etax2ne, rep_prsne, capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), Deltane, &
+                              zetax2ne, etax2ne, rep_prsne, capping)
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltanw, &
-                                   zetax2nw, etax2nw, rep_prsnw, capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), Deltanw, &
+                              zetax2nw, etax2nw, rep_prsnw, capping)
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltasw, &
-                                   zetax2sw, etax2sw, rep_prssw, capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), Deltasw, &
+                              zetax2sw, etax2sw, rep_prssw, capping)
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), Deltase, &
-                                   zetax2se, etax2se, rep_prsse, capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), Deltase, &
+                              zetax2se, etax2se, rep_prsse, capping)
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1626,8 +1596,8 @@
                              zetax2T , etax2T   , &
                              stressp , stressm    )
 
-      use ice_dyn_shared, only: strain_rates_T, strain_rates_T2, capping, &
-                                visccoeff_replpress, e_factor
+      use ice_dyn_shared, only: strain_rates_T, capping, &
+                                visc_replpress, e_factor
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1674,7 +1644,7 @@
       ! Initialize
       !-----------------------------------------------------------------
 
-      call strain_rates_T2 (nx_block   , ny_block   , &
+      call strain_rates_T (nx_block   , ny_block   , &
                            icellt     ,              &
                            indxti(:)  , indxtj (:) , & 
                            uvelE (:,:), vvelE (:,:), &
@@ -1688,55 +1658,17 @@
          i = indxti(ij)
          j = indxtj(ij)
 
-         !-----------------------------------------------------------------
-         ! strain rates at T point
-         ! NOTE these are actually strain rates * area  (m^2/s)
-         !-----------------------------------------------------------------
-
-! tcraig bit-for-bit here, not below
-#if (1 == 0) 
-         call strain_rates_T (nx_block,   ny_block,   &
-                              i,          j,          &
-                              uvelE,      vvelE,      &
-                              uvelN,      vvelN,      &
-                              dxN,        dyE,        &
-                              dxT,        dyT,        &
-                              divT,       tensionT,   &
-                              shearT,     DeltaT      )
-
-#else
-#if (1 == 0)
-         call strain_rates_T (nx_block,   ny_block,   &
-                              i,          j,          &
-                              uvelE,      vvelE,      &
-                              uvelN,      vvelN,      &
-                              dxN,        dyE,        &
-                              dxT,        dyT,        &
-                              divT = divT,            &
-                              tensionT = tensionT     )
-         call calc_shearT_DeltaT (shrU(i,j),     shrU(i,j-1), &
-                                  shrU(i-1,j-1), shrU(i-1,j), &
-                                  divT(i,j),     tensionT(i,j),    &
-                                  shearT,        DeltaT    )
-#else
-         !-----------------------------------------------------------------
-         ! strain rates
-         ! NOTE these are actually strain rates * area  (m^2/s)
-         !-----------------------------------------------------------------
-
          shearTsqr = (shrU(i,j)**2 + shrU(i,j-1)**2 + shrU(i-1,j-1)**2 + shrU(i-1,j)**2)/4d0
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
-#endif
-#endif
          
          !-----------------------------------------------------------------
          ! viscous coefficients and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), &
-                                   DeltaT       , zetax2T  (i,j), &
-                                   etax2T  (i,j), rep_prsT      , &
-                                   capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), &
+                              DeltaT       , zetax2T  (i,j), &
+                              etax2T  (i,j), rep_prsT      , &
+                              capping)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1778,8 +1710,8 @@
                              stress12             )
 
       use ice_dyn_shared, only: strain_rates_U, &
-                                visccoeff_replpress_avgstr, &
-                                visccoeff_replpress_avgzeta, &
+                                visc_replpress_avgstr, &
+                                visc_replpress_avgzeta, &
                                 visc_coeff_method, deltaminEVP, capping
 
       integer (kind=int_kind), intent(in) :: & 
@@ -1824,65 +1756,69 @@
       integer (kind=int_kind) :: &
          i, j, ij
 
+      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+         DeltaU       ! strain rates at U point
+
       real (kind=dbl_kind) :: &
-        divU, tensionU, shearU, DeltaU, & ! strain rates at U point
-        zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
-        DminUarea, strtmp, areatmp        ! Dmin on U and tmp variables
+         zetax2U, etax2U, rep_prsU,      & ! replacement pressure at U point
+         DminUarea, strtmp, areatmp        ! Dmin on U and tmp variables
 
       character(len=*), parameter :: subname = '(stressC_U)'
       
+      !-----------------------------------------------------------------
+      ! strain rates at U point
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      if (visc_coeff_method == 'avg_strength') then
+         call strain_rates_U (nx_block     ,   ny_block    , &
+                              icellu       ,                 &
+                              indxui  (:)  , indxuj   (:)  , &
+                              uvelE   (:,:), vvelE    (:,:), &
+                              uvelN   (:,:), vvelN    (:,:), &
+                              uvelU   (:,:), vvelU    (:,:), &
+                              dxE     (:,:), dyN      (:,:), &
+                              dxU     (:,:), dyU      (:,:), &
+                              ratiodxN(:,:), ratiodxNr(:,:), &
+                              ratiodyE(:,:), ratiodyEr(:,:), &
+                              epm(:,:), npm(:,:),  uvm(:,:), &
+                              DeltaU = DeltaU(:,:)           )
+      endif
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-
-         !-----------------------------------------------------------------
-         ! strain rates at U point
-         ! NOTE these are actually strain rates * area  (m^2/s)
-         !-----------------------------------------------------------------
-
 
          !-----------------------------------------------------------------
          ! viscous coefficients and replacement pressure at U point
          !-----------------------------------------------------------------
 
          if (visc_coeff_method == 'avg_zeta') then
-            DeltaU = c0   ! not needed in avgzeta just computing etax2U
-            shearU = shrU(i,j)
-            call visccoeff_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
-                                              zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
-                                              etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
-                                              etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
-                                              hm      (i  ,j  ), hm      (i  ,j+1), &
-                                              hm      (i+1,j+1), hm      (i+1,j  ), &
-                                              tarea   (i  ,j  ), tarea   (i  ,j+1), &
-                                              tarea   (i+1,j+1), tarea   (i+1,j  ), &
-                                              DeltaU, etax2U=etax2U)
+            DeltaU(i,j) = c0   ! not needed in avgzeta just computing etax2U
+            call visc_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
+                                         zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
+                                         etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
+                                         etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
+                                         hm      (i  ,j  ), hm      (i  ,j+1), &
+                                         hm      (i+1,j+1), hm      (i+1,j  ), &
+                                         tarea   (i  ,j  ), tarea   (i  ,j+1), &
+                                         tarea   (i+1,j+1), tarea   (i+1,j  ), &
+                                         DeltaU  (i  ,j  ), etax2U=etax2U)
 
          elseif (visc_coeff_method == 'avg_strength') then
-            call strain_rates_U (nx_block,   ny_block,  &
-                                 i,          j,         &
-                                 uvelE,      vvelE,     &
-                                 uvelN,      vvelN,     &
-                                 uvelU,      vvelU,     &
-                                 dxE,        dyN,       &
-                                 dxU,        dyU,       &
-                                 ratiodxN,   ratiodxNr, &
-                                 ratiodyE,   ratiodyEr, &
-                                 epm,  npm,  uvm,       &
-                                 divU,       tensionU,  &
-                                 shearU,     DeltaU     )
-            shearU = shrU(i,j)
             DminUarea = deltaminEVP*uarea(i,j)
-            call visccoeff_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
-                                              strength(i+1,j+1), strength(i+1,j  ), &
-                                              hm     (i  ,j  ) , hm     (i  ,j+1),  &
-                                              hm     (i+1,j+1) , hm     (i+1,j  ),  &
-                                              tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
-                                              tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
-                                              DminUarea, DeltaU,                    &
-                                              zetax2U, etax2U, rep_prsU, capping)
+            ! only need etax2U here, but other terms are calculated with etax2U
+            ! minimal extra calculations here even though it seems like there is
+            call visc_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
+                                         strength(i+1,j+1), strength(i+1,j  ), &
+                                         hm     (i  ,j  ) , hm     (i  ,j+1),  &
+                                         hm     (i+1,j+1) , hm     (i+1,j  ),  &
+                                         tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
+                                         tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
+                                         DminUarea, DeltaU(i,j),               &
+                                         zetax2U, etax2U, rep_prsU, capping)
          endif
-         
+
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          !-----------------------------------------------------------------
@@ -1890,7 +1826,7 @@
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code 
 
          stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) + &
-                            arlx1i*p5*etax2U*shearU) * denom1
+                            arlx1i*p5*etax2U*shrU(i,j)) * denom1
 
       enddo                     ! ij
 
@@ -1917,8 +1853,8 @@
                              stresspT,   stressmT,   & 
                              stress12T               )
 
-      use ice_dyn_shared, only: strain_rates_T2, capping, &
-                                visccoeff_replpress
+      use ice_dyn_shared, only: strain_rates_T, capping, &
+                                visc_replpress
         
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1965,7 +1901,7 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      call strain_rates_T2 (nx_block  , ny_block     , &
+      call strain_rates_T (nx_block   , ny_block     , &
                            icellt     ,                &
                            indxti(:)  , indxtj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
@@ -1983,10 +1919,10 @@
          ! viscous coefficients and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call visccoeff_replpress (strength(i,j), DminTarea(i,j), &
-                                   DeltaT  (i,j), zetax2T  (i,j), &
-                                   etax2T  (i,j), rep_prsT      , &
-                                   capping)
+         call visc_replpress (strength(i,j), DminTarea(i,j), &
+                              DeltaT  (i,j), zetax2T  (i,j), &
+                              etax2T  (i,j), rep_prsT      , &
+                              capping)
          
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -2031,9 +1967,9 @@
                              stresspU,   stressmU,  & 
                              stress12U            )
 
-      use ice_dyn_shared, only: strain_rates_U, strain_rates_U2, &
-                                visccoeff_replpress_avgstr, &
-                                visccoeff_replpress_avgzeta, &
+      use ice_dyn_shared, only: strain_rates_U, &
+                                visc_replpress_avgstr, &
+                                visc_replpress_avgzeta, &
                                 visc_coeff_method, deltaminEVP, capping
 
       integer (kind=int_kind), intent(in) :: & 
@@ -2093,8 +2029,7 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-#if (1 == 0)
-      call strain_rates_U2 (nx_block    , ny_block      , &
+      call strain_rates_U (nx_block     , ny_block      , &
                            icellu       ,                 &
                            indxui  (:)  , indxuj(:)     , &
                            uvelE   (:,:), vvelE(:,:)    , &
@@ -2107,53 +2042,37 @@
                            epm(:,:), npm(:,:),  uvm(:,:), &
                            divU    (:,:), tensionU (:,:), &
                            shearU  (:,:), DeltaU   (:,:)  )
-#endif
 
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-
-#if (1 == 1)
-         call strain_rates_U (nx_block    , ny_block      , &
-                           i, j, &
-                           uvelE   (:,:), vvelE(:,:)    , &
-                           uvelN   (:,:), vvelN(:,:)    , &
-                           uvelU   (:,:), vvelU(:,:)    , &
-                           dxE     (:,:), dyN(:,:)      , &
-                           dxU     (:,:), dyU(:,:)      , &
-                           ratiodxN(:,:), ratiodxNr(:,:), &
-                           ratiodyE(:,:), ratiodyEr(:,:), &
-                           epm(:,:), npm(:,:),  uvm(:,:), &
-                           divU    (i,j), tensionU (i,j), &
-                           shearU  (i,j), DeltaU   (i,j)  )
-#endif
 
          !-----------------------------------------------------------------
          ! viscous coefficients and replacement pressure at U point
          !-----------------------------------------------------------------
 
          if (visc_coeff_method == 'avg_zeta') then
-            call visccoeff_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
-                                              zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
-                                              etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
-                                              etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
-                                              hm      (i  ,j  ), hm      (i  ,j+1), &
-                                              hm      (i+1,j+1), hm      (i+1,j  ), &
-                                              tarea   (i  ,j  ), tarea   (i  ,j+1), &
-                                              tarea   (i+1,j+1), tarea   (i+1,j  ), &
-                                              DeltaU  (i  ,j  ),                    &
-                                              zetax2U, etax2U, rep_prsU)
+            call visc_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
+                                         zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
+                                         etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
+                                         etax2T  (i+1,j+1), etax2T  (i+1,j  ), &
+                                         hm      (i  ,j  ), hm      (i  ,j+1), &
+                                         hm      (i+1,j+1), hm      (i+1,j  ), &
+                                         tarea   (i  ,j  ), tarea   (i  ,j+1), &
+                                         tarea   (i+1,j+1), tarea   (i+1,j  ), &
+                                         DeltaU  (i  ,j  ),                    &
+                                         zetax2U, etax2U, rep_prsU)
 
          elseif (visc_coeff_method == 'avg_strength') then
             DminUarea = deltaminEVP*uarea(i,j)
-            call visccoeff_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
-                                              strength(i+1,j+1), strength(i+1,j  ), &
-                                              hm     (i  ,j  ) , hm     (i  ,j+1),  &
-                                              hm     (i+1,j+1) , hm     (i+1,j  ),  &
-                                              tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
-                                              tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
-                                              DminUarea        , DeltaU (i  ,j  ),  &
-                                              zetax2U, etax2U, rep_prsU, capping)
+            call visc_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
+                                         strength(i+1,j+1), strength(i+1,j  ), &
+                                         hm     (i  ,j  ) , hm     (i  ,j+1),  &
+                                         hm     (i+1,j+1) , hm     (i+1,j  ),  &
+                                         tarea  (i  ,j  ) , tarea  (i  ,j+1),  &
+                                         tarea  (i+1,j+1) , tarea  (i+1,j  ),  &
+                                         DminUarea        , DeltaU (i  ,j  ),  &
+                                         zetax2U, etax2U, rep_prsU, capping)
          endif
          
          !-----------------------------------------------------------------
