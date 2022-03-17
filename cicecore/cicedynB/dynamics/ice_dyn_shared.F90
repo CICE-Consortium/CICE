@@ -59,7 +59,7 @@
 
       character (len=char_len), public :: & 
          yield_curve , &      ! 'ellipse' ('teardrop' needs further testing)
-         visc_coeff_method, & ! method for visc coeff at U points (C, CD grids)  
+         visc_method, & ! method for viscosity calc at U points (C, CD grids)  
          seabed_stress_method ! method for seabed stress calculation
                               ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.
       
@@ -78,9 +78,9 @@
          epp2i       , & ! 1/(e_plasticpot)^2
          e_factor    , & ! (e_yieldcurve)^2/(e_plasticpot)^4
          ecci        , & ! temporary for 1d evp
-         deltaminEVP , & ! minimum delta for viscous coefficients (EVP)
-         deltaminVP  , & ! minimum delta for viscous coefficients (VP)
-         capping     , & ! capping of visc coeff (1=Hibler79, 0=Kreyscher2000)
+         deltaminEVP , & ! minimum delta for viscosities (EVP)
+         deltaminVP  , & ! minimum delta for viscosities (VP)
+         capping     , & ! capping of viscosities (1=Hibler79, 0=Kreyscher2000)
          dtei        , & ! 1/dte, where dte is subcycling timestep (1/s)
 !         dte2T    , & ! dte/2T
          denom1       ! constants for stress equation
@@ -2120,7 +2120,7 @@
       end subroutine strain_rates_U
 
 !=======================================================================
-! Computes viscous coefficients and replacement pressure for stress 
+! Computes viscosities and replacement pressure for stress 
 ! calculations. Note that tensile strength is included here.
 !
 ! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
@@ -2143,7 +2143,7 @@
         Delta, capping
 
       real (kind=dbl_kind), intent(out):: &
-        zetax2, etax2, rep_prs ! 2 x visous coeffs, replacement pressure
+        zetax2, etax2, rep_prs ! 2 x viscosities, replacement pressure
 
       ! local variables
       real (kind=dbl_kind) :: &
@@ -2183,13 +2183,13 @@
 
       real (kind=dbl_kind), intent(in):: &
          zetax2T1,zetax2T2,zetax2T3,zetax2T4, &
-          etax2T1, etax2T2, etax2T3, etax2T4, & ! 2 x viscous coeffs, replacement pressure
+          etax2T1, etax2T2, etax2T3, etax2T4, &
             mask1,   mask2,   mask3,   mask4, &
             area1,   area2,   area3,   area4, &
          deltaU
 
       real (kind=dbl_kind), optional, intent(out):: &
-         zetax2U, etax2U, rep_prsU
+         zetax2U, etax2U, rep_prsU ! 2 x viscosities, replacement pressure
 
       ! local variables
 

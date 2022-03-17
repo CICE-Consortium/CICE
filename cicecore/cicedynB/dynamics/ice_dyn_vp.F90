@@ -211,8 +211,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
          
       logical (kind=log_kind) :: calc_strair
@@ -729,8 +729,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
       
       type (ice_halo), intent(in) :: &
@@ -1143,7 +1143,7 @@
 
 !=======================================================================
 
-! Computes the viscous coefficients and dPr/dx, dPr/dy
+! Computes the viscosities and dPr/dx, dPr/dy
 
       subroutine calc_zeta_dPr (nx_block, ny_block, &
                                 icellt  ,           &
@@ -1183,8 +1183,8 @@
          DminTarea    ! deltaminVP*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure 
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
@@ -1237,7 +1237,7 @@
                             Deltase  , Deltasw)
 
       !-----------------------------------------------------------------        
-      ! viscous coefficients and replacement pressure                           
+      ! viscosities and replacement pressure                           
       !-----------------------------------------------------------------        
 
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
@@ -1377,8 +1377,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1610,8 +1610,8 @@
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
@@ -2052,8 +2052,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          Drheo          ! intermediate value for diagonal components of matrix A associated
@@ -2714,8 +2714,8 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -3110,8 +3110,8 @@
                          nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -3503,8 +3503,8 @@
                               wx          , wy)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw

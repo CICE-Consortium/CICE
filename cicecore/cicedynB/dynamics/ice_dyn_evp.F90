@@ -187,8 +187,8 @@
 
       real (kind=dbl_kind), allocatable :: &
          shrU   (:,:,:), &  ! shearU array for gridC
-         zetax2T(:,:,:), &  ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2T (:,:,:)     ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2T(:,:,:), &  ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T (:,:,:)     ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
@@ -1347,8 +1347,8 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (visc coeff) 
-        etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (visc coeff)
+        zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (bulk visc) 
+        etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (shear visc)
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
 !        puny                                      , & ! puny
         ssigpn, ssigps, ssigpe, ssigpw            , &
@@ -1394,7 +1394,7 @@
                             Deltase,    Deltasw     )
 
       !-----------------------------------------------------------------
-      ! viscous coefficients and replacement pressure
+      ! viscosities and replacement pressure
       !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), Deltane, &
@@ -1627,8 +1627,8 @@
          DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T  , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2T   , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T   , & ! etax2  = 2*eta  (shear viscosity)
          stressp  , & ! sigma11+sigma22
          stressm      ! sigma11-sigma22
 
@@ -1673,7 +1673,7 @@
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
          
          !-----------------------------------------------------------------
-         ! viscous coefficients and replacement pressure at T point
+         ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), &
@@ -1729,7 +1729,7 @@
       use ice_dyn_shared, only: strain_rates_U, &
                                 visc_replpress_avgstr, &
                                 visc_replpress_avgzeta, &
-                                visc_coeff_method, deltaminEVP, capping
+                                visc_method, deltaminEVP, capping
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -1786,7 +1786,7 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      if (visc_coeff_method == 'avg_strength') then
+      if (visc_method == 'avg_strength') then
          call strain_rates_U (nx_block     ,   ny_block    , &
                               icellu       ,                 &
                               indxui  (:)  , indxuj   (:)  , &
@@ -1811,7 +1811,7 @@
          ! avg_strength: C2 method of Kimmritz et al. 2016
          !-----------------------------------------------------------------
 
-         if (visc_coeff_method == 'avg_zeta') then
+         if (visc_method == 'avg_zeta') then
             DeltaU(i,j) = c0   ! not needed in avgzeta just computing etax2U
             call visc_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
                                          zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
@@ -1823,7 +1823,7 @@
                                          tarea   (i+1,j+1), tarea   (i+1,j  ), &
                                          DeltaU  (i  ,j  ), etax2U=etax2U)
 
-         elseif (visc_coeff_method == 'avg_strength') then
+         elseif (visc_method == 'avg_strength') then
             DminUarea = deltaminEVP*uarea(i,j)
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
@@ -1895,8 +1895,8 @@
          DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T  , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2T   , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T   , & ! etax2  = 2*eta  (shear viscosity)
          stresspT , & ! sigma11+sigma22
          stressmT , & ! sigma11-sigma22
          stress12T    ! sigma12
@@ -1934,7 +1934,7 @@
          j = indxtj(ij)
 
          !-----------------------------------------------------------------
-         ! viscous coefficients and replacement pressure at T point
+         ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), &
@@ -1988,7 +1988,7 @@
       use ice_dyn_shared, only: strain_rates_U, &
                                 visc_replpress_avgstr, &
                                 visc_replpress_avgzeta, &
-                                visc_coeff_method, deltaminEVP, capping
+                                visc_method, deltaminEVP, capping
 
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
@@ -2065,10 +2065,10 @@
          j = indxuj(ij)
 
          !-----------------------------------------------------------------
-         ! viscous coefficients and replacement pressure at U point
+         ! viscosities and replacement pressure at U point
          !-----------------------------------------------------------------
 
-         if (visc_coeff_method == 'avg_zeta') then
+         if (visc_method == 'avg_zeta') then
             call visc_replpress_avgzeta (zetax2T (i  ,j  ), zetax2T (i  ,j+1), &
                                          zetax2T (i+1,j+1), zetax2T (i+1,j  ), &
                                          etax2T  (i  ,j  ), etax2T  (i  ,j+1), &
@@ -2080,7 +2080,7 @@
                                          DeltaU  (i  ,j  ),                    &
                                          zetax2U, etax2U, rep_prsU)
 
-         elseif (visc_coeff_method == 'avg_strength') then
+         elseif (visc_method == 'avg_strength') then
             DminUarea = deltaminEVP*uarea(i,j)
             call visc_replpress_avgstr  (strength(i  ,j  ), strength(i  ,j+1), &
                                          strength(i+1,j+1), strength(i+1,j  ), &

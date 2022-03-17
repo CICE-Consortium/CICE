@@ -106,7 +106,7 @@
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                evp_algorithm, visc_coeff_method,     &
+                                evp_algorithm, visc_method,     &
                                 seabed_stress, seabed_stress_method,  &
                                 k1, k2, alphab, threshold_hw, Ktens,  &
                                 e_yieldcurve, e_plasticpot, coriolis, &
@@ -220,7 +220,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_yieldcurve,   e_plasticpot,   visc_coeff_method,              &
+        e_yieldcurve,   e_plasticpot,   visc_method,              &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -384,10 +384,10 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
       e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
-      visc_coeff_method = 'avg_strength' ! calc visc coeff at U point: avg_strength, avg_zeta
-      deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscous coeff (EVP, Hunke 2001)
-      deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscous coeff (VP, Hibler 1979)
-      capping     = 1.0_dbl_kind   ! method for capping of visc coeff (1=Hibler 1979,0=Kreyscher2000)
+      visc_method = 'avg_strength' ! calc viscosities at U point: avg_strength, avg_zeta
+      deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
+      deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
+      capping     = 1.0_dbl_kind   ! method for capping of viscosities (1=Hibler 1979,0=Kreyscher2000)
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50        ! size of fgmres Krylov subspace
@@ -858,7 +858,7 @@
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
-      call broadcast_scalar(visc_coeff_method,    master_task)
+      call broadcast_scalar(visc_method,    master_task)
       call broadcast_scalar(deltaminEVP,          master_task)
       call broadcast_scalar(deltaminVP,           master_task)
       call broadcast_scalar(capping,              master_task)
@@ -1141,10 +1141,10 @@
       endif
 
       if (grid_ice == 'C' .or. grid_ice == 'CD') then
-         if (visc_coeff_method /= 'avg_zeta' .and. visc_coeff_method /= 'avg_strength') then
+         if (visc_method /= 'avg_zeta' .and. visc_method /= 'avg_strength') then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//' ERROR: invalid method for viscous coefficients'
-               write(nu_diag,*) subname//' ERROR: visc_coeff_method should be avg_zeta or avg_strength'
+               write(nu_diag,*) subname//' ERROR: invalid method for viscosities'
+               write(nu_diag,*) subname//' ERROR: visc_method should be avg_zeta or avg_strength'
             endif
             abort_list = trim(abort_list)//":44"
          endif
@@ -1153,7 +1153,7 @@
       if (kdyn == 1 .or. kdyn == 3) then
       if (capping /= c0 .and. capping /= c1) then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: invalid method for capping viscous coefficients'
+            write(nu_diag,*) subname//' ERROR: invalid method for capping viscosities'
             write(nu_diag,*) subname//' ERROR: capping should be equal to 0.0 or 1.0'
          endif
          abort_list = trim(abort_list)//":45"
@@ -1676,11 +1676,11 @@
             endif
 
             if (kdyn == 1) then
-               write(nu_diag,1003) ' deltamin     = ', deltaminEVP, ' : minimum delta for viscous coefficients'
-               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscous coefficients'
+               write(nu_diag,1003) ' deltamin     = ', deltaminEVP, ' : minimum delta for viscosities'
+               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
             elseif (kdyn == 3) then
-               write(nu_diag,1003) ' deltamin     = ', deltaminVP, ' : minimum delta for viscous coefficients'
-               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscous coefficients'
+               write(nu_diag,1003) ' deltamin     = ', deltaminVP, ' : minimum delta for viscosities'
+               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
             endif
                
             write(nu_diag,1002) ' elasticDamp  = ', elasticDamp, ' : coefficient for calculating the parameter E'
@@ -1734,7 +1734,7 @@
                endif
             endif
             if (grid_ice == 'C' .or. grid_ice == 'CD') then
-               write(nu_diag,1030) ' visc_coeff_method= ', trim(visc_coeff_method),' : viscous coeff method (U point)'
+               write(nu_diag,1030) ' visc_method= ', trim(visc_method),' : viscosities method (U point)'
             endif
             
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
