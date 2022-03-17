@@ -1584,6 +1584,12 @@
 ! updated: D. Bailey, NCAR
 ! Nov 2021      
 
+! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013). The 
+! elastic-viscous-plastic method revisited. Ocean Model., 71, 2-12.
+      
+! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
+! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
+      
       subroutine stressC_T  (nx_block, ny_block , & 
                                        icellt   , & 
                              indxti  , indxtj   , &
@@ -1658,6 +1664,11 @@
          i = indxti(ij)
          j = indxtj(ij)
 
+         !-----------------------------------------------------------------
+         ! Square of shear strain rate at T obtained from interpolation of
+         ! U point values (Bouillon et al., 2013, Kimmritz et al., 2016
+         !-----------------------------------------------------------------
+        
          shearTsqr = (shrU(i,j)**2 + shrU(i,j-1)**2 + shrU(i-1,j-1)**2 + shrU(i-1,j)**2)/4d0
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
          
@@ -1693,6 +1704,12 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021      
 
+! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013). The 
+! elastic-viscous-plastic method revisited. Ocean Model., 71, 2-12.
+
+! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
+! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
+      
       subroutine stressC_U  (nx_block, ny_block,  & 
                                        icellu,    &  
                              indxui  , indxuj,    &
@@ -1790,7 +1807,9 @@
          j = indxuj(ij)
 
          !-----------------------------------------------------------------
-         ! viscous coefficients and replacement pressure at U point
+         ! viscosities and replacement pressure at U point
+         ! avg_zeta: Bouillon et al. 2013, C1 method of Kimmritz et al. 2016
+         ! avg_strength: C2 method of Kimmritz et al. 2016
          !-----------------------------------------------------------------
 
          if (visc_coeff_method == 'avg_zeta') then
@@ -2101,6 +2120,15 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021      
 
+! Hunke, E. C., and J. K. Dukowicz (2002).  The Elastic-Viscous-Plastic
+! Sea Ice Dynamics Model in General Orthogonal Curvilinear Coordinates
+! on a Sphere - Incorporation of Metric Terms. Mon. Weather Rev.,
+! 130, 1848-1865.
+      
+! Bouillon, S., M. Morales Maqueda, V. Legat and T. Fichefet (2009). An 
+! elastic-viscous-plastic sea ice model formulated on Arakawa B and C grids.
+! Ocean Model., 27, 174-184.
+      
       subroutine div_stress  (nx_block,   ny_block,   & 
                                           icell,      & 
                               indxi,     indxj,       &

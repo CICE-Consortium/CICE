@@ -2165,6 +2165,14 @@
 
 !=======================================================================
 
+! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013). The 
+! elastic-viscous-plastic method revisited. Ocean Model., 71, 2-12.
+
+! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
+! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
+
+! avg_zeta: Bouillon et al. 2013, C1 method of Kimmritz et al. 2016
+      
       subroutine visc_replpress_avgzeta (zetax2T1, zetax2T2, &
                                          zetax2T3, zetax2T4, &
                                           etax2T1,  etax2T2, &
@@ -2225,6 +2233,11 @@
 
 !=======================================================================
 
+! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
+! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
+      
+! avg_strength: C2 method of Kimmritz et al. 2016
+      
       subroutine visc_replpress_avgstr (strength1, strength2, &
                                         strength3, strength4, &
                                             mask1,     mask2, &
