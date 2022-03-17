@@ -794,7 +794,7 @@
                                  uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
                                  dxN       (:,:,iblk), dyE       (:,:,iblk), &
                                  dxT       (:,:,iblk), dyT       (:,:,iblk), &
-                                                       DminTarea (:,:,iblk), &
+                                 uarea     (:,:,iblk), DminTarea (:,:,iblk), &
                                  strength  (:,:,iblk), shrU      (:,:,iblk), &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  stresspT  (:,:,iblk), stressmT  (:,:,iblk))
@@ -1597,7 +1597,7 @@
                              uvelN   , vvelN    , &
                              dxN     , dyE      , &
                              dxT     , dyT      , &
-                                       DminTarea, & 
+                             uarea   , DminTarea, & 
                              strength, shrU     , &
                              zetax2T , etax2T   , &
                              stressp , stressm    )
@@ -1624,6 +1624,7 @@
          dyT      , & ! height of T-cell through the middle (m)
          strength , & ! ice strength (N/m)
          shrU     , & ! shearU
+         uarea    , & ! area of u cell
          DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1668,8 +1669,11 @@
          ! Square of shear strain rate at T obtained from interpolation of
          ! U point values (Bouillon et al., 2013, Kimmritz et al., 2016
          !-----------------------------------------------------------------
-        
-         shearTsqr = (shrU(i,j)**2 + shrU(i,j-1)**2 + shrU(i-1,j-1)**2 + shrU(i-1,j)**2)/4d0
+
+         shearTsqr = (shrU(i,j)   **2 * uarea(i,j)    + shrU(i,j-1)**2*uarea(i,j-1)  & 
+                   + shrU(i-1,j-1)**2 * uarea(i-1,j-1)+ shrU(i-1,j)**2*uarea(i-1,j)) &
+                   / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
          
          !-----------------------------------------------------------------
