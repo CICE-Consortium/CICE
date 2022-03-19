@@ -48,7 +48,7 @@
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-          seabed_stress, Ktens, stack_velocity_field,  unstack_velocity_field
+          seabed_stress, Ktens, stack_fields,  unstack_fields
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
       use ice_global_reductions, only: global_sum, global_allreduce_sum
@@ -122,7 +122,7 @@
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
       use ice_domain, only: blocks_ice, halo_info
-      use ice_grid, only: tarea, tinyarea
+!      use ice_grid, only: tarea
 
       ! local variables
 
@@ -133,9 +133,6 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      real (kind=dbl_kind) :: &
-         min_strain_rate = 2e-09_dbl_kind      ! used for recomputing tinyarea
-      
       ! Initialize module variables
       allocate(icellt(max_blocks), icellu(max_blocks))
       allocate(indxti(nx_block*ny_block, max_blocks), &
@@ -143,28 +140,6 @@
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
       allocate(fld2(nx_block,ny_block,2,max_blocks))
-      
-      ! Redefine tinyarea using min_strain_rate
-      
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            tinyarea(i,j,iblk) = min_strain_rate*tarea(i,j,iblk)
-         enddo
-         enddo
-      enddo                     ! iblk
-      !$OMP END PARALLEL DO
-      
-      call ice_HaloUpdate (tinyarea,           halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
       
       end subroutine init_vp
 
@@ -200,8 +175,8 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, cxp, cyp, cxm, cym, &
-          tarear, to_ugrid, t2ugrid_vector, u2tgrid_vector, &
-          grid_type
+          tarear, grid_type, grid_average_X2Y, &
+          grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
@@ -219,6 +194,8 @@
          i, j, ij
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         uocnU    , & ! i ocean current (m/s)
+         vocnU    , & ! j ocean current (m/s)
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterx   , & ! for ocean stress calculation, x (m/s)
          watery   , & ! for ocean stress calculation, y (m/s)
@@ -234,8 +211,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4):: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
          
       logical (kind=log_kind) :: calc_strair
@@ -252,6 +229,10 @@
 
       real (kind=dbl_kind), allocatable :: &
          sol(:)          ! solution vector
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1, &      ! temporary
+         work2         ! temporary
 
       character(len=*), parameter :: subname = '(implicit_solver)'
 
@@ -305,8 +286,6 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
                          vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         strairxT(:,:,iblk), strairyT(:,:,iblk), &
-                         strairx (:,:,iblk), strairy (:,:,iblk), &
                          tmass   (:,:,iblk), icetmask(:,:,iblk))
 
       enddo                     ! iblk
@@ -321,8 +300,10 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call to_ugrid(tmass,umass)
-      call to_ugrid(aice_init, aiu)
+      call grid_average_X2Y('F',tmass,'T',umass,'U')
+      call grid_average_X2Y('F',aice_init,'T', aiu,'U')
+      call grid_average_X2Y('S',uocn,grid_ocn_dynu,uocnU,'U')
+      call grid_average_X2Y('S',vocn,grid_ocn_dynv,vocnU,'U')
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -334,11 +315,15 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. calc_strair) then
-         strairx(:,:,:) = strax(:,:,:)
-         strairy(:,:,:) = stray(:,:,:)
+         call grid_average_X2Y('F', strax, grid_atm_dynu, strairx, 'U')
+         call grid_average_X2Y('F', stray, grid_atm_dynv, strairy, 'U')
       else
-         call t2ugrid_vector(strairx)
-         call t2ugrid_vector(strairy)
+         call ice_HaloUpdate (strairxT,         halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairyT,         halo_info, &
+                              field_loc_center, field_type_vector)
+         call grid_average_X2Y('F',strairxT,'T',strairx,'U')
+         call grid_average_X2Y('F',strairyT,'T',strairy,'U')
       endif
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
@@ -364,7 +349,7 @@
                          aiu       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
                          umask     (:,:,iblk),                       &
-                         uocn      (:,:,iblk), vocn      (:,:,iblk), &
+                         uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairx   (:,:,iblk), strairy   (:,:,iblk), &
                          ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &
                          icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
@@ -421,10 +406,10 @@
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
       ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
+      call stack_fields(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call unstack_velocity_field(fld2, uvel, vvel)
+      call unstack_fields(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
@@ -440,7 +425,6 @@
       !-----------------------------------------------------------------
       ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
       !-----------------------------------------------------------------
-
       if (seabed_stress) then
          if ( seabed_stress_method == 'LKD' ) then
             !$OMP PARALLEL DO PRIVATE(iblk)
@@ -488,6 +472,7 @@
                             indxti  , indxtj, &
                             indxui  , indxuj, &
                             aiu     , ntot  , &
+                            uocnU   , vocnU , &
                             waterx  , watery, &
                             bxfix   , byfix , &
                             umassdti, sol   , &
@@ -640,17 +625,44 @@
                icellu      (iblk), Cdn_ocn (:,:,iblk), &
                indxui    (:,iblk), indxuj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
-               uocn    (:,:,iblk), vocn    (:,:,iblk), &
+               uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
                aiu     (:,:,iblk), fm      (:,:,iblk), &
-               strocnx (:,:,iblk), strocny (:,:,iblk), &
-               strocnxT(:,:,iblk), strocnyT(:,:,iblk))
+!               strintx (:,:,iblk), strinty (:,:,iblk), &
+!               strairx (:,:,iblk), strairy (:,:,iblk), &
+               strocnx (:,:,iblk), strocny (:,:,iblk))
 
       enddo
       !$OMP END PARALLEL DO
 
-      call u2tgrid_vector(strocnxT)    ! shift
-      call u2tgrid_vector(strocnyT)
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiu to T
+      ! TODO: This should be done elsewhere as part of generalization?
+      ! conservation requires aiu be divided before averaging
+      work1 = c0
+      work2 = c0
+      !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
+      do iblk = 1, nblocks
+      do ij = 1, icellu(iblk)
+         i = indxui(ij,iblk)
+         j = indxuj(ij,iblk)
+         work1(i,j,iblk) = strocnx(i,j,iblk)/aiu(i,j,iblk)
+         work2(i,j,iblk) = strocny(i,j,iblk)/aiu(i,j,iblk)
+      enddo
+      enddo
+      call ice_HaloUpdate (work1,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (work2,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
+      call grid_average_X2Y('F',work2,'U',strocnyT,'T')
 
+! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
+! commented out in order to focus on EVP for now within the cdgrid
+! should be used when routine is ready
+!      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+!          call grid_average_X2Y('E2US',uvelE,uvel)
+!          call grid_average_X2Y('N2US',vvelN,vvel)
+!      endif
+!end comment out
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
       end subroutine implicit_solver
@@ -671,6 +683,7 @@
                                   indxti  , indxtj, &
                                   indxui  , indxuj, &
                                   aiu     , ntot  , &
+                                  uocn    , vocn  , &
                                   waterx  , watery, &
                                   bxfix   , byfix , &
                                   umassdti, sol   , &
@@ -685,9 +698,10 @@
       use ice_constants, only: c1
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
-      use ice_flux, only:   uocn, vocn, fm, Tbu
+      use ice_flux, only:   fm, Tbu
       use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          uarear, tinyarea
+           uarear
+      use ice_dyn_shared, only: DminTarea
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -706,6 +720,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          aiu      , & ! ice fraction on u-grid
+         uocn     , & ! i ocean current (m/s)
+         vocn     , & ! j ocean current (m/s)
          waterx   , & ! for ocean stress calculation, x (m/s)
          watery   , & ! for ocean stress calculation, y (m/s)
          bxfix    , & ! part of bx that is constant during Picard
@@ -713,8 +729,8 @@
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
       
       type (ice_halo), intent(in) :: &
@@ -835,7 +851,7 @@
                                 dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
                                 cxp      (:,:,iblk), cyp     (:,:,iblk), &
                                 cxm      (:,:,iblk), cym     (:,:,iblk), &
-                                tinyarea (:,:,iblk), strength (:,:,iblk),&
+                                DminTarea (:,:,iblk),strength (:,:,iblk),&
                                 zetax2 (:,:,iblk,:), etax2  (:,:,iblk,:),&
                                 rep_prs(:,:,iblk,:), stress_Pr  (:,:,:))
             
@@ -1091,7 +1107,7 @@
                              uvel (:,:,:), vvel (:,:,:))
          
          ! Do halo update so that halo cells contain up to date info for advection
-         call stack_velocity_field(uvel, vvel, fld2)
+         call stack_fields(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -1101,7 +1117,7 @@
                                  field_loc_NEcorner, field_type_vector)
          endif
          call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
+         call unstack_fields(fld2, uvel, vvel)
          
          ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)
@@ -1127,7 +1143,7 @@
 
 !=======================================================================
 
-! Computes the viscous coefficients and dPr/dx, dPr/dy
+! Computes the viscosities and dPr/dx, dPr/dy
 
       subroutine calc_zeta_dPr (nx_block, ny_block, &
                                 icellt  ,           &
@@ -1137,11 +1153,12 @@
                                 dxhy    , dyhx    , &
                                 cxp     , cyp     , &
                                 cxm     , cym     , &
-                                tinyarea, strength, &
+                                DminTarea,strength, &
                                 zetax2  , etax2   , &
                                 rep_prs , stPr)
 
-      use ice_dyn_shared, only: strain_rates, viscous_coeffs_and_rep_pressure
+      use ice_dyn_shared, only: strain_rates, visc_replpress, &
+                                capping
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1163,11 +1180,11 @@
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
          cxm      , & ! 0.5*HTN - 1.5*HTS
-         tinyarea     ! min_strain_rate*tarea
+         DminTarea    ! deltaminVP*tarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure 
       
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
@@ -1187,8 +1204,6 @@
         csigpne, csigpnw, csigpsw, csigpse            , &
         stressp_1, stressp_2, stressp_3, stressp_4    , &
         strp_tmp
-
-      real(kind=dbl_kind),parameter :: capping = c0 ! of the viscous coef
 
       character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
@@ -1222,20 +1237,26 @@
                             Deltase  , Deltasw)
 
       !-----------------------------------------------------------------        
-      ! viscous coefficients and replacement pressure                           
+      ! viscosities and replacement pressure                           
       !-----------------------------------------------------------------        
 
-         call viscous_coeffs_and_rep_pressure (strength(i,j),  tinyarea(i,j),  &
-                                               Deltane,        Deltanw,        &
-                                               Deltasw,        Deltase,        &
-                                               zetax2(i,j,1),  zetax2(i,j,2),  &
-                                               zetax2(i,j,3),  zetax2(i,j,4),  &
-                                               etax2(i,j,1),   etax2(i,j,2),   &
-                                               etax2(i,j,3),   etax2(i,j,4),   &
-                                               rep_prs(i,j,1), rep_prs(i,j,2), &
-                                               rep_prs(i,j,3), rep_prs(i,j,4), &
-                                               capping)
-         
+         call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                              Deltane        , zetax2   (i,j,1), &
+                              etax2   (i,j,1), rep_prs  (i,j,1), &
+                              capping)
+         call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                              Deltanw        , zetax2   (i,j,2), &
+                              etax2   (i,j,2), rep_prs  (i,j,2), &
+                              capping)
+         call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                              Deltasw        , zetax2   (i,j,3), &
+                              etax2   (i,j,3), rep_prs  (i,j,3), &
+                              capping)
+         call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
+                              Deltase        , zetax2   (i,j,4), &
+                              etax2   (i,j,4), rep_prs  (i,j,4), &
+                              capping)
+
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
@@ -1356,8 +1377,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2    , & ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs
       
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1589,8 +1610,8 @@
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          Au      , & ! matvec, Fx = bx - Au (N/m^2)
@@ -2031,8 +2052,8 @@
          cxm          ! 0.5*HTN - 1.5*HTS
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          Drheo          ! intermediate value for diagonal components of matrix A associated
@@ -2693,8 +2714,8 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -2888,7 +2909,7 @@
             orig_basis_y(:,:,:,initer) = workspace_y
             
             ! Update workspace with boundary values
-            call stack_velocity_field(workspace_x, workspace_y, fld2)
+            call stack_fields(workspace_x, workspace_y, fld2)
             call ice_timer_start(timer_bound)
             if (maskhalo_dyn) then
                call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -2898,7 +2919,7 @@
                                     field_loc_NEcorner, field_type_vector)
             endif
             call ice_timer_stop(timer_bound)
-            call unstack_velocity_field(fld2, workspace_x, workspace_y)
+            call unstack_fields(fld2, workspace_x, workspace_y)
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3089,8 +3110,8 @@
                          nbiter)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
@@ -3482,8 +3503,8 @@
                               wx          , wy)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
-         zetax2   , & ! zetax2 = 2*zeta (bulk viscous coeff)
-         etax2        ! etax2  = 2*eta  (shear viscous coeff)
+         zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2        ! etax2  = 2*eta  (shear viscosity)
       
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw

@@ -134,7 +134,7 @@
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
-          stack_velocity_field, unstack_velocity_field
+          stack_fields, unstack_fields
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
           strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
@@ -144,7 +144,8 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
+          tarear, uarear, grid_average_X2Y, &
+          grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
@@ -172,6 +173,8 @@
          indxuj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         uocnU    , & ! i ocean current (m/s)
+         vocnU    , & ! j ocean current (m/s)
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterx   , & ! for ocean stress calculation, x (m/s)
          watery   , & ! for ocean stress calculation, y (m/s)
@@ -198,6 +201,10 @@
       type (block) :: &
          this_block           ! block information for current block
       
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1, &      ! temporary
+         work2         ! temporary
+
       character(len=*), parameter :: subname = '(eap)'
 
       call ice_timer_start(timer_dynamics) ! dynamics
@@ -245,8 +252,6 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), & 
                          vsno    (:,:,iblk), tmask   (:,:,iblk), & 
-                         strairxT(:,:,iblk), strairyT(:,:,iblk), & 
-                         strairx (:,:,iblk), strairy (:,:,iblk), & 
                          tmass   (:,:,iblk), icetmask(:,:,iblk))
 
       enddo                     ! iblk
@@ -261,8 +266,10 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call to_ugrid(tmass,umass)
-      call to_ugrid(aice_init, aiu)
+      call grid_average_X2Y('F',tmass,'T',umass,'U')
+      call grid_average_X2Y('F',aice_init,'T',aiu,'U')
+      call grid_average_X2Y('S',uocn,grid_ocn_dynu,uocnU,'U')
+      call grid_average_X2Y('S',vocn,grid_ocn_dynv,vocnU,'U')
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -273,12 +280,16 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (.not. calc_strair) then       
-         strairx(:,:,:) = strax(:,:,:)
-         strairy(:,:,:) = stray(:,:,:)
+      if (.not. calc_strair) then
+         call grid_average_X2Y('F', strax, grid_atm_dynu, strairx, 'U')
+         call grid_average_X2Y('F', stray, grid_atm_dynv, strairy, 'U')
       else
-         call t2ugrid_vector(strairx)
-         call t2ugrid_vector(strairy)
+         call ice_HaloUpdate (strairxT,         halo_info, &
+                              field_loc_center, field_type_vector)
+         call ice_HaloUpdate (strairyT,         halo_info, &
+                              field_loc_center, field_type_vector)
+         call grid_average_X2Y('F',strairxT,'T',strairx,'U')
+         call grid_average_X2Y('F',strairyT,'T',strairy,'U')
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j) SCHEDULE(runtime)
@@ -302,7 +313,7 @@
                          aiu       (:,:,iblk), umass     (:,:,iblk), & 
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), & 
                          umask     (:,:,iblk),                       & 
-                         uocn      (:,:,iblk), vocn      (:,:,iblk), & 
+                         uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairx   (:,:,iblk), strairy   (:,:,iblk), & 
                          ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &  
                          icetmask  (:,:,iblk), iceumask  (:,:,iblk), & 
@@ -378,10 +389,10 @@
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
       ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
+      call stack_fields(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call unstack_velocity_field(fld2, uvel, vvel)
+      call unstack_fields(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
@@ -413,12 +424,11 @@
          elseif ( seabed_stress_method == 'probabilistic' ) then
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
-             
-             call seabed_stress_factor_prob (nx_block,         ny_block,                   &
-                                             icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
-                                             icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
-                                             aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
-                                             hwater(:,:,iblk), Tbu(:,:,iblk))
+               call seabed_stress_factor_prob (nx_block,         ny_block,                   &
+                                               icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                               icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
+                                               aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
+                                               hwater(:,:,iblk), Tbu(:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
          endif
@@ -477,7 +487,7 @@
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                         indxui     (:,iblk), indxuj    (:,iblk), & 
                         aiu      (:,:,iblk), strtmp  (:,:,:),    & 
-                        uocn     (:,:,iblk), vocn    (:,:,iblk), &     
+                        uocnU    (:,:,iblk), vocnU   (:,:,iblk), &
                         waterx   (:,:,iblk), watery  (:,:,iblk), & 
                         forcex   (:,:,iblk), forcey  (:,:,iblk), & 
                         umassdti (:,:,iblk), fm      (:,:,iblk), & 
@@ -514,7 +524,7 @@
          enddo
          !$OMP END PARALLEL DO
 
-         call stack_velocity_field(uvel, vvel, fld2)
+         call stack_fields(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -524,7 +534,7 @@
                                  field_loc_NEcorner, field_type_vector)
          endif
          call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
+         call unstack_fields(fld2, uvel, vvel)
 
       enddo                     ! subcycling
 
@@ -543,17 +553,42 @@
                icellu      (iblk), Cdn_ocn (:,:,iblk), & 
                indxui    (:,iblk), indxuj    (:,iblk), & 
                uvel    (:,:,iblk), vvel    (:,:,iblk), & 
-               uocn    (:,:,iblk), vocn    (:,:,iblk), & 
+               uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
                aiu     (:,:,iblk), fm      (:,:,iblk), &
-               strocnx (:,:,iblk), strocny (:,:,iblk), & 
-               strocnxT(:,:,iblk), strocnyT(:,:,iblk))
+               strocnx (:,:,iblk), strocny (:,:,iblk))
 
       enddo
       !$OMP END PARALLEL DO
 
-      call u2tgrid_vector(strocnxT)    ! shift
-      call u2tgrid_vector(strocnyT)
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiu to T
+      ! TODO: This should be done elsewhere as part of generalization?
+      ! conservation requires aiu be divided before averaging
+      work1 = c0
+      work2 = c0
+      !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
+      do iblk = 1, nblocks
+      do ij = 1, icellu(iblk)
+         i = indxui(ij,iblk)
+         j = indxuj(ij,iblk)
+         work1(i,j,iblk) = strocnx(i,j,iblk)/aiu(i,j,iblk)
+         work2(i,j,iblk) = strocny(i,j,iblk)/aiu(i,j,iblk)
+      enddo
+      enddo
+      call ice_HaloUpdate (work1,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (work2,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
+      call grid_average_X2Y('F',work2,'U',strocnyT,'T')
 
+! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
+! commented out in order to focus on EVP for now within the cdgrid
+! should be used when routine is ready
+!      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+!          call grid_average_X2Y('E2US',uvelE,uvel)
+!          call grid_average_X2Y('N2US',vvelN,vvel)
+!      endif
+!end comment out
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
       end subroutine eap

@@ -30,7 +30,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       real(kind=dbl_kind) :: time_forc = -99.   ! historic now local
 
@@ -891,6 +892,24 @@
       endif
 
       end subroutine final_restart
+
+!=======================================================================
+
+! Inquire field existance, doesn't work in binary files so set to true and return
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .true.
+
+      end function query_field
 
 !=======================================================================
 

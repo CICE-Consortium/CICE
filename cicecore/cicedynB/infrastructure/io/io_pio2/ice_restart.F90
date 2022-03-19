@@ -6,6 +6,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
       use ice_kinds_mod
@@ -22,7 +23,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       type(file_desc_t)     :: File
       type(var_desc_t)      :: vardesc
@@ -43,7 +45,6 @@
 
       use ice_calendar, only: istep0, istep1, myear, mmonth, &
                               mday, msec, npt
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
 
@@ -139,12 +140,12 @@
       subroutine init_restart_write(filename_spec)
 
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_grid, only: grid_ice
 
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers
@@ -251,6 +252,20 @@
 
          call define_rest_field(File,'uvel',dims)
          call define_rest_field(File,'vvel',dims)
+
+         if (grid_ice == 'CD') then
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelE',dims)
+            call define_rest_field(File,'uvelN',dims)
+            call define_rest_field(File,'vvelN',dims)
+         endif
+
+         if (grid_ice == 'C') then
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelN',dims)
+         endif
+
+
          if (restart_coszen) call define_rest_field(File,'coszen',dims)
          call define_rest_field(File,'scale_factor',dims)
          call define_rest_field(File,'swvdr',dims)
@@ -277,6 +292,17 @@
          call define_rest_field(File,'stress12_4',dims)
 
          call define_rest_field(File,'iceumask',dims)
+
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            call define_rest_field(File,'stresspT' ,dims)
+            call define_rest_field(File,'stressmT' ,dims)
+            call define_rest_field(File,'stress12T',dims)
+            call define_rest_field(File,'stresspU' ,dims)
+            call define_rest_field(File,'stressmU' ,dims)
+            call define_rest_field(File,'stress12U',dims)
+            call define_rest_field(File,'icenmask',dims)
+            call define_rest_field(File,'iceemask',dims)
+         endif
 
          if (oceanmixed_ice) then
             call define_rest_field(File,'sst',dims)
@@ -669,7 +695,6 @@
                                     field_loc, field_type)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: halo_info, distrb_info, nblocks
@@ -761,8 +786,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -770,9 +794,7 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
-                  write(nu_diag,*) ''
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
          
@@ -791,7 +813,6 @@
       subroutine write_restart_field(nu,nrec,work,atype,vname,ndim3,diag)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: max_blocks, ncat
@@ -851,8 +872,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -860,8 +880,7 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
          endif
@@ -879,7 +898,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate, msec
-      use ice_communicate, only: my_task, master_task
 
       character(len=*), parameter :: subname = '(final_restart)'
 
@@ -911,6 +929,35 @@
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
         
       end subroutine define_rest_field
+
+!=======================================================================
+
+! Inquire field existance
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      integer (kind=int_kind) :: status, varid
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .false.
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+         status = pio_inq_varid(File,trim(vname),vardesc)
+         if (status == PIO_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end function query_field
 
 !=======================================================================
 

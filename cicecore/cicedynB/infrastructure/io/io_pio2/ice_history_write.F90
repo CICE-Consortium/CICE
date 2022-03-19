@@ -49,9 +49,12 @@
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
       use ice_gather_scatter, only: gather_global
-      use ice_grid, only: TLON, TLAT, ULON, ULAT, hm, bm, tarea, uarea, &
-          dxu, dxt, dyu, dyt, HTN, HTE, ANGLE, ANGLET, tmask, &
-          lont_bounds, latt_bounds, lonu_bounds, latu_bounds
+      use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
+          hm, bm, uvm, npm, epm, &
+          dxu, dxt, dyu, dyt, dxn, dyn, dxe, dye, HTN, HTE, ANGLE, ANGLET, &
+          tarea, uarea, narea, earea, tmask, umask, nmask, emask, &
+          lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
+          lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_restart_shared, only: runid, lcdf64
@@ -89,15 +92,16 @@
                                iodesc4di, iodesc4ds, iodesc4df
       type(var_desc_t)      :: varid
 
-      ! 4 coordinate variables: TLON, TLAT, ULON, ULAT
-      INTEGER (kind=int_kind), PARAMETER :: ncoord = 4
+      ! 8 coordinate variables: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT
+      INTEGER (kind=int_kind), PARAMETER :: ncoord = 8
 
       ! 4 vertices in each grid cell
       INTEGER (kind=int_kind), PARAMETER :: nverts = 4
 
-      ! 4 variables describe T, U grid boundaries:
+      ! 8 variables describe T, U, N, E grid boundaries:
       ! lont_bounds, latt_bounds, lonu_bounds, latu_bounds
-      INTEGER (kind=int_kind), PARAMETER :: nvar_verts = 4
+      ! lonn_bounds, latn_bounds, lone_bounds, late_bounds
+      INTEGER (kind=int_kind), PARAMETER :: nvar_verts = 8
 
       TYPE coord_attributes         ! netcdf coordinate attributes
         character (len=11)   :: short_name
@@ -110,10 +114,10 @@
         character (len=20)   :: coordinates
       END TYPE req_attributes
 
-      TYPE(req_attributes), dimension(nvar) :: var
-      TYPE(coord_attributes), dimension(ncoord) :: coord_var
+      TYPE(req_attributes), dimension(nvar_grd) :: var_grd
+      TYPE(coord_attributes), dimension(ncoord) :: var_coord
       TYPE(coord_attributes), dimension(nvar_verts) :: var_nverts
-      TYPE(coord_attributes), dimension(nvarz) :: var_nz
+      TYPE(coord_attributes), dimension(nvar_grdz) :: var_grdz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
       real (kind=dbl_kind) , allocatable :: workd2(:,:,:)
@@ -252,74 +256,118 @@
 
       ind = 0
       ind = ind + 1
-      coord_var(ind) = coord_attributes('TLON', &
+      var_coord(ind) = coord_attributes('TLON', &
                        'T grid center longitude', 'degrees_east')
       coord_bounds(ind) = 'lont_bounds'
       ind = ind + 1
-      coord_var(ind) = coord_attributes('TLAT', &
+      var_coord(ind) = coord_attributes('TLAT', &
                        'T grid center latitude',  'degrees_north')
       coord_bounds(ind) = 'latt_bounds'
       ind = ind + 1
-      coord_var(ind) = coord_attributes('ULON', &
+      var_coord(ind) = coord_attributes('ULON', &
                        'U grid center longitude', 'degrees_east')
       coord_bounds(ind) = 'lonu_bounds'
       ind = ind + 1
-      coord_var(ind) = coord_attributes('ULAT', &
+      var_coord(ind) = coord_attributes('ULAT', &
                        'U grid center latitude',  'degrees_north')
       coord_bounds(ind) = 'latu_bounds'
+      ind = ind + 1
+      var_coord(ind) = coord_attributes('NLON', &
+                       'N grid center longitude', 'degrees_east')
+      coord_bounds(ind) = 'lonn_bounds'
+      ind = ind + 1
+      var_coord(ind) = coord_attributes('NLAT', &
+                       'N grid center latitude',  'degrees_north')
+      coord_bounds(ind) = 'latn_bounds'
+      ind = ind + 1
+      var_coord(ind) = coord_attributes('ELON', &
+                       'E grid center longitude', 'degrees_east')
+      coord_bounds(ind) = 'lone_bounds'
+      ind = ind + 1
+      var_coord(ind) = coord_attributes('ELAT', &
+                       'E grid center latitude',  'degrees_north')
+      coord_bounds(ind) = 'late_bounds'
 
-      var_nz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
-      var_nz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
-      var_nz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1')
-      var_nz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
-      var_nz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
-      var_nz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
+      var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
+      var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
+      var_grdz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1')
+      var_grdz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
+      var_grdz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
+      var_grdz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
 
       !-----------------------------------------------------------------
       ! define information for optional time-invariant variables
       !-----------------------------------------------------------------
 
-      var(n_tmask)%req = coord_attributes('tmask', &
-                  'ocean grid mask', ' ')
-      var(n_tmask)%coordinates = 'TLON TLAT'
+      var_grd(n_tmask)%req = coord_attributes('tmask', &
+                  'mask of T grid cells, 0 = land, 1 = ocean', 'unitless')
+      var_grd(n_tmask)%coordinates = 'TLON TLAT'
+      var_grd(n_umask)%req = coord_attributes('umask', &
+                  'mask of U grid cells, 0 = land, 1 = ocean', 'unitless')
+      var_grd(n_umask)%coordinates = 'ULON ULAT'
+      var_grd(n_nmask)%req = coord_attributes('nmask', &
+                  'mask of N grid cells, 0 = land, 1 = ocean', 'unitless')
+      var_grd(n_nmask)%coordinates = 'NLON NLAT'
+      var_grd(n_emask)%req = coord_attributes('emask', &
+                  'mask of E grid cells, 0 = land, 1 = ocean', 'unitless')
+      var_grd(n_emask)%coordinates = 'ELON ELAT'
 
-      var(n_blkmask)%req = coord_attributes('blkmask', &
-                  'ice grid block mask', ' ')
-      var(n_blkmask)%coordinates = 'TLON TLAT'
+      var_grd(n_blkmask)%req = coord_attributes('blkmask', &
+                  'ice grid block mask, mytask + iblk/100', 'unitless')
+      var_grd(n_blkmask)%coordinates = 'TLON TLAT'
 
-      var(n_tarea)%req = coord_attributes('tarea', &
+      var_grd(n_tarea)%req = coord_attributes('tarea', &
                   'area of T grid cells', 'm^2')
-      var(n_tarea)%coordinates = 'TLON TLAT'
-
-      var(n_uarea)%req = coord_attributes('uarea', &
+      var_grd(n_tarea)%coordinates = 'TLON TLAT'
+      var_grd(n_uarea)%req = coord_attributes('uarea', &
                   'area of U grid cells', 'm^2')
-      var(n_uarea)%coordinates = 'ULON ULAT'
-      var(n_dxt)%req = coord_attributes('dxt', &
+      var_grd(n_uarea)%coordinates = 'ULON ULAT'
+      var_grd(n_narea)%req = coord_attributes('narea', &
+                  'area of N grid cells', 'm^2')
+      var_grd(n_narea)%coordinates = 'NLON NLAT'
+      var_grd(n_earea)%req = coord_attributes('earea', &
+                  'area of E grid cells', 'm^2')
+      var_grd(n_earea)%coordinates = 'ELON ELAT'
+
+      var_grd(n_dxt)%req = coord_attributes('dxt', &
                   'T cell width through middle', 'm')
-      var(n_dxt)%coordinates = 'TLON TLAT'
-      var(n_dyt)%req = coord_attributes('dyt', &
+      var_grd(n_dxt)%coordinates = 'TLON TLAT'
+      var_grd(n_dyt)%req = coord_attributes('dyt', &
                   'T cell height through middle', 'm')
-      var(n_dyt)%coordinates = 'TLON TLAT'
-      var(n_dxu)%req = coord_attributes('dxu', &
+      var_grd(n_dyt)%coordinates = 'TLON TLAT'
+      var_grd(n_dxu)%req = coord_attributes('dxu', &
                   'U cell width through middle', 'm')
-      var(n_dxu)%coordinates = 'ULON ULAT'
-      var(n_dyu)%req = coord_attributes('dyu', &
+      var_grd(n_dxu)%coordinates = 'ULON ULAT'
+      var_grd(n_dyu)%req = coord_attributes('dyu', &
                   'U cell height through middle', 'm')
-      var(n_dyu)%coordinates = 'ULON ULAT'
-      var(n_HTN)%req = coord_attributes('HTN', &
+      var_grd(n_dyu)%coordinates = 'ULON ULAT'
+      var_grd(n_dxn)%req = coord_attributes('dxn', &
+                  'N cell width through middle', 'm')
+      var_grd(n_dxn)%coordinates = 'NLON NLAT'
+      var_grd(n_dyn)%req = coord_attributes('dyn', &
+                  'N cell height through middle', 'm')
+      var_grd(n_dyn)%coordinates = 'NLON NLAT'
+      var_grd(n_dxe)%req = coord_attributes('dxe', &
+                  'E cell width through middle', 'm')
+      var_grd(n_dxe)%coordinates = 'ELON ELAT'
+      var_grd(n_dye)%req = coord_attributes('dye', &
+                  'E cell height through middle', 'm')
+      var_grd(n_dye)%coordinates = 'ELON ELAT'
+
+      var_grd(n_HTN)%req = coord_attributes('HTN', &
                   'T cell width on North side','m')
-      var(n_HTN)%coordinates = 'TLON TLAT'
-      var(n_HTE)%req = coord_attributes('HTE', &
+      var_grd(n_HTN)%coordinates = 'TLON TLAT'
+      var_grd(n_HTE)%req = coord_attributes('HTE', &
                   'T cell width on East side', 'm')
-      var(n_HTE)%coordinates = 'TLON TLAT'
-      var(n_ANGLE)%req = coord_attributes('ANGLE', &
+      var_grd(n_HTE)%coordinates = 'TLON TLAT'
+      var_grd(n_ANGLE)%req = coord_attributes('ANGLE', &
                   'angle grid makes with latitude line on U grid', &
                   'radians')
-      var(n_ANGLE)%coordinates = 'ULON ULAT'
-      var(n_ANGLET)%req = coord_attributes('ANGLET', &
+      var_grd(n_ANGLE)%coordinates = 'ULON ULAT'
+      var_grd(n_ANGLET)%req = coord_attributes('ANGLET', &
                   'angle grid makes with latitude line on T grid', &
                   'radians')
-      var(n_ANGLET)%coordinates = 'TLON TLAT'
+      var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
 
       ! These fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
@@ -331,6 +379,14 @@
                   'longitude boundaries of U cells', 'degrees_east')
       var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
                   'latitude boundaries of U cells', 'degrees_north')
+      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
+                  'longitude boundaries of N cells', 'degrees_east')
+      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
+                  'latitude boundaries of N cells', 'degrees_north')
+      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
+                  'longitude boundaries of E cells', 'degrees_east')
+      var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
+                  'latitude boundaries of E cells', 'degrees_north')
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
@@ -340,12 +396,12 @@
         dimid2(2) = jmtid
 
         do i = 1, ncoord
-          status = pio_def_var(File, trim(coord_var(i)%short_name), lprecision, &
+          status = pio_def_var(File, trim(var_coord(i)%short_name), lprecision, &
                                 dimid2, varid)
-          status = pio_put_att(File,varid,'long_name',trim(coord_var(i)%long_name))
-          status = pio_put_att(File, varid, 'units', trim(coord_var(i)%units))
-          call ice_write_hist_fill(File,varid,coord_var(i)%short_name,history_precision)
-          if (coord_var(i)%short_name == 'ULAT') then
+          status = pio_put_att(File,varid,'long_name',trim(var_coord(i)%long_name))
+          status = pio_put_att(File, varid, 'units', trim(var_coord(i)%units))
+          call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
+          if (var_coord(i)%short_name == 'ULAT') then
              status = pio_put_att(File,varid,'comment', &
                   trim('Latitude of NE corner of T grid cell'))
           endif
@@ -362,39 +418,23 @@
           dimidex(5)=kmtida
           dimidex(6)=fmtid
 
-        do i = 1, nvarz
+        do i = 1, nvar_grdz
            if (igrdz(i)) then
-              status = pio_def_var(File, trim(var_nz(i)%short_name), lprecision, &
+              status = pio_def_var(File, trim(var_grdz(i)%short_name), lprecision, &
                                    (/dimidex(i)/), varid)
-              status = pio_put_att(File, varid, 'long_name', var_nz(i)%long_name)
-              status = pio_put_att(File, varid, 'units'    , var_nz(i)%units)
+              status = pio_put_att(File, varid, 'long_name', var_grdz(i)%long_name)
+              status = pio_put_att(File, varid, 'units'    , var_grdz(i)%units)
            endif
         enddo
 
-        ! Attributes for tmask defined separately, since it has no units
-        if (igrd(n_tmask)) then
-           status = pio_def_var(File, 'tmask', lprecision, dimid2, varid)
-           status = pio_put_att(File,varid, 'long_name', 'ocean grid mask') 
-           status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
-           call ice_write_hist_fill(File,varid,'tmask',history_precision)
-           status = pio_put_att(File,varid,'comment', '0 = land, 1 = ocean')
-        endif
-        if (igrd(n_blkmask)) then
-           status = pio_def_var(File, 'blkmask', lprecision, dimid2, varid)
-           status = pio_put_att(File,varid, 'long_name', 'ice grid block mask') 
-           status = pio_put_att(File, varid, 'coordinates', 'TLON TLAT')
-           status = pio_put_att(File,varid,'comment', 'mytask + iblk/100')
-           call ice_write_hist_fill(File,varid,'blkmask',history_precision)
-        endif
-
-        do i = 3, nvar       ! note: n_tmask=1, n_blkmask=2
+        do i = 1, nvar_grd
           if (igrd(i)) then
-             status = pio_def_var(File, trim(var(i)%req%short_name), &
+             status = pio_def_var(File, trim(var_grd(i)%req%short_name), &
                                    lprecision, dimid2, varid)
-             status = pio_put_att(File,varid, 'long_name', trim(var(i)%req%long_name))
-             status = pio_put_att(File, varid, 'units', trim(var(i)%req%units))
-             status = pio_put_att(File, varid, 'coordinates', trim(var(i)%coordinates))
-             call ice_write_hist_fill(File,varid,var(i)%req%short_name,history_precision)
+             status = pio_put_att(File,varid, 'long_name', trim(var_grd(i)%req%long_name))
+             status = pio_put_att(File, varid, 'units', trim(var_grd(i)%req%units))
+             status = pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates))
+             call ice_write_hist_fill(File,varid,var_grd(i)%req%short_name,history_precision)
           endif
         enddo
 
@@ -430,39 +470,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimid3, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-              if (TRIM(avail_hist_fields(n)%vname)/='sig1' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sig2' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistreave' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sistremax' &
-              .or.TRIM(avail_hist_fields(n)%vname)/='sigP') then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-              endif
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg                              &
-                .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
-                .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
-                .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
-                .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
-                .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
-                .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_2D
 
@@ -479,27 +487,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dc
 
@@ -516,27 +504,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dz
         
@@ -553,27 +521,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Db
 
@@ -590,27 +538,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Da
 
@@ -627,27 +555,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                          lprecision, dimidz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Df
 
@@ -670,27 +578,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Di
 
@@ -708,27 +596,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Ds
 
@@ -747,27 +615,7 @@
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
                              lprecision, dimidcz, varid)
-            status = pio_put_att(File,varid,'units', &
-                        trim(avail_hist_fields(n)%vunit))
-            status = pio_put_att(File,varid, 'long_name', &
-                        trim(avail_hist_fields(n)%vdesc))
-            status = pio_put_att(File,varid,'coordinates', &
-                        trim(avail_hist_fields(n)%vcoord))
-            status = pio_put_att(File,varid,'cell_measures', &
-                        trim(avail_hist_fields(n)%vcellmeas))
-            call ice_write_hist_fill(File,varid,avail_hist_fields(n)%vname,history_precision)
-
-            ! Add cell_methods attribute to variables if averaged
-            if (hist_avg) then
-                status = pio_put_att(File,varid,'cell_methods','time: mean')
-            endif
-
-            if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-                .or..not. hist_avg) then
-               status = pio_put_att(File,varid,'time_rep','instantaneous')
-            else
-               status = pio_put_att(File,varid,'time_rep','averaged')
-            endif
+            call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Df
 
@@ -853,8 +701,8 @@
         allocate(workr2(nx_block,ny_block,nblocks))
 
         do i = 1,ncoord
-          status = pio_inq_varid(File, coord_var(i)%short_name, varid)
-          SELECT CASE (coord_var(i)%short_name)
+          status = pio_inq_varid(File, var_coord(i)%short_name, varid)
+          SELECT CASE (var_coord(i)%short_name)
             CASE ('TLON')
               ! Convert T grid longitude from -180 -> 180 to 0 to 360
                  workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
@@ -864,6 +712,14 @@
               workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
             CASE ('ULAT')
               workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
+            CASE ('NLON')
+              workd2(:,:,:) = nlon(:,:,1:nblocks)*rad_to_deg
+            CASE ('NLAT')
+              workd2(:,:,:) = nlat(:,:,1:nblocks)*rad_to_deg
+            CASE ('ELON')
+              workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
+            CASE ('ELAT')
+              workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
           END SELECT
           if (history_precision == 8) then
              call pio_write_darray(File, varid, iodesc2d, &
@@ -877,10 +733,10 @@
 
         ! Extra dimensions (NCAT, NFSD, VGRD*)
 
-        do i = 1, nvarz
+        do i = 1, nvar_grdz
           if (igrdz(i)) then
-            status = pio_inq_varid(File, var_nz(i)%short_name, varid)
-            SELECT CASE (var_nz(i)%short_name)
+            status = pio_inq_varid(File, var_grdz(i)%short_name, varid)
+            SELECT CASE (var_grdz(i)%short_name)
               CASE ('NCAT')
                 status = pio_put_var(File, varid, hin_max(1:ncat_hist)) 
               CASE ('NFSD')
@@ -901,36 +757,43 @@
       ! write grid masks, area and rotation angle
       !-----------------------------------------------------------------
 
-!      if (igrd(n_tmask)) then
-!        status = pio_inq_varid(File, 'tmask', varid)
-!        call pio_write_darray(File, varid, iodesc2d, &
-!                              hm(:,:,1:nblocks), status, fillval=spval_dbl)
-!      endif
-!      if (igrd(n_blkmask)) then
-!        status = pio_inq_varid(File, 'blkmask', varid)
-!        call pio_write_darray(File, varid, iodesc2d, &
-!                              bm(:,:,1:nblocks), status, fillval=spval_dbl)
-!      endif
-        
-      do i = 1, nvar       ! note: n_tmask=1, n_blkmask=2
+      do i = 1, nvar_grd
          if (igrd(i)) then
-            SELECT CASE (var(i)%req%short_name)
+            SELECT CASE (var_grd(i)%req%short_name)
             CASE ('tmask')
                workd2 = hm(:,:,1:nblocks)
+            CASE ('umask')
+               workd2 = uvm(:,:,1:nblocks)
+            CASE ('nmask')
+               workd2 = npm(:,:,1:nblocks)
+            CASE ('emask')
+               workd2 = epm(:,:,1:nblocks)
             CASE ('blkmask')
                workd2 = bm(:,:,1:nblocks)
             CASE ('tarea')
                workd2 = tarea(:,:,1:nblocks)
             CASE ('uarea')
                workd2 = uarea(:,:,1:nblocks)
-            CASE ('dxu')
-               workd2 = dxu(:,:,1:nblocks)
-            CASE ('dyu')
-               workd2 = dyu(:,:,1:nblocks)
+            CASE ('narea')
+               workd2 = narea(:,:,1:nblocks)
+            CASE ('earea')
+               workd2 = earea(:,:,1:nblocks)
             CASE ('dxt')
                workd2 = dxt(:,:,1:nblocks)
             CASE ('dyt')
                workd2 = dyt(:,:,1:nblocks)
+            CASE ('dxu')
+               workd2 = dxu(:,:,1:nblocks)
+            CASE ('dyu')
+               workd2 = dyu(:,:,1:nblocks)
+            CASE ('dxn')
+               workd2 = dxn(:,:,1:nblocks)
+            CASE ('dyn')
+               workd2 = dyn(:,:,1:nblocks)
+            CASE ('dxe')
+               workd2 = dxe(:,:,1:nblocks)
+            CASE ('dye')
+               workd2 = dye(:,:,1:nblocks)
             CASE ('HTN')
                workd2 = HTN(:,:,1:nblocks)
             CASE ('HTE')
@@ -940,7 +803,7 @@
             CASE ('ANGLET')
                workd2 = ANGLET(:,:,1:nblocks)
             END SELECT
-            status = pio_inq_varid(File, var(i)%req%short_name, varid)
+            status = pio_inq_varid(File, var_grd(i)%req%short_name, varid)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d, &
                     workd2, status, fillval=spval_dbl)
@@ -977,6 +840,22 @@
         CASE ('latu_bounds')
            do ivertex = 1, nverts 
               workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
+           enddo
+        CASE ('lonn_bounds')
+           do ivertex = 1, nverts 
+              workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
+           enddo
+        CASE ('latn_bounds')
+           do ivertex = 1, nverts 
+              workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
+           enddo
+        CASE ('lone_bounds')
+           do ivertex = 1, nverts 
+              workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
+           enddo
+        CASE ('late_bounds')
+           do ivertex = 1, nverts 
+              workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
            enddo
         END SELECT
 
@@ -1316,6 +1195,73 @@
       endif
 
       end subroutine ice_write_hist
+
+!=======================================================================
+
+      subroutine ice_write_hist_attrs(File, varid, hfield, ns)
+
+      use ice_kinds_mod
+      use ice_calendar, only: histfreq, histfreq_n
+      use ice_history_shared, only: ice_hist_field, history_precision, &
+          hist_avg
+      use ice_pio
+      use pio
+
+      type(file_desc_t)     :: File    ! file id
+      type(var_desc_t)      :: varid   ! variable id
+      type (ice_hist_field), intent(in) :: hfield   ! history file info
+      integer (kind=int_kind), intent(in) :: ns
+
+      ! local variables
+
+      integer (kind=int_kind) :: status
+      character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
+
+      status = pio_put_att(File,varid,'units',         trim(hfield%vunit))
+
+      status = pio_put_att(File,varid, 'long_name',    trim(hfield%vdesc))
+
+      status = pio_put_att(File,varid,'coordinates',   trim(hfield%vcoord))
+
+      status = pio_put_att(File,varid,'cell_measures', trim(hfield%vcellmeas))
+
+      if (hfield%vcomment /= "none") then
+         status = pio_put_att(File,varid,'comment',    trim(hfield%vcomment))
+      endif
+
+      call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
+
+      ! Add cell_methods attribute to variables if averaged
+      if (hist_avg) then
+         if    (TRIM(hfield%vname(1:4))/='sig1' &
+           .and.TRIM(hfield%vname(1:4))/='sig2' &
+           .and.TRIM(hfield%vname(1:9))/='sistreave' &
+           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:4))/='sigP') then
+            status = pio_put_att(File,varid,'cell_methods','time: mean')
+         endif
+      endif
+
+      if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
+          .or..not. hist_avg                              &
+          .or.TRIM(hfield%vname(1:4))=='divu' &
+          .or.TRIM(hfield%vname(1:5))=='shear' &
+          .or.TRIM(hfield%vname(1:4))=='sig1' &
+          .or.TRIM(hfield%vname(1:4))=='sig2' &
+          .or.TRIM(hfield%vname(1:4))=='sigP' &
+          .or.TRIM(hfield%vname(1:5))=='trsig' &
+          .or.TRIM(hfield%vname(1:9))=='sistreave' &
+          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
+          .or.TRIM(hfield%vname(1:9))=='frz_onset' &
+          .or.TRIM(hfield%vname(1:6))=='hisnap' &
+          .or.TRIM(hfield%vname(1:6))=='aisnap') then
+         status = pio_put_att(File,varid,'time_rep','instantaneous')
+      else
+         status = pio_put_att(File,varid,'time_rep','averaged')
+      endif
+
+      end subroutine ice_write_hist_attrs
 
 !=======================================================================
 

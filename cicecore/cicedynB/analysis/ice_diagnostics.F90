@@ -127,7 +127,7 @@
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_ice
       use ice_state   ! everything
 ! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
@@ -201,6 +201,17 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2
 
+      real (kind=dbl_kind), parameter :: &
+         maxval_spval = -0.9_dbl_kind*HUGE(0.0_dbl_kind)  ! spval to detect 
+                 ! undefined values returned from global_maxval.  if global_maxval
+                 ! is applied to a region that does not exist (for instance
+                 ! southern hemisphere in box cases), global_maxval
+                 ! returns -HUGE which we want to avoid writing.  The
+                 ! return value is checked against maxval_spval before writing.
+
+!     real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+!        uvelT, vvelT
+
       character(len=*), parameter :: subname = '(runtime_diags)'
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
@@ -228,6 +239,8 @@
       ! hemispheric quantities
 
       ! total ice area
+      arean = c0
+      areas = c0
       arean = global_sum(aice, distrb_info, field_loc_center, tarean)
       areas = global_sum(aice, distrb_info, field_loc_center, tareas)
       arean = arean * m2_to_km2
@@ -244,6 +257,8 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
+      extentn = c0
+      extents = c0
       extentn = global_sum(work1, distrb_info, field_loc_center, &
                            tarean)
       extents = global_sum(work1, distrb_info, field_loc_center, &
@@ -252,10 +267,14 @@
       extents = extents * m2_to_km2
 
       ! total ice volume
+      shmaxn = c0
+      shmaxs = c0
       shmaxn = global_sum(vice, distrb_info, field_loc_center, tarean)
       shmaxs = global_sum(vice, distrb_info, field_loc_center, tareas)
 
       ! total snow volume
+      snwmxn = c0
+      snwmxs = c0
       snwmxn = global_sum(vsno, distrb_info, field_loc_center, tarean)
       snwmxs = global_sum(vsno, distrb_info, field_loc_center, tareas)
 
@@ -293,7 +312,25 @@
          enddo
          enddo
       enddo
-      !$OMP END PARALLEL DO
+      ! Eventually do energy diagnostic on T points.
+!     if (grid_ice == 'CD') then
+!     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+!     do iblk = 1, nblocks
+!        do j = 1, ny_block
+!        do i = 1, nx_block
+!           call grid_average_X2Y('E2TS',uvelE,uvelT)
+!           call grid_average_X2Y('N2TS',vvelN,vvelT)
+!           work1(i,j,iblk) = p5 &
+!                          * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
+!                          * (uvelT(i,j,iblk)*uvelT(i,j,iblk) &
+!                          +  vvelT(i,j,iblk)*vvelT(i,j,iblk))
+!        enddo
+!        enddo
+!     enddo
+!     endif
+!     !$OMP END PARALLEL DO
+      ketotn = c0
+      ketots = c0
       ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
       ketots = global_sum(work1, distrb_info, field_loc_center, tareas)
 
@@ -370,23 +407,57 @@
       endif
 
       ! maximum ice volume (= mean thickness including open water)
+      hmaxn = c0
+      hmaxs = c0
       hmaxn = global_maxval(vice, distrb_info, lmask_n)
       hmaxs = global_maxval(vice, distrb_info, lmask_s)
+      if (hmaxn < maxval_spval) hmaxn = c0
+      if (hmaxs < maxval_spval) hmaxs = c0
 
       ! maximum ice speed
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 &
-                                 + vvel(i,j,iblk)**2)
+      if (grid_ice == 'CD') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 &
+                                        + vvelE(i,j,iblk)**2), &
+                                     sqrt(uvelN(i,j,iblk)**2 &
+                                        + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
          enddo
+         !$OMP END PARALLEL DO
+      elseif (grid_ice == 'C') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = sqrt(uvelE(i,j,iblk)**2 &
+                                    + vvelN(i,j,iblk)**2)
+            enddo
+            enddo
          enddo
-      enddo
-      !$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 &
+                                    + vvel(i,j,iblk)**2)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif
 
+      umaxn = c0
+      umaxs = c0
       umaxn = global_maxval(work1, distrb_info, lmask_n)
       umaxs = global_maxval(work1, distrb_info, lmask_s)
+      if (umaxn < maxval_spval) umaxn = c0
+      if (umaxs < maxval_spval) umaxs = c0
 
       ! Write warning message if ice speed is too big
       ! (Ice speeds of ~1 m/s or more usually indicate instability)
@@ -427,8 +498,12 @@
 
       ! maximum ice strength
 
+      pmaxn = c0
+      pmaxs = c0
       pmaxn = global_maxval(strength, distrb_info, lmask_n)
       pmaxs = global_maxval(strength, distrb_info, lmask_s)
+      if (pmaxn < maxval_spval) pmaxn = c0
+      if (pmaxs < maxval_spval) pmaxs = c0
 
       pmaxn = pmaxn / c1000   ! convert to kN/m
       pmaxs = pmaxs / c1000 
@@ -437,7 +512,9 @@
 
          ! total ice/snow internal energy
          call total_energy (work1)
-      
+
+         etotn = c0
+         etots = c0
          etotn = global_sum(work1, distrb_info, &
                             field_loc_center, tarean)
          etots = global_sum(work1, distrb_info, &
@@ -452,6 +529,8 @@
 
          ! evaporation
 
+         evpn = c0
+         evps = c0
          evpn = global_sum_prod(evap, aice, distrb_info, &
                                 field_loc_center, tarean)
          evps = global_sum_prod(evap, aice, distrb_info, &
@@ -470,6 +549,8 @@
          endif
 
          ! salt flux
+         sfsaltn = c0
+         sfsalts = c0
          sfsaltn = global_sum(fsalt_ai, distrb_info, &
                                    field_loc_center, tarean)
          sfsalts = global_sum(fsalt_ai, distrb_info, &
@@ -478,6 +559,8 @@
          sfsalts = sfsalts*dt
 
          ! fresh water flux
+         sfreshn = c0
+         sfreshs = c0
          sfreshn = global_sum(fresh_ai, distrb_info, &
                                    field_loc_center, tarean)
          sfreshs = global_sum(fresh_ai, distrb_info, &
@@ -499,6 +582,8 @@
 
          ! ocean heat
          ! Note: fswthru not included because it does not heat ice
+         fhocnn = c0
+         fhocns = c0
          fhocnn = global_sum(fhocn_ai, distrb_info, &
                                   field_loc_center, tarean)
          fhocns = global_sum(fhocn_ai, distrb_info, &
@@ -548,6 +633,8 @@
 
          endif     ! calc_Tsfc
 
+         fhatmn = c0
+         fhatms = c0
          fhatmn = global_sum(work1, distrb_info, &
                              field_loc_center, tarean)
          fhatms = global_sum(work1, distrb_info, &
@@ -564,6 +651,8 @@
          enddo
          !$OMP END PARALLEL DO
 
+         fswnetn = c0
+         fswnets = c0
          fswnetn = global_sum(work1, distrb_info, &
                              field_loc_center, tarean)
          fswnets = global_sum(work1, distrb_info, &
@@ -582,6 +671,8 @@
          enddo
          !$OMP END PARALLEL DO
 
+         fswdnn = c0
+         fswdns = c0
          fswdnn = global_sum(work1, distrb_info, &
                              field_loc_center, tarean)
          fswdns = global_sum(work1, distrb_info, &
@@ -597,12 +688,17 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
+
+         fhfrzn = c0
+         fhfrzs = c0
          fhfrzn = global_sum(work1, distrb_info, &
                              field_loc_center, tarean)
          fhfrzs = global_sum(work1, distrb_info, &
                              field_loc_center, tareas)
 
          ! rain
+         rnn = c0
+         rns = c0
          rnn = global_sum_prod(frain, aice_init, distrb_info, &
                                field_loc_center, tarean)
          rns = global_sum_prod(frain, aice_init, distrb_info, &
@@ -611,6 +707,8 @@
          rns = rns*dt
 
          ! snow
+         snn = c0
+         sns = c0
          snn = global_sum_prod(fsnow, aice_init, distrb_info, &
                                field_loc_center, tarean)
          sns = global_sum_prod(fsnow, aice_init, distrb_info, &
@@ -623,6 +721,8 @@
          work1(:,:,:) = frazil(:,:,:)*rhoi/dt
          if (ktherm == 2 .and. .not.update_ocn_f) &
             work1(:,:,:) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
+         frzn = c0
+         frzs = c0
          frzn = global_sum(work1, distrb_info, &
                            field_loc_center, tarean)
          frzs = global_sum(work1, distrb_info, &
@@ -706,6 +806,16 @@
 
          ! isotopes
          if (tr_iso) then
+         fisoan  = c0
+         fisoas  = c0
+         fisoon  = c0
+         fisoos  = c0
+         isototn = c0
+         isotots = c0
+         isomx1n = c0
+         isomx1s = c0
+         isorn   = c0
+         isors   = c0
          do n = 1, n_iso
             fisoan(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
                                         distrb_info, field_loc_center, tarean)
@@ -738,6 +848,8 @@
             isotots(n) = global_sum(work1, distrb_info, field_loc_center, tareas)
             isomx1n(n) = global_maxval(work1, distrb_info, lmask_n)
             isomx1s(n) = global_maxval(work1, distrb_info, lmask_s)
+            if (isomx1n(n) < maxval_spval) isomx1n(n) = c0
+            if (isomx1s(n) < maxval_spval) isomx1s(n) = c0
             isorn(n) = (totison(n)-isototn(n)+fisoan(n)-fisoon(n))/(isototn(n)+c1)
             isors(n) = (totisos(n)-isotots(n)+fisoas(n)-fisoos(n))/(isotots(n)+c1)
          enddo ! n_iso
@@ -745,6 +857,16 @@
 
          ! aerosols
          if (tr_aero) then
+         faeran = c0
+         faeras = c0
+         faeron = c0
+         faeros = c0
+         aerototn = c0
+         aerotots = c0
+         aeromx1n = c0
+         aeromx1s = c0
+         aerrn = c0
+         aerrs = c0
          do n = 1, n_aero
             faeran(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init, &
                                         distrb_info, field_loc_center, tarean)
@@ -776,6 +898,8 @@
             aerotots(n) = global_sum(work1, distrb_info, field_loc_center, tareas)
             aeromx1n(n) = global_maxval(work1, distrb_info, lmask_n)
             aeromx1s(n) = global_maxval(work1, distrb_info, lmask_s)
+            if (aeromx1n(n) < maxval_spval) aeromx1n(n) = c0
+            if (aeromx1s(n) < maxval_spval) aeromx1s(n) = c0
 
             aerrn(n) = (totaeron(n)-aerototn(n)+faeran(n)-faeron(n)) &
                                  / (aerototn(n) + c1)
@@ -1629,10 +1753,12 @@
 
       subroutine print_state(plabel,i,j,iblk)
 
+      use ice_grid, only: grid_ice
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, nfsd
-      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
+      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, &
+                           uvelE, vvelE, uvelN, vvelN, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1754,6 +1880,15 @@
 
       write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
       write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
+      if (grid_ice == 'C') then
+         write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
+         write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
+      elseif (grid_ice == 'CD') then
+         write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
+         write(nu_diag,*) 'vvelE(i,j)',vvelE(i,j,iblk)
+         write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)
+         write(nu_diag,*) 'vvelN(i,j)',vvelN(i,j,iblk)
+      endif
 
       write(nu_diag,*) ' '
       write(nu_diag,*) 'atm states and fluxes'
@@ -1801,10 +1936,12 @@
 
       subroutine print_points_state(plabel,ilabel)
 
+      use ice_grid, only: grid_ice
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
-      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, trcrn
+      use ice_state, only: aice0, aicen, vicen, vsnon, uvel, vvel, &
+                           uvelE, vvelE, uvelE, vvelE, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
@@ -1896,6 +2033,15 @@
 
       write(nu_diag,*) trim(llabel),'uvel=',uvel(i,j,iblk)
       write(nu_diag,*) trim(llabel),'vvel=',vvel(i,j,iblk)
+      if (grid_ice == 'C') then
+         write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelN=',vvelN(i,j,iblk)
+      elseif (grid_ice == 'CD') then
+         write(nu_diag,*) trim(llabel),'uvelE=',uvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelE=',vvelE(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'uvelN=',uvelN(i,j,iblk)
+         write(nu_diag,*) trim(llabel),'vvelN=',vvelN(i,j,iblk)
+      endif
 
       write(nu_diag,*) ' '
       write(nu_diag,*) 'atm states and fluxes'

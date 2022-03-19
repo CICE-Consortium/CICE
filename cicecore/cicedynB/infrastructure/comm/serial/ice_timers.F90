@@ -54,6 +54,7 @@
       timer_diags,            &! diagnostics/history
       timer_hist,             &! diagnostics/history
       timer_bound,            &! boundary updates
+      timer_bundbound,        &! boundary updates
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
@@ -206,6 +207,7 @@
    call get_ice_timer(timer_diags,    'Diags    ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_hist,     'History  ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound,    'Bound',    nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_bundbound,'Bundbound',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc,      'BGC',      nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp_1d,   '1d-evp',   nblocks,distrb_info%nprocs)

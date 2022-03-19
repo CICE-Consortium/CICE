@@ -913,6 +913,7 @@
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_fileunits, only: nu_dump_hbrine
+      use ice_grid, only: tmask
       use ice_state, only: trcrn
       use ice_restart,only: write_restart_field
 
@@ -949,7 +950,8 @@
         do j = jlo, jhi
         do i = ilo, ihi  
            do n = 1, ncat
-              if (first_ice     (i,j,n,iblk)) then
+              ! zero out first_ice over land
+              if (tmask(i,j,iblk) .and. first_ice (i,j,n,iblk)) then
                   first_ice_real(i,j,n,iblk) = c1
               else
                   first_ice_real(i,j,n,iblk) = c0
@@ -983,6 +985,7 @@
       use ice_fileunits, only: nu_dump_bgc
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
+      use ice_grid, only: tmask
       use ice_state, only: trcrn
       use ice_flux, only: sss  
       use ice_restart, only:  write_restart_field
@@ -1057,6 +1060,39 @@
          file=__FILE__, line=__LINE__)
 
       diag = .true.
+
+      !-----------------------------------------------------------------
+      ! Zero out tracers over land
+      !-----------------------------------------------------------------
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (.not. tmask(i,j,iblk)) then
+               if (tr_bgc_N  ) algalN(i,j,:,iblk) = c0
+               if (tr_bgc_C  ) doc   (i,j,:,iblk) = c0
+               if (tr_bgc_C  ) dic   (i,j,:,iblk) = c0
+               if (tr_bgc_Nit) nit   (i,j  ,iblk) = c0
+               if (tr_bgc_Am ) amm   (i,j  ,iblk) = c0
+               if (tr_bgc_Sil) sil   (i,j  ,iblk) = c0
+               if (tr_bgc_hum) hum   (i,j  ,iblk) = c0
+               if (tr_bgc_DMS) dms   (i,j  ,iblk) = c0
+               if (tr_bgc_DMS) dmsp  (i,j  ,iblk) = c0
+               if (tr_bgc_DON) don   (i,j,:,iblk) = c0
+               if (tr_bgc_Fe ) fed   (i,j,:,iblk) = c0
+               if (tr_bgc_Fe ) fep   (i,j,:,iblk) = c0
+               if (solve_zsal) sss   (i,j  ,iblk) = c0
+            endif
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
 
       !-----------------------------------------------------------------
       ! Salinity and extras

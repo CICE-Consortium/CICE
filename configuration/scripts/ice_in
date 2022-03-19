@@ -61,7 +61,11 @@
 &grid_nml
     grid_format  = 'bin'
     grid_type    = 'displaced_pole'
+    grid_ice     = 'B'
+    grid_atm     = 'A'
+    grid_ocn     = 'A'
     grid_file    = 'grid'
+    kmt_type     = 'file'
     kmt_file     = 'kmt'
     bathymetry_file = 'unknown_bathymetry_file'
     bathymetry_format = 'default'
@@ -144,6 +148,11 @@
     Ktens           = 0.
     e_yieldcurve    = 2.
     e_plasticpot    = 2.
+    visc_method     = 'avg_strength'
+    elasticDamp     = 0.36d0
+    deltaminEVP     = 1e-11
+    deltaminVP      = 2e-9
+    capping         = 1.
     seabed_stress   = .false.
     seabed_stress_method = 'LKD'
     k1              = 7.5
