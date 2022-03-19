@@ -63,6 +63,7 @@
       maskhalo_dyn   , & ! if true, use masked halo updates for dynamics
       maskhalo_remap , & ! if true, use masked halo updates for transport
       maskhalo_bound , & ! if true, use masked halo updates for bound_state
+      halo_dynbundle , & ! if true, bundle halo update in dynamics
       landblockelim  , & ! if true, land block elimination is on
       orca_halogrid      ! if true, input fields are haloed as defined by orca grid
 
@@ -155,6 +156,7 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   halo_dynbundle    = .true.      ! if true, bundle halo updates in dynamics
    add_mpi_barriers  = .false.     ! if true, throttle communication
    debug_blocks      = .false.     ! if true, print verbose block information
    max_blocks        = -1          ! max number of blocks per processor

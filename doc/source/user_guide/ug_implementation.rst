@@ -1294,15 +1294,17 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 14           | Bound       | boundary conditions and subdomain communications   |
    +--------------+-------------+----------------------------------------------------+
-   | 15           | BGC         | biogeochemistry, part of Thermo timer              |
+   | 15           | BundBound   | halo update bundle copy                            |
    +--------------+-------------+----------------------------------------------------+
-   | 16           | Forcing     | forcing                                            |
+   | 16           | BGC         | biogeochemistry, part of Thermo timer              |
    +--------------+-------------+----------------------------------------------------+
-   | 17           | 1d-evp      | 1d evp, part of Dynamics timer                     |
+   | 17           | Forcing     | forcing                                            |
    +--------------+-------------+----------------------------------------------------+
-   | 18           | 2d-evp      | 2d evp, part of Dynamics timer                     |
+   | 18           | 1d-evp      | 1d evp, part of Dynamics timer                     |
    +--------------+-------------+----------------------------------------------------+
-   | 19           | UpdState    | update state                                       |
+   | 19           | 2d-evp      | 2d evp, part of Dynamics timer                     |
+   +--------------+-------------+----------------------------------------------------+
+   | 20           | UpdState    | update state                                       |
    +--------------+-------------+----------------------------------------------------+
 
 .. _restartfiles:

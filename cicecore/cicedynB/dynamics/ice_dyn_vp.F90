@@ -48,7 +48,7 @@
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-          seabed_stress, Ktens, stack_velocity_field,  unstack_velocity_field
+          seabed_stress, Ktens, stack_fields,  unstack_fields
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
       use ice_global_reductions, only: global_sum, global_allreduce_sum
@@ -406,10 +406,10 @@
       call ice_HaloUpdate (strength,           halo_info, &
                            field_loc_center,   field_type_scalar)
       ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
+      call stack_fields(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call unstack_velocity_field(fld2, uvel, vvel)
+      call unstack_fields(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
@@ -1107,7 +1107,7 @@
                              uvel (:,:,:), vvel (:,:,:))
          
          ! Do halo update so that halo cells contain up to date info for advection
-         call stack_velocity_field(uvel, vvel, fld2)
+         call stack_fields(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
          if (maskhalo_dyn) then
             call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -1117,7 +1117,7 @@
                                  field_loc_NEcorner, field_type_vector)
          endif
          call ice_timer_stop(timer_bound)
-         call unstack_velocity_field(fld2, uvel, vvel)
+         call unstack_fields(fld2, uvel, vvel)
          
          ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)
@@ -2909,7 +2909,7 @@
             orig_basis_y(:,:,:,initer) = workspace_y
             
             ! Update workspace with boundary values
-            call stack_velocity_field(workspace_x, workspace_y, fld2)
+            call stack_fields(workspace_x, workspace_y, fld2)
             call ice_timer_start(timer_bound)
             if (maskhalo_dyn) then
                call ice_HaloUpdate (fld2,               halo_info_mask, &
@@ -2919,7 +2919,7 @@
                                     field_loc_NEcorner, field_type_vector)
             endif
             call ice_timer_stop(timer_bound)
-            call unstack_velocity_field(fld2, workspace_x, workspace_y)
+            call unstack_fields(fld2, workspace_x, workspace_y)
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks

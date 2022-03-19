@@ -10,7 +10,7 @@
       module ice_dyn_shared
 
       use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_constants, only: c0, c1, c2, c3, c4, c6
       use ice_constants, only: omega, spval_dbl, p01, p001, p5
       use ice_blocks, only: nx_block, ny_block
@@ -32,7 +32,8 @@
                 visc_replpress, &
                 visc_replpress_avgstr, &
                 visc_replpress_avgzeta, &
-                stack_velocity_field, unstack_velocity_field
+                dyn_haloUpdate, &
+                stack_fields, unstack_fields
 
       ! namelist parameters
 
@@ -127,6 +128,28 @@
          threshold_hw    ! max water depth for grounding
                          ! see keel data from Amundrud et al. 2004 (JGR)
 
+      interface dyn_haloUpdate
+         module procedure dyn_haloUpdate1
+         module procedure dyn_haloUpdate2
+         module procedure dyn_haloUpdate3
+         module procedure dyn_haloUpdate4
+         module procedure dyn_haloUpdate5
+      end interface
+
+      interface stack_fields
+         module procedure stack_fields2
+         module procedure stack_fields3
+         module procedure stack_fields4
+         module procedure stack_fields5
+      end interface
+
+      interface unstack_fields
+         module procedure unstack_fields2
+         module procedure unstack_fields3
+         module procedure unstack_fields4
+         module procedure unstack_fields5
+      end interface
+
 !=======================================================================
 
       contains
@@ -165,7 +188,7 @@
       subroutine init_dyn (dt)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_domain, only: nblocks
+      use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
       use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -182,17 +205,24 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, &
-         iblk            ! block index
+         i, j  , &  ! indices
+         nprocs, &  ! number of processors
+         iblk       ! block index
 
       character(len=*), parameter :: subname = '(init_dyn)'
 
       call set_evp_parameters (dt)
 
+      ! Set halo_dynbundle, this is empirical at this point, could become namelist
+      halo_dynbundle = .true.
+      nprocs = get_num_procs()
+      if (nx_block*ny_block/nprocs > 100) halo_dynbundle = .false.
+
       if (my_task == master_task) then
          write(nu_diag,*) 'dt  = ',dt
          write(nu_diag,*) 'dte = ',dt/real(ndte,kind=dbl_kind)
          write(nu_diag,*) 'tdamp =', elasticDamp * dt
+         write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
       endif
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
@@ -2278,68 +2308,622 @@
       end subroutine visc_replpress_avgstr
 
 !=======================================================================
+! Do a halo update on 1 fields
 
-! Load velocity components into array for boundary updates
+      subroutine dyn_haloUpdate1(halo_info, halo_info_mask, field_loc, field_type, fld1)
 
-      subroutine stack_velocity_field(uvel, vvel, fld2)
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
-      use ice_domain, only: nblocks
+      type (ice_halo), intent(in) :: &
+         halo_info     , &  ! standard unmasked halo
+         halo_info_mask     ! masked halo
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
-         uvel    , & ! u components of velocity vector
-         vvel        ! v components of velocity vector
+      integer (kind=int_kind), intent(in) :: &
+         field_loc,  & ! field loc
+         field_type    ! field_type
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(out) :: &
-         fld2        ! work array for boundary updates
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fld1        ! fields to halo
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         iblk        ! block index
+         iblk     ! iblock
 
-      character(len=*), parameter :: subname = '(stack_velocity_field)'
+      real (kind=dbl_kind), dimension (nx_block,ny_block,1,max_blocks) :: &
+         fldbundle        ! work array for boundary updates
 
-      ! load velocity into array for boundary updates
-      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-         fld2(:,:,1,iblk) = uvel(:,:,iblk)
-         fld2(:,:,2,iblk) = vvel(:,:,iblk)
-      enddo
-      !$OMP END PARALLEL DO
+      character(len=*), parameter :: subname = '(dyn_haloUpdate1)'
 
-      end subroutine stack_velocity_field
+      call ice_timer_start(timer_bound)
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate1
 
 !=======================================================================
+! Do a halo update on 2 fields
 
-! Unload velocity components from array after boundary updates
+      subroutine dyn_haloUpdate2(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2)
 
-      subroutine unstack_velocity_field(fld2, uvel, vvel)
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info     , &  ! standard unmasked halo
+         halo_info_mask     ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc,  & ! field loc
+         field_type    ! field_type
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fld1    , & ! fields to halo
+         fld2        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk     ! iblock
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks) :: &
+         fldbundle        ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate2)'
+
+      call ice_timer_start(timer_bound)
+      ! single process performs better without bundling fields
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate2
+
+!=======================================================================
+! Do a halo update on 3 fields
+
+      subroutine dyn_haloUpdate3(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info     , &  ! standard unmasked halo
+         halo_info_mask     ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc,  & ! field loc
+         field_type    ! field_type
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fld1    , & ! fields to halo
+         fld2    , & !
+         fld3        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk     ! iblock
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,3,max_blocks) :: &
+         fldbundle        ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate3)'
+
+      call ice_timer_start(timer_bound)
+      ! single process performs better without bundling fields
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fld3, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2, fld3)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate3
+
+!=======================================================================
+! Do a halo update on 4 fields
+
+      subroutine dyn_haloUpdate4(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3, fld4)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info     , &  ! standard unmasked halo
+         halo_info_mask     ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc,  & ! field loc
+         field_type    ! field_type
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fld1    , & ! fields to halo
+         fld2    , & !
+         fld3    , & !
+         fld4        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk     ! iblock
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,4,max_blocks) :: &
+         fldbundle        ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate4)'
+
+      call ice_timer_start(timer_bound)
+      ! single process performs better without bundling fields
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fld3, fld4, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2, fld3, fld4)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate4
+
+!=======================================================================
+! Do a halo update on 5 fields
+
+      subroutine dyn_haloUpdate5(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3, fld4, fld5)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info     , &  ! standard unmasked halo
+         halo_info_mask     ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc,  & ! field loc
+         field_type    ! field_type
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
+         fld1    , & ! fields to halo
+         fld2    , & !
+         fld3    , & !
+         fld4    , & !
+         fld5        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk     ! iblock
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,5,max_blocks) :: &
+         fldbundle        ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate5)'
+
+      call ice_timer_start(timer_bound)
+      ! single process performs better without bundling fields
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fld3, fld4, fld5, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2, fld3, fld4, fld5)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld5     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld5     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate5
+
+!=======================================================================
+! Load fields into array for boundary updates
+
+      subroutine stack_fields2(fld1, fld2, fldbundle)
 
       use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks), intent(in) :: &
-         fld2        ! work array for boundary updates
+      real (kind=dbl_kind), dimension (:,:,:), intent(in) :: &
+         fld1    , & !
+         fld2        !
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
-         uvel    , & ! u components of velocity vector
-         vvel        ! v components of velocity vector
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
 
       ! local variables
 
       integer (kind=int_kind) :: &
          iblk        ! block index
 
-      character(len=*), parameter :: subname = '(unstack_velocity_field)'
+      character(len=*), parameter :: subname = '(stack_fields2)'
 
-      ! Unload velocity from array after boundary updates
+      call ice_timer_start(timer_bundbound)
       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
-         uvel(:,:,iblk) = fld2(:,:,1,iblk)
-         vvel(:,:,iblk) = fld2(:,:,2,iblk)
+         fldbundle(:,:,1,iblk) = fld1(:,:,iblk)
+         fldbundle(:,:,2,iblk) = fld2(:,:,iblk)
       enddo
       !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
 
-      end subroutine unstack_velocity_field
+      end subroutine stack_fields2
+
+!=======================================================================
+! Load fields into array for boundary updates
+
+      subroutine stack_fields3(fld1, fld2, fld3, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(in) :: &
+         fld1    , & !
+         fld2    , & ! 
+         fld3        ! 
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields3)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fldbundle(:,:,1,iblk) = fld1(:,:,iblk)
+         fldbundle(:,:,2,iblk) = fld2(:,:,iblk)
+         fldbundle(:,:,3,iblk) = fld3(:,:,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields3
+
+!=======================================================================
+! Load fields into array for boundary updates
+
+      subroutine stack_fields4(fld1, fld2, fld3, fld4, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(in) :: &
+         fld1    , & !
+         fld2    , & ! 
+         fld3    , & ! 
+         fld4        ! 
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields4)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fldbundle(:,:,1,iblk) = fld1(:,:,iblk)
+         fldbundle(:,:,2,iblk) = fld2(:,:,iblk)
+         fldbundle(:,:,3,iblk) = fld3(:,:,iblk)
+         fldbundle(:,:,4,iblk) = fld4(:,:,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields4
+
+!=======================================================================
+! Load fields into array for boundary updates
+
+      subroutine stack_fields5(fld1, fld2, fld3, fld4, fld5, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(in) :: &
+         fld1    , & ! 
+         fld2    , & ! 
+         fld3    , & ! 
+         fld4    , & ! 
+         fld5        ! 
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields5)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fldbundle(:,:,1,iblk) = fld1(:,:,iblk)
+         fldbundle(:,:,2,iblk) = fld2(:,:,iblk)
+         fldbundle(:,:,3,iblk) = fld3(:,:,iblk)
+         fldbundle(:,:,4,iblk) = fld4(:,:,iblk)
+         fldbundle(:,:,5,iblk) = fld5(:,:,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields5
+
+!=======================================================================
+! Unload fields from array after boundary updates
+
+      subroutine unstack_fields2(fldbundle, fld1, fld2)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(out) :: &
+         fld1    , & !
+         fld2        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields2)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fld1(:,:,iblk) = fldbundle(:,:,1,iblk)
+         fld2(:,:,iblk) = fldbundle(:,:,2,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields2
+
+!=======================================================================
+! Unload fields from array after boundary updates
+
+      subroutine unstack_fields3(fldbundle, fld1, fld2, fld3)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(out) :: &
+         fld1    , & !
+         fld2    , & !
+         fld3        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields3)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fld1(:,:,iblk) = fldbundle(:,:,1,iblk)
+         fld2(:,:,iblk) = fldbundle(:,:,2,iblk)
+         fld3(:,:,iblk) = fldbundle(:,:,3,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields3
+
+!=======================================================================
+! Unload fields from array after boundary updates
+
+      subroutine unstack_fields4(fldbundle, fld1, fld2, fld3, fld4)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(out) :: &
+         fld1    , & !
+         fld2    , & !
+         fld3    , & !
+         fld4        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields4)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fld1(:,:,iblk) = fldbundle(:,:,1,iblk)
+         fld2(:,:,iblk) = fldbundle(:,:,2,iblk)
+         fld3(:,:,iblk) = fldbundle(:,:,3,iblk)
+         fld4(:,:,iblk) = fldbundle(:,:,4,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields4
+
+!=======================================================================
+! Unload fields from array after boundary updates
+
+      subroutine unstack_fields5(fldbundle, fld1, fld2, fld3, fld4, fld5)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle        ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:,:), intent(out) :: &
+         fld1    , & !
+         fld2    , & !
+         fld3    , & !
+         fld4    , & !
+         fld5        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields5)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         fld1(:,:,iblk) = fldbundle(:,:,1,iblk)
+         fld2(:,:,iblk) = fldbundle(:,:,2,iblk)
+         fld3(:,:,iblk) = fldbundle(:,:,3,iblk)
+         fld4(:,:,iblk) = fldbundle(:,:,4,iblk)
+         fld5(:,:,iblk) = fldbundle(:,:,5,iblk)
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields5
 
 !=======================================================================
       

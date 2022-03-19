@@ -113,8 +113,8 @@
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
-      use ice_dyn_shared, only: evp_algorithm, stack_velocity_field, unstack_velocity_field, DminTarea
-      use ice_dyn_shared, only: deformations, deformations_T, strain_rates_U
+      use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, DminTarea
+      use ice_dyn_shared, only: deformations, deformations_T, strain_rates_U, dyn_haloUpdate
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -183,7 +183,10 @@
          emass    , & ! total mass of ice and snow (E grid)
          emassdti     ! mass of E-cell/dte (kg/m^2 s)
 
-      real (kind=dbl_kind), allocatable :: fld2(:,:,:,:)
+      real (kind=dbl_kind), allocatable :: &
+         fld2(:,:,:,:), &   ! bundled fields size 2
+         fld3(:,:,:,:), &   ! bundled fields size 3
+         fld4(:,:,:,:)      ! bundled fields size 4
 
       real (kind=dbl_kind), allocatable :: &
          shrU   (:,:,:), &  ! shearU array for gridC
@@ -220,6 +223,8 @@
       !-----------------------------------------------------------------
 
       allocate(fld2(nx_block,ny_block,2,max_blocks))
+      allocate(fld3(nx_block,ny_block,3,max_blocks))
+      allocate(fld4(nx_block,ny_block,4,max_blocks))
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -572,16 +577,39 @@
                            field_loc_center,   field_type_scalar)
 
       ! velocities may have changed in dyn_prep2
-      call stack_velocity_field(uvel, vvel, fld2)
+      call stack_fields(uvel, vvel, fld2)
       call ice_HaloUpdate (fld2,               halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call unstack_velocity_field(fld2, uvel, vvel)
+      call unstack_fields(fld2, uvel, vvel)
       call ice_timer_stop(timer_bound)
 
       if (maskhalo_dyn) then
-         call ice_timer_start(timer_bound)
          halomask = 0
-         where (iceumask) halomask = 1
+         if (grid_ice == 'B') then
+            where (iceumask) halomask = 1
+         elseif (grid_ice == 'C' .or. grid_ice == 'CD') then
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,i,j) SCHEDULE(runtime)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)         
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo,jhi
+               do i = ilo,ihi
+                  if (icetmask(i  ,j  ,iblk) /= 0 .or. &
+                      icetmask(i-1,j  ,iblk) /= 0 .or. &
+                      icetmask(i+1,j  ,iblk) /= 0 .or. &
+                      icetmask(i  ,j-1,iblk) /= 0 .or. &
+                      icetmask(i  ,j+1,iblk) /= 0) then
+                     halomask(i,j,iblk) = 1
+                  endif
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+         endif
+         call ice_timer_start(timer_bound)
          call ice_HaloUpdate (halomask,          halo_info, &
                               field_loc_center,  field_type_scalar)
          call ice_timer_stop(timer_bound)
@@ -656,8 +684,6 @@
          
       endif
 
-      call ice_timer_start(timer_evp_2d)
-
       if (evp_algorithm == "shared_mem_1d" ) then
 
          if (first_time .and. my_task == master_task) then
@@ -669,6 +695,7 @@
                & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
          endif
 
+         call ice_timer_start(timer_evp_1d)
          call ice_dyn_evp_1d_copyin(                                                &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
             icetmask, iceumask,                                           &
@@ -678,9 +705,7 @@
             stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
             stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
             stress12_1,stress12_2,stress12_3,stress12_4                   )
-         call ice_timer_start(timer_evp_1d)
          call ice_dyn_evp_1d_kernel()
-         call ice_timer_stop(timer_evp_1d)
          call ice_dyn_evp_1d_copyout(                                      &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost,&
 !strocn            uvel,vvel, strocnx,strocny, strintx,strinty,                  &
@@ -689,9 +714,11 @@
             stressm_1, stressm_2, stressm_3, stressm_4,                   &
             stress12_1,stress12_2,stress12_3,stress12_4,                  &
             divu,rdg_conv,rdg_shear,shear,taubx,tauby                     )
+         call ice_timer_stop(timer_evp_1d)
 
       else ! evp_algorithm == standard_2d (Standard CICE)
 
+         call ice_timer_start(timer_evp_2d)
          do ksub = 1,ndte        ! subcycling
 
             if (grid_ice == "B") then
@@ -780,10 +807,10 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (shrU,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info, halo_info_mask, &
+                                    field_loc_NEcorner,  field_type_scalar, &
+                                    shrU)
                
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -817,13 +844,10 @@
                enddo
                !$OMP END PARALLEL DO
 
-               ! Need to update the halos for the stress components
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (zetax2T,          halo_info, &
-                                    field_loc_center, field_type_scalar)
-               call ice_HaloUpdate (etax2T,           halo_info, &
-                                    field_loc_center, field_type_scalar)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,        halo_info_mask, &
+                                    field_loc_center, field_type_scalar, &
+                                    zetax2T, etax2T, stresspT, stressmT)
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -846,15 +870,10 @@
                enddo
                !$OMP END PARALLEL DO
 
-               ! Need to update the halos for the stress components
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (stresspT,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stressmT,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stress12U,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info         ,  halo_info_mask, &
+                                    field_loc_NEcorner,  field_type_scalar, &
+                                    stress12U)
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -914,25 +933,27 @@
                                  TbN       (:,:,iblk))
                enddo
                !$OMP END PARALLEL DO
-                  
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (uvelE,               halo_info, &
-                                    field_loc_Eface, field_type_vector)
-               call ice_HaloUpdate (vvelN,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call ice_timer_stop(timer_bound)
+
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Eface, field_type_vector, &
+                                    uvelE)
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Nface, field_type_vector, &
+                                    vvelN)
 
                call grid_average_X2Y('A',uvelE,'E',uvelN,'N')
                call grid_average_X2Y('A',vvelN,'N',vvelE,'E')
                uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
                vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
 
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (uvelN,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call ice_HaloUpdate (vvelE,               halo_info, &
-                                    field_loc_Eface, field_type_vector)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Nface, field_type_vector, &
+                                    uvelN)
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Eface, field_type_vector, &
+                                    vvelE)
 
                call grid_average_X2Y('S',uvelE,'E',uvel,'U')
                call grid_average_X2Y('S',vvelN,'N',vvel,'U')
@@ -975,13 +996,10 @@
                enddo
                !$OMP END PARALLEL DO
 
-               ! Need to update the halos for the stress components
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (zetax2T,          halo_info, &
-                                    field_loc_center, field_type_scalar)
-               call ice_HaloUpdate (etax2T,           halo_info, &
-                                    field_loc_center, field_type_scalar)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,        halo_info_mask, &
+                                    field_loc_center, field_type_scalar, &
+                                    zetax2T, etax2T)
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -1005,21 +1023,13 @@
                enddo
                !$OMP END PARALLEL DO
 
-               ! Need to update the halos for the stress components
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (stresspT,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stressmT,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stress12T,          halo_info, &
-                                    field_loc_center,  field_type_scalar)
-               call ice_HaloUpdate (stresspU,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_HaloUpdate (stressmU,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_HaloUpdate (stress12U,          halo_info, &
-                                    field_loc_NEcorner,  field_type_scalar)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,         halo_info_mask, &
+                                    field_loc_center,  field_type_scalar, &
+                                    stresspT, stressmT, stress12T)
+               call dyn_HaloUpdate (halo_info,         halo_info_mask, &
+                                    field_loc_NEcorner,field_type_scalar, &
+                                    stresspU, stressmU, stress12U)
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -1086,16 +1096,13 @@
                enddo
                !$OMP END PARALLEL DO
 
-               call ice_timer_start(timer_bound)
-               call ice_HaloUpdate (uvelE,               halo_info, &
-                                    field_loc_Eface, field_type_vector)
-               call ice_HaloUpdate (vvelN,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call ice_HaloUpdate (uvelN,               halo_info, &
-                                    field_loc_Nface, field_type_vector)
-               call ice_HaloUpdate (vvelE,               halo_info, &
-                                    field_loc_Eface, field_type_vector)
-               call ice_timer_stop(timer_bound)
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Eface, field_type_vector, &
+                                    uvelE, vvelE)
+               call dyn_HaloUpdate (halo_info,       halo_info_mask, &
+                                    field_loc_Nface, field_type_vector, &
+                                    uvelN, vvelN)
 
                call grid_average_X2Y('S',uvelE,'E',uvel,'U')
                call grid_average_X2Y('S',vvelN,'N',vvel,'U')
@@ -1105,31 +1112,24 @@
 
             endif   ! grid_ice
 
-            call ice_timer_start(timer_bound)
-            call stack_velocity_field(uvel, vvel, fld2)
-            ! maskhalo_dyn causes non bit-for-bit results on different decomps 
-            ! with C/CD in some cases
-            if (grid_ice == 'B' .and. maskhalo_dyn) then
-               call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                    field_loc_NEcorner, field_type_vector)
-            else
-               call ice_HaloUpdate (fld2,               halo_info, &
-                                    field_loc_NEcorner, field_type_vector)
-            endif
-            call unstack_velocity_field(fld2, uvel, vvel)
-            call ice_timer_stop(timer_bound)
+            ! U fields at NE corner
+            ! calls ice_haloUpdate, controls bundles and masks
+            call dyn_HaloUpdate (halo_info,          halo_info_mask, &
+                                 field_loc_NEcorner, field_type_vector, &
+                                 uvel, vvel)
          
          enddo                     ! subcycling
+         call ice_timer_stop(timer_evp_2d)
       endif  ! evp_algorithm
 
-      call ice_timer_stop(timer_evp_2d)
-
-      deallocate(fld2)
+      deallocate(fld2,fld3,fld4)
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          deallocate(shrU, zetax2T, etax2T)
       endif
       
-      if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
+      if (maskhalo_dyn) then
+         call ice_HaloDestroy(halo_info_mask)
+      endif
 
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
