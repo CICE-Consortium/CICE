@@ -36,7 +36,7 @@
       implicit none
       private
 
-      character(len=char_len_long),public :: &
+      character(len=char_len_long), public :: &
          ice_ic      ! method of ice cover initialization
                      ! 'default'  => latitude and sst dependent
                      ! 'none'     => no ice
@@ -1140,7 +1140,26 @@
          endif
       endif
 
+      if (grid_ice == 'CD') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: grid_ice = CD not supported yet'
+         endif
+         abort_list = trim(abort_list)//":47"
+      elseif (grid_ice == 'C_override_D') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: using grid_ice = CD, not supported'
+         endif
+         grid_ice = 'CD'
+      endif
+
       if (grid_ice == 'C' .or. grid_ice == 'CD') then
+         if (kdyn > 1) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn<=1 (evp or off)'
+               write(nu_diag,*) subname//' ERROR: kdyn and grid_ice inconsistency'
+            endif
+            abort_list = trim(abort_list)//":46"
+         endif
          if (visc_method /= 'avg_zeta' .and. visc_method /= 'avg_strength') then
             if (my_task == master_task) then
                write(nu_diag,*) subname//' ERROR: invalid method for viscosities'
@@ -2276,9 +2295,9 @@
          abort_list = trim(abort_list)//":26"
       endif
 
-      if (kmt_type  /=  'file' .and. &
+      if (kmt_type  /=  'file'    .and. &
           kmt_type  /=  'channel' .and. &
-          kmt_type  /=  'wall' .and. &
+          kmt_type  /=  'wall'    .and. &
           kmt_type  /=  'default' .and. &
           kmt_type  /=  'boxislands') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
@@ -2849,12 +2868,12 @@
          ! ice concentration/thickness
          !---------------------------------------------------------
 
-         if (trim(ice_data_type) == 'box2001' .or. &
+         if (trim(ice_data_type) == 'box2001'    .or. &
              trim(ice_data_type) == 'smallblock' .or. &
-             trim(ice_data_type) == 'channel' .or. &
-             trim(ice_data_type) == 'bigblock' .or. &
-             trim(ice_data_type) == 'blockep5' .or. &
-             trim(ice_data_type) == 'uniformp5' .or. &
+             trim(ice_data_type) == 'channel'    .or. &
+             trim(ice_data_type) == 'bigblock'   .or. &
+             trim(ice_data_type) == 'blockep5'   .or. &
+             trim(ice_data_type) == 'uniformp5'  .or. &
              trim(ice_data_type) == 'gauss') then
 
             hbar = c2  ! initial ice thickness
@@ -2868,7 +2887,7 @@
             enddo
 
          elseif (trim(ice_data_type) == 'boxslotcyl' .or. &
-                 trim(ice_data_type) == 'medblocke' .or. &
+                 trim(ice_data_type) == 'medblocke'  .or. &
                  trim(ice_data_type) == 'blocke') then
          
             hbar = c1  ! initial ice thickness (1 m)

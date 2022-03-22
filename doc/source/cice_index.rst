@@ -293,7 +293,7 @@ either Celsius or Kelvin units).
    "grid_atm_thrm", "grid for atm thermodynamic forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_file", "input file for grid info", ""
    "grid_format", "format of grid files", ""
-   "grid_ice", "structure of the model ice grid, ‘B’, ‘CD’, etc", ""
+   "grid_ice", "structure of the model ice grid, ‘B’, ‘C’, etc", ""
    "grid_ice_dynu", "grid for ice dynamic-u model fields, 'T', 'U', 'N', 'E'", ""
    "grid_ice_dynv", "grid for ice dynamic-v model fields, 'T', 'U', 'N', 'E'", ""
    "grid_ice_thrm", "grid for ice thermodynamic model fields, 'T', 'U', 'N', 'E'", ""

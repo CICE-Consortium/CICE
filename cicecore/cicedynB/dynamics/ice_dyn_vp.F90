@@ -103,7 +103,7 @@
          indxui(:,:)  , & ! compressed index in i-direction
          indxuj(:,:)      ! compressed index in j-direction
 
-      real (kind=dbl_kind), allocatable :: & 
+      real (kind=dbl_kind), allocatable :: &
          fld2(:,:,:,:)    ! work array for boundary updates
 
 !=======================================================================
@@ -140,7 +140,7 @@
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
       allocate(fld2(nx_block,ny_block,2,max_blocks))
-      
+
       end subroutine init_vp
 
 !=======================================================================
@@ -214,7 +214,7 @@
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
-         
+
       logical (kind=log_kind) :: calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
@@ -241,7 +241,7 @@
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
-      
+
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
 
@@ -377,7 +377,7 @@
                          forcex    (:,:,iblk), forcey    (:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          bxfix     (:,:,iblk), byfix     (:,:,iblk))
-         
+
       !-----------------------------------------------------------------
       ! ice strength
       !-----------------------------------------------------------------
@@ -451,20 +451,20 @@
 
          endif
       endif
-      
-      
+
+
       !-----------------------------------------------------------------
       ! calc size of problem (ntot) and allocate solution vector
       !-----------------------------------------------------------------
-      
+
       ntot = 0
       do iblk = 1, nblocks
          ntot = ntot + icellu(iblk)
       enddo
       ntot = 2 * ntot ! times 2 because of u and v
-      
+
       allocate(sol(ntot))
-      
+
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
       !-----------------------------------------------------------------
@@ -485,7 +485,7 @@
       !-----------------------------------------------------------------
 
       deallocate(sol)
-      
+
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       !-----------------------------------------------------------------
@@ -528,7 +528,7 @@
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
-      
+
       !-----------------------------------------------------------------
       ! Compute seabed stress (diagnostic)
       !-----------------------------------------------------------------
@@ -544,7 +544,7 @@
          enddo
          !$OMP END PARALLEL DO
       endif
-      
+
       ! Force symmetry across the tripole seam
       if (trim(grid_type) == 'tripole') then
       if (maskhalo_dyn) then
@@ -732,7 +732,7 @@
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs      ! replacement pressure
-      
+
       type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
 
@@ -816,14 +816,14 @@
       ! Initialization
       res_num = 0
       L2norm  = c0
-      
+
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
          uprev_k(:,:,iblk) = uvel(:,:,iblk)
          vprev_k(:,:,iblk) = vvel(:,:,iblk)
       enddo
       !$OMP END PARALLEL DO
-      
+
       ! Start iterations
       do it_nl = 0, maxits_nonlin        ! nonlinear iteration loop
          ! Compute quantities needed for computing PDE residual and g(x) (fixed point map)
@@ -842,7 +842,7 @@
             endif
             uprev_k(:,:,iblk) = uvel(:,:,iblk)
             vprev_k(:,:,iblk) = vvel(:,:,iblk)
-            
+
             call calc_zeta_dPr (nx_block           , ny_block          , &
                                 icellt       (iblk),                     &
                                 indxti     (:,iblk), indxtj    (:,iblk), &
@@ -854,7 +854,7 @@
                                 DminTarea (:,:,iblk),strength (:,:,iblk),&
                                 zetax2 (:,:,iblk,:), etax2  (:,:,iblk,:),&
                                 rep_prs(:,:,iblk,:), stress_Pr  (:,:,:))
-            
+
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
                                indxui     (:,iblk), indxuj    (:,iblk), &
@@ -862,7 +862,7 @@
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &
                                ulin     (:,:,iblk), vlin    (:,:,iblk), &
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
-            
+
             ! prepare b vector (RHS)
             call calc_bvec (nx_block           , ny_block          , &
                             icellu       (iblk),                     &
@@ -872,7 +872,7 @@
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             vrel     (:,:,iblk))
-            
+
             ! Compute nonlinear residual norm (PDE residual)
             call matvec (nx_block             , ny_block           , &
                          icellu       (iblk)  , icellt       (iblk), &
@@ -906,12 +906,12 @@
          if (it_nl == 0) then
             tol_nl = reltol_nonlin*nlres_norm
          endif
-         
+
          ! Check for nonlinear convergence
          if (nlres_norm < tol_nl) then
             exit
          endif
-         
+
          ! Put initial guess for FGMRES in solx,soly and sol (needed for anderson)
          solx = uprev_k
          soly = vprev_k
@@ -921,11 +921,11 @@
                              indxui    (:,:), indxuj    (:,:), &
                              uprev_k (:,:,:), vprev_k (:,:,:), &
                              sol         (:))
-         
+
          ! Compute fixed point map g(x)
          if (fpfunc_andacc == 1) then
             ! g_1(x) = FGMRES(A(x), b(x))
-            
+
             ! Prepare diagonal for preconditioner
             if (precond == 'diag' .or. precond == 'pgmres') then
                !$OMP PARALLEL DO PRIVATE(iblk,diag_rheo)
@@ -951,7 +951,7 @@
                enddo
                !$OMP END PARALLEL DO
             endif
-            
+
             ! FGMRES linear solver
             call fgmres (zetax2        , etax2     , &
                          Cb            , vrel      , &
@@ -1002,13 +1002,13 @@
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " fixed_point_res_L2norm= ", fpres_norm
          endif
-         
+
          ! Not used for now (only nonlinear residual is checked)
          ! ! Store initial residual norm
          ! if (it_nl == 0) then
          !    tol = reltol_andacc*fpres_norm
          ! endif
-         ! 
+         !
          ! ! Check residual
          ! if (fpres_norm < tol) then
          !    exit
@@ -1066,7 +1066,7 @@
                endif
                ! TODO: here, drop more columns to improve conditioning
                ! if (droptol) then
-               
+
                ! endif
                ! Solve least square problem for coefficients
                ! 1. Compute rhs_tri = Q^T * res
@@ -1080,7 +1080,7 @@
                ! Apply damping
                if (damping_andacc > 0 .and. damping_andacc /= 1) then
                   ! x = x - (1-beta) (res - Q*R*coeffs)
-                  
+
                   ! tmp = R*coeffs
                   call dgemv ('n', res_num, res_num, c1, R(1:res_num,1:res_num), res_num, coeffs, inc, c0, tmp, inc)
                   ! res = res - Q*tmp
@@ -1095,7 +1095,7 @@
                file=__FILE__, line=__LINE__)
 #endif
          endif
-         
+
          !-----------------------------------------------------------------------
          !     Put vector sol in uvel and vvel arrays
          !-----------------------------------------------------------------------
@@ -1105,7 +1105,7 @@
                              indxui (:,:), indxuj (:,:), &
                              sol      (:),               &
                              uvel (:,:,:), vvel (:,:,:))
-         
+
          ! Do halo update so that halo cells contain up to date info for advection
          call stack_fields(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
@@ -1118,7 +1118,7 @@
          endif
          call ice_timer_stop(timer_bound)
          call unstack_fields(fld2, uvel, vvel)
-         
+
          ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -1136,9 +1136,9 @@
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " progress_res_L2norm= ", prog_norm
          endif
-         
+
       enddo ! nonlinear iteration loop
-      
+
       end subroutine anderson_solver
 
 !=======================================================================
@@ -1185,8 +1185,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(out) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2    , & ! etax2  = 2*eta  (shear viscosity)
-         rep_prs      ! replacement pressure 
-      
+         rep_prs      ! replacement pressure
+
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
          stPr          ! stress combinations from replacement pressure
 
@@ -1236,9 +1236,9 @@
                             Deltane  , Deltanw  , &
                             Deltase  , Deltasw)
 
-      !-----------------------------------------------------------------        
-      ! viscosities and replacement pressure                           
-      !-----------------------------------------------------------------        
+      !-----------------------------------------------------------------
+      ! viscosities and replacement pressure
+      !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltane        , zetax2   (i,j,1), &
@@ -1266,7 +1266,7 @@
          stressp_2 = -rep_prs(i,j,2)
          stressp_3 = -rep_prs(i,j,3)
          stressp_4 = -rep_prs(i,j,4)
-         
+
       !-----------------------------------------------------------------
       ! combinations of the Pr related stresses for the momentum equation ! kg/s^2
       !-----------------------------------------------------------------
@@ -1282,7 +1282,7 @@
          csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
          csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
          csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
-         
+
       !-----------------------------------------------------------------
       ! for dF/dx (u momentum)
       !-----------------------------------------------------------------
@@ -1339,7 +1339,7 @@
 
 ! Lemieux, J.-F., and Dupont, F. (2020), On the calculation of normalized
 ! viscous-plastic sea ice stresses, Geosci. Model Dev., 13, 1763–1769,
-      
+
       subroutine stress_vp (nx_block  , ny_block  , &
                             icellt    ,             &
                             indxti    , indxtj    , &
@@ -1380,7 +1380,7 @@
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2    , & ! etax2  = 2*eta  (shear viscosity)
          rep_prs
-      
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
@@ -1426,17 +1426,17 @@
       ! the stresses                            ! kg/s^2
       ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
       !-----------------------------------------------------------------
-         
+
          stressp_1(i,j) = zetax2(i,j,1)*divune - rep_prs(i,j,1)
          stressp_2(i,j) = zetax2(i,j,2)*divunw - rep_prs(i,j,2)
          stressp_3(i,j) = zetax2(i,j,3)*divusw - rep_prs(i,j,3)
          stressp_4(i,j) = zetax2(i,j,4)*divuse - rep_prs(i,j,4)
-         
+
          stressm_1(i,j) = etax2(i,j,1)*tensionne
          stressm_2(i,j) = etax2(i,j,2)*tensionnw
          stressm_3(i,j) = etax2(i,j,3)*tensionsw
          stressm_4(i,j) = etax2(i,j,4)*tensionse
-         
+
          stress12_1(i,j) = etax2(i,j,1)*shearne*p5
          stress12_2(i,j) = etax2(i,j,2)*shearnw*p5
          stress12_3(i,j) = etax2(i,j,3)*shearsw*p5
@@ -1505,7 +1505,7 @@
          ! (magnitude of relative ocean current)*rhow*drag*aice
          vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                                                 (vocn(i,j) - vvel(i,j))**2)  ! m/s
-      
+
          Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for seabed stress
       enddo                     ! ij
 
@@ -1549,7 +1549,7 @@
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-         
+
          taubx(i,j) = -uvel(i,j)*Cb(i,j)
          tauby(i,j) = -vvel(i,j)*Cb(i,j)
       enddo                     ! ij
@@ -1690,12 +1690,12 @@
          stressp_2 = zetax2(i,j,2)*divunw! - Deltanw*(c1-Ktens))
          stressp_3 = zetax2(i,j,3)*divusw! - Deltasw*(c1-Ktens))
          stressp_4 = zetax2(i,j,4)*divuse! - Deltase*(c1-Ktens))
-         
+
          stressm_1 = etax2(i,j,1)*tensionne
          stressm_2 = etax2(i,j,2)*tensionnw
          stressm_3 = etax2(i,j,3)*tensionsw
          stressm_4 = etax2(i,j,4)*tensionse
-         
+
          stress12_1 = etax2(i,j,1)*shearne*p5
          stress12_2 = etax2(i,j,2)*shearnw*p5
          stress12_3 = etax2(i,j,3)*shearsw*p5
@@ -1730,12 +1730,12 @@
          csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
          csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
          csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
-         
+
          csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
          csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
          csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
          csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
-         
+
          csig12ne = p222*stress12_1 + ssig122 &
                   + p055*stress12_3
          csig12nw = p222*stress12_2 + ssig121 &
@@ -1801,7 +1801,7 @@
               - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
 
       enddo ! ij - icellt
-      
+
       !-----------------------------------------------------------------
       ! Form Au and Av
       !-----------------------------------------------------------------
@@ -1811,7 +1811,7 @@
          j = indxuj(ij)
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
-         
+
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
 
          ! divergence of the internal stress tensor
@@ -1924,11 +1924,11 @@
          rhow                  !
 
       character(len=*), parameter :: subname = '(calc_bvec)'
-      
+
       !-----------------------------------------------------------------
       ! calc b vector
       !-----------------------------------------------------------------
-      
+
       call icepack_query_parameters(rhow_out=rhow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -1941,7 +1941,7 @@
          ! ice/ocean stress
          taux = vrel(i,j)*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel(i,j)*watery(i,j) ! ocn stress term
-         
+
          ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx, dPr/dy)
          strintx = uarear(i,j)* &
              (stPr(i,j,1) + stPr(i+1,j,2) + stPr(i,j+1,3) + stPr(i+1,j+1,4))
@@ -2004,7 +2004,7 @@
       if (present(sum_squared)) then
          sum_squared = c0
       endif
-      
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -2089,11 +2089,11 @@
       !-----------------------------------------------------------------
 
       Drheo(:,:,:) = c0
-      
+
       ! Be careful: Drheo contains 4 terms for u and 4 terms for v.
       ! These 8 terms come from the surrounding T cells but are all
       ! refrerenced to the i,j (u point) :
-      
+
       ! Drheo(i,j,1) corresponds to str(i,j,1)
       ! Drheo(i,j,2) corresponds to str(i+1,j,2)
       ! Drheo(i,j,3) corresponds to str(i,j+1,3)
@@ -2102,9 +2102,9 @@
       ! Drheo(i,j,6) corresponds to str(i,j+1,6)
       ! Drheo(i,j,7) corresponds to str(i+1,j,7)
       ! Drheo(i,j,8) corresponds to str(i+1,j+1,8))
-      
+
       do cc = 1, 8 ! 4 for u and 4 for v
-      
+
          if (cc == 1) then     ! u comp, T cell i,j
             uij   = c1
             ui1j  = c0
@@ -2196,12 +2196,12 @@
          endif
 
          do ij = 1, icellu
-         
+
             iu = indxui(ij)
             ju = indxuj(ij)
             i  = iu + di
             j  = ju + dj
-             
+
          !-----------------------------------------------------------------
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
@@ -2235,22 +2235,22 @@
                     -  cxp(i,j)*ui1j1 + dxt(i,j)*ui1j
             shearse = -cym(i,j)*vij1  - dyt(i,j)*vi1j1 &
                     -  cxp(i,j)*uij1  + dxt(i,j)*uij
-            
+
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
-            
+
             stressp_1 = zetax2(i,j,1)*divune
             stressp_2 = zetax2(i,j,2)*divunw
             stressp_3 = zetax2(i,j,3)*divusw
             stressp_4 = zetax2(i,j,4)*divuse
-            
+
             stressm_1 = etax2(i,j,1)*tensionne
             stressm_2 = etax2(i,j,2)*tensionnw
             stressm_3 = etax2(i,j,3)*tensionsw
             stressm_4 = etax2(i,j,4)*tensionse
-            
+
             stress12_1 = etax2(i,j,1)*shearne*p5
             stress12_2 = etax2(i,j,2)*shearnw*p5
             stress12_3 = etax2(i,j,3)*shearsw*p5
@@ -2285,12 +2285,12 @@
             csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
             csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
             csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
-            
+
             csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
             csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
             csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
             csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
-            
+
             csig12ne = p222*stress12_1 + ssig122 &
                      + p055*stress12_3
             csig12nw = p222*stress12_2 + ssig121 &
@@ -2308,27 +2308,27 @@
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
-         
+
             if (cc == 1) then ! T cell i,j
-            
+
                strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
 
                ! northeast (i,j)
                Drheo(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
                   + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
-               
+
             elseif (cc == 2) then ! T cell i+1,j
-               
+
                strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
-               
+
                ! northwest (i+1,j)
                Drheo(iu,ju,2) = strp_tmp + strm_tmp - str12we &
                   + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
             elseif (cc == 3) then ! T cell i,j+1
-               
+
                strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
 
@@ -2337,10 +2337,10 @@
                   + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
 
             elseif (cc == 4) then ! T cell i+1,j+1
-                 
+
                strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
                strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
-               
+
                ! southwest (i+1,j+1)
                Drheo(iu,ju,4) = strp_tmp + strm_tmp + str12we &
                   + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
@@ -2348,9 +2348,9 @@
          !-----------------------------------------------------------------
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
-            
+
             elseif (cc == 5) then ! T cell i,j
-               
+
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
 
@@ -2359,16 +2359,16 @@
                   - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
 
             elseif (cc == 6) then ! T cell i,j+1
-               
+
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
-               
+
                ! southeast (i,j+1)
                Drheo(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
                   - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
             elseif (cc == 7) then ! T cell i,j+1
-               
+
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
 
@@ -2377,14 +2377,14 @@
                   - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
 
             elseif (cc == 8) then ! T cell i+1,j+1
-               
+
                strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
                strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
-               
+
                ! southwest (i+1,j+1)
                Drheo(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
                   - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
-               
+
             endif
 
          enddo                     ! ij
@@ -2444,7 +2444,7 @@
 
       strintx = c0
       strinty = c0
-      
+
       ! Be careful: Drheo contains 4 terms for u and 4 terms for v.
       ! These 8 terms come from the surrounding T cells but are all
       ! refrerenced to the i,j (u point) :
@@ -2457,13 +2457,13 @@
       ! Drheo(i,j,6) corresponds to str(i,j+1,6)
       ! Drheo(i,j,7) corresponds to str(i+1,j,7)
       ! Drheo(i,j,8) corresponds to str(i+1,j+1,8))
-      
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
-         
+
          strintx = uarear(i,j)* &
              (Drheo(i,j,1) + Drheo(i,j,2) + Drheo(i,j,3) + Drheo(i,j,4))
          strinty = uarear(i,j)* &
@@ -2512,14 +2512,14 @@
       !-----------------------------------------------------------------
 
       L2norm = c0
-      
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
-         
+
          L2norm = L2norm + tpu(i,j)**2 + tpv(i,j)**2
       enddo ! ij
-      
+
       end subroutine calc_L2norm_squared
 
 !=======================================================================
@@ -2566,7 +2566,7 @@
 
       outvec(:) = c0
       tot = 0
-      
+
       do iblk = 1, nblocks
          do ij = 1, icellu(iblk)
             i = indxui(ij, iblk)
@@ -2603,7 +2603,7 @@
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
          indxui  , & ! compressed index in i-direction
          indxuj      ! compressed index in j-direction
-         
+
       real (kind=dbl_kind), dimension (ntot), intent(in) :: &
          invec       ! input 1D vector
 
@@ -2625,7 +2625,7 @@
       tpu(:,:,:) = c0
       tpv(:,:,:) = c0
       tot = 0
-      
+
       do iblk = 1, nblocks
          do ij = 1, icellu(iblk)
             i = indxui(ij, iblk)
@@ -2654,9 +2654,9 @@
       real (kind=dbl_kind), intent(inout) :: &
          Q(:,:),  & ! Q factor
          R(:,:)     ! R factor
-      
+
       ! local variables
-      
+
       integer (kind=int_kind) :: &
          i, j, k, & ! loop indices
          m, n       ! size of Q matrix
@@ -2665,7 +2665,7 @@
          temp, c, s
 
       character(len=*), parameter :: subname = '(qr_delete)'
-      
+
       n = size(Q, 1)
       m = size(Q, 2)
       do i = 1, m-1
@@ -2688,7 +2688,7 @@
          enddo
       enddo
       R(:, 1:m-1) = R(:, 2:m)
-      
+
       end subroutine qr_delete
 
 !=======================================================================
@@ -2716,7 +2716,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2        ! etax2  = 2*eta  (shear viscosity)
-      
+
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -2802,18 +2802,18 @@
       ! Initialize
       outiter = 0
       nbiter = 0
-      
+
       norm_squared = c0
       precond_type = precond
-      
+
       ! Cells with no ice should be zero-initialized
       workspace_x = c0
       workspace_y = c0
       arnoldi_basis_x = c0
       arnoldi_basis_y = c0
-      
+
       ! Residual of the initial iterate
-      
+
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
          call matvec (nx_block               , ny_block             , &
@@ -2839,7 +2839,7 @@
                             arnoldi_basis_y (:,:,iblk, 1))
       enddo
       !$OMP END PARALLEL DO
-      
+
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
@@ -2855,17 +2855,17 @@
          enddo
          !$OMP END PARALLEL DO
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
-         
+
          if (my_task == master_task .and. monitor_fgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
                                               " fgmres_L2norm= ", norm_residual
          endif
-         
+
          ! Current guess is a good enough solution TODO: reactivate and test this
          ! if (norm_residual < tolerance) then
          !    return
          ! end if
-         
+
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
          !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
@@ -2879,20 +2879,20 @@
             enddo ! ij
          enddo
          !$OMP END PARALLEL DO
-         
+
          if (outiter == 0) then
             relative_tolerance = tolerance * norm_residual
          end if
-         
+
          ! Initialize 1-st term of RHS of Hessenberg system
          rhs_hess(1)  = norm_residual
          rhs_hess(2:) = c0
-         
+
          initer = 0
-         
+
          ! Start of inner (Arnoldi) loop
          do
-            
+
             nbiter = nbiter + 1
             initer = initer + 1
             nextit = initer + 1
@@ -2907,7 +2907,7 @@
                               workspace_x , workspace_y)
             orig_basis_x(:,:,:,initer) = workspace_x
             orig_basis_y(:,:,:,initer) = workspace_y
-            
+
             ! Update workspace with boundary values
             call stack_fields(workspace_x, workspace_y, fld2)
             call ice_timer_start(timer_bound)
@@ -2940,13 +2940,13 @@
                             arnoldi_basis_y(:,:,iblk,nextit))
             enddo
             !$OMP END PARALLEL DO
-            
+
             ! Orthogonalize the new vector
             call orthogonalize(ortho_type     , initer         , &
                                nextit         , maxinner       , &
                                arnoldi_basis_x, arnoldi_basis_y, &
                                hessenberg)
-            
+
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -2959,7 +2959,7 @@
             enddo
             !$OMP END PARALLEL DO
             hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
-            
+
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
                ! Normalize next Arnoldi vector
@@ -2969,14 +2969,14 @@
                   do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
                      j = indxuj(ij, iblk)
-                     
+
                      arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit)*inverse_norm
                      arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit)*inverse_norm
                   enddo ! ij
                enddo
                !$OMP END PARALLEL DO
             end if
-            
+
             ! Apply previous Givens rotation to the last column of the Hessenberg matrix
             if (initer > 1) then
                do k = 2, initer
@@ -2985,33 +2985,33 @@
                   hessenberg(k,   initer) = -rot_sin(k-1)*t + rot_cos(k-1)*hessenberg(k, initer)
                end do
             end if
-            
+
             ! Compute and apply new Givens rotation
             nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
             if (.not. almost_zero(nu)) then
                rot_cos(initer) = hessenberg(initer,initer) / nu
                rot_sin(initer) = hessenberg(nextit,initer) / nu
-               
+
                rhs_hess(nextit) = -rot_sin(initer) * rhs_hess(initer)
                rhs_hess(initer) =  rot_cos(initer) * rhs_hess(initer)
-               
+
                hessenberg(initer,initer) = rot_cos(initer) * hessenberg(initer,initer) + rot_sin(initer) * hessenberg(nextit,initer)
             end if
-            
+
             ! Check for convergence
             norm_residual = abs(rhs_hess(nextit))
-            
+
             if (my_task == master_task .and. monitor_fgmres) then
                write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
                                                  " fgmres_L2norm= ", norm_residual
             endif
-            
+
              if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
                exit
             endif
-            
+
          end do ! end of inner (Arnoldi) loop
-         
+
          ! At this point either the maximum number of inner iterations
          ! was reached or the absolute residual is below the scaled tolerance.
 
@@ -3026,7 +3026,7 @@
             end do
             rhs_hess(k) = t / hessenberg(k,k)
          end do
-         
+
          ! Form linear combination to get new solution iterate
          do it = 1, initer
             t = rhs_hess(it)
@@ -3042,7 +3042,7 @@
             enddo
             !$OMP END PARALLEL DO
          end do
-         
+
          ! Increment outer loop counter and check for convergence
          outiter = outiter + 1
          if (norm_residual <= relative_tolerance .or. outiter >= maxouter) then
@@ -3050,7 +3050,7 @@
          end if
 
          ! Solution is not convergent : compute residual vector and continue.
-         
+
          ! The residual vector is computed here using (see Saad p. 177) :
          ! \begin{equation}
          !    r =  V_{m+1} * Q_m^T * (\gamma_{m+1} * e_{m+1})
@@ -3061,7 +3061,7 @@
          ! $Q_m$ is the product of the Givens rotation : Q_m = G_m G_{m-1} ... G_1
          ! $gamma_{m+1}$ is the last element of rhs_hess
          ! $e_{m+1})$ is the unit vector (0, 0, ..., 1)^T \in \reals^{m+1}
-         
+
          ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1},
          ! store the result in rhs_hess
          do it = 1, initer
@@ -3069,7 +3069,7 @@
             rhs_hess(jj-1) = -rot_sin(jj-1) * rhs_hess(jj) ! + rot_cos(jj-1) * g(jj-1) (== 0)
             rhs_hess(jj)   =  rot_cos(jj-1) * rhs_hess(jj) ! + rot_sin(jj-1) * g(jj-1) (== 0)
          end do
-         
+
          ! Compute the residual by multiplying V_{m+1} and rhs_hess
          workspace_x = c0
          workspace_y = c0
@@ -3089,7 +3089,7 @@
             arnoldi_basis_y(:,:,:,1) = workspace_y
          end do
       end do ! end of outer (restarts) loop
-      
+
       end subroutine fgmres
 
 !=======================================================================
@@ -3112,7 +3112,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2        ! etax2  = 2*eta  (shear viscosity)
-      
+
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -3188,25 +3188,25 @@
          relative_tolerance  ! relative_tolerance, i.e. tolerance*norm(initial residual)
 
       character(len=*), parameter :: subname = '(pgmres)'
-      
+
       ! Here we go !
 
       ! Initialize
       outiter = 0
       nbiter = 0
-      
+
       norm_squared = c0
       precond_type = 'diag' ! Jacobi preconditioner
       ortho_type = 'cgs' ! classical gram-schmidt TODO: try with MGS
-      
+
       ! Cells with no ice should be zero-initialized
       workspace_x = c0
       workspace_y = c0
       arnoldi_basis_x = c0
       arnoldi_basis_y = c0
-      
+
       ! Residual of the initial iterate
-      
+
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
          call matvec (nx_block               , ny_block             , &
@@ -3232,7 +3232,7 @@
                             arnoldi_basis_y (:,:,iblk, 1))
       enddo
       !$OMP END PARALLEL DO
-      
+
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
@@ -3248,17 +3248,17 @@
          enddo
          !$OMP END PARALLEL DO
          norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
-         
+
          if (my_task == master_task .and. monitor_pgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
                                               " pgmres_L2norm= ", norm_residual
          endif
-         
+
          ! Current guess is a good enough solution
          ! if (norm_residual < tolerance) then
          !    return
          ! end if
-         
+
          ! Normalize the first Arnoldi vector
          inverse_norm = c1 / norm_residual
          !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
@@ -3272,24 +3272,24 @@
             enddo ! ij
          enddo
          !$OMP END PARALLEL DO
-         
+
          if (outiter == 0) then
             relative_tolerance = tolerance * norm_residual
          end if
-         
+
          ! Initialize 1-st term of RHS of Hessenberg system
          rhs_hess(1)  = norm_residual
          rhs_hess(2:) = c0
-         
+
          initer = 0
-         
+
          ! Start of inner (Arnoldi) loop
          do
-            
+
             nbiter = nbiter + 1
             initer = initer + 1
             nextit = initer + 1
-            
+
             ! precondition the current Arnoldi vector
             call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
@@ -3299,10 +3299,10 @@
                               diagx       , diagy          , &
                               precond_type,                  &
                               workspace_x , workspace_y)
-            
+
             ! NOTE: halo updates for (workspace_x, workspace_y)
             ! are skipped here for efficiency since this is just a preconditioner
-            
+
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
                call matvec (nx_block               , ny_block             , &
@@ -3322,13 +3322,13 @@
                             arnoldi_basis_y(:,:,iblk,nextit))
             enddo
             !$OMP END PARALLEL DO
-            
+
             ! Orthogonalize the new vector
             call orthogonalize(ortho_type     , initer         , &
                                nextit         , maxinner       , &
                                arnoldi_basis_x, arnoldi_basis_y, &
                                hessenberg)
-            
+
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3341,7 +3341,7 @@
             enddo
             !$OMP END PARALLEL DO
             hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
-            
+
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
                ! Normalize next Arnoldi vector
@@ -3351,14 +3351,14 @@
                   do ij = 1, icellu(iblk)
                      i = indxui(ij, iblk)
                      j = indxuj(ij, iblk)
-                     
+
                      arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit)*inverse_norm
                      arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit)*inverse_norm
                   enddo ! ij
                enddo
                !$OMP END PARALLEL DO
             end if
-            
+
             ! Apply previous Givens rotation to the last column of the Hessenberg matrix
             if (initer > 1) then
                do k = 2, initer
@@ -3367,33 +3367,33 @@
                   hessenberg(k,   initer) = -rot_sin(k-1)*t + rot_cos(k-1)*hessenberg(k, initer)
                end do
             end if
-            
+
             ! Compute and apply new Givens rotation
             nu = sqrt(hessenberg(initer,initer)**2 + hessenberg(nextit,initer)**2)
             if (.not. almost_zero(nu)) then
                rot_cos(initer) = hessenberg(initer,initer) / nu
                rot_sin(initer) = hessenberg(nextit,initer) / nu
-               
+
                rhs_hess(nextit) = -rot_sin(initer) * rhs_hess(initer)
                rhs_hess(initer) =  rot_cos(initer) * rhs_hess(initer)
-               
+
                hessenberg(initer,initer) = rot_cos(initer) * hessenberg(initer,initer) + rot_sin(initer) * hessenberg(nextit,initer)
             end if
-            
+
             ! Check for convergence
             norm_residual = abs(rhs_hess(nextit))
-            
+
             if (my_task == master_task .and. monitor_pgmres) then
                write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
                                                  " pgmres_L2norm= ", norm_residual
             endif
-            
+
              if ((initer >= maxinner) .or. (norm_residual <= relative_tolerance)) then
                exit
             endif
-            
+
          end do ! end of inner (Arnoldi) loop
-         
+
          ! At this point either the maximum number of inner iterations
          ! was reached or the absolute residual is below the scaled tolerance.
 
@@ -3408,7 +3408,7 @@
             end do
             rhs_hess(k) = t / hessenberg(k,k)
          end do
-         
+
          ! Form linear combination to get new solution iterate
          workspace_x = c0
          workspace_y = c0
@@ -3426,7 +3426,7 @@
             enddo
             !$OMP END PARALLEL DO
          end do
-         
+
          ! Call preconditioner
          call precondition(zetax2      , etax2      , &
                            Cb          , vrel       , &
@@ -3435,10 +3435,10 @@
                            diagx       , diagy      , &
                            precond_type,              &
                            workspace_x , workspace_y)
-         
+
          solx = solx + workspace_x
          soly = soly + workspace_y
-         
+
          ! Increment outer loop counter and check for convergence
          outiter = outiter + 1
          if (norm_residual <= relative_tolerance .or. outiter >= maxouter) then
@@ -3446,7 +3446,7 @@
          end if
 
          ! Solution is not convergent : compute residual vector and continue.
-         
+
          ! The residual vector is computed here using (see Saad p. 177) :
          ! \begin{equation}
          !    r =  V_{m+1} * Q_m^T * (\gamma_{m+1} * e_{m+1})
@@ -3457,7 +3457,7 @@
          ! $Q_m$ is the product of the Givens rotation : Q_m = G_m G_{m-1} ... G_1
          ! $gamma_{m+1}$ is the last element of rhs_hess
          ! $e_{m+1})$ is the unit vector (0, 0, ..., 1)^T \in \reals^{m+1}
-         
+
          ! Apply the Givens rotation in reverse order to g := \gamma_{m+1} * e_{m+1},
          ! store the result in rhs_hess
          do it = 1, initer
@@ -3465,7 +3465,7 @@
             rhs_hess(jj-1) = -rot_sin(jj-1) * rhs_hess(jj) ! + rot_cos(jj-1) * g(jj-1) (== 0)
             rhs_hess(jj)   =  rot_cos(jj-1) * rhs_hess(jj) ! + rot_sin(jj-1) * g(jj-1) (== 0)
          end do
-         
+
          ! Compute the residual by multiplying V_{m+1} and rhs_hess
          workspace_x = c0
          workspace_y = c0
@@ -3485,7 +3485,7 @@
             arnoldi_basis_y(:,:,:,1) = workspace_y
          end do
       end do ! end of outer (restarts) loop
-      
+
       end subroutine pgmres
 
 !=======================================================================
@@ -3505,7 +3505,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2        ! etax2  = 2*eta  (shear viscosity)
-      
+
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
@@ -3633,20 +3633,20 @@
          dotprod_local = c0
          do it = 1, initer
             local_dot = c0
-            
+
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
-                  
+
                   local_dot(iblk) = local_dot(iblk) + &
                                     (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
                                     (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
-            
+
             dotprod_local(it) = sum(local_dot)
          end do
 
@@ -3659,7 +3659,7 @@
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
-                  
+
                   arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
                                                         - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
                   arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
@@ -3672,28 +3672,28 @@
          ! Modified Gram-Schmidt orthogonalisation process
          do it = 1, initer
             local_dot = c0
-            
+
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
-                  
+
                   local_dot(iblk) = local_dot(iblk) + &
                                     (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
                                     (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
-            
+
             hessenberg(it,initer) = global_sum(sum(local_dot), distrb_info)
-            
+
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
                do ij = 1, icellu(iblk)
                   i = indxui(ij, iblk)
                   j = indxuj(ij, iblk)
-                  
+
                   arnoldi_basis_x(i, j, iblk, nextit) = arnoldi_basis_x(i, j, iblk, nextit) &
                                                         - hessenberg(it,initer) * arnoldi_basis_x(i, j, iblk, it)
                   arnoldi_basis_y(i, j, iblk, nextit) = arnoldi_basis_y(i, j, iblk, nextit) &
@@ -3706,7 +3706,7 @@
          call abort_ice(error_message='wrong orthonalization in ' // subname, &
          file=__FILE__, line=__LINE__)
       endif
-      
+
    end subroutine orthogonalize
 
 !=======================================================================
@@ -3737,7 +3737,7 @@
       end if
       ! lexicographic order test with a tolerance of 1 adjacent float
       retval = (abs(aBit) <= 1)
-      
+
       end function almost_zero
 
 !=======================================================================

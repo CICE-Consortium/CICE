@@ -255,7 +255,7 @@ grid_nml
    "``grid_format``", "``bin``", "read direct access grid and kmt files", "``bin``"
    "", "``nc``", "read grid and kmt files", ""
    "``grid_ice``", "``B``", "use B grid structure with T at center and U at NE corner", "``B``"
-   "", "``CD``", "use CD grid structure with T at center and U/V at N and E edge", ""
+   "", "``C``", "use C grid structure with T at center, U at E edge, V at N edge", ""
    "``grid_ocn``", "``A``", "ocn forcing/coupling grid, all fields on T grid", "``A``"
    "", "``B``", "ocn forcing/coupling grid, thermo fields on T grid, dyn fields on U grid", ""
    "", "``C``", "ocn forcing/coupling grid, thermo fields on T grid, dynu fields on E grid, dynv fields on N grid", ""

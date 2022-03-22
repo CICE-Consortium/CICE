@@ -111,9 +111,11 @@ distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/.
 
    Schematic of CICE B-grid. 
 
-The ability to solve on the CD-grid was added later.  With the CD grid, 
-the u and v velocity points are located on the N and E edges of the T cell
-rather than the T cell corners.  To support this capability, N and E grids
+The ability to solve on the C and CD grids was added later.  With the C grid,
+the u velocity points are located on the E edges and the v velocity points are
+located on the N edges of the T cell rather than at the T cell corners.  On  
+the CD grid, the u and v velocity points are located on both the N and E edges.  
+To support this capability, N and E grids
 were added to the existing T and U grids, and the N and E grids are defined
 at the northern and eastern edge of the T cell.  This is shown in 
 Figure :ref:`fig-Cgrid`.
