@@ -30,8 +30,6 @@
                 deformations, deformations_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
-                visc_replpress_avgstr, &
-                visc_replpress_avgzeta, &
                 dyn_haloUpdate, &
                 stack_fields, unstack_fields
 
@@ -2195,120 +2193,6 @@
       etax2   = epp2i*zetax2
 
       end subroutine visc_replpress
-
-!=======================================================================
-! Bouillon, S., T. Fichefet, V. Legat and G. Madec (2013). The
-! elastic-viscous-plastic method revisited. Ocean Model., 71, 2-12.
-!
-! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
-! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
-!
-! avg_zeta: Bouillon et al. 2013, C1 method of Kimmritz et al. 2016
-
-      subroutine visc_replpress_avgzeta (zetax2T1, zetax2T2, &
-                                         zetax2T3, zetax2T4, &
-                                          etax2T1,  etax2T2, &
-                                          etax2T3,  etax2T4, &
-                                            mask1,    mask2, &
-                                            mask3,    mask4, &
-                                            area1,    area2, &
-                                            area3,    area4, &
-                            deltaU, zetax2U, etax2U, rep_prsU)
-
-      real (kind=dbl_kind), intent(in):: &
-         zetax2T1,zetax2T2,zetax2T3,zetax2T4, &
-          etax2T1, etax2T2, etax2T3, etax2T4, &
-            mask1,   mask2,   mask3,   mask4, &
-            area1,   area2,   area3,   area4, &
-         deltaU
-
-      real (kind=dbl_kind), optional, intent(out):: &
-         zetax2U, etax2U, rep_prsU ! 2 x viscosities, replacement pressure
-
-      ! local variables
-
-      real (kind=dbl_kind) :: &
-         lzetax2U, &  ! local variable
-         areatmp
-
-      character(len=*), parameter :: subname = '(visc_replpress_avgzeta)'
-
-      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-
-      areatmp = (mask1 * area1   + &
-                 mask4 * area4   + &
-                 mask3 * area3   + &
-                 mask2 * area2)
-
-      if (present(rep_prsU) .or. present(zetax2U)) then
-         lzetax2U = (mask1 * area1 * zetax2T1  + &
-                     mask4 * area4 * zetax2T4  + &
-                     mask3 * area3 * zetax2T3  + &
-                     mask2 * area2 * zetax2T2) / areatmp
-         if (present(zetax2U)) then
-            zetax2U = lzetax2U
-         endif
-      endif
-
-      if (present(etax2U)) then
-         etax2U  = (mask1 * area1 * etax2T1  + &
-                    mask4 * area4 * etax2T4  + &
-                    mask3 * area3 * etax2T3  + &
-                    mask2 * area2 * etax2T2) / areatmp
-      endif
-
-      if (present(rep_prsU)) then
-         rep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU
-      endif
-
-      end subroutine visc_replpress_avgzeta
-
-!=======================================================================
-! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
-! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
-!
-! avg_strength: C2 method of Kimmritz et al. 2016
-
-      subroutine visc_replpress_avgstr (strength1, strength2, &
-                                        strength3, strength4, &
-                                            mask1,     mask2, &
-                                            mask3,     mask4, &
-                                            area1,     area2, &
-                                            area3,     area4, &
-                                        DminUarea, deltaU,    &
-                            zetax2U, etax2U, rep_prsU, capping)
-
-      real (kind=dbl_kind), intent(in):: &
-         strength1,strength2,strength3,strength4, &
-             mask1,    mask2,    mask3,    mask4, &
-             area1,    area2,    area3,    area4, &
-         DminUarea, deltaU, capping
-
-      real (kind=dbl_kind), intent(out):: zetax2U, etax2U, rep_prsU
-
-      ! local variables
-
-      real (kind=dbl_kind) :: &
-           areatmp, strtmp   ! area and strength average
-
-      character(len=*), parameter :: subname = '(visc_replpress_avgstr)'
-
-      ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-
-      areatmp = (mask1 * area1 + &
-                 mask4 * area4 + &
-                 mask3 * area3 + &
-                 mask2 * area2)
-
-      strtmp  = (mask1 * area1 * strength1  + &
-                 mask4 * area4 * strength4  + &
-                 mask3 * area3 * strength3  + &
-                 mask2 * area2 * strength2) / areatmp
-
-      call visc_replpress (strtmp, DminUarea, deltaU, &
-                           zetax2U, etax2U, rep_prsU, capping)
-
-      end subroutine visc_replpress_avgstr
 
 !=======================================================================
 ! Do a halo update on 1 field
