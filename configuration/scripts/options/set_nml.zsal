@@ -4,5 +4,5 @@ sw_redist       = .true.
 tfrz_option     = 'linear_salt'
 tr_brine        = .true.
 solve_zsal      = .true.
-ice_ic          = 'default'
+ice_ic          = 'internal'
 

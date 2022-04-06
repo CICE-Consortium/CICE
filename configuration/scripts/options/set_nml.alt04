@@ -1,4 +1,4 @@
-ice_ic = 'default'
+ice_ic = 'internal'
 bfbflag = 'reprosum'
 distribution_type = 'rake'
 processor_shape   = 'slenderX2'

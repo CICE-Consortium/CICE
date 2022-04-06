@@ -125,7 +125,9 @@
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
-         ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
+         ice_data_type, & ! 'latsst', 'box2001', 'boxslotcyl', etc
+         ice_data_conc, & ! 'p5','p8','p9','c1','parabolic'
+         ice_data_dist, & ! 'box2001','gauss', 'uniform'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
 
       logical (kind=log_kind), public :: &

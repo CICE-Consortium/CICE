@@ -1,6 +1,6 @@
 npt = 48
 kmt_type = 'boxislands'
-ice_ic   = 'default'
+ice_ic   = 'internal'
 use_leap_years = .false.
 histfreq       = 'd','x','x','x','x'
 grid_type      = 'rectangular'
@@ -19,6 +19,8 @@ atmbndy        = 'constant'
 atm_data_type  = 'uniform_north'
 ocn_data_type  = 'calm'
 ice_data_type  = 'uniform'
+ice_data_conc  = 'parabolic'
+ice_data_dist  = 'uniform'
 rotate_wind    = .false.
 calc_strair    = .false.
 restore_ice    = .false.

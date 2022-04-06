@@ -1,7 +1,7 @@
 grid_atm = 'B'
 grid_ocn = 'B'
 nilyr = 1
-ice_ic = 'default'
+ice_ic = 'internal'
 restart_ext = .false.
 dt             = 3600.0
 npt            = 288
@@ -22,6 +22,8 @@ ktransport = 1
 atm_data_type = 'box2001'
 ocn_data_type = 'box2001'
 ice_data_type = 'boxslotcyl'
+ice_data_conc = 'c1'
+ice_data_dist = 'uniform'
 histfreq       = 'h','x','x','x','x'
 histfreq_n     =  6 , 1 , 1 , 1 , 1
 f_aice         = 'h'

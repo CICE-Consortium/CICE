@@ -1,6 +1,6 @@
 dt = 3600.0
 runtype = 'initial'
-ice_ic  = 'default'
+ice_ic  = 'internal'
 grid_format = 'bin'
 grid_type   = 'tripole'
 ns_boundary_type = 'tripole'
