@@ -27,7 +27,7 @@
                 principal_stress, init_dyn, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 alloc_dyn_shared, &
-                deformations, deformations_T, &
+                deformations, deformationsC_T, deformationsCD_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
                 dyn_haloUpdate, &
@@ -1733,16 +1733,16 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-      subroutine deformations_T (nx_block,   ny_block,   &
-                                 icellt,                 &
-                                 indxti,     indxtj,     &
-                                 uvelE,      vvelE,      &
-                                 uvelN,      vvelN,      &
-                                 dxN,        dyE,        &
-                                 dxT,        dyT,        &
-                                 tarear,                 &
-                                 shear,      divu,       &
-                                 rdg_conv,   rdg_shear )
+      subroutine deformationsCD_T (nx_block,   ny_block,   &
+                                   icellt,                 &
+                                   indxti,     indxtj,     &
+                                   uvelE,      vvelE,      &
+                                   uvelN,      vvelN,      &
+                                   dxN,        dyE,        &
+                                   dxT,        dyT,        &
+                                   tarear,                 &
+                                   shear,      divu,       &
+                                   rdg_conv,   rdg_shear )
 
       use ice_constants, only: p5
 
@@ -1820,7 +1820,118 @@
 
       enddo                     ! ij
 
-      end subroutine deformations_T
+    end subroutine deformationsCD_T
+
+
+!=======================================================================
+! Compute deformations for mechanical redistribution at T point
+!
+! author: JF Lemieux, ECCC
+! Nov 2021
+
+    subroutine deformationsC_T (nx_block,   ny_block,   &
+                                icellt,                 &
+                                indxti,     indxtj,     &
+                                uvelE,      vvelE,      &
+                                uvelN,      vvelN,      &
+                                dxN,        dyE,        &
+                                dxT,        dyT,        &
+                                tarear,     uarea,      &
+                                shearU,                 &
+                                shear,      divu,       &
+                                rdg_conv,   rdg_shear )
+
+      use ice_constants, only: p5
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, & ! block dimensions
+         icellt                ! no. of cells where icetmask = 1
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the N point
+         uvelN    , & ! x-component of velocity (m/s) at the E point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         tarear   , & ! 1/tarea
+         uarea    , & ! area of u cell
+         shearU       ! shearU
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         shear    , & ! strain rate II component (1/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         rdg_conv , & ! convergence term for ridging (1/s)
+         rdg_shear    ! shear term for ridging (1/s)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+        divT      , & ! divergence at T point
+        tensionT  , & ! tension at T point
+        shearT    , & ! shear at T point
+        DeltaT        ! delt at T point
+
+      real (kind=dbl_kind) :: &
+        tmp       , & ! useful combination
+        shearTsqr     ! strain rates squared at T point
+
+      character(len=*), parameter :: subname = '(deformations_T2)'
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      call strain_rates_T (nx_block   ,   ny_block   , &
+                           icellt     ,                &
+                           indxti(:)  , indxtj  (:)  , &
+                           uvelE (:,:), vvelE   (:,:), &
+                           uvelN (:,:), vvelN   (:,:), &
+                           dxN   (:,:), dyE     (:,:), &
+                           dxT   (:,:), dyT     (:,:), &
+                           divT  (:,:), tensionT(:,:), &
+                           shearT(:,:), DeltaT  (:,:)  )
+
+      ! DeltaT is calc by strain_rates_T but replaced by calculation below.
+
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
+
+         !-----------------------------------------------------------------
+         ! deformations for mechanical redistribution
+         !-----------------------------------------------------------------
+         
+         shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
+                    + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
+                    + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
+                    + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
+                    / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+
+         DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+
+         divu(i,j) = divT(i,j) * tarear(i,j)
+         tmp = DeltaT(i,j) * tarear(i,j)
+         rdg_conv(i,j)  = -min(divu(i,j),c0)
+         rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
+
+         ! diagnostic only...maybe we dont want to use shearTsqr here????
+         ! shear = sqrt(tension**2 + shearing**2)
+         shear(i,j) = tarear(i,j)*sqrt( tensionT(i,j)**2 + shearT(i,j)**2 )
+
+      enddo                     ! ij
+
+    end subroutine deformationsC_T
 
 !=======================================================================
 ! Compute strain rates

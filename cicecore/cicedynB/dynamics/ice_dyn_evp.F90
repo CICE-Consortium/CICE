@@ -113,7 +113,8 @@
       use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
           ice_dyn_evp_1d_copyout
       use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, &
-          DminTarea, visc_method, deformations, deformations_T, strain_rates_U, &
+          DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
+          strain_rates_U, &
           dyn_haloUpdate
 
       real (kind=dbl_kind), intent(in) :: &
@@ -853,16 +854,19 @@
                   ! on last subcycle, save quantities for mechanical redistribution
                   !-----------------------------------------------------------------
                   if (ksub == ndte) then
-                     call deformations_T (nx_block          , ny_block           , &
+
+                     call deformationsC_T (nx_block          , ny_block          , &
                                           icellt      (iblk),                      &
                                           indxti    (:,iblk), indxtj     (:,iblk), &
                                           uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
                                           uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
                                           dxN     (:,:,iblk), dyE      (:,:,iblk), &
                                           dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                          tarear  (:,:,iblk),                      &
+                                          tarear  (:,:,iblk), uarea    (:,:,iblk), &
+                                          shearU    (:,:,iblk),                    &
                                           shear   (:,:,iblk), divu     (:,:,iblk), &
                                           rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+                     
                   endif
                enddo
                !$OMP END PARALLEL DO
@@ -996,16 +1000,16 @@
                   ! on last subcycle, save quantities for mechanical redistribution
                   !-----------------------------------------------------------------
                   if (ksub == ndte) then
-                     call deformations_T (nx_block          , ny_block           , &
-                                          icellt      (iblk),                      &
-                                          indxti    (:,iblk), indxtj     (:,iblk), &
-                                          uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                          uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                          dxN     (:,:,iblk), dyE      (:,:,iblk), &
-                                          dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                          tarear  (:,:,iblk),                      &
-                                          shear   (:,:,iblk), divu     (:,:,iblk), &
-                                          rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+                     call deformationsCD_T (nx_block          , ny_block           , &
+                                            icellt      (iblk),                      &
+                                            indxti    (:,iblk), indxtj     (:,iblk), &
+                                            uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
+                                            uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
+                                            dxN     (:,:,iblk), dyE      (:,:,iblk), &
+                                            dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                                            tarear  (:,:,iblk),                      &
+                                            shear   (:,:,iblk), divu     (:,:,iblk), &
+                                            rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
                   endif
                enddo
                !$OMP END PARALLEL DO
