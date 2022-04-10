@@ -201,6 +201,7 @@ setup_nml
    "``latpnt``", "real", "latitude of (2) diagnostic points", "90.0,-65.0"
    "``lcdf64``", "logical", "use 64-bit netcdf format", "``.false.``"
    "``lonpnt``", "real", "longitude of (2) diagnostic points", "0.0,-45.0"
+   "``memory_stats``", "logical", "turns on memory use diagnostics", "``.false.``"
    "``month_init``", "integer", "the initial month if not using restart", "1"
    "``ndtd``", "integer", "number of dynamics/advection/ridging/steps per thermo timestep", "1"
    "``npt``", "integer", "total number of npt_units to run the model", "99999"

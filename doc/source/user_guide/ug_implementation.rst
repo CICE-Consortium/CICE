@@ -1239,6 +1239,11 @@ namelist, the point associated with ``lonpnt(1)`` and ``latpnt(1)`` is used.
 ``debug_model`` is normally used when the model aborts and needs to be debugged
 in detail at a particular (usually failing) grid point.
 
+Memory use diagnostics are controlled by the logical namelist ``memory_stats``.
+This feature uses an intrinsic query in C defined in **ice\_memusage\_gptl.c**.
+Memory diagnostics will be written at the the frequency defined by
+diagfreq.
+
 Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
 *ice\_timer\_stop*. Finally, *ice\_timer\_print* writes the results to

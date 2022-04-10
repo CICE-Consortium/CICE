@@ -15,6 +15,7 @@
       use ice_kinds_mod
       use ice_exit, only: abort_ice
       use ice_fileunits, only: init_fileunits, nu_diag
+      use ice_memusage, only: ice_memusage_init, ice_memusage_print
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
@@ -109,6 +110,12 @@
       call input_data           ! namelist variables
       call input_zbgc           ! vertical biogeochemistry namelist
       call count_tracers        ! count tracers
+
+      ! Call this as early as possible, must be after memory_stats is read
+      if (my_task == master_task) then
+         call ice_memusage_init(nu_diag)
+         call ice_memusage_print(nu_diag,subname//':start')
+      endif
 
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
@@ -237,6 +244,10 @@
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
       if (write_ic) call accum_hist(dt) ! write initial conditions 
+
+      if (my_task == master_task) then
+         call ice_memusage_print(nu_diag,subname//':end')
+      endif
 
       end subroutine cice_init
 

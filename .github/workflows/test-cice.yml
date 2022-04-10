@@ -42,6 +42,7 @@ jobs:
         run: |
           sudo xcode-select -r
           sudo xcode-select -s /Library/Developer/CommandLineTools
+          sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
           echo "xcrun --show-sdk-path: $(xcrun --show-sdk-path)"
           echo "xcode-select -p: $(xcode-select -p)"
       - name: system info
