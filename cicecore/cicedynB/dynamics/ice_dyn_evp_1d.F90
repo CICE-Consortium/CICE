@@ -869,10 +869,8 @@ contains
          vvel(iw) = (cca * cc2 - ccb * cc1) / ab2
 
          ! calculate seabed stress component for outputs
-         if (seabed_stress) then
-            taubx(iw) = -uvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
-            tauby(iw) = -vvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
-         end if
+         taubx(iw) = -uvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
+         tauby(iw) = -vvel(iw) * Tbu(iw) / (sqrt(uold**2 + vold**2) + u0)
 
       end do
 #ifdef _OPENACC
@@ -1306,7 +1304,10 @@ contains
          if (ndte < 2) call abort_ice(subname &
             // ' ERROR: ndte must be 2 or higher for this kernel')
 
-         !$OMP PARALLEL PRIVATE(ksub)
+         ! tcraig, turn off the OMP directives here, Jan, 2022
+         ! This produces non bit-for-bit results with different thread counts.
+         ! Seems like there isn't an opportunity for safe threading here ???
+         !$XXXOMP PARALLEL PRIVATE(ksub)
          do ksub = 1, ndte - 1
             call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, &
                vvel, dxt, dyt, hte, htn, htem1, htnm1, strength, &
@@ -1314,15 +1315,15 @@ contains
                stressm_2, stressm_3, stressm_4, stress12_1, &
                stress12_2, stress12_3, stress12_4, str1, str2, str3, &
                str4, str5, str6, str7, str8, skiptcell)
-            !$OMP BARRIER
+            !$XXXOMP BARRIER
             call evp1d_stepu(NA_len, rhow, 1, NA_len, cdn_ocn, aiu, &
                uocn, vocn, forcex, forcey, umassdti, fm, uarear, Tbu, &
                uvel_init, vvel_init, uvel, vvel, str1, str2, str3, &
                str4, str5, str6, str7, str8, nw, sw, sse, skipucell)
-            !$OMP BARRIER
+            !$XXXOMP BARRIER
             call evp1d_halo_update(NAVEL_len, 1, NA_len, uvel, vvel, &
                halo_parent)
-            !$OMP BARRIER
+            !$XXXOMP BARRIER
          end do
 
          call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, vvel, &
@@ -1331,16 +1332,16 @@ contains
             stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, &
             stress12_4, str1, str2, str3, str4, str5, str6, str7, &
             str8, skiptcell, tarear, divu, rdg_conv, rdg_shear, shear)
-         !$OMP BARRIER
+         !$XXXOMP BARRIER
          call evp1d_stepu(NA_len, rhow, 1, NA_len, cdn_ocn, aiu, uocn, &
             vocn, forcex, forcey, umassdti, fm, uarear, Tbu, &
             uvel_init, vvel_init, uvel, vvel, str1, str2, str3, str4, &
             str5, str6, str7, str8, nw, sw, sse, skipucell, strintx, &
             strinty, taubx, tauby)
-         !$OMP BARRIER
+         !$XXXOMP BARRIER
          call evp1d_halo_update(NAVEL_len, 1, NA_len, uvel, vvel, &
             halo_parent)
-         !$OMP END PARALLEL
+         !$XXXOMP END PARALLEL
 
       end if  ! master task
 

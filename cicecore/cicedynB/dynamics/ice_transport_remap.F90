@@ -270,7 +270,7 @@
       ! Note: On a rectangular grid, the integral of any odd function
       !       of x or y = 0.
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
@@ -455,10 +455,9 @@
 !---! Remap the open water area (without tracers).
 !---!-------------------------------------------------------------------
 
-      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
-      !--- need to check private variables and debug further
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$TCXOMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,n,   &
+      !$OMP          indxinc,indxjnc,mmask,tmask,istop,jstop,l_stop) &
+      !$OMP SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -560,7 +559,7 @@
          endif
 
       enddo                     ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
     !-------------------------------------------------------------------
     ! Ghost cell updates
@@ -588,7 +587,7 @@
          ! tracer fields 
          if (maskhalo_remap) then
             halomask(:,:,:) = 0
-            !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,n,m,j,i)
+            !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,n,m,j,i) SCHEDULE(runtime)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)         
                ilo = this_block%ilo
@@ -632,12 +631,11 @@
 
       endif  ! nghost
 
-      !--- tcraig, tcx, this omp loop leads to a seg fault in gnu
-      !--- need to check private variables and debug further
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,m, &
-      !$TCXOMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
-      !$TCXOMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
-      !$TCXOMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
+      !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
+      !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
+      !$OMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop) &
+      !$OMP SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -845,7 +843,7 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       end subroutine horizontal_remap
 
