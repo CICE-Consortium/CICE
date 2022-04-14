@@ -3134,7 +3134,7 @@
 
          else
 
-            call abort_ice(subname//'ERROR: ice_data_type setting = '//trim(ice_data_conc), &
+            call abort_ice(subname//'ERROR: ice_data_type setting = '//trim(ice_data_type), &
                file=__FILE__, line=__LINE__)
 
          endif                     ! ice_data_type

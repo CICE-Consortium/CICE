@@ -602,7 +602,7 @@ either Celsius or Kelvin units).
    "rside", "fraction of ice that melts laterally", ""
    "rsnw", "snow grain radius", "10\ :math:`^{-6}` m"
    "rsnw_fall", "freshly fallen snow grain radius", "100. :math:`\times` 10\ :math:`^{-6}` m"
-   "rsnw_melt", "melting snow grain radius", "1000. :math:`\times` 10\ :math:`^{-6}` m"
+   "rsnw_mlt", "melting snow grain radius", "1000. :math:`\times` 10\ :math:`^{-6}` m"
    "rsnw_nonmelt", "nonmelting snow grain radius", "500. :math:`\times` 10\ :math:`^{-6}` m"
    "rsnw_sig", "standard deviation of snow grain radius", "250. :math:`\times` 10\ :math:`^{-6}` m"
    "rsnw_tmax", "maximum snow radius", "1500.  :math:`\times` 10\ :math:`^{-6}` m"
