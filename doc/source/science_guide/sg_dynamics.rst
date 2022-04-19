@@ -8,12 +8,12 @@ Dynamics
 There are different approaches in the CICE code for representing sea ice
 rheology and for solving the sea ice momentum equation: the viscous-plastic (VP) rheology :cite:`Hibler79` with an implicit method,
 the elastic-viscous-plastic (EVP) :cite:`Hunke97` model which represents a modification of the
-VP model and the elastic-anisotropic-plastic (EAP) model which explicitly accounts for the sub-continuum
+VP model, the revised EVP (rEVP) approach :cite:`Lemieux12,Bouillon13` and the elastic-anisotropic-plastic (EAP) model which explicitly accounts for the sub-continuum
 anisotropy of the sea ice cover :cite:`Wilchinsky06,Weiss09`. If
 ``kdyn`` = 1 in the namelist then the EVP model is used (module
 **ice\_dyn\_evp.F90**), while ``kdyn`` = 2 is associated with the EAP
 model (**ice\_dyn\_eap.F90**), and ``kdyn`` = 3 is associated with the
-VP model (**ice\_dyn\_vp.F90**).
+VP model (**ice\_dyn\_vp.F90**). The rEVP approach can be used by setting ``kdyn`` = 1 and  ``revised_evp`` = true in the namelist.
 
 At times scales associated with the
 wind forcing, the EVP model reduces to the VP model while the EAP model
@@ -22,7 +22,7 @@ reduces to the anisotropic rheology described in detail in
 adjustment process takes place in both models by a numerically more
 efficient elastic wave mechanism. While retaining the essential physics,
 this elastic wave modification leads to a fully explicit numerical
-scheme which greatly improves the model’s computational efficiency.
+scheme which greatly improves the model’s computational efficiency. The rEVP is also a fully explicit scheme which by construction should lead to the VP solution. 
 
 The EVP sea ice dynamics model is thoroughly documented in
 :cite:`Hunke97`, :cite:`Hunke01`,
@@ -36,7 +36,7 @@ respectively in :cite:`Hunke99` and
 The EVP numerical
 implementation in this code release is that of :cite:`Hunke02`
 and :cite:`Hunke03`, with revisions to the numerical solver as
-in :cite:`Bouillon13`. The implementation of the EAP sea ice
+in :cite:`Bouillon13`. Details about the rEVP solver can be found in  :cite:`Lemieux12,Bouillon13,Kimmritz15,Koldunov19`. The implementation of the EAP sea ice
 dynamics into CICE is described in detail in
 :cite:`Tsamados13`.
 
@@ -45,7 +45,7 @@ FGMRES :cite:`Saad93` as the linear solver and GMRES as the preconditioner.
 Note that the VP solver has not yet been tested on the ``tx1`` grid or with
 threading enabled.
 
-The EVP, EAP and VP approaches are all available with the B grid. However, at the moment, the EVP model is the only possibility with the C grid.
+The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
 
 Here we summarize the equations and
 direct the reader to the above references for details.
@@ -180,6 +180,53 @@ However, on the C grid, :math:`u` and :math:`v` are not collocated. When solving
    \begin{aligned}
    u^{k+1} = {\hat{u} + b v^{k}_{int} \over a} \\
    v^{k+1} = {\hat{v} - b u^{k}_{int} \over a}. \end{aligned}
+
+.. _revp-momentum:
+
+Revised EVP time discretization and solution
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The revised EVP approach is based on a pseudo-time iterative scheme :cite:`Lemieux12`, :cite:`Bouillon13`, :cite:`Kimmritz15`. By construction, the revised EVP approach should lead to the VP solution
+(given the right numerical parameters and a sufficiently large number of iterations). To do so, the inertial term is formulated such that it matches the backward Euler approach of
+implicit solvers and there is an additional term for the pseudo-time iteration. Hence, with the revised approach, the discretized momentum equations :eq:`umom` and :eq:`vmom` become
+
+.. math::
+    {\beta^*(u^{k+1}-u^k)\over\Delta t_e} + {m(u^{k+1}-u^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)} u^{k+1}
+    - {\left(mf+{\tt vrel}\sin\theta\right)} v^{l}
+    = & {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
+    + {\tau_{ax} - mg{\partial H_\circ\over\partial x} }\\
+    & + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
+    :label: umomr
+
+
+.. math::
+    {\beta^*(v^{k+1}-v^k)\over\Delta t_e} + {m(v^{k+1}-v^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)}v^{k+1}
+    + {\left(mf+{\tt vrel}\sin\theta\right)} u^{l}
+    = & {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
+    + {\tau_{ay} - mg{\partial H_\circ\over\partial y} } \\
+    & + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
+    :label: vmomr
+
+where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution.
+With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bouillon13`, these equations can be written as
+
+.. math::
+   \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1}
+   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
+    = & \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
+    + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
+    & + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
+   :label: umomr2
+
+.. math::
+    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
+   + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
+    = & \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
+    + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey} \\
+    & + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
+   :label: vmomr2
+
+At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` for the B or the C grids are obtained in the same manner as for the standard EVP approach (see Section :ref:`evp-momentum` for details).
 
 .. _vp-momentum:
 
@@ -354,7 +401,7 @@ ITD and the seabed is given by
 .. math::
    P_c=\int_{0}^{\inf} \int_{0}^{D(x)} g(x)b(y) dy dx \label{prob_contact}.
 
-:math:`T_b` is first calculated at the 't' point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of the ridge in excess of hydrostatic balance. The parameterization first calculates
+:math:`T_b` is first calculated at the T point (referred to as :math:`T_{bt}`). :math:`T_{bt}` depends on the weight of the ridge in excess of hydrostatic balance. The parameterization first calculates
 
 .. math::
    T_{bt}^*=\mu_s g \int_{0}^{\inf} \int_{0}^{D(x)} (\rho_i x - \rho_w
@@ -552,48 +599,7 @@ The scalability of geophysical models is in general terms limited by the memory 
 Revised EVP approach
 ~~~~~~~~~~~~~~~~~~~~
 
-The revised EVP approach is based on a pseudo-time iterative scheme :cite:`Lemieux12`, :cite:`Bouillon13`, :cite:`Kimmritz15`. By construction, the revised EVP approach should lead to the VP solution
-(given the right numerical parameters and a sufficiently large number of iterations). To do so, the inertial term is formulated such that it matches the backward Euler approach of
-implicit solvers and there is an additional term for the pseudo-time iteration. Hence, with the revised approach, the discretized momentum equations :eq:`umom` and :eq:`vmom` become
-
-.. math::
-    {\beta^*(u^{k+1}-u^k)\over\Delta t_e} + {m(u^{k+1}-u^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)} u^{k+1}
-    - {\left(mf+{\tt vrel}\sin\theta\right)} v^{l}
-    = {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
-    + {\tau_{ax} - mg{\partial H_\circ\over\partial x} }
-    + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
-    :label: umomr
-
-.. math::
-    {\beta^*(v^{k+1}-v^k)\over\Delta t_e} + {m(v^{k+1}-v^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)}v^{k+1}
-    + {\left(mf+{\tt vrel}\sin\theta\right)} u^{l}
-    = {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
-    + {\tau_{ay} - mg{\partial H_\circ\over\partial y} }
-    + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
-    :label: vmomr
-
-where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution.
-With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bouillon13`, these equations can be written as
-
-.. math::
-   \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1}
-   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
-    =  \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
-    + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex}
-     + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
-   :label: umomr2
-
-.. math::
-    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
-   + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
-    =  \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
-    + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey}
-     + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
-   :label: vmomr2
-
-At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` for the B or the C grids are obtained in the same manner as for the standard EVP approach (see Section :ref:`evp-momentum` for details).
-
-Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite:`Bouillon13`, the stress equations in :eq:`sigdisc` become
+Introducing the numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite:`Bouillon13`, the stress equations in :eq:`sigdisc` become
 
 .. math::
    \begin{aligned}
@@ -603,11 +609,11 @@ Introducing another numerical parameter :math:`\alpha=2T \Delta t_e ^{-1}` :cite
    {\alpha (\sigma_{12}^{k+1}-\sigma_{12}^{k})} + {\sigma_{12}^{k}} &=&
      \eta^k D_S^k,\end{aligned}
 
-where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, as opposed to the classic EVP,
+where as opposed to the classic EVP, the second term in each equation is at iteration :math:`k` :cite:`Bouillon13`. Also, contrary to the classic EVP,
 :math:`\Delta t_e` times the number of subcycles (or iterations) does not need to be equal to the advective time step :math:`\Delta t`.
 Finally, as with the classic EVP approach, the stresses are initialized using the previous time level values.
 The revised EVP is activated by setting the namelist parameter ``revised_evp = true``.
-In the code :math:`\alpha` is ``arlx`` and :math:`\beta` is ``brlx``. The values of ``arlx`` and ``brlx`` can be set in the namelist.
+In the code :math:`\alpha` is ``arlx`` and :math:`\beta` is ``brlx`` (introduced in Section :ref:`revp-momentum`). The values of ``arlx`` and ``brlx`` can be set in the namelist.
 It is recommended to use large values of these parameters and to set :math:`\alpha=\beta` :cite:`Kimmritz15`.
 
 .. _stress-eap:
