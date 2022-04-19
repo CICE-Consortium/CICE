@@ -192,7 +192,7 @@ setup_nml
    "", "``pio_pnetcdf``", "read/write restart files with pnetcdf in pio", ""
    "``history_precision``", "integer", "history file precision: 4 or 8 byte", "4"
    "``ice_ic``", "``default``", "equal to internal", "``default``"
-   "", "``internal``", "initial conditions set based on ice_data_ inputs", ""
+   "", "``internal``", "initial conditions set based on ice\_data\_type,conc,dist inputs", ""
    "", "``none``", "no ice", ""
    "", "'path/file'", "restart file name", ""
    "``incond_dir``", "string", "path to initial condition directory", "'./'"

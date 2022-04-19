@@ -109,7 +109,7 @@ On the C grid, however, a finite difference approach is used for the spatial dis
 .. _evp-momentum:
 
 EVP time discretization and solution
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The momentum equation is discretized in time as follows, for the classic
 EVP approach.
@@ -184,7 +184,7 @@ However, on the C grid, :math:`u` and :math:`v` are not collocated. When solving
 .. _revp-momentum:
 
 Revised EVP time discretization and solution
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The revised EVP approach is based on a pseudo-time iterative scheme :cite:`Lemieux12`, :cite:`Bouillon13`, :cite:`Kimmritz15`. By construction, the revised EVP approach should lead to the VP solution
 (given the right numerical parameters and a sufficiently large number of iterations). To do so, the inertial term is formulated such that it matches the backward Euler approach of
@@ -231,7 +231,7 @@ At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` for the B or th
 .. _vp-momentum:
 
 Implicit (VP) time discretization and solution
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In the VP approach, equation :eq:`momsys` is discretized implicitly using a Backward Euler approach,
 and stresses are not computed explicitly:
@@ -438,9 +438,9 @@ The :math:`C_{b}` are different at the E and N points and are respectively :math
 
 .. _internal-stress:
 
-********************************
+****************************************************************
 Internal stress and strain rate tensors
-********************************
+****************************************************************
 
 For convenience we formulate the stress tensor :math:`\bf \sigma` in
 terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
