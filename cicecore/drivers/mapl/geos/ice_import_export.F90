@@ -390,6 +390,43 @@ contains
 
   end subroutine ice_realize_fields
 
+  subroutine ice_import_thermo1( importState, rc )
+
+    ! input/output variables
+    type(ESMF_State) , intent(in)  :: importState
+    integer          , intent(out) :: rc
+
+    ! local variables
+    integer,parameter                :: nflds=16
+    integer,parameter                :: nfldv=6
+    integer                          :: i, j, iblk, n
+    integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
+    type(block)                      :: this_block         ! block information for current block
+    real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
+    real (kind=dbl_kind)             :: workx, worky
+    real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
+    real (kind=dbl_kind), pointer    :: dataptr2d(:,:)
+    real (kind=dbl_kind), pointer    :: dataptr1d(:)
+    real (kind=dbl_kind), pointer    :: dataptr2d_dstwet(:,:)
+    real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
+    character(len=*),   parameter    :: subname = 'ice_import_thermo1'
+    character(len=1024)              :: msgString
+    !-----------------------------------------------------
+
+
+
+
+    allocate(aflds(nx_block,ny_block,nflds,nblocks))
+    aflds = c0
+
+    call state_getimport(importState, 'sea_surface_temperature', output=aflds, index=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    deallocate(aflds)
+
+
+  end subroutine ice_import_thermo1
+
   !==============================================================================
   subroutine ice_import( importState, rc )
 
