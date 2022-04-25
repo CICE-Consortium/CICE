@@ -148,6 +148,12 @@
          fsensn_f   , & ! sensible heat flux (W m-2)
          flatn_f        ! latent heat flux (W m-2)
 
+      ! in from atmosphere when coupling to GEOS
+      real (kind=dbl_kind), & 
+         dimension (:,:,:,:), allocatable, public :: &
+         evapn_f,  & !
+         dfsurfn_f   !   
+
        ! in from atmosphere
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
@@ -519,6 +525,8 @@
          fcondtopn_f(nx_block,ny_block,ncat,max_blocks), & ! downward cond flux at top surface (W m-2)
          fsensn_f   (nx_block,ny_block,ncat,max_blocks), & ! sensible heat flux (W m-2)
          flatn_f    (nx_block,ny_block,ncat,max_blocks), & ! latent heat flux (W m-2)
+         evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
+         dfsurfn_f  (nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts 
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)
          meltbn     (nx_block,ny_block,ncat,max_blocks), & ! bottom melt in category n (m)

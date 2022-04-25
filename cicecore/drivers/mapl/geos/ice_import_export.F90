@@ -3,13 +3,14 @@ module ice_import_export
   use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, log_kind
   use ice_constants      , only : c0, c1, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
-  use ice_blocks         , only : block, get_block, nx_block, ny_block
+  use ice_blocks         , only : block, get_block, nx_block, ny_block, nghost
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
   use ice_exit           , only : abort_ice
   use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
+  use ice_flux           , only : evapn_f, fsurfn_f, dfsurfn_f 
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
   use ice_flux_bgc       , only : faero_atm, faero_ocn
@@ -20,7 +21,7 @@ module ice_import_export
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
-  use ice_state          , only : vice, vsno, aice, aicen_init, trcr
+  use ice_state          , only : vice, vsno, aice, aicen_init, trcr, trcrn
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_mesh_mod       , only : ocn_gridcell_frac
@@ -54,6 +55,7 @@ module ice_import_export
   interface state_getfldptr
      module procedure state_getfldptr_1d
      module procedure state_getfldptr_2d
+     module procedure state_getfldptr_3d
   end interface state_getfldptr
   private :: state_getfldptr
 
@@ -397,32 +399,97 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer,parameter                :: nflds=16
-    integer,parameter                :: nfldv=6
+    integer,parameter                :: nfldu=4
+    integer,parameter                :: nfld=9
     integer                          :: i, j, iblk, n
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
-    real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
-    real (kind=dbl_kind)             :: workx, worky
-    real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
-    real (kind=dbl_kind), pointer    :: dataptr2d(:,:)
-    real (kind=dbl_kind), pointer    :: dataptr1d(:)
-    real (kind=dbl_kind), pointer    :: dataptr2d_dstwet(:,:)
-    real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
+    real (kind=dbl_kind),allocatable :: afldu(:,:,:,:,:)
+    real (kind=dbl_kind),allocatable :: afld(:,:,:,:)
     character(len=*),   parameter    :: subname = 'ice_import_thermo1'
     character(len=1024)              :: msgString
     !-----------------------------------------------------
 
 
 
+    allocate(afldu(nx_block,ny_block,ncat,nfldu,nblocks))
+    afldu = c0
+    allocate( afld(nx_block,ny_block,      nfld,nblocks))
+    afld = c0
 
-    allocate(aflds(nx_block,ny_block,nflds,nblocks))
-    aflds = c0
-
-    call state_getimport(importState, 'sea_surface_temperature', output=aflds, index=1, rc=rc)
+    call state_getimport(importState,  'TSKINICE', output=afldu, index=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,      'EVAP', output=afldu, index=2, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'FSURF', output=afldu, index=3, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState, 'DFSURFDTS', output=afldu, index=4, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    deallocate(aflds)
+
+    call state_getimport(importState,      'SNOW', output=afld,  index=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,      'RAIN', output=afld,  index=2, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DRPAR', output=afld,  index=3, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DFPAR', output=afld,  index=4, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DRNIR', output=afld,  index=5, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DFNIR', output=afld,  index=6, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DRUVR', output=afld,  index=7, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,     'DFUVR', output=afld,  index=8, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,      'COSZ', output=afld,  index=9, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+
+    ! perform a halo update
+
+    if (.not.prescribed_ice) then
+       call t_startf ('cice_imp_halo')
+       call ice_HaloUpdate(afldu, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(afld,  halo_info, field_loc_center, field_type_scalar)
+       call t_stopf ('cice_imp_halo')
+    endif
+
+    ! now fill in the ice internal data types
+    do k = 1, ncat
+       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+       do iblk = 1, nblocks
+          do j = 1,ny_block
+             do i = 1,nx_block
+                trcrn  (i,j,1,k,iblk)      = afldu(i,j,k,1,iblk) - Tffresh
+                evapn_f  (i,j,k,iblk)      = afldu(i,j,k,2,iblk)
+                fsurfn_f (i,j,k,iblk)      = afldu(i,j,k,3,iblk)
+                dfsurfn_f(i,j,k,iblk)      = afldu(i,j,k,4,iblk)
+             end do
+          end do
+       end do
+       !$OMP END PARALLEL DO
+    end do
+
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+    do iblk = 1, nblocks
+       do j = 1,ny_block
+          do i = 1,nx_block
+             fsnow (i,j,iblk)         = afld(i,j,1,iblk)
+             frain (i,j,iblk)         = afld(i,j,2,iblk)
+             swvdr (i,j,iblk)         = afld(i,j,3,iblk) + afld(i,j,7,iblk)
+             swidr (i,j,iblk)         = afld(i,j,5,iblk)
+             swvdf (i,j,iblk)         = afld(i,j,4,iblk) + afld(i,j,8,iblk)
+             swidf (i,j,iblk)         = afld(i,j,6,iblk)
+             coszen(i,j,iblk)         = afld(i,j,9,iblk)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    deallocate(afldu)
+    deallocate(afld)
 
 
   end subroutine ice_import_thermo1
@@ -1455,7 +1522,61 @@ contains
   end function State_FldChk
 
   !===============================================================================
-  subroutine state_getimport_4d(state, fldname, output, index, ungridded_index, areacor, rc)
+  subroutine state_getimport_4d(state, fldname, output, index, rc)
+
+    ! ----------------------------------------------
+    ! Map import state field to output array
+    ! ----------------------------------------------
+
+    ! input/output variables
+    type(ESMF_State)              , intent(in)    :: state
+    character(len=*)              , intent(in)    :: fldname
+    real (kind=dbl_kind)          , intent(inout) :: output(:,:,:,:,:)
+    integer                       , intent(in)    :: index
+    integer, optional             , intent(in)    :: ungridded_index
+    integer                       , intent(out)   :: rc
+
+    ! local variables
+    type(block)                   :: this_block            ! block information for current block
+    integer                       :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
+    integer                       :: i, j, iblk, n, i1, j1 ! incides
+    !real(kind=real_kind), pointer :: dataPtr1d(:,:)          ! mesh
+    real(kind=real_kind), pointer :: dataPtr3d(:,:,:)        ! mesh
+
+    character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    ! check that fieldname exists
+    if (.not. State_FldChk(state, trim(fldname))) return
+
+    ! get field pointer
+    call state_getfldptr(state, trim(fldname), dataPtr3d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! set values of output array
+    do k = 1, ncat 
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo
+          ihi = this_block%ihi
+          jlo = this_block%jlo
+          jhi = this_block%jhi
+          do j = jlo, jhi
+             j1 = j - nghost 
+             do i = ilo, ihi
+                i1 = i - nghost 
+                output(i,j,k,index,iblk)  = real(dataPtr3d(i1,j1,k), kind=dbl_kind)
+             end do
+          end do
+       end do
+    end do
+
+  end subroutine state_getimport_4d
+
+  !===============================================================================
+  subroutine state_getimport_3d(state, fldname, output, index, rc)
 
     ! ----------------------------------------------
     ! Map import state field to output array
@@ -1466,90 +1587,13 @@ contains
     character(len=*)              , intent(in)    :: fldname
     real (kind=dbl_kind)          , intent(inout) :: output(:,:,:,:)
     integer                       , intent(in)    :: index
-    integer, optional             , intent(in)    :: ungridded_index
-    real(kind=dbl_kind), optional , intent(in)    :: areacor(:)
     integer                       , intent(out)   :: rc
 
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
     integer                      :: i, j, iblk, n, i1, j1 ! incides
-    real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d)'
-    ! ----------------------------------------------
-
-    rc = ESMF_SUCCESS
-
-    ! check that fieldname exists
-    if (.not. State_FldChk(state, trim(fldname))) return
-
-    ! get field pointer
-    if (present(ungridded_index)) then
-       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    ! set values of output array
-    n=0
-    do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)
-       ilo = this_block%ilo
-       ihi = this_block%ihi
-       jlo = this_block%jlo
-       jhi = this_block%jhi
-       do j = jlo, jhi
-          do i = ilo, ihi
-             n = n+1
-             if (present(ungridded_index)) then
-                output(i,j,index,iblk)  = dataPtr2d(ungridded_index,n)
-             else
-                output(i,j,index,iblk)  = dataPtr1d(n)
-             end if
-          end do
-       end do
-    end do
-    if (present(areacor)) then
-       n = 0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo; ihi = this_block%ihi
-          jlo = this_block%jlo; jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n + 1
-                output(i,j,index,iblk) = output(i,j,index,iblk) * areacor(n)
-             end do
-          end do
-       end do
-    end if
-
-  end subroutine state_getimport_4d
-
-  !===============================================================================
-  subroutine state_getimport_3d(state, fldname, output, ungridded_index, areacor, rc)
-
-    ! ----------------------------------------------
-    ! Map import state field to output array
-    ! ----------------------------------------------
-
-    ! input/output variables
-    type(ESMF_State)              , intent(in)    :: state
-    character(len=*)              , intent(in)    :: fldname
-    real (kind=dbl_kind)          , intent(inout) :: output(:,:,:)
-    integer, optional             , intent(in)    :: ungridded_index
-    real(kind=dbl_kind), optional , intent(in)    :: areacor(:)
-    integer                       , intent(out)   :: rc
-
-    ! local variables
-    type(block)                  :: this_block            ! block information for current block
-    integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
-    integer                      :: i, j, iblk, n, i1, j1 ! incides
-    real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
+    real(kind=real_kind),pointer :: dataPtr2d(:,:)        ! mesh
     character(len=*) , parameter :: subname='(ice_import_export:state_getimport_3d)'
     ! ----------------------------------------------
 
@@ -1559,16 +1603,10 @@ contains
     if (.not. State_FldChk(state, trim(fldname))) return
 
     ! get field pointer
-    if (present(ungridded_index)) then
-       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! determine output array
-    n = 0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
@@ -1576,30 +1614,13 @@ contains
        jlo = this_block%jlo
        jhi = this_block%jhi
        do j = jlo, jhi
+          j1 = j - nghost
           do i = ilo, ihi
-             n = n+1
-             if (present(ungridded_index)) then
-                output(i,j,iblk)  = dataPtr2d(ungridded_index,n)
-             else
-                output(i,j,iblk) = dataPtr1d(n)
-             end if
+             i1 = i - nghost
+             output(i,j,index,iblk)  = real(dataPtr2d(i1, j1), kind=dbl_kind)
           end do
        end do
     end do
-    if (present(areacor)) then
-       n = 0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo; ihi = this_block%ihi
-          jlo = this_block%jlo; jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n + 1
-                output(i,j,iblk) = output(i,j,iblk) * areacor(n)
-             end do
-          end do
-       end do
-    end if
 
   end subroutine state_getimport_3d
 
@@ -1802,7 +1823,7 @@ contains
     ! input/output variables
     type(ESMF_State)              , intent(in)     :: State
     character(len=*)              , intent(in)     :: fldname
-    real(kind=dbl_kind) , pointer , intent(inout)  :: fldptr(:)
+    real(kind=real_kind), pointer , intent(inout)  :: fldptr(:)
     integer, optional             , intent(out)    :: rc
 
     ! local variables
@@ -1829,7 +1850,7 @@ contains
     ! input/output variables
     type(ESMF_State)    ,            intent(in)     :: State
     character(len=*)    ,            intent(in)     :: fldname
-    real(kind=dbl_kind) , pointer ,  intent(inout)  :: fldptr(:,:)
+    real(kind=real_kind),  pointer , intent(inout)  :: fldptr(:,:)
     integer             , optional , intent(out)    :: rc
 
     ! local variables
@@ -1846,5 +1867,31 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
   end subroutine State_GetFldPtr_2d
+
+  subroutine State_GetFldPtr_3d(State, fldname, fldptr, rc)
+    ! ----------------------------------------------
+    ! Get pointer to a state field
+    ! ----------------------------------------------
+
+    ! input/output variables
+    type(ESMF_State)    ,            intent(in)     :: State
+    character(len=*)    ,            intent(in)     :: fldname
+    real(kind=real_kind),  pointer , intent(inout)  :: fldptr(:,:,:)
+    integer             , optional , intent(out)    :: rc
+
+    ! local variables
+    type(ESMF_Field) :: lfield
+    character(len=*),parameter :: subname='(ice_import_export:State_GetFldPtr_3d)'
+    ! ----------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    call ESMF_StateGet(State, itemName=trim(fldname), field=lfield, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call ESMF_FieldGet(lfield, farrayPtr=fldptr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine State_GetFldPtr_3d
 
 end module ice_import_export
