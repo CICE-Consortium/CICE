@@ -25,6 +25,7 @@ module ice_comp_nuopc
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, mmonth, myear, year_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
@@ -79,9 +80,6 @@ module ice_comp_nuopc
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
-
-  character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
-  character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
 
   type(ESMF_Mesh)              :: ice_mesh
 
@@ -470,9 +468,9 @@ contains
     call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
-       calendar_type = shr_cal_noleap
+       calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = shr_cal_gregorian
+       calendar_type = ice_calendar_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
