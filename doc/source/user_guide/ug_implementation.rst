@@ -97,11 +97,10 @@ northeast corner of the corresponding T-cells and have velocity in the
 center of each. The velocity components are aligned along grid lines.
 
 The internal ice stress tensor takes four different values within a grid
-cell; bilinear approximations are used for the stress tensor and the ice
+cell with the B-grid implementation; bilinear approximations are used for the stress tensor and the ice
 velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
-B-grid. EVP is available on the C-grid through the MITgcm code
-distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
+B-grid.
 
 .. _fig-Bgrid:
 
@@ -111,14 +110,13 @@ distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/.
 
    Schematic of CICE B-grid. 
 
-The ability to solve on the C and CD grids was added later.  With the C grid,
-the u velocity points are located on the E edges and the v velocity points are
-located on the N edges of the T cell rather than at the T cell corners.  On  
-the CD grid, the u and v velocity points are located on both the N and E edges.  
-To support this capability, N and E grids
-were added to the existing T and U grids, and the N and E grids are defined
-at the northern and eastern edge of the T cell.  This is shown in 
-Figure :ref:`fig-Cgrid`.
+The ability to solve on the C and CD grids was added later. With the C-grid, 
+the u velocity points are located on the E edges and the v velocity points 
+are located on the N edges of the T cell rather than at the T cell corners. 
+On the CD-grid, the u and v velocity points are located on both the N and E edges. 
+To support this capability, N and E grids were added to the existing T and U grids, 
+and the N and E grids are defined at the northern and eastern edge of the T cell. 
+This is shown in Figure :ref:`fig-Cgrid`.
 
 .. _fig-Cgrid:
 
@@ -398,15 +396,16 @@ respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
-grid. At each time step the logical masks ``ice_tmask`` and ``ice_umask`` are
+grid. At each time step the logical masks ``icetmask`` and ``iceumask`` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around
 the ice pack for numerical purposes. These masks are used in the
 dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
-land masks ``hm`` and ``uvm``, the ice extent masks ``ice_tmask`` and ``ice_umask``
-are for T-cells and U-cells, respectively.
+land masks ``hm`` and ``uvm``, the ice extent masks ``icetmask`` and ``iceumask``
+are for T-cells and U-cells, respectively. Note that the ice extent masks 
+``iceemask`` and ``icenmask`` are also defined when using the C or CD grid.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,

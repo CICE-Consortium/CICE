@@ -5,57 +5,6 @@
 Dynamics
 ========
 
-There are different approaches in the CICE code for representing sea ice
-rheology and for solving the sea ice momentum equation: the viscous-plastic (VP) rheology :cite:`Hibler79` with an implicit method,
-the elastic-viscous-plastic (EVP) :cite:`Hunke97` model which represents a modification of the
-VP model, the revised EVP (rEVP) approach :cite:`Lemieux12,Bouillon13` and the elastic-anisotropic-plastic (EAP) model which explicitly accounts for the sub-continuum
-anisotropy of the sea ice cover :cite:`Wilchinsky06,Weiss09`. If
-``kdyn`` = 1 in the namelist then the EVP model is used (module
-**ice\_dyn\_evp.F90**), while ``kdyn`` = 2 is associated with the EAP
-model (**ice\_dyn\_eap.F90**), and ``kdyn`` = 3 is associated with the
-VP model (**ice\_dyn\_vp.F90**). The rEVP approach can be used by setting ``kdyn`` = 1 and  ``revised_evp`` = true in the namelist.
-
-At times scales associated with the
-wind forcing, the EVP model reduces to the VP model while the EAP model
-reduces to the anisotropic rheology described in detail in
-:cite:`Wilchinsky06,Tsamados13`. At shorter time scales the
-adjustment process takes place in both models by a numerically more
-efficient elastic wave mechanism. While retaining the essential physics,
-this elastic wave modification leads to a fully explicit numerical
-scheme which greatly improves the model’s computational efficiency. The rEVP is also a fully explicit scheme which by construction should lead to the VP solution. 
-
-The EVP sea ice dynamics model is thoroughly documented in
-:cite:`Hunke97`, :cite:`Hunke01`,
-:cite:`Hunke02` and :cite:`Hunke03` and the EAP
-dynamics in :cite:`Tsamados13`. Simulation results and
-performance of the EVP and EAP models have been compared with the VP
-model and with each other in realistic simulations of the Arctic
-respectively in :cite:`Hunke99` and
-:cite:`Tsamados13`.
-
-The EVP numerical
-implementation in this code release is that of :cite:`Hunke02`
-and :cite:`Hunke03`, with revisions to the numerical solver as
-in :cite:`Bouillon13`. Details about the rEVP solver can be found in  :cite:`Lemieux12,Bouillon13,Kimmritz15,Koldunov19`. The implementation of the EAP sea ice
-dynamics into CICE is described in detail in
-:cite:`Tsamados13`.
-
-The VP solver implementation mostly follows :cite:`Lemieux08`, with
-FGMRES :cite:`Saad93` as the linear solver and GMRES as the preconditioner.
-Note that the VP solver has not yet been tested on the ``tx1`` grid or with
-threading enabled.
-
-The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
-
-Here we summarize the equations and
-direct the reader to the above references for details.
-
-.. _momentum:
-
-********
-Momentum
-********
-
 The force balance per unit area in the ice pack is given by a
 two-dimensional momentum equation :cite:`Hibler79`, obtained
 by integrating the 3D equation through the thickness of the ice in the
@@ -96,7 +45,7 @@ For clarity, the two components of Equation :eq:`vpmom` are
 
 On the B grid, the equations above are solved at the U point for the collocated u and v components (see figure :ref:`fig-Bgrid`). On the C grid, however, the two components are not collocated: the u component is at the E point while the v component is at the N point.
 
-The B grid spatial discretization is based on a variational method described in :cite:`Hunke97,Hunke02`. A bilinear discretization is used for the stress terms
+The B grid spatial discretization is based on a variational method described in :cite:`Hunke97` and :cite:`Hunke02`. A bilinear discretization is used for the stress terms
 :math:`\partial\sigma_{ij}/\partial x_j`,
 which enables the discrete equations to be derived from the
 continuous equations written in curvilinear coordinates. In this
@@ -104,7 +53,58 @@ manner, metric terms associated with the curvature of the grid are
 incorporated into the discretization explicitly. Details pertaining to
 the spatial discretization are found in :cite:`Hunke02`
 
-On the C grid, however, a finite difference approach is used for the spatial discretization. The C grid discretization is based on :cite:`Bouillon09, Bouillon13, Kimmritz16`.
+On the C grid, however, a finite difference approach is used for the spatial discretization. The C grid discretization is based on :cite:`Bouillon09`, :cite:`Bouillon13` and :cite:`Kimmritz16`.
+
+There are different approaches in the CICE code for representing sea ice
+rheology and for solving the sea ice momentum equation: the viscous-plastic (VP) rheology :cite:`Hibler79` with an implicit method,
+the elastic-viscous-plastic (EVP) :cite:`Hunke97` model which represents a modification of the
+VP model, the revised EVP (rEVP) approach :cite:`Lemieux12,Bouillon13` and the elastic-anisotropic-plastic (EAP) model which explicitly accounts for the sub-continuum
+anisotropy of the sea ice cover :cite:`Wilchinsky06,Weiss09`. If
+``kdyn`` = 1 in the namelist then the EVP model is used (module
+**ice\_dyn\_evp.F90**), while ``kdyn`` = 2 is associated with the EAP
+model (**ice\_dyn\_eap.F90**), and ``kdyn`` = 3 is associated with the
+VP model (**ice\_dyn\_vp.F90**). The rEVP approach can be used by setting ``kdyn`` = 1 and  ``revised_evp`` = true in the namelist.
+
+At times scales associated with the
+wind forcing, the EVP model reduces to the VP model while the EAP model
+reduces to the anisotropic rheology described in detail in
+:cite:`Wilchinsky06,Tsamados13`. At shorter time scales the
+adjustment process takes place in both models by a numerically more
+efficient elastic wave mechanism. While retaining the essential physics,
+this elastic wave modification leads to a fully explicit numerical
+scheme which greatly improves the model’s computational efficiency. The rEVP is also a fully explicit scheme which by construction should lead to the VP solution. 
+
+The EVP sea ice dynamics model is thoroughly documented in
+:cite:`Hunke97`, :cite:`Hunke01`,
+:cite:`Hunke02` and :cite:`Hunke03` and the EAP
+dynamics in :cite:`Tsamados13`. Simulation results and
+performance of the EVP and EAP models have been compared with the VP
+model and with each other in realistic simulations of the Arctic
+respectively in :cite:`Hunke99` and
+:cite:`Tsamados13`.
+
+The EVP numerical
+implementation in this code release is that of :cite:`Hunke02`
+and :cite:`Hunke03`, with revisions to the numerical solver as
+in :cite:`Bouillon13`. Details about the rEVP solver can be found in  :cite:`Lemieux12`, :cite:`Bouillon13`, :cite:`Kimmritz15` and :cite:`Koldunov19`. The implementation of the EAP sea ice
+dynamics into CICE is described in detail in
+:cite:`Tsamados13`.
+
+The VP solver implementation mostly follows :cite:`Lemieux08`, with
+FGMRES :cite:`Saad93` as the linear solver and GMRES as the preconditioner.
+Note that the VP solver has not yet been tested on the ``tx1`` grid or with
+threading enabled.
+
+The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
+
+Here we summarize the equations and
+direct the reader to the above references for details.
+
+.. _momentumTS:
+
+**********************
+Momentum time stepping
+**********************
 
 .. _evp-momentum:
 
@@ -192,19 +192,20 @@ implicit solvers and there is an additional term for the pseudo-time iteration. 
 
 .. math::
     {\beta^*(u^{k+1}-u^k)\over\Delta t_e} + {m(u^{k+1}-u^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)} u^{k+1}
-    - {\left(mf+{\tt vrel}\sin\theta\right)} v^{l}
-    = & {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
-    + {\tau_{ax} - mg{\partial H_\circ\over\partial x} }\\
-    & + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
+    - & {\left(mf+{\tt vrel}\sin\theta\right)} v^{l}
+    =  {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
+    + {\tau_{ax}} \\
+      & - {mg{\partial H_\circ\over\partial x} }
+    + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
     :label: umomr
-
 
 .. math::
     {\beta^*(v^{k+1}-v^k)\over\Delta t_e} + {m(v^{k+1}-v^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)}v^{k+1}
-    + {\left(mf+{\tt vrel}\sin\theta\right)} u^{l}
-    = & {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
-    + {\tau_{ay} - mg{\partial H_\circ\over\partial y} } \\
-    & + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
+    + & {\left(mf+{\tt vrel}\sin\theta\right)} u^{l}
+    =  {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
+    + {\tau_{ay}} \\
+     & - {mg{\partial H_\circ\over\partial y} }
+    + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
     :label: vmomr
 
 where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution.
@@ -212,16 +213,16 @@ With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bou
 
 .. math::
    \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1}
-   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
-    = & \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
+   - \underbrace{\left(mf+{\tt vrel} \sin\theta\right)}_{\tt ccb} & v^{l}
+    = \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
     & + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
    :label: umomr2
 
 .. math::
     \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
-   + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
-    = & \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
+   + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca} & v^{k+1}
+    = \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
     + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey} \\
     & + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
    :label: vmomr2
@@ -277,6 +278,15 @@ The Picard iterative process stops when :math:`\left\lVert \mathbf{u}_{k} \right
 
 Parameters for the FGMRES linear solver and the preconditioner can be controlled using additional namelist flags (see :ref:`dynamics_nml`).
 
+
+.. _surfstress:
+
+********************
+Surface stress terms
+********************
+
+The formulation for the wind stress is described in `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. Below, some details about the ice-ocean stress and the seabed stress are given. 
+
 Ice-Ocean stress
 ~~~~~~~~~~~~~~~~
 
@@ -290,9 +300,8 @@ pending further testing.
 
 .. _seabed-stress:
 
-***************
 Seabed stress
-***************
+~~~~~~~~~~~~~
 
 CICE includes two options for calculating the seabed stress,
 i.e. the term in the momentum equation that represents the interaction
@@ -313,8 +322,7 @@ grounding schemes. It is suggested to have a bathymetry field with water depths
 larger than 5 m that represents well shallow water (less than 30 m) regions such as the Laptev Sea
 and the East Siberian Sea.
 
-Seabed stress based on linear keel draft (LKD)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Seabed stress based on linear keel draft (LKD)**
 
 This parameterization for the seabed stress is described in
 :cite:`Lemieux16`. It assumes that the largest keel draft varies linearly with the mean thickness in a grid cell (i.e. sea ice volume). The :math:`C_b` coefficients are expressed as
@@ -371,8 +379,7 @@ The maximum seabed stress depends on the weight of the ridge
 above hydrostatic balance and the value of :math:`k_2`. It is, however, the parameter :math:`k_1` that has the most notable impact on the simulated extent of landfast ice.
 The value of :math:`k_1` can be changed at runtime using the namelist variable ``k1``.
 
-Seabed stress based on probabilistic approach
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Seabed stress based on probabilistic approach**
 
 This more sophisticated grounding parameterization computes the seabed stress based
 on the probability of contact between the ice thickness distribution
@@ -438,9 +445,9 @@ The :math:`C_{b}` are different at the E and N points and are respectively :math
 
 .. _internal-stress:
 
-****************************************************************
-Internal stress and strain rate tensors
-****************************************************************
+********
+Rheology
+********
 
 For convenience we formulate the stress tensor :math:`\bf \sigma` in
 terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
