@@ -1,5 +1,5 @@
 nilyr =	1
-ice_ic = 'default'
+ice_ic = 'internal'
 days_per_year = 360
 use_leap_years = .false.
 npt            = 72
@@ -52,6 +52,8 @@ krdg_redist = 1
 seabed_stress   = .true.
 atm_data_type   = 'calm'
 ocn_data_type   = 'calm'
-ice_data_type = 'box2001'
+ice_data_type   = 'box2001'
+ice_data_conc   = 'p5'
+ice_data_dist   = 'box2001'
 shortwave = 'ccsm3'
 albedo_type = 'constant'

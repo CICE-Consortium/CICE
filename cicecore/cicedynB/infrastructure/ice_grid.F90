@@ -165,7 +165,7 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
-         uvm    , & ! land/boundary mask, velocity (U-cell) 
+         uvm    , & ! land/boundary mask (U-cell) 
          npm    , & ! land/boundary mask (N-cell)
          epm    , & ! land/boundary mask (E-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
@@ -177,8 +177,8 @@
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
-         umask  , & ! land/boundary mask, velocity (U-cell) (1 if all surrounding T cells are ocean)
-         umaskCD, & ! land/boundary mask, velocity (U-cell) (1 if at least two surrounding T cells are ocean)
+         umask  , & ! land/boundary mask  (U-cell) (1 if all surrounding T cells are ocean)
+         umaskCD, & ! land/boundary mask  (U-cell) (1 if at least two surrounding T cells are ocean)
          nmask  , & ! land/boundary mask, (N-cell)
          emask  , & ! land/boundary mask, (E-cell)
          lmask_n, & ! northern hemisphere mask

@@ -10,15 +10,15 @@ smoke          gbox80  3x3        boxwall
 smoke          gbox80  2x2        boxwallblock
 smoke          gbox80  1x1        boxslotcyl
 smoke          gbox80  2x4        boxnodyn
-smoke	       gbox80  2x2        boxsymn,run1day
+#smoke	       gbox80  2x2        boxsymn,run1day
 smoke	       gbox80  4x2        boxsyme,run1day
-smoke	       gbox80  4x1        boxsymne,run1day
-smoke	       gbox80  2x2        boxsymn,run1day,kmtislands
+#smoke	       gbox80  4x1        boxsymne,run1day
+#smoke	       gbox80  2x2        boxsymn,run1day,kmtislands
 smoke	       gbox80  4x1        boxsyme,run1day,kmtislands
-smoke	       gbox80  4x2        boxsymne,run1day,kmtislands
-smoke	       gbox80  8x1        boxislandsn,run1day
+#smoke	       gbox80  4x2        boxsymne,run1day,kmtislands
+#smoke	       gbox80  8x1        boxislandsn,run1day
 smoke	       gbox80  4x2        boxislandse,run1day
-smoke	       gbox80  2x4        boxislandsne,run1day
+#smoke	       gbox80  2x4        boxislandsne,run1day
 smoke          gx3     1x1x100x116x1   reprosum,run10day
 smoke          gx3     1x1x25x29x16    reprosum,run10day,dwblockall  smoke_gx3_1x1x100x116x1_reprosum_run10day
 smoke          gx3     1x1x5x4x580     reprosum,run10day,dwblockall  smoke_gx3_1x1x100x116x1_reprosum_run10day
@@ -39,15 +39,15 @@ smoke          gbox80  3x3        boxwall,gridcd
 smoke          gbox80  2x2        boxwallblock,gridcd
 smoke          gbox80  1x1        boxslotcyl,gridcd
 smoke          gbox80  2x4        boxnodyn,gridcd
-smoke	       gbox80  2x2        boxsymn,run1day,gridcd
+#smoke	       gbox80  2x2        boxsymn,run1day,gridcd
 smoke	       gbox80  4x2        boxsyme,run1day,gridcd
-smoke	       gbox80  4x1        boxsymne,run1day,gridcd
-smoke	       gbox80  2x2        boxsymn,run1day,kmtislands,gridcd
+#smoke	       gbox80  4x1        boxsymne,run1day,gridcd
+#smoke	       gbox80  2x2        boxsymn,run1day,kmtislands,gridcd
 smoke	       gbox80  4x1        boxsyme,run1day,kmtislands,gridcd
-smoke	       gbox80  4x2        boxsymne,run1day,kmtislands,gridcd
-smoke	       gbox80  8x1        boxislandsn,run1day,gridcd
+#smoke	       gbox80  4x2        boxsymne,run1day,kmtislands,gridcd
+#smoke	       gbox80  8x1        boxislandsn,run1day,gridcd
 smoke	       gbox80  4x2        boxislandse,run1day,gridcd
-smoke	       gbox80  2x4        boxislandsne,run1day,gridcd
+#smoke	       gbox80  2x4        boxislandsne,run1day,gridcd
 smoke          gx3     1x1x100x116x1   reprosum,run10day,gridcd
 smoke          gx3     1x1x25x29x16    reprosum,run10day,dwblockall,gridcd  smoke_gx3_1x1x100x116x1_gridcd_reprosum_run10day
 smoke          gx3     1x1x5x4x580     reprosum,run10day,dwblockall,gridcd  smoke_gx3_1x1x100x116x1_gridcd_reprosum_run10day
@@ -68,15 +68,15 @@ smoke          gbox80  3x3        boxwall,gridc
 smoke          gbox80  2x2        boxwallblock,gridc
 smoke          gbox80  1x1        boxslotcyl,gridc
 smoke          gbox80  2x4        boxnodyn,gridc
-smoke	       gbox80  2x2        boxsymn,run1day,gridc
+#smoke	       gbox80  2x2        boxsymn,run1day,gridc
 smoke	       gbox80  4x2        boxsyme,run1day,gridc
-smoke	       gbox80  4x1        boxsymne,run1day,gridc
-smoke	       gbox80  2x2        boxsymn,run1day,kmtislands,gridc
+#smoke	       gbox80  4x1        boxsymne,run1day,gridc
+#smoke	       gbox80  2x2        boxsymn,run1day,kmtislands,gridc
 smoke	       gbox80  4x1        boxsyme,run1day,kmtislands,gridc
-smoke	       gbox80  4x2        boxsymne,run1day,kmtislands,gridc
-smoke	       gbox80  8x1        boxislandsn,run1day,gridc
+#smoke	       gbox80  4x2        boxsymne,run1day,kmtislands,gridc
+#smoke	       gbox80  8x1        boxislandsn,run1day,gridc
 smoke	       gbox80  4x2        boxislandse,run1day,gridc
-smoke	       gbox80  2x4        boxislandsne,run1day,gridc
+#smoke	       gbox80  2x4        boxislandsne,run1day,gridc
 smoke          gx3     1x1x100x116x1   reprosum,run10day,gridc
 smoke          gx3     1x1x25x29x16    reprosum,run10day,dwblockall,gridc  smoke_gx3_1x1x100x116x1_gridc_reprosum_run10day
 smoke          gx3     1x1x5x4x580     reprosum,run10day,dwblockall,gridc  smoke_gx3_1x1x100x116x1_gridc_reprosum_run10day

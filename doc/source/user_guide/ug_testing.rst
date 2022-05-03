@@ -229,7 +229,9 @@ boundary around the entire domain.  It includes the following namelist modificat
 - ``dyrect``: ``16.e5`` cm
 - ``ktherm``: ``-1`` (disables thermodynamics)
 - ``coriolis``: ``constant`` (``f=1.46e-4`` s\ :math:`^{-1}`)
-- ``ice_data_type`` : ``box2001`` (special ice concentration initialization)
+- ``ice_data_type`` : ``box2001`` (special initial ice mask)
+- ``ice_data_conc`` : ``p5``
+- ``ice_data_dist`` : ``box2001`` (special ice concentration initialization)
 - ``atm_data_type`` : ``box2001`` (special atmospheric and ocean forcing)
 
 Ocean stresses are computed as in :cite:`Hunke01` where they are circular and centered 
@@ -257,7 +259,9 @@ boundary around the entire domain.  It includes the following namelist modificat
 - ``ktherm``: ``-1`` (disables thermodynamics)
 - ``kridge``: ``-1`` (disables ridging)
 - ``kdyn``: ``-1`` (disables dynamics)
-- ``ice_data_type`` : ``boxslotcyl`` (special ice concentration and velocity initialization)
+- ``ice_data_type`` : ``boxslotcyl`` (special initial ice mask)
+- ``ice_data_conc`` : ``c1``
+- ``ice_data_dist`` : ``uniform``
 
 Dynamics is disabled because we directly impose a constant ice velocity. The ice velocity field is circular and centered 
 in the square domain, and such that the slotted cylinder makes a complete revolution with a period :math:`T=` 12 days : 

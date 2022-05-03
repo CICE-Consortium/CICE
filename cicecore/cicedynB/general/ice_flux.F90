@@ -56,8 +56,8 @@
 
        ! out to ocean          T-cell (kg/m s^2)
        ! Note, CICE_IN_NEMO uses strocnx and strocny for coupling
-         strocnxT, & ! ice-ocean stress at T points, x-direction at T points, mapped from strocnx, per ice fraction
-         strocnyT    ! ice-ocean stress at T points, y-direction at T points, mapped from strocny, per ice fraction
+         strocnxT, & ! ice-ocean stress, x-direction at T points, mapped from strocnx, per ice fraction
+         strocnyT    ! ice-ocean stress, y-direction at T points, mapped from strocny, per ice fraction
 
        ! diagnostic
 
@@ -125,7 +125,7 @@
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4, & ! sigma12
-       ! ice stress tensor at U and T locations (grid_ice = 'CD') (kg/s^2)
+       ! ice stress tensor at U and T locations (grid_ice = 'C|CD') (kg/s^2)
          stresspT, stressmT, stress12T, & ! sigma11+sigma22, sigma11-sigma22, sigma12
          stresspU, stressmU, stress12U    ! "
 

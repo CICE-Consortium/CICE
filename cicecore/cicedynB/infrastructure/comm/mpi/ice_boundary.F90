@@ -225,8 +225,8 @@ contains
 
    !*** store some block info to fill haloes properly
    call ice_distributionGet(dist, numLocalBlocks=halo%numLocalBlocks)
+   allocate(halo%blockGlobalID(halo%numLocalBlocks))
    if (halo%numLocalBlocks > 0) then
-      allocate(halo%blockGlobalID(halo%numLocalBlocks))
       call ice_distributionGet(dist, blockGlobalID=halo%blockGlobalID)
    endif
 
