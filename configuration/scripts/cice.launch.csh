@@ -64,12 +64,6 @@ aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_F
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ gordon* || ${ICE_MACHINE} =~ conrad*) then
-cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
-EOFR
-
-#=======
 else if (${ICE_MACHINE} =~ cori*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR

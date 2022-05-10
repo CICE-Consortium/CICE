@@ -187,9 +187,9 @@ contains
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
-    ! from atm - wet dust deposition frluxes (4 sizes)
+    ! from atm - wet dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-    ! from - atm dry dust deposition frluxes (4 sizes)
+    ! from - atm dry dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
 
     do n = 1,fldsToIce_num

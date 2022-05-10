@@ -157,7 +157,7 @@
 
       allocate(fcor_blk(nx_block,ny_block,max_blocks))
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
@@ -176,7 +176,7 @@
          if (trim(coriolis) == 'constant') then
             fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
          else if (trim(coriolis) == 'zero') then
-            fcor_blk(i,j,iblk) = 0.0
+            fcor_blk(i,j,iblk) = c0
          else
             fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
          endif
@@ -627,7 +627,6 @@
       subroutine stepu (nx_block,   ny_block, &
                         icellu,     Cw,       &
                         indxui,     indxuj,   &
-                        ksub,                 &
                         aiu,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
@@ -642,8 +641,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask is true
-         ksub                  ! subcycling iteration
+         icellu                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -677,7 +675,7 @@
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby       ! seabed stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Cw                   ! ocean-ice neutral drag coefficient
 
       ! local variables
@@ -741,14 +739,10 @@
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
-      ! calculate seabed stress component for outputs
-         if (ksub == ndte) then ! on last subcycling iteration
-          if ( seabed_stress ) then
-           taubx(i,j) = -uvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
-           tauby(i,j) = -vvel(i,j)*Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0)
-          endif
-         endif
-
+         ! calculate seabed stress component for outputs 
+         ! only needed on last iteration.
+         taubx(i,j) = -uvel(i,j)*Cb
+         tauby(i,j) = -vvel(i,j)*Cb
       enddo                     ! ij
 
       end subroutine stepu
@@ -766,8 +760,8 @@
                              uvel,     vvel,     &
                              uocn,     vocn,     &
                              aiu,      fm,       &
-                             strintx,  strinty,  &
-                             strairx,  strairy,  &
+!                             strintx,  strinty,  &
+!                             strairx,  strairy,  &
                              strocnx,  strocny,  &
                              strocnxT, strocnyT) 
 
@@ -785,11 +779,11 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          aiu     , & ! ice fraction on u-grid
-         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         strairx , & ! stress on ice by air, x-direction
-         strairy     ! stress on ice by air, y-direction
+         fm          ! Coriolis param. * mass in U-cell (kg/s)
+!         strintx , & ! divergence of internal ice stress, x (N/m^2)
+!         strinty , & ! divergence of internal ice stress, y (N/m^2)
+!         strairx , & ! stress on ice by air, x-direction
+!         strairy     ! stress on ice by air, y-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strocnx , & ! ice-ocean stress, x-direction
@@ -799,14 +793,15 @@
          strocnxT, & ! ice-ocean stress, x-direction
          strocnyT    ! ice-ocean stress, y-direction
 
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Cw                   ! ocean-ice neutral drag coefficient 
+
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij
 
       real (kind=dbl_kind) :: vrel, rhow
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Cw                   ! ocean-ice neutral drag coefficient 
 
       character(len=*), parameter :: subname = '(dyn_finish)'
 
@@ -897,9 +892,10 @@
          Tbu         ! seabed stress factor (N/m^2)
 
       real (kind=dbl_kind) :: &
-         au,  & ! concentration of ice at u location
-         hu,  & ! volume per unit area of ice at u location (mean thickness, m)
-         hwu, & ! water depth at u location (m)
+         au        , & ! concentration of ice at u location
+         hu        , & ! volume per unit area of ice at u location (mean thickness, m)
+         hwu       , & ! water depth at u location (m)
+         docalc_tbu, & ! logical as real (C0,C1) decides whether c0 is 0 or
          hcu    ! critical thickness at u location (m)
 
       integer (kind=int_kind) :: &
@@ -915,18 +911,19 @@
          
          hwu = min(hwater(i,j),hwater(i+1,j),hwater(i,j+1),hwater(i+1,j+1))
 
-         if (hwu < threshold_hw) then
+         docalc_tbu = merge(c1,c0,hwu < threshold_hw) 
+        
          
-            au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
-            hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
+         au  = max(aice(i,j),aice(i+1,j),aice(i,j+1),aice(i+1,j+1))
+         hu  = max(vice(i,j),vice(i+1,j),vice(i,j+1),vice(i+1,j+1))
 
-            ! 1- calculate critical thickness
-            hcu = au * hwu / k1
+         ! 1- calculate critical thickness
+         hcu = au * hwu / k1
 
-            ! 2- calculate seabed stress factor                    
-            Tbu(i,j) = k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+         ! 2- calculate seabed stress factor                    
+         Tbu(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
-         endif
+!         endif
 
       enddo                     ! ij
 
@@ -1392,7 +1389,7 @@
       real (kind=dbl_kind), intent(in)::  &  
         Deltane, Deltanw, Deltasw, Deltase  ! Delta at each corner
 
-      logical , intent(in):: capping
+      real(kind=dbl_kind) , intent(in):: capping
       
       real (kind=dbl_kind), intent(out):: &  
         zetax2ne, zetax2nw, zetax2sw, zetax2se,  & ! zetax2 at each corner 
@@ -1404,43 +1401,38 @@
         tmpcalcne, tmpcalcnw, tmpcalcsw, tmpcalcse
 
       ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-       
-!      if (trim(yield_curve) == 'ellipse') then
 
-      if (capping) then
-         tmpcalcne = strength/max(Deltane,tinyarea)
-         tmpcalcnw = strength/max(Deltanw,tinyarea)
-         tmpcalcsw = strength/max(Deltasw,tinyarea)
-         tmpcalcse = strength/max(Deltase,tinyarea)
-      else
-         tmpcalcne = strength/(Deltane + tinyarea)
-         tmpcalcnw = strength/(Deltanw + tinyarea)
-         tmpcalcsw = strength/(Deltasw + tinyarea)
-         tmpcalcse = strength/(Deltase + tinyarea)
-      endif
+      ! if (trim(yield_curve) == 'ellipse') then       
+        tmpcalcne = capping     *(strength/max(Deltane, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltane+ tinyarea)   
+        tmpcalcnw = capping     *(strength/max(Deltanw, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltanw+ tinyarea)   
+        tmpcalcsw = capping     *(strength/max(Deltasw, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltasw+ tinyarea)  
+        tmpcalcse = capping     *(strength/max(Deltase, tinyarea))+ &
+                    (c1-capping)* strength/   (Deltase+ tinyarea)
 
-         zetax2ne = (c1+Ktens)*tmpcalcne ! northeast 
-         rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
-         etax2ne = epp2i*zetax2ne
+        zetax2ne  = (c1+Ktens)*tmpcalcne ! northeast 
+        rep_prsne = (c1-Ktens)*tmpcalcne*Deltane
+        etax2ne   = epp2i*zetax2ne
          
-         zetax2nw = (c1+Ktens)*tmpcalcnw ! northwest 
-         rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
-         etax2nw = epp2i*zetax2nw
+        zetax2nw  = (c1+Ktens)*tmpcalcnw ! northwest 
+        rep_prsnw = (c1-Ktens)*tmpcalcnw*Deltanw
+        etax2nw   = epp2i*zetax2nw
 
-         zetax2sw = (c1+Ktens)*tmpcalcsw ! southwest  
-         rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
-         etax2sw = epp2i*zetax2sw
+        zetax2sw  = (c1+Ktens)*tmpcalcsw ! southwest  
+        rep_prssw = (c1-Ktens)*tmpcalcsw*Deltasw
+        etax2sw   = epp2i*zetax2sw
          
-         zetax2se = (c1+Ktens)*tmpcalcse ! southeast
-         rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
-         etax2se = epp2i*zetax2se
+        zetax2se  = (c1+Ktens)*tmpcalcse ! southeast
+        rep_prsse = (c1-Ktens)*tmpcalcse*Deltase
+        etax2se   = epp2i*zetax2se
+       ! else
 
-!      else
-
-!      endif
+       ! endif
       
        end subroutine viscous_coeffs_and_rep_pressure
-      
+
 !=======================================================================
 
 ! Load velocity components into array for boundary updates
@@ -1464,7 +1456,7 @@
       character(len=*), parameter :: subname = '(stack_velocity_field)'
 
       ! load velocity into array for boundary updates
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
          fld2(:,:,1,iblk) = uvel(:,:,iblk)
          fld2(:,:,2,iblk) = vvel(:,:,iblk)
@@ -1496,7 +1488,7 @@
       character(len=*), parameter :: subname = '(unstack_velocity_field)'
 
       ! Unload velocity from array after boundary updates
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
          uvel(:,:,iblk) = fld2(:,:,1,iblk)
          vvel(:,:,iblk) = fld2(:,:,2,iblk)

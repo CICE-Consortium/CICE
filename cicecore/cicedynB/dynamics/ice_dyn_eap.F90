@@ -25,6 +25,11 @@
           p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
+!      use ice_timers, only:  &
+!          ice_timer_start, ice_timer_stop, &
+!          timer_tmp1, timer_tmp2, timer_tmp3, timer_tmp4, &
+!          timer_tmp5, timer_tmp6, timer_tmp7, timer_tmp8, timer_tmp9
+
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use icepack_intfc, only: icepack_ice_strength
@@ -60,6 +65,11 @@
          s22      , &
          a11      , & ! components of structure tensor ()
          a12
+
+      ! private for reuse, set in init_eap
+
+      real (kind=dbl_kind) :: &
+         puny, pi, pi2, piq, pih
 
 !=======================================================================
 
@@ -137,9 +147,6 @@
           tarear, uarear, to_ugrid, t2ugrid_vector, u2tgrid_vector
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
-!      use ice_timers, only: timer_dynamics, timer_bound, &
-!          ice_timer_start, ice_timer_stop, &
-!          timer_tmp1, timer_tmp2, timer_tmp3
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
 
@@ -204,7 +211,7 @@
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
       do iblk = 1, nblocks
          do j = 1, ny_block 
          do i = 1, nx_block 
@@ -274,10 +281,7 @@
          call t2ugrid_vector(strairy)
       endif
 
-! tcraig, tcx, turned off this threaded region, in evp, this block and 
-! the icepack_ice_strength call seems to not be thread safe.  more
-! debugging needed
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -364,7 +368,7 @@
                                       strength = strength(i,j,  iblk) )
          enddo  ! ij
       enddo  ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -395,29 +399,29 @@
       !-----------------------------------------------------------------
       
       if (seabed_stress) then
+         if ( seabed_stress_method == 'LKD' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk)  SCHEDULE(runtime)
+            do iblk = 1, nblocks
+               call seabed_stress_factor_LKD (nx_block,         ny_block,       &
+                                              icellu  (iblk),                   &
+                                              indxui(:,iblk),   indxuj(:,iblk), &
+                                              vice(:,:,iblk),   aice(:,:,iblk), &
+                                              hwater(:,:,iblk), Tbu(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
 
-       !$OMP PARALLEL DO PRIVATE(iblk)
-       do iblk = 1, nblocks
-          
-          if ( seabed_stress_method == 'LKD' ) then
-             
-             call seabed_stress_factor_LKD (nx_block,         ny_block,       &
-                                            icellu  (iblk),                   &
-                                            indxui(:,iblk),   indxuj(:,iblk), &
-                                            vice(:,:,iblk),   aice(:,:,iblk), &
-                                            hwater(:,:,iblk), Tbu(:,:,iblk))
-
-          elseif ( seabed_stress_method == 'probabilistic' ) then
+         elseif ( seabed_stress_method == 'probabilistic' ) then
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
              
              call seabed_stress_factor_prob (nx_block,         ny_block,                   &
                                              icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                              icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                              aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
                                              hwater(:,:,iblk), Tbu(:,:,iblk))
-          endif
-
-       enddo
-       !$OMP END PARALLEL DO 
+            enddo
+            !$OMP END PARALLEL DO
+         endif
       endif
       
       do ksub = 1,ndte        ! subcycling
@@ -426,10 +430,10 @@
       ! stress tensor equation, total surface stress
       !-----------------------------------------------------------------
 
-         !$TCXOMP PARALLEL DO PRIVATE(iblk,strtmp)
+         !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
          do iblk = 1, nblocks
 
-!      call ice_timer_start(timer_tmp1) ! dynamics
+!            call ice_timer_start(timer_tmp1,iblk)
             call stress_eap  (nx_block,             ny_block,             &
                               ksub,                 ndte,                 &
                               icellt(iblk),                               &
@@ -462,16 +466,16 @@
 !                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
                               rdg_conv  (:,:,iblk), &
                               strtmp    (:,:,:))
-!      call ice_timer_stop(timer_tmp1) ! dynamics
+!            call ice_timer_stop(timer_tmp1,iblk)
 
       !-----------------------------------------------------------------
       ! momentum equation
       !-----------------------------------------------------------------
 
+!            call ice_timer_start(timer_tmp2,iblk)
             call stepu (nx_block,            ny_block,           & 
                         icellu       (iblk), Cdn_ocn (:,:,iblk), & 
                         indxui     (:,iblk), indxuj    (:,iblk), & 
-                        ksub,                                    &
                         aiu      (:,:,iblk), strtmp  (:,:,:),    & 
                         uocn     (:,:,iblk), vocn    (:,:,iblk), &     
                         waterx   (:,:,iblk), watery  (:,:,iblk), & 
@@ -483,12 +487,13 @@
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                         uvel     (:,:,iblk), vvel    (:,:,iblk), &
                         Tbu      (:,:,iblk))
+!            call ice_timer_stop(timer_tmp2,iblk)
 
       !-----------------------------------------------------------------
       ! evolution of structure tensor A
       !-----------------------------------------------------------------
 
-!      call ice_timer_start(timer_tmp3) ! dynamics
+!            call ice_timer_start(timer_tmp3,iblk)
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
             call stepa (nx_block,          ny_block,                &
                         dtei,              icellt     (iblk),       &
@@ -505,9 +510,9 @@
                         stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                         stress12_3(:,:,iblk), stress12_4(:,:,iblk))
             endif
-!      call ice_timer_stop(timer_tmp3) ! dynamics
+!            call ice_timer_stop(timer_tmp3,iblk)
          enddo
-         !$TCXOMP END PARALLEL DO
+         !$OMP END PARALLEL DO
 
          call stack_velocity_field(uvel, vvel, fld2)
          call ice_timer_start(timer_bound)
@@ -530,7 +535,7 @@
       ! ice-ocean stress
       !-----------------------------------------------------------------
 
-      !$OMP PARALLEL DO PRIVATE(iblk)
+      !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          call dyn_finish                               & 
@@ -540,8 +545,6 @@
                uvel    (:,:,iblk), vvel    (:,:,iblk), & 
                uocn    (:,:,iblk), vocn    (:,:,iblk), & 
                aiu     (:,:,iblk), fm      (:,:,iblk), &
-               strintx (:,:,iblk), strinty (:,:,iblk), &
-               strairx (:,:,iblk), strairy (:,:,iblk), & 
                strocnx (:,:,iblk), strocny (:,:,iblk), & 
                strocnxT(:,:,iblk), strocnyT(:,:,iblk))
 
@@ -583,17 +586,19 @@
       real (kind=dbl_kind) :: & 
          ainit, xinit, yinit, zinit, &
          da, dx, dy, dz, &
-         pi, pih, piq, phi
+         phi
 
       character(len=*), parameter :: subname = '(init_eap)'
 
-      call icepack_query_parameters(pi_out=pi, pih_out=pih, piq_out=piq)
+      call icepack_query_parameters(puny_out=puny, &
+         pi_out=pi, pi2_out=pi2, piq_out=piq, pih_out=pih)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
@@ -747,14 +752,9 @@
       d11, d12, d22, &
       IIn1t2, IIn2t1, &
 !     IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s11kr)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s11kr)'
 
       p = phi
 
@@ -818,14 +818,9 @@
       d11, d12, d22, &
       IIn1t2, IIn2t1, &
 !     IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s12kr)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s12kr)'
 
       p = phi
 
@@ -889,14 +884,9 @@
       d11, d12, d22, &
       IIn1t2, IIn2t1, &
 !     IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s22kr)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s22kr)'
 
       p = phi
 
@@ -959,14 +949,9 @@
 !     t2t1i12, t2t1i21, t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s11ks)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s11ks)'
 
       p = phi
 
@@ -1028,14 +1013,9 @@
       t2t1i12, t2t1i21, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s12ks)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s12ks)'
 
       p =phi
 
@@ -1099,14 +1079,9 @@
       t2t1i22, &
       d11, d12, d22, &
       IIn1t2, IIn2t1, IIt1t2, &
-      Hen1t2, Hen2t1, &
-      pih, puny
-      character(len=*), parameter :: subname = '(s22ks)'
+      Hen1t2, Hen2t1
 
-      call icepack_query_parameters(pih_out=pih, puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      character(len=*), parameter :: subname = '(s22ks)'
 
       p = phi
 
@@ -1188,11 +1163,6 @@
                               rdg_conv, &
                               strtmp)
 
-!echmod tmp
-!      use ice_timers, only:  &
-!          ice_timer_start, ice_timer_stop, &
-!          timer_tmp1, timer_tmp2, timer_tmp3
-
       integer (kind=int_kind), intent(in) :: & 
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
@@ -1270,7 +1240,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, puny
+        strp_tmp, strm_tmp
 
       real (kind=dbl_kind) :: &
         alpharne, alpharnw, alpharsw, alpharse,     &
@@ -1281,11 +1251,6 @@
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
-
-      call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       strtmp(:,:,:) = c0
 
@@ -1330,7 +1295,6 @@
       !-----------------------------------------------------------------
       ! Stress updated depending on strain rate and structure tensor
       !-----------------------------------------------------------------
-!      call ice_timer_start(timer_tmp2) ! dynamics
 
          ! ne
          call update_stress_rdg (ksub, ndte, divune, tensionne, &
@@ -1357,7 +1321,6 @@
                                  stress12tmp_4, strength(i,j), &
                                  alpharse, alphasse)
 
-!      call ice_timer_stop(timer_tmp2) ! dynamics
       !-----------------------------------------------------------------
       ! on last subcycle, save quantities for mechanical redistribution
       !-----------------------------------------------------------------
@@ -1609,10 +1572,14 @@
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
          x, y, dx, dy, da, &
-         invdx, invdy, invda, invsin, &
          dtemp1, dtemp2, atempprime, &
-         kxw, kyw, kaw, &
-         puny, pi, pi2, piq, pih
+         kxw, kyw, kaw
+
+      real (kind=dbl_kind), save :: &
+         invdx, invdy, invda, invsin
+
+      logical (kind=log_kind), save :: &
+         first_call = .true.
 
       real (kind=dbl_kind), parameter :: &
          kfriction = 0.45_dbl_kind
@@ -1624,17 +1591,13 @@
 
       character(len=*), parameter :: subname = '(update_stress_rdg)'
 
-         call icepack_query_parameters(puny_out=puny, &
-            pi_out=pi, pi2_out=pi2, piq_out=piq, pih_out=pih)
-         call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-            file=__FILE__, line=__LINE__)
-
 ! Factor to maintain the same stress as in EVP (see Section 3)
 ! Can be set to 1 otherwise
 
-         invstressconviso = c1/(c1+kfriction*kfriction)
-         invsin = c1/sin(pi2/c12) * invstressconviso
+         if (first_call) then
+            invstressconviso = c1/(c1+kfriction*kfriction)
+            invsin = c1/sin(pi2/c12) * invstressconviso
+         endif
 
 ! compute eigenvalues, eigenvectors and angles for structure tensor, strain rates
 
@@ -1642,7 +1605,7 @@
 
          a22 = c1-a11
 
-! gamma: angle between general coordiantes and principal axis of A
+! gamma: angle between general coordinates and principal axis of A
 ! here Tan2gamma = 2 a12 / (a11 - a22) 
 
          Q11Q11 = c1
@@ -1733,12 +1696,14 @@
          if (y < 0)  y = y + pi
 
 ! Now calculate updated stress tensor
-         dx   = pi/real(nx_yield-1,kind=dbl_kind)
-         dy   = pi/real(ny_yield-1,kind=dbl_kind)
-         da   = p5/real(na_yield-1,kind=dbl_kind)
-         invdx = c1/dx
-         invdy = c1/dy
-         invda = c1/da
+         if (first_call) then
+            dx   = pi/real(nx_yield-1,kind=dbl_kind)
+            dy   = pi/real(ny_yield-1,kind=dbl_kind)
+            da   = p5/real(na_yield-1,kind=dbl_kind)
+            invdx = c1/dx
+            invdy = c1/dy
+            invda = c1/da
+         endif
 
          if (interpolate_stress_rdg) then
 
@@ -1876,6 +1841,8 @@
                    + rotstemp22s*dtemp22
          endif
 
+         first_call = .false.
+
       end subroutine update_stress_rdg
 
 !=======================================================================
@@ -2006,7 +1973,7 @@
 
       real (kind=dbl_kind) :: &
          sigma11, sigma12, sigma22, &
-         gamma, sigma_1, sigma_2, pih, &
+         gamma, sigma_1, sigma_2, &
          Q11, Q12, Q11Q11, Q11Q12, Q12Q12
 
       real (kind=dbl_kind), parameter :: &
@@ -2014,11 +1981,6 @@
          threshold = c3*p1
 
       character(len=*), parameter :: subname = '(calc_ffrac)'
-
-       call icepack_query_parameters(pih_out=pih)
-       call icepack_warnings_flush(nu_diag)
-       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
 
        sigma11 = p5*(stressp+stressm)
        sigma12 = stress12
@@ -2182,7 +2144,7 @@
       ! Ensure unused values in west and south ghost cells are 0
       !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
          do iblk = 1, nblocks
             do j = 1, nghost
             do i = 1, nx_block
