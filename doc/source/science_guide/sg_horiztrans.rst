@@ -35,7 +35,10 @@ versions but have not yet been implemented.
 
 Two transport schemes are available: upwind and the incremental
 remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
-:cite:`Lipscomb04`. The remapping scheme has several desirable features:
+:cite:`Lipscomb04`. The upwind scheme is naturally suited for a C grid discretization. As such, the C grid velocity components (i.e. :math:`uvelE=u` at the E point and :math:`vvelN=v` at the N point) are directly passed to the upwind transport scheme. On the other hand, if the B grid is used, :math:`uvel` and :math:`vvel` (respectively :math:`u` and :math:`v` at the U point) are interpolated to the E and N points such that the upwind advection can be performed. Conversely, as the remapping scheme was originally developed for B grid applications, :math:`uvel` and :math:`vvel` are directly used for the advection. If the remapping scheme is used for the C grid, :math:`uvelE` and :math:`vvelN` are first interpolated to the U points before performing the advection.
+
+
+The remapping scheme has several desirable features:
 
 -  It conserves the quantity being transported (area, volume, or
    energy).

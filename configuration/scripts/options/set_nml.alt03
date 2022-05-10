@@ -1,6 +1,6 @@
 ncat = 6
 kcatbound = 2
-ice_ic = 'default'
+ice_ic = 'internal'
 distribution_type = 'sectcart'
 conserv_check = .true.
 tr_iage      = .false.

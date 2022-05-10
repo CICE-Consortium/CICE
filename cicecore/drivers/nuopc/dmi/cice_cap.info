@@ -18,7 +18,7 @@ module cice_cap
   use ice_calendar,  only: dt
   use ice_flux
   use ice_grid, only: TLAT, TLON, ULAT, ULON, hm, tarea, ANGLET, ANGLE, &
-                      dxt, dyt, t2ugrid_vector
+                      dxt, dyt, grid_average_X2Y
   use ice_state
   use CICE_RunMod
   use CICE_InitMod
@@ -934,11 +934,21 @@ module cice_cap
           ss_tlty(i,j,iblk) = ue*sin(AngT_s) + vn*cos(AngT_s)
        enddo
        enddo
-       call t2ugrid_vector(ss_tltx)
-       call t2ugrid_vector(ss_tlty)
-       call t2ugrid_vector(uocn)
-       call t2ugrid_vector(vocn)
     enddo
+
+!    call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_scalar)
+!    call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
+!    call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
+!    call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
+    ! tcraig, moved to dynamics for consistency
+    !work = uocn
+    !call grid_average_X2Y('F',work,'T',uocn,'U')
+    !work = vocn
+    !call grid_average_X2Y('F',work,'T',vocn,'U')
+    !work = ss_tltx
+    !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
+    !work = ss_tlty
+    !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
 
   end subroutine
   subroutine CICE_Export(st,rc)

@@ -1,4 +1,4 @@
-ice_ic = 'default'
+ice_ic = 'internal'
 tr_iage      = .false.
 tr_FY        = .false.
 tr_lvl       = .false.

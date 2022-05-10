@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/gridavgchk
+setenv ICE_TARGET     gridavgchk

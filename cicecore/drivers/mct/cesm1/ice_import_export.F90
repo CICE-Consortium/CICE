@@ -9,7 +9,7 @@ module ice_import_export
   use ice_constants     , only: field_type_vector, c100
   use ice_constants     , only: p001, p5
   use ice_blocks        , only: block, get_block, nx_block, ny_block
-  use ice_flux          , only: strairxt, strairyt, strocnxt, strocnyt           
+  use ice_flux          , only: strairxT, strairyT, strocnxT, strocnyT
   use ice_flux          , only: alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux          , only: flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux          , only: fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
@@ -29,7 +29,7 @@ module ice_import_export
   use ice_domain        , only: nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size   , only: nx_global, ny_global, block_size_x, block_size_y, max_blocks
   use ice_grid          , only: tlon, tlat, tarea, tmask, anglet, hm
-  use ice_grid          , only: grid_type, t2ugrid_vector
+  use ice_grid          , only: grid_type, grid_average_X2Y
   use ice_boundary      , only: ice_HaloUpdate 
   use ice_communicate   , only: my_task, master_task, MPI_COMM_ICE, get_num_procs
   use ice_calendar      , only: istep, istep1, diagfreq
@@ -65,6 +65,7 @@ contains
     type(block) :: this_block         ! block information for current block
     integer,parameter       :: nflds=17,nfldv=6,nfldb=27
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
+    real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work
     real (kind=dbl_kind)    :: workx, worky
     real (kind=dbl_kind)    :: MIN_RAIN_TEMP, MAX_SNOW_TEMP 
     character(len=char_len) :: tfrz_option
@@ -468,10 +469,19 @@ contains
 
     if (.not.prescribed_ice) then
        call t_startf ('cice_imp_t2u')
-       call t2ugrid_vector(uocn)
-       call t2ugrid_vector(vocn)
-       call t2ugrid_vector(ss_tltx)
-       call t2ugrid_vector(ss_tlty)
+       call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
+       call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
+       ! tcraig, moved to dynamics for consistency
+       !work = uocn
+       !call grid_average_X2Y('F',work,'T',uocn,'U')
+       !work = vocn
+       !call grid_average_X2Y('F',work,'T',vocn,'U')
+       !work = ss_tltx
+       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
+       !work = ss_tlty
+       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
        call t_stopf ('cice_imp_t2u')
     end if
 

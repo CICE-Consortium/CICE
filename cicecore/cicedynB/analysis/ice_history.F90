@@ -68,6 +68,9 @@
       use ice_domain_size, only: max_blocks, max_nstrm, nilyr, nslyr, nblyr, ncat, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
+      use ice_grid, only: grid_ice, &
+          grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
+          grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -93,8 +96,108 @@
       integer (kind=int_kind), dimension(max_nstrm) :: &
          ntmp
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
+      character (len=25) :: &
+         str2D_gat, str2d_gau, str2d_gav, &  ! dimensions for t, u, v atm grid (ga)
+         str2D_got, str2d_gou, str2d_gov     ! dimensions for t, u, v ocn grid (go)
+      character (len=25) :: &
+         cstr_gat, cstr_gau, cstr_gav, &     ! mask area name for t, u, v atm grid (ga)
+         cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
+      character(len=char_len) :: description
 
       character(len=*), parameter :: subname = '(init_hist)'
+
+      !-----------------------------------------------------------------
+      ! set atm/ocn forcing grids
+      !-----------------------------------------------------------------
+
+      !--- ATM ---
+
+      if     (grid_atm_thrm == 'T') then
+         str2D_gat = tstr2D
+         cstr_gat  = tcstr
+      elseif (grid_atm_thrm == 'U') then
+         str2D_gat = ustr2D
+         cstr_gat  = ucstr
+      elseif (grid_atm_thrm == 'N') then
+         str2D_gat = nstr2D
+         cstr_gat  = ncstr
+      elseif (grid_atm_thrm == 'E') then
+         str2D_gat = estr2D
+         cstr_gat  = ecstr
+      endif
+
+      if     (grid_atm_dynu == 'T') then
+         str2D_gau = tstr2D
+         cstr_gau  = tcstr
+      elseif (grid_atm_dynu == 'U') then
+         str2D_gau = ustr2D
+         cstr_gau  = ucstr
+      elseif (grid_atm_dynu == 'N') then
+         str2D_gau = nstr2D
+         cstr_gau  = ncstr
+      elseif (grid_atm_dynu == 'E') then
+         str2D_gau = estr2D
+         cstr_gau  = ecstr
+      endif
+
+      if     (grid_atm_dynv == 'T') then
+         str2D_gav = tstr2D
+         cstr_gav  = tcstr
+      elseif (grid_atm_dynv == 'U') then
+         str2D_gav = ustr2D
+         cstr_gav  = ucstr
+      elseif (grid_atm_dynv == 'N') then
+         str2D_gav = nstr2D
+         cstr_gav  = ncstr
+      elseif (grid_atm_dynv == 'E') then
+         str2D_gav = estr2D
+         cstr_gav  = ecstr
+      endif
+
+      !--- OCN ---
+
+      if     (grid_ocn_thrm == 'T') then
+         str2D_got = tstr2D
+         cstr_got  = tcstr
+      elseif (grid_ocn_thrm == 'U') then
+         str2D_got = ustr2D
+         cstr_got  = ucstr
+      elseif (grid_ocn_thrm == 'N') then
+         str2D_got = nstr2D
+         cstr_got  = ncstr
+      elseif (grid_ocn_thrm == 'E') then
+         str2D_got = estr2D
+         cstr_got  = ecstr
+      endif
+
+      if     (grid_ocn_dynu == 'T') then
+         str2D_gou = tstr2D
+         cstr_gou  = tcstr
+      elseif (grid_ocn_dynu == 'U') then
+         str2D_gou = ustr2D
+         cstr_gou  = ucstr
+      elseif (grid_ocn_dynu == 'N') then
+         str2D_gou = nstr2D
+         cstr_gou  = ncstr
+      elseif (grid_ocn_dynu == 'E') then
+         str2D_gou = estr2D
+         cstr_gou  = ecstr
+      endif
+
+      if     (grid_ocn_dynv == 'T') then
+         str2D_gov = tstr2D
+         cstr_gov  = tcstr
+      elseif (grid_ocn_dynv == 'U') then
+         str2D_gov = ustr2D
+         cstr_gov  = ucstr
+      elseif (grid_ocn_dynv == 'N') then
+         str2D_gov = nstr2D
+         cstr_gov  = ncstr
+      elseif (grid_ocn_dynv == 'E') then
+         str2D_gov = estr2D
+         cstr_gov  = ecstr
+      endif
+
 
       !-----------------------------------------------------------------
       ! set history dimensions
@@ -280,6 +383,41 @@
          f_sispeed = f_CMIP
       endif
 
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         f_uvelE = f_uvel
+         f_vvelE = f_vvel
+         f_icespdE = f_icespd
+         f_icedirE = f_icedir
+         f_uvelN = f_uvel
+         f_vvelN = f_vvel
+         f_icespdN = f_icespd
+         f_icedirN = f_icedir
+         f_strairxN = f_strairx
+         f_strairyN = f_strairy
+         f_strairxE = f_strairx
+         f_strairyE = f_strairy
+         f_strocnxN = f_strocnx
+         f_strocnyN = f_strocny
+         f_strocnxE = f_strocnx
+         f_strocnyE = f_strocny
+         f_strcorxN = f_strcorx
+         f_strcoryN = f_strcory
+         f_strcorxE = f_strcorx
+         f_strcoryE = f_strcory
+         f_strintxN = f_strintx
+         f_strintyN = f_strinty
+         f_strintxE = f_strintx
+         f_strintyE = f_strinty
+         f_strtltxN = f_strtltx
+         f_strtltyN = f_strtlty
+         f_strtltxE = f_strtltx
+         f_strtltyE = f_strtlty
+         f_taubxN = f_taubx
+         f_taubyN = f_tauby
+         f_taubxE = f_taubx
+         f_taubyE = f_tauby
+      endif
+
 #ifndef ncdf
       f_bounds = .false.
 #endif
@@ -293,13 +431,22 @@
       if (tr_fsd)                                       f_NFSD  = .true.
 
       call broadcast_scalar (f_tmask, master_task)
+      call broadcast_scalar (f_umask, master_task)
+      call broadcast_scalar (f_nmask, master_task)
+      call broadcast_scalar (f_emask, master_task)
       call broadcast_scalar (f_blkmask, master_task)
       call broadcast_scalar (f_tarea, master_task)
       call broadcast_scalar (f_uarea, master_task)
+      call broadcast_scalar (f_narea, master_task)
+      call broadcast_scalar (f_earea, master_task)
       call broadcast_scalar (f_dxt, master_task)
       call broadcast_scalar (f_dyt, master_task)
       call broadcast_scalar (f_dxu, master_task)
       call broadcast_scalar (f_dyu, master_task)
+      call broadcast_scalar (f_dxn, master_task)
+      call broadcast_scalar (f_dyn, master_task)
+      call broadcast_scalar (f_dxe, master_task)
+      call broadcast_scalar (f_dye, master_task)
       call broadcast_scalar (f_HTN, master_task)
       call broadcast_scalar (f_HTE, master_task)
       call broadcast_scalar (f_ANGLE, master_task)
@@ -321,6 +468,16 @@
       call broadcast_scalar (f_aice, master_task)
       call broadcast_scalar (f_uvel, master_task)
       call broadcast_scalar (f_vvel, master_task)
+      call broadcast_scalar (f_icespd, master_task)
+      call broadcast_scalar (f_icedir, master_task)
+      call broadcast_scalar (f_uvelE, master_task)
+      call broadcast_scalar (f_vvelE, master_task)
+      call broadcast_scalar (f_icespdE, master_task)
+      call broadcast_scalar (f_icedirE, master_task)
+      call broadcast_scalar (f_uvelN, master_task)
+      call broadcast_scalar (f_vvelN, master_task)
+      call broadcast_scalar (f_icespdN, master_task)
+      call broadcast_scalar (f_icedirN, master_task)
       call broadcast_scalar (f_uatm, master_task)
       call broadcast_scalar (f_vatm, master_task)
       call broadcast_scalar (f_atmspd, master_task)
@@ -397,6 +554,30 @@
       call broadcast_scalar (f_strinty, master_task)
       call broadcast_scalar (f_taubx, master_task)
       call broadcast_scalar (f_tauby, master_task)
+      call broadcast_scalar (f_strairxN, master_task)
+      call broadcast_scalar (f_strairyN, master_task)
+      call broadcast_scalar (f_strtltxN, master_task)
+      call broadcast_scalar (f_strtltyN, master_task)
+      call broadcast_scalar (f_strcorxN, master_task)
+      call broadcast_scalar (f_strcoryN, master_task)
+      call broadcast_scalar (f_strocnxN, master_task)
+      call broadcast_scalar (f_strocnyN, master_task)
+      call broadcast_scalar (f_strintxN, master_task)
+      call broadcast_scalar (f_strintyN, master_task)
+      call broadcast_scalar (f_taubxN, master_task)
+      call broadcast_scalar (f_taubyN, master_task)
+      call broadcast_scalar (f_strairxE, master_task)
+      call broadcast_scalar (f_strairyE, master_task)
+      call broadcast_scalar (f_strtltxE, master_task)
+      call broadcast_scalar (f_strtltyE, master_task)
+      call broadcast_scalar (f_strcorxE, master_task)
+      call broadcast_scalar (f_strcoryE, master_task)
+      call broadcast_scalar (f_strocnxE, master_task)
+      call broadcast_scalar (f_strocnyE, master_task)
+      call broadcast_scalar (f_strintxE, master_task)
+      call broadcast_scalar (f_strintyE, master_task)
+      call broadcast_scalar (f_taubxE, master_task)
+      call broadcast_scalar (f_taubyE, master_task)
       call broadcast_scalar (f_strength, master_task)
       call broadcast_scalar (f_divu, master_task)
       call broadcast_scalar (f_shear, master_task)
@@ -541,38 +722,88 @@
              "snow/ice surface temperature",                      &
              "averaged with Tf if no ice is present", c1, c0,     &
              ns1, f_Tsfc)
-      
+
          call define_hist_field(n_aice,"aice","1",tstr2D, tcstr,    &
              "ice area  (aggregate)",                             &
              "none", c1, c0,                                      &
              ns1, f_aice)
+
+         call define_hist_field(n_uvelE,"uvelE","m/s",estr2D, ecstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on E grid", c1, c0,         &
+             ns1, f_uvelE)
+
+          call define_hist_field(n_vvelE,"vvelE","m/s",estr2D, ecstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on E grid", c1, c0,         &
+             ns1, f_vvelE)
+
+         call define_hist_field(n_icespdE,"icespdE","m/s",estr2D, ecstr, &
+             "sea ice speed",                                  &
+             "vector magnitude on E grid", c1, c0,                       &
+             ns1, f_icespdE)
+      
+         call define_hist_field(n_icedirE,"icedirE","deg",estr2D, ecstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from on E grid", c1, c0,         &
+             ns1, f_icedirE)
+      
+         call define_hist_field(n_uvelN,"uvelN","m/s",nstr2D, ncstr,  &
+             "ice velocity (x)",                                  &
+             "positive is x direction on N grid", c1, c0,         &
+             ns1, f_uvelN)
+
+         call define_hist_field(n_vvelN,"vvelN","m/s",nstr2D, ncstr,  &
+             "ice velocity (y)",                                  &
+             "positive is y direction on N grid", c1, c0,         &
+             ns1, f_vvelN)
+
+         call define_hist_field(n_icespdN,"icespdN","m/s",nstr2D, ncstr, &
+             "sea ice speed",                                  &
+             "vector magnitude on N grid", c1, c0,                       &
+             ns1, f_icespdN)
+      
+         call define_hist_field(n_icedirN,"icedirN","deg",nstr2D, ncstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from on N grid", c1, c0,         &
+             ns1, f_icedirN)
       
          call define_hist_field(n_uvel,"uvel","m/s",ustr2D, ucstr,  &
              "ice velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
              ns1, f_uvel)
-      
+
          call define_hist_field(n_vvel,"vvel","m/s",ustr2D, ucstr,  &
              "ice velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vvel)
       
-         call define_hist_field(n_uatm,"uatm","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_icespd,"icespd","m/s",ustr2D, ucstr, &
+             "sea ice speed",                                  &
+             "vector magnitude", c1, c0,                               &
+             ns1, f_icespd)
+      
+         call define_hist_field(n_icedir,"icedir","deg",ustr2D, ucstr, &
+             "sea ice direction",                              &
+             "vector direction - coming from", c1, c0,                 &
+             ns1, f_icedir)
+      
+         call define_hist_field(n_uatm,"uatm","m/s",str2D_gau, cstr_gau,  &
              "atm velocity (x)",                                  &
              "positive is x direction on U grid", c1, c0,         &
              ns1, f_uatm)
       
-         call define_hist_field(n_vatm,"vatm","m/s",ustr2D, ucstr,  &
+         call define_hist_field(n_vatm,"vatm","m/s",str2D_gav, cstr_gav,  &
              "atm velocity (y)",                                  &
              "positive is y direction on U grid", c1, c0,         &
              ns1, f_vatm)
 
-         call define_hist_field(n_atmspd,"atmspd","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_atmspd,"atmspd","m/s",str2D_gau, cstr_gau, &
              "atmosphere wind speed",                                  &
              "vector magnitude", c1, c0,                               &
              ns1, f_atmspd)
       
-         call define_hist_field(n_atmdir,"atmdir","deg",ustr2D, ucstr, &
+         call define_hist_field(n_atmdir,"atmdir","deg",str2D_gau, cstr_gau, &
              "atmosphere wind direction",                              &
              "vector direction - coming from", c1, c0,                 &
              ns1, f_atmdir)
@@ -627,22 +858,22 @@
              "none", c1, c0,                                   &
              ns1, f_sss)
       
-         call define_hist_field(n_uocn,"uocn","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_uocn,"uocn","m/s",str2D_gou, cstr_gou, &
              "ocean current (x)",                                &
              "positive is x direction on U grid", c1, c0,        &
              ns1, f_uocn)
       
-         call define_hist_field(n_vocn,"vocn","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_vocn,"vocn","m/s",str2D_gov, cstr_gov, &
              "ocean current (y)",                                &
              "positive is y direction on U grid", c1, c0,        &
              ns1, f_vocn)
 
-         call define_hist_field(n_ocnspd,"ocnspd","m/s",ustr2D, ucstr, &
+         call define_hist_field(n_ocnspd,"ocnspd","m/s",str2D_gou, cstr_gou, &
              "ocean current speed",                                    &
              "vector magnitude", c1, c0,                               &
              ns1, f_ocnspd)
       
-         call define_hist_field(n_ocndir,"ocndir","deg",ustr2D, ucstr, &
+         call define_hist_field(n_ocndir,"ocndir","deg",str2D_gou, cstr_gou, &
              "ocean current direction",                                &
              "vector direction - going to", c1, c0,                    &
              ns1, f_ocndir)
@@ -938,6 +1169,126 @@
              "positive is y direction on U grid", c1, c0,                &
              ns1, f_tauby)
       
+         call define_hist_field(n_strairxN,"strairxN","N/m^2",nstr2D, ncstr, &
+             "atm/ice stress (x)",                                       &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_strairxN)
+      
+         call define_hist_field(n_strairyN,"strairyN","N/m^2",nstr2D, ncstr, &
+             "atm/ice stress (y)",                                       &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_strairyN)
+      
+         call define_hist_field(n_strairxE,"strairxE","N/m^2",estr2D, ecstr, &
+             "atm/ice stress (x)",                                       &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_strairxE)
+      
+         call define_hist_field(n_strairyE,"strairyE","N/m^2",estr2D, ecstr, &
+             "atm/ice stress (y)",                                       &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_strairyE)
+      
+         call define_hist_field(n_strtltxN,"strtltxN","N/m^2",nstr2D, ncstr, &
+             "sea sfc tilt stress (x)",                                  &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_strtltxN)
+      
+         call define_hist_field(n_strtltyN,"strtltyN","N/m^2",nstr2D, ncstr, &
+             "sea sfc tilt stress (y)",                                  &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_strtltyN)
+      
+         call define_hist_field(n_strtltxE,"strtltxE","N/m^2",estr2D, ecstr, &
+             "sea sfc tilt stress (x)",                                  &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_strtltxE)
+      
+         call define_hist_field(n_strtltyE,"strtltyE","N/m^2",estr2D, ecstr, &
+             "sea sfc tilt stress (y)",                                  &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_strtltyE)
+      
+         call define_hist_field(n_strcorxN,"strcorxN","N/m^2",nstr2D, ncstr, &
+             "coriolis stress (x)",                                      &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_strcorxN)
+      
+         call define_hist_field(n_strcoryN,"strcoryN","N/m^2",nstr2D, ncstr, &
+             "coriolis stress (y)",                                      &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_strcoryN)
+      
+         call define_hist_field(n_strcorxE,"strcorxE","N/m^2",estr2D, ecstr, &
+             "coriolis stress (x)",                                      &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_strcorxE)
+      
+         call define_hist_field(n_strcoryE,"strcoryE","N/m^2",estr2D, ecstr, &
+             "coriolis stress (y)",                                      &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_strcoryE)
+      
+         call define_hist_field(n_strocnxN,"strocnxN","N/m^2",nstr2D, ncstr, &
+             "ocean/ice stress (x)",                                     &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_strocnxN)
+      
+         call define_hist_field(n_strocnyN,"strocnyN","N/m^2",nstr2D, ncstr, &
+             "ocean/ice stress (y)",                                     &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_strocnyN)
+      
+         call define_hist_field(n_strocnxE,"strocnxE","N/m^2",estr2D, ecstr, &
+             "ocean/ice stress (x)",                                     &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_strocnxE)
+      
+         call define_hist_field(n_strocnyE,"strocnyE","N/m^2",estr2D, ecstr, &
+             "ocean/ice stress (y)",                                     &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_strocnyE)
+      
+         call define_hist_field(n_strintxN,"strintxN","N/m^2",nstr2D, ncstr, &
+             "internal ice stress (x)",                                  &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_strintxN)
+      
+         call define_hist_field(n_strintyN,"strintyN","N/m^2",nstr2D, ncstr, &
+             "internal ice stress (y)",                                  &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_strintyN)
+
+         call define_hist_field(n_strintxE,"strintxE","N/m^2",estr2D, ecstr, &
+             "internal ice stress (x)",                                  &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_strintxE)
+      
+         call define_hist_field(n_strintyE,"strintyE","N/m^2",estr2D, ecstr, &
+             "internal ice stress (y)",                                  &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_strintyE)
+
+         call define_hist_field(n_taubxN,"taubxN","N/m^2",nstr2D, ncstr,   &
+             "seabed (basal) stress (x)",                                &
+             "positive is x direction on N grid", c1, c0,                &
+             ns1, f_taubxN)
+
+         call define_hist_field(n_taubyN,"taubyN","N/m^2",nstr2D, ncstr,   &
+             "seabed (basal) stress (y)",                                &
+             "positive is y direction on N grid", c1, c0,                &
+             ns1, f_taubyN)
+      
+         call define_hist_field(n_taubxE,"taubxE","N/m^2",estr2D, ecstr,   &
+             "seabed (basal) stress (x)",                                &
+             "positive is x direction on E grid", c1, c0,                &
+             ns1, f_taubxE)
+
+         call define_hist_field(n_taubyE,"taubyE","N/m^2",estr2D, ecstr,   &
+             "seabed (basal) stress (y)",                                &
+             "positive is y direction on E grid", c1, c0,                &
+             ns1, f_taubyE)
+      
          call define_hist_field(n_strength,"strength","N/m",tstr2D, tcstr, &
              "compressive ice strength",                                 &
              "none", c1, c0,                                             &
@@ -953,19 +1304,26 @@
              "none", secday*c100, c0,                                &
              ns1, f_shear)
       
+         select case (grid_ice)
+         case('B')
+            description = ", on U grid  (NE corner values)"
+         case ('CD','C')
+            description = ", on T grid"
+         end select
+
          call define_hist_field(n_sig1,"sig1","1",ustr2D, ucstr, &
              "norm. principal stress 1",                       &
-             "sig1 is instantaneous", c1, c0,                  &
+             "sig1 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig1)
       
          call define_hist_field(n_sig2,"sig2","1",ustr2D, ucstr, &
              "norm. principal stress 2",                       &
-             "sig2 is instantaneous", c1, c0,                  &
+             "sig2 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig2)
              
          call define_hist_field(n_sigP,"sigP","1",ustr2D, ucstr, &
              "ice pressure",                       &
-             "sigP is instantaneous", c1, c0,                  &
+             "sigP is instantaneous" // trim(description), c1, c0, &
              ns1, f_sigP)
       
          call define_hist_field(n_dvidtt,"dvidtt","cm/day",tstr2D, tcstr, &
@@ -1595,13 +1953,22 @@
       igrd=.true.
 
       igrd(n_tmask     ) = f_tmask
+      igrd(n_umask     ) = f_umask
+      igrd(n_nmask     ) = f_nmask
+      igrd(n_emask     ) = f_emask
       igrd(n_blkmask   ) = f_blkmask
       igrd(n_tarea     ) = f_tarea
       igrd(n_uarea     ) = f_uarea
+      igrd(n_narea     ) = f_narea
+      igrd(n_earea     ) = f_earea
       igrd(n_dxt       ) = f_dxt
       igrd(n_dyt       ) = f_dyt
       igrd(n_dxu       ) = f_dxu
       igrd(n_dyu       ) = f_dyu
+      igrd(n_dxn       ) = f_dxn
+      igrd(n_dyn       ) = f_dyn
+      igrd(n_dxe       ) = f_dxe
+      igrd(n_dye       ) = f_dye
       igrd(n_HTN       ) = f_HTN
       igrd(n_HTE       ) = f_HTE
       igrd(n_ANGLE     ) = f_ANGLE
@@ -1724,7 +2091,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: nfsd
-      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu
+      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu, grid_ice
       use ice_calendar, only: new_year, write_history, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
@@ -1736,11 +2103,17 @@
           albice, albsno, albpnd, coszen, flat, fsens, flwout, evap, evaps, evapi, &
           Tair, Tref, Qref, congel, frazil, frazil_diag, snoice, dsnow, &
           melts, meltb, meltt, meltl, fresh, fsalt, fresh_ai, fsalt_ai, &
-          fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, &
-          fswthru_ai, strairx, strairy, strtltx, strtlty, strintx, strinty, &
-          taubx, tauby, strocnx, strocny, fm, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
+          fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, fswthru_ai, &
+          strairx, strairy, strtltx, strtlty, strintx, strinty, &
+          taubx, tauby, strocnx, strocny, &
+          strairxN, strairyN, strtltxN, strtltyN, strintxN, strintyN, &
+          taubxN, taubyN, strocnxN, strocnyN, &
+          strairxE, strairyE, strtltxE, strtltyE, strintxE, strintyE, &
+          taubxE, taubyE, strocnxE, strocnyE, &
+          fm, fmN, fmE, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
           fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
+          stresspT, stressmT, stress12T, &
           stressp_2, &
           stressp_3, &
           stressp_4, sig1, sig2, sigP, &
@@ -1920,6 +2293,59 @@
              call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
          if (f_vvel   (1:1) /= 'x') &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
+         if (f_icespd   (1:1) /= 'x') &
+             call accum_hist_field(n_icespd,   iblk, sqrt( &
+                                  (uvel(:,:,iblk)*uvel(:,:,iblk)) + &
+                                  (vvel(:,:,iblk)*vvel(:,:,iblk))), a2D)
+         if (f_icedir(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedir, iblk, worka(:,:), a2D)
+         endif
+         if (f_uvelN   (1:1) /= 'x') &
+             call accum_hist_field(n_uvelN,  iblk, uvelN(:,:,iblk), a2D)
+         if (f_vvelN   (1:1) /= 'x') &
+             call accum_hist_field(n_vvelN,  iblk, vvelN(:,:,iblk), a2D)
+         if (f_icespdN  (1:1) /= 'x') &
+             call accum_hist_field(n_icespdN,   iblk, sqrt( &
+                                  (uvelN(:,:,iblk)*uvelN(:,:,iblk)) + &
+                                  (vvelN(:,:,iblk)*vvelN(:,:,iblk))), a2D)
+         if (f_icedirN(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvelN(i,j,iblk)) > puny .or. abs(vvelN(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvelN(i,j,iblk),vvelN(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedirN, iblk, worka(:,:), a2D)
+         endif
+         if (f_uvelE   (1:1) /= 'x') &
+             call accum_hist_field(n_uvelE,  iblk, uvelE(:,:,iblk), a2D)
+         if (f_vvelE   (1:1) /= 'x') &
+             call accum_hist_field(n_vvelE,  iblk, vvelE(:,:,iblk), a2D)
+         if (f_icespdE  (1:1) /= 'x') &
+             call accum_hist_field(n_icespdE,   iblk, sqrt( &
+                                  (uvelE(:,:,iblk)*uvelE(:,:,iblk)) + &
+                                  (vvelE(:,:,iblk)*vvelE(:,:,iblk))), a2D)
+         if (f_icedirE(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (abs(uvelE(i,j,iblk)) > puny .or. abs(vvelE(i,j,iblk)) > puny) &
+                 worka(i,j) = atan2(uvelE(i,j,iblk),vvelE(i,j,iblk))*rad_to_deg
+                 worka(i,j) = worka(i,j) + c180
+           enddo
+           enddo
+           call accum_hist_field(n_icedirE, iblk, worka(:,:), a2D)
+         endif
          if (f_uatm   (1:1) /= 'x') &
              call accum_hist_field(n_uatm,   iblk, uatm(:,:,iblk), a2D)
          if (f_vatm   (1:1) /= 'x') &
@@ -2125,6 +2551,54 @@
              call accum_hist_field(n_taubx, iblk, taubx(:,:,iblk), a2D)
          if (f_tauby(1:1) /= 'x') &
              call accum_hist_field(n_tauby, iblk, tauby(:,:,iblk), a2D)
+         if (f_strairxN(1:1) /= 'x') &
+             call accum_hist_field(n_strairxN, iblk, strairxN(:,:,iblk), a2D)
+         if (f_strairyN(1:1) /= 'x') &
+             call accum_hist_field(n_strairyN, iblk, strairyN(:,:,iblk), a2D)
+         if (f_strairxE(1:1) /= 'x') &
+             call accum_hist_field(n_strairxE, iblk, strairxE(:,:,iblk), a2D)
+         if (f_strairyE(1:1) /= 'x') &
+             call accum_hist_field(n_strairyE, iblk, strairyE(:,:,iblk), a2D)
+         if (f_strtltxN(1:1) /= 'x') &
+             call accum_hist_field(n_strtltxN, iblk, strtltxN(:,:,iblk), a2D)
+         if (f_strtltyN(1:1) /= 'x') &
+             call accum_hist_field(n_strtltyN, iblk, strtltyN(:,:,iblk), a2D)
+         if (f_strtltxE(1:1) /= 'x') &
+             call accum_hist_field(n_strtltxE, iblk, strtltxE(:,:,iblk), a2D)
+         if (f_strtltyE(1:1) /= 'x') &
+             call accum_hist_field(n_strtltyE, iblk, strtltyE(:,:,iblk), a2D)
+         if (f_strcorxN(1:1) /= 'x') &
+             call accum_hist_field(n_strcorxN, iblk, fmN(:,:,iblk)*vvelN(:,:,iblk), a2D)
+         if (f_strcoryN(1:1) /= 'x') &
+             call accum_hist_field(n_strcoryN, iblk,-fmN(:,:,iblk)*uvelN(:,:,iblk), a2D)
+         if (f_strcorxE(1:1) /= 'x') &
+             call accum_hist_field(n_strcorxE, iblk, fmE(:,:,iblk)*vvelE(:,:,iblk), a2D)
+         if (f_strcoryE(1:1) /= 'x') &
+             call accum_hist_field(n_strcoryE, iblk,-fmE(:,:,iblk)*uvelE(:,:,iblk), a2D)
+         if (f_strocnxN(1:1) /= 'x') &
+             call accum_hist_field(n_strocnxN, iblk, strocnxN(:,:,iblk), a2D)
+         if (f_strocnyN(1:1) /= 'x') &
+             call accum_hist_field(n_strocnyN, iblk, strocnyN(:,:,iblk), a2D)
+         if (f_strocnxE(1:1) /= 'x') &
+             call accum_hist_field(n_strocnxE, iblk, strocnxE(:,:,iblk), a2D)
+         if (f_strocnyE(1:1) /= 'x') &
+             call accum_hist_field(n_strocnyE, iblk, strocnyE(:,:,iblk), a2D)
+         if (f_strintxN(1:1) /= 'x') &
+             call accum_hist_field(n_strintxN, iblk, strintxN(:,:,iblk), a2D)
+         if (f_strintyN(1:1) /= 'x') &
+             call accum_hist_field(n_strintyN, iblk, strintyN(:,:,iblk), a2D)
+         if (f_strintxE(1:1) /= 'x') &
+             call accum_hist_field(n_strintxE, iblk, strintxE(:,:,iblk), a2D)
+         if (f_strintyE(1:1) /= 'x') &
+             call accum_hist_field(n_strintyE, iblk, strintyE(:,:,iblk), a2D)
+         if (f_taubxN(1:1) /= 'x') &
+             call accum_hist_field(n_taubxN, iblk, taubxN(:,:,iblk), a2D)
+         if (f_taubyN(1:1) /= 'x') &
+             call accum_hist_field(n_taubyN, iblk, taubyN(:,:,iblk), a2D)
+         if (f_taubxE(1:1) /= 'x') &
+             call accum_hist_field(n_taubxE, iblk, taubxE(:,:,iblk), a2D)
+         if (f_taubyE(1:1) /= 'x') &
+             call accum_hist_field(n_taubyE, iblk, taubyE(:,:,iblk), a2D)
          if (f_strength(1:1)/= 'x') &
              call accum_hist_field(n_strength,iblk, strength(:,:,iblk), a2D)
 
@@ -3925,17 +4399,28 @@
       ! snapshots
       !---------------------------------------------------------------
 
-          ! compute sig1 and sig2
-        
-           call principal_stress (nx_block,  ny_block,  &
-                                  stressp_1 (:,:,iblk), &
-                                  stressm_1 (:,:,iblk), &
-                                  stress12_1(:,:,iblk), &
-                                  strength  (:,:,iblk), &
-                                  sig1      (:,:,iblk), &
-                                  sig2      (:,:,iblk), &
-                                  sigP      (:,:,iblk))
- 
+            ! compute sig1 and sig2
+            select case (grid_ice)
+            case('B')
+               call principal_stress (nx_block,  ny_block,  &
+                                      stressp_1 (:,:,iblk), &
+                                      stressm_1 (:,:,iblk), &
+                                      stress12_1(:,:,iblk), &
+                                      strength  (:,:,iblk), &
+                                      sig1      (:,:,iblk), &
+                                      sig2      (:,:,iblk), &
+                                      sigP      (:,:,iblk))
+            case('CD','C')
+               call principal_stress (nx_block,  ny_block,  &
+                                      stresspT  (:,:,iblk), &
+                                      stressmT  (:,:,iblk), &
+                                      stress12T (:,:,iblk), &
+                                      strength  (:,:,iblk), &
+                                      sig1      (:,:,iblk), &
+                                      sig2      (:,:,iblk), &
+                                      sigP      (:,:,iblk))
+            end select
+
            do j = jlo, jhi
            do i = ilo, ihi
               if (.not. tmask(i,j,iblk)) then ! mask out land points

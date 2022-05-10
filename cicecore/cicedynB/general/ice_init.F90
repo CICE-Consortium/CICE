@@ -14,7 +14,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, p2, p5
+      use ice_constants, only: c0, c1, c2, c3, c5, p2, p3, p5, p75, p166
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
@@ -36,9 +36,9 @@
       implicit none
       private
 
-      character(len=char_len_long),public :: &
+      character(len=char_len_long), public :: &
          ice_ic      ! method of ice cover initialization
-                     ! 'default'  => latitude and sst dependent
+                     ! 'internal' => set from ice_data_ namelist
                      ! 'none'     => no ice
                      ! filename   => read file
 
@@ -89,25 +89,30 @@
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
-          ocn_data_type, ocn_data_dir,    wave_spec_file,  &
-          oceanmixed_file, restore_ocn,   trestore, & 
-          ice_data_type, &
+          ocn_data_type, ocn_data_dir, wave_spec_file,  &
+          oceanmixed_file, restore_ocn, trestore, & 
+          ice_data_type, ice_data_conc, ice_data_dist, &
           snw_filename, &
           snw_tau_fname, snw_kappa_fname, snw_drdt0_fname, &
           snw_rhos_fname, snw_Tgrd_fname, snw_T_fname
       use ice_arrays_column, only: bgc_data_dir, fe_data_type
       use ice_grid, only: grid_file, gridcpl_file, kmt_file, &
                           bathymetry_file, use_bathymetry, &
-                          bathymetry_format, &
+                          bathymetry_format, kmt_type, &
                           grid_type, grid_format, &
+                          grid_ice, grid_ice_thrm, grid_ice_dynu, grid_ice_dynv, &
+                          grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, & 
+                          grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
-                                evp_algorithm, &
-                                seabed_stress, seabed_stress_method, &
-                                k1, k2, alphab, threshold_hw, Ktens, &
+                                evp_algorithm, visc_method,     &
+                                seabed_stress, seabed_stress_method,  &
+                                k1, k2, alphab, threshold_hw, Ktens,  &
                                 e_yieldcurve, e_plasticpot, coriolis, &
-                                ssh_stress, kridge, brlx, arlx
+                                ssh_stress, kridge, brlx, arlx,       &
+                                deltaminEVP, deltaminVP, capping,     &
+                                elasticDamp
 
       use ice_dyn_vp, only: maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
                             maxits_pgmres, monitor_nonlin, monitor_fgmres, &
@@ -117,6 +122,7 @@
       use ice_transport_driver, only: advection, conserv_check
       use ice_restoring, only: restore_ice
       use ice_timers, only: timer_stats
+      use ice_memusage, only: memory_stats
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -175,7 +181,7 @@
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
-        histfreq_base,  dumpfreq_base,  timer_stats,                    &
+        histfreq_base,  dumpfreq_base,  timer_stats,     memory_stats,  &
         conserv_check,  debug_model,    debug_model_step,               &
         debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
@@ -186,7 +192,8 @@
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        close_boundaries, orca_halogrid
+        close_boundaries, orca_halogrid, grid_ice,      kmt_type,       &
+        grid_atm,       grid_ocn
 
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
@@ -210,11 +217,11 @@
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
-        evp_algorithm,                                                  &
+        evp_algorithm,  elasticDamp,                                    &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_yieldcurve,   e_plasticpot,   Ktens,                          &
+        e_yieldcurve,   e_plasticpot,   visc_method,              &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -222,7 +229,8 @@
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
-        Cf,             Pstar,          Cstar
+        deltaminEVP,    deltaminVP,     capping,                        &
+        Cf,             Pstar,          Cstar,          Ktens
       
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
@@ -251,8 +259,8 @@
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
-        ice_data_type,  wave_spec_file,  restart_coszen,                &
-        fyear_init,     ycycle,                                         &
+        ice_data_type,  ice_data_conc,   ice_data_dist,                 &
+        fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
         oceanmixed_file
@@ -294,6 +302,7 @@
       print_points = .false. ! if true, print point data
       print_global = .true.  ! if true, print global diagnostic data
       timer_stats = .false.  ! if true, print out detailed timer statistics
+      memory_stats = .false. ! if true, print out memory information
       bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
@@ -328,11 +337,15 @@
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
       grid_type    = 'rectangular'  ! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
+      grid_ice     = 'B'            ! underlying grid system
+      grid_atm     = 'A'            ! underlying atm forcing/coupling grid
+      grid_ocn     = 'A'            ! underlying atm forcing/coupling grid
       gridcpl_file = 'unknown_gridcpl_file'
       orca_halogrid = .false.  ! orca haloed grid
       bathymetry_file   = 'unknown_bathymetry_file'
       bathymetry_format = 'default'
       use_bathymetry    = .false.
+      kmt_type     = 'file'
       kmt_file     = 'unknown_kmt_file'
       version_name = 'unknown_version_name'
       ncat  = 0          ! number of ice thickness categories
@@ -347,11 +360,12 @@
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       evp_algorithm = 'standard_2d'    ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
+      elasticDamp = 0.36_dbl_kind  ! coefficient for calculating the parameter E
       pgl_global_ext = .false. ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.  ! if true, use revised procedure for evp dynamics
-      yield_curve = 'ellipse'
+      yield_curve = 'ellipse'  ! yield curve 
       kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
@@ -372,6 +386,10 @@
       Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
       e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
+      visc_method = 'avg_strength' ! calc viscosities at U point: avg_strength, avg_zeta
+      deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
+      deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
+      capping     = 1.0_dbl_kind   ! method for capping of viscosities (1=Hibler 1979,0=Kreyscher2000)
       maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
       precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50        ! size of fgmres Krylov subspace
@@ -475,7 +493,9 @@
       ocn_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       bgc_data_type   = 'default'
       fe_data_type    = 'default'
-      ice_data_type   = 'default' ! used by some tests to initialize ice state (concentration, velocities)
+      ice_data_type   = 'default' ! used by some tests to initialize ice state (overall type and mask)
+      ice_data_conc   = 'default' ! used by some tests to initialize ice state (concentration)
+      ice_data_dist   = 'default' ! used by some tests to initialize ice state (distribution)
       bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
       ocn_data_dir    = 'unknown_ocn_data_dir'
@@ -733,7 +753,9 @@
             open(nu_diag,file=tmpstr)
          endif
       end if
-      if (trim(ice_ic) /= 'default' .and. trim(ice_ic) /= 'none') then
+      if (trim(ice_ic) /= 'default' .and. &
+          trim(ice_ic) /= 'none'    .and. &
+          trim(ice_ic) /= 'internal') then
          restart = .true.
       end if
 #else
@@ -766,6 +788,7 @@
       call broadcast_scalar(print_points,         master_task)
       call broadcast_scalar(print_global,         master_task)
       call broadcast_scalar(timer_stats,          master_task)
+      call broadcast_scalar(memory_stats,         master_task)
       call broadcast_scalar(bfbflag,              master_task)
       call broadcast_scalar(diag_type,            master_task)
       call broadcast_scalar(diag_file,            master_task)
@@ -802,12 +825,16 @@
       call broadcast_scalar(dyrect,               master_task)
       call broadcast_scalar(close_boundaries,     master_task)
       call broadcast_scalar(grid_type,            master_task)
+      call broadcast_scalar(grid_ice,             master_task)
+      call broadcast_scalar(grid_ocn,             master_task)
+      call broadcast_scalar(grid_atm,             master_task)
       call broadcast_scalar(grid_file,            master_task)
       call broadcast_scalar(gridcpl_file,         master_task)
       call broadcast_scalar(orca_halogrid,        master_task)
       call broadcast_scalar(bathymetry_file,      master_task)
       call broadcast_scalar(bathymetry_format,    master_task)
       call broadcast_scalar(use_bathymetry,       master_task)
+      call broadcast_scalar(kmt_type,             master_task)
       call broadcast_scalar(kmt_file,             master_task)
       call broadcast_scalar(kitd,                 master_task)
       call broadcast_scalar(kcatbound,            master_task)
@@ -815,6 +842,7 @@
       call broadcast_scalar(ndtd,                 master_task)
       call broadcast_scalar(ndte,                 master_task)
       call broadcast_scalar(evp_algorithm,        master_task)
+      call broadcast_scalar(elasticDamp,          master_task)
       call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
@@ -837,6 +865,10 @@
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
+      call broadcast_scalar(visc_method,    master_task)
+      call broadcast_scalar(deltaminEVP,          master_task)
+      call broadcast_scalar(deltaminVP,           master_task)
+      call broadcast_scalar(capping,              master_task)
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
@@ -936,6 +968,8 @@
       call broadcast_scalar(bgc_data_type,        master_task)
       call broadcast_scalar(fe_data_type,         master_task)
       call broadcast_scalar(ice_data_type,        master_task)
+      call broadcast_scalar(ice_data_conc,        master_task)
+      call broadcast_scalar(ice_data_dist,        master_task)
       call broadcast_scalar(bgc_data_dir,         master_task)
       call broadcast_scalar(ocn_data_type,        master_task)
       call broadcast_scalar(ocn_data_dir,         master_task)
@@ -1002,6 +1036,15 @@
 #endif
 
       !-----------------------------------------------------------------
+      ! update defaults
+      !-----------------------------------------------------------------
+
+      if (trim(ice_ic)        == 'default') ice_ic        = 'internal'
+      if (trim(ice_data_conc) == 'default') ice_data_conc = 'parabolic'
+      if (trim(ice_data_dist) == 'default') ice_data_dist = 'uniform'
+      if (trim(ice_data_type) == 'default') ice_data_type = 'latsst'
+
+      !-----------------------------------------------------------------
       ! verify inputs
       !-----------------------------------------------------------------
 
@@ -1027,11 +1070,11 @@
          restart = .true.
          use_restart_time = .true.
       elseif (trim(runtype) == 'initial') then
-         if (ice_ic == 'none' .or. ice_ic == 'default') then
+         if (ice_ic == 'none' .or. ice_ic == 'internal') then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting restart flags to .false.'
+               write(nu_diag,*) subname//'NOTE: ice_ic = none or internal, setting restart flags to .false.'
                if (.not. use_restart_time) &
-                  write(nu_diag,*) subname//'NOTE: ice_ic = none or default, setting use_restart_time=.false.'
+                  write(nu_diag,*) subname//'NOTE: ice_ic = none or internal, setting use_restart_time=.false.'
                write(nu_diag,*) ' '
             endif
             use_restart_time = .false.
@@ -1050,7 +1093,7 @@
 !            restart_ext =  .false.
          else
             if (my_task == master_task) then
-               write(nu_diag,*) subname//'NOTE: ice_ic /= none or default, setting restart=.true.'
+               write(nu_diag,*) subname//'NOTE: ice_ic /= none or internal, setting restart=.true.'
                write(nu_diag,*) ' '
             endif
             restart = .true.
@@ -1115,6 +1158,45 @@
          endif
       endif
 
+      if (grid_ice == 'CD') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: grid_ice = CD not supported yet'
+         endif
+         abort_list = trim(abort_list)//":47"
+      elseif (grid_ice == 'C_override_D') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: using grid_ice = CD, not supported'
+         endif
+         grid_ice = 'CD'
+      endif
+
+      if (grid_ice == 'C' .or. grid_ice == 'CD') then
+         if (kdyn > 1) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn<=1 (evp or off)'
+               write(nu_diag,*) subname//' ERROR: kdyn and grid_ice inconsistency'
+            endif
+            abort_list = trim(abort_list)//":46"
+         endif
+         if (visc_method /= 'avg_zeta' .and. visc_method /= 'avg_strength') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: invalid method for viscosities'
+               write(nu_diag,*) subname//' ERROR: visc_method should be avg_zeta or avg_strength'
+            endif
+            abort_list = trim(abort_list)//":44"
+         endif
+      endif
+
+      if (kdyn == 1 .or. kdyn == 3) then
+      if (capping /= c0 .and. capping /= c1) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: invalid method for capping viscosities'
+            write(nu_diag,*) subname//' ERROR: capping should be equal to 0.0 or 1.0'
+         endif
+         abort_list = trim(abort_list)//":45"
+      endif
+      endif
+      
       rpcesm = 0
       rplvl  = 0
       rptopo = 0
@@ -1436,6 +1518,68 @@
       wave_spec = .false.
       if (tr_fsd .and. (trim(wave_spec_type) /= 'none')) wave_spec = .true.
 
+      ! compute grid locations for thermo, u and v fields
+
+      grid_ice_thrm = 'T'
+      if (grid_ice == 'A') then
+         grid_ice_dynu = 'T'
+         grid_ice_dynv = 'T'
+      elseif (grid_ice == 'B') then
+         grid_ice_dynu = 'U'
+         grid_ice_dynv = 'U'
+      elseif (grid_ice == 'C') then
+         grid_ice_dynu = 'E'
+         grid_ice_dynv = 'N'
+      elseif (grid_ice == 'CD') then
+         grid_ice_dynu = 'NE'
+         grid_ice_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_ice: '//trim(grid_ice)
+         endif
+         abort_list = trim(abort_list)//":64"
+      endif
+
+      grid_atm_thrm = 'T'
+      if (grid_atm == 'A') then
+         grid_atm_dynu = 'T'
+         grid_atm_dynv = 'T'
+      elseif (grid_atm == 'B') then
+         grid_atm_dynu = 'U'
+         grid_atm_dynv = 'U'
+      elseif (grid_atm == 'C') then
+         grid_atm_dynu = 'E'
+         grid_atm_dynv = 'N'
+      elseif (grid_atm == 'CD') then
+         grid_atm_dynu = 'NE'
+         grid_atm_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_atm: '//trim(grid_atm)
+         endif
+         abort_list = trim(abort_list)//":65"
+      endif
+
+      grid_ocn_thrm = 'T'
+      if (grid_ocn == 'A') then
+         grid_ocn_dynu = 'T'
+         grid_ocn_dynv = 'T'
+      elseif (grid_ocn == 'B') then
+         grid_ocn_dynu = 'U'
+         grid_ocn_dynv = 'U'
+      elseif (grid_ocn == 'C') then
+         grid_ocn_dynu = 'E'
+         grid_ocn_dynv = 'N'
+      elseif (grid_ocn == 'CD') then
+         grid_ocn_dynu = 'NE'
+         grid_ocn_dynv = 'NE'
+      else
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: unknown grid_ocn: '//trim(grid_ocn)
+         endif
+         abort_list = trim(abort_list)//":66"
+      endif
+
       !-----------------------------------------------------------------
       ! spew
       !-----------------------------------------------------------------
@@ -1467,6 +1611,19 @@
          if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : user-defined grid with rotated north pole'
          if (trim(grid_type) == 'tripole')        tmpstr2 = ' : user-defined grid with northern hemisphere zipper'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
+         write(nu_diag,1030) ' grid_ice         = ',trim(grid_ice)
+         write(nu_diag,1030) '   grid_ice_thrm  = ',trim(grid_ice_thrm)
+         write(nu_diag,1030) '   grid_ice_dynu  = ',trim(grid_ice_dynu)
+         write(nu_diag,1030) '   grid_ice_dynv  = ',trim(grid_ice_dynv)
+         write(nu_diag,1030) ' grid_atm         = ',trim(grid_atm)
+         write(nu_diag,1030) '   grid_atm_thrm  = ',trim(grid_atm_thrm)
+         write(nu_diag,1030) '   grid_atm_dynu  = ',trim(grid_atm_dynu)
+         write(nu_diag,1030) '   grid_atm_dynv  = ',trim(grid_atm_dynv)
+         write(nu_diag,1030) ' grid_ocn         = ',trim(grid_ocn)
+         write(nu_diag,1030) '   grid_ocn_thrm  = ',trim(grid_ocn_thrm)
+         write(nu_diag,1030) '   grid_ocn_dynu  = ',trim(grid_ocn_dynu)
+         write(nu_diag,1030) '   grid_ocn_dynv  = ',trim(grid_ocn_dynv)
+         write(nu_diag,1030) ' kmt_type         = ',trim(kmt_type)
          if (trim(grid_type) /= 'rectangular') then
             if (use_bathymetry) then
                tmpstr2 = ' : bathymetric input data is used'
@@ -1549,12 +1706,22 @@
             endif
 
             if (kdyn == 1 .or. kdyn == 3) then
-               write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve)
+               write(nu_diag,1030) ' yield_curve      = ', trim(yield_curve), ' : yield curve'
                if (trim(yield_curve) == 'ellipse') &
-                    write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
-                    write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
+                  write(nu_diag,1002) ' e_yieldcurve     = ', e_yieldcurve, ' : aspect ratio of yield curve'
+                  write(nu_diag,1002) ' e_plasticpot     = ', e_plasticpot, ' : aspect ratio of plastic potential'
             endif
-            
+
+            if (kdyn == 1) then
+               write(nu_diag,1003) ' deltamin     = ', deltaminEVP, ' : minimum delta for viscosities'
+               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
+            elseif (kdyn == 3) then
+               write(nu_diag,1003) ' deltamin     = ', deltaminVP, ' : minimum delta for viscosities'
+               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
+            endif
+               
+            write(nu_diag,1002) ' elasticDamp  = ', elasticDamp, ' : coefficient for calculating the parameter E'
+
             if (trim(coriolis) == 'latitude') then
                tmpstr2 = ' : latitude-dependent Coriolis parameter'
             elseif (trim(coriolis) == 'contant') then
@@ -1603,6 +1770,10 @@
                   write(nu_diag,1002) ' alphab           = ', alphab, ' : factor for landfast ice'
                endif
             endif
+            if (grid_ice == 'C' .or. grid_ice == 'CD') then
+               write(nu_diag,1030) ' visc_method= ', trim(visc_method),' : viscosities method (U point)'
+            endif
+            
             write(nu_diag,1002) ' Ktens            = ', Ktens, ' : tensile strength factor'
 
             if (kdyn == 3) then
@@ -2013,6 +2184,7 @@
          write(nu_diag,1021) ' debug_model_iblk = ', debug_model_iblk
          write(nu_diag,1021) ' debug_model_task = ', debug_model_task
          write(nu_diag,1011) ' timer_stats      = ', timer_stats
+         write(nu_diag,1011) ' memory_stats     = ', memory_stats
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
@@ -2048,7 +2220,8 @@
             write(nu_diag,1031) ' grid_file        = ', trim(grid_file)
             write(nu_diag,1031) ' gridcpl_file     = ', trim(gridcpl_file)
             write(nu_diag,1031) ' bathymetry_file  = ', trim(bathymetry_file)
-            write(nu_diag,1031) ' kmt_file         = ', trim(kmt_file)
+            if (trim(kmt_type) == 'file') &
+               write(nu_diag,1031) ' kmt_file         = ', trim(kmt_file)
          endif
          write(nu_diag,1011) ' orca_halogrid    = ', orca_halogrid
 
@@ -2079,6 +2252,8 @@
          write(nu_diag,1031) ' bgc_data_type    = ', trim(bgc_data_type)
          write(nu_diag,1031) ' fe_data_type     = ', trim(fe_data_type)
          write(nu_diag,1031) ' ice_data_type    = ', trim(ice_data_type)
+         write(nu_diag,1031) ' ice_data_conc    = ', trim(ice_data_conc)
+         write(nu_diag,1031) ' ice_data_dist    = ', trim(ice_data_dist)
          write(nu_diag,1031) ' bgc_data_dir     = ', trim(bgc_data_dir)
          write(nu_diag,1031) ' ocn_data_type    = ', trim(ocn_data_type)
          if (trim(bgc_data_type) /= 'default' .or. &
@@ -2132,6 +2307,29 @@
           grid_type  /=  'setmask' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
+      endif
+
+      if (grid_ice /=  'B' .and. &
+          grid_ice /=  'C' .and. &
+          grid_ice /=  'CD' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_ice=',trim(grid_ice)
+         abort_list = trim(abort_list)//":26"
+      endif
+
+      if (kmt_type  /=  'file'    .and. &
+          kmt_type  /=  'channel' .and. &
+          kmt_type  /=  'wall'    .and. &
+          kmt_type  /=  'default' .and. &
+          kmt_type  /=  'boxislands') then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
+         abort_list = trim(abort_list)//":27"
+      endif
+
+      if (grid_type  /=  'column'      .and. &
+          grid_type  /=  'rectangular' .and. &
+          kmt_type   /=  'file') then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: need kmt file, kmt_type=',trim(kmt_type)
+         abort_list = trim(abort_list)//":28"
       endif
 
       if (kdyn         == 1                .and. &
@@ -2188,6 +2386,7 @@
 
  1000    format (a20,1x,f13.6,1x,a) ! float
  1002    format (a20,5x,f9.2,1x,a)
+ 1003    format (a20,1x,G13.4,1x,a)
  1009    format (a20,1x,d13.6,1x,a)
  1010    format (a20,8x,l6,1x,a)  ! logical
  1011    format (a20,1x,l6)
@@ -2212,13 +2411,16 @@
       subroutine init_state
 
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: nblocks, blocks_ice
+      use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, TLAT
+      use ice_grid, only: tmask, ULON, TLAT, grid_ice, grid_average_X2Y
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
           aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
-          n_trcr_strata, nt_strata, trcr_base, uvel, vvel
+          n_trcr_strata, nt_strata, trcr_base, uvel, vvel, &
+          uvelN, vvelN, uvelE, vvelE
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -2449,6 +2651,27 @@
                         vicen, vsnon, &
                         ntrcr, trcrn)
 
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+
+         call grid_average_X2Y('S',uvel,'U',uvelN,'N')
+         call grid_average_X2Y('S',vvel,'U',vvelN,'N')
+         call grid_average_X2Y('S',uvel,'U',uvelE,'E')
+         call grid_average_X2Y('S',vvel,'U',vvelE,'E')
+         
+         ! Halo update on North, East faces
+         call ice_HaloUpdate(uvelN, halo_info, &
+                             field_loc_Nface, field_type_scalar)
+         call ice_HaloUpdate(vvelN, halo_info, &
+                             field_loc_Nface, field_type_scalar)
+         
+         call ice_HaloUpdate(uvelE, halo_info, &
+                             field_loc_Eface, field_type_scalar)
+         call ice_HaloUpdate(vvelE, halo_info, &
+                             field_loc_Eface, field_type_scalar)
+
+      endif
+
+
       !-----------------------------------------------------------------
       ! compute aggregate ice state and open water area
       !-----------------------------------------------------------------
@@ -2516,10 +2739,11 @@
                                 vicen,    vsnon, &
                                 uvel,     vvel)
 
+
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
-      use ice_grid, only: grid_type
-      use ice_forcing, only: ice_data_type
+      use ice_grid, only: grid_type, dxrect, dyrect
+      use ice_forcing, only: ice_data_type, ice_data_conc, ice_data_dist
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2557,24 +2781,36 @@
                    ! 1: surface temperature of ice/snow (C)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         uvel    , & ! ice velocity
+         uvel    , & ! ice velocity B grid
          vvel        ! 
 
       ! local variables
-
       integer (kind=int_kind) :: &
          i, j        , & ! horizontal indices
          ij          , & ! horizontal index, combines i and j loops
          k           , & ! ice layer index
          n           , & ! thickness category index
          it          , & ! tracer index
+         iedge       , & ! edge around big block
+         jedge       , & ! edge around big block
          icells          ! number of cells initialized with ice
+
+      logical (kind=log_kind) :: &
+         in_slot, in_cyl ! boxslotcyl flags
+
+      real (kind=dbl_kind) :: &  ! boxslotcyl parameters
+         diam    , & ! cylinder diameter
+         radius  , & ! cylinder radius
+         center_x, & ! cylinder center
+         center_y, &
+         width   , & ! slot width
+         length      ! slot height
 
       integer (kind=int_kind), dimension(nx_block*ny_block) :: &
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall
+         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2657,99 +2893,255 @@
          enddo
       enddo
 
-      if (trim(ice_ic) == 'default') then
+      if (trim(ice_ic) == 'internal') then
 
-      !-----------------------------------------------------------------
-      ! Place ice where ocean surface is cold.
-      ! Note: If SST is not read from a file, then the ocean is assumed
-      !       to be at its freezing point everywhere, and ice will
-      !       extend to the prescribed edges.
-      !-----------------------------------------------------------------
+         !---------------------------------------------------------
+         ! ice concentration/thickness
+         !---------------------------------------------------------
+
+         if (trim(ice_data_conc) == 'p5' .or. &
+             trim(ice_data_conc) == 'p8' .or. &
+             trim(ice_data_conc) == 'p9' .or. &
+             trim(ice_data_conc) == 'c1') then
+
+            if (trim(ice_data_conc) == 'p5') then
+               hbar = c2  ! initial ice thickness
+               abar = p5  ! initial ice concentration
+            elseif (trim(ice_data_conc) == 'p8') then
+               hbar = c1  ! initial ice thickness
+               abar = 0.8_dbl_kind  ! initial ice concentration
+            elseif (trim(ice_data_conc) == 'p9') then
+               hbar = c1  ! initial ice thickness
+               abar = 0.9_dbl_kind  ! initial ice concentration
+            elseif (trim(ice_data_conc) == 'c1') then
+               hbar = c1  ! initial ice thickness
+               abar = c1  ! initial ice concentration
+            endif
+
+            do n = 1, ncat
+               hinit(n) = c0
+               ainit(n) = c0
+               if (hbar > hin_max(n-1) .and. hbar <= hin_max(n)) then
+                  hinit(n) = hbar
+                  ainit(n) = abar
+               endif
+            enddo
+
+         elseif (trim(ice_data_conc) == 'parabolic') then
+
+            ! initial category areas in cells with ice
+            hbar = c3  ! initial ice thickness with greatest area
+                       ! Note: the resulting average ice thickness 
+                       ! tends to be less than hbar due to the
+                       ! nonlinear distribution of ice thicknesses 
+            sum = c0
+            do n = 1, ncat
+               if (n < ncat) then
+                  hinit(n) = p5*(hin_max(n-1) + hin_max(n)) ! m
+               else                ! n=ncat
+                  hinit(n) = (hin_max(n-1) + c1) ! m
+               endif
+               ! parabola, max at h=hbar, zero at h=0, 2*hbar
+               ainit(n) = max(c0, (c2*hbar*hinit(n) - hinit(n)**2))
+               sum = sum + ainit(n)
+            enddo
+            do n = 1, ncat
+               ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
+            enddo
+
+         else
+
+            call abort_ice(subname//'ERROR: ice_data_conc setting = '//trim(ice_data_conc), &
+               file=__FILE__, line=__LINE__)
+
+         endif ! ice_data_conc
+
+         !---------------------------------------------------------
+         ! location of ice
+         !---------------------------------------------------------
 
          if (trim(ice_data_type) == 'box2001') then
 
-            hbar = c2  ! initial ice thickness
-            do n = 1, ncat
-               hinit(n) = c0
-               ainit(n) = c0
-               if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
-                  hinit(n) = hbar
-                  ainit(n) = p5 !echmod symm
-               endif
-            enddo
+            ! place ice on left side of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
+                  if (ULON(i,j) < -50./rad_to_deg) then
+                     icells = icells + 1
+                     indxi(icells) = i
+                     indxj(icells) = j
+                  endif            ! ULON
+               endif               ! tmask
+            enddo                  ! i
+            enddo                  ! j
 
          elseif (trim(ice_data_type) == 'boxslotcyl') then
-         
-            hbar = c1  ! initial ice thickness (1 m)
-            do n = 1, ncat
-               hinit(n) = c0
-               ainit(n) = c0
-               if (hbar > hin_max(n-1) .and. hbar < hin_max(n)) then
-                  hinit(n) = hbar
-                  ainit(n) = c1 !echmod symm
+
+            ! Geometric configuration of the slotted cylinder
+            diam     = p3 *dxrect*(nx_global-1)
+            center_x = p5 *dxrect*(nx_global-1)
+            center_y = p75*dyrect*(ny_global-1)
+            radius   = p5*diam
+            width    = p166*diam
+            length   = c5*p166*diam
+
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
+                  ! check if grid point is inside slotted cylinder
+                  in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= center_x - width/c2) .and. &
+                            (dxrect*real(iglob(i)-1, kind=dbl_kind) <= center_x + width/c2) .and. & 
+                            (dyrect*real(jglob(j)-1, kind=dbl_kind) >= center_y - radius) .and. &
+                            (dyrect*real(jglob(j)-1, kind=dbl_kind) <= center_y + (length - radius))
+
+                  in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
+                                 (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
+
+                  if (in_cyl .and. .not. in_slot) then
+                     icells = icells + 1
+                     indxi(icells) = i
+                     indxj(icells) = j
+                  endif
                endif
             enddo
-         
-         else
+            enddo
 
-      ! initial category areas in cells with ice
-         hbar = c3  ! initial ice thickness with greatest area
-                    ! Note: the resulting average ice thickness 
-                    ! tends to be less than hbar due to the
-                    ! nonlinear distribution of ice thicknesses 
-         sum = c0
-         do n = 1, ncat
-            if (n < ncat) then
-               hinit(n) = p5*(hin_max(n-1) + hin_max(n)) ! m
-            else                ! n=ncat
-               hinit(n) = (hin_max(n-1) + c1) ! m
-            endif
-            ! parabola, max at h=hbar, zero at h=0, 2*hbar
-            ainit(n) = max(c0, (c2*hbar*hinit(n) - hinit(n)**2))
-            sum = sum + ainit(n)
-         enddo
-         do n = 1, ncat
-            ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
-         enddo
-
-         endif ! ice_data_type
-
-         if (trim(grid_type) == 'rectangular') then
-
-         ! place ice on left side of domain
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j)) then
-               if (ULON(i,j) < -50./rad_to_deg) then
+         elseif (trim(ice_data_type) == 'uniform') then
+            ! all cells not land mask are ice
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
-               endif            ! ULON
-            endif               ! tmask
-         enddo                  ! i
-         enddo                  ! j
+               endif
+            enddo
+            enddo
 
-         else
-
-         ! place ice at high latitudes where ocean sfc is cold
-         icells = 0
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (tmask(i,j)) then
-               ! place ice in high latitudes where ocean sfc is cold
-               if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
-                    (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
-                     TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
+         elseif (trim(ice_data_type) == 'channel') then
+            ! channel ice in center of domain in i direction
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
-               endif            ! cold surface
-            endif               ! tmask
-         enddo                  ! i
-         enddo                  ! j
+               endif
+            enddo
+            enddo
 
-         endif                  ! rectgrid
+         elseif (trim(ice_data_type) == 'smallblock') then
+            ! 2x2 ice in center of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if ((iglob(i) == nx_global/2 .or. iglob(i) == nx_global/2+1) .and. &
+                   (jglob(j) == ny_global/2 .or. jglob(j) == ny_global/2+1)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'block') then
+            ! ice in 50% of domain, not at edges
+            icells = 0
+            iedge = int(real(nx_global,kind=dbl_kind) * 0.25) + 1
+            jedge = int(real(ny_global,kind=dbl_kind) * 0.25) + 1
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
+                   (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'bigblock') then
+            ! ice in 90% of domain, not at edges
+            icells = 0
+            iedge = int(real(nx_global,kind=dbl_kind) * 0.05) + 1
+            jedge = int(real(ny_global,kind=dbl_kind) * 0.05) + 1
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
+                   (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'easthalf') then
+            ! block on east half of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (iglob(i) >= nx_global/2) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'eastblock') then
+            ! block on east half of domain in center of domain
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4 .and. &
+                   iglob(i) >= nx_global/2) then
+                  icells = icells + 1
+                  indxi(icells) = i
+                  indxj(icells) = j
+               endif
+            enddo
+            enddo
+
+         elseif (trim(ice_data_type) == 'latsst') then
+
+            !-----------------------------------------------------------------
+            ! Place ice where ocean surface is cold.
+            ! Note: If SST is not read from a file, then the ocean is assumed
+            !       to be at its freezing point everywhere, and ice will
+            !       extend to the prescribed edges.
+            !-----------------------------------------------------------------
+
+            icells = 0
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (tmask(i,j)) then
+                  ! place ice in high latitudes where ocean sfc is cold
+                  if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
+                       (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
+                        TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
+                     icells = icells + 1
+                     indxi(icells) = i
+                     indxj(icells) = j
+                  endif            ! cold surface
+               endif               ! tmask
+            enddo                  ! i
+            enddo                  ! j
+
+         else
+
+            call abort_ice(subname//'ERROR: ice_data_type setting = '//trim(ice_data_type), &
+               file=__FILE__, line=__LINE__)
+
+         endif                     ! ice_data_type
+
+         !---------------------------------------------------------
+         ! ice distribution
+         !---------------------------------------------------------
 
          do n = 1, ncat
 
@@ -2760,7 +3152,7 @@
 
                aicen(i,j,n) = ainit(n)
 
-               if (trim(ice_data_type) == 'box2001') then
+               if (trim(ice_data_dist) == 'box2001') then
                   if (hinit(n) > c0) then
 !                  ! constant slope from 0 to 1 in x direction
                      aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
@@ -2780,19 +3172,29 @@
 !                                         -  real(jglob(j), kind=dbl_kind)-p5) &
 !                                         / (real(ny_global,kind=dbl_kind)) * p5)
                   endif
-                  vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
-               elseif (trim(ice_data_type) == 'boxslotcyl') then
+
+               elseif (trim(ice_data_dist) == 'gauss') then
                   if (hinit(n) > c0) then
-                   ! slotted cylinder
-                   call boxslotcyl_data_aice(aicen, i, j,        &
-                                             nx_block, ny_block, &
-                                             n,        ainit,    &
-                                             iglob,    jglob)
+                     dist_ratio = 8._dbl_kind * &
+                                  sqrt((real(iglob(i),kind=dbl_kind)-real(nx_global+1,kind=dbl_kind)/c2)**2 + &
+                                       (real(jglob(j),kind=dbl_kind)-real(ny_global+1,kind=dbl_kind)/c2)**2) / &
+                                  sqrt((real(nx_global,kind=dbl_kind))**2 + &
+                                       (real(ny_global,kind=dbl_kind))**2)
+                     aicen(i,j,n) = ainit(n) * exp(-dist_ratio)
                   endif
-                  vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
+
+               elseif (trim(ice_data_dist) == 'uniform') then
+
+                  ! nothing extra to do
+
                else
-                  vicen(i,j,n) = hinit(n) * ainit(n) ! m
-               endif
+
+                  call abort_ice(subname//'ERROR: ice_data_dist setting = '//trim(ice_data_dist), &
+                  file=__FILE__, line=__LINE__)
+
+               endif  ! ice_data_dist
+
+               vicen(i,j,n) = hinit(n) * aicen(i,j,n) ! m
                vsnon(i,j,n) = min(aicen(i,j,n)*hsno_init,p2*vicen(i,j,n))
 
                call icepack_init_trcr(Tair  = Tair(i,j), Tf = Tf(i,j),  &
@@ -2819,7 +3221,11 @@
             enddo               ! ij
          enddo                  ! ncat
          
-         ! velocity initialization for special tests
+         !---------------------------------------------------------
+         ! ice velocity
+         ! these velocites are defined on B-grid
+         !---------------------------------------------------------
+
          if (trim(ice_data_type) == 'boxslotcyl') then
             do j = 1, ny_block
             do i = 1, nx_block
@@ -2829,7 +3235,11 @@
                                         uvel,     vvel)
             enddo               ! j
             enddo               ! i
+         else
+            uvel = c0
+            vvel = c0
          endif
+
       endif                     ! ice_ic
 
       call icepack_warnings_flush(nu_diag)
@@ -2837,85 +3247,6 @@
          file=__FILE__, line=__LINE__)
 
       end subroutine set_state_var
-
-!=======================================================================
-
-! Set ice concentration for slotted cylinder advection test
-!
-! author: Philippe Blain (ECCC)
-
-      subroutine boxslotcyl_data_aice(aicen, i, j,        &
-                                      nx_block, ny_block, &
-                                      n,        ainit,    &
-                                      iglob,    jglob)
-      
-      use ice_constants, only: c0, c2, c5, p3, p166, p75, p5
-      use ice_domain_size, only: nx_global, ny_global, ncat
-      use ice_grid, only: dxrect, dyrect
-
-      integer (kind=int_kind), intent(in) :: &
-         i, j              , & ! local indices
-         nx_block, ny_block, & ! block dimensions
-         iglob(nx_block)   , & ! global indices
-         jglob(ny_block)   , &
-         n                     ! thickness category index
-         
-      real (kind=dbl_kind), dimension(ncat) :: &
-         ainit ! initial area
-         
-      real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
-         aicen ! concentration of ice
-         
-      ! local variables
-      
-      logical :: in_slot, in_cyl, in_slotted_cyl
-      
-      real (kind=dbl_kind), dimension (2) :: &
-         slot_x, &  ! geometric limits of the slot
-         slot_y
-      
-      real (kind=dbl_kind) :: & 
-         diam    , & ! cylinder diameter
-         radius  , & ! cylinder radius
-         center_x, & ! cylinder center
-         center_y, &
-         width   , & ! slot width
-         length      ! slot height
-      
-      character(len=*), parameter :: subname = '(boxslotcyl_data_aice)'
-      
-      ! Geometric configuration of the slotted cylinder
-      diam     = p3 *dxrect*(nx_global-1)
-      center_x = p5 *dxrect*(nx_global-1)
-      center_y = p75*dyrect*(ny_global-1)
-      radius   = p5*diam
-      width    = p166*diam
-      length   = c5*p166*diam
-      
-      slot_x(1) = center_x - width/c2
-      slot_x(2) = center_x + width/c2
-      slot_y(1) = center_y - radius
-      slot_y(2) = center_y + (length - radius)
-      
-      ! check if grid point is inside slotted cylinder
-      in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= slot_x(1)) .and. &
-                (dxrect*real(iglob(i)-1, kind=dbl_kind) <= slot_x(2)) .and. & 
-                (dyrect*real(jglob(j)-1, kind=dbl_kind) >= slot_y(1)) .and. &
-                (dyrect*real(jglob(j)-1, kind=dbl_kind) <= slot_y(2))
-                
-      in_cyl  = sqrt((dxrect*real(iglob(i)-1, kind=dbl_kind) - center_x)**c2 + &
-                     (dyrect*real(jglob(j)-1, kind=dbl_kind) - center_y)**c2) <= radius
-      
-      in_slotted_cyl = in_cyl .and. .not. in_slot
-      
-      if (in_slotted_cyl) then
-         aicen(i,j,n) = ainit(n)
-      else
-         aicen(i,j,n) = c0
-      endif
-
-
-      end subroutine boxslotcyl_data_aice
 
 !=======================================================================
 
@@ -2942,7 +3273,6 @@
          uvel, vvel            ! ice velocity
 
       ! local variables
-
       real (kind=dbl_kind) :: &
          pi             , & ! pi
          secday         , & ! seconds per day

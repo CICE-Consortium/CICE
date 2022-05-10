@@ -19,8 +19,10 @@
 
       use ice_kinds_mod
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, p5, &
           field_loc_center, field_loc_NEcorner, &
+          field_loc_Eface, field_loc_Nface, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
           runid, use_restart_time, lenstr, restart_coszen
@@ -54,12 +56,16 @@
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, &
+          strocnxT, strocnyT, sst, frzmlt, iceumask, iceemask, icenmask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+          stress12_1, stress12_2, stress12_3, stress12_4, &
+          stresspT, stressmT, stress12T, &
+          stresspU, stressmU, stress12U 
       use ice_flux, only: coszen
-      use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
+      use ice_grid, only: grid_ice, tmask
+      use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
+                           uvelE, vvelE, uvelN, vvelN
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -91,6 +97,20 @@
       endif
 
       diag = .true.
+
+      !-----------------------------------------------------------------
+      ! Zero out tracers over land
+      !-----------------------------------------------------------------
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            if (.not. tmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
 
       !-----------------------------------------------------------------
       ! state variables
@@ -126,6 +146,18 @@
       !-----------------------------------------------------------------
       call write_restart_field(nu_dump,0,uvel,'ruf8','uvel',1,diag)
       call write_restart_field(nu_dump,0,vvel,'ruf8','vvel',1,diag)
+
+      if (grid_ice == 'CD') then
+         call write_restart_field(nu_dump,0,uvelE,'ruf8','uvelE',1,diag)
+         call write_restart_field(nu_dump,0,vvelE,'ruf8','vvelE',1,diag)
+         call write_restart_field(nu_dump,0,uvelN,'ruf8','uvelN',1,diag)
+         call write_restart_field(nu_dump,0,vvelN,'ruf8','vvelN',1,diag)
+      endif
+
+      if (grid_ice == 'C') then
+         call write_restart_field(nu_dump,0,uvelE,'ruf8','uvelE',1,diag)
+         call write_restart_field(nu_dump,0,vvelN,'ruf8','vvelN',1,diag)
+      endif
 
       !-----------------------------------------------------------------
       ! radiation fields
@@ -164,6 +196,21 @@
       call write_restart_field(nu_dump,0,stress12_2,'ruf8','stress12_2',1,diag)
       call write_restart_field(nu_dump,0,stress12_4,'ruf8','stress12_4',1,diag)
 
+      if (grid_ice == 'CD') then
+         call write_restart_field(nu_dump,0,stresspT ,'ruf8','stresspT' ,1,diag)
+         call write_restart_field(nu_dump,0,stressmT ,'ruf8','stressmT' ,1,diag)
+         call write_restart_field(nu_dump,0,stress12T,'ruf8','stress12T',1,diag)
+         call write_restart_field(nu_dump,0,stresspU ,'ruf8','stresspU' ,1,diag)
+         call write_restart_field(nu_dump,0,stressmU ,'ruf8','stressmU' ,1,diag)
+         call write_restart_field(nu_dump,0,stress12U,'ruf8','stress12U',1,diag)
+      endif
+
+      if (grid_ice == 'C') then
+         call write_restart_field(nu_dump,0,stresspT ,'ruf8','stresspT' ,1,diag)
+         call write_restart_field(nu_dump,0,stressmT ,'ruf8','stressmT' ,1,diag)
+         call write_restart_field(nu_dump,0,stress12U,'ruf8','stress12U',1,diag)
+      endif
+
       !-----------------------------------------------------------------
       ! ice mask for dynamics
       !-----------------------------------------------------------------
@@ -179,6 +226,34 @@
       enddo
       !$OMP END PARALLEL DO
       call write_restart_field(nu_dump,0,work1,'ruf8','iceumask',1,diag)
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               if (icenmask(i,j,iblk)) work1(i,j,iblk) = c1
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
+
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               if (iceemask(i,j,iblk)) work1(i,j,iblk) = c1
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
+
+      endif
 
       ! for mixed layer model
       if (oceanmixed_ice) then
@@ -198,19 +273,21 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, npt, calendar
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, &
+          strocnxT, strocnyT, sst, frzmlt, iceumask, iceemask, icenmask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
-          stress12_1, stress12_2, stress12_3, stress12_4
+          stress12_1, stress12_2, stress12_3, stress12_4, &
+          stresspT, stressmT, stress12T, &
+          stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: tmask, grid_type
+      use ice_grid, only: tmask, grid_type, grid_ice
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
+          uvelE, vvelE, uvelN, vvelN, &
           trcr_base, nt_strata, n_trcr_strata
 
       character (*), optional :: ice_ic
@@ -300,6 +377,30 @@
       call read_restart_field(nu_restart,0,vvel,'ruf8', &
            'vvel',1,diag,field_loc_NEcorner, field_type_vector)
 
+      if (grid_ice == 'CD') then
+         if (query_field(nu_restart,'uvelE')) &
+            call read_restart_field(nu_restart,0,uvelE,'ruf8', &
+                 'uvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'vvelE')) &
+            call read_restart_field(nu_restart,0,vvelE,'ruf8', &
+                 'vvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'uvelN')) &
+            call read_restart_field(nu_restart,0,uvelN,'ruf8', &
+                 'uvelN',1,diag,field_loc_Nface, field_type_vector)
+         if (query_field(nu_restart,'vvelN')) &
+            call read_restart_field(nu_restart,0,vvelN,'ruf8', &
+                 'vvelN',1,diag,field_loc_Nface, field_type_vector)
+      endif
+
+      if (grid_ice == 'C') then
+         if (query_field(nu_restart,'uvelE')) &
+            call read_restart_field(nu_restart,0,uvelE,'ruf8', &
+                 'uvelE',1,diag,field_loc_Eface, field_type_vector)
+         if (query_field(nu_restart,'vvelN')) &
+            call read_restart_field(nu_restart,0,vvelN,'ruf8', &
+                 'vvelN',1,diag,field_loc_Nface, field_type_vector)
+      endif
+
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
@@ -367,6 +468,27 @@
       call read_restart_field(nu_restart,0,stress12_4,'ruf8', &
            'stress12_4',1,diag,field_loc_center,field_type_scalar) ! stress12_4
 
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         if (query_field(nu_restart,'stresspT')) &
+            call read_restart_field(nu_restart,0,stresspT,'ruf8', &
+               'stresspT' ,1,diag,field_loc_center,field_type_scalar) ! stresspT
+         if (query_field(nu_restart,'stressmT')) &
+            call read_restart_field(nu_restart,0,stressmT,'ruf8', &
+               'stressmT' ,1,diag,field_loc_center,field_type_scalar) ! stressmT
+         if (query_field(nu_restart,'stress12T')) &
+            call read_restart_field(nu_restart,0,stress12T,'ruf8', &
+               'stress12T',1,diag,field_loc_center,field_type_scalar) ! stress12T
+         if (query_field(nu_restart,'stresspU')) &
+            call read_restart_field(nu_restart,0,stresspU,'ruf8', &
+               'stresspU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stresspU
+         if (query_field(nu_restart,'stressmU')) &
+            call read_restart_field(nu_restart,0,stressmU,'ruf8', &
+               'stressmU' ,1,diag,field_loc_NEcorner,field_type_scalar) ! stressmU
+         if (query_field(nu_restart,'stress12U')) &
+            call read_restart_field(nu_restart,0,stress12U,'ruf8', &
+               'stress12U',1,diag,field_loc_NEcorner,field_type_scalar) ! stress12U
+      endif
+
       if (trim(grid_type) == 'tripole') then
          call ice_HaloUpdate_stress(stressp_1, stressp_3, halo_info, &
                                     field_loc_center,  field_type_scalar)
@@ -394,6 +516,7 @@
                                     field_loc_center,  field_type_scalar)
          call ice_HaloUpdate_stress(stress12_4, stress12_2, halo_info, &
                                     field_loc_center,  field_type_scalar)
+         ! TODO: CD-grid
       endif
 
       !-----------------------------------------------------------------
@@ -415,6 +538,42 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+
+         if (query_field(nu_restart,'icenmask')) then
+            call read_restart_field(nu_restart,0,work1,'ruf8', &
+                 'icenmask',1,diag,field_loc_center, field_type_scalar)
+
+            icenmask(:,:,:) = .false.
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (work1(i,j,iblk) > p5) icenmask(i,j,iblk) = .true.
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+         endif
+
+         if (query_field(nu_restart,'iceemask')) then
+            call read_restart_field(nu_restart,0,work1,'ruf8', &
+                 'iceemask',1,diag,field_loc_center, field_type_scalar)
+
+            iceemask(:,:,:) = .false.
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (work1(i,j,iblk) > p5) iceemask(i,j,iblk) = .true.
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+         endif
+
+      endif
 
       ! set Tsfcn to c0 on land
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -476,6 +635,7 @@
             stress12_4(i,j,iblk) = c0
          enddo
          enddo
+         ! TODO: CD-grid ?
       enddo
       !$OMP END PARALLEL DO
 
@@ -543,7 +703,6 @@
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
           set_date_from_timesecs
-      use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks

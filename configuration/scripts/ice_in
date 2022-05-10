@@ -39,6 +39,7 @@
     print_global   = .true.
     print_points   = .true.
     timer_stats    = .false.
+    memory_stats   = .false.
     conserv_check  = .false.
     latpnt(1)      =  90.
     lonpnt(1)      =  0.
@@ -61,7 +62,11 @@
 &grid_nml
     grid_format  = 'bin'
     grid_type    = 'displaced_pole'
+    grid_ice     = 'B'
+    grid_atm     = 'A'
+    grid_ocn     = 'A'
     grid_file    = 'grid'
+    kmt_type     = 'file'
     kmt_file     = 'kmt'
     bathymetry_file = 'unknown_bathymetry_file'
     bathymetry_format = 'default'
@@ -144,6 +149,11 @@
     Ktens           = 0.
     e_yieldcurve    = 2.
     e_plasticpot    = 2.
+    visc_method     = 'avg_strength'
+    elasticDamp     = 0.36d0
+    deltaminEVP     = 1e-11
+    deltaminVP      = 2e-9
+    capping         = 1.
     seabed_stress   = .false.
     seabed_stress_method = 'LKD'
     k1              = 7.5
@@ -255,7 +265,9 @@
     ocn_data_type   = 'default'
     bgc_data_type   = 'default'
     fe_data_type    = 'default'
-    ice_data_type   = 'default'
+    ice_data_type   = 'latsst'
+    ice_data_conc   = 'parabolic'
+    ice_data_dist   = 'uniform'
     fyear_init      = 2005
     ycycle          = 1
     atm_data_format = 'bin'
@@ -439,13 +451,22 @@
 
 &icefields_nml
     f_tmask        = .true.
+    f_umask        = .false.
+    f_nmask        = .false.
+    f_emask        = .false.
     f_blkmask      = .true.
     f_tarea        = .true.
     f_uarea        = .true.
+    f_narea        = .false.
+    f_earea        = .false.
     f_dxt          = .false.
     f_dyt          = .false.
     f_dxu          = .false.
     f_dyu          = .false.
+    f_dxe          = .false.
+    f_dye          = .false.
+    f_dxn          = .false.
+    f_dyn          = .false.
     f_HTN          = .false.
     f_HTE          = .false.
     f_ANGLE        = .true.
