@@ -25,6 +25,7 @@ module ice_comp_nuopc
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, mday, mmonth, myear, year_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
@@ -79,9 +80,6 @@ module ice_comp_nuopc
   character(len=*) , parameter :: orb_fixed_year       = 'fixed_year'
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
-
-  character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
-  character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
 
   type(ESMF_Mesh)              :: ice_mesh
 
@@ -216,7 +214,6 @@ contains
     type(ESMF_Time)              :: stopTime           ! Stop time
     type(ESMF_Time)              :: refTime            ! Ref time
     type(ESMF_TimeInterval)      :: timeStep           ! Model timestep
-    type(ESMF_Calendar)          :: esmf_calendar      ! esmf calendar
     type(ESMF_CalKind_Flag)      :: esmf_caltype       ! esmf calendar type
     integer                      :: start_ymd          ! Start date (YYYYMMDD)
     integer                      :: start_tod          ! start time of day (s)
@@ -339,7 +336,8 @@ contains
     call get_component_instance(gcomp, inst_suffix, inst_index, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    inst_name = "ICE"//trim(inst_suffix)
+!   inst_name = "ICE"//trim(inst_suffix)
+    inst_name = "ICE"
 
     !----------------------------------------------------------------------------
     ! start cice timers
@@ -470,9 +468,9 @@ contains
     call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
-       calendar_type = shr_cal_noleap
+       calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = shr_cal_gregorian
+       calendar_type = ice_calendar_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
@@ -549,7 +547,6 @@ contains
 
        scol_valid = (scol_mask == 1)
        if (.not. scol_valid) then
-          write(6,*)'DEBUG: i am here'
           ! Advertise fields
           call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -582,9 +579,11 @@ contains
     end if
     call icepack_query_parameters( tfrz_option_out=tfrz_option)
     if (tfrz_option_driver  /= tfrz_option) then
-       write(errmsg,'(a)') trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
-            ' must be the same as tfrz_option from cice namelist '//trim(tfrz_option)
-       call abort_ice(trim(errmsg))
+       write(errmsg,'(a)') trim(subname)//'WARNING: tfrz_option from driver '//trim(tfrz_option_driver)//&
+            ' is overwriting tfrz_option from cice namelist '//trim(tfrz_option)
+       write(nu_diag,*) trim(errmsg)
+       call icepack_warnings_flush(nu_diag)
+       call icepack_init_parameters(tfrz_option_in=tfrz_option_driver)
     endif
 
     ! Flux convergence tolerance - always use the driver attribute value
@@ -595,7 +594,7 @@ contains
        read(cvalue,*) atmiter_conv_driver
        call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
        if (atmiter_conv_driver /= atmiter_conv) then
-          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'warning: atmiter_ from driver ',&
+          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'WARNING: atmiter_ from driver ',&
                atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
           write(nu_diag,*) trim(errmsg)
           call icepack_warnings_flush(nu_diag)

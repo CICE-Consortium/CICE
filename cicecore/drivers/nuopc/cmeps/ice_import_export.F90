@@ -3,14 +3,15 @@ module ice_import_export
   use ESMF
   use NUOPC
   use NUOPC_Model
-  use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, log_kind
+  use ice_kinds_mod      , only : int_kind, dbl_kind, char_len, char_len_long, log_kind
   use ice_constants      , only : c0, c1, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
+  use ice_domain_size    , only : nfreq, nfsd
   use ice_exit           , only : abort_ice
-  use ice_flux           , only : strairxT, strairyT, strocnxT, strocnyT
+  use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
@@ -23,9 +24,10 @@ module ice_import_export
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
-  use ice_state          , only : vice, vsno, aice, aicen_init, trcr
+  use ice_arrays_column  , only : floe_rad_c, wave_spectrum
+  use ice_state          , only : vice, vsno, aice, aicen_init, trcr, trcrn
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
-  use ice_grid           , only : grid_type, grid_average_X2Y
+  use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_mesh_mod       , only : ocn_gridcell_frac
   use ice_boundary       , only : ice_HaloUpdate
   use ice_fileunits      , only : nu_diag, flush_fileunit
@@ -34,8 +36,10 @@ module ice_import_export
   use ice_shr_methods    , only : chkerr, state_reset
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
+  use icepack_intfc      , only : icepack_query_tracer_indices
   use icepack_intfc      , only : icepack_liquidus_temperature
   use icepack_intfc      , only : icepack_sea_freezing_temperature
+  use icepack_parameters , only : puny, c2
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
   use shr_frz_mod        , only : shr_frz_freezetemp
@@ -187,10 +191,15 @@ contains
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
-    ! from atm - wet dust deposition frluxes (4 sizes)
+    ! from atm - wet dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-    ! from - atm dry dust deposition frluxes (4 sizes)
+    ! from atm - dry dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
+
+    ! the following are advertised but might not be connected if they are not advertised in the
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
+    ! from wave
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sw_elevation_spectrum', ungridded_lbound=1, ungridded_ubound=25)
 
     do n = 1,fldsToIce_num
        call NUOPC_Advertise(importState, standardName=fldsToIce(n)%stdname, &
@@ -214,6 +223,8 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                    )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_thick'                    )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_floediam'                 )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo'     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'      )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
@@ -292,7 +303,7 @@ contains
     type(ESMF_State)            :: exportState
     type(ESMF_Field)            :: lfield
     integer                     :: numOwnedElements
-    integer                     :: i, j, iblk, n
+    integer                     :: i, j, iblk, n, k
     integer                     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block)                 :: this_block         ! block information for current block
     real(dbl_kind), allocatable :: mesh_areas(:)
@@ -403,11 +414,10 @@ contains
     ! local variables
     integer,parameter                :: nflds=16
     integer,parameter                :: nfldv=6
-    integer                          :: i, j, iblk, n
+    integer                          :: i, j, iblk, n, k
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
-    real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work
     real (kind=dbl_kind)             :: workx, worky
     real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
     real (kind=dbl_kind)             :: Tffresh
@@ -558,6 +568,30 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    ! import wave elevation spectrum from wave  (frequencies 1-25, assume that nfreq is 25)
+    if (State_FldChk(importState, 'Sw_elevation_spectrum')) then
+       if (nfreq /= 25) then
+          call abort_ice(trim(subname)//": ERROR nfreq not equal to 25 ")
+       end if
+       call state_getfldptr(importState, 'Sw_elevation_spectrum', fldptr=dataPtr2d, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do k = 1,nfreq
+          n = 0
+          do iblk = 1, nblocks
+             this_block = get_block(blocks_ice(iblk),iblk)
+             ilo = this_block%ilo; ihi = this_block%ihi
+             jlo = this_block%jlo; jhi = this_block%jhi
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   wave_spectrum(i,j,k,iblk) = dataPtr2d(k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
+
 
     if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -800,19 +834,10 @@ contains
 
     if (.not.prescribed_ice) then
        call t_startf ('cice_imp_t2u')
-       call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
-       ! tcraig, moved to dynamics for consistency
-       !work = uocn
-       !call grid_average_X2Y('F',work,'T',uocn,'U')
-       !work = vocn
-       !call grid_average_X2Y('F',work,'T',vocn,'U')
-       !work = ss_tltx
-       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
-       !work = ss_tlty
-       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
+       call t2ugrid_vector(uocn)
+       call t2ugrid_vector(vocn)
+       call t2ugrid_vector(ss_tltx)
+       call t2ugrid_vector(ss_tlty)
        call t_stopf ('cice_imp_t2u')
     end if
 
@@ -854,7 +879,7 @@ contains
 
     ! local variables
     type(block)             :: this_block                           ! block information for current block
-    integer                 :: i, j, iblk, n                        ! incides
+    integer                 :: i, j, iblk, n, k                     ! incides
     integer                 :: n2                                   ! thickness category index
     integer                 :: ilo, ihi, jlo, jhi                   ! beginning and end of physical domain
     real    (kind=dbl_kind) :: workx, worky                         ! tmps for converting grid
@@ -868,7 +893,10 @@ contains
     real    (kind=dbl_kind) :: tauxo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
+    real    (kind=dbl_kind) :: floediam(nx_block,ny_block,max_blocks)
+    real    (kind=dbl_kind) :: floethick(nx_block,ny_block,max_blocks) ! ice thickness
     real    (kind=dbl_kind) :: Tffresh
+    integer (kind=int_kind) :: nt_fsd
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
     real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
@@ -885,6 +913,8 @@ contains
     !    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
     !       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
     !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
+    call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
 
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -912,6 +942,26 @@ contains
           do i = ilo,ihi
              ! ice fraction
              ailohi(i,j,iblk) = min(aice(i,j,iblk), c1)
+
+             ! ice thickness (m)
+             if (aice(i,j,iblk) > puny) then
+                floethick(i,j,iblk) = vice(i,j,iblk) / aice(i,j,iblk)
+             else
+                floethick(i,j,iblk) = c0
+             end if
+
+             ! floe diameter (m)
+             floediam(i,j,iblk) = c0
+             workx = c0
+             worky = c0
+             do n = 1, ncat
+                do k = 1, nfsd
+                   workx = workx + floe_rad_c(k) * aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
+                   worky = worky + aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
+                end do
+             end do
+             if (worky > c0) workx = c2*workx / worky
+             floediam(i,j,iblk) = MAX(c2*floe_rad_c(1),workx)
 
              ! surface temperature
              Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
@@ -1035,6 +1085,14 @@ contains
 
     ! 2m atm reference spec humidity (kg/kg)
     call state_setexport(exportState, 'Si_qref' , input=Qref , lmask=tmask, ifrac=ailohi, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Sea ice thickness (m)
+    call state_setexport(exportState, 'Si_thick' , input=floethick , lmask=tmask, ifrac=ailohi, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Sea ice floe diameter (m)
+    call state_setexport(exportState, 'Si_floediam' , input=floediam , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Snow volume
