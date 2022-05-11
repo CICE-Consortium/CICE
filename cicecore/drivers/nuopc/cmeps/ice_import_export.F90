@@ -428,6 +428,7 @@ contains
     real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
     character(len=char_len)          :: tfrz_option
     integer(int_kind)                :: ktherm
+    logical(log_kind)                :: tr_fsd
     character(len=*),   parameter    :: subname = 'ice_import'
     character(len=1024)              :: msgString
     !-----------------------------------------------------
@@ -435,6 +436,7 @@ contains
     call icepack_query_parameters(Tffresh_out=Tffresh)
     call icepack_query_parameters(tfrz_option_out=tfrz_option)
     call icepack_query_parameters(ktherm_out=ktherm)
+    call icepack_query_parameters(tr_fsd_out=tr_fsd)
 
     if (io_dbug > 5) then
        write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
@@ -930,7 +932,7 @@ contains
     tauxo(:,:,:) = c0
     tauyo(:,:,:) = c0
 
-    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky, this_block, ilo, ihi, jlo, jhi)
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,workx,worky, floe_rad_c, this_block, ilo, ihi, jlo, jhi)
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
@@ -943,7 +945,9 @@ contains
              ! ice fraction
              ailohi(i,j,iblk) = min(aice(i,j,iblk), c1)
 
-             ! ice thickness (m)
+             if (tr_fsd) then
+
+             ! floe thickness (m)
              if (aice(i,j,iblk) > puny) then
                 floethick(i,j,iblk) = vice(i,j,iblk) / aice(i,j,iblk)
              else
@@ -962,6 +966,8 @@ contains
              end do
              if (worky > c0) workx = c2*workx / worky
              floediam(i,j,iblk) = MAX(c2*floe_rad_c(1),workx)
+
+             endif
 
              ! surface temperature
              Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
