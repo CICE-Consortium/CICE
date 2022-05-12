@@ -27,7 +27,7 @@ module ice_import_export
   use ice_arrays_column  , only : floe_rad_c, wave_spectrum
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr, trcrn
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
-  use ice_grid           , only : grid_type, grid_average_X2Y
+  use ice_grid           , only : grid_type
   use ice_mesh_mod       , only : ocn_gridcell_frac
   use ice_boundary       , only : ice_HaloUpdate
   use ice_fileunits      , only : nu_diag, flush_fileunit
@@ -830,22 +830,9 @@ contains
 #endif
 
     call t_stopf ('cice_imp_ocn')
-
-    ! Interpolate ocean dynamics variables from T-cell centers to
-    ! U-cell centers.
-
-    if (.not.prescribed_ice) then
-       call t_startf ('cice_imp_t2u')
-       call grid_averageX2Y('S',uocn,'T',uocn,'U')
-       call grid_averageX2Y('S',vocn,'T',vocn,'U')
-       call grid_averageX2Y('S',ss_tltx,'T',ss_tltx,'U')
-       call grid_averageX2Y('S',ss_tlty,'T',ss_tlty,'U')
-       call t_stopf ('cice_imp_t2u')
-    end if
-
-    ! Atmosphere variables are needed in T cell centers in
-    ! subroutine stability and are interpolated to the U grid
-    ! later as necessary.
+  
+    ! Do not have to interpolate ocean quantities in the cap, but still need to
+    ! rotate.
 
     call t_startf ('cice_imp_atm')
     !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
