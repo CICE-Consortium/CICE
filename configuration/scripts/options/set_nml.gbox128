@@ -5,6 +5,6 @@ kmt_type      = 'default'
 atm_data_type = 'box2001'
 ocn_data_type = 'box2001'
 ice_data_type = 'box2001'
-ice_data_conc = 'p5'
+ice_data_conc = 'box2001'
 ice_data_dist = 'box2001'
 

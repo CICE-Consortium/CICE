@@ -302,7 +302,7 @@
          indxinc, indxjnc ! compressed i/j indices
 
       integer (kind=int_kind) :: &
-         ntrcr            !
+         ntrcr            ! number of tracers
 
       type (block) :: &
          this_block       ! block information for current block
@@ -927,8 +927,8 @@
 
       real (kind=dbl_kind) ::     &
          puny    , & !
-         rhos    , & !
-         Lfresh  , & !
+         rhos    , & ! snow density (km/m^3)
+         Lfresh  , & ! latent heat of melting fresh ice (J/kg)
          w1          ! work variable
 
       integer (kind=int_kind), dimension(nx_block*ny_block,0:ncat) ::  &

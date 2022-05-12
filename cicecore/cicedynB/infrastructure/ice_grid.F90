@@ -15,11 +15,10 @@
 ! 2007: Option to read from netcdf files (A. Keen, Met Office)
 !       Grid reading routines reworked by E. Hunke for boundary values
 ! 2021: Add N (center of north face) and E (center of east face) grids 
-!       to support CD solvers.  Defining T at center of cells, U at
+!       to support C and CD solvers.  Defining T at center of cells, U at
 !       NE corner, N at center of top face, E at center of right face.
 !       All cells are quadrilaterals with NE, E, and N associated with
-!       directions relative to logical grid.  E is increasing i (x) and 
-!       N is increasing j (y) direction.
+!       directions relative to logical grid.
 
       module ice_grid
 
@@ -73,14 +72,14 @@
                           !  displaced_pole, tripole, regional
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         dxt    , & ! width of T-cell through the middle (m)
-         dyt    , & ! height of T-cell through the middle (m)
-         dxu    , & ! width of U-cell through the middle (m)
-         dyu    , & ! height of U-cell through the middle (m)
-         dxn    , & ! width of N-cell through the middle (m)
-         dyn    , & ! height of N-cell through the middle (m)
-         dxe    , & ! width of E-cell through the middle (m)
-         dye    , & ! height of E-cell through the middle (m)
+         dxT    , & ! width of T-cell through the middle (m)
+         dyT    , & ! height of T-cell through the middle (m)
+         dxU    , & ! width of U-cell through the middle (m)
+         dyU    , & ! height of U-cell through the middle (m)
+         dxN    , & ! width of N-cell through the middle (m)
+         dyN    , & ! height of N-cell through the middle (m)
+         dxE    , & ! width of E-cell through the middle (m)
+         dyE    , & ! height of E-cell through the middle (m)
          HTE    , & ! length of eastern edge of T-cell (m)
          HTN    , & ! length of northern edge of T-cell (m)
          tarea  , & ! area of T-cell (m^2)
@@ -120,8 +119,8 @@
          dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         ratiodxN    , & ! - dxn(i+1,j)   / dxn(i,j)
-         ratiodyE    , & ! - dye(i  ,j+1) / dye(i,j)
+         ratiodxN    , & ! - dxN(i+1,j)   / dxN(i,j)
+         ratiodyE    , & ! - dyE(i  ,j+1) / dyE(i,j)
          ratiodxNr   , & !   1 / ratiodxN
          ratiodyEr       !   1 / ratiodyE
 
@@ -211,14 +210,14 @@
       character(len=*), parameter :: subname = '(alloc_grid)'
 
       allocate( &
-         dxt      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
-         dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
-         dxu      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
-         dyu      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
-         dxn      (nx_block,ny_block,max_blocks), & ! width of N-cell through the middle (m)
-         dyn      (nx_block,ny_block,max_blocks), & ! height of N-cell through the middle (m)
-         dxe      (nx_block,ny_block,max_blocks), & ! width of E-cell through the middle (m)
-         dye      (nx_block,ny_block,max_blocks), & ! height of E-cell through the middle (m)
+         dxT      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
+         dyT      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
+         dxU      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
+         dyU      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         dxN      (nx_block,ny_block,max_blocks), & ! width of N-cell through the middle (m)
+         dyN      (nx_block,ny_block,max_blocks), & ! height of N-cell through the middle (m)
+         dxE      (nx_block,ny_block,max_blocks), & ! width of E-cell through the middle (m)
+         dyE      (nx_block,ny_block,max_blocks), & ! height of E-cell through the middle (m)
          HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
          HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
          tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
@@ -534,10 +533,10 @@
 
          do j = 1,ny_block
          do i = 1,nx_block
-            tarea(i,j,iblk) = dxt(i,j,iblk)*dyt(i,j,iblk)
-            uarea(i,j,iblk) = dxu(i,j,iblk)*dyu(i,j,iblk)
-            narea(i,j,iblk) = dxn(i,j,iblk)*dyn(i,j,iblk)
-            earea(i,j,iblk) = dxe(i,j,iblk)*dye(i,j,iblk)
+            tarea(i,j,iblk) = dxT(i,j,iblk)*dyT(i,j,iblk)
+            uarea(i,j,iblk) = dxU(i,j,iblk)*dyU(i,j,iblk)
+            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
+            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
 
             if (tarea(i,j,iblk) > c0) then
                tarear(i,j,iblk) = c1/tarea(i,j,iblk)
@@ -583,10 +582,10 @@
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
             do j = jlo, jhi
             do i = ilo, ihi
-               ratiodxN (i,j,iblk) = - dxn(i+1,j  ,iblk) / dxn(i,j,iblk)
-               ratiodyE (i,j,iblk) = - dye(i  ,j+1,iblk) / dye(i,j,iblk)
-               ratiodxNr(i,j,iblk) =   c1 / ratiodxn(i,j,iblk)
-               ratiodyEr(i,j,iblk) =   c1 / ratiodye(i,j,iblk)
+               ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
+               ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
+               ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
+               ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
             enddo
             enddo
          endif
@@ -840,10 +839,10 @@
       !-----------------------------------------------------------------
 
       call ice_read_global(nu_grid,3,work_g1,'rda8',.true.)   ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
+      call primary_grid_lengths_HTN(work_g1)                  ! dxU, dxT, dxN, dxE
 
       call ice_read_global(nu_grid,4,work_g1,'rda8',.true.)   ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
+      call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
       deallocate(work_g1)
 
@@ -1017,10 +1016,10 @@
 
       fieldname='htn'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
+      call primary_grid_lengths_HTN(work_g1)                  ! dxU, dxT, dxN, dxE
       fieldname='hte'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
+      call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
       deallocate(work_g1)
 
@@ -1294,14 +1293,14 @@
             ANGLET(i,j,iblk) = c0                             
             HTN   (i,j,iblk) = 1.e36_dbl_kind
             HTE   (i,j,iblk) = 1.e36_dbl_kind
-            dxt   (i,j,iblk) = 1.e36_dbl_kind
-            dyt   (i,j,iblk) = 1.e36_dbl_kind
-            dxu   (i,j,iblk) = 1.e36_dbl_kind
-            dyu   (i,j,iblk) = 1.e36_dbl_kind
-            dxn   (i,j,iblk) = 1.e36_dbl_kind
-            dyn   (i,j,iblk) = 1.e36_dbl_kind
-            dxe   (i,j,iblk) = 1.e36_dbl_kind
-            dye   (i,j,iblk) = 1.e36_dbl_kind
+            dxT   (i,j,iblk) = 1.e36_dbl_kind
+            dyT   (i,j,iblk) = 1.e36_dbl_kind
+            dxU   (i,j,iblk) = 1.e36_dbl_kind
+            dyU   (i,j,iblk) = 1.e36_dbl_kind
+            dxN   (i,j,iblk) = 1.e36_dbl_kind
+            dyN   (i,j,iblk) = 1.e36_dbl_kind
+            dxE   (i,j,iblk) = 1.e36_dbl_kind
+            dyE   (i,j,iblk) = 1.e36_dbl_kind
             dxhy  (i,j,iblk) = 1.e36_dbl_kind
             dyhx  (i,j,iblk) = 1.e36_dbl_kind
             cyp   (i,j,iblk) = 1.e36_dbl_kind
@@ -1413,7 +1412,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
+      call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1422,7 +1421,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
+      call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
 
       !-----------------------------------------------------------------
       ! Construct T-cell land mask
@@ -1717,11 +1716,11 @@
 
       call ice_read_global(nu_grid,3,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
+      call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
 
       call ice_read_global(nu_grid,4,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
+      call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
 
       call ice_read_global(nu_grid,7,work_g1,'rda8',diag)
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
@@ -1745,9 +1744,9 @@
 
 !=======================================================================
 
-! Calculate dxu and dxt from HTN on the global grid, to preserve
+! Calculate dxU and dxT from HTN on the global grid, to preserve
 ! ghost cell and/or land values that might otherwise be lost. Scatter
-! dxu, dxt and HTN to all processors.
+! dxU, dxT and HTN to all processors.
 !
 ! author: Elizabeth C. Hunke, LANL
 
@@ -1776,7 +1775,7 @@
          allocate(work_g2(1,1))
       endif
 
-      ! HTN, dxu = average of 2 neighbor HTNs in i
+      ! HTN, dxU = average of 2 neighbor HTNs in i
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1789,7 +1788,7 @@
             ! assume cyclic; noncyclic will be handled during scatter
             ip1 = i+1
             if (i == nx_global) ip1 = 1
-            work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxu
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxU
          enddo
          enddo
       endif
@@ -1799,30 +1798,30 @@
       endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
-      call scatter_global(dxu, work_g2, master_task, distrb_info, &
+      call scatter_global(dxU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
-      ! dxt = average of 2 neighbor HTNs in j
+      ! dxT = average of 2 neighbor HTNs in j
 
       if (my_task == master_task) then
          do j = 2, ny_global
          do i = 1, nx_global
-            work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j-1)) ! dxt
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j-1)) ! dxT
          enddo
          enddo
-         ! extrapolate to obtain dxt along j=1
+         ! extrapolate to obtain dxT along j=1
          do i = 1, nx_global
-            work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxt
+            work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxT
          enddo
       endif
-      call scatter_global(dxt, work_g2, master_task, distrb_info, &
+      call scatter_global(dxT, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      ! dxn = HTN
+      ! dxN = HTN
 
-      dxn(:,:,:) = HTN(:,:,:)   ! dxn
+      dxN(:,:,:) = HTN(:,:,:)   ! dxN
 
-      ! dxe = average of 4 surrounding HTNs
+      ! dxE = average of 4 surrounding HTNs
 
       if (my_task == master_task) then
          do j = 2, ny_global
@@ -1830,19 +1829,19 @@
             ! assume cyclic; noncyclic will be handled during scatter
             ip1 = i+1
             if (i == nx_global) ip1 = 1
-            work_g2(i,j) = p25*(work_g(i,j)+work_g(ip1,j)+work_g(i,j-1)+work_g(ip1,j-1))   ! dxe
+            work_g2(i,j) = p25*(work_g(i,j)+work_g(ip1,j)+work_g(i,j-1)+work_g(ip1,j-1))   ! dxE
          enddo
          enddo
-         ! extrapolate to obtain dxt along j=1
+         ! extrapolate to obtain dxT along j=1
          do i = 1, nx_global
             ! assume cyclic; noncyclic will be handled during scatter
             ip1 = i+1
             if (i == nx_global) ip1 = 1
             work_g2(i,1) = p5*(c2*work_g(i  ,2) - work_g(i  ,3) + &
-                               c2*work_g(ip1,2) - work_g(ip1,3))      ! dxe
+                               c2*work_g(ip1,2) - work_g(ip1,3))      ! dxE
          enddo
       endif
-      call scatter_global(dxe, work_g2, master_task, distrb_info, &
+      call scatter_global(dxE, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
       deallocate(work_g2)
@@ -1850,9 +1849,9 @@
       end subroutine primary_grid_lengths_HTN
 
 !=======================================================================
-! Calculate dyu and dyt from HTE on the global grid, to preserve
+! Calculate dyU and dyT from HTE on the global grid, to preserve
 ! ghost cell and/or land values that might otherwise be lost. Scatter
-! dyu, dyt and HTE to all processors.
+! dyU, dyT and HTE to all processors.
 !
 ! author: Elizabeth C. Hunke, LANL
 
@@ -1881,7 +1880,7 @@
          allocate(work_g2(1,1))
       endif
 
-      ! HTE, dyu = average of 2 neighbor HTE in j
+      ! HTE, dyU = average of 2 neighbor HTE in j
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1891,13 +1890,13 @@
          enddo
          do j = 1, ny_global-1
          do i = 1, nx_global
-            work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j+1)) ! dyu
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j+1)) ! dyU
          enddo
          enddo
-         ! extrapolate to obtain dyu along j=ny_global
+         ! extrapolate to obtain dyU along j=ny_global
          if (ny_global > 1) then
             do i = 1, nx_global
-               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyu
+               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyU
             enddo
          endif
       endif
@@ -1907,10 +1906,10 @@
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
-      call scatter_global(dyu, work_g2, master_task, distrb_info, &
+      call scatter_global(dyU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
-      ! dyt = average of 2 neighbor HTE in i
+      ! dyT = average of 2 neighbor HTE in i
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1918,14 +1917,14 @@
             ! assume cyclic; noncyclic will be handled during scatter
             im1 = i-1
             if (i == 1) im1 = nx_global
-            work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyt
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyT
          enddo
          enddo
       endif
-      call scatter_global(dyt, work_g2, master_task, distrb_info, &
+      call scatter_global(dyT, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      ! dyn = average of 4 neighbor HTEs
+      ! dyN = average of 4 neighbor HTEs
 
       if (my_task == master_task) then
          do j = 1, ny_global-1
@@ -1933,26 +1932,26 @@
             ! assume cyclic; noncyclic will be handled during scatter
             im1 = i-1
             if (i == 1) im1 = nx_global 
-            work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyn
+            work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyN
          enddo
          enddo
-         ! extrapolate to obtain dyn along j=ny_global
+         ! extrapolate to obtain dyN along j=ny_global
          if (ny_global > 1) then
             do i = 1, nx_global
                ! assume cyclic; noncyclic will be handled during scatter
                im1 = i-1
                if (i == 1) im1 = nx_global 
                work_g2(i,ny_global) = p5*(c2*work_g(i  ,ny_global-1) - work_g(i  ,ny_global-2) + &
-                                          c2*work_g(im1,ny_global-1) - work_g(im1,ny_global-2))     ! dyn
+                                          c2*work_g(im1,ny_global-1) - work_g(im1,ny_global-2))     ! dyN
             enddo
          endif
       endif
-      call scatter_global(dyn, work_g2, master_task, distrb_info, &
+      call scatter_global(dyN, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      ! dye = HTE
+      ! dyE = HTE
 
-      dye(:,:,:) = HTE(:,:,:)
+      dyE(:,:,:) = HTE(:,:,:)
 
       deallocate(work_g2)
 

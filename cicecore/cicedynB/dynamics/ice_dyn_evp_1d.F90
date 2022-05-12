@@ -31,7 +31,7 @@ module ice_dyn_evp_1d
    real(kind=dbl_kind), dimension(:), allocatable :: cdn_ocn, aiu, &
       uocn, vocn, forcex, forcey, Tbu, tarear, umassdti, fm, uarear, &
       strintx, strinty, uvel_init, vvel_init, strength, uvel, vvel, &
-      dxt, dyt, stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
+      dxT, dyT, stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
       stressm_2, stressm_3, stressm_4, stress12_1, stress12_2, &
       stress12_3, stress12_4, divu, rdg_conv, rdg_shear, shear, taubx, &
       tauby, str1, str2, str3, str4, str5, str6, str7, str8, HTE, HTN, &
@@ -123,8 +123,8 @@ contains
 
 !=======================================================================
 
-   subroutine stress_iter(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxt, &
-      dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
+   subroutine stress_iter(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxT, &
+      dyT, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
       stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
       stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
       str2, str3, str4, str5, str6, str7, str8, skiptcell)
@@ -141,7 +141,7 @@ contains
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          ee, ne, se
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
-         strength, uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1
+         strength, uvel, vvel, dxT, dyT, hte, htn, htem1, htnm1
       logical(kind=log_kind), intent(in), dimension(:) :: skiptcell
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
@@ -170,7 +170,7 @@ contains
 
 #ifdef _OPENACC
       !$acc parallel &
-      !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, hte, &
+      !$acc present(ee, ne, se, strength, uvel, vvel, dxT, dyT, hte, &
       !$acc    htn, htem1, htnm1, str1, str2, str3, str4, str5, str6, &
       !$acc    str7, str8, stressp_1, stressp_2, stressp_3, stressp_4, &
       !$acc    stressm_1, stressm_2, stressm_3, stressm_4, stress12_1, &
@@ -184,7 +184,7 @@ contains
 
          if (skiptcell(iw)) cycle
 
-         tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
+         tmparea = dxT(iw) * dyT(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
          DminTarea =  deltaminEVP * tmparea
          dxhy      = p5 * (hte(iw) - htem1(iw))
          dyhx      = p5 * (htn(iw) - htnm1(iw))
@@ -206,34 +206,34 @@ contains
          tmp_vvel_se = vvel(se(iw))
          tmp_vvel_ne = vvel(ne(iw))
          ! divergence = e_11 + e_22
-         divune = cyp * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
-                + cxp * vvel(iw)    - dxt(iw) * tmp_vvel_se
-         divunw = cym * tmp_uvel_ee + dyt(iw) * uvel(iw) &
-                + cxp * tmp_vvel_ee - dxt(iw) * tmp_vvel_ne
-         divusw = cym * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
-                + cxm * tmp_vvel_ne + dxt(iw) * tmp_vvel_ee
-         divuse = cyp * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
-                + cxm * tmp_vvel_se + dxt(iw) * vvel(iw)
+         divune = cyp * uvel(iw)    - dyT(iw) * tmp_uvel_ee &
+                + cxp * vvel(iw)    - dxT(iw) * tmp_vvel_se
+         divunw = cym * tmp_uvel_ee + dyT(iw) * uvel(iw) &
+                + cxp * tmp_vvel_ee - dxT(iw) * tmp_vvel_ne
+         divusw = cym * tmp_uvel_ne + dyT(iw) * tmp_uvel_se &
+                + cxm * tmp_vvel_ne + dxT(iw) * tmp_vvel_ee
+         divuse = cyp * tmp_uvel_se - dyT(iw) * tmp_uvel_ne &
+                + cxm * tmp_vvel_se + dxT(iw) * vvel(iw)
 
          ! tension strain rate = e_11 - e_22
-         tensionne = -cym * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
-                   +  cxm * vvel(iw)    + dxt(iw) * tmp_vvel_se
-         tensionnw = -cyp * tmp_uvel_ee + dyt(iw) * uvel(iw) &
-                   +  cxm * tmp_vvel_ee + dxt(iw) * tmp_vvel_ne
-         tensionsw = -cyp * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
-                   +  cxp * tmp_vvel_ne - dxt(iw) * tmp_vvel_ee
-         tensionse = -cym * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
-                   +  cxp * tmp_vvel_se - dxt(iw) * vvel(iw)
+         tensionne = -cym * uvel(iw)    - dyT(iw) * tmp_uvel_ee &
+                   +  cxm * vvel(iw)    + dxT(iw) * tmp_vvel_se
+         tensionnw = -cyp * tmp_uvel_ee + dyT(iw) * uvel(iw) &
+                   +  cxm * tmp_vvel_ee + dxT(iw) * tmp_vvel_ne
+         tensionsw = -cyp * tmp_uvel_ne + dyT(iw) * tmp_uvel_se &
+                   +  cxp * tmp_vvel_ne - dxT(iw) * tmp_vvel_ee
+         tensionse = -cym * tmp_uvel_se - dyT(iw) * tmp_uvel_ne &
+                   +  cxp * tmp_vvel_se - dxT(iw) * vvel(iw)
 
          ! shearing strain rate = 2 * e_12
-         shearne = -cym * vvel(iw)    - dyt(iw) * tmp_vvel_ee &
-                 -  cxm * uvel(iw)    - dxt(iw) * tmp_uvel_se
-         shearnw = -cyp * tmp_vvel_ee + dyt(iw) * vvel(iw) &
-                 -  cxm * tmp_uvel_ee - dxt(iw) * tmp_uvel_ne
-         shearsw = -cyp * tmp_vvel_ne + dyt(iw) * tmp_vvel_se &
-                 -  cxp * tmp_uvel_ne + dxt(iw) * tmp_uvel_ee
-         shearse = -cym * tmp_vvel_se - dyt(iw) * tmp_vvel_ne &
-                 -  cxp * tmp_uvel_se + dxt(iw) * uvel(iw)
+         shearne = -cym * vvel(iw)    - dyT(iw) * tmp_vvel_ee &
+                 -  cxm * uvel(iw)    - dxT(iw) * tmp_uvel_se
+         shearnw = -cyp * tmp_vvel_ee + dyT(iw) * vvel(iw) &
+                 -  cxm * tmp_uvel_ee - dxT(iw) * tmp_uvel_ne
+         shearsw = -cyp * tmp_vvel_ne + dyT(iw) * tmp_vvel_se &
+                 -  cxp * tmp_uvel_ne + dxT(iw) * tmp_uvel_ee
+         shearse = -cym * tmp_vvel_se - dyT(iw) * tmp_vvel_ne &
+                 -  cxp * tmp_uvel_se + dxT(iw) * uvel(iw)
 
          ! Delta (in the denominator of zeta and eta)
          Deltane = sqrt(divune**2 + ecci * (tensionne**2 + shearne**2))
@@ -326,17 +326,17 @@ contains
          csig12sw = p222 * stress12_3(iw) + ssig122 + p055 * stress12_1(iw)
          csig12se = p222 * stress12_4(iw) + ssig121 + p055 * stress12_2(iw)
 
-         str12ew = p5 * dxt(iw) * (p333 * ssig12e + p166 * ssig12w)
-         str12we = p5 * dxt(iw) * (p333 * ssig12w + p166 * ssig12e)
-         str12ns = p5 * dyt(iw) * (p333 * ssig12n + p166 * ssig12s)
-         str12sn = p5 * dyt(iw) * (p333 * ssig12s + p166 * ssig12n)
+         str12ew = p5 * dxT(iw) * (p333 * ssig12e + p166 * ssig12w)
+         str12we = p5 * dxT(iw) * (p333 * ssig12w + p166 * ssig12e)
+         str12ns = p5 * dyT(iw) * (p333 * ssig12n + p166 * ssig12s)
+         str12sn = p5 * dyT(iw) * (p333 * ssig12s + p166 * ssig12n)
 
          !--------------------------------------------------------------
          ! for dF/dx (u momentum)
          !--------------------------------------------------------------
 
-         strp_tmp = p25 * dyt(iw) * (p333 * ssigpn + p166 * ssigps)
-         strm_tmp = p25 * dyt(iw) * (p333 * ssigmn + p166 * ssigms)
+         strp_tmp = p25 * dyT(iw) * (p333 * ssigpn + p166 * ssigps)
+         strm_tmp = p25 * dyT(iw) * (p333 * ssigmn + p166 * ssigms)
 
          ! northeast (i,j)
          str1(iw) = -strp_tmp - strm_tmp - str12ew &
@@ -346,8 +346,8 @@ contains
          str2(iw) = strp_tmp + strm_tmp - str12we &
                   + dxhy * (-csigpnw + csigmnw) + dyhx * csig12nw
 
-         strp_tmp = p25 * dyt(iw) * (p333 * ssigps + p166 * ssigpn)
-         strm_tmp = p25 * dyt(iw) * (p333 * ssigms + p166 * ssigmn)
+         strp_tmp = p25 * dyT(iw) * (p333 * ssigps + p166 * ssigpn)
+         strm_tmp = p25 * dyT(iw) * (p333 * ssigms + p166 * ssigmn)
 
          ! southeast (i,j+1)
          str3(iw) = -strp_tmp - strm_tmp + str12ew &
@@ -361,8 +361,8 @@ contains
          ! for dF/dy (v momentum)
          !--------------------------------------------------------------
 
-         strp_tmp = p25 * dxt(iw) * (p333 * ssigpe + p166 * ssigpw)
-         strm_tmp = p25 * dxt(iw) * (p333 * ssigme + p166 * ssigmw)
+         strp_tmp = p25 * dxT(iw) * (p333 * ssigpe + p166 * ssigpw)
+         strm_tmp = p25 * dxT(iw) * (p333 * ssigme + p166 * ssigmw)
 
          ! northeast (i,j)
          str5(iw) = -strp_tmp + strm_tmp - str12ns &
@@ -372,8 +372,8 @@ contains
          str6(iw) = strp_tmp - strm_tmp - str12sn &
                   - dyhx * (csigpse + csigmse) + dxhy * csig12se
 
-         strp_tmp = p25 * dxt(iw) * (p333 * ssigpw + p166 * ssigpe)
-         strm_tmp = p25 * dxt(iw) * (p333 * ssigmw + p166 * ssigme)
+         strp_tmp = p25 * dxT(iw) * (p333 * ssigpw + p166 * ssigpe)
+         strm_tmp = p25 * dxT(iw) * (p333 * ssigmw + p166 * ssigme)
 
          ! northwest (i+1,j)
          str7(iw) = -strp_tmp + strm_tmp + str12ns &
@@ -392,8 +392,8 @@ contains
 
 !=======================================================================
 
-   subroutine stress_last(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxt, &
-      dyt, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
+   subroutine stress_last(NA_len, ee, ne, se, lb, ub, uvel, vvel, dxT, &
+      dyT, hte, htn, htem1, htnm1, strength, stressp_1, stressp_2, &
       stressp_3, stressp_4, stressm_1, stressm_2, stressm_3, &
       stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, str1, &
       str2, str3, str4, str5, str6, str7, str8, skiptcell, tarear, divu, &
@@ -411,7 +411,7 @@ contains
       integer(kind=int_kind), dimension(:), intent(in), contiguous :: &
          ee, ne, se
       real(kind=dbl_kind), dimension(:), intent(in), contiguous :: &
-         strength, uvel, vvel, dxt, dyt, hte, htn, htem1, htnm1, tarear
+         strength, uvel, vvel, dxT, dyT, hte, htn, htem1, htnm1, tarear
       logical(kind=log_kind), intent(in), dimension(:) :: skiptcell
       real(kind=dbl_kind), dimension(:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
@@ -441,7 +441,7 @@ contains
 
 #ifdef _OPENACC
       !$acc parallel &
-      !$acc present(ee, ne, se, strength, uvel, vvel, dxt, dyt, hte, &
+      !$acc present(ee, ne, se, strength, uvel, vvel, dxT, dyT, hte, &
       !$acc    htn, htem1, htnm1, str1, str2, str3, str4, str5, str6, &
       !$acc    str7, str8, stressp_1, stressp_2, stressp_3, stressp_4, &
       !$acc    stressm_1, stressm_2, stressm_3, stressm_4, stress12_1, &
@@ -456,7 +456,7 @@ contains
 
          if (skiptcell(iw)) cycle
 
-         tmparea = dxt(iw) * dyt(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
+         tmparea = dxT(iw) * dyT(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
          DminTarea = deltaminEVP * tmparea
          dxhy      = p5 * (hte(iw) - htem1(iw))
          dyhx      = p5 * (htn(iw) - htnm1(iw))
@@ -479,34 +479,34 @@ contains
          tmp_vvel_ne = vvel(ne(iw))
 
          ! divergence = e_11 + e_22
-         divune = cyp * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
-                + cxp * vvel(iw)    - dxt(iw) * tmp_vvel_se
-         divunw = cym * tmp_uvel_ee + dyt(iw) * uvel(iw) &
-                + cxp * tmp_vvel_ee - dxt(iw) * tmp_vvel_ne
-         divusw = cym * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
-                + cxm * tmp_vvel_ne + dxt(iw) * tmp_vvel_ee
-         divuse = cyp * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
-                + cxm * tmp_vvel_se + dxt(iw) * vvel(iw)
+         divune = cyp * uvel(iw)    - dyT(iw) * tmp_uvel_ee &
+                + cxp * vvel(iw)    - dxT(iw) * tmp_vvel_se
+         divunw = cym * tmp_uvel_ee + dyT(iw) * uvel(iw) &
+                + cxp * tmp_vvel_ee - dxT(iw) * tmp_vvel_ne
+         divusw = cym * tmp_uvel_ne + dyT(iw) * tmp_uvel_se &
+                + cxm * tmp_vvel_ne + dxT(iw) * tmp_vvel_ee
+         divuse = cyp * tmp_uvel_se - dyT(iw) * tmp_uvel_ne &
+                + cxm * tmp_vvel_se + dxT(iw) * vvel(iw)
 
          ! tension strain rate = e_11 - e_22
-         tensionne = -cym * uvel(iw)    - dyt(iw) * tmp_uvel_ee &
-                   +  cxm * vvel(iw)    + dxt(iw) * tmp_vvel_se
-         tensionnw = -cyp * tmp_uvel_ee + dyt(iw) * uvel(iw) &
-                   +  cxm * tmp_vvel_ee + dxt(iw) * tmp_vvel_ne
-         tensionsw = -cyp * tmp_uvel_ne + dyt(iw) * tmp_uvel_se &
-                   +  cxp * tmp_vvel_ne - dxt(iw) * tmp_vvel_ee
-         tensionse = -cym * tmp_uvel_se - dyt(iw) * tmp_uvel_ne &
-                   +  cxp * tmp_vvel_se - dxt(iw) * vvel(iw)
+         tensionne = -cym * uvel(iw)    - dyT(iw) * tmp_uvel_ee &
+                   +  cxm * vvel(iw)    + dxT(iw) * tmp_vvel_se
+         tensionnw = -cyp * tmp_uvel_ee + dyT(iw) * uvel(iw) &
+                   +  cxm * tmp_vvel_ee + dxT(iw) * tmp_vvel_ne
+         tensionsw = -cyp * tmp_uvel_ne + dyT(iw) * tmp_uvel_se &
+                   +  cxp * tmp_vvel_ne - dxT(iw) * tmp_vvel_ee
+         tensionse = -cym * tmp_uvel_se - dyT(iw) * tmp_uvel_ne &
+                   +  cxp * tmp_vvel_se - dxT(iw) * vvel(iw)
 
          ! shearing strain rate = 2 * e_12
-         shearne = -cym * vvel(iw)    - dyt(iw) * tmp_vvel_ee &
-                 -  cxm * uvel(iw)    - dxt(iw) * tmp_uvel_se
-         shearnw = -cyp * tmp_vvel_ee + dyt(iw) * vvel(iw) &
-                 -  cxm * tmp_uvel_ee - dxt(iw) * tmp_uvel_ne
-         shearsw = -cyp * tmp_vvel_ne + dyt(iw) * tmp_vvel_se &
-                 -  cxp * tmp_uvel_ne + dxt(iw) * tmp_uvel_ee
-         shearse = -cym * tmp_vvel_se - dyt(iw) * tmp_vvel_ne &
-                 -  cxp * tmp_uvel_se + dxt(iw) * uvel(iw)
+         shearne = -cym * vvel(iw)    - dyT(iw) * tmp_vvel_ee &
+                 -  cxm * uvel(iw)    - dxT(iw) * tmp_uvel_se
+         shearnw = -cyp * tmp_vvel_ee + dyT(iw) * vvel(iw) &
+                 -  cxm * tmp_uvel_ee - dxT(iw) * tmp_uvel_ne
+         shearsw = -cyp * tmp_vvel_ne + dyT(iw) * tmp_vvel_se &
+                 -  cxp * tmp_uvel_ne + dxT(iw) * tmp_uvel_ee
+         shearse = -cym * tmp_vvel_se - dyT(iw) * tmp_vvel_ne &
+                 -  cxp * tmp_uvel_se + dxT(iw) * uvel(iw)
 
          ! Delta (in the denominator of zeta and eta)
          Deltane = sqrt(divune**2 + ecci * (tensionne**2 + shearne**2))
@@ -613,17 +613,17 @@ contains
          csig12sw = p222 * stress12_3(iw) + ssig122 + p055 * stress12_1(iw)
          csig12se = p222 * stress12_4(iw) + ssig121 + p055 * stress12_2(iw)
 
-         str12ew = p5 * dxt(iw) * (p333 * ssig12e + p166 * ssig12w)
-         str12we = p5 * dxt(iw) * (p333 * ssig12w + p166 * ssig12e)
-         str12ns = p5 * dyt(iw) * (p333 * ssig12n + p166 * ssig12s)
-         str12sn = p5 * dyt(iw) * (p333 * ssig12s + p166 * ssig12n)
+         str12ew = p5 * dxT(iw) * (p333 * ssig12e + p166 * ssig12w)
+         str12we = p5 * dxT(iw) * (p333 * ssig12w + p166 * ssig12e)
+         str12ns = p5 * dyT(iw) * (p333 * ssig12n + p166 * ssig12s)
+         str12sn = p5 * dyT(iw) * (p333 * ssig12s + p166 * ssig12n)
 
          !--------------------------------------------------------------
          ! for dF/dx (u momentum)
          !--------------------------------------------------------------
 
-         strp_tmp = p25 * dyt(iw) * (p333 * ssigpn + p166 * ssigps)
-         strm_tmp = p25 * dyt(iw) * (p333 * ssigmn + p166 * ssigms)
+         strp_tmp = p25 * dyT(iw) * (p333 * ssigpn + p166 * ssigps)
+         strm_tmp = p25 * dyT(iw) * (p333 * ssigmn + p166 * ssigms)
 
          ! northeast (i,j)
          str1(iw) = -strp_tmp - strm_tmp - str12ew &
@@ -633,8 +633,8 @@ contains
          str2(iw) = strp_tmp + strm_tmp - str12we &
                   + dxhy * (-csigpnw + csigmnw) + dyhx * csig12nw
 
-         strp_tmp = p25 * dyt(iw) * (p333 * ssigps + p166 * ssigpn)
-         strm_tmp = p25 * dyt(iw) * (p333 * ssigms + p166 * ssigmn)
+         strp_tmp = p25 * dyT(iw) * (p333 * ssigps + p166 * ssigpn)
+         strm_tmp = p25 * dyT(iw) * (p333 * ssigms + p166 * ssigmn)
 
          ! southeast (i,j+1)
          str3(iw) = -strp_tmp - strm_tmp + str12ew &
@@ -648,8 +648,8 @@ contains
          ! for dF/dy (v momentum)
          !--------------------------------------------------------------
 
-         strp_tmp = p25 * dxt(iw) * (p333 * ssigpe + p166 * ssigpw)
-         strm_tmp = p25 * dxt(iw) * (p333 * ssigme + p166 * ssigmw)
+         strp_tmp = p25 * dxT(iw) * (p333 * ssigpe + p166 * ssigpw)
+         strm_tmp = p25 * dxT(iw) * (p333 * ssigme + p166 * ssigmw)
 
          ! northeast (i,j)
          str5(iw) = -strp_tmp + strm_tmp - str12ns &
@@ -659,8 +659,8 @@ contains
          str6(iw) = strp_tmp - strm_tmp - str12sn &
                   - dyhx * (csigpse + csigmse) + dxhy * csig12se
 
-         strp_tmp = p25 * dxt(iw) * (p333 * ssigpw + p166 * ssigpe)
-         strm_tmp = p25 * dxt(iw) * (p333 * ssigmw + p166 * ssigme)
+         strp_tmp = p25 * dxT(iw) * (p333 * ssigpw + p166 * ssigpe)
+         strm_tmp = p25 * dxT(iw) * (p333 * ssigmw + p166 * ssigme)
 
          ! northwest (i+1,j)
          str7(iw) = -strp_tmp + strm_tmp + str12ns &
@@ -937,7 +937,7 @@ contains
          ! grid distances and their "-1 neighbours"
          HTE(1:na), HTN(1:na), HTEm1(1:na), HTNm1(1:na), &
          ! T cells
-         strength(1:na), dxt(1:na), dyt(1:na), tarear(1:na), &
+         strength(1:na), dxT(1:na), dyT(1:na), tarear(1:na), &
          stressp_1(1:na), stressp_2(1:na), stressp_3(1:na), &
          stressp_4(1:na), stressm_1(1:na), stressm_2(1:na), &
          stressm_3(1:na), stressm_4(1:na), stress12_1(1:na), &
@@ -998,7 +998,7 @@ contains
          ! grid distances and their "-1 neighbours"
          HTE, HTN, HTEm1, HTNm1, &
          ! T cells
-         strength, dxt, dyt, tarear, stressp_1, stressp_2, stressp_3, &
+         strength, dxT, dyT, tarear, stressp_1, stressp_2, stressp_3, &
          stressp_4, stressm_1, stressm_2, stressm_3, stressm_4, &
          stress12_1, stress12_2, stress12_3, stress12_4, str1, str2, &
          str3, str4, str5, str6, str7, str8, divu, rdg_conv, &
@@ -1021,7 +1021,7 @@ contains
       I_icetmask, I_iceumask, I_cdn_ocn, I_aiu, I_uocn, I_vocn, &
       I_forcex, I_forcey, I_Tbu, I_umassdti, I_fm, I_uarear, I_tarear, &
       I_strintx, I_strinty, I_uvel_init, I_vvel_init, I_strength, &
-      I_uvel, I_vvel, I_dxt, I_dyt, I_stressp_1, I_stressp_2, &
+      I_uvel, I_vvel, I_dxT, I_dyT, I_stressp_1, I_stressp_2, &
       I_stressp_3, I_stressp_4, I_stressm_1, I_stressm_2, I_stressm_3, &
       I_stressm_4, I_stress12_1, I_stress12_2, I_stress12_3, &
       I_stress12_4)
@@ -1042,8 +1042,8 @@ contains
       real(kind=dbl_kind), dimension(nx, ny, nblk), intent(in) :: &
          I_cdn_ocn, I_aiu, I_uocn, I_vocn, I_forcex, I_forcey, I_Tbu, &
          I_umassdti, I_fm, I_uarear, I_tarear, I_strintx, I_strinty, &
-         I_uvel_init, I_vvel_init, I_strength, I_uvel, I_vvel, I_dxt, &
-         I_dyt, I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4, &
+         I_uvel_init, I_vvel_init, I_strength, I_uvel, I_vvel, I_dxT, &
+         I_dyT, I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4, &
          I_stressm_1, I_stressm_2, I_stressm_3, I_stressm_4, &
          I_stress12_1, I_stress12_2, I_stress12_3, I_stress12_4
 
@@ -1056,8 +1056,8 @@ contains
       real(kind=dbl_kind), dimension(nx_glob, ny_glob) :: &
          G_cdn_ocn, G_aiu, G_uocn, G_vocn, G_forcex, G_forcey, G_Tbu, &
          G_umassdti, G_fm, G_uarear, G_tarear, G_strintx, G_strinty, &
-         G_uvel_init, G_vvel_init, G_strength, G_uvel, G_vvel, G_dxt, &
-         G_dyt, G_stressp_1, G_stressp_2, G_stressp_3, G_stressp_4, &
+         G_uvel_init, G_vvel_init, G_strength, G_uvel, G_vvel, G_dxT, &
+         G_dyT, G_stressp_1, G_stressp_2, G_stressp_3, G_stressp_4, &
          G_stressm_1, G_stressm_2, G_stressm_3, G_stressm_4, &
          G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4
 
@@ -1084,8 +1084,8 @@ contains
       call gather_global_ext(G_strength,   I_strength,   master_task, distrb_info    )
       call gather_global_ext(G_uvel,       I_uvel,       master_task, distrb_info, c0)
       call gather_global_ext(G_vvel,       I_vvel,       master_task, distrb_info, c0)
-      call gather_global_ext(G_dxt,        I_dxt,        master_task, distrb_info    )
-      call gather_global_ext(G_dyt,        I_dyt,        master_task, distrb_info    )
+      call gather_global_ext(G_dxT,        I_dxT,        master_task, distrb_info    )
+      call gather_global_ext(G_dyT,        I_dyT,        master_task, distrb_info    )
       call gather_global_ext(G_stressp_1,  I_stressp_1,  master_task, distrb_info    )
       call gather_global_ext(G_stressp_2,  I_stressp_2,  master_task, distrb_info    )
       call gather_global_ext(G_stressp_3,  I_stressp_3,  master_task, distrb_info    )
@@ -1117,7 +1117,7 @@ contains
             G_HTE, G_HTN, G_cdn_ocn, G_aiu, G_uocn, G_vocn, G_forcex, &
             G_forcey, G_Tbu, G_umassdti, G_fm, G_uarear, G_tarear, &
             G_strintx, G_strinty, G_uvel_init, G_vvel_init, &
-            G_strength, G_uvel, G_vvel, G_dxt, G_dyt, G_stressp_1, &
+            G_strength, G_uvel, G_vvel, G_dxT, G_dyT, G_stressp_1, &
             G_stressp_2, G_stressp_3, G_stressp_4, G_stressm_1, &
             G_stressm_2, G_stressm_3, G_stressm_4, G_stress12_1, &
             G_stress12_2, G_stress12_3, G_stress12_4)
@@ -1298,7 +1298,7 @@ contains
          !$XXXOMP PARALLEL PRIVATE(ksub)
          do ksub = 1, ndte - 1
             call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, &
-               vvel, dxt, dyt, hte, htn, htem1, htnm1, strength, &
+               vvel, dxT, dyT, hte, htn, htem1, htnm1, strength, &
                stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, &
                stressm_2, stressm_3, stressm_4, stress12_1, &
                stress12_2, stress12_3, stress12_4, str1, str2, str3, &
@@ -1315,7 +1315,7 @@ contains
          end do
 
          call evp1d_stress(NA_len, ee, ne, se, 1, NA_len, uvel, vvel, &
-            dxt, dyt, hte, htn, htem1, htnm1, strength, stressp_1, &
+            dxT, dyT, hte, htn, htem1, htnm1, strength, stressp_1, &
             stressp_2, stressp_3, stressp_4, stressm_1, stressm_2, &
             stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, &
             stress12_4, str1, str2, str3, str4, str5, str6, str7, &
@@ -1460,8 +1460,8 @@ contains
    subroutine convert_2d_1d(nx, ny, na, navel, I_HTE, I_HTN, &
       I_cdn_ocn, I_aiu, I_uocn, I_vocn, I_forcex, I_forcey, I_Tbu, &
       I_umassdti, I_fm, I_uarear, I_tarear, I_strintx, I_strinty, &
-      I_uvel_init, I_vvel_init, I_strength, I_uvel, I_vvel, I_dxt, &
-      I_dyt, I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4, &
+      I_uvel_init, I_vvel_init, I_strength, I_uvel, I_vvel, I_dxT, &
+      I_dyT, I_stressp_1, I_stressp_2, I_stressp_3, I_stressp_4, &
       I_stressm_1, I_stressm_2, I_stressm_3, I_stressm_4, &
       I_stress12_1, I_stress12_2, I_stress12_3, I_stress12_4)
 
@@ -1472,7 +1472,7 @@ contains
          I_HTN, I_cdn_ocn, I_aiu, I_uocn, I_vocn, I_forcex, I_forcey, &
          I_Tbu, I_umassdti, I_fm, I_uarear, I_tarear, I_strintx, &
          I_strinty, I_uvel_init, I_vvel_init, I_strength, I_uvel, &
-         I_vvel, I_dxt, I_dyt, I_stressp_1, I_stressp_2, I_stressp_3, &
+         I_vvel, I_dxT, I_dyT, I_stressp_1, I_stressp_2, I_stressp_3, &
          I_stressp_4, I_stressm_1, I_stressm_2, I_stressm_3, &
          I_stressm_4, I_stress12_1, I_stress12_2, I_stress12_3, &
          I_stress12_4
@@ -1554,8 +1554,8 @@ contains
          uvel_init(iw)  = I_uvel_init(i, j)
          vvel_init(iw)  = I_vvel_init(i, j)
          strength(iw)   = I_strength(i, j)
-         dxt(iw)        = I_dxt(i, j)
-         dyt(iw)        = I_dyt(i, j)
+         dxT(iw)        = I_dxT(i, j)
+         dyT(iw)        = I_dyT(i, j)
          stressp_1(iw)  = I_stressp_1(i, j)
          stressp_2(iw)  = I_stressp_2(i, j)
          stressp_3(iw)  = I_stressp_3(i, j)
@@ -1875,8 +1875,8 @@ contains
       vvel_init(lo:up)   = c0
       uocn(lo:up)        = c0
       vocn(lo:up)        = c0
-      dxt(lo:up)         = c0
-      dyt(lo:up)         = c0
+      dxT(lo:up)         = c0
+      dyT(lo:up)         = c0
       HTE(lo:up)         = c0
       HTN(lo:up)         = c0
       HTEm1(lo:up)       = c0

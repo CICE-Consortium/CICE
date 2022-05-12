@@ -402,7 +402,7 @@
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
            f_icespd,    f_icedir   , &
-!          For now, don't allow the users to modify the CD grid quantities.
+!          For now, C and CD grid quantities are controlled by the generic (originally B-grid) namelist flag
 !          f_uvelE,     f_vvelE    , &
 !          f_icespdE,   f_icedirE  , &
 !          f_uvelN,     f_vvelN    , &

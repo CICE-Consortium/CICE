@@ -2091,7 +2091,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: nfsd
-      use ice_grid, only: tmask, lmask_n, lmask_s, dxu, dyu, grid_ice
+      use ice_grid, only: tmask, lmask_n, lmask_s, dxU, dyU, grid_ice
       use ice_calendar, only: new_year, write_history, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month
@@ -2765,8 +2765,8 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) &
-                 worka(i,j) = (rhoi*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyu(i,j,iblk) &
-                            + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyu(i,j,iblk)) &
+                 worka(i,j) = (rhoi*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
+                            + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU(i,j,iblk)) &
                             *  p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
            enddo
            enddo
@@ -2778,8 +2778,8 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) &
-                 worka(i,j) = (rhoi*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxu(i,j,iblk) &
-                            + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxu(i,j,iblk)) &
+                 worka(i,j) = (rhoi*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
+                            + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU(i,j,iblk)) &
                             *  p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
            enddo
            enddo
