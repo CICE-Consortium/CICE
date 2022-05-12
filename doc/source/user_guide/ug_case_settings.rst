@@ -401,6 +401,16 @@ thermo_nml
 dynamics_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+..
+   commented out
+   "``damping_andacc``", "integer", "damping factor for Anderson acceleration", "0"
+   "``dim_andacc``", "integer", "size of Anderson minimization matrix", "5"
+   "``fpfunc_andacc``", "``1``", "fix point function for Anderson acceleration, FMGRES(A(x),b(x))", "1"
+   "", "``2``", "fix point function for Anderson acceleration, x-A(x)x+b(x)", ""
+   "``reltol_andacc``", "real", "relative tolerance for Anderson acceleration", "1e-6"
+   "``start_andacc``", "integer", "acceleration delay factor for Anderson acceleration", "0"
+   commented out
+
 .. csv-table:: **dynamics_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -420,10 +430,8 @@ dynamics_nml
    "", "``latitude``", "coriolis variable by latitude", ""
    "", "``zero``", "zero coriolis", ""
    "``Cstar``", "real", "constant in Hibler strength formula", "20"
-   "``damping_andacc``", "integer", "damping factor for Anderson acceleration", "0"
    "``deltaminEVP``", "real", "minimum delta for viscosities", "1e-11"
    "``deltaminVP``", "real", "minimum delta for viscosities", "2e-9"
-   "``dim_andacc``", "integer", "size of Anderson minimization matrix", "5"
    "``dim_fgmres``", "integer", "maximum number of Arnoldi iterations for FGMRES solver", "50"
    "``dim_pgmres``", "integer", "maximum number of Arnoldi iterations for PGMRES preconditioner", "5"
    "``e_plasticpot``", "real", "aspect ratio of elliptical plastic potential", "2.0"
@@ -431,8 +439,6 @@ dynamics_nml
    "``elasticDamp``", "real", "elastic damping parameter", "0.36"
    "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
    "", "``shared_mem_1d``", "1d shared memory solver", ""
-   "``fpfunc_andacc``", "``1``", "fix point function for Anderson acceleration, FMGRES(A(x),b(x))", "1"
-   "", "``2``", "fix point function for Anderson acceleration, x-A(x)x+b(x)", ""
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
    "", "``0``", "dynamics OFF", ""
    "", "``1``", "EVP dynamics", ""
@@ -465,7 +471,6 @@ dynamics_nml
    "", "``ident``", "Don't use a preconditioner for the FGMRES solver", ""
    "", "``pgmres``", "Use GMRES as preconditioner for FGMRES solver", ""
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
-   "``reltol_andacc``", "real", "relative tolerance for Anderson acceleration", "1e-6"
    "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-2"
    "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
    "``reltol_pgmres``", "real", "relative tolerance for PGMRES preconditioner", "1e-6"
@@ -475,7 +480,6 @@ dynamics_nml
    "", "``probabilistic``", "probability of contact method (Dupont et al., in prep)", ""
    "``ssh_stress``", "``coupled``", "computed from coupled sea surface height gradient", "``geostrophic``"
    "", "``geostropic``", "computed from ocean velocity", ""
-   "``start_andacc``", "integer", "acceleration delay factor for Anderson acceleration", "0"
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
    "``use_mean_vrel``", "logical", "Use mean of two previous iterations for vrel in VP", "``.true.``"
    "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_strength``"
