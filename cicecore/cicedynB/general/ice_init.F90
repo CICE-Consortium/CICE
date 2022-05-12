@@ -390,7 +390,7 @@
       visc_method = 'avg_strength' ! calc viscosities at U point: avg_strength, avg_zeta
       deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
-      capping_method  = 'hibler'   ! method for capping of viscosities (hibler=Hibler 1979,kreyscher=Kreyscher2000)
+      capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
       maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
       precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50          ! size of fgmres Krylov subspace
@@ -1190,14 +1190,14 @@
 
       capping = -9.99e30
       if (kdyn == 1 .or. kdyn == 3) then
-         if (capping_method == 'hibler') then
+         if (capping_method == 'max') then
             capping = c1
-         elseif (capping_method == 'kreyscher') then
+         elseif (capping_method == 'sum') then
             capping = c0
          else
             if (my_task == master_task) then
                write(nu_diag,*) subname//' ERROR: invalid method for capping viscosities'
-               write(nu_diag,*) subname//' ERROR: capping_method should be equal to hibler or kreyscher'
+               write(nu_diag,*) subname//' ERROR: capping_method should be equal to max or sum'
             endif
             abort_list = trim(abort_list)//":45"
          endif

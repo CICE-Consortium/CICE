@@ -1,5 +1,5 @@
 kdyn            = 3
 algo_nonlin     = 'anderson'
 use_mean_vrel   = .false.
-capping_method  = 'hibler'
+capping_method  = 'max'
 
