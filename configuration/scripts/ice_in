@@ -271,7 +271,7 @@
     fyear_init      = 2005
     ycycle          = 1
     atm_data_format = 'bin'
-    atm_data_dir    = '/glade/u/home/tcraig/cice_data/'
+    atm_data_dir    = 'unknown_atm_data_dir'
     bgc_data_dir    = 'unknown_bgc_data_dir'
     ocn_data_format = 'bin'
     ocn_data_dir    = '/unknown_ocn_data_dir'
