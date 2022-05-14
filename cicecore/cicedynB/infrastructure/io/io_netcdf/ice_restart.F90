@@ -10,6 +10,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_kinds_mod
 #ifdef USE_NETCDF
       use netcdf
@@ -27,7 +28,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       integer (kind=int_kind) :: ncid
 
@@ -44,7 +46,6 @@
 
       use ice_calendar, only: msec, mmonth, mday, myear, &
                              istep0, istep1, npt
-      use ice_communicate, only: my_task, master_task
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -131,12 +132,12 @@
 
       use ice_blocks, only: nghost
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
+      use ice_grid, only: grid_ice
 
       character(len=char_len_long), intent(in), optional :: filename_spec
 
@@ -246,6 +247,18 @@
 
          call define_rest_field(ncid,'uvel',dims)
          call define_rest_field(ncid,'vvel',dims)
+
+         if (grid_ice == 'CD') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelE',dims)
+            call define_rest_field(ncid,'uvelN',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
+         
+         if (grid_ice == 'C') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
          
          if (restart_coszen) call define_rest_field(ncid,'coszen',dims)
 
@@ -274,6 +287,18 @@
          call define_rest_field(ncid,'stress12_4',dims)
 
          call define_rest_field(ncid,'iceumask',dims)
+
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            call define_rest_field(ncid,'stresspT' ,dims)
+            call define_rest_field(ncid,'stressmT' ,dims)
+            call define_rest_field(ncid,'stress12T',dims)
+            call define_rest_field(ncid,'stresspU' ,dims)
+            call define_rest_field(ncid,'stressmU' ,dims)
+            call define_rest_field(ncid,'stress12U',dims)
+            call define_rest_field(ncid,'icenmask',dims)
+            call define_rest_field(ncid,'iceemask',dims)
+         endif
+
 
          if (oceanmixed_ice) then
             call define_rest_field(ncid,'sst',dims)
@@ -815,7 +840,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate
-      use ice_communicate, only: my_task, master_task
 
       integer (kind=int_kind) :: status
 
@@ -860,6 +884,35 @@
 #endif
         
       end subroutine define_rest_field
+
+!=======================================================================
+
+! Inquire field existance
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      integer (kind=int_kind) :: status, varid
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .false.
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+         status = nf90_inq_varid(ncid,trim(vname),varid)
+         if (status == nf90_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end function query_field
 
 !=======================================================================
 

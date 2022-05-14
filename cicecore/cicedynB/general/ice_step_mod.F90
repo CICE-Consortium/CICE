@@ -37,7 +37,7 @@
 
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 step_snow, prep_radiation, step_radiation, ocean_mixed_layer, &
-                update_state, biogeochemistry, save_init, step_dyn_wave
+                update_state, biogeochemistry, step_dyn_wave, step_prep
 
 !=======================================================================
 
@@ -51,6 +51,8 @@
       use ice_state, only: aice, aicen, aice_init, aicen_init, &
           vicen, vicen_init, vsnon, vsnon_init
 
+      character(len=*), parameter :: subname = '(save_init)'
+
       !-----------------------------------------------------------------
       ! Save the ice area passed to the coupler (so that history fields
       !  can be made consistent with coupler fields).
@@ -63,6 +65,27 @@
          vsnon_init = vsnon
 
       end subroutine save_init
+
+!=======================================================================
+
+      subroutine step_prep
+! prep for step, called outside nblock loop
+
+      use ice_flux, only: uatm, vatm, uatmT, vatmT
+      use ice_grid, only: grid_atm_dynu, grid_atm_dynv, grid_average_X2Y
+
+      character(len=*), parameter :: subname = '(step_prep)'
+
+      ! Save initial state
+
+      call save_init
+
+      ! Compute uatmT, vatmT
+
+      call grid_average_X2Y('S',uatm,grid_atm_dynu,uatmT,'T')
+      call grid_average_X2Y('S',vatm,grid_atm_dynv,vatmT,'T')
+
+      end subroutine step_prep
 
 !=======================================================================
 !
@@ -170,7 +193,7 @@
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
-          meltsn, melttn, meltbn, congeln, snoicen, uatm, vatm, fside, &
+          meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, fsloss, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
@@ -374,8 +397,8 @@
                       aeroice      = aeroice     (:,:,:),      &
                       isosno       = isosno      (:,:),        &
                       isoice       = isoice      (:,:),        &
-                      uatm         = uatm        (i,j,  iblk), &
-                      vatm         = vatm        (i,j,  iblk), &
+                      uatm         = uatmT       (i,j,  iblk), &
+                      vatm         = vatmT       (i,j,  iblk), &
                       wind         = wind        (i,j,  iblk), &
                       zlvl         = zlvl        (i,j,  iblk), &
                       zlvs         = zlvs        (i,j,  iblk), &
@@ -1383,7 +1406,7 @@
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
       use ice_blocks, only: nx_block, ny_block
-      use ice_flux, only: sst, Tf, Qa, uatm, vatm, wind, potT, rhoa, zlvl, &
+      use ice_flux, only: sst, Tf, Qa, uatmT, vatmT, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
            qdp, hmix, strairx_ocn, strairy_ocn, Tref_ocn, Qref_ocn
@@ -1466,8 +1489,8 @@
             call icepack_atm_boundary(sfctype = 'ocn',    &
                          Tsf     = sst        (i,j,iblk), &    
                          potT    = potT       (i,j,iblk), &
-                         uatm    = uatm       (i,j,iblk), &   
-                         vatm    = vatm       (i,j,iblk), &   
+                         uatm    = uatmT      (i,j,iblk), &
+                         vatm    = vatmT      (i,j,iblk), &
                          wind    = wind       (i,j,iblk), &   
                          zlvl    = zlvl       (i,j,iblk), &   
                          Qa      = Qa         (i,j,iblk), &     

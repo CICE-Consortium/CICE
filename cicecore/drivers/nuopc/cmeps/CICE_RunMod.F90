@@ -196,7 +196,7 @@
          endif
 #endif
 
-         call save_init
+         call step_prep
 
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics

@@ -120,9 +120,9 @@
          avail_hist_fields(max_avail_hist_fields)
 
       integer (kind=int_kind), parameter, public :: &
-         nvar = 12              , & ! number of grid fields that can be written
+         nvar_grd = 21          , & ! number of grid fields that can be written
                                     !   excluding grid vertices
-         nvarz = 6                  ! number of category/vertical grid fields written
+         nvar_grdz = 6              ! number of category/vertical grid fields written
 
       integer (kind=int_kind), public :: &
          ncat_hist              , & ! number of thickness categories written <= ncat
@@ -152,32 +152,52 @@
          avgct(max_nstrm)   ! average sample counter
 
       logical (kind=log_kind), public :: &
-         igrd (nvar), &        ! true if grid field is written to output file
-         igrdz(nvarz)          ! true if category/vertical grid field is written
+         igrd (nvar_grd), &    ! true if grid field is written to output file
+         igrdz(nvar_grdz)      ! true if category/vertical grid field is written
 
       character (len=25), public, parameter :: &
          tcstr = 'area: tarea'          , & ! vcellmeas for T cell quantities
          ucstr = 'area: uarea'          , & ! vcellmeas for U cell quantities
+         ncstr = 'area: narea'          , & ! vcellmeas for N cell quantities
+         ecstr = 'area: earea'          , & ! vcellmeas for E cell quantities
          tstr2D  = 'TLON TLAT time'     , & ! vcoord for T cell quantities, 2D
          ustr2D  = 'ULON ULAT time'     , & ! vcoord for U cell quantities, 2D
+         nstr2D  = 'NLON NLAT time'     , & ! vcoord for N cell quantities, 2D
+         estr2D  = 'ELON ELAT time'     , & ! vcoord for E cell quantities, 2D
          tstr3Dz = 'TLON TLAT VGRDi time',& ! vcoord for T cell quantities, 3D
          ustr3Dz = 'ULON ULAT VGRDi time',& ! vcoord for U cell quantities, 3D
+         nstr3Dz = 'NLON NLAT VGRDi time',& ! vcoord for N cell quantities, 3D
+         estr3Dz = 'ELON ELAT VGRDi time',& ! vcoord for E cell quantities, 3D
          tstr3Dc = 'TLON TLAT NCAT  time',& ! vcoord for T cell quantities, 3D
          ustr3Dc = 'ULON ULAT NCAT  time',& ! vcoord for U cell quantities, 3D
+         nstr3Dc = 'NLON NLAT NCAT  time',& ! vcoord for N cell quantities, 3D
+         estr3Dc = 'ELON ELAT NCAT  time',& ! vcoord for E cell quantities, 3D
          tstr3Db = 'TLON TLAT VGRDb time',& ! vcoord for T cell quantities, 3D
          ustr3Db = 'ULON ULAT VGRDb time',& ! vcoord for U cell quantities, 3D
+         nstr3Db = 'NLON NLAT VGRDb time',& ! vcoord for N cell quantities, 3D
+         estr3Db = 'ELON ELAT VGRDb time',& ! vcoord for E cell quantities, 3D
          tstr3Da = 'TLON TLAT VGRDa time',& ! vcoord for T cell quantities, 3D
          ustr3Da = 'ULON ULAT VGRDa time',& ! vcoord for U cell quantities, 3D
+         nstr3Da = 'NLON NLAT VGRDa time',& ! vcoord for N cell quantities, 3D
+         estr3Da = 'ELON ELAT VGRDa time',& ! vcoord for E cell quantities, 3D
          tstr3Df = 'TLON TLAT NFSD  time',& ! vcoord for T cell quantities, 3D
          ustr3Df = 'ULON ULAT NFSD  time',& ! vcoord for U cell quantities, 3D
+         nstr3Df = 'NLON NLAT NFSD  time',& ! vcoord for N cell quantities, 3D
+         estr3Df = 'ELON ELAT NFSD  time',& ! vcoord for E cell quantities, 3D
 
 !ferret
          tstr4Di = 'TLON TLAT VGRDi NCAT', & ! vcoord for T cell, 4D, ice
          ustr4Di = 'ULON ULAT VGRDi NCAT', & ! vcoord for U cell, 4D, ice
+         nstr4Di = 'NLON NLAT VGRDi NCAT', & ! vcoord for N cell, 4D, ice
+         estr4Di = 'ELON ELAT VGRDi NCAT', & ! vcoord for E cell, 4D, ice
          tstr4Ds = 'TLON TLAT VGRDs NCAT', & ! vcoord for T cell, 4D, snow
          ustr4Ds = 'ULON ULAT VGRDs NCAT', & ! vcoord for U cell, 4D, snow
+         nstr4Ds = 'NLON NLAT VGRDs NCAT', & ! vcoord for N cell, 4D, snow
+         estr4Ds = 'ELON ELAT VGRDs NCAT', & ! vcoord for E cell, 4D, snow
          tstr4Df = 'TLON TLAT NFSD  NCAT', & ! vcoord for T cell, 4D, fsd
-         ustr4Df = 'ULON ULAT NFSD  NCAT'    ! vcoord for U cell, 4D, fsd
+         ustr4Df = 'ULON ULAT NFSD  NCAT', & ! vcoord for U cell, 4D, fsd
+         nstr4Df = 'NLON NLAT NFSD  NCAT', & ! vcoord for N cell, 4D, fsd
+         estr4Df = 'ELON ELAT NFSD  NCAT'    ! vcoord for E cell, 4D, fsd
 !ferret
 !         tstr4Di  = 'TLON TLAT VGRDi NCAT time', & ! ferret can not handle time 
 !         ustr4Di  = 'ULON ULAT VGRDi NCAT time', & ! index on 4D variables.
@@ -193,10 +213,15 @@
       !---------------------------------------------------------------
 
       logical (kind=log_kind), public :: &
-           f_tmask     = .true., f_blkmask    = .true., &
+           f_tmask     = .true., f_umask      = .true., &
+           f_nmask     = .true., f_emask      = .true., &
+           f_blkmask   = .true., &
            f_tarea     = .true., f_uarea      = .true., &
+           f_narea     = .true., f_earea      = .true., &
            f_dxt       = .true., f_dyt        = .true., &
            f_dxu       = .true., f_dyu        = .true., &
+           f_dxn       = .true., f_dyn        = .true., &
+           f_dxe       = .true., f_dye        = .true., &
            f_HTN       = .true., f_HTE        = .true., &
            f_ANGLE     = .true., f_ANGLET     = .true., &
            f_bounds    = .true., f_NCAT       = .true., &
@@ -210,6 +235,11 @@
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
            f_uvel      = 'm', f_vvel       = 'm', &
+           f_icespd    = 'm', f_icedir     = 'm', &
+           f_uvelE     = 'x', f_vvelE      = 'x', &
+           f_icespdE   = 'x', f_icedirE    = 'x', &
+           f_uvelN     = 'x', f_vvelN      = 'x', &
+           f_icespdN   = 'x', f_icedirN    = 'x', &
            f_uatm      = 'm', f_vatm       = 'm', &
            f_atmspd    = 'm', f_atmdir     = 'm', &
            f_fswup     = 'm', &
@@ -250,6 +280,18 @@
            f_strocnx   = 'm', f_strocny    = 'm', &
            f_strintx   = 'm', f_strinty    = 'm', &
            f_taubx     = 'm', f_tauby      = 'm', &
+           f_strairxN  = 'x', f_strairyN   = 'x', &
+           f_strtltxN  = 'x', f_strtltyN   = 'x', &
+           f_strcorxN  = 'x', f_strcoryN   = 'x', &
+           f_strocnxN  = 'x', f_strocnyN   = 'x', &
+           f_strintxN  = 'x', f_strintyN   = 'x', &
+           f_taubxN    = 'x', f_taubyN     = 'x', &
+           f_strairxE  = 'x', f_strairyE   = 'x', &
+           f_strtltxE  = 'x', f_strtltyE   = 'x', &
+           f_strcorxE  = 'x', f_strcoryE   = 'x', &
+           f_strocnxE  = 'x', f_strocnyE   = 'x', &
+           f_strintxE  = 'x', f_strintyE   = 'x', &
+           f_taubxE    = 'x', f_taubyE     = 'x', &
            f_strength  = 'm', &
            f_divu      = 'm', f_shear      = 'm', &
            f_sig1      = 'm', f_sig2       = 'm', &
@@ -339,10 +381,15 @@
       !---------------------------------------------------------------
 
       namelist / icefields_nml /     &
-           f_tmask    , f_blkmask  , &
+           f_tmask    , f_umask    , &
+           f_nmask    , f_emask    , &
+           f_blkmask  , &
            f_tarea    , f_uarea    , &
+           f_narea    , f_earea    , &
            f_dxt      , f_dyt      , &
            f_dxu      , f_dyu      , &
+           f_dxn      , f_dyn      , &
+           f_dxe      , f_dye      , &
            f_HTN      , f_HTE      , &
            f_ANGLE    , f_ANGLET   , &
            f_bounds   , f_NCAT     , &
@@ -354,6 +401,12 @@
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
+           f_icespd,    f_icedir   , &
+!          For now, don't allow the users to modify the CD grid quantities.
+!          f_uvelE,     f_vvelE    , &
+!          f_icespdE,   f_icedirE  , &
+!          f_uvelN,     f_vvelN    , &
+!          f_icespdN,   f_icedirN  , &
            f_uatm,      f_vatm     , &
            f_atmspd,    f_atmdir   , &
            f_fswup,     &
@@ -394,6 +447,18 @@
            f_strocnx,   f_strocny  , &
            f_strintx,   f_strinty  , &
            f_taubx,     f_tauby    , &
+!          f_strairxN,  f_strairyN , &
+!          f_strtltxN,  f_strtltyN , &
+!          f_strcorxN,  f_strcoryN , &
+!          f_strocnxN,  f_strocnyN , &
+!          f_strintxN,  f_strintyN , &
+!          f_taubxN,    f_taubyN   , &
+!          f_strairxE,  f_strairyE , &
+!          f_strtltxE,  f_strtltyE , &
+!          f_strcorxE,  f_strcoryE , &
+!          f_strocnxE,  f_strocnyE , &
+!          f_strintxE,  f_strintyE , &
+!          f_taubxE,    f_taubyE   , &
            f_strength,  &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
@@ -484,17 +549,26 @@
 
       integer (kind=int_kind), parameter, public :: &
            n_tmask      = 1,  &
-           n_blkmask    = 2,  &
-           n_tarea      = 3,  &
-           n_uarea      = 4,  &
-           n_dxt        = 5,  &
-           n_dyt        = 6,  &
-           n_dxu        = 7,  & 
-           n_dyu        = 8,  &
-           n_HTN        = 9,  &
-           n_HTE        = 10, &
-           n_ANGLE      = 11, &
-           n_ANGLET     = 12, &
+           n_umask      = 2,  &
+           n_nmask      = 3,  &
+           n_emask      = 4,  &
+           n_blkmask    = 5,  &
+           n_tarea      = 6,  &
+           n_uarea      = 7,  &
+           n_narea      = 8,  &
+           n_earea      = 9,  &
+           n_dxt        = 10, &
+           n_dyt        = 11, &
+           n_dxu        = 12, &
+           n_dyu        = 13, &
+           n_dxn        = 14, &
+           n_dyn        = 15, &
+           n_dxe        = 16, &
+           n_dye        = 17, &
+           n_HTN        = 18, &
+           n_HTE        = 19, &
+           n_ANGLE      = 20, &
+           n_ANGLET     = 21, &
 
            n_NCAT       = 1, &
            n_VGRDi      = 2, &
@@ -506,7 +580,11 @@
            n_lont_bnds  = 1, &
            n_latt_bnds  = 2, &
            n_lonu_bnds  = 3, &
-           n_latu_bnds  = 4
+           n_latu_bnds  = 4, &
+           n_lonn_bnds  = 5, &
+           n_latn_bnds  = 6, &
+           n_lone_bnds  = 7, &
+           n_late_bnds  = 8
 
       integer (kind=int_kind), dimension(max_nstrm), public :: &
 !          n_example    , &
@@ -514,6 +592,11 @@
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
            n_uvel       , n_vvel       , &
+           n_icespd     , n_icedir     , &
+           n_uvelE      , n_vvelE      , &
+           n_icespdE    , n_icedirE    , &
+           n_uvelN      , n_vvelN      , &
+           n_icespdN    , n_icedirN    , &
            n_uatm       , n_vatm       , &
            n_atmspd     , n_atmdir     , &
            n_sice       , &
@@ -556,6 +639,18 @@
            n_strocnx    , n_strocny    , &
            n_strintx    , n_strinty    , &
            n_taubx      , n_tauby      , &
+           n_strairxN   , n_strairyN   , &
+           n_strtltxN   , n_strtltyN   , &
+           n_strcorxN   , n_strcoryN   , &
+           n_strocnxN   , n_strocnyN   , &
+           n_strintxN   , n_strintyN   , &
+           n_taubxN     , n_taubyN     , &
+           n_strairxE   , n_strairyE   , &
+           n_strtltxE   , n_strtltyE   , &
+           n_strcorxE   , n_strcoryE   , &
+           n_strocnxE   , n_strocnyE   , &
+           n_strintxE   , n_strintyE   , &
+           n_taubxE     , n_taubyE     , &
            n_strength   , &
            n_divu       , n_shear      , &
            n_sig1       , n_sig2       , &

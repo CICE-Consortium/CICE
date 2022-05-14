@@ -1,0 +1,82 @@
+
+# Build around a 2 day run with restart at day 1.
+#-----------------------------------------------------------
+# Run the CICE model baseline simulation
+
+cp ice_in ice_in.0
+${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart21
+cp ice_in ice_in.1
+
+./cice.run
+set res="$status"
+
+if ( $res != 0 ) then
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+  mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+  cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test " >! ${ICE_CASEDIR}/test_output
+  rm -f ${ICE_CASEDIR}/test_output.prev
+  echo "FAIL ${ICE_TESTNAME} run" >> ${ICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  exit 99
+endif
+
+# Prepend 'base_' to the final restart file to save for comparison
+if ( "${ICE_IOTYPE}" == "binary" ) then
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
+  foreach file (${ICE_RUNDIR}/restart/*${end_date})
+    set surname = `echo $file | awk -F'/' '{print $NF}'`
+    mv $file ${ICE_RUNDIR}/restart/base_$surname
+  end
+else
+  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
+  set test_data = ${ICE_RUNDIR}/restart/${test_file}
+  set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
+  mv ${test_data} ${base_data}
+endif
+
+#-----------------------------------------------------------
+# Run the CICE model for the restart simulation
+
+# Modify the contents of the pointer file for restart
+perl -i -pe's/(\d{4})-(\d{2})-(\d{2})/sprintf("%04d-%02d-%02d",$1,$2,$3-1)/e' ${ICE_RUNDIR}/ice.restart_file
+
+${ICE_CASEDIR}/casescripts/parse_namelist.sh ice_in ${ICE_CASEDIR}/casescripts/test_nml.restart22
+cp ice_in ice_in.2
+
+./cice.run
+set res="$status"
+
+cp ice_in.0 ice_in
+
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} run" >! ${ICE_CASEDIR}/test_output
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep -iv "${ICE_TESTNAME} test" >! ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
+
+if ( $res != 0 ) then
+  echo "FAIL ${ICE_TESTNAME} run " >> ${ICE_CASEDIR}/test_output
+  echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  exit 99
+else
+  set log_file = `ls -t1 ${ICE_RUNDIR}/cice.runlog* | head -1`
+  set ttimeloop = `grep TimeLoop ${log_file} | grep Timer | cut -c 22-32`
+  set tdynamics = `grep Dynamics ${log_file} | grep Timer | cut -c 22-32`
+  set tcolumn   = `grep Column   ${log_file} | grep Timer | cut -c 22-32`
+  if (${ttimeloop} == "") set ttimeloop = -1
+  if (${tdynamics} == "") set tdynamics = -1
+  if (${tcolumn}   == "") set tcolumn = -1
+  echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
+
+  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/restart
+  set bfbstatus = $status
+  if (${bfbstatus} == 0) then
+    echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  else
+    echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  endif
+endif
+
+#-----------------------------------------------------------
+

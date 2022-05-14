@@ -1,6 +1,6 @@
 nilyr = 1
 use_leap_years = .false.
-ice_ic = 'default'
+ice_ic = 'internal'
 distribution_type = 'roundrobin'
 distribution_wght = 'block'
 tr_iage      = .false.

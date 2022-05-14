@@ -1,9 +1,15 @@
+grid_ocn = 'B'
 nilyr = 1
-ice_ic = 'default'
+ice_ic = 'internal'
 restart_ext = .false.
 kcatbound = 2
 ew_boundary_type = 'cyclic'
 ns_boundary_type = 'cyclic'
+atm_data_type  = 'box2001'
+ocn_data_type  = 'box2001'
+ice_data_type  = 'box2001'
+ice_data_conc  = 'p5'
+ice_data_dist  = 'box2001'
 tr_iage      = .true.
 tr_FY        = .false.
 tr_lvl       = .true.

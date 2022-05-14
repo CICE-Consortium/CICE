@@ -14,6 +14,12 @@
 ! 2006: Converted to free source form (F90) by Elizabeth Hunke
 ! 2007: Option to read from netcdf files (A. Keen, Met Office)
 !       Grid reading routines reworked by E. Hunke for boundary values
+! 2021: Add N (center of north face) and E (center of east face) grids 
+!       to support CD solvers.  Defining T at center of cells, U at
+!       NE corner, N at center of top face, E at center of right face.
+!       All cells are quadrilaterals with NE, E, and N associated with
+!       directions relative to logical grid.  E is increasing i (x) and 
+!       N is increasing j (y) direction.
 
       module ice_grid
 
@@ -39,18 +45,30 @@
 
       implicit none
       private
-      public :: init_grid1, init_grid2, &
-                t2ugrid_vector, u2tgrid_vector, &
-                to_ugrid, to_tgrid, alloc_grid, makemask
+      public :: init_grid1, init_grid2, grid_average_X2Y, &
+                alloc_grid, makemask, grid_neighbor_min, grid_neighbor_max
 
       character (len=char_len_long), public :: &
          grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
+         kmt_type     , & !  options are file, default, boxislands
          bathymetry_file, & !  input bathymetry for seabed stress
          bathymetry_format, & ! bathymetry file format (default or pop)
          grid_spacing , & !  default of 30.e3m or set by user in namelist 
+         grid_ice  , & !  Underlying model grid structure (A, B, C, CD)
+         grid_ice_thrm, & !  ocean forcing grid for thermo fields (T, U, N, E)
+         grid_ice_dynu, & !  ocean forcing grid for dyn U fields  (T, U, N, E)
+         grid_ice_dynv, & !  ocean forcing grid for dyn V fields  (T, U, N, E)
+         grid_atm     , & !  atmos forcing grid structure (A, B, C, CD)
+         grid_atm_thrm, & !  atmos forcing grid for thermo fields (T, U, N, E)
+         grid_atm_dynu, & !  atmos forcing grid for dyn U fields  (T, U, N, E)
+         grid_atm_dynv, & !  atmos forcing grid for dyn V fields  (T, U, N, E)
+         grid_ocn     , & !  ocean forcing grid structure (A B, C, CD)
+         grid_ocn_thrm, & !  ocean forcing grid for thermo fields (T, U, N, E)
+         grid_ocn_dynu, & !  ocean forcing grid for dyn U fields  (T, U, N, E)
+         grid_ocn_dynv, & !  ocean forcing grid for dyn V fields  (T, U, N, E)
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
@@ -59,19 +77,30 @@
          dyt    , & ! height of T-cell through the middle (m)
          dxu    , & ! width of U-cell through the middle (m)
          dyu    , & ! height of U-cell through the middle (m)
+         dxn    , & ! width of N-cell through the middle (m)
+         dyn    , & ! height of N-cell through the middle (m)
+         dxe    , & ! width of E-cell through the middle (m)
+         dye    , & ! height of E-cell through the middle (m)
          HTE    , & ! length of eastern edge of T-cell (m)
          HTN    , & ! length of northern edge of T-cell (m)
          tarea  , & ! area of T-cell (m^2)
          uarea  , & ! area of U-cell (m^2)
+         narea  , & ! area of N-cell (m^2)
+         earea  , & ! area of E-cell (m^2)
          tarear , & ! 1/tarea
          uarear , & ! 1/uarea
-         tinyarea,& ! puny*tarea
+         narear , & ! 1/narea
+         earear , & ! 1/earea
          tarean , & ! area of NH T-cells
          tareas , & ! area of SH T-cells
-         ULON   , & ! longitude of velocity pts (radians)
-         ULAT   , & ! latitude of velocity pts (radians)
-         TLON   , & ! longitude of temp pts (radians)
-         TLAT   , & ! latitude of temp pts (radians)
+         ULON   , & ! longitude of velocity pts, NE corner of T pts (radians)
+         ULAT   , & ! latitude of velocity pts, NE corner of T pts (radians)
+         TLON   , & ! longitude of temp (T) pts (radians)
+         TLAT   , & ! latitude of temp (T) pts (radians)
+         NLON   , & ! longitude of center of north face of T pts (radians)
+         NLAT   , & ! latitude of center of north face of T pts (radians)
+         ELON   , & ! longitude of center of east face of T pts (radians)
+         ELAT   , & ! latitude of center of east face of T pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
@@ -90,6 +119,12 @@
          dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
          dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         ratiodxN    , & ! - dxn(i+1,j)   / dxn(i,j)
+         ratiodyE    , & ! - dye(i  ,j+1) / dye(i,j)
+         ratiodxNr   , & !   1 / ratiodxN
+         ratiodyEr       !   1 / ratiodyE
+
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
          dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
@@ -100,7 +135,11 @@
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
-         latu_bounds    ! latitude of gridbox corners for U point       
+         latu_bounds, & ! latitude of gridbox corners for U point
+         lonn_bounds, & ! longitude of gridbox corners for N point
+         latn_bounds, & ! latitude of gridbox corners for N point
+         lone_bounds, & ! longitude of gridbox corners for E point
+         late_bounds    ! latitude of gridbox corners for E point
 
       ! geometric quantities used for remapping transport
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
@@ -126,7 +165,9 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
-         uvm    , & ! land/boundary mask, velocity (U-cell)
+         uvm    , & ! land/boundary mask (U-cell) 
+         npm    , & ! land/boundary mask (N-cell)
+         epm    , & ! land/boundary mask (E-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
@@ -136,7 +177,10 @@
       logical (kind=log_kind), &
          dimension (:,:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
-         umask  , & ! land/boundary mask, velocity (U-cell)
+         umask  , & ! land/boundary mask  (U-cell) (1 if all surrounding T cells are ocean)
+         umaskCD, & ! land/boundary mask  (U-cell) (1 if at least two surrounding T cells are ocean)
+         nmask  , & ! land/boundary mask, (N-cell)
+         emask  , & ! land/boundary mask, (E-cell)
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
@@ -146,6 +190,11 @@
       logical (kind=log_kind), private :: &
          l_readCenter ! If anglet exist in grid file read it otherwise calculate it
 
+      interface grid_average_X2Y
+         module procedure grid_average_X2Y_base , &
+                          grid_average_X2Y_userwghts, &
+                          grid_average_X2Y_NEversion
+      end interface
 
 !=======================================================================
 
@@ -166,19 +215,30 @@
          dyt      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
          dxu      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
          dyu      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         dxn      (nx_block,ny_block,max_blocks), & ! width of N-cell through the middle (m)
+         dyn      (nx_block,ny_block,max_blocks), & ! height of N-cell through the middle (m)
+         dxe      (nx_block,ny_block,max_blocks), & ! width of E-cell through the middle (m)
+         dye      (nx_block,ny_block,max_blocks), & ! height of E-cell through the middle (m)
          HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
          HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
          tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
          uarea    (nx_block,ny_block,max_blocks), & ! area of U-cell (m^2)
+         narea    (nx_block,ny_block,max_blocks), & ! area of N-cell (m^2)
+         earea    (nx_block,ny_block,max_blocks), & ! area of E-cell (m^2)
          tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
          uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
-         tinyarea (nx_block,ny_block,max_blocks), & ! puny*tarea
+         narear   (nx_block,ny_block,max_blocks), & ! 1/narea
+         earear   (nx_block,ny_block,max_blocks), & ! 1/earea
          tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
          tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
-         ULON     (nx_block,ny_block,max_blocks), & ! longitude of velocity pts (radians)
-         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of velocity pts (radians)
-         TLON     (nx_block,ny_block,max_blocks), & ! longitude of temp pts (radians)
-         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of temp pts (radians)
+         ULON     (nx_block,ny_block,max_blocks), & ! longitude of U pts, NE corner (radians)
+         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of U pts, NE corner (radians)
+         TLON     (nx_block,ny_block,max_blocks), & ! longitude of T pts (radians)
+         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of T pts (radians)
+         NLON     (nx_block,ny_block,max_blocks), & ! longitude of N pts, N face (radians)
+         NLAT     (nx_block,ny_block,max_blocks), & ! latitude of N pts, N face (radians)
+         ELON     (nx_block,ny_block,max_blocks), & ! longitude of E pts, E face (radians)
+         ELAT     (nx_block,ny_block,max_blocks), & ! latitude of E pts, E face (radians)
          ANGLE    (nx_block,ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
@@ -195,23 +255,42 @@
          yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
+         npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
          tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
          lont_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for T point
          latt_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for T point
          lonu_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for U point
-         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point       
+         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point
+         lonn_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for N point
+         latn_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for N point
+         lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
+         late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
          mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
          mse  (2,2,nx_block,ny_block,max_blocks), &
          msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         allocate( &
+            ratiodxN (nx_block,ny_block,max_blocks), &
+            ratiodyE (nx_block,ny_block,max_blocks), &
+            ratiodxNr(nx_block,ny_block,max_blocks), &
+            ratiodyEr(nx_block,ny_block,max_blocks), &
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+      endif
 
       if (pgl_global_ext) then
          allocate( &
@@ -321,7 +400,7 @@
       ! distribute blocks among processors
       !-----------------------------------------------------------------
 
-      call init_domain_distribution(work_g2, work_g1)  ! KMT, ULAT
+      call init_domain_distribution(work_g2, work_g1, grid_ice)  ! KMT, ULAT
 
       deallocate(work_g1)
       deallocate(work_g2)
@@ -355,7 +434,7 @@
 
       use ice_blocks, only: get_block, block, nx_block, ny_block
       use ice_constants, only: c0, c1, c2, p5, p25, c1p5, &
-          field_loc_center, field_loc_NEcorner, &
+          field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_domain_size, only: max_blocks
 #if defined (_OPENMP)
@@ -439,6 +518,10 @@
 
       !-----------------------------------------------------------------
       ! T-grid cell and U-grid cell quantities
+      ! Fill halo data locally where possible to avoid missing
+      ! data associated with land block elimination
+      ! Note: HTN, HTE, dx*, dy* are all defined from global arrays
+      ! at halos.
       !-----------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -449,10 +532,13 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
+         do j = 1,ny_block
+         do i = 1,nx_block
             tarea(i,j,iblk) = dxt(i,j,iblk)*dyt(i,j,iblk)
             uarea(i,j,iblk) = dxu(i,j,iblk)*dyu(i,j,iblk)
+            narea(i,j,iblk) = dxn(i,j,iblk)*dyn(i,j,iblk)
+            earea(i,j,iblk) = dxe(i,j,iblk)*dye(i,j,iblk)
+
             if (tarea(i,j,iblk) > c0) then
                tarear(i,j,iblk) = c1/tarea(i,j,iblk)
             else
@@ -463,8 +549,22 @@
             else
                uarear(i,j,iblk) = c0 ! possible on boundaries
             endif
-            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+            if (narea(i,j,iblk) > c0) then
+               narear(i,j,iblk) = c1/narea(i,j,iblk)
+            else
+               narear(i,j,iblk) = c0 ! possible on boundaries
+            endif
+            if (earea(i,j,iblk) > c0) then
+               earear(i,j,iblk) = c1/earea(i,j,iblk)
+            else
+               earear(i,j,iblk) = c0 ! possible on boundaries
+            endif
 
+         enddo
+         enddo
+
+         do j = jlo, jhi
+         do i = ilo, ihi
             dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
             dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
          enddo
@@ -480,6 +580,17 @@
          enddo
          enddo
 
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            do j = jlo, jhi
+            do i = ilo, ihi
+               ratiodxN (i,j,iblk) = - dxn(i+1,j  ,iblk) / dxn(i,j,iblk)
+               ratiodyE (i,j,iblk) = - dye(i  ,j+1,iblk) / dye(i,j,iblk)
+               ratiodxNr(i,j,iblk) =   c1 / ratiodxn(i,j,iblk)
+               ratiodyEr(i,j,iblk) =   c1 / ratiodye(i,j,iblk)
+            enddo
+            enddo
+         endif
+
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -494,21 +605,6 @@
       !-----------------------------------------------------------------
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (tarea,              halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (uarea,              halo_info, &
-                           field_loc_NEcorner, field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (tarear,             halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (uarear,             halo_info, &
-                           field_loc_NEcorner, field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (tinyarea,           halo_info, &
-                           field_loc_center,   field_type_scalar, &
-                           fillValue=c1)
       call ice_HaloUpdate (dxhy,               halo_info, &
                            field_loc_center,   field_type_vector, &
                            fillValue=c1)
@@ -615,6 +711,7 @@
       !----------------------------------------------------------------
 
       call gridbox_corners
+      call gridbox_edges
 
       !-----------------------------------------------------------------
       ! Compute global index (used for unpacking messages from coupler)
@@ -658,7 +755,7 @@
       subroutine popgrid
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, &
+      use ice_constants, only: c0, c1, p5, &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
       use ice_domain_size, only: max_blocks
@@ -706,7 +803,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
             kmt(i,j,iblk) = work1(i,j,iblk)
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
+            if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
@@ -743,10 +840,10 @@
       !-----------------------------------------------------------------
 
       call ice_read_global(nu_grid,3,work_g1,'rda8',.true.)   ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
 
       call ice_read_global(nu_grid,4,work_g1,'rda8',.true.)   ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
 
       deallocate(work_g1)
 
@@ -920,10 +1017,10 @@
 
       fieldname='htn'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
-      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt, dxn, dxe
       fieldname='hte'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
-      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt, dyn, dye
 
       deallocate(work_g1)
 
@@ -1177,7 +1274,6 @@
             endif
             tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
             uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
-            tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
 
             if (single_column) then
                ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/nj)  
@@ -1189,6 +1285,10 @@
                endif
             endif
             ULON  (i,j,iblk) = c0
+            NLON  (i,j,iblk) = c0
+            NLAT  (i,j,iblk) = c0
+            ELON  (i,j,iblk) = c0
+            ELAT  (i,j,iblk) = c0
             ANGLE (i,j,iblk) = c0                             
 
             ANGLET(i,j,iblk) = c0                             
@@ -1198,6 +1298,10 @@
             dyt   (i,j,iblk) = 1.e36_dbl_kind
             dxu   (i,j,iblk) = 1.e36_dbl_kind
             dyu   (i,j,iblk) = 1.e36_dbl_kind
+            dxn   (i,j,iblk) = 1.e36_dbl_kind
+            dyn   (i,j,iblk) = 1.e36_dbl_kind
+            dxe   (i,j,iblk) = 1.e36_dbl_kind
+            dye   (i,j,iblk) = 1.e36_dbl_kind
             dxhy  (i,j,iblk) = 1.e36_dbl_kind
             dyhx  (i,j,iblk) = 1.e36_dbl_kind
             cyp   (i,j,iblk) = 1.e36_dbl_kind
@@ -1309,7 +1413,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
 
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -1318,7 +1422,7 @@
          enddo
          enddo
       endif
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
 
       !-----------------------------------------------------------------
       ! Construct T-cell land mask
@@ -1328,15 +1432,27 @@
       if (my_task == master_task) then
          work_g1(:,:) = c0      ! initialize hm as land
 
-         if (trim(ew_boundary_type) == 'cyclic') then
+         if (trim(kmt_type) == 'boxislands') then
 
-            do j = 3,ny_global-2      ! closed top and bottom
-            do i = 1,nx_global        ! open sides
-               work_g1(i,j) = c1    ! NOTE nx_global > 5
+            call grid_boxislands_kmt(work_g1)
+
+         elseif (trim(kmt_type) == 'channel') then
+
+            do j = 3,ny_global-2     ! closed top and bottom
+            do i = 1,nx_global       ! open sides
+               work_g1(i,j) = c1     ! NOTE nx_global > 5
             enddo
             enddo
 
-         elseif (trim(ew_boundary_type) == 'open') then
+         elseif (trim(kmt_type) == 'wall') then
+
+            do j = 1,ny_global       ! open except
+            do i = 1,nx_global-2     ! closed east edge
+               work_g1(i,j) = c1
+            enddo
+            enddo
+
+         elseif (trim(kmt_type) == 'default') then
 
             ! land in the upper left and lower right corners,
             ! otherwise open boundaries
@@ -1351,32 +1467,33 @@
 
             if (nx_global > 5 .and. ny_global > 5) then
 
-            do j = 1, jmid+2
-            do i = 1, imid+2
-               work_g1(i,j) = c1    ! open lower left corner
-            enddo
-            enddo
+               do j = 1, jmid+2
+               do i = 1, imid+2
+                  work_g1(i,j) = c1    ! open lower left corner
+               enddo
+               enddo
 
-            do j = max(jmid-2,1), ny_global
-            do i = max(imid-2,1), nx_global
-               work_g1(i,j) = c1    ! open upper right corner
-            enddo
-            enddo
+               do j = max(jmid-2,1), ny_global
+               do i = max(imid-2,1), nx_global
+                  work_g1(i,j) = c1    ! open upper right corner
+               enddo
+               enddo
 
-            endif
+            endif ! > 5x5 grid
 
-            if (close_boundaries) then
-              work_g1(:, 1:2) = c0
-              work_g1(:, ny_global-1:ny_global) = c0
-              work_g1(1:2, :) = c0
-              work_g1(nx_global-1:nx_global, :) = c0
-            endif
+         else
 
-         elseif (trim(ew_boundary_type) == 'closed') then
+            call abort_ice(subname//'ERROR: unknown kmt_type '//trim(kmt_type))
 
-            call abort_ice(subname//'ERROR: closed boundaries not available')
+         endif ! kmt_type
 
+         if (close_boundaries) then
+            work_g1(:, 1:2) = c0
+            work_g1(:, ny_global-1:ny_global) = c0
+            work_g1(1:2, :) = c0
+            work_g1(nx_global-1:nx_global, :) = c0
          endif
+
       endif
 
       call scatter_global(hm, work_g1, master_task, distrb_info, &
@@ -1385,6 +1502,134 @@
       deallocate(work_g1)
 
       end subroutine rectgrid
+
+!=======================================================================
+
+      ! Complex land mask for testing box cases
+      ! Requires nx_global, ny_global > 20
+      ! Assumes work array has been initialized to 1 (ocean) and north and
+      ! south land boundaries have been applied (ew_boundary_type='cyclic')
+
+      subroutine grid_boxislands_kmt (work)
+
+      use ice_constants, only: c0, c1, c20
+
+      real (kind=dbl_kind), dimension(:,:), intent(inout) :: work
+
+      integer (kind=int_kind) :: &
+         i, j, k, & ! indices
+         nxb, nyb   ! convenient cell-block sizes for building the mask
+
+      character(len=*), parameter :: subname = '(grid_boxislands_kmt)'
+
+      ! number of cells in 5% of global grid x and y lengths
+      nxb = int(real(nx_global, dbl_kind) / c20, int_kind)
+      nyb = int(real(ny_global, dbl_kind) / c20, int_kind)
+
+      if (nxb < 1 .or. nyb < 1) &
+         call abort_ice(subname//'ERROR: requires larger grid size')
+      
+      ! initialize work area as all ocean (c1). 
+      work(:,:) = c1
+
+      ! now add land points (c0)
+      ! northeast triangle
+      k = 0
+      do j = ny_global, ny_global-3*nyb, -1
+         k = k+1
+         do i = nx_global-3*nxb+k, nx_global
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! northwest docks
+      do j = ny_global-3*nyb, ny_global
+         do i = 1, 1
+            work(i,j) = c0
+         enddo
+      enddo
+      do i = 1, 2*nxb
+         do j = ny_global-3*nyb, ny_global-nyb-2
+            work(i,j) = c0
+         enddo
+         do j = ny_global-nyb, ny_global-nyb+1
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! southwest docks
+      do j = 2*nyb, 3*nyb
+         do i = 1, 1
+            work(i,j) = c0
+         enddo
+      enddo
+      do j = 1, 2*nyb
+         do i = 2, nxb
+            work(i,j) = c0
+         enddo
+         do i = 2*nxb-1, 2*nxb
+            work(i,j) = c0
+         enddo
+         do i = 2*nxb+2,4*nxb
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! tiny island
+      do j = 14*nyb, 14*nyb+1
+         do i = 14*nxb, 14*nxb+1
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! X islands
+      ! left triangle
+      k = 0
+      do i = 2*nxb, 4*nxb
+         k=k+1
+         do j = 10*nyb+k, 14*nyb-k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! upper triangle
+      k = 0
+      do j = 14*nyb, 12*nyb, -1
+         k=k+1
+         do i = 2*nxb+2+k, 6*nxb-2-k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! diagonal
+      k = 0
+      do j = 10*nyb, 14*nyb
+         k=k+1
+         do i = 2*nxb+4+k, 2*nxb+6+k
+            work(i,j) = c0
+         enddo
+      enddo
+      ! lower right triangle
+      k = 0
+      do j = 12*nyb, 10*nyb, -1
+         k=k+1
+         do i = 5*nxb+k, 8*nxb
+            work(i,j) = c0
+         enddo
+      enddo
+
+      ! bar islands
+      do i = 10*nxb, 16*nxb
+         do j = 4*nyb, 5*nyb
+            work(i,j) = c0
+         enddo
+         do j = 6*nyb+2, 8*nyb
+            work(i,j) = c0
+         enddo
+         do j = 8*nyb+2, 8*nyb+3
+            work(i,j) = c0
+         enddo
+      enddo
+
+      end subroutine grid_boxislands_kmt
 
 !=======================================================================
 
@@ -1472,11 +1717,11 @@
 
       call ice_read_global(nu_grid,3,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt
+      call primary_grid_lengths_HTN(work_g1)  ! dxu, dxt, dxn, dxe
 
       call ice_read_global(nu_grid,4,work_g1,  'rda8',diag)
       work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt
+      call primary_grid_lengths_HTE(work_g1)  ! dyu, dyt, dyn, dye
 
       call ice_read_global(nu_grid,7,work_g1,'rda8',diag)
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
@@ -1508,7 +1753,7 @@
 
       subroutine primary_grid_lengths_HTN(work_g)
 
-      use ice_constants, only: p5, c2, cm_to_m, &
+      use ice_constants, only: p25, p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_type_scalar
 
@@ -1531,20 +1776,22 @@
          allocate(work_g2(1,1))
       endif
 
+      ! HTN, dxu = average of 2 neighbor HTNs in i
+
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         work_g(i,j) = work_g(i,j) * cm_to_m                ! HTN
-      enddo
-      enddo
-      do j = 1, ny_global
-      do i = 1, nx_global
-         ! assume cyclic; noncyclic will be handled during scatter
-         ip1 = i+1
-         if (i == nx_global) ip1 = 1
-         work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxu
-      enddo
-      enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            work_g(i,j) = work_g(i,j) * cm_to_m                ! HTN
+         enddo
+         enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxu
+         enddo
+         enddo
       endif
       if (pgl_global_ext) then
          call primary_grid_lengths_global_ext( &
@@ -1555,18 +1802,47 @@
       call scatter_global(dxu, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
+      ! dxt = average of 2 neighbor HTNs in j
+
       if (my_task == master_task) then
-      do j = 2, ny_global
+         do j = 2, ny_global
          do i = 1, nx_global
             work_g2(i,j) = p5*(work_g(i,j) + work_g(i,j-1)) ! dxt
          enddo
-      enddo
-      ! extrapolate to obtain dxt along j=1
-      do i = 1, nx_global
-         work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxt
-      enddo
+         enddo
+         ! extrapolate to obtain dxt along j=1
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g(i,2) - work_g(i,3) ! dxt
+         enddo
       endif
       call scatter_global(dxt, work_g2, master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+
+      ! dxn = HTN
+
+      dxn(:,:,:) = HTN(:,:,:)   ! dxn
+
+      ! dxe = average of 4 surrounding HTNs
+
+      if (my_task == master_task) then
+         do j = 2, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,j) = p25*(work_g(i,j)+work_g(ip1,j)+work_g(i,j-1)+work_g(ip1,j-1))   ! dxe
+         enddo
+         enddo
+         ! extrapolate to obtain dxt along j=1
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            ip1 = i+1
+            if (i == nx_global) ip1 = 1
+            work_g2(i,1) = p5*(c2*work_g(i  ,2) - work_g(i  ,3) + &
+                               c2*work_g(ip1,2) - work_g(ip1,3))      ! dxe
+         enddo
+      endif
+      call scatter_global(dxe, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
       deallocate(work_g2)
@@ -1582,7 +1858,7 @@
 
       subroutine primary_grid_lengths_HTE(work_g)
 
-      use ice_constants, only: p5, c2, cm_to_m, &
+      use ice_constants, only: p25, p5, c2, cm_to_m, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Eface, field_type_scalar
 
@@ -1605,6 +1881,8 @@
          allocate(work_g2(1,1))
       endif
 
+      ! HTE, dyu = average of 2 neighbor HTE in j
+
       if (my_task == master_task) then
          do j = 1, ny_global
          do i = 1, nx_global
@@ -1619,8 +1897,7 @@
          ! extrapolate to obtain dyu along j=ny_global
          if (ny_global > 1) then
             do i = 1, nx_global
-               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) &
-                                       - work_g(i,ny_global-2) ! dyu
+               work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyu
             enddo
          endif
       endif
@@ -1633,18 +1910,49 @@
       call scatter_global(dyu, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
 
+      ! dyt = average of 2 neighbor HTE in i
+
       if (my_task == master_task) then
-      do j = 1, ny_global
-      do i = 1, nx_global
-         ! assume cyclic; noncyclic will be handled during scatter
-         im1 = i-1
-         if (i == 1) im1 = nx_global 
-         work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyt
-      enddo
-      enddo
+         do j = 1, ny_global
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            im1 = i-1
+            if (i == 1) im1 = nx_global
+            work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyt
+         enddo
+         enddo
       endif
       call scatter_global(dyt, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+
+      ! dyn = average of 4 neighbor HTEs
+
+      if (my_task == master_task) then
+         do j = 1, ny_global-1
+         do i = 1, nx_global
+            ! assume cyclic; noncyclic will be handled during scatter
+            im1 = i-1
+            if (i == 1) im1 = nx_global 
+            work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyn
+         enddo
+         enddo
+         ! extrapolate to obtain dyn along j=ny_global
+         if (ny_global > 1) then
+            do i = 1, nx_global
+               ! assume cyclic; noncyclic will be handled during scatter
+               im1 = i-1
+               if (i == 1) im1 = nx_global 
+               work_g2(i,ny_global) = p5*(c2*work_g(i  ,ny_global-1) - work_g(i  ,ny_global-2) + &
+                                          c2*work_g(im1,ny_global-1) - work_g(im1,ny_global-2))     ! dyn
+            enddo
+         endif
+      endif
+      call scatter_global(dyn, work_g2, master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+
+      ! dye = HTE
+
+      dye(:,:,:) = HTE(:,:,:)
 
       deallocate(work_g2)
 
@@ -1653,15 +1961,17 @@
 !=======================================================================
 
 ! Sets the boundary values for the T cell land mask (hm) and
-! makes the logical land masks for T and U cells (tmask, umask).
+! makes the logical land masks for T and U cells (tmask, umask)
+! and N and E cells (nmask, emask).
 ! Also creates hemisphere masks (mask-n northern, mask-s southern)
 !
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine makemask
 
-      use ice_constants, only: c0, p5, &
-          field_loc_center, field_loc_NEcorner, field_type_scalar
+      use ice_constants, only: c0, p5, c1p5, &
+          field_loc_center, field_loc_NEcorner, field_type_scalar, &
+          field_loc_Nface, field_loc_Eface
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -1669,6 +1979,9 @@
 
       real (kind=dbl_kind) :: &
          puny
+
+      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+            uvmCD
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1681,7 +1994,7 @@
          file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (kmt,               halo_info, &
+      call ice_HaloUpdate (kmt,              halo_info, &
                            field_loc_center, field_type_scalar)
       call ice_HaloUpdate (hm,               halo_info, &
                            field_loc_center, field_type_scalar)
@@ -1692,6 +2005,7 @@
       !-----------------------------------------------------------------
 
       bm = c0
+      allocate(uvmCD(nx_block,ny_block,max_blocks))
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -1705,7 +2019,11 @@
          do i = ilo, ihi
             uvm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,  iblk), &
                                  hm(i,j+1,iblk), hm(i+1,j+1,iblk))
+            npm(i,j,iblk) = min (hm(i,j,  iblk), hm(i,j+1,iblk))
+            epm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,iblk))
             bm(i,j,iblk) = my_task + iblk/100.0_dbl_kind
+            uvmCD(i,j,iblk) = (hm(i,j,  iblk)+hm(i+1,j,  iblk) &
+                            +  hm(i,j+1,iblk)+hm(i+1,j+1,iblk))
          enddo
          enddo
       enddo
@@ -1714,8 +2032,14 @@
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (uvm,                halo_info, &
                            field_loc_NEcorner, field_type_scalar)
-      call ice_HaloUpdate (bm,               halo_info, &
-                           field_loc_center, field_type_scalar)
+      call ice_HaloUpdate (uvmCD,              halo_info, &
+                           field_loc_NEcorner, field_type_scalar)
+      call ice_HaloUpdate (npm,                halo_info, &
+                           field_loc_Nface,    field_type_scalar)
+      call ice_HaloUpdate (epm,                halo_info, &
+                           field_loc_Eface,    field_type_scalar)
+      call ice_HaloUpdate (bm,                 halo_info, &
+                           field_loc_center,   field_type_scalar)
       call ice_timer_stop(timer_bound)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -1727,14 +2051,31 @@
          jhi = this_block%jhi
 
          ! needs to cover halo (no halo update for logicals)
-         tmask(:,:,iblk) = .false.
-         umask(:,:,iblk) = .false.
+         tmask(:,:,iblk)   = .false.
+         umask(:,:,iblk)   = .false.
+         umaskCD(:,:,iblk) = .false.
+         nmask(:,:,iblk)   = .false.
+         emask(:,:,iblk)   = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
-            if ( hm(i,j,iblk) > p5) tmask(i,j,iblk) = .true.
-            if (uvm(i,j,iblk) > p5) umask(i,j,iblk) = .true.
+            if ( hm(i,j,iblk)   > p5  ) tmask  (i,j,iblk)   = .true.
+            if (uvm(i,j,iblk)   > p5  ) umask  (i,j,iblk)   = .true.
+            if (uvmCD(i,j,iblk) > c1p5) umaskCD(i,j,iblk)   = .true.
+            if (npm(i,j,iblk)   > p5  ) nmask  (i,j,iblk)   = .true.
+            if (epm(i,j,iblk)   > p5  ) emask  (i,j,iblk)   = .true.
          enddo
          enddo
+
+      enddo
+      !$OMP END PARALLEL DO
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
 
       !-----------------------------------------------------------------
       ! create hemisphere masks
@@ -1769,6 +2110,8 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
+      deallocate(uvmCD)
+
       end subroutine makemask
 
 !=======================================================================
@@ -1780,8 +2123,9 @@
 
       subroutine Tlatlon
 
-      use ice_constants, only: c0, c1, c2, c4, &
-          field_loc_center, field_type_scalar
+      use ice_constants, only: c0, c1, c1p5, c2, c4, p5, &
+          field_loc_center, field_loc_Nface, field_loc_Eface, &
+          field_type_scalar
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
@@ -1803,6 +2147,10 @@
 
       TLAT(:,:,:) = c0
       TLON(:,:,:) = c0
+      NLAT(:,:,:) = c0
+      NLON(:,:,:) = c0
+      ELAT(:,:,:) = c0
+      ELON(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
@@ -1837,6 +2185,10 @@
             y4 = sin(ULON(i,j,iblk))*z4
             z4 = sin(ULAT(i,j,iblk))
 
+            ! ---------
+            ! TLON/TLAT 4 pt computation (pts 1, 2, 3, 4)
+            ! ---------
+
             tx = (x1+x2+x3+x4)/c4
             ty = (y1+y2+y3+y4)/c4
             tz = (z1+z2+z3+z4)/c4
@@ -1850,11 +2202,90 @@
 
             ! TLAT in radians North
             TLAT(i,j,iblk) = asin(tz)
+
+! these two loops should be merged to save cos/sin calculations,
+! but atan2 is not bit-for-bit. This suggests the result for atan2 depends on
+! the prior atan2 call ??? not sure what's going on.
+#if (1 == 1)
+         enddo                  ! i
+         enddo                  ! j         
+      enddo                     ! iblk
+      !$OMP END PARALLEL DO
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+      !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
+      !$OMP                     tx,ty,tz,da)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+
+            z1 = cos(ULAT(i-1,j-1,iblk))
+            x1 = cos(ULON(i-1,j-1,iblk))*z1
+            y1 = sin(ULON(i-1,j-1,iblk))*z1
+            z1 = sin(ULAT(i-1,j-1,iblk))
+
+            z2 = cos(ULAT(i,j-1,iblk))
+            x2 = cos(ULON(i,j-1,iblk))*z2
+            y2 = sin(ULON(i,j-1,iblk))*z2
+            z2 = sin(ULAT(i,j-1,iblk))
+
+            z3 = cos(ULAT(i-1,j,iblk))
+            x3 = cos(ULON(i-1,j,iblk))*z3
+            y3 = sin(ULON(i-1,j,iblk))*z3
+            z3 = sin(ULAT(i-1,j,iblk))
+
+            z4 = cos(ULAT(i,j,iblk))
+            x4 = cos(ULON(i,j,iblk))*z4
+            y4 = sin(ULON(i,j,iblk))*z4
+            z4 = sin(ULAT(i,j,iblk))
+#endif
+            ! ---------
+            ! NLON/NLAT 2 pt computation (pts 3, 4)
+            ! ---------
+
+            tx = (x3+x4)/c2
+            ty = (y3+y4)/c2
+            tz = (z3+z4)/c2
+            da = sqrt(tx**2+ty**2+tz**2)
+
+            tz = tz/da
+
+            ! NLON in radians East
+            NLON(i,j,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) NLON(i,j,iblk) = atan2(ty,tx)
+
+            ! NLAT in radians North
+            NLAT(i,j,iblk) = asin(tz)
+
+            ! ---------
+            ! ELON/ELAT 2 pt computation (pts 2, 4)
+            ! ---------
+
+            tx = (x2+x4)/c2
+            ty = (y2+y4)/c2
+            tz = (z2+z4)/c2
+            da = sqrt(tx**2+ty**2+tz**2)
+
+            tz = tz/da
+
+            ! ELON in radians East
+            ELON(i,j,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) ELON(i,j,iblk) = atan2(ty,tx)
+
+            ! ELAT in radians North
+            ELAT(i,j,iblk) = asin(tz)
             
          enddo                  ! i
          enddo                  ! j         
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+
       if (trim(grid_type) == 'regional') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -1872,6 +2303,10 @@
                                       TLON(i+2,j,iblk)
                   TLAT(i,j,iblk) = c2*TLAT(i+1,j,iblk) - &
                                       TLAT(i+2,j,iblk)
+                  NLON(i,j,iblk) = c1p5*TLON(i+1,j,iblk) - &
+                                     p5*TLON(i+2,j,iblk)
+                  NLAT(i,j,iblk) = c1p5*TLAT(i+1,j,iblk) - &
+                                     p5*TLAT(i+2,j,iblk)
                enddo
             endif
          enddo
@@ -1885,9 +2320,29 @@
       call ice_HaloUpdate (TLAT,             halo_info, &
                            field_loc_center, field_type_scalar, &
                            fillValue=c1)
+      call ice_HaloUpdate (NLON,             halo_info, &
+                           field_loc_Nface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (NLAT,             halo_info, &
+                           field_loc_Nface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (ELON,             halo_info, &
+                           field_loc_Eface,  field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (ELAT,             halo_info, &
+                           field_loc_Eface,  field_type_scalar, &
+                           fillValue=c1)
       call ice_HaloExtrapolate(TLON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       call ice_HaloExtrapolate(TLAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(NLON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(NLAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(ELON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(ELAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       call ice_timer_stop(timer_bound)
 
@@ -1903,154 +2358,856 @@
 
       if (my_task==master_task) then
          write(nu_diag,*) ' '
-         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
+!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
          write(nu_diag,*) 'min/max ULON:', y1*rad_to_deg, y2*rad_to_deg
          write(nu_diag,*) 'min/max ULAT:', y3*rad_to_deg, y4*rad_to_deg
-         endif
+!         endif
          write(nu_diag,*) 'min/max TLON:', x1*rad_to_deg, x2*rad_to_deg
          write(nu_diag,*) 'min/max TLAT:', x3*rad_to_deg, x4*rad_to_deg
+      endif                     ! my_task
+
+      x1 = global_minval(NLON, distrb_info, nmask)
+      x2 = global_maxval(NLON, distrb_info, nmask)
+      x3 = global_minval(NLAT, distrb_info, nmask)
+      x4 = global_maxval(NLAT, distrb_info, nmask)
+
+      y1 = global_minval(ELON, distrb_info, emask)
+      y2 = global_maxval(ELON, distrb_info, emask)
+      y3 = global_minval(ELAT, distrb_info, emask)
+      y4 = global_maxval(ELAT, distrb_info, emask)
+
+      if (my_task==master_task) then
+         write(nu_diag,*) ' '
+!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
+         write(nu_diag,*) 'min/max NLON:', x1*rad_to_deg, x2*rad_to_deg
+         write(nu_diag,*) 'min/max NLAT:', x3*rad_to_deg, x4*rad_to_deg
+         write(nu_diag,*) 'min/max ELON:', y1*rad_to_deg, y2*rad_to_deg
+         write(nu_diag,*) 'min/max ELAT:', y3*rad_to_deg, y4*rad_to_deg
+!         endif
       endif                     ! my_task
 
       end subroutine Tlatlon
 
 !=======================================================================
 
-! Transfer vector component from T-cell centers to U-cell centers.
-!
-! author: Elizabeth C. Hunke, LANL
-
-      subroutine t2ugrid_vector (work)
-
-      use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: field_loc_center, field_type_vector
-      use ice_domain_size, only: max_blocks
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(inout) :: & 
-           work
-
-      ! local variables
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      character(len=*), parameter :: subname = '(t2ugrid_vector)'
-
-      work1(:,:,:) = work(:,:,:)
-
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (work1,            halo_info, &
-                           field_loc_center, field_type_vector)
-      call ice_timer_stop(timer_bound)
-
-      call to_ugrid(work1,work)
-
-      end subroutine t2ugrid_vector
-
-!=======================================================================
-
-! Shifts quantities from the T-cell midpoint (work1) to the U-cell
-! midpoint (work2)
+! Shifts quantities from one grid to another
+! Constructs the shift based on the grid
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
 !
-! author: Elizabeth C. Hunke, LANL
+! author: T. Craig
 
-      subroutine to_ugrid(work1,work2)
+      subroutine grid_average_X2Y_base(type,work1,grid1,work2,grid2)
 
-      use ice_constants, only: c0, p25
+      character(len=*) , intent(in) :: &
+         type, grid1, grid2
 
       real (kind=dbl_kind), intent(in) :: &
-         work1(nx_block,ny_block,max_blocks)
+         work1(:,:,:)
+
+      real (kind=dbl_kind), intent(out)   :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      character(len=16) :: X2Y
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_base)'
+
+      if (trim(grid1) == trim(grid2)) then
+         work2 = work1
+      else
+         X2Y = trim(grid1)//'2'//trim(grid2)//trim(type)
+         call grid_average_X2Y_1(X2Y,work1,work2)
+      endif
+
+      end subroutine grid_average_X2Y_base
+
+!=======================================================================
+
+! Shifts quantities from one grid to another
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2Y_userwghts(type,work1,grid1,wght1,mask1,work2,grid2)
+
+      character(len=*) , intent(in) :: &
+         type, grid1, grid2
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:), &
+         wght1(:,:,:), &
+         mask1(:,:,:)
+
+      real (kind=dbl_kind), intent(out)   :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      character(len=16) :: X2Y
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_userwghts)'
+
+      if (trim(grid1) == trim(grid2)) then
+         work2 = work1
+      else
+         X2Y = trim(grid1)//'2'//trim(grid2)//trim(type)
+         call grid_average_X2Y_1f(X2Y,work1,wght1,mask1,work2)
+      endif
+
+      end subroutine grid_average_X2Y_userwghts
+
+!=======================================================================
+
+! Shifts quantities from one grid to another
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2Y_NEversion(type,work1a,grid1a,work1b,grid1b,work2,grid2)
+
+      character(len=*) , intent(in) :: &
+         type, grid1a, grid1b, grid2
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1a(:,:,:), work1b(:,:,:)
+
+      real (kind=dbl_kind), intent(out)   :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      character(len=16) :: X2Y
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_NEversion)'
+
+      X2Y = trim(grid1a)//trim(grid1b)//'2'//trim(grid2)//trim(type)
+
+      select case (trim(X2Y))
+
+         ! state masked
+         case('NE2US')
+            call grid_average_X2YS_2('NE2US',work1a,narea,npm,work1b,earea,epm,work2)
+         case('EN2US')
+            call grid_average_X2YS_2('NE2US',work1b,narea,npm,work1a,earea,epm,work2)
+         case('NE2TS')
+            call grid_average_X2YS_2('NE2TS',work1a,narea,npm,work1b,earea,epm,work2)
+         case('EN2TS')
+            call grid_average_X2YS_2('NE2TS',work1b,narea,npm,work1a,earea,epm,work2)
+
+         case default
+            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+      end select
+
+      end subroutine grid_average_X2Y_NEversion
+
+!=======================================================================
+
+! Shifts quantities from one grid to another
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2Y_1(X2Y,work1,work2)
+
+      character(len=*) , intent(in) :: &
+         X2Y
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:)
+
+      real (kind=dbl_kind), intent(out)   :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_1)'
+
+      select case (trim(X2Y))
+
+         ! flux unmasked
+         case('T2UF')
+            call grid_average_X2YF('NE',work1,tarea,work2,uarea)
+         case('T2EF')
+            call grid_average_X2YF('E' ,work1,tarea,work2,earea)
+         case('T2NF')
+            call grid_average_X2YF('N' ,work1,tarea,work2,narea)
+         case('U2TF')
+            call grid_average_X2YF('SW',work1,uarea,work2,tarea)
+         case('U2EF')
+            call grid_average_X2YF('S' ,work1,uarea,work2,earea)
+         case('U2NF')
+            call grid_average_X2YF('W' ,work1,uarea,work2,narea)
+         case('E2TF')
+            call grid_average_X2YF('W' ,work1,earea,work2,tarea)
+         case('E2UF')
+            call grid_average_X2YF('N' ,work1,earea,work2,uarea)
+         case('E2NF')
+            call grid_average_X2YF('NW',work1,earea,work2,narea)
+         case('N2TF')
+            call grid_average_X2YF('S' ,work1,narea,work2,tarea)
+         case('N2UF')
+            call grid_average_X2YF('E' ,work1,narea,work2,uarea)
+         case('N2EF')
+            call grid_average_X2YF('SE',work1,narea,work2,earea)
+
+         ! state masked
+         case('T2US')
+            call grid_average_X2YS('NE',work1,tarea,hm ,work2)
+         case('T2ES')
+            call grid_average_X2YS('E' ,work1,tarea,hm ,work2)
+         case('T2NS')
+            call grid_average_X2YS('N' ,work1,tarea,hm ,work2)
+         case('U2TS')
+            call grid_average_X2YS('SW',work1,uarea,uvm,work2)
+         case('U2ES')
+            call grid_average_X2YS('S' ,work1,uarea,uvm,work2)
+         case('U2NS')
+            call grid_average_X2YS('W' ,work1,uarea,uvm,work2)
+         case('E2TS')
+            call grid_average_X2YS('W' ,work1,earea,epm,work2)
+         case('E2US')
+            call grid_average_X2YS('N' ,work1,earea,epm,work2)
+         case('E2NS')
+            call grid_average_X2YS('NW',work1,earea,epm,work2)
+         case('N2TS')
+            call grid_average_X2YS('S' ,work1,narea,npm,work2)
+         case('N2US')
+            call grid_average_X2YS('E' ,work1,narea,npm,work2)
+         case('N2ES')
+            call grid_average_X2YS('SE',work1,narea,npm,work2)
+
+         ! state unmasked
+         case('T2UA')
+            call grid_average_X2YA('NE',work1,tarea,work2)
+         case('T2EA')
+            call grid_average_X2YA('E' ,work1,tarea,work2)
+         case('T2NA')
+            call grid_average_X2YA('N' ,work1,tarea,work2)
+         case('U2TA')
+            call grid_average_X2YA('SW',work1,uarea,work2)
+         case('U2EA')
+            call grid_average_X2YA('S' ,work1,uarea,work2)
+         case('U2NA')
+            call grid_average_X2YA('W' ,work1,uarea,work2)
+         case('E2TA')
+            call grid_average_X2YA('W' ,work1,earea,work2)
+         case('E2UA')
+            call grid_average_X2YA('N' ,work1,earea,work2)
+         case('E2NA')
+            call grid_average_X2YA('NW',work1,earea,work2)
+         case('N2TA')
+            call grid_average_X2YA('S' ,work1,narea,work2)
+         case('N2UA')
+            call grid_average_X2YA('E' ,work1,narea,work2)
+         case('N2EA')
+            call grid_average_X2YA('SE',work1,narea,work2)
+
+         case default
+            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+      end select
+
+      end subroutine grid_average_X2Y_1
+
+!=======================================================================
+
+! Shifts quantities from one grid to another
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2Y_1f(X2Y,work1,wght1,mask1,work2)
+
+      character(len=*) , intent(in) :: &
+         X2Y
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:), &
+         wght1(:,:,:), &
+         mask1(:,:,:)
+
+      real (kind=dbl_kind), intent(out)   :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_1f)'
+
+      select case (trim(X2Y))
+
+! don't support these for now, requires extra destination wght
+!         ! flux unmasked
+!         case('T2UF')
+!            call grid_average_X2YF('NE',work1,tarea,work2,uarea)
+!         case('T2EF')
+!            call grid_average_X2YF('E' ,work1,tarea,work2,earea)
+!         case('T2NF')
+!            call grid_average_X2YF('N' ,work1,tarea,work2,narea)
+!         case('U2TF')
+!            call grid_average_X2YF('SW',work1,uarea,work2,tarea)
+!         case('U2EF')
+!            call grid_average_X2YF('S' ,work1,uarea,work2,earea)
+!         case('U2NF')
+!            call grid_average_X2YF('W' ,work1,uarea,work2,narea)
+!         case('E2TF')
+!            call grid_average_X2YF('W' ,work1,earea,work2,tarea)
+!         case('E2UF')
+!            call grid_average_X2YF('N' ,work1,earea,work2,uarea)
+!         case('E2NF')
+!            call grid_average_X2YF('NW',work1,earea,work2,narea)
+!         case('N2TF')
+!            call grid_average_X2YF('S' ,work1,narea,work2,tarea)
+!         case('N2UF')
+!            call grid_average_X2YF('E' ,work1,narea,work2,uarea)
+!         case('N2EF')
+!            call grid_average_X2YF('SE',work1,narea,work2,earea)
+
+         ! state masked
+         case('T2US')
+            call grid_average_X2YS('NE',work1,wght1,mask1,work2)
+         case('T2ES')
+            call grid_average_X2YS('E' ,work1,wght1,mask1,work2)
+         case('T2NS')
+            call grid_average_X2YS('N' ,work1,wght1,mask1,work2)
+         case('U2TS')
+            call grid_average_X2YS('SW',work1,wght1,mask1,work2)
+         case('U2ES')
+            call grid_average_X2YS('S' ,work1,wght1,mask1,work2)
+         case('U2NS')
+            call grid_average_X2YS('W' ,work1,wght1,mask1,work2)
+         case('E2TS')
+            call grid_average_X2YS('W' ,work1,wght1,mask1,work2)
+         case('E2US')
+            call grid_average_X2YS('N' ,work1,wght1,mask1,work2)
+         case('E2NS')
+            call grid_average_X2YS('NW',work1,wght1,mask1,work2)
+         case('N2TS')
+            call grid_average_X2YS('S' ,work1,wght1,mask1,work2)
+         case('N2US')
+            call grid_average_X2YS('E' ,work1,wght1,mask1,work2)
+         case('N2ES')
+            call grid_average_X2YS('SE',work1,wght1,mask1,work2)
+
+         ! state unmasked
+         case('T2UA')
+            call grid_average_X2YA('NE',work1,wght1,work2)
+         case('T2EA')
+            call grid_average_X2YA('E' ,work1,wght1,work2)
+         case('T2NA')
+            call grid_average_X2YA('N' ,work1,wght1,work2)
+         case('U2TA')
+            call grid_average_X2YA('SW',work1,wght1,work2)
+         case('U2EA')
+            call grid_average_X2YA('S' ,work1,wght1,work2)
+         case('U2NA')
+            call grid_average_X2YA('W' ,work1,wght1,work2)
+         case('E2TA')
+            call grid_average_X2YA('W' ,work1,wght1,work2)
+         case('E2UA')
+            call grid_average_X2YA('N' ,work1,wght1,work2)
+         case('E2NA')
+            call grid_average_X2YA('NW',work1,wght1,work2)
+         case('N2TA')
+            call grid_average_X2YA('S' ,work1,wght1,work2)
+         case('N2UA')
+            call grid_average_X2YA('E' ,work1,wght1,work2)
+         case('N2EA')
+            call grid_average_X2YA('SE',work1,wght1,work2)
+
+         case default
+            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+      end select
+
+      end subroutine grid_average_X2Y_1f
+
+!=======================================================================
+! Shifts quantities from one grid to another
+! State masked version, simple area weighted averager
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2YS(dir,work1,wght1,mask1,work2)
+
+      use ice_constants, only: c0
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:), &
+         wght1(:,:,:), &
+         mask1(:,:,:)
 
       real (kind=dbl_kind), intent(out) :: &
-         work2(nx_block,ny_block,max_blocks)
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(to_ugrid)'
+         work2(:,:,:)
 
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+
+      real (kind=dbl_kind) :: &
+         wtmp
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(grid_average_X2YS)'
 
       work2(:,:,:) = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+      select case (trim(dir))
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            work2(i,j,iblk) = p25 * &
-                              (work1(i,  j,  iblk)*tarea(i,  j,  iblk)  &
-                             + work1(i+1,j,  iblk)*tarea(i+1,j,  iblk)  &
-                             + work1(i,  j+1,iblk)*tarea(i,  j+1,iblk)  &
-                             + work1(i+1,j+1,iblk)*tarea(i+1,j+1,iblk)) &
-                             / uarea(i,  j,  iblk)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+         case('NE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                        + mask1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)  &
+                        + mask1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)  &
+                        + mask1(i+1,j+1,iblk)*wght1(i+1,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + mask1(i+1,j  ,iblk)*work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)  &
+                                   + mask1(i  ,j+1,iblk)*work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)  &
+                                   + mask1(i+1,j+1,iblk)*work1(i+1,j+1,iblk)*wght1(i+1,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
 
-      end subroutine to_ugrid
+         case('SW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                        + mask1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                        + mask1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                        + mask1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + mask1(i-1,j  ,iblk)*work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                   + mask1(i  ,j-1,iblk)*work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                   + mask1(i-1,j-1,iblk)*work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('NW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                        + mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                        + mask1(i-1,j+1,iblk)*wght1(i-1,j+1,iblk)  &
+                        + mask1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i-1,j  ,iblk)*work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                   + mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + mask1(i-1,j+1,iblk)*work1(i-1,j+1,iblk)*wght1(i-1,j+1,iblk)  &
+                                   + mask1(i  ,j+1,iblk)*work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('SE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
+                        + mask1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                        + mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                        + mask1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i  ,j-1,iblk)*work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
+                                   + mask1(i+1,j-1,iblk)*work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                   + mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + mask1(i+1,j  ,iblk)*work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('E')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i  ,j,iblk)*wght1(i  ,j,iblk)  &
+                        + mask1(i+1,j,iblk)*wght1(i+1,j,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i  ,j,iblk)*work1(i  ,j,iblk)*wght1(i  ,j,iblk)  &
+                                   + mask1(i+1,j,iblk)*work1(i+1,j,iblk)*wght1(i+1,j,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('W')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i-1,j,iblk)*wght1(i-1,j,iblk)  &
+                        + mask1(i  ,j,iblk)*wght1(i  ,j,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i-1,j,iblk)*work1(i-1,j,iblk)*wght1(i-1,j,iblk)  &
+                                   + mask1(i  ,j,iblk)*work1(i  ,j,iblk)*wght1(i  ,j,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('N')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i,j  ,iblk)*wght1(i,j  ,iblk)  &
+                        + mask1(i,j+1,iblk)*wght1(i,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i,j  ,iblk)*work1(i,j  ,iblk)*wght1(i,j  ,iblk)  &
+                                   + mask1(i,j+1,iblk)*work1(i,j+1,iblk)*wght1(i,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('S')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1(i,j-1,iblk)*wght1(i,j-1,iblk)  &
+                        + mask1(i,j  ,iblk)*wght1(i,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1(i,j-1,iblk)*work1(i,j-1,iblk)*wght1(i,j-1,iblk)  &
+                                   + mask1(i,j  ,iblk)*work1(i,j  ,iblk)*wght1(i,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case default
+            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+         end select
+
+      end subroutine grid_average_X2YS
 
 !=======================================================================
-
-! Transfer from U-cell centers to T-cell centers. Writes work into
-! another array that has ghost cells
-! NOTE: Input array is dimensioned only over physical cells.
-!
-! author: Elizabeth C. Hunke, LANL
-
-      subroutine u2tgrid_vector (work)
-
-      use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: field_loc_NEcorner, field_type_vector
-      use ice_domain_size, only: max_blocks
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(inout) :: &
-         work
-
-      ! local variables
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      character(len=*), parameter :: subname = '(u2tgrid_vector)'
-
-      work1(:,:,:) = work(:,:,:)
-
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_timer_stop(timer_bound)
-
-      call to_tgrid(work1,work)
-
-      end subroutine u2tgrid_vector
-
-!=======================================================================
-
-! Shifts quantities from the U-cell midpoint (work1) to the T-cell
-! midpoint (work2)
+! Shifts quantities from one grid to another
+! State unmasked version, simple weighted averager
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
 !
-! author: Elizabeth C. Hunke, LANL
+! author: T. Craig
 
-      subroutine to_tgrid(work1, work2)
+      subroutine grid_average_X2YA(dir,work1,wght1,work2)
 
-      use ice_constants, only: p25
+      use ice_constants, only: c0
 
-      real (kind=dbl_kind) :: work1(nx_block,ny_block,max_blocks), &
-                              work2(nx_block,ny_block,max_blocks)
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:), &
+         wght1(:,:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+
+      real (kind=dbl_kind) :: &
+         wtmp
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(grid_average_X2YA)'
+
+      work2(:,:,:) = c0
+
+      select case (trim(dir))
+
+         case('NE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i  ,j  ,iblk)  &
+                        + wght1(i+1,j  ,iblk)  &
+                        + wght1(i  ,j+1,iblk)  &
+                        + wght1(i+1,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)  &
+                                   + work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)  &
+                                   + work1(i+1,j+1,iblk)*wght1(i+1,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('SW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i  ,j  ,iblk)  &
+                        + wght1(i-1,j  ,iblk)  &
+                        + wght1(i  ,j-1,iblk)  & 
+                        + wght1(i-1,j-1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                   + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                   + work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('NW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i-1,j  ,iblk)  &
+                        + wght1(i  ,j  ,iblk)  &
+                        + wght1(i-1,j+1,iblk)  &
+                        + wght1(i  ,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                   + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i-1,j+1,iblk)*wght1(i-1,j+1,iblk)  &
+                                   + work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('SE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i  ,j-1,iblk)  &
+                        + wght1(i+1,j-1,iblk)  & 
+                        + wght1(i  ,j  ,iblk)  &
+                        + wght1(i+1,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
+                                   + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                   + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('E')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i  ,j,iblk)  &
+                        + wght1(i+1,j,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i  ,j,iblk)*wght1(i  ,j,iblk)  &
+                                   + work1(i+1,j,iblk)*wght1(i+1,j,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('W')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i-1,j,iblk)  &
+                        + wght1(i  ,j,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i-1,j,iblk)*wght1(i-1,j,iblk)  &
+                                   + work1(i  ,j,iblk)*wght1(i  ,j,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('N')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i,j  ,iblk)  &
+                        + wght1(i,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i,j  ,iblk)*wght1(i,j  ,iblk)  &
+                                   + work1(i,j+1,iblk)*wght1(i,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('S')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1(i,j-1,iblk)  &
+                        + wght1(i,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1(i,j-1,iblk)*wght1(i,j-1,iblk)  &
+                                   + work1(i,j  ,iblk)*wght1(i,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case default
+            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+         end select
+
+      end subroutine grid_average_X2YA
+
+!=======================================================================
+! Shifts quantities from one grid to another
+! Flux masked, original implementation based on earlier t2u and u2t versions
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2YF(dir,work1,wght1,work2,wght2)
+
+      use ice_constants, only: c0, p25, p5
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:), &
+         wght1(:,:,:), &
+         wght2(:,:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
 
       ! local variables
 
@@ -2060,31 +3217,336 @@
 
       type (block) :: &
          this_block           ! block information for current block
-      
-      character(len=*), parameter :: subname = '(to_tgrid)'
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+      character(len=*), parameter :: subname = '(grid_average_X2YF)'
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            work2(i,j,iblk) = p25 *  &
-                             (work1(i,  j  ,iblk) * uarea(i,  j,  iblk)  &
-                            + work1(i-1,j  ,iblk) * uarea(i-1,j,  iblk)  &
-                            + work1(i,  j-1,iblk) * uarea(i,  j-1,iblk)  & 
-                            + work1(i-1,j-1,iblk) * uarea(i-1,j-1,iblk)) &
-                            / tarea(i,  j,  iblk)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      work2(:,:,:) = c0
 
-      end subroutine to_tgrid
+      select case (trim(dir))
+
+         case('NE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 * &
+                                    (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)  &
+                                   + work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)  &
+                                   + work1(i+1,j+1,iblk)*wght1(i+1,j+1,iblk)) &
+                                   / wght2(i  ,j  ,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('SW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 *  &
+                                   (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                  + work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                  + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                  + work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
+                                  / wght2(i  ,j  ,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('NW')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 * &
+                                    (work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
+                                   + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                   + work1(i-1,j+1,iblk)*wght1(i-1,j+1,iblk)  &
+                                   + work1(i  ,j+1,iblk)*wght1(i  ,j+1,iblk)) &
+                                   / wght2(i  ,j  ,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('SE')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p25 *  &
+                                   (work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
+                                  + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                  + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
+                                  + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
+                                  / wght2(i  ,j  ,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('E')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i  ,j,iblk)*wght1(i  ,j,iblk)  &
+                                   + work1(i+1,j,iblk)*wght1(i+1,j,iblk)) &
+                                   / wght2(i  ,j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('W')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i-1,j,iblk)*wght1(i-1,j,iblk)  &
+                                   + work1(i  ,j,iblk)*wght1(i  ,j,iblk)) &
+                                   / wght2(i  ,j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('N')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i,j  ,iblk)*wght1(i,j  ,iblk)  &
+                                   + work1(i,j+1,iblk)*wght1(i,j+1,iblk)) &
+                                   / wght2(i  ,j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('S')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  work2(i,j,iblk) = p5 * &
+                                    (work1(i,j-1,iblk)*wght1(i,j-1,iblk)  &
+                                   + work1(i,j  ,iblk)*wght1(i,j  ,iblk)) &
+                                   / wght2(i  ,j,iblk)
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case default
+            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+         end select
+
+      end subroutine grid_average_X2YF
+
+!=======================================================================
+! Compute the minimum of adjacent values of a field at specific indices,
+! depending on the grid location (U, E, N)
+!
+      real(kind=dbl_kind) function grid_neighbor_min(field, i, j, grid_location) result(mini)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         field    ! field defined at T point
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j
+
+      character(len=*), intent(in) :: &
+         grid_location ! grid location at which to compute the minumum (U, E, N)
+
+      character(len=*), parameter :: subname = '(grid_neighbor_min)'
+
+      select case (trim(grid_location))
+         case('U')
+            mini = min(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
+         case('E')
+            mini = min(field(i,j), field(i+1,j))
+         case('N')
+            mini = min(field(i,j), field(i,j+1))
+         case default
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+      end select
+
+      end function grid_neighbor_min
+
+!=======================================================================
+! Shifts quantities from one grid to another
+! State masked version, simple weighted averager
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+!
+! author: T. Craig
+
+      subroutine grid_average_X2YS_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
+
+      use ice_constants, only: c0
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1a(:,:,:), work1b(:,:,:), &
+         wght1a(:,:,:), wght1b(:,:,:), &
+         mask1a(:,:,:), mask1b(:,:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+
+      real (kind=dbl_kind) :: &
+         wtmp
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(grid_average_X2YS_2)'
+
+      work2(:,:,:) = c0
+
+      select case (trim(dir))
+
+         case('NE2US')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                        + mask1a(i+1,j  ,iblk)*wght1a(i+1,j  ,iblk)  &
+                        + mask1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)  &
+                        + mask1b(i  ,j+1,iblk)*wght1b(i  ,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1a(i  ,j  ,iblk)*work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                                   + mask1a(i+1,j  ,iblk)*work1a(i+1,j  ,iblk)*wght1a(i+1,j  ,iblk)  &
+                                   + mask1b(i  ,j  ,iblk)*work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)  &
+                                   + mask1b(i  ,j+1,iblk)*work1b(i  ,j+1,iblk)*wght1b(i  ,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('NE2TS')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (mask1a(i  ,j-1,iblk)*wght1a(i  ,j-1,iblk)  &
+                        + mask1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                        + mask1b(i-1,j  ,iblk)*wght1b(i-1,j  ,iblk)  &
+                        + mask1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (mask1a(i  ,j-1,iblk)*work1a(i  ,j-1,iblk)*wght1a(i  ,j-1,iblk)  &
+                                   + mask1a(i  ,j  ,iblk)*work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                                   + mask1b(i-1,j  ,iblk)*work1b(i-1,j  ,iblk)*wght1b(i-1,j  ,iblk)  &
+                                   + mask1b(i  ,j  ,iblk)*work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case default
+            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+         end select
+
+      end subroutine grid_average_X2YS_2
+
+!=======================================================================
+! Compute the maximum of adjacent values of a field at specific indices,
+! depending on the grid location (U, E, N)
+!
+      real(kind=dbl_kind) function grid_neighbor_max(field, i, j, grid_location) result(maxi)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         field    ! field defined at T point
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j
+
+      character(len=*), intent(in) :: &
+         grid_location ! grid location at which to compute the maximum (U, E, N)
+
+
+      character(len=*), parameter :: subname = '(grid_neighbor_max)'
+
+      select case (trim(grid_location))
+         case('U')
+            maxi = max(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
+         case('E')
+            maxi = max(field(i,j), field(i+1,j))
+         case('N')
+            maxi = max(field(i,j), field(i,j+1))
+         case default
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+      end select
+
+      end function grid_neighbor_max
 
 !=======================================================================
 ! The following code is used for obtaining the coordinates of the grid
@@ -2150,12 +3612,12 @@
             latu_bounds(1,i,j,iblk)=TLAT(i  ,j  ,iblk)*rad_to_deg
             latu_bounds(2,i,j,iblk)=TLAT(i+1,j  ,iblk)*rad_to_deg
             latu_bounds(3,i,j,iblk)=TLAT(i+1,j+1,iblk)*rad_to_deg
-            latu_bounds(4,i,j,iblk)=TLAT(i  ,j+1,iblk)*rad_to_deg         
+            latu_bounds(4,i,j,iblk)=TLAT(i  ,j+1,iblk)*rad_to_deg
 
             lonu_bounds(1,i,j,iblk)=TLON(i  ,j  ,iblk)*rad_to_deg
             lonu_bounds(2,i,j,iblk)=TLON(i+1,j  ,iblk)*rad_to_deg
             lonu_bounds(3,i,j,iblk)=TLON(i+1,j+1,iblk)*rad_to_deg
-            lonu_bounds(4,i,j,iblk)=TLON(i  ,j+1,iblk)*rad_to_deg         
+            lonu_bounds(4,i,j,iblk)=TLON(i  ,j+1,iblk)*rad_to_deg
 
          enddo
          enddo
@@ -2283,6 +3745,307 @@
       deallocate(work_g2)
 
       end subroutine gridbox_corners
+
+!=======================================================================
+! The following code is used for obtaining the coordinates of the grid
+! vertices for CF-compliant netCDF history output. Approximate!
+!=======================================================================
+
+! These fields are only used for netcdf history output, and the
+! ghost cell values are not needed.
+! NOTE:  Extrapolations were used: these fields are approximate!
+!
+
+      subroutine gridbox_edges
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: c0,  c2, c360, &
+          field_loc_NEcorner, field_type_scalar
+      use ice_domain_size, only: max_blocks
+
+      integer (kind=int_kind) :: &
+          i,j,iblk,icorner,& ! index counters
+          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g2
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1
+
+      real (kind=dbl_kind) :: &
+         rad_to_deg
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(gridbox_edges)'
+
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      !-------------------------------------------------------------
+      ! Get coordinates of grid boxes for each block as follows:
+      ! for N pt: (1) W edge, (2) E edge, (3) E edge j+1, (4) W edge j+1
+      ! for E pt: (1) S edge, (2) S edge i+1, (3) N edge, i+1 (4) N edge
+      !-------------------------------------------------------------
+
+      latn_bounds(:,:,:,:) = c0
+      lonn_bounds(:,:,:,:) = c0
+      late_bounds(:,:,:,:) = c0
+      lone_bounds(:,:,:,:) = c0
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+
+            latn_bounds(1,i,j,iblk)=ELAT(i-1,j  ,iblk)*rad_to_deg
+            latn_bounds(2,i,j,iblk)=ELAT(i  ,j  ,iblk)*rad_to_deg
+            latn_bounds(3,i,j,iblk)=ELAT(i  ,j+1,iblk)*rad_to_deg
+            latn_bounds(4,i,j,iblk)=ELAT(i-1,j+1,iblk)*rad_to_deg
+
+            lonn_bounds(1,i,j,iblk)=ELON(i-1,j  ,iblk)*rad_to_deg
+            lonn_bounds(2,i,j,iblk)=ELON(i  ,j  ,iblk)*rad_to_deg
+            lonn_bounds(3,i,j,iblk)=ELON(i  ,j+1,iblk)*rad_to_deg
+            lonn_bounds(4,i,j,iblk)=ELON(i-1,j+1,iblk)*rad_to_deg
+
+            late_bounds(1,i,j,iblk)=NLAT(i  ,j-1,iblk)*rad_to_deg
+            late_bounds(2,i,j,iblk)=NLAT(i+1,j-1,iblk)*rad_to_deg
+            late_bounds(3,i,j,iblk)=NLAT(i+1,j  ,iblk)*rad_to_deg
+            late_bounds(4,i,j,iblk)=NLAT(i  ,j  ,iblk)*rad_to_deg
+
+            lone_bounds(1,i,j,iblk)=NLON(i  ,j-1,iblk)*rad_to_deg
+            lone_bounds(2,i,j,iblk)=NLON(i+1,j-1,iblk)*rad_to_deg
+            lone_bounds(3,i,j,iblk)=NLON(i+1,j  ,iblk)*rad_to_deg
+            lone_bounds(4,i,j,iblk)=NLON(i  ,j  ,iblk)*rad_to_deg
+
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      !----------------------------------------------------------------
+      ! extrapolate on global grid to get edge values
+      !----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         allocate(work_g2(nx_global,ny_global))
+      else
+         allocate(work_g2(1,1))
+      endif
+
+      ! latn_bounds
+
+      work1(:,:,:) = latn_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = latn_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(3,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = latn_bounds(4,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      latn_bounds(4,:,:,:) = work1(:,:,:)
+
+      ! lonn_bounds
+
+      work1(:,:,:) = lonn_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lonn_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(3,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lonn_bounds(4,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,ny_global) = c2*work_g2(i,ny_global-1) &
+                                    - work_g2(i,ny_global-2)
+         enddo
+         do j = 1, ny_global
+            work_g2(1,j) = c2*work_g2(2,j) &
+                            - work_g2(3,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lonn_bounds(4,:,:,:) = work1(:,:,:)
+
+      ! late_bounds
+
+      work1(:,:,:) = late_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = late_bounds(2,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(2,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = late_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      late_bounds(3,:,:,:) = work1(:,:,:)
+
+      ! lone_bounds
+
+      work1(:,:,:) = lone_bounds(1,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(1,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lone_bounds(2,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do i = 1, nx_global
+            work_g2(i,1) = c2*work_g2(i,2) &
+                            - work_g2(i,3)
+         enddo
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(2,:,:,:) = work1(:,:,:)
+
+      work1(:,:,:) = lone_bounds(3,:,:,:)
+      call gather_global(work_g2, work1, master_task, distrb_info)
+      if (my_task == master_task) then
+         do j = 1, ny_global
+            work_g2(nx_global,j) = c2*work_g2(nx_global-1,j) &
+                                    - work_g2(nx_global-2,j)
+         enddo
+      endif
+      call scatter_global(work1, work_g2, &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      lone_bounds(3,:,:,:) = work1(:,:,:)
+
+      deallocate(work_g2)
+
+      !----------------------------------------------------------------
+      ! Convert longitude to Degrees East >0 for history output
+      !----------------------------------------------------------------
+
+      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      !OMP fails in this loop
+      do iblk = 1, nblocks
+         do icorner = 1, 4
+            work_g2(:,:) = lonn_bounds(icorner,:,:,iblk) + c360
+            where (work_g2 > c360) work_g2 = work_g2 - c360
+            where (work_g2 < c0 )  work_g2 = work_g2 + c360
+            lonn_bounds(icorner,:,:,iblk) = work_g2(:,:)
+            work_g2(:,:) = lone_bounds(icorner,:,:,iblk) + c360
+            where (work_g2 > c360) work_g2 = work_g2 - c360
+            where (work_g2 < c0 )  work_g2 = work_g2 + c360
+            lone_bounds(icorner,:,:,iblk) = work_g2(:,:)
+         enddo
+      enddo
+      deallocate(work_g2)
+
+      end subroutine gridbox_edges
 
 !=======================================================================
 
@@ -2414,6 +4177,8 @@
 
       subroutine get_bathymetry
 
+      use ice_constants, only: c0
+
       integer (kind=int_kind) :: &
          i, j, k, iblk      ! loop indices
 
@@ -2465,6 +4230,7 @@
             depth(k) = depth(k-1) + thick(k)
          enddo
 
+         bathymetry = c0
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block

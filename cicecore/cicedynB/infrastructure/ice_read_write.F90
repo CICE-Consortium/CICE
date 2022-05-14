@@ -1058,6 +1058,7 @@
 
           status = nf90_open(filename, NF90_NOWRITE, fid)
           if (status /= nf90_noerr) then
+             !write(nu_diag,*) subname,' NF90_STRERROR = ',trim(nf90_strerror(status))
              call abort_ice(subname//' ERROR: Cannot open '//trim(filename), &
                 file=__FILE__, line=__LINE__)
           endif
@@ -1670,7 +1671,7 @@
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
             asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum
+            write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
       endif
 

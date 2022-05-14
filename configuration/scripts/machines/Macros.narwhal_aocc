@@ -3,7 +3,7 @@
 #==============================================================================
 
 CPP        := ftn -E
-CPPDEFS    := -DNO_R16 -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
 CFLAGS     := -c -O2
 
 FIXEDFLAGS := -ffixed-form

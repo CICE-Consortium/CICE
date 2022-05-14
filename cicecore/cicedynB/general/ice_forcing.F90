@@ -19,7 +19,9 @@
       module ice_forcing
 
       use ice_kinds_mod
+      use ice_boundary, only: ice_HaloUpdate
       use ice_blocks, only: nx_block, ny_block
+      use ice_domain, only: halo_info
       use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
@@ -117,13 +119,15 @@
       character(char_len), public :: & 
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
-         atm_data_type, & ! 'default', 'monthly', 'ncar', 
-                          ! 'hadgem' or 'oned' or
+         atm_data_type, & ! 'default', 'monthly', 'ncar', 'box2001'
+                          ! 'hadgem', 'oned', 'calm', 'uniform'
                           ! 'JRA55_gx1' or 'JRA55_gx3' or 'JRA55_tx1'
          bgc_data_type, & ! 'default', 'clim'
-         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned',
-                          ! 'hadgem_sst' or 'hadgem_sst_uvocn'
-         ice_data_type, & ! 'default', 'box2001', 'boxslotcyl'
+         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
+                          ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
+         ice_data_type, & ! 'latsst', 'box2001', 'boxslotcyl', etc
+         ice_data_conc, & ! 'p5','p8','p9','c1','parabolic'
+         ice_data_dist, & ! 'box2001','gauss', 'uniform'
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
 
       logical (kind=log_kind), public :: &
@@ -309,9 +313,25 @@
       elseif (trim(atm_data_type) == 'ISPOL') then 
          call ISPOL_files
       elseif (trim(atm_data_type) == 'box2001') then
-         call box2001_data
+         call box2001_data_atm
+      elseif (trim(atm_data_type) == 'uniform_northeast') then
+         call uniform_data_atm('NE')
+      elseif (trim(atm_data_type) == 'uniform_north') then
+         call uniform_data_atm('N')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data_atm('E')
+      elseif (trim(atm_data_type) == 'uniform_south') then
+         call uniform_data_atm('S')
+      elseif (trim(atm_data_type) == 'uniform_west') then
+         call uniform_data_atm('W')
+      elseif (trim(atm_data_type) == 'calm') then
+         call uniform_data_atm('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_files
+      elseif (trim(atm_data_type) == 'default') then
+         ! don't need to do anything more
+      else
+        call abort_ice (error_message=subname//' ERROR atm_data_type unknown = '//trim(atm_data_type), file=__FILE__, line=__LINE__)
       endif
 
       end subroutine init_forcing_atmo
@@ -465,10 +485,7 @@
          enddo
          !$OMP END PARALLEL DO
 
-      endif                     ! init_sst_data
-
-
-      if (trim(ocn_data_type) == 'hadgem_sst' .or.  &
+      elseif (trim(ocn_data_type) == 'hadgem_sst' .or.  &
           trim(ocn_data_type) == 'hadgem_sst_uvocn') then
 
          diag = .true.   ! write diagnostic information 
@@ -500,15 +517,29 @@
          enddo
          !$OMP END PARALLEL DO
 
-      endif                        ! ocn_data_type
-
-      if (trim(ocn_data_type) == 'ncar') then
+      elseif (trim(ocn_data_type) == 'ncar') then
          call ocn_data_ncar_init
 !        call ocn_data_ncar_init_3D
-      endif
 
-      if (trim(ocn_data_type) == 'hycom') then
+      elseif (trim(ocn_data_type) == 'hycom') then
          call ocn_data_hycom_init
+
+      elseif (trim(ocn_data_type) == 'box2001') then
+         call box2001_data_ocn
+
+      ! uniform forcing options
+      elseif (trim(ocn_data_type) == 'uniform_northeast') then
+         call uniform_data_ocn('NE',p1)
+      elseif (trim(ocn_data_type) == 'uniform_east') then
+         call uniform_data_ocn('E',p1)
+      elseif (trim(ocn_data_type) == 'uniform_north') then
+         call uniform_data_ocn('N',p1)
+      elseif (trim(ocn_data_type) == 'calm') then
+         call uniform_data_ocn('N',c0) ! directon does not matter for c0
+      elseif (trim(ocn_data_type) == 'default') then
+         ! don't need to do anything more
+      else
+         call abort_ice (error_message=subname//' ERROR ocn_data_type unknown = '//trim(ocn_data_type), file=__FILE__, line=__LINE__)
       endif
 
       end subroutine init_forcing_ocn
@@ -558,8 +589,7 @@
 ! Get atmospheric forcing data and interpolate as necessary
 
       use ice_blocks, only: block, get_block
-      use ice_boundary, only: ice_HaloUpdate
-      use ice_domain, only: nblocks, blocks_ice, halo_info
+      use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: Tair, fsw, flw, frain, fsnow, Qa, rhoa, &
           uatm, vatm, strax, stray, zlvl, wind, swvdr, swvdf, swidr, swidf, &
           potT, sst
@@ -625,9 +655,24 @@
       elseif (trim(atm_data_type) == 'oned') then
          call oned_data
       elseif (trim(atm_data_type) == 'box2001') then
-         call box2001_data
+         call box2001_data_atm
+      elseif (trim(atm_data_type) == 'uniform_northeast') then
+         call uniform_data_atm('NE')
+      elseif (trim(atm_data_type) == 'uniform_north') then
+         call uniform_data_atm('N')
+      elseif (trim(atm_data_type) == 'uniform_east') then
+         call uniform_data_atm('E')
+      elseif (trim(atm_data_type) == 'uniform_south') then
+         call uniform_data_atm('S')
+      elseif (trim(atm_data_type) == 'uniform_west') then
+         call uniform_data_atm('W')
+      elseif (trim(atm_data_type) == 'calm') then
+         call uniform_data_atm('N',c0) ! direction does not matter when c0
       elseif (trim(atm_data_type) == 'hycom') then
          call hycom_atm_data
+      !elseif (trim(atm_data_type) == 'uniform_northeast') then
+      !elseif (trim(atm_data_type) == 'uniform_east') then
+      !elseif (trim(atm_data_type) == 'uniform_north') then
       else    ! default values set in init_flux
          return
       endif
@@ -639,7 +684,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -725,6 +770,18 @@
       elseif (trim(ocn_data_type) == 'hycom') then
 !         call ocn_data_hycom(dt)
 !MHRI: NOT IMPLEMENTED YET
+      elseif (trim(ocn_data_type) == 'box2001') then
+         call box2001_data_ocn
+      ! uniform forcing options
+      elseif (trim(ocn_data_type) == 'uniform_northeast') then
+! tcraig, not time varying
+         call uniform_data_ocn('NE',p1)
+      elseif (trim(ocn_data_type) == 'uniform_east') then
+         call uniform_data_ocn('E',p1)
+      elseif (trim(ocn_data_type) == 'uniform_north') then
+         call uniform_data_ocn('N',p1)
+      elseif (trim(ocn_data_type) == 'calm') then
+         call uniform_data_ocn('N',c0) ! directon does not matter for c0
       endif
 
       call ice_timer_stop(timer_forcing)
@@ -2383,7 +2440,7 @@
         enddo
 
       ! AOMIP
-        this_block = get_block(blocks_ice(iblk),iblk)         
+        this_block = get_block(blocks_ice(iblk),iblk)
         ilo = this_block%ilo
         ihi = this_block%ihi
         jlo = this_block%jlo
@@ -3425,7 +3482,7 @@
         enddo
 
       ! AOMIP
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
@@ -3954,7 +4011,7 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
-      use ice_grid, only: to_ugrid, ANGLET
+      use ice_grid, only: grid_average_X2Y, ANGLET
       use ice_read_write, only: ice_read_nc_uv
 #ifdef USE_NETCDF
       use netcdf
@@ -4072,8 +4129,8 @@
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
-             call to_ugrid(work1,ocn_frc_m(:,:,:,n  ,m))
-             call to_ugrid(work2,ocn_frc_m(:,:,:,n+1,m))
+             call grid_average_X2Y('F',work1,'T',ocn_frc_m(:,:,:,n  ,m),'U')
+             call grid_average_X2Y('F',work2,'T',ocn_frc_m(:,:,:,n+1,m),'U')
 
           enddo               ! month loop
         enddo               ! field loop
@@ -4315,7 +4372,7 @@
 
       use ice_domain, only: nblocks
       use ice_flux, only: sst, uocn, vocn
-      use ice_grid, only: t2ugrid_vector, ANGLET
+      use ice_grid, only: grid_average_X2Y, ANGLET
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -4329,6 +4386,9 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
           sstdat              ! data value toward which SST is restored
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+          work1               ! temporary array
 
       real (kind=dbl_kind) :: workx, worky
 
@@ -4474,8 +4534,11 @@
      ! Interpolate to U grid 
      !----------------------------------------------------------------- 
 
-         call t2ugrid_vector(uocn)
-         call t2ugrid_vector(vocn)
+         ! tcraig, this is now computed in dynamics for consistency
+         !work1 = uocn
+         !call grid_average_X2Y('F',work1,'T',uocn,'U')
+         !work1 = vocn
+         !call grid_average_X2Y('F',work1,'T',vocn,'U')
 
      endif    !   ocn_data_type = hadgem_sst_uvocn
 
@@ -5246,18 +5309,17 @@
 
 !=======================================================================
 !
-      subroutine box2001_data
+      subroutine box2001_data_atm
 
 ! wind and current fields as in Hunke, JCP 2001
 ! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
-      use ice_domain, only: nblocks
+      use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: max_blocks
       use ice_calendar, only: timesecs
-      use ice_blocks, only: nx_block, ny_block, nghost
-      use ice_flux, only: uocn, vocn, uatm, vatm, wind, rhoa, strax, stray
-      use ice_grid, only: uvm, to_ugrid
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
+      use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
       use ice_state, only: aice
 
       ! local parameters
@@ -5265,20 +5327,22 @@
       integer (kind=int_kind) :: &
          iblk, i,j           ! loop indices
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         aiu                 ! ice fraction on u-grid 
+      integer (kind=int_kind) :: &
+         iglob(nx_block), & ! global indices
+         jglob(ny_block)    ! global indices
+
+      type (block) :: &
+         this_block           ! block information for current block
 
       real (kind=dbl_kind) :: &
-          secday, pi , puny, period, pi2, tau
+         secday, pi , puny, period, pi2, tau
 
-      character(len=*), parameter :: subname = '(box2001_data)'
+      character(len=*), parameter :: subname = '(box2001_data_atm)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_query_parameters(secday_out=secday)
-
-      call to_ugrid(aice, aiu)
 
       period = c4*secday
 
@@ -5286,32 +5350,38 @@
          do j = 1, ny_block   
          do i = 1, nx_block   
 
-         ! ocean current
-         ! constant in time, could be initialized in ice_flux.F90
-         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
-                            / real(nx_global,kind=dbl_kind) - p1
-         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
-                            / real(ny_global,kind=dbl_kind) + p1
+         this_block = get_block(blocks_ice(iblk),iblk)
+         iglob = this_block%i_glob
+         jglob = this_block%j_glob
 
-         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
-         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
+!tcraig, move to box2001_data_ocn
+!         ! ocean current
+!         ! constant in time, could be initialized in ice_flux.F90
+!         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
+!                            / real(nx_global,kind=dbl_kind) - p1
+!         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
+!                            / real(ny_global,kind=dbl_kind) + p1
+!
+!         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
+!         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
 
          ! wind components
          uatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
-                              * sin(pi2*real(i-nghost, kind=dbl_kind)  &
+                              * sin(pi2*real(iglob(i), kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
-                              * sin(pi *real(j-nghost, kind=dbl_kind)  &
+                              * sin(pi *real(jglob(j), kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
          vatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
-                              * sin(pi *real(i-nghost, kind=dbl_kind)  &
+                              * sin(pi *real(iglob(i), kind=dbl_kind)  &
                                        /real(nx_global,kind=dbl_kind)) &
-                              * sin(pi2*real(j-nghost, kind=dbl_kind)  &
+                              * sin(pi2*real(jglob(j), kind=dbl_kind)  &
                                        /real(ny_global,kind=dbl_kind))
          ! wind stress
          wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
          tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
-         strax(i,j,iblk) = aiu(i,j,iblk) * tau * uatm(i,j,iblk)
-         stray(i,j,iblk) = aiu(i,j,iblk) * tau * vatm(i,j,iblk)
+
+         strax(i,j,iblk) = aice(i,j,iblk) * tau * uatm(i,j,iblk)
+         stray(i,j,iblk) = aice(i,j,iblk) * tau * vatm(i,j,iblk)
 
 ! initialization test
        ! Diagonal wind vectors 1
@@ -5341,8 +5411,186 @@
          enddo  
       enddo ! nblocks
 
-      end subroutine box2001_data
+      end subroutine box2001_data_atm
 
+!=======================================================================
+!
+      subroutine box2001_data_ocn
+
+! wind and current fields as in Hunke, JCP 2001
+! these are defined at the u point
+! authors: Elizabeth Hunke, LANL
+
+      use ice_domain, only: nblocks, blocks_ice
+      use ice_domain_size, only: max_blocks
+      use ice_calendar, only: timesecs
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn
+      use ice_grid, only: uvm
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      integer (kind=int_kind) :: &
+         iglob(nx_block), & ! global indices
+         jglob(ny_block)    ! global indices
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      real (kind=dbl_kind) :: &
+         secday, pi , puny, period, pi2, tau
+
+      character(len=*), parameter :: subname = '(box2001_data_ocn)'
+
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block   
+         do i = 1, nx_block   
+
+         this_block = get_block(blocks_ice(iblk),iblk)
+         iglob = this_block%i_glob
+         jglob = this_block%j_glob
+
+         ! ocean current
+         ! constant in time, could be initialized in ice_flux.F90
+         uocn(i,j,iblk) =  p2*real(jglob(j), kind=dbl_kind) &
+                            / real(ny_global,kind=dbl_kind) - p1
+         vocn(i,j,iblk) = -p2*real(iglob(i), kind=dbl_kind) &
+                            / real(nx_global,kind=dbl_kind) + p1
+
+         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
+         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
+
+         enddo  
+         enddo  
+      enddo ! nblocks
+
+      end subroutine box2001_data_ocn
+
+!=======================================================================
+!
+      subroutine uniform_data_atm(dir,spd)
+!     uniform wind fields in some direction
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
+      use ice_state, only: aice
+
+      character(len=*), intent(in) :: dir
+      real(kind=dbl_kind), intent(in), optional :: spd ! velocity
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real (kind=dbl_kind) :: &
+         tau, &
+         atm_val ! value to use for atm speed
+
+      character(len=*), parameter :: subname = '(uniform_data_atm)'
+
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      ! check for optional spd
+      if (present(spd)) then
+         atm_val = spd
+      else
+         atm_val = c5 ! default
+      endif
+
+      ! wind components
+      if (dir == 'NE') then
+         uatm = atm_val
+         vatm = atm_val
+      elseif (dir == 'N') then
+         uatm = c0
+         vatm = atm_val
+      elseif (dir == 'E') then
+         uatm = atm_val
+         vatm = c0
+      elseif (dir == 'S') then
+         uatm = c0
+         vatm = -atm_val
+      elseif (dir == 'W') then
+         uatm = -atm_val
+         vatm = c0
+      else
+         call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
+              file=__FILE__, line=__LINE__)
+      endif
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block   
+         do i = 1, nx_block   
+
+            ! wind stress
+            wind(i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
+            tau = rhoa(i,j,iblk) * 0.0012_dbl_kind * wind(i,j,iblk)
+            strax(i,j,iblk) = aice(i,j,iblk) * tau * uatm(i,j,iblk)
+            stray(i,j,iblk) = aice(i,j,iblk) * tau * vatm(i,j,iblk)
+            
+         enddo
+         enddo  
+      enddo ! nblocks
+
+      end subroutine uniform_data_atm
+!=======================================================================
+
+!
+      subroutine uniform_data_ocn(dir,spd)
+
+!     uniform wind fields in some direction
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_flux, only: uocn, vocn
+
+      character(len=*), intent(in) :: dir
+
+      real(kind=dbl_kind), intent(in), optional :: spd ! velocity 
+
+      ! local parameters
+
+      integer (kind=int_kind) :: &
+         iblk, i,j           ! loop indices
+
+      real(kind=dbl_kind) :: &
+           ocn_val ! value to use for ocean currents
+
+      character(len=*), parameter :: subname = '(uniform_data_ocn)'
+      
+      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
+
+      if (present(spd)) then
+         ocn_val = spd
+      else
+         ocn_val = p1 ! default
+      endif
+
+      ! ocn components
+      if (dir == 'NE') then
+         uocn = ocn_val
+         vocn = ocn_val
+      elseif (dir == 'N') then
+         uocn = c0
+         vocn = ocn_val
+      elseif (dir == 'E') then
+         uocn = ocn_val
+         vocn = c0
+      else
+         call abort_ice (subname//'ERROR: dir unknown, dir = '//trim(dir), &
+              file=__FILE__, line=__LINE__)
+      endif
+
+      end subroutine uniform_data_ocn
 !=======================================================================
 
       subroutine get_wave_spec
