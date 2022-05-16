@@ -428,7 +428,6 @@ contains
     real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
     character(len=char_len)          :: tfrz_option
     integer(int_kind)                :: ktherm
-    logical(log_kind)                :: tr_fsd
     character(len=*),   parameter    :: subname = 'ice_import'
     character(len=1024)              :: msgString
     !-----------------------------------------------------
@@ -436,7 +435,6 @@ contains
     call icepack_query_parameters(Tffresh_out=Tffresh)
     call icepack_query_parameters(tfrz_option_out=tfrz_option)
     call icepack_query_parameters(ktherm_out=ktherm)
-    call icepack_query_parameters(tr_fsd_out=tr_fsd)
 
     if (io_dbug > 5) then
        write(msgString,'(A,i8)')trim(subname)//' tfrz_option = ' &
@@ -885,6 +883,7 @@ contains
     real    (kind=dbl_kind) :: floediam(nx_block,ny_block,max_blocks)
     real    (kind=dbl_kind) :: floethick(nx_block,ny_block,max_blocks) ! ice thickness
     real    (kind=dbl_kind) :: Tffresh
+    logical (kind=log_kind) :: tr_fsd
     integer (kind=int_kind) :: nt_fsd
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
@@ -904,6 +903,7 @@ contains
     !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
 
     call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
+    call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
 
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
