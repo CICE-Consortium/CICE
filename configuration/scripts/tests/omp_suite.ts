@@ -7,6 +7,7 @@ smoke          gx3    12x2        alt03,droundrobin,reprosum,run10day
 smoke          gx3     4x4        alt04,reprosum,run10day
 smoke          gx3     4x4        alt05,reprosum,run10day
 smoke          gx3     8x2        alt06,reprosum,run10day
+smoke          gx3     7x2        alt07,reprosum,run10day
 smoke          gx3     8x2        bgcz,reprosum,run10day
 smoke          gx1    15x2        reprosum,run10day
 smoke          gx1    15x2        seabedprob,reprosum,run10day
@@ -32,6 +33,7 @@ smoke          gx3     8x1        alt03,reprosum,run10day,cmplogrest,thread     
 smoke          gx3     8x1        alt04,reprosum,run10day,cmplogrest,thread       smoke_gx3_4x4_alt04_reprosum_run10day
 smoke          gx3     8x1        alt05,reprosum,run10day,cmplogrest,thread       smoke_gx3_4x4_alt05_reprosum_run10day
 smoke          gx3     8x1        alt06,reprosum,run10day,cmplogrest,thread       smoke_gx3_8x2_alt06_reprosum_run10day
+smoke          gx3     8x1        alt07,reprosum,run10day,cmplogrest,thread       smoke_gx3_7x2_alt07_reprosum_run10day
 smoke          gx3     8x1        bgcz,reprosum,run10day,cmplogrest,thread        smoke_gx3_8x2_bgcz_reprosum_run10day
 smoke          gx1    18x1        reprosum,run10day,cmplogrest,thread             smoke_gx1_15x2_reprosum_run10day
 smoke          gx1    18x1        seabedprob,reprosum,run10day,cmplogrest,thread  smoke_gx1_15x2_reprosum_run10day_seabedprob
@@ -59,6 +61,7 @@ smoke          gx3     8x2        alt02,reprosum,run10day,gridc
 smoke          gx3     4x4        alt04,reprosum,run10day,gridc
 smoke          gx3     4x4        alt05,reprosum,run10day,gridc
 smoke          gx3     8x2        alt06,reprosum,run10day,gridc
+smoke          gx3     7x2        alt07,reprosum,run10day,gridc
 smoke          gx3     8x2        bgcz,reprosum,run10day,gridc
 smoke          gx1    15x2        reprosum,run10day,gridc
 smoke          gx1    15x2        seabedprob,reprosum,run10day,gridc
@@ -84,6 +87,7 @@ smoke          gx3     8x1        alt02,reprosum,run10day,cmplogrest,thread,grid
 smoke          gx3     8x1        alt04,reprosum,run10day,cmplogrest,thread,gridc       smoke_gx3_4x4_alt04_gridc_reprosum_run10day
 smoke          gx3     8x1        alt05,reprosum,run10day,cmplogrest,thread,gridc       smoke_gx3_4x4_alt05_gridc_reprosum_run10day
 smoke          gx3     8x1        alt06,reprosum,run10day,cmplogrest,thread,gridc       smoke_gx3_8x2_alt06_gridc_reprosum_run10day
+smoke          gx3     8x1        alt07,reprosum,run10day,cmplogrest,thread,gridc       smoke_gx3_7x2_alt07_gridc_reprosum_run10day
 smoke          gx3     8x1        bgcz,reprosum,run10day,cmplogrest,thread,gridc        smoke_gx3_8x2_bgcz_gridc_reprosum_run10day
 smoke          gx1    18x1        reprosum,run10day,cmplogrest,thread,gridc             smoke_gx1_15x2_gridc_reprosum_run10day
 smoke          gx1    18x1        seabedprob,reprosum,run10day,cmplogrest,thread,gridc  smoke_gx1_15x2_gridc_reprosum_run10day_seabedprob
@@ -111,6 +115,7 @@ smoke          gx3     8x2        alt02,reprosum,run10day,gridcd
 smoke          gx3     4x4        alt04,reprosum,run10day,gridcd
 smoke          gx3     4x4        alt05,reprosum,run10day,gridcd
 smoke          gx3     8x2        alt06,reprosum,run10day,gridcd
+smoke          gx3     7x2        alt07,reprosum,run10day,gridcd
 smoke          gx3     8x2        bgcz,reprosum,run10day,gridcd
 smoke          gx1    15x2        reprosum,run10day,gridcd
 smoke          gx1    15x2        seabedprob,reprosum,run10day,gridcd
@@ -136,6 +141,7 @@ smoke          gx3     8x1        alt02,reprosum,run10day,cmplogrest,thread,grid
 smoke          gx3     8x1        alt04,reprosum,run10day,cmplogrest,thread,gridcd       smoke_gx3_4x4_alt04_gridcd_reprosum_run10day
 smoke          gx3     8x1        alt05,reprosum,run10day,cmplogrest,thread,gridcd       smoke_gx3_4x4_alt05_gridcd_reprosum_run10day
 smoke          gx3     8x1        alt06,reprosum,run10day,cmplogrest,thread,gridcd       smoke_gx3_8x2_alt06_gridcd_reprosum_run10day
+smoke          gx3     8x1        alt07,reprosum,run10day,cmplogrest,thread,gridcd       smoke_gx3_7x2_alt07_gridcd_reprosum_run10day
 smoke          gx3     8x1        bgcz,reprosum,run10day,cmplogrest,thread,gridcd        smoke_gx3_8x2_bgcz_gridcd_reprosum_run10day
 smoke          gx1    18x1        reprosum,run10day,cmplogrest,thread,gridcd             smoke_gx1_15x2_gridcd_reprosum_run10day
 smoke          gx1    18x1        seabedprob,reprosum,run10day,cmplogrest,thread,gridcd  smoke_gx1_15x2_gridcd_reprosum_run10day_seabedprob

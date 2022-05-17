@@ -505,7 +505,7 @@ where
    \Delta = \left[D_D^2 + {e_f^2\over e_g^4}\left(D_T^2 + D_S^2\right)\right]^{1/2}.
    :label: Delta
 
-When the deformation :math:`\Delta` tends toward zero, the viscosities tend toward infinity. To avoid this issue, :math:`\Delta` needs to be limited and is replaced by :math:`\Delta^*` in equation :eq:`zeta`. Two methods for limiting :math:`\Delta` (or for capping the viscosities) are available in the code. If the namelist parameter ``capping`` is set to 1., :math:`\Delta^*=max(\Delta, \Delta_{min})` :cite:`Hibler79` while with ``capping`` set to 0., the smoother formulation  :math:`\Delta^*=(\Delta + \Delta_{min})` of :cite:`Kreyscher00` is used. 
+When the deformation :math:`\Delta` tends toward zero, the viscosities tend toward infinity. To avoid this issue, :math:`\Delta` needs to be limited and is replaced by :math:`\Delta^*` in equation :eq:`zeta`. Two methods for limiting :math:`\Delta` (or for capping the viscosities) are available in the code. If the namelist parameter ``capping_method`` is set to ``max``, :math:`\Delta^*=max(\Delta, \Delta_{min})` :cite:`Hibler79` while with ``capping_method`` set to ``sum``, the smoother formulation  :math:`\Delta^*=(\Delta + \Delta_{min})` of :cite:`Kreyscher00` is used. 
 
 The ice strength :math:`P` is a function of the ice thickness distribution as
 described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.

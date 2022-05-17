@@ -38,7 +38,7 @@
       integer (kind=int_kind), public :: &
          kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
          kridge     , & ! set to "-1" to turn off ridging
-         ndte           ! number of subcycles:  ndte=dt/dte
+         ndte           ! number of subcycles
 
       character (len=char_len), public :: &
          coriolis   , & ! 'constant', 'zero', or 'latitude'
@@ -79,8 +79,7 @@
          deltaminEVP , & ! minimum delta for viscosities (EVP)
          deltaminVP  , & ! minimum delta for viscosities (VP)
          capping     , & ! capping of viscosities (1=Hibler79, 0=Kreyscher2000)
-         dtei        , & ! 1/dte, where dte is subcycling timestep (1/s)
-!         dte2T       , & ! dte/2T
+         dtei        , & ! ndte/dt, where dt/ndte is subcycling timestep (1/s)
          denom1          ! constants for stress equation
 
       real (kind=dbl_kind), public :: & ! Bouillon et al relaxation constants
@@ -223,7 +222,7 @@
 
       if (my_task == master_task) then
          write(nu_diag,*) 'dt  = ',dt
-         write(nu_diag,*) 'dte = ',dt/real(ndte,kind=dbl_kind)
+         write(nu_diag,*) 'dt_subcyle = ',dt/real(ndte,kind=dbl_kind)
          write(nu_diag,*) 'tdamp =', elasticDamp * dt
          write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
       endif
@@ -335,15 +334,9 @@
 
       ! local variables
 
-      !real (kind=dbl_kind) :: &
-         !dte         , & ! subcycling timestep for EVP dynamics, s
-         !tdamp2          ! 2*(wave damping time scale T)
-
       character(len=*), parameter :: subname = '(set_evp_parameters)'
 
       ! elastic time step
-      !dte = dt/real(ndte,kind=dbl_kind)        ! s
-      !dtei = c1/dte              ! 1/s
       dtei = real(ndte,kind=dbl_kind)/dt
 
       ! variables for elliptical yield curve and plastic potential
@@ -351,19 +344,12 @@
       e_factor = e_yieldcurve**2 / e_plasticpot**4
       ecci = c1/e_yieldcurve**2 ! temporary for 1d evp
 
-      ! constants for stress equation
-      !tdamp2 = c2 * elasticDamp * dt                 ! s
-      !dte2T = dte/tdamp2    or c1/(c2*elasticDamp*real(ndte,kind=dbl_kind))               ! ellipse (unitless)
-
       if (revised_evp) then       ! Bouillon et al, Ocean Mod 2013
          revp   = c1
          denom1 = c1
          arlx1i = c1/arlx
       else                        ! Hunke, JCP 2013 with modified stress eq
          revp   = c0
-         !arlx1i = dte2T
-         !arlx   = c1/arlx1i
-         !brlx   = dt*dtei
          arlx   = c2 * elasticDamp * real(ndte,kind=dbl_kind)
          arlx1i   = c1/arlx
          brlx   = real(ndte,kind=dbl_kind)
@@ -646,13 +632,9 @@
       do j = jlo, jhi
       do i = ilo, ihi
          iceumask_old(i,j) = iceumask(i,j) ! save
-!         if (grid_ice == 'B') then ! include ice mask.
          ! ice extent mask (U-cells)
          iceumask(i,j) = (umask(i,j)) .and. (aiu  (i,j) > a_min) &
-                                         .and. (umass(i,j) > m_min)
-!         else  ! ice mask shpuld be applied to cd grid. For now it is not implemented.
-!            iceumask(i,j) = umask(i,j)
-!         endif
+                                      .and. (umass(i,j) > m_min)
 
          if (iceumask(i,j)) then
             icellu = icellu + 1
@@ -1639,7 +1621,7 @@
                                icellt,                 &
                                indxti,     indxtj,     &
                                uvel,       vvel,       &
-                               dxt,        dyt,        &
+                               dxT,        dyT,        &
                                cxp,        cyp,        &
                                cxm,        cym,        &
                                tarear,                 &
@@ -1659,8 +1641,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
@@ -1698,7 +1680,7 @@
          call strain_rates (nx_block,   ny_block,   &
                             i,          j,          &
                             uvel,       vvel,       &
-                            dxt,        dyt,        &
+                            dxT,        dyT,        &
                             cxp,        cyp,        &
                             cxm,        cym,        &
                             divune,     divunw,     &
@@ -1943,7 +1925,7 @@
       subroutine strain_rates (nx_block,   ny_block,   &
                                i,          j,          &
                                uvel,       vvel,       &
-                               dxt,        dyt,        &
+                               dxT,        dyT,        &
                                cxp,        cyp,        &
                                cxm,        cym,        &
                                divune,     divunw,     &
@@ -1964,8 +1946,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
@@ -1985,34 +1967,34 @@
       !-----------------------------------------------------------------
 
       ! divergence  =  e_11 + e_22
-      divune    = cyp(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                + cxp(i,j)*vvel(i  ,j  ) - dxt(i,j)*vvel(i  ,j-1)
-      divunw    = cym(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                + cxp(i,j)*vvel(i-1,j  ) - dxt(i,j)*vvel(i-1,j-1)
-      divusw    = cym(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                + cxm(i,j)*vvel(i-1,j-1) + dxt(i,j)*vvel(i-1,j  )
-      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                + cxm(i,j)*vvel(i  ,j-1) + dxt(i,j)*vvel(i  ,j  )
+      divune    = cyp(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
+                + cxp(i,j)*vvel(i  ,j  ) - dxT(i,j)*vvel(i  ,j-1)
+      divunw    = cym(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
+                + cxp(i,j)*vvel(i-1,j  ) - dxT(i,j)*vvel(i-1,j-1)
+      divusw    = cym(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
+                + cxm(i,j)*vvel(i-1,j-1) + dxT(i,j)*vvel(i-1,j  )
+      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
+                + cxm(i,j)*vvel(i  ,j-1) + dxT(i,j)*vvel(i  ,j  )
 
       ! tension strain rate  =  e_11 - e_22
-      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyt(i,j)*uvel(i-1,j  ) &
-                +  cxm(i,j)*vvel(i  ,j  ) + dxt(i,j)*vvel(i  ,j-1)
-      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyt(i,j)*uvel(i  ,j  ) &
-                +  cxm(i,j)*vvel(i-1,j  ) + dxt(i,j)*vvel(i-1,j-1)
-      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyt(i,j)*uvel(i  ,j-1) &
-                +  cxp(i,j)*vvel(i-1,j-1) - dxt(i,j)*vvel(i-1,j  )
-      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyt(i,j)*uvel(i-1,j-1) &
-                +  cxp(i,j)*vvel(i  ,j-1) - dxt(i,j)*vvel(i  ,j  )
+      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
+                +  cxm(i,j)*vvel(i  ,j  ) + dxT(i,j)*vvel(i  ,j-1)
+      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
+                +  cxm(i,j)*vvel(i-1,j  ) + dxT(i,j)*vvel(i-1,j-1)
+      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
+                +  cxp(i,j)*vvel(i-1,j-1) - dxT(i,j)*vvel(i-1,j  )
+      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
+                +  cxp(i,j)*vvel(i  ,j-1) - dxT(i,j)*vvel(i  ,j  )
 
       ! shearing strain rate  =  2*e_12
-      shearne = -cym(i,j)*vvel(i  ,j  ) - dyt(i,j)*vvel(i-1,j  ) &
-              -  cxm(i,j)*uvel(i  ,j  ) - dxt(i,j)*uvel(i  ,j-1)
-      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyt(i,j)*vvel(i  ,j  ) &
-              -  cxm(i,j)*uvel(i-1,j  ) - dxt(i,j)*uvel(i-1,j-1)
-      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyt(i,j)*vvel(i  ,j-1) &
-              -  cxp(i,j)*uvel(i-1,j-1) + dxt(i,j)*uvel(i-1,j  )
-      shearse = -cym(i,j)*vvel(i  ,j-1) - dyt(i,j)*vvel(i-1,j-1) &
-              -  cxp(i,j)*uvel(i  ,j-1) + dxt(i,j)*uvel(i  ,j  )
+      shearne = -cym(i,j)*vvel(i  ,j  ) - dyT(i,j)*vvel(i-1,j  ) &
+              -  cxm(i,j)*uvel(i  ,j  ) - dxT(i,j)*uvel(i  ,j-1)
+      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyT(i,j)*vvel(i  ,j  ) &
+              -  cxm(i,j)*uvel(i-1,j  ) - dxT(i,j)*uvel(i-1,j-1)
+      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyT(i,j)*vvel(i  ,j-1) &
+              -  cxp(i,j)*uvel(i-1,j-1) + dxT(i,j)*uvel(i-1,j  )
+      shearse = -cym(i,j)*vvel(i  ,j-1) - dyT(i,j)*vvel(i-1,j-1) &
+              -  cxp(i,j)*uvel(i  ,j-1) + dxT(i,j)*uvel(i  ,j  )
 
       ! Delta (in the denominator of zeta, eta)
       Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))

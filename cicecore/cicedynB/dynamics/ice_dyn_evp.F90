@@ -99,7 +99,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_grid, only: hm, tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
-          dxe, dxn, dxt, dxu, dye, dyn, dyt, dyu, &
+          dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, &
           dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, earear, narear, grid_average_X2Y, tarea, uarea, &
@@ -185,9 +185,9 @@
          emassdti     ! mass of E-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:) , & ! bundled fields size 2
-         fld3(:,:,:,:) , & ! bundled fields size 3
-         fld4(:,:,:,:)     ! bundled fields size 4
+         fld2(:,:,:,:) , & ! 2 bundled fields
+         fld3(:,:,:,:) , & ! 3 bundled fields
+         fld4(:,:,:,:)     ! 4 bundled fields
 
       real (kind=dbl_kind), allocatable :: &
          strengthU(:,:,:), & ! strength averaged to U points
@@ -326,12 +326,12 @@
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('F', tmass    , 'T'          , emass, 'E')
          call grid_average_X2Y('F', aice_init, 'T'          , aie  , 'E')
+         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE, 'E')
+         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE, 'E')
          call grid_average_X2Y('F', tmass    , 'T'          , nmass, 'N')
          call grid_average_X2Y('F', aice_init, 'T'          , ain  , 'N')
          call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnN, 'N')
          call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnN, 'N')
-         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE, 'E')
-         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE, 'E')
       endif
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -722,7 +722,7 @@
             icetmask, iceumask,                                           &
             cdn_ocn,aiu,uocnU,vocnU,forcex,forcey,Tbu,                    &
             umassdti,fm,uarear,tarear,strintx,strinty,uvel_init,vvel_init,&
-            strength,uvel,vvel,dxt,dyt,                                   &
+            strength,uvel,vvel,dxT,dyT,                                   &
             stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
             stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
             stress12_1,stress12_2,stress12_3,stress12_4                   )
@@ -754,7 +754,7 @@
                                                      icellt        (iblk), &
                                indxti      (:,iblk), indxtj      (:,iblk), &
                                uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                               dxt       (:,:,iblk), dyt       (:,:,iblk), &
+                               dxT       (:,:,iblk), dyT       (:,:,iblk), &
                                dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
                                cxp       (:,:,iblk), cyp       (:,:,iblk), &
                                cxm       (:,:,iblk), cym       (:,:,iblk), &
@@ -776,7 +776,7 @@
                                         icellt      (iblk),                      &
                                         indxti    (:,iblk), indxtj     (:,iblk), &
                                         uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                                        dxt     (:,:,iblk), dyt      (:,:,iblk), &
+                                        dxT     (:,:,iblk), dyT      (:,:,iblk), &
                                         cxp     (:,:,iblk), cyp      (:,:,iblk), &
                                         cxm     (:,:,iblk), cym      (:,:,iblk), &
                                         tarear  (:,:,iblk),                      &
@@ -1335,7 +1335,7 @@
                          icellt,                 &
                          indxti,     indxtj,     &
                          uvel,       vvel,       &
-                         dxt,        dyt,        &
+                         dxT,        dyT,        &
                          dxhy,       dyhx,       &
                          cxp,        cyp,        &
                          cxm,        cym,        &
@@ -1363,8 +1363,8 @@
          strength , & ! ice strength (N/m)
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
          dyhx     , & ! 0.5*(HTN - HTS)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -1425,7 +1425,7 @@
          call strain_rates (nx_block,   ny_block,   &
                             i,          j,          &
                             uvel,       vvel,       &
-                            dxt,        dyt,        &
+                            dxT,        dyT,        &
                             cxp,        cyp,        &
                             cxm,        cym,        &
                             divune,     divunw,     &
@@ -1561,16 +1561,16 @@
          csig12se = p222*stress12_4(i,j) + ssig121 &
                   + p055*stress12_2(i,j)
 
-         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+         str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
+         strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
 
          ! northeast (i,j)
          str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
@@ -1580,8 +1580,8 @@
          str(i,j,2) = strp_tmp + strm_tmp - str12we &
               + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
 
          ! southeast (i,j+1)
          str(i,j,3) = -strp_tmp - strm_tmp + str12ew &
@@ -1594,8 +1594,8 @@
          !-----------------------------------------------------------------
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
 
          ! northeast (i,j)
          str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
@@ -1605,8 +1605,8 @@
          str(i,j,6) = strp_tmp - strm_tmp - str12sn &
               - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
 
          ! northwest (i+1,j)
          str(i,j,7) = -strp_tmp + strm_tmp + str12ns &

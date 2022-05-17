@@ -22,12 +22,14 @@ restart        gx3     8x1        alt03
 restart        gx3     16x1x5x29x6 alt04
 restart        gx3     16x1       alt05
 restart        gx3     20x1       alt06
+restart        gx3     18x1       alt07
 restart        gx3     18x1       alt01,debug,short
 restart        gx3     20x1       alt02,debug,short
 restart        gx3     24x1       alt03,debug,short
 smoke          gx3     24x1       alt04,debug,short
 smoke          gx3     32x1       alt05,debug,short
 smoke          gx3     16x1       alt06,debug,short
+smoke          gx3     20x1       alt07,debug,short
 restart        gx3     16x1       isotope
 smoke          gx3     6x1        isotope,debug
 smoke          gx3     8x1        fsd1,diag24,run5day,debug

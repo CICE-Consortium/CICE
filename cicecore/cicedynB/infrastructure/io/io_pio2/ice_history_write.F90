@@ -51,7 +51,7 @@
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
           hm, bm, uvm, npm, epm, &
-          dxu, dxt, dyu, dyt, dxn, dyn, dxe, dye, HTN, HTE, ANGLE, ANGLET, &
+          dxU, dxT, dyU, dyT, dxN, dyN, dxE, dyE, HTN, HTE, ANGLE, ANGLET, &
           tarea, uarea, narea, earea, tmask, umask, nmask, emask, &
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
@@ -779,21 +779,21 @@
             CASE ('earea')
                workd2 = earea(:,:,1:nblocks)
             CASE ('dxt')
-               workd2 = dxt(:,:,1:nblocks)
+               workd2 = dxT(:,:,1:nblocks)
             CASE ('dyt')
-               workd2 = dyt(:,:,1:nblocks)
+               workd2 = dyT(:,:,1:nblocks)
             CASE ('dxu')
-               workd2 = dxu(:,:,1:nblocks)
+               workd2 = dxU(:,:,1:nblocks)
             CASE ('dyu')
-               workd2 = dyu(:,:,1:nblocks)
+               workd2 = dyU(:,:,1:nblocks)
             CASE ('dxn')
-               workd2 = dxn(:,:,1:nblocks)
+               workd2 = dxN(:,:,1:nblocks)
             CASE ('dyn')
-               workd2 = dyn(:,:,1:nblocks)
+               workd2 = dyN(:,:,1:nblocks)
             CASE ('dxe')
-               workd2 = dxe(:,:,1:nblocks)
+               workd2 = dxE(:,:,1:nblocks)
             CASE ('dye')
-               workd2 = dye(:,:,1:nblocks)
+               workd2 = dyE(:,:,1:nblocks)
             CASE ('HTN')
                workd2 = HTN(:,:,1:nblocks)
             CASE ('HTE')

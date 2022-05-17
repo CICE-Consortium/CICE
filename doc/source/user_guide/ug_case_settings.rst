@@ -366,6 +366,7 @@ tracer_nml
    "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_lvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_topo``", "logical", "restart tracer values from file", "``.false.``"
+   "``restart_snow``", "logical", "restart snow tracer values from file", "``.false.``"
    "", "", "", ""
 
 thermo_nml
@@ -400,6 +401,16 @@ thermo_nml
 dynamics_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+..
+   commented out
+   "``damping_andacc``", "integer", "damping factor for Anderson acceleration", "0"
+   "``dim_andacc``", "integer", "size of Anderson minimization matrix", "5"
+   "``fpfunc_andacc``", "``1``", "fix point function for Anderson acceleration, FMGRES(A(x),b(x))", "1"
+   "", "``2``", "fix point function for Anderson acceleration, x-A(x)x+b(x)", ""
+   "``reltol_andacc``", "real", "relative tolerance for Anderson acceleration", "1e-6"
+   "``start_andacc``", "integer", "acceleration delay factor for Anderson acceleration", "0"
+   commented out
+
 .. csv-table:: **dynamics_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -412,9 +423,8 @@ dynamics_nml
    "``alphab``", "real", ":math:`\alpha_{b}` factor in :cite:`Lemieux16`", "20.0"
    "``arlx``", "real", "revised_evp value", "300.0"
    "``brlx``", "real", "revised_evp value", "300.0"
-   "``capping``", "real", "method for capping the viscosities", "1.0"
-   "", "``0``", "Kreyscher 2000", ""
-   "", "``1``", "Hibler 1979", ""
+   "``capping_method``", "``max``", "max capping in :cite:`Hibler79`", "max"
+   "", "``sum``", "sum capping in :cite:`Kreyscher00`", ""
    "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17.0"
    "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4 s\ :math:`^{-1}`", "``latitude``"
    "", "``latitude``", "coriolis variable by latitude", ""
@@ -447,11 +457,11 @@ dynamics_nml
    "``Ktens``", "real", "Tensile strength factor (see :cite:`Konig10`)", "0.0"
    "``k1``", "real", "1st free parameter for landfast parameterization", "7.5"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"
-   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
    "``maxits_fgmres``", "integer", "maximum number of restarts for FGMRES solver", "1"
+   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
    "``maxits_pgmres``", "integer", "maximum number of restarts for PGMRES preconditioner", "1"
-   "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
    "``monitor_fgmres``", "logical", "write velocity norm at each FGMRES iteration", "``.false.``"
+   "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
    "``monitor_pgmres``", "logical", "write velocity norm at each PGMRES iteration", "``.false.``"
    "``mu_rdg``", "real", "e-folding scale of ridged ice for ``krdg_partic`` = 1 in m^0.5", "3.0"
    "``ndte``", "integer", "number of EVP subcycles", "120"
@@ -461,8 +471,8 @@ dynamics_nml
    "", "``ident``", "Don't use a preconditioner for the FGMRES solver", ""
    "", "``pgmres``", "Use GMRES as preconditioner for FGMRES solver", ""
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
-   "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
    "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-2"
+   "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
    "``reltol_pgmres``", "real", "relative tolerance for PGMRES preconditioner", "1e-6"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
    "``seabed_stress``", "logical", "use seabed stress parameterization for landfast ice", "``.false.``"
@@ -561,6 +571,12 @@ snow_nml
 forcing_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+..
+   commented out
+   "``calc_dragio``", "logical", "compute dragio from iceruf_ocean and thickness of first ocean level, not supported", "``.false.``"
+   "``iceruf_ocn``", "real", "under ice roughness in meters, not supported", "0.03"
+   commented out
+
 .. csv-table:: **forcing_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -601,7 +617,8 @@ forcing_nml
    "``formdrag``", "logical", "calculate form drag", "``.false.``"
    "``fyear_init``", "integer", "first year of atmospheric forcing data", "1900"
    "``highfreq``", "logical", "high-frequency atmo coupling", "``.false.``"
-   "``ice_data_conc``",  "``c1``", "initial ice concentation of 1.0", "``default``"
+   "``ice_data_conc``",  "``box2001``", "ice distribution ramped from 0 to 1 west to east consistent with :ref:`box2001` test (:cite:`Hunke01`)", "``default``"
+   "", "``c1``", "initial ice concentation of 1.0", ""
    "", "``default``", "same as parabolic", ""
    "", "``p5``", "initial concentration of 0.5", ""
    "", "``p8``", "initial concentration of 0.8", ""
@@ -611,18 +628,15 @@ forcing_nml
    "", "``default``", "uniform distribution, equivalent to uniform", ""
    "", "``gauss``", "gauss distbution of ice with a peak in the center of the domain", ""
    "", "``uniform``", "uniform distribution, equivalent to default", ""
-   "``ice_data_type``",  "``bigblock``", "ice mask covering about 90 percent of the area in center of domain", "``default``"
-   "", "``block``", "ice block covering about 25 percent of the area in center of domain", ""
+   "``ice_data_type``",  "``block``", "ice block covering about 25 percent of the area in center of domain", "``default``"
    "", "``boxslotcyl``", "slot cylinder ice mask associated with :ref:`boxslotcyl` test (:cite:`Zalesak79`)", ""
    "", "``box2001``", "box2001 ice mask associate with :ref:`box2001` test (:cite:`Hunke01`)", ""
    "", "``channel``", "ice defined on entire grid in i-direction and 50% in j-direction in center of domain", ""
    "", "``default``", "same as latsst", ""
    "", "``eastblock``", "ice block covering about 25 percent of domain at the east edge of the domain", ""
-   "", "``easthalf``", "ice defined on east half of the domain",""
    "", "``latsst``", "ice dependent on latitude and ocean temperature", ""
-   "", "``smallblock``", "ice defined on 2x2 gridcells in center of domain", ""
    "", "``uniform``", "ice defined at all grid points", ""
-   "``iceruf``", "real", "ice surface roughness at atmosphere interface", "0.0005"
+   "``iceruf``", "real", "ice surface roughness at atmosphere interface in meters", "0.0005"
    "``l_mpond_fresh``", "``.false.``", "release pond water immediately to ocean", "``.false.``"
    "", "``true``", "retain (topo) pond water until ponds drain", ""
    "``natmiter``", "integer", "number of atmo boundary layer iterations", "5"
@@ -648,7 +662,7 @@ forcing_nml
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
    "``trestore``", "integer", "sst restoring time scale (days)", "90"
-   "``ustar_min``", "real", "minimum value of ocean friction velocity", "0.0005 m/s"
+   "``ustar_min``", "real", "minimum value of ocean friction velocity in m/s", "0.0005"
    "``update_ocn_f``", "``.false.``", "do not include frazil water/salt fluxes in ocn fluxes", "``.false.``"
    "", "``true``", "include frazil water/salt fluxes in ocn fluxes", ""
    "``wave_spec_file``", "string", "data file containing wave spectrum forcing data", ""
@@ -822,6 +836,17 @@ zbgc_nml
 icefields_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+There are several icefield namelist groups to control model history output.  See the
+source code for a full list of supported output fields.
+
+* ``icefields_nml`` is in **cicecore/cicedynB/analysis/ice_history_shared.F90**
+* ``icefields_bgc_nml`` is in **cicecore/cicedynB/analysis/ice_history_bgc.F90**
+* ``icefields_drag_nml`` is in **cicecore/cicedynB/analysis/ice_history_drag.F90**
+* ``icefields_fsd_nml`` is in **cicecore/cicedynB/analysis/ice_history_fsd.F90**
+* ``icefields_mechred_nml`` is in **cicecore/cicedynB/analysis/ice_history_mechred.F90**
+* ``icefields_pond_nml`` is in **cicecore/cicedynB/analysis/ice_history_pond.F90**
+* ``icefields_snow_nml`` is in **cicecore/cicedynB/analysis/ice_history_snow.F90**
+
 .. csv-table:: **icefields_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -842,4 +867,5 @@ icefields_nml
    "", "``1``", "write field cell average var every time step", ""
    "", "``md``", "*e.g.,* write both monthly and daily files", ""
    "", "", "", ""
+
 

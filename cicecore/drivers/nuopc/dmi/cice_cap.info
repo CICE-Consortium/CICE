@@ -18,7 +18,7 @@ module cice_cap
   use ice_calendar,  only: dt
   use ice_flux
   use ice_grid, only: TLAT, TLON, ULAT, ULON, hm, tarea, ANGLET, ANGLE, &
-                      dxt, dyt, grid_average_X2Y
+                      dxT, dyT, grid_average_X2Y
   use ice_state
   use CICE_RunMod
   use CICE_InitMod
