@@ -1040,10 +1040,7 @@ stable as long as the subcycling time step :math:`\Delta t_e`
 sufficiently resolves the damping timescale :math:`T`. For the stability
 analysis we had to make several simplifications of the problem; hence
 the location of the boundary between stable and unstable regions is
-merely an estimate. In practice, the ratio
-:math:`\Delta t_e ~:~ T ~:~ \Delta t`  = 1 : 40 : 120 provides both
-stability and acceptable efficiency for time steps (:math:`\Delta t`) on
-the order of 1 hour.
+merely an estimate. The current default parameters for the EVP and EAP are :math:`ndte=240` and :math:`E_\circ=0.36`. For high resolution applications, it is however recommended to increase the value of :math:`ndte` :cite:`Koldunov19`, :cite:`Bouchat22`.
 
 Note that only :math:`T` and :math:`\Delta t_e` figure into the
 stability of the dynamics component; :math:`\Delta t` does not. Although
