@@ -605,6 +605,19 @@
       !-----------------------------------------------------------------
 
       call ice_timer_start(timer_bound)
+
+      call ice_HaloUpdate (tarea,              halo_info, &
+                           field_loc_center,   field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (uarea,              halo_info, &
+                           field_loc_NEcorner, field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (tarear,             halo_info, &
+                           field_loc_center,   field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (uarear,             halo_info, &
+                           field_loc_NEcorner, field_type_scalar, &
+                           fillValue=c1)
       call ice_HaloUpdate (dxhy,               halo_info, &
                            field_loc_center,   field_type_vector, &
                            fillValue=c1)
