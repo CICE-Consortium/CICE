@@ -316,11 +316,6 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call ice_HaloUpdate (tmass,          halo_info, &
-                           field_loc_center,  field_type_scalar)
-      call ice_HaloUpdate (aice_init,      halo_info, &
-                           field_loc_center,  field_type_scalar)
-
       call grid_average_X2Y('F', tmass    , 'T'          , umass   , 'U')
       call grid_average_X2Y('F', aice_init, 'T'          , aiu     , 'U')
       call grid_average_X2Y('F', uocn     , grid_ocn_dynu, uocnU   , 'U')
