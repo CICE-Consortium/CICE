@@ -160,6 +160,43 @@ EOFR
 endif
 
 #=======
+else if (${ICE_MACHINE} =~ ppp5* || ${ICE_MACHINE} =~ ppp6* || ${ICE_MACHINE} =~ robert* || ${ICE_MACHINE} =~ underhill*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
+else if (${ICE_MACHINE} =~ ppp3*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+rumpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
+else if (${ICE_MACHINE} =~ gpsc3*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+
+#=======
 else if (${ICE_MACHINE} =~ freya*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR

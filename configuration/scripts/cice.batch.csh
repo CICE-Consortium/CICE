@@ -250,7 +250,44 @@ cat >> ${jobfile} << EOFB
 #PBS -j oe
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${batchtime}
+#PBS -W umask=022
 EOFB
+
+else if (${ICE_MACHINE} =~ robert* || ${ICE_MACHINE} =~ underhill* || ${ICE_MACHINE} =~ ppp6* || ${ICE_MACHINE} =~ ppp5*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -j oe
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}:mem=20gb
+#PBS -l walltime=${batchtime}
+#PBS -W umask=022
+EOFB
+
+else if (${ICE_MACHINE} =~ ppp3*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -j oe
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}:mem=20gb:res_tmpfs=1000:res_image=eccc/eccc_all_ppp_ubuntu-18.04-amd64_latest
+#PBS -l walltime=${batchtime}
+#PBS -W umask=022
+#PBS -q development
+#PBS -o ${ICE_CASEDIR}
+#PBS -S /bin/csh
+EOFB
+
+else if (${ICE_MACHINE} =~ gpsc3*) then
+cat >> ${jobfile} << EOFB
+#SBATCH --export=USER,LOGNAME,HOME,MAIL,PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -A ${acct}
+#SBATCH --partition ${queue}
+#SBATCH --time ${batchtime}
+#SBATCH --nodes ${nnodes}
+#SBATCH --ntasks ${ntasks}
+#SBATCH --cpus-per-task ${nthrds}
+#SBATCH --mem-per-cpu=5G
+#SBATCH --comment="image=eccc/eccc_all_default_ubuntu-18.04-amd64_latest"
+EOFB
+
 
 else if (${ICE_MACHINE} =~ freya* ) then
 cat >> ${jobfile} << EOFB
