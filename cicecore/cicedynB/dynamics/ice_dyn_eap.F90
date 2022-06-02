@@ -175,6 +175,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          uocnU      , & ! i ocean current (m/s)
          vocnU      , & ! j ocean current (m/s)
+         ss_tltxU   , & ! sea surface slope, x-direction (m/m)
+         ss_tltyU   , & ! sea surface slope, y-direction (m/m)
          tmass      , & ! total mass of ice and snow (kg/m^2)
          waterx     , & ! for ocean stress calculation, x (m/s)
          watery     , & ! for ocean stress calculation, y (m/s)
@@ -270,8 +272,10 @@
 
       call grid_average_X2Y('F', tmass    , 'T'          , umass, 'U')
       call grid_average_X2Y('F', aice_init, 'T'          , aiu  , 'U')
-      call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU, 'U')
-      call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU, 'U')
+      call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
+      call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
+      call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
+      call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyU, 'U')
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -318,7 +322,7 @@
                          umask     (:,:,iblk),                       &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairx   (:,:,iblk), strairy   (:,:,iblk), &
-                         ss_tltx   (:,:,iblk), ss_tlty   (:,:,iblk), &
+                         ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
                          icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
                          fm        (:,:,iblk), dt,                   &
                          strtltx   (:,:,iblk), strtlty   (:,:,iblk), &
