@@ -126,8 +126,8 @@
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
          ice_data_type, & ! 'latsst', 'box2001', 'boxslotcyl', etc
-         ice_data_conc, & ! 'p5','p8','p9','c1','parabolic'
-         ice_data_dist, & ! 'box2001','gauss', 'uniform'
+         ice_data_conc, & ! 'p5','p8','p9','c1','parabolic', 'box2001', etc
+         ice_data_dist, & ! 'box2001','gauss', 'uniform', etc
          precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
 
       logical (kind=log_kind), public :: &
@@ -5311,7 +5311,7 @@
 !
       subroutine box2001_data_atm
 
-! wind and current fields as in Hunke, JCP 2001
+! wind fields as in Hunke, JCP 2001
 ! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
@@ -5353,17 +5353,6 @@
          this_block = get_block(blocks_ice(iblk),iblk)
          iglob = this_block%i_glob
          jglob = this_block%j_glob
-
-!tcraig, move to box2001_data_ocn
-!         ! ocean current
-!         ! constant in time, could be initialized in ice_flux.F90
-!         uocn(i,j,iblk) =  p2*real(j-nghost, kind=dbl_kind) &
-!                            / real(nx_global,kind=dbl_kind) - p1
-!         vocn(i,j,iblk) = -p2*real(i-nghost, kind=dbl_kind) &
-!                            / real(ny_global,kind=dbl_kind) + p1
-!
-!         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
-!         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
 
          ! wind components
          uatm(i,j,iblk) = c5 + (sin(pi2*timesecs/period)-c3) &
@@ -5417,7 +5406,7 @@
 !
       subroutine box2001_data_ocn
 
-! wind and current fields as in Hunke, JCP 2001
+! current fields as in Hunke, JCP 2001
 ! these are defined at the u point
 ! authors: Elizabeth Hunke, LANL
 
@@ -5546,7 +5535,7 @@
 !
       subroutine uniform_data_ocn(dir,spd)
 
-!     uniform wind fields in some direction
+!     uniform current fields in some direction
 
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks

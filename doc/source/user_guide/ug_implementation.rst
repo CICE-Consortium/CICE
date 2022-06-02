@@ -79,7 +79,7 @@ this tool.
 Grid, boundary conditions and masks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The spatial discretization of the original implementation was specialized 
+The spatial discretization of the original implementation is specialized 
 for a generalized orthogonal B-grid as in :cite:`Murray96` or
 :cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
 B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
@@ -90,7 +90,7 @@ corner. The other corners of the T-cell are northwest (NW), southwest
 (SW) and southeast (SE). The lengths of the four edges of the T-cell
 are respectively HTN, HTW, HTS and HTE for the northern, western,
 southern and eastern edges. The lengths of the T-cell through the
-middle are respectively dxt and dyt along the x and y axis. 
+middle are respectively dxT and dyT along the x and y axis. 
 
 We also occasionally refer to “U-cells,” which are centered on the
 northeast corner of the corresponding T-cells and have velocity in the
@@ -155,9 +155,9 @@ the primary prognostic grid variable names on the different grids.
    +----------------+-------+-------+-------+-------+
    | latitude       |  TLAT |  ULAT |  NLAT |  ELAT |
    +----------------+-------+-------+-------+-------+
-   | dx             |  dxt  |  dxu  |  dxn  |  dxe  |
+   | dx             |  dxT  |  dxU  |  dxN  |  dxE  |
    +----------------+-------+-------+-------+-------+
-   | dy             |  dyt  |  dyu  |  dyn  |  dye  |
+   | dy             |  dyT  |  dyU  |  dyN  |  dyE  |
    +----------------+-------+-------+-------+-------+
    | area           | tarea | uarea | narea | earea |
    +----------------+-------+-------+-------+-------+
@@ -893,9 +893,11 @@ Three namelist variables generally control model initialization, ``runtype``,
 are ``initial`` or ``continue``.  When ``runtype`` = `continue`, the
 restart filename is stored in a small text (pointer) file, ``use_restart_time``
 is forced to true and ``ice_ic`` plays no role.  When ``runtype`` =
-`initial`, ``ice_ic`` has three options, ``none``, ``default``,
-or *filename*.  These initial states are no-ice, latitudinal dependent
-ice, and ice defined by a file respectively.  In `initial` mode,
+`initial`, ``ice_ic`` has three options, ``none``, ``internal``,
+or *filename*.  These initial states are no-ice, namelist driven initial
+condition, and ice defined by a file respectively.  If ``ice_ic`` is set
+to ``internal``, the initial state is defined by the namelist values
+``ice_data_type``, ``ice_data_dist``, and ``ice_data_conc``.  In `initial` mode,
 ``use_restart_time`` should generally be set to false and the initial
 time is then defined by ``year_init``, ``month_init``, ``day_init``, 
 and ``sec_init``.  These combinations options are summarized in 
@@ -938,8 +940,8 @@ the model.  If namelist defines the start date, it's done with
    | `initial`      | `none`                   | not used                             | no ice,                                |
    |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
-   |                |                          |                                      | namelist defines start date            |
+   | `initial`      | `internal` or            | not used                             | set by namelist ice_data_type,         |
+   |                | `default`                |                                      | ice_data_dist, ice_data_conc           |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | `initial`      | *filename*               | false                                | read ice state from filename,          |
    |                |                          |                                      | namelist defines start date            |
@@ -1038,10 +1040,7 @@ stable as long as the subcycling time step :math:`\Delta t_e`
 sufficiently resolves the damping timescale :math:`T`. For the stability
 analysis we had to make several simplifications of the problem; hence
 the location of the boundary between stable and unstable regions is
-merely an estimate. In practice, the ratio
-:math:`\Delta t_e ~:~ T ~:~ \Delta t`  = 1 : 40 : 120 provides both
-stability and acceptable efficiency for time steps (:math:`\Delta t`) on
-the order of 1 hour.
+merely an estimate. The current default parameters for the EVP and EAP are :math:`ndte=240` and :math:`E_\circ=0.36`. For high resolution applications, it is however recommended to increase the value of :math:`ndte` :cite:`Koldunov19`, :cite:`Bouchat22`.
 
 Note that only :math:`T` and :math:`\Delta t_e` figure into the
 stability of the dynamics component; :math:`\Delta t` does not. Although

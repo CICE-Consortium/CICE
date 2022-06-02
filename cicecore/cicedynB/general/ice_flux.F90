@@ -56,8 +56,8 @@
 
        ! out to ocean          T-cell (kg/m s^2)
        ! Note, CICE_IN_NEMO uses strocnx and strocny for coupling
-         strocnxT, & ! ice-ocean stress, x-direction at T points, mapped from strocnx, per ice fraction
-         strocnyT    ! ice-ocean stress, y-direction at T points, mapped from strocny, per ice fraction
+         strocnxT, & ! ice-ocean stress, x-direction at T points, per ice fraction
+         strocnyT    ! ice-ocean stress, y-direction at T points, per ice fraction
 
        ! diagnostic
 
@@ -67,8 +67,8 @@
          sigP    , & ! internal ice pressure (N/m)
          taubx   , & ! seabed stress (x) (N/m^2)
          tauby   , & ! seabed stress (y) (N/m^2)
-         strairx , & ! stress on ice by air, x-direction at U points, mapped from strairxT
-         strairy , & ! stress on ice by air, y-direction at U points, mapped from strairyT
+         strairx , & ! stress on ice by air, x-direction at U points
+         strairy , & ! stress on ice by air, y-direction at U points
          strocnx , & ! ice-ocean stress, x-direction at U points, computed in dyn_finish
          strocny , & ! ice-ocean stress, y-direction at U points, computed in dyn_finish
          strtltx , & ! stress due to sea surface slope, x-direction
@@ -77,8 +77,8 @@
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubxN  , & ! seabed stress (x) at N points (N/m^2)
          taubyN  , & ! seabed stress (y) at N points (N/m^2)
-         strairxN, & ! stress on ice by air, x-direction at N points, mapped from strairxT
-         strairyN, & ! stress on ice by air, y-direction at N points, mapped from strairyT
+         strairxN, & ! stress on ice by air, x-direction at N points
+         strairyN, & ! stress on ice by air, y-direction at N points
          strocnxN, & ! ice-ocean stress, x-direction at N points, computed in dyn_finish
          strocnyN, & ! ice-ocean stress, y-direction at N points, computed in dyn_finish
          strtltxN, & ! stress due to sea surface slope, x-direction at N points
@@ -87,8 +87,8 @@
          strintyN, & ! divergence of internal ice stress, y at N points (N/m^2)
          taubxE  , & ! seabed stress (x) at E points (N/m^2)
          taubyE  , & ! seabed stress (y) at E points (N/m^2)
-         strairxE, & ! stress on ice by air, x-direction at E points, mapped from strairxT
-         strairyE, & ! stress on ice by air, y-direction at E points, mapped from strairyT
+         strairxE, & ! stress on ice by air, x-direction at E points
+         strairyE, & ! stress on ice by air, y-direction at E points
          strocnxE, & ! ice-ocean stress, x-direction at E points, computed in dyn_finish
          strocnyE, & ! ice-ocean stress, y-direction at E points, computed in dyn_finish
          strtltxE, & ! stress due to sea surface slope, x-direction at E points
@@ -364,8 +364,8 @@
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         uatmT   , & ! uatm mapped to T grid (m/s)
-         vatmT   , & ! vatm mapped to T grid (m/s)
+         uatmT   , & ! uatm on T grid (m/s)
+         vatmT   , & ! vatm on T grid (m/s)
          rside   , & ! fraction of ice that melts laterally
          fside   , & ! lateral heat flux (W/m^2)
          fsw     , & ! incoming shortwave radiation (W/m^2)
@@ -539,8 +539,8 @@
          fswthru_ai (nx_block,ny_block,max_blocks), &  ! shortwave penetrating to ocean (W/m^2)
          fresh_da   (nx_block,ny_block,max_blocks), & ! fresh water flux to ocean due to data assim (kg/m^2/s)
          fsalt_da   (nx_block,ny_block,max_blocks), & ! salt flux to ocean due to data assimilation(kg/m^2/s)
-         uatmT      (nx_block,ny_block,max_blocks), & ! uatm mapped to T grid
-         vatmT      (nx_block,ny_block,max_blocks), & ! vatm mapped to T grid
+         uatmT      (nx_block,ny_block,max_blocks), & ! uatm on T grid
+         vatmT      (nx_block,ny_block,max_blocks), & ! vatm on T grid
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
          fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)

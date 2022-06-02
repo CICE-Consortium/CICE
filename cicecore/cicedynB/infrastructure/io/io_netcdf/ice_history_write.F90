@@ -56,7 +56,7 @@
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
           hm, uvm, npm, epm, bm, tarea, uarea, narea, earea, &
-          dxu, dxt, dyu, dyt, dxn, dyn, dxe, dye, HTN, HTE, ANGLE, ANGLET, &
+          dxU, dxT, dyU, dyT, dxN, dyN, dxE, dyE, HTN, HTE, ANGLE, ANGLET, &
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
@@ -846,21 +846,21 @@
           CASE ('blkmask')
             call gather_global(work_g1,    bm, master_task, distrb_info)
           CASE ('dxu')
-            call gather_global(work_g1,   dxu, master_task, distrb_info)
+            call gather_global(work_g1,   dxU, master_task, distrb_info)
           CASE ('dyu')
-            call gather_global(work_g1,   dyu, master_task, distrb_info)
+            call gather_global(work_g1,   dyU, master_task, distrb_info)
           CASE ('dxt')
-            call gather_global(work_g1,   dxt, master_task, distrb_info)
+            call gather_global(work_g1,   dxT, master_task, distrb_info)
           CASE ('dyt')
-            call gather_global(work_g1,   dyt, master_task, distrb_info)
+            call gather_global(work_g1,   dyT, master_task, distrb_info)
           CASE ('dxn')
-            call gather_global(work_g1,   dxn, master_task, distrb_info)
+            call gather_global(work_g1,   dxN, master_task, distrb_info)
           CASE ('dyn')
-            call gather_global(work_g1,   dyn, master_task, distrb_info)
+            call gather_global(work_g1,   dyN, master_task, distrb_info)
           CASE ('dxe')
-            call gather_global(work_g1,   dxe, master_task, distrb_info)
+            call gather_global(work_g1,   dxE, master_task, distrb_info)
           CASE ('dye')
-            call gather_global(work_g1,   dye, master_task, distrb_info)
+            call gather_global(work_g1,   dyE, master_task, distrb_info)
           CASE ('HTN')
             call gather_global(work_g1,   HTN, master_task, distrb_info)
           CASE ('HTE')

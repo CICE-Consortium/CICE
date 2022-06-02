@@ -437,7 +437,7 @@ contains
 
     use ice_grid      , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
     use ice_grid      , only : uarea, uarear, tarear!, tinyarea
-    use ice_grid      , only : dxt, dyt, dxu, dyu, dyhx, dxhy, cyp, cxp, cym, cxm
+    use ice_grid      , only : dxT, dyT, dxU, dyU, dyhx, dxhy, cyp, cxp, cym, cxm
     use ice_grid      , only : makemask
     use ice_boundary  , only : ice_HaloUpdate
     use ice_domain    , only : blocks_ice, nblocks, halo_info, distrb_info
@@ -531,10 +531,10 @@ contains
 
              HTN   (i,j,iblk) = 1.e36_dbl_kind
              HTE   (i,j,iblk) = 1.e36_dbl_kind
-             dxt   (i,j,iblk) = 1.e36_dbl_kind
-             dyt   (i,j,iblk) = 1.e36_dbl_kind
-             dxu   (i,j,iblk) = 1.e36_dbl_kind
-             dyu   (i,j,iblk) = 1.e36_dbl_kind
+             dxT   (i,j,iblk) = 1.e36_dbl_kind
+             dyT   (i,j,iblk) = 1.e36_dbl_kind
+             dxU   (i,j,iblk) = 1.e36_dbl_kind
+             dyU   (i,j,iblk) = 1.e36_dbl_kind
              dxhy  (i,j,iblk) = 1.e36_dbl_kind
              dyhx  (i,j,iblk) = 1.e36_dbl_kind
              cyp   (i,j,iblk) = 1.e36_dbl_kind

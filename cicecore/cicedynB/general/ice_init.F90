@@ -148,10 +148,11 @@
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table
+        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
+        capping_method
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-                                 sw_redist, calc_dragio, use_smliq_pnd, snwgrain
+        sw_redist, calc_dragio, use_smliq_pnd, snwgrain
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -229,7 +230,7 @@
         damping_andacc, start_andacc,   fpfunc_andacc,  use_mean_vrel,  &
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
-        deltaminEVP,    deltaminVP,     capping,                        &
+        deltaminEVP,    deltaminVP,     capping_method,                 &
         Cf,             Pstar,          Cstar,          Ktens
       
       namelist /shortwave_nml/ &
@@ -326,22 +327,22 @@
       dumpfreq_n = 1         ! restart frequency
       dumpfreq_base = 'init' ! restart frequency reference date
       dump_last = .false.    ! write restart on last time step
-      restart_dir  = './'     ! write to executable dir for default
+      restart_dir  = './'    ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
       restart_ext  = .false. ! if true, read/write ghost cells
-      restart_coszen  = .false. ! if true, read/write coszen
+      restart_coszen  = .false.   ! if true, read/write coszen
       pointer_file = 'ice.restart_file'
       restart_format = 'default'  ! restart file format
-      lcdf64       = .false. ! 64 bit offset for netCDF
-      ice_ic       = 'default'      ! latitude and sst-dependent
-      grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
-      grid_type    = 'rectangular'  ! define rectangular grid internally
+      lcdf64       = .false.      ! 64 bit offset for netCDF
+      ice_ic       = 'default'    ! latitude and sst-dependent
+      grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
+      grid_type    = 'rectangular'! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
-      grid_ice     = 'B'            ! underlying grid system
-      grid_atm     = 'A'            ! underlying atm forcing/coupling grid
-      grid_ocn     = 'A'            ! underlying atm forcing/coupling grid
+      grid_ice     = 'B'          ! underlying grid system
+      grid_atm     = 'A'          ! underlying atm forcing/coupling grid
+      grid_ocn     = 'A'          ! underlying atm forcing/coupling grid
       gridcpl_file = 'unknown_gridcpl_file'
-      orca_halogrid = .false.  ! orca haloed grid
+      orca_halogrid = .false.     ! orca haloed grid
       bathymetry_file   = 'unknown_bathymetry_file'
       bathymetry_format = 'default'
       use_bathymetry    = .false.
@@ -359,76 +360,76 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap, 3 = vp)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
-      evp_algorithm = 'standard_2d'    ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
-      elasticDamp = 0.36_dbl_kind  ! coefficient for calculating the parameter E
-      pgl_global_ext = .false. ! if true, init primary grid lengths (global ext.)
+      evp_algorithm = 'standard_2d'  ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
+      elasticDamp = 0.36_dbl_kind    ! coefficient for calculating the parameter E
+      pgl_global_ext = .false.       ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
-      revised_evp = .false.  ! if true, use revised procedure for evp dynamics
-      yield_curve = 'ellipse'  ! yield curve 
-      kstrength = 1          ! 1 = Rothrock 75 strength, 0 = Hibler 79
+      revised_evp = .false.   ! if true, use revised procedure for evp dynamics
+      yield_curve = 'ellipse' ! yield curve 
+      kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
-      krdg_partic = 1        ! 1 = new participation, 0 = Thorndike et al 75
-      krdg_redist = 1        ! 1 = new redistribution, 0 = Hibler 80
-      mu_rdg = 3             ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
-      Cf = 17.0_dbl_kind     ! ratio of ridging work to PE change in ridging 
-      ksno = 0.3_dbl_kind    ! snow thermal conductivity
-      dxrect = 0.0_dbl_kind  ! user defined grid spacing in cm in x direction
-      dyrect = 0.0_dbl_kind  ! user defined grid spacing in cm in y direction
+      krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
+      krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
+      mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
+      Cf = 17.0_dbl_kind      ! ratio of ridging work to PE change in ridging 
+      ksno = 0.3_dbl_kind     ! snow thermal conductivity
+      dxrect = 0.0_dbl_kind   ! user defined grid spacing in cm in x direction
+      dyrect = 0.0_dbl_kind   ! user defined grid spacing in cm in y direction
       close_boundaries = .false.   ! true = set land on edges of grid
-      seabed_stress= .false.   ! if true, seabed stress for landfast is on
-      seabed_stress_method  = 'LKD' ! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
-      k1 = 7.5_dbl_kind      ! 1st free parameter for landfast parameterization
-      k2 = 15.0_dbl_kind     ! 2nd free parameter (N/m^3) for landfast parametrization
-      alphab = 20.0_dbl_kind       ! alphab=Cb factor in Lemieux et al 2015
+      seabed_stress= .false.  ! if true, seabed stress for landfast is on
+      seabed_stress_method  = 'LKD'! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
+      k1 = 7.5_dbl_kind       ! 1st free parameter for landfast parameterization
+      k2 = 15.0_dbl_kind      ! 2nd free parameter (N/m^3) for landfast parametrization
+      alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
       threshold_hw = 30.0_dbl_kind ! max water depth for grounding
-      Ktens = 0.0_dbl_kind   ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
-      e_yieldcurve = 2.0_dbl_kind ! VP aspect ratio of elliptical yield curve               
-      e_plasticpot = 2.0_dbl_kind ! VP aspect ratio of elliptical plastic potential
+      Ktens = 0.0_dbl_kind    ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
+      e_yieldcurve = 2.0_dbl_kind  ! VP aspect ratio of elliptical yield curve               
+      e_plasticpot = 2.0_dbl_kind  ! VP aspect ratio of elliptical plastic potential
       visc_method = 'avg_strength' ! calc viscosities at U point: avg_strength, avg_zeta
       deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
-      capping     = 1.0_dbl_kind   ! method for capping of viscosities (1=Hibler 1979,0=Kreyscher2000)
-      maxits_nonlin = 4      ! max nb of iteration for nonlinear solver
-      precond = 'pgmres'     ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
-      dim_fgmres = 50        ! size of fgmres Krylov subspace
-      dim_pgmres = 5         ! size of pgmres Krylov subspace
-      maxits_fgmres = 50     ! max nb of iteration for fgmres
-      maxits_pgmres = 5      ! max nb of iteration for pgmres
+      capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
+      maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
+      precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
+      dim_fgmres = 50          ! size of fgmres Krylov subspace
+      dim_pgmres = 5           ! size of pgmres Krylov subspace
+      maxits_fgmres = 50       ! max nb of iteration for fgmres
+      maxits_pgmres = 5        ! max nb of iteration for pgmres
       monitor_nonlin = .false. ! print nonlinear residual norm
       monitor_fgmres = .false. ! print fgmres residual norm
       monitor_pgmres = .false. ! print pgmres residual norm
-      ortho_type = 'mgs'     ! orthogonalization procedure 'cgs' or 'mgs'
+      ortho_type = 'mgs'       ! orthogonalization procedure 'cgs' or 'mgs'
       reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
       reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
-      fpfunc_andacc = 1      ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
-      dim_andacc = 5         ! size of Anderson minimization matrix (number of saved previous residuals)
+      fpfunc_andacc = 1        ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+      dim_andacc = 5           ! size of Anderson minimization matrix (number of saved previous residuals)
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
-      damping_andacc = 0     ! damping factor for Anderson acceleration
-      start_andacc = 0       ! acceleration delay factor (acceleration starts at this iteration)
-      use_mean_vrel = .true. ! use mean of previous 2 iterates to compute vrel
-      advection  = 'remap'   ! incremental remapping transport scheme
-      conserv_check = .false.! tracer conservation check
-      shortwave = 'ccsm3'    ! 'ccsm3' or 'dEdd' (delta-Eddington)
-      albedo_type = 'ccsm3'  ! 'ccsm3' or 'constant'
-      ktherm = 1             ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
-      conduct = 'bubbly'     ! 'MU71' or 'bubbly' (Pringle et al 2007)
-      coriolis = 'latitude'  ! latitude dependent, or 'constant'
+      damping_andacc = 0       ! damping factor for Anderson acceleration
+      start_andacc = 0         ! acceleration delay factor (acceleration starts at this iteration)
+      use_mean_vrel = .true.   ! use mean of previous 2 iterates to compute vrel
+      advection  = 'remap'     ! incremental remapping transport scheme
+      conserv_check = .false.  ! tracer conservation check
+      shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
+      ktherm = 1               ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+      conduct = 'bubbly'       ! 'MU71' or 'bubbly' (Pringle et al 2007)
+      coriolis = 'latitude'    ! latitude dependent, or 'constant'
       ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
-      kridge   = 1           ! -1 = off, 1 = on
-      ktransport = 1         ! -1 = off, 1 = on
-      calc_Tsfc = .true.     ! calculate surface temperature
-      update_ocn_f = .false. ! include fresh water and salt fluxes for frazil
-      ustar_min = 0.005      ! minimum friction velocity for ocean heat flux (m/s)
+      kridge   = 1             ! -1 = off, 1 = on
+      ktransport = 1           ! -1 = off, 1 = on
+      calc_Tsfc = .true.       ! calculate surface temperature
+      update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
+      ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
-      calc_dragio = .false.  ! compute dragio from iceruf_ocn and thickness of first ocean level
-      emissivity = 0.985     ! emissivity of snow and ice
-      l_mpond_fresh = .false.     ! logical switch for including meltpond freshwater
-                                  ! flux feedback to ocean model
+      calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
+      emissivity = 0.985       ! emissivity of snow and ice
+      l_mpond_fresh = .false.  ! logical switch for including meltpond freshwater
+                               ! flux feedback to ocean model
       fbot_xfer_type = 'constant' ! transfer coefficient type for ocn heat flux
       R_ice     = 0.00_dbl_kind   ! tuning parameter for sea ice
       R_pnd     = 0.00_dbl_kind   ! tuning parameter for ponded sea ice
@@ -513,7 +514,7 @@
 #ifndef CESMCOUPLED
       runid   = 'unknown'   ! run ID used in CESM and for machine 'bering'
       runtype = 'initial'   ! run type: 'initial', 'continue'
-      restart = .false.      ! if true, read ice state from restart file
+      restart = .false.     ! if true, read ice state from restart file
       use_restart_time = .false.   ! if true, use time info written in file
 #endif
 
@@ -868,7 +869,7 @@
       call broadcast_scalar(visc_method,    master_task)
       call broadcast_scalar(deltaminEVP,          master_task)
       call broadcast_scalar(deltaminVP,           master_task)
-      call broadcast_scalar(capping,              master_task)
+      call broadcast_scalar(capping_method,       master_task)
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
@@ -1187,14 +1188,19 @@
          endif
       endif
 
+      capping = -9.99e30
       if (kdyn == 1 .or. kdyn == 3) then
-      if (capping /= c0 .and. capping /= c1) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: invalid method for capping viscosities'
-            write(nu_diag,*) subname//' ERROR: capping should be equal to 0.0 or 1.0'
+         if (capping_method == 'max') then
+            capping = c1
+         elseif (capping_method == 'sum') then
+            capping = c0
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: invalid method for capping viscosities'
+               write(nu_diag,*) subname//' ERROR: capping_method should be equal to max or sum'
+            endif
+            abort_list = trim(abort_list)//":45"
          endif
-         abort_list = trim(abort_list)//":45"
-      endif
       endif
       
       rpcesm = 0
@@ -1714,12 +1720,13 @@
 
             if (kdyn == 1) then
                write(nu_diag,1003) ' deltamin     = ', deltaminEVP, ' : minimum delta for viscosities'
-               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
+               write(nu_diag,1030) ' capping_meth = ', trim(capping_method), ' : capping method for viscosities'
             elseif (kdyn == 3) then
                write(nu_diag,1003) ' deltamin     = ', deltaminVP, ' : minimum delta for viscosities'
-               write(nu_diag,1002) ' capping      = ', capping, ' : capping method for viscosities'
+               write(nu_diag,1030) ' capping_meth = ', trim(capping_method), ' : capping method for viscosities'
             endif
-               
+            !write(nu_diag,1002) ' capping      = ', capping, ' : capping value for viscosities'
+
             write(nu_diag,1002) ' elasticDamp  = ', elasticDamp, ' : coefficient for calculating the parameter E'
 
             if (trim(coriolis) == 'latitude') then
@@ -2902,7 +2909,8 @@
          if (trim(ice_data_conc) == 'p5' .or. &
              trim(ice_data_conc) == 'p8' .or. &
              trim(ice_data_conc) == 'p9' .or. &
-             trim(ice_data_conc) == 'c1') then
+             trim(ice_data_conc) == 'c1' .or. &
+             trim(ice_data_conc) == 'box2001') then
 
             if (trim(ice_data_conc) == 'p5') then
                hbar = c2  ! initial ice thickness
@@ -2916,6 +2924,9 @@
             elseif (trim(ice_data_conc) == 'c1') then
                hbar = c1  ! initial ice thickness
                abar = c1  ! initial ice concentration
+            elseif (trim(ice_data_conc) == 'box2001') then
+               hbar = c2  ! initial ice thickness
+               abar = p5  ! initial ice concentration
             endif
 
             do n = 1, ncat
@@ -3034,20 +3045,6 @@
             enddo
             enddo
 
-         elseif (trim(ice_data_type) == 'smallblock') then
-            ! 2x2 ice in center of domain
-            icells = 0
-            do j = jlo, jhi
-            do i = ilo, ihi
-               if ((iglob(i) == nx_global/2 .or. iglob(i) == nx_global/2+1) .and. &
-                   (jglob(j) == ny_global/2 .or. jglob(j) == ny_global/2+1)) then
-                  icells = icells + 1
-                  indxi(icells) = i
-                  indxj(icells) = j
-               endif
-            enddo
-            enddo
-
          elseif (trim(ice_data_type) == 'block') then
             ! ice in 50% of domain, not at edges
             icells = 0
@@ -3057,35 +3054,6 @@
             do i = ilo, ihi
                if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
                    (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
-                  icells = icells + 1
-                  indxi(icells) = i
-                  indxj(icells) = j
-               endif
-            enddo
-            enddo
-
-         elseif (trim(ice_data_type) == 'bigblock') then
-            ! ice in 90% of domain, not at edges
-            icells = 0
-            iedge = int(real(nx_global,kind=dbl_kind) * 0.05) + 1
-            jedge = int(real(ny_global,kind=dbl_kind) * 0.05) + 1
-            do j = jlo, jhi
-            do i = ilo, ihi
-               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
-                   (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
-                  icells = icells + 1
-                  indxi(icells) = i
-                  indxj(icells) = j
-               endif
-            enddo
-            enddo
-
-         elseif (trim(ice_data_type) == 'easthalf') then
-            ! block on east half of domain
-            icells = 0
-            do j = jlo, jhi
-            do i = ilo, ihi
-               if (iglob(i) >= nx_global/2) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
@@ -3154,13 +3122,13 @@
 
                if (trim(ice_data_dist) == 'box2001') then
                   if (hinit(n) > c0) then
-!                  ! constant slope from 0 to 1 in x direction
+!                  ! varies linearly from 0 to 1 in x direction
                      aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
                                   / (real(nx_global,kind=dbl_kind))
 !                  ! constant slope from 0 to 0.5 in x direction
 !                     aicen(i,j,n) = (real(iglob(i), kind=dbl_kind)-p5) &
 !                                  / (real(nx_global,kind=dbl_kind)) * p5
-                  ! quadratic
+!                  ! quadratic
 !                     aicen(i,j,n) = max(c0,(real(iglob(i), kind=dbl_kind)-p5) &
 !                                         / (real(nx_global,kind=dbl_kind)) &
 !                                         * (real(jglob(j), kind=dbl_kind)-p5) &

@@ -52,7 +52,7 @@
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fm
       use ice_global_reductions, only: global_sum, global_allreduce_sum
-      use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
+      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
@@ -174,7 +174,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxt, dyt, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
           tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
@@ -497,7 +497,7 @@
                          icellt(iblk)        ,                       &
                          indxti      (:,iblk), indxtj      (:,iblk), &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                         dxt       (:,:,iblk), dyt       (:,:,iblk), &
+                         dxT       (:,:,iblk), dyT       (:,:,iblk), &
                          cxp       (:,:,iblk), cyp       (:,:,iblk), &
                          cxm       (:,:,iblk), cym       (:,:,iblk), &
                          zetax2  (:,:,iblk,:), etax2   (:,:,iblk,:), &
@@ -520,7 +520,7 @@
                             icellt(iblk)        ,                       &
                             indxti      (:,iblk), indxtj      (:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                            dxt       (:,:,iblk), dyt       (:,:,iblk), &
+                            dxT       (:,:,iblk), dyT       (:,:,iblk), &
                             cxp       (:,:,iblk), cyp       (:,:,iblk), &
                             cxm       (:,:,iblk), cym       (:,:,iblk), &
                             tarear    (:,:,iblk),                       &
@@ -699,7 +699,7 @@
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   fm, Tbu
-      use ice_grid, only: dxt, dyt, dxhy, dyhx, cxp, cyp, cxm, cym, &
+      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
            uarear
       use ice_dyn_shared, only: DminTarea
       use ice_state, only: uvel, vvel, strength
@@ -847,7 +847,7 @@
                                 icellt       (iblk),                     &
                                 indxti     (:,iblk), indxtj    (:,iblk), &
                                 uprev_k  (:,:,iblk), vprev_k (:,:,iblk), &
-                                dxt      (:,:,iblk), dyt     (:,:,iblk), &
+                                dxT      (:,:,iblk), dyT     (:,:,iblk), &
                                 dxhy     (:,:,iblk), dyhx    (:,:,iblk), &
                                 cxp      (:,:,iblk), cyp     (:,:,iblk), &
                                 cxm      (:,:,iblk), cym     (:,:,iblk), &
@@ -878,7 +878,7 @@
                          icellu       (iblk)  , icellt       (iblk), &
                          indxui     (:,iblk)  , indxuj     (:,iblk), &
                          indxti     (:,iblk)  , indxtj     (:,iblk), &
-                         dxt      (:,:,iblk)  , dyt      (:,:,iblk), &
+                         dxT      (:,:,iblk)  , dyT      (:,:,iblk), &
                          dxhy     (:,:,iblk)  , dyhx     (:,:,iblk), &
                          cxp      (:,:,iblk)  , cyp      (:,:,iblk), &
                          cxm      (:,:,iblk)  , cym      (:,:,iblk), &
@@ -934,7 +934,7 @@
                   call formDiag_step1 (nx_block           , ny_block      ,    &
                                        icellu     (iblk)  ,                    &
                                        indxui   (:,iblk)  , indxuj(:,iblk),    &
-                                       dxt    (:,:,iblk)  , dyt (:,:,iblk),    &
+                                       dxT    (:,:,iblk)  , dyT (:,:,iblk),    &
                                        dxhy   (:,:,iblk)  , dyhx(:,:,iblk),    &
                                        cxp    (:,:,iblk)  , cyp (:,:,iblk),    &
                                        cxm    (:,:,iblk)  , cym (:,:,iblk),    &
@@ -1149,7 +1149,7 @@
                                 icellt  ,           &
                                 indxti  , indxtj  , &
                                 uvel    , vvel    , &
-                                dxt     , dyt     , &
+                                dxT     , dyT     , &
                                 dxhy    , dyhx    , &
                                 cxp     , cyp     , &
                                 cxm     , cym     , &
@@ -1172,8 +1172,8 @@
          strength , & ! ice strength (N/m)
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
          dyhx     , & ! 0.5*(HTN - HTS)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -1224,7 +1224,7 @@
          call strain_rates (nx_block , ny_block , &
                             i        , j        , &
                             uvel     , vvel     , &
-                            dxt      , dyt      , &
+                            dxT      , dyT      , &
                             cxp      , cyp      , &
                             cxm      , cym      , &
                             divune   , divunw   , &
@@ -1286,7 +1286,7 @@
       !-----------------------------------------------------------------
       ! for dF/dx (u momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
 
          ! northeast (i,j)
          stPr(i,j,1) = -strp_tmp &
@@ -1296,7 +1296,7 @@
          stPr(i,j,2) = strp_tmp  &
               + dxhy(i,j)*(-csigpnw)
 
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
 
          ! southeast (i,j+1)
          stPr(i,j,3) = -strp_tmp &
@@ -1309,7 +1309,7 @@
       !-----------------------------------------------------------------
       ! for dF/dy (v momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
 
          ! northeast (i,j)
          stPr(i,j,5) = -strp_tmp &
@@ -1319,7 +1319,7 @@
          stPr(i,j,6) = strp_tmp  &
               - dyhx(i,j)*(csigpse)
 
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
 
          ! northwest (i+1,j)
          stPr(i,j,7) = -strp_tmp &
@@ -1344,7 +1344,7 @@
                             icellt    ,             &
                             indxti    , indxtj    , &
                             uvel      , vvel      , &
-                            dxt       , dyt       , &
+                            dxT       , dyT       , &
                             cxp       , cyp       , &
                             cxm       , cym       , &
                             zetax2    , etax2     , &
@@ -1369,8 +1369,8 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
@@ -1410,7 +1410,7 @@
          call strain_rates (nx_block , ny_block , &
                             i        , j        , &
                             uvel     , vvel     , &
-                            dxt      , dyt      , &
+                            dxT      , dyT      , &
                             cxp      , cyp      , &
                             cxm      , cym      , &
                             divune   , divunw   , &
@@ -1566,7 +1566,7 @@
                          icellu  , icellt  , &
                          indxui  , indxuj  , &
                          indxti  , indxtj  , &
-                         dxt     , dyt     , &
+                         dxT     , dyT     , &
                          dxhy    , dyhx    , &
                          cxp     , cyp     , &
                          cxm     , cym     , &
@@ -1591,8 +1591,8 @@
          indxtj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
          dyhx     , & ! 0.5*(HTN - HTS)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -1668,7 +1668,7 @@
          call strain_rates (nx_block , ny_block , &
                             i        , j        , &
                             uvel     , vvel     , &
-                            dxt      , dyt      , &
+                            dxT      , dyT      , &
                             cxp      , cyp      , &
                             cxm      , cym      , &
                             divune   , divunw   , &
@@ -1745,16 +1745,16 @@
          csig12se = p222*stress12_4 + ssig121 &
                   + p055*stress12_2
 
-         str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+         str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
       !-----------------------------------------------------------------
       ! for dF/dx (u momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
+         strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
 
          ! northeast (i,j)
          str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
@@ -1764,8 +1764,8 @@
          str(i,j,2) = strp_tmp + strm_tmp - str12we &
               + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
-         strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+         strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
 
          ! southeast (i,j+1)
          str(i,j,3) = -strp_tmp - strm_tmp + str12ew &
@@ -1778,8 +1778,8 @@
       !-----------------------------------------------------------------
       ! for dF/dy (v momentum)
       !-----------------------------------------------------------------
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
 
          ! northeast (i,j)
          str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
@@ -1789,8 +1789,8 @@
          str(i,j,6) = strp_tmp - strm_tmp - str12sn &
               - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
-         strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+         strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
 
          ! northwest (i+1,j)
          str(i,j,7) = -strp_tmp + strm_tmp + str12ns &
@@ -2026,7 +2026,7 @@
       subroutine formDiag_step1  (nx_block, ny_block, &
                                   icellu  ,           &
                                   indxui  , indxuj  , &
-                                  dxt     , dyt     , &
+                                  dxT     , dyT     , &
                                   dxhy    , dyhx    , &
                                   cxp     , cyp     , &
                                   cxm     , cym     , &
@@ -2042,8 +2042,8 @@
          indxuj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         dxt      , & ! width of T-cell through the middle (m)
-         dyt      , & ! height of T-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
          dyhx     , & ! 0.5*(HTN - HTS)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -2207,34 +2207,34 @@
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
             ! divergence  =  e_11 + e_22
-            divune    = cyp(i,j)*uij   - dyt(i,j)*ui1j  &
-                      + cxp(i,j)*vij   - dxt(i,j)*vij1
-            divunw    = cym(i,j)*ui1j  + dyt(i,j)*uij   &
-                      + cxp(i,j)*vi1j  - dxt(i,j)*vi1j1
-            divusw    = cym(i,j)*ui1j1 + dyt(i,j)*uij1  &
-                      + cxm(i,j)*vi1j1 + dxt(i,j)*vi1j
-            divuse    = cyp(i,j)*uij1  - dyt(i,j)*ui1j1 &
-                      + cxm(i,j)*vij1  + dxt(i,j)*vij
+            divune    = cyp(i,j)*uij   - dyT(i,j)*ui1j  &
+                      + cxp(i,j)*vij   - dxT(i,j)*vij1
+            divunw    = cym(i,j)*ui1j  + dyT(i,j)*uij   &
+                      + cxp(i,j)*vi1j  - dxT(i,j)*vi1j1
+            divusw    = cym(i,j)*ui1j1 + dyT(i,j)*uij1  &
+                      + cxm(i,j)*vi1j1 + dxT(i,j)*vi1j
+            divuse    = cyp(i,j)*uij1  - dyT(i,j)*ui1j1 &
+                      + cxm(i,j)*vij1  + dxT(i,j)*vij
 
             ! tension strain rate  =  e_11 - e_22
-            tensionne = -cym(i,j)*uij   - dyt(i,j)*ui1j  &
-                      +  cxm(i,j)*vij   + dxt(i,j)*vij1
-            tensionnw = -cyp(i,j)*ui1j  + dyt(i,j)*uij   &
-                      +  cxm(i,j)*vi1j  + dxt(i,j)*vi1j1
-            tensionsw = -cyp(i,j)*ui1j1 + dyt(i,j)*uij1  &
-                      +  cxp(i,j)*vi1j1 - dxt(i,j)*vi1j
-            tensionse = -cym(i,j)*uij1  - dyt(i,j)*ui1j1 &
-                      +  cxp(i,j)*vij1  - dxt(i,j)*vij
+            tensionne = -cym(i,j)*uij   - dyT(i,j)*ui1j  &
+                      +  cxm(i,j)*vij   + dxT(i,j)*vij1
+            tensionnw = -cyp(i,j)*ui1j  + dyT(i,j)*uij   &
+                      +  cxm(i,j)*vi1j  + dxT(i,j)*vi1j1
+            tensionsw = -cyp(i,j)*ui1j1 + dyT(i,j)*uij1  &
+                      +  cxp(i,j)*vi1j1 - dxT(i,j)*vi1j
+            tensionse = -cym(i,j)*uij1  - dyT(i,j)*ui1j1 &
+                      +  cxp(i,j)*vij1  - dxT(i,j)*vij
 
             ! shearing strain rate  =  2*e_12
-            shearne = -cym(i,j)*vij   - dyt(i,j)*vi1j  &
-                    -  cxm(i,j)*uij   - dxt(i,j)*uij1
-            shearnw = -cyp(i,j)*vi1j  + dyt(i,j)*vij   &
-                    -  cxm(i,j)*ui1j  - dxt(i,j)*ui1j1
-            shearsw = -cyp(i,j)*vi1j1 + dyt(i,j)*vij1  &
-                    -  cxp(i,j)*ui1j1 + dxt(i,j)*ui1j
-            shearse = -cym(i,j)*vij1  - dyt(i,j)*vi1j1 &
-                    -  cxp(i,j)*uij1  + dxt(i,j)*uij
+            shearne = -cym(i,j)*vij   - dyT(i,j)*vi1j  &
+                    -  cxm(i,j)*uij   - dxT(i,j)*uij1
+            shearnw = -cyp(i,j)*vi1j  + dyT(i,j)*vij   &
+                    -  cxm(i,j)*ui1j  - dxT(i,j)*ui1j1
+            shearsw = -cyp(i,j)*vi1j1 + dyT(i,j)*vij1  &
+                    -  cxp(i,j)*ui1j1 + dxT(i,j)*ui1j
+            shearse = -cym(i,j)*vij1  - dyT(i,j)*vi1j1 &
+                    -  cxp(i,j)*uij1  + dxT(i,j)*uij
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -2300,10 +2300,10 @@
             csig12se = p222*stress12_4 + ssig121 &
                      + p055*stress12_2
 
-            str12ew = p5*dxt(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxt(i,j)*(p333*ssig12w + p166*ssig12e)
-            str12ns = p5*dyt(i,j)*(p333*ssig12n + p166*ssig12s)
-            str12sn = p5*dyt(i,j)*(p333*ssig12s + p166*ssig12n)
+            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
@@ -2311,8 +2311,8 @@
 
             if (cc == 1) then ! T cell i,j
 
-               strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
+               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
 
                ! northeast (i,j)
                Drheo(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
@@ -2320,8 +2320,8 @@
 
             elseif (cc == 2) then ! T cell i+1,j
 
-               strp_tmp  = p25*dyt(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyt(i,j)*(p333*ssigmn  + p166*ssigms)
+               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
+               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,2) = strp_tmp + strm_tmp - str12we &
@@ -2329,8 +2329,8 @@
 
             elseif (cc == 3) then ! T cell i,j+1
 
-               strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
+               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
@@ -2338,8 +2338,8 @@
 
             elseif (cc == 4) then ! T cell i+1,j+1
 
-               strp_tmp  = p25*dyt(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyt(i,j)*(p333*ssigms  + p166*ssigmn)
+               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
+               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,4) = strp_tmp + strm_tmp + str12we &
@@ -2351,8 +2351,8 @@
 
             elseif (cc == 5) then ! T cell i,j
 
-               strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
+               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
 
                ! northeast (i,j)
                Drheo(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
@@ -2360,8 +2360,8 @@
 
             elseif (cc == 6) then ! T cell i,j+1
 
-               strp_tmp  = p25*dxt(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxt(i,j)*(p333*ssigme  + p166*ssigmw)
+               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
+               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
@@ -2369,8 +2369,8 @@
 
             elseif (cc == 7) then ! T cell i,j+1
 
-               strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
+               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
@@ -2378,8 +2378,8 @@
 
             elseif (cc == 8) then ! T cell i+1,j+1
 
-               strp_tmp  = p25*dxt(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxt(i,j)*(p333*ssigmw  + p166*ssigme)
+               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
+               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
@@ -2820,7 +2820,7 @@
                       icellu         (iblk)  , icellt         (iblk), &
                       indxui       (:,iblk)  , indxuj       (:,iblk), &
                       indxti       (:,iblk)  , indxtj       (:,iblk), &
-                      dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                      dxT        (:,:,iblk)  , dyT        (:,:,iblk), &
                       dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
                       cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
                       cxm        (:,:,iblk)  , cym        (:,:,iblk), &
@@ -2927,7 +2927,7 @@
                             icellu         (iblk)  , icellt         (iblk), &
                             indxui       (:,iblk)  , indxuj       (:,iblk), &
                             indxti       (:,iblk)  , indxtj       (:,iblk), &
-                            dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                            dxT        (:,:,iblk)  , dyT        (:,:,iblk), &
                             dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
                             cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
                             cxm        (:,:,iblk)  , cym        (:,:,iblk), &
@@ -3213,7 +3213,7 @@
                       icellu         (iblk)  , icellt         (iblk), &
                       indxui       (:,iblk)  , indxuj       (:,iblk), &
                       indxti       (:,iblk)  , indxtj       (:,iblk), &
-                      dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                      dxT        (:,:,iblk)  , dyT        (:,:,iblk), &
                       dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
                       cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
                       cxm        (:,:,iblk)  , cym        (:,:,iblk), &
@@ -3309,7 +3309,7 @@
                             icellu         (iblk)  , icellt         (iblk), &
                             indxui       (:,iblk)  , indxuj       (:,iblk), &
                             indxti       (:,iblk)  , indxtj       (:,iblk), &
-                            dxt        (:,:,iblk)  , dyt        (:,:,iblk), &
+                            dxT        (:,:,iblk)  , dyT        (:,:,iblk), &
                             dxhy       (:,:,iblk)  , dyhx       (:,:,iblk), &
                             cxp        (:,:,iblk)  , cyp        (:,:,iblk), &
                             cxm        (:,:,iblk)  , cym        (:,:,iblk), &

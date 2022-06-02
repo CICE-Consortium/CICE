@@ -255,7 +255,7 @@
 
       use ice_domain, only: nblocks
       use ice_grid, only: xav, yav, xxav, yyav
-!                          dxt, dyt, xyav, &
+!                          dxT, dyT, xyav, &
 !                          xxxav, xxyav, xyyav, yyyav
 
       integer (kind=int_kind) ::     &
@@ -276,9 +276,9 @@
             xav(i,j,iblk) = c0
             yav(i,j,iblk) = c0
 !!!            These formulas would be used on a rectangular grid
-!!!            with dimensions (dxt, dyt):
-!!!            xxav(i,j,iblk) = dxt(i,j,iblk)**2 / c12
-!!!            yyav(i,j,iblk) = dyt(i,j,iblk)**2 / c12
+!!!            with dimensions (dxT, dyT):
+!!!            xxav(i,j,iblk) = dxT(i,j,iblk)**2 / c12
+!!!            yyav(i,j,iblk) = dyT(i,j,iblk)**2 / c12
             xxav(i,j,iblk) = c1/c12
             yyav(i,j,iblk) = c1/c12
 !            xyav(i,j,iblk) = c0
@@ -1203,7 +1203,7 @@
 
       ! limited gradient of mass field in each cell (except masked cells)
       ! Note: The gradient is computed in scaled coordinates with
-      !       dxt = dyt = hte = htn = 1.
+      !       dxT = dyT = hte = htn = 1.
 
       call limited_gradient (nx_block, ny_block,   &
                              ilo, ihi, jlo, jhi,   &
