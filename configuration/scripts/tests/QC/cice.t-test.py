@@ -431,7 +431,7 @@ def plot_data(data, lat, lon, units, case, plot_type):
     ax1.gridlines(xlocs=mpLons,ylocs=mpLats,
                   draw_labels=mpLabels)
     
-    ax1.gridlines(xlocs=mpLons,ylocs=mpLats,
+    ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
                   draw_labels=mpLabels)
 
     if plot_type == 'scatter':
