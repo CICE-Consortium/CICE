@@ -391,7 +391,7 @@ def plot_data(data, lat, lon, units, case, plot_type):
 
     # define north and south polar stereographic coord ref system
     npstereo = ccrs.NorthPolarStereo(central_longitude=-90.0) # define projection
-    spstereo = ccrs.SouthPolarStereo(central_longitude=90.0) # define projection
+    spstereo = ccrs.SouthPolarStereo(central_longitude= 90.0) # define projection
    
     # define figure
     fig = plt.figure(figsize=[14,8])  
@@ -414,25 +414,20 @@ def plot_data(data, lat, lon, units, case, plot_type):
     ax2.add_feature(cfeature.BORDERS)
     ax2.add_feature(cfeature.COASTLINE)
 
-    #gshhs = cfeature.GSHHSFeature(scale='auto',facecolor='lightgray',edgecolor='none')
-    #ax1.add_feature(gshhs)
-    #ax2.add_feature(gshhs)
-    
     # add grid lines
     dlon = 30.0
     dlat = 15.0
     mpLons = np.arange(-180.  ,180.0+dlon,dlon)
     mpLats = np.arange(-90.,90.0+dlat ,dlat)
-    mpLabels = {"left":   "x",
-                "right":  "y",
-                "top":    "y",
-                "bottom": "y"}
-    
-    ax1.gridlines(xlocs=mpLons,ylocs=mpLats,
-                  draw_labels=mpLabels)
-    
-    ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
-                  draw_labels=mpLabels)
+
+    g1 = ax1.gridlines(xlocs=mpLons,ylocs=mpLats,
+                       draw_labels=True,
+                       x_inline=False,y_inline=False)
+
+    g1 = ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
+                       draw_labels=True,
+                       x_inline=False,y_inline=False)
+
 
     if plot_type == 'scatter':
         # plot NH
@@ -441,81 +436,82 @@ def plot_data(data, lat, lon, units, case, plot_type):
         
         # plot SH
         sc = ax2.scatter(lon,lat,c=data,cmap='jet',s=4,edgecolors='none',
-                         transform=ccrs.PlateCarree())
+                        transform=ccrs.PlateCarree())
 
-    else:
-        # Create new arrays to add 1 additional longitude value to prevent a
-        # small amount of whitespace around seam
-        lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
-        lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
-        data1   = np.zeros((data.shape[0],data.shape[1]+1))
-        mask    = np.zeros((data.shape[0],data.shape[1]+1))
-       
-        mask[:,0:-1]    = data.mask[:,:]
-        mask[:,-1]      = data.mask[:,0]
-        lon_cyc[:,0:-1] = lon[:,:] 
-        lon_cyc[:,-1]   = lon[:,0]
-        lat_cyc[:,0:-1] = lat[:,:] 
-        lat_cyc[:,-1]   = lat[:,0]
-        data1[:,0:-1]   = data[:,:]
-        data1[:,-1]     = data[:,0]
-        
-        lon1  = np.ma.masked_array(lon_cyc, mask=mask)
-        lat1  = np.ma.masked_array(lat_cyc, mask=mask)
-        data1 = np.ma.masked_array(data1,   mask=mask)
-
+    else: 
         if plot_type == 'contour':
-            # plotting around -180/180 and 0/360 is a challenge.
-            # need to use lons in both 0-380 and +- 180
-            # make lons +/- 180
-            lon1_pm180 = np.where(lon1 < 180.0, lon1, lon1-360.0)
-            lon1_pm180 = np.ma.masked_where(lon1.mask,lon1_pm180)
+            print("contour plot depreciated. using pcolor.")
             
-            # get 90-270 lons from the lon 0-360 array (lon1)
-            # note: use 91, 269 to prevent small amount of white space in contour plots
-            lonmask = np.logical_or(lon1 <= 91.0,lon1 >= 269.0)
-            lons_90_270 = np.ma.masked_where(lonmask,lon1)
-            lats_90_270 = np.ma.MaskedArray(lat1,mask=lons_90_270.mask)
-            data_90_270 = np.ma.MaskedArray(data1,mask=lons_90_270.mask)
-            data_90_270.mask = np.logical_or(data1.mask,data_90_270.mask)
+        sc = ax1.pcolormesh(lon,lat,data,cmap='jet',
+                            vmin=data.min(), vmax=data.max(),
+                            transform=ccrs.PlateCarree())
+        
+        sc = ax2.pcolormesh(lon,lat,data,cmap='jet',
+                            vmin=data.min(), vmax=data.max(),
+                            transform=ccrs.PlateCarree())
 
-            # get -92-92 lons from +/- 180 (lon1_pm180)
-            # note: use 92 to prevent small amount of white space in contour plots
-            lonmask = np.logical_or(lon1_pm180 <= -92.0, lon1_pm180 >= 92.0)
-            lons_m90_90 = np.ma.masked_where(lonmask,lon1_pm180)
-            lats_m90_90 = np.ma.MaskedArray(lat1,mask=lons_m90_90.mask)
-            data_m90_90 = np.ma.MaskedArray(data1,mask=lons_m90_90.mask)
-            data_m90_90.mask = np.logical_or(data1.mask,data_m90_90.mask)
+    #else:
+        # # Create new arrays to add 1 additional longitude value to prevent a
+        # # small amount of whitespace around seam
+        # lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
+        # lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
+        # data1   = np.zeros((data.shape[0],data.shape[1]+1))
+        # mask    = np.zeros((data.shape[0],data.shape[1]+1))
+       
+        # mask[:,0:-1]    = data.mask[:,:]
+        # mask[:,-1]      = data.mask[:,0]
+        # lon_cyc[:,0:-1] = lon[:,:] 
+        # lon_cyc[:,-1]   = lon[:,0]
+        # lat_cyc[:,0:-1] = lat[:,:] 
+        # lat_cyc[:,-1]   = lat[:,0]
+        # data1[:,0:-1]   = data[:,:]
+        # data1[:,-1]     = data[:,0]
+        
+        # lon1  = np.ma.masked_array(lon_cyc, mask=mask)
+        # lat1  = np.ma.masked_array(lat_cyc, mask=mask)
+        # data1 = np.ma.masked_array(data1,   mask=mask)
 
-            # plot NH 90-270
-            sc = ax1.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
-                              transform=ccrs.PlateCarree(),
-                              extend='both')
-            # plot NH -90-90
-            sc = ax1.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
-                              transform=ccrs.PlateCarree(),
-                              extend='both')
+        # if plot_type == 'contour':
+        #     # plotting around -180/180 and 0/360 is a challenge.
+        #     # need to use lons in both 0-360 and +- 180
+        #     # make lons +/- 180
+        #     lon1_pm180 = np.where(lon1 < 180.0, lon1, lon1-360.0)
+        #     lon1_pm180 = np.ma.masked_where(lon1.mask,lon1_pm180)
+            
+        #     # get 90-270 lons from the lon 0-360 array (lon1)
+        #     # note: use 91, 269 to prevent small amount of white space in contour plots
+        #     lonmask = np.logical_or(lon1 <= 91.0,lon1 >= 269.0)
+        #     lons_90_270 = np.ma.masked_where(lonmask,lon1)
+        #     lats_90_270 = np.ma.MaskedArray(lat1,mask=lons_90_270.mask)
+        #     data_90_270 = np.ma.MaskedArray(data1,mask=lons_90_270.mask)
+        #     data_90_270.mask = np.logical_or(data1.mask,data_90_270.mask)
+
+        #     # get -92-92 lons from +/- 180 (lon1_pm180)
+        #     # note: use 92 to prevent small amount of white space in contour plots
+        #     lonmask = np.logical_or(lon1_pm180 <= -92.0, lon1_pm180 >= 92.0)
+        #     lons_m90_90 = np.ma.masked_where(lonmask,lon1_pm180)
+        #     lats_m90_90 = np.ma.MaskedArray(lat1,mask=lons_m90_90.mask)
+        #     data_m90_90 = np.ma.MaskedArray(data1,mask=lons_m90_90.mask)
+        #     data_m90_90.mask = np.logical_or(data1.mask,data_m90_90.mask)
+
+        #     # plot NH 90-270
+        #     sc = ax1.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
+        #     # plot NH -90-90
+        #     sc = ax1.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
  
-            # plot SH 90-270
-            sc = ax2.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
-                              transform=ccrs.PlateCarree(),
-                              extend='both')
-            # plot SH -90-90
-            sc = ax2.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
-                              transform=ccrs.PlateCarree(),
-                              extend='both')
+        #     # plot SH 90-270
+        #     sc = ax2.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
+        #     # plot SH -90-90
+        #     sc = ax2.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
 
-
-        else:  # pcolor
-            # pcolor does not have problem with 0-360 and +/- 180.
-            # can simply use lon1,lat1 here
-            sc = ax1.pcolormesh(lon1,lat1,data1,cmap='jet',
-                                vmin=data1.min(), vmax=data1.max(),
-                                transform=ccrs.PlateCarree())
-            
-            sc = ax2.pcolormesh(lon1,lat1,data1,cmap='jet',
-                                vmin=data1.min(), vmax=data1.max(),
-                                transform=ccrs.PlateCarree())
 
     plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
 
