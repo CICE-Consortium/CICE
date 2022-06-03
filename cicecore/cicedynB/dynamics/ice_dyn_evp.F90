@@ -324,14 +324,18 @@
       call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyU, 'U')
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         call grid_average_X2Y('F', tmass    , 'T'          , emass, 'E')
-         call grid_average_X2Y('F', aice_init, 'T'          , aie  , 'E')
-         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE, 'E')
-         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE, 'E')
-         call grid_average_X2Y('F', tmass    , 'T'          , nmass, 'N')
-         call grid_average_X2Y('F', aice_init, 'T'          , ain  , 'N')
-         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnN, 'N')
-         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnN, 'N')
+         call grid_average_X2Y('F', tmass    , 'T'          , emass   , 'E')
+         call grid_average_X2Y('F', aice_init, 'T'          , aie     , 'E')
+         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE   , 'E')
+         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE   , 'E')
+         call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxE, 'E')
+         call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyE, 'E')
+         call grid_average_X2Y('F', tmass    , 'T'          , nmass   , 'N')
+         call grid_average_X2Y('F', aice_init, 'T'          , ain     , 'N')
+         call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnN   , 'N')
+         call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnN   , 'N')
+         call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxN, 'N')
+         call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyN, 'N')
       endif
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
