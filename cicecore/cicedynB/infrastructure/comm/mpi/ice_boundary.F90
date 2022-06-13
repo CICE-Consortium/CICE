@@ -1159,7 +1159,7 @@ contains
 
  subroutine ice_HaloUpdate2DR8(array, halo,                    &
                                fieldLoc, fieldKind, &
-                               fillValue)
+                               fillValue, tripoleOnly)
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
@@ -1180,6 +1180,12 @@ contains
                            !  where neighbor points are unknown
                            !  (e.g. eliminated land blocks or
                            !   closed boundaries)
+
+   logical (log_kind), intent(in), optional :: &
+      tripoleOnly          ! optional flag to execute halo only across tripole seam.
+                           ! this is required for a few fields where we just want to
+                           ! ensure the tripole seam is synced up to preserve symmetry.
+                           ! Added June, 2022 by tcraig.  Only added to 2DR8 for now.
 
    real (dbl_kind), dimension(:,:,:), intent(inout) :: &
       array                ! array containing field for which halo
@@ -1215,6 +1221,9 @@ contains
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
+   logical (log_kind) :: &
+      ltripoleOnly      ! local tripoleOnly value
+
    integer (int_kind) ::  len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DR8)'
@@ -1229,6 +1238,12 @@ contains
       fill = fillValue
    else
       fill = 0.0_dbl_kind
+   endif
+
+   if (present(tripoleOnly)) then
+      ltripoleOnly = tripoleOnly
+   else
+      ltripoleOnly = .false.
    endif
 
    nxGlobal = 0
@@ -1302,19 +1317,24 @@ contains
 !
 !-----------------------------------------------------------------------
 
-   do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,iblk) = fill
-         array(1:nx_block, jhi+j,iblk) = fill
+   if (ltripoleOnly) then
+      ! skip fill, not needed since tripole seam always exists if running
+      ! on tripole grid and set tripoleOnly flag
+   else
+      do iblk = 1, halo%numLocalBlocks
+         call get_block_parameter(halo%blockGlobalID(iblk), &
+                                  ilo=ilo, ihi=ihi,   &
+                                  jlo=jlo, jhi=jhi)
+         do j = 1,nghost
+            array(1:nx_block, jlo-j,iblk) = fill
+            array(1:nx_block, jhi+j,iblk) = fill
+         enddo
+         do i = 1,nghost
+            array(ilo-i, 1:ny_block,iblk) = fill
+            array(ihi+i, 1:ny_block,iblk) = fill
+         enddo
       enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,iblk) = fill
-         array(ihi+i, 1:ny_block,iblk) = fill
-      enddo
-   enddo
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1334,16 +1354,25 @@ contains
       jDst     = halo%dstLocalAddr(2,nmsg)
       dstBlock = halo%dstLocalAddr(3,nmsg)
 
-      if (srcBlock > 0) then
-         if (dstBlock > 0) then
-            array(iDst,jDst,dstBlock) = &
-            array(iSrc,jSrc,srcBlock)
-         else if (dstBlock < 0) then ! tripole copy into buffer
-            bufTripoleR8(iDst,jDst) = &
-            array(iSrc,jSrc,srcBlock)
+      if (ltripoleOnly) then
+         if (srcBlock > 0) then
+            if (dstBlock < 0) then ! tripole copy into buffer
+               bufTripoleR8(iDst,jDst) = &
+               array(iSrc,jSrc,srcBlock)
+            endif
          endif
-      else if (srcBlock == 0) then
-         array(iDst,jDst,dstBlock) = fill
+      else
+         if (srcBlock > 0) then
+            if (dstBlock > 0) then
+               array(iDst,jDst,dstBlock) = &
+               array(iSrc,jSrc,srcBlock)
+            else if (dstBlock < 0) then ! tripole copy into buffer
+               bufTripoleR8(iDst,jDst) = &
+               array(iSrc,jSrc,srcBlock)
+            endif
+         else if (srcBlock == 0) then
+            array(iDst,jDst,dstBlock) = fill
+         endif
       endif
    end do
 
@@ -1362,10 +1391,16 @@ contains
          jDst     = halo%recvAddr(2,n,nmsg)
          dstBlock = halo%recvAddr(3,n,nmsg)
 
-         if (dstBlock > 0) then
-            array(iDst,jDst,dstBlock) = bufRecvR8(n,nmsg)
-         else if (dstBlock < 0) then !tripole
-            bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
+         if (ltripoleOnly) then
+            if (dstBlock < 0) then !tripole
+               bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
+            endif
+         else
+            if (dstBlock > 0) then
+               array(iDst,jDst,dstBlock) = bufRecvR8(n,nmsg)
+            else if (dstBlock < 0) then !tripole
+               bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
+            endif
          endif
       end do
    end do

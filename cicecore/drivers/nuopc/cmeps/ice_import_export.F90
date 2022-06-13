@@ -754,6 +754,7 @@ contains
              ! ocean
              workx      = uocn  (i,j,iblk) ! currents, m/s
              worky      = vocn  (i,j,iblk)
+
              uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
                             + worky*sin(ANGLET(i,j,iblk))
              vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
@@ -803,15 +804,6 @@ contains
        call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_vector)
        call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_vector)
        call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_vector)
-       ! tcraig, moved to dynamics for consistency
-       !work = uocn
-       !call grid_average_X2Y('F',work,'T',uocn,'U')
-       !work = vocn
-       !call grid_average_X2Y('F',work,'T',vocn,'U')
-       !work = ss_tltx
-       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
-       !work = ss_tlty
-       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
        call t_stopf ('cice_imp_t2u')
     end if
 

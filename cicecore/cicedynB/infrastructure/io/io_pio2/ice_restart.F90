@@ -946,16 +946,12 @@
       character(len=*), parameter :: subname = '(query_field)'
 
       query_field = .false.
-#ifdef USE_NETCDF
+
       if (my_task == master_task) then
          status = pio_inq_varid(File,trim(vname),vardesc)
          if (status == PIO_noerr) query_field = .true.
       endif
       call broadcast_scalar(query_field,master_task)
-#else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
-          file=__FILE__, line=__LINE__)
-#endif
 
       end function query_field
 
