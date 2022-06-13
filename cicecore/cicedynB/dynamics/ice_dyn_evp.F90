@@ -318,10 +318,10 @@
 
       call grid_average_X2Y('F', tmass    , 'T'          , umass   , 'U')
       call grid_average_X2Y('F', aice_init, 'T'          , aiu     , 'U')
-      call grid_average_X2Y('F', uocn     , grid_ocn_dynu, uocnU   , 'U')
-      call grid_average_X2Y('F', vocn     , grid_ocn_dynv, vocnU   , 'U')
-      call grid_average_X2Y('F', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
-      call grid_average_X2Y('F', ss_tlty  , grid_ocn_dynv, ss_tltyU, 'U')
+      call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
+      call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
+      call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
+      call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyU, 'U')
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('F', tmass    , 'T'          , emass   , 'E')
