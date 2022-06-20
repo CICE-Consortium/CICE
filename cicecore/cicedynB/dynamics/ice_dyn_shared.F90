@@ -197,7 +197,11 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
-          stresspU, stressmU, stress12U
+          stresspU, stressmU, stress12U, &
+          taubxE, taubyE, strairxE, strairyE, strocnxE, strocnyE, &
+          strtltxE, strtltyE, strintxE, strintyE, iceEmask, fmE, TbE, &
+          taubxN, taubyN, strairxN, strairyN, strocnxN, strocnyN, &
+          strtltxN, strtltyN, strintxN, strintyN, iceNmask, fmN, TbN
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
       use ice_grid, only: ULAT, NLAT, ELAT, tarea
 
@@ -244,10 +248,37 @@
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
          if (grid_ice == 'CD' .or. grid_ice == 'C') then ! extra velocity variables
-            uvelE(i,j,iblk) = c0
-            vvelE(i,j,iblk) = c0
-            uvelN(i,j,iblk) = c0
-            vvelN(i,j,iblk) = c0
+            uvelE  (i,j,iblk) = c0
+            vvelE  (i,j,iblk) = c0
+           taubxE  (i,j,iblk) = c0
+           taubyE  (i,j,iblk) = c0
+           strairxE(i,j,iblk) = c0
+           strairyE(i,j,iblk) = c0
+           strocnxE(i,j,iblk) = c0
+           strocnyE(i,j,iblk) = c0
+           strtltxE(i,j,iblk) = c0
+           strtltyE(i,j,iblk) = c0
+           strintxE(i,j,iblk) = c0
+           strintyE(i,j,iblk) = c0
+           iceEmask(i,j,iblk) = c0
+           fmE     (i,j,iblk) = c0
+           TbE     (i,j,iblk) = c0
+
+            uvelN  (i,j,iblk) = c0
+            vvelN  (i,j,iblk) = c0
+           taubxN  (i,j,iblk) = c0
+           taubyN  (i,j,iblk) = c0
+           strairxN(i,j,iblk) = c0
+           strairyN(i,j,iblk) = c0
+           strocnxN(i,j,iblk) = c0
+           strocnyN(i,j,iblk) = c0
+           strtltxN(i,j,iblk) = c0
+           strtltyN(i,j,iblk) = c0
+           strintxN(i,j,iblk) = c0
+           strintyN(i,j,iblk) = c0
+           iceNmask(i,j,iblk) = c0
+           fmN     (i,j,iblk) = c0
+           TbN     (i,j,iblk) = c0
          endif
 
          ! strain rates
