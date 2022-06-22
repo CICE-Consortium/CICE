@@ -244,10 +244,10 @@
          uvel(i,j,iblk) = c0    ! m/s
          vvel(i,j,iblk) = c0    ! m/s
          if (grid_ice == 'CD' .or. grid_ice == 'C') then ! extra velocity variables
-            uvelE  (i,j,iblk) = c0
-            vvelE  (i,j,iblk) = c0
-            uvelN  (i,j,iblk) = c0
-            vvelN  (i,j,iblk) = c0
+            uvelE(i,j,iblk) = c0
+            vvelE(i,j,iblk) = c0
+            uvelN(i,j,iblk) = c0
+            vvelN(i,j,iblk) = c0
          endif
 
          ! strain rates
