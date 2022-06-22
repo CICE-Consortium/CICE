@@ -3230,56 +3230,6 @@
       end subroutine set_state_var
 
 !=======================================================================
-#if (1 == 0)
-! Set ice velocity for slotted cylinder advection test
-!
-! author: Philippe Blain (ECCC)
-
-      subroutine boxslotcyl_data_vel(i,        j,       &
-                                     nx_block, ny_block, &
-                                     iglob,    jglob,   &
-                                     uvel,     vvel)
-      
-      use ice_constants, only: c2, c12, p5, cm_to_m
-      use ice_domain_size, only: nx_global, ny_global
-      use ice_grid, only: dxrect
-
-      integer (kind=int_kind), intent(in) :: &
-         i, j,               & ! local indices
-         nx_block, ny_block, & ! block dimensions
-         iglob(nx_block),    & ! global indices
-         jglob(ny_block)
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         uvel, vvel            ! ice velocity
-
-      ! local variables
-      real (kind=dbl_kind) :: &
-         pi             , & ! pi
-         secday         , & ! seconds per day
-         max_vel        , & ! max velocity
-         domain_length  , & ! physical domain length
-         period             ! rotational period
-      
-      character(len=*), parameter :: subname = '(boxslotcyl_data_vel)'
-      
-      call icepack_query_parameters(secday_out=secday, pi_out=pi)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      domain_length = dxrect*cm_to_m*nx_global
-      period        = c12*secday               ! 12 days rotational period
-      max_vel       = pi*domain_length/period
-
-      uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
-                    / real(ny_global - 1, kind=dbl_kind) - max_vel
-      vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
-                    / real(nx_global - 1, kind=dbl_kind) + max_vel
-
-      end subroutine boxslotcyl_data_vel
-#endif
-!=======================================================================
 
       end module ice_init
 
