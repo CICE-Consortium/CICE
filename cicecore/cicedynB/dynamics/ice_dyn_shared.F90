@@ -192,16 +192,12 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
+      use ice_flux, only: rdg_conv, rdg_shear, iceumask, iceemask, icenmask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
-          stresspU, stressmU, stress12U, &
-          taubxE, taubyE, strairxE, strairyE, strocnxE, strocnyE, &
-          strtltxE, strtltyE, strintxE, strintyE, iceEmask, fmE, TbE, &
-          taubxN, taubyN, strairxN, strairyN, strocnxN, strocnyN, &
-          strtltxN, strtltyN, strintxN, strintyN, iceNmask, fmN, TbN
+          stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
       use ice_grid, only: ULAT, NLAT, ELAT, tarea
 
@@ -250,35 +246,8 @@
          if (grid_ice == 'CD' .or. grid_ice == 'C') then ! extra velocity variables
             uvelE  (i,j,iblk) = c0
             vvelE  (i,j,iblk) = c0
-           taubxE  (i,j,iblk) = c0
-           taubyE  (i,j,iblk) = c0
-           strairxE(i,j,iblk) = c0
-           strairyE(i,j,iblk) = c0
-           strocnxE(i,j,iblk) = c0
-           strocnyE(i,j,iblk) = c0
-           strtltxE(i,j,iblk) = c0
-           strtltyE(i,j,iblk) = c0
-           strintxE(i,j,iblk) = c0
-           strintyE(i,j,iblk) = c0
-           iceEmask(i,j,iblk) = c0
-           fmE     (i,j,iblk) = c0
-           TbE     (i,j,iblk) = c0
-
             uvelN  (i,j,iblk) = c0
             vvelN  (i,j,iblk) = c0
-           taubxN  (i,j,iblk) = c0
-           taubyN  (i,j,iblk) = c0
-           strairxN(i,j,iblk) = c0
-           strairyN(i,j,iblk) = c0
-           strocnxN(i,j,iblk) = c0
-           strocnyN(i,j,iblk) = c0
-           strtltxN(i,j,iblk) = c0
-           strtltyN(i,j,iblk) = c0
-           strintxN(i,j,iblk) = c0
-           strintyN(i,j,iblk) = c0
-           iceNmask(i,j,iblk) = c0
-           fmN     (i,j,iblk) = c0
-           TbN     (i,j,iblk) = c0
          endif
 
          ! strain rates
@@ -342,7 +311,10 @@
 
          ! ice extent mask on velocity points
          iceumask(i,j,iblk) = .false.
-
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            iceemask(i,j,iblk) = .false.
+            icenmask(i,j,iblk) = .false.
+         end if
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk
