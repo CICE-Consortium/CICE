@@ -2104,13 +2104,13 @@
           Tair, Tref, Qref, congel, frazil, frazil_diag, snoice, dsnow, &
           melts, meltb, meltt, meltl, fresh, fsalt, fresh_ai, fsalt_ai, &
           fhocn, fhocn_ai, uatm, vatm, fbot, Tbot, Tsnice, fswthru_ai, &
-          strairx, strairy, strtltx, strtlty, strintx, strinty, &
-          taubx, tauby, strocnx, strocny, &
+          strairxU, strairyU, strtltxU, strtltyU, strintxU, strintyU, &
+          taubxU, taubyU, strocnxU, strocnyU, &
           strairxN, strairyN, strtltxN, strtltyN, strintxN, strintyN, &
           taubxN, taubyN, strocnxN, strocnyN, &
           strairxE, strairyE, strtltxE, strtltyE, strintxE, strintyE, &
           taubxE, taubyE, strocnxE, strocnyE, &
-          fm, fmN, fmE, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
+          fmU, fmN, fmE, daidtt, dvidtt, daidtd, dvidtd, fsurf, &
           fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
           stresspT, stressmT, stress12T, &
@@ -2528,29 +2528,29 @@
              call accum_hist_field(n_fswthru_ai,iblk, fswthru_ai(:,:,iblk), a2D)
                
          if (f_strairx(1:1) /= 'x') &
-             call accum_hist_field(n_strairx, iblk, strairx(:,:,iblk), a2D)
+             call accum_hist_field(n_strairx, iblk, strairxU(:,:,iblk), a2D)
          if (f_strairy(1:1) /= 'x') &
-             call accum_hist_field(n_strairy, iblk, strairy(:,:,iblk), a2D)
+             call accum_hist_field(n_strairy, iblk, strairyU(:,:,iblk), a2D)
          if (f_strtltx(1:1) /= 'x') &
-             call accum_hist_field(n_strtltx, iblk, strtltx(:,:,iblk), a2D)
+             call accum_hist_field(n_strtltx, iblk, strtltxU(:,:,iblk), a2D)
          if (f_strtlty(1:1) /= 'x') &
-             call accum_hist_field(n_strtlty, iblk, strtlty(:,:,iblk), a2D)
+             call accum_hist_field(n_strtlty, iblk, strtltyU(:,:,iblk), a2D)
          if (f_strcorx(1:1) /= 'x') &
-             call accum_hist_field(n_strcorx, iblk, fm(:,:,iblk)*vvel(:,:,iblk), a2D)
+             call accum_hist_field(n_strcorx, iblk, fmU(:,:,iblk)*vvel(:,:,iblk), a2D)
          if (f_strcory(1:1) /= 'x') &
-             call accum_hist_field(n_strcory, iblk,-fm(:,:,iblk)*uvel(:,:,iblk), a2D)
+             call accum_hist_field(n_strcory, iblk,-fmU(:,:,iblk)*uvel(:,:,iblk), a2D)
          if (f_strocnx(1:1) /= 'x') &
-             call accum_hist_field(n_strocnx, iblk, strocnx(:,:,iblk), a2D)
+             call accum_hist_field(n_strocnx, iblk, strocnxU(:,:,iblk), a2D)
          if (f_strocny(1:1) /= 'x') &
-             call accum_hist_field(n_strocny, iblk, strocny(:,:,iblk), a2D)
+             call accum_hist_field(n_strocny, iblk, strocnyU(:,:,iblk), a2D)
          if (f_strintx(1:1) /= 'x') &
-             call accum_hist_field(n_strintx, iblk, strintx(:,:,iblk), a2D)
+             call accum_hist_field(n_strintx, iblk, strintxU(:,:,iblk), a2D)
          if (f_strinty(1:1) /= 'x') &
-             call accum_hist_field(n_strinty, iblk, strinty(:,:,iblk), a2D)
+             call accum_hist_field(n_strinty, iblk, strintyU(:,:,iblk), a2D)
          if (f_taubx(1:1) /= 'x') &
-             call accum_hist_field(n_taubx, iblk, taubx(:,:,iblk), a2D)
+             call accum_hist_field(n_taubx, iblk, taubxU(:,:,iblk), a2D)
          if (f_tauby(1:1) /= 'x') &
-             call accum_hist_field(n_tauby, iblk, tauby(:,:,iblk), a2D)
+             call accum_hist_field(n_tauby, iblk, taubyU(:,:,iblk), a2D)
          if (f_strairxN(1:1) /= 'x') &
              call accum_hist_field(n_strairxN, iblk, strairxN(:,:,iblk), a2D)
          if (f_strairyN(1:1) /= 'x') &
@@ -2791,7 +2791,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice_init(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairx(i,j,iblk)/aice_init(i,j,iblk))
+                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairxU(i,j,iblk)/aice_init(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_sistrxdtop, iblk, worka(:,:), a2D)
@@ -2802,7 +2802,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice_init(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairy(i,j,iblk)/aice_init(i,j,iblk))
+                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairyU(i,j,iblk)/aice_init(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_sistrydtop, iblk, worka(:,:), a2D)
@@ -2813,7 +2813,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*strocnx(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strocnxU(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sistrxubot, iblk, worka(:,:), a2D)
@@ -2824,7 +2824,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*strocny(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strocnyU(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sistryubot, iblk, worka(:,:), a2D)
@@ -3293,7 +3293,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*strtltx(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strtltxU(i,j,iblk)
               endif
            enddo
            enddo
@@ -3305,7 +3305,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*strtlty(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strtltyU(i,j,iblk)
               endif
            enddo
            enddo
@@ -3317,7 +3317,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*fm(i,j,iblk)*vvel(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*fmU(i,j,iblk)*vvel(i,j,iblk)
               endif
            enddo
            enddo
@@ -3329,7 +3329,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = -aice(i,j,iblk)*fm(i,j,iblk)*uvel(i,j,iblk)
+                 worka(i,j) = -aice(i,j,iblk)*fmU(i,j,iblk)*uvel(i,j,iblk)
               endif
            enddo
            enddo
@@ -3341,7 +3341,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*strintx(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strintxU(i,j,iblk)
               endif
            enddo
            enddo
@@ -3353,7 +3353,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*strinty(i,j,iblk)
+                 worka(i,j) = aice(i,j,iblk)*strintyU(i,j,iblk)
               endif
            enddo
            enddo

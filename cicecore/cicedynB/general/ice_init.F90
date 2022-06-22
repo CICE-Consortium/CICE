@@ -14,7 +14,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, p2, p3, p5, p75, p166
+      use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
+          cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
@@ -2833,6 +2834,13 @@
          edge_init_nh =  70._dbl_kind, & ! initial ice edge, N.Hem. (deg) 
          edge_init_sh = -60._dbl_kind    ! initial ice edge, S.Hem. (deg)
 
+      real (kind=dbl_kind) :: &  ! boxslotcyl
+         pi             , & ! pi
+         secday         , & ! seconds per day
+         max_vel        , & ! max velocity
+         domain_length  , & ! physical domain length
+         period             ! rotational period
+
       logical (kind=log_kind) :: tr_brine, tr_lvl, tr_snow
       integer (kind=int_kind) :: ntrcr
       integer (kind=int_kind) :: nt_Tsfc, nt_qice, nt_qsno, nt_sice
@@ -2853,6 +2861,7 @@
         nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
         rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall)
+      call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -3195,12 +3204,16 @@
          !---------------------------------------------------------
 
          if (trim(ice_data_type) == 'boxslotcyl') then
+            domain_length = dxrect*cm_to_m*nx_global
+            period        = c12*secday               ! 12 days rotational period
+            max_vel       = pi*domain_length/period
             do j = 1, ny_block
             do i = 1, nx_block
-               call boxslotcyl_data_vel(i,        j,       &
-                                        nx_block, ny_block, &
-                                        iglob,    jglob,   &
-                                        uvel,     vvel)
+
+               uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
+                         / real(ny_global - 1, kind=dbl_kind) - max_vel
+               vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
+                         / real(nx_global - 1, kind=dbl_kind) + max_vel
             enddo               ! j
             enddo               ! i
          else
@@ -3217,7 +3230,7 @@
       end subroutine set_state_var
 
 !=======================================================================
-
+#if (1 == 0)
 ! Set ice velocity for slotted cylinder advection test
 !
 ! author: Philippe Blain (ECCC)
@@ -3265,7 +3278,7 @@
                     / real(nx_global - 1, kind=dbl_kind) + max_vel
 
       end subroutine boxslotcyl_data_vel
-
+#endif
 !=======================================================================
 
       end module ice_init

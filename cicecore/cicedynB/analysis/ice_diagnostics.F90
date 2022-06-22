@@ -1761,7 +1761,7 @@
                            uvelE, vvelE, uvelN, vvelN, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
-          frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
+          frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltxU, strtltyU
 
       character (len=20), intent(in) :: plabel
 
@@ -1907,14 +1907,14 @@
       write(nu_diag,*) '            fsnow   = ',fsnow(i,j,iblk)
       write(nu_diag,*) ' '
       write(nu_diag,*) 'ocn states and fluxes'
-      write(nu_diag,*) '            frzmlt  = ',frzmlt (i,j,iblk)
-      write(nu_diag,*) '            sst     = ',sst    (i,j,iblk)
-      write(nu_diag,*) '            sss     = ',sss    (i,j,iblk)
-      write(nu_diag,*) '            Tf      = ',Tf     (i,j,iblk)
-      write(nu_diag,*) '            uocn    = ',uocn   (i,j,iblk)
-      write(nu_diag,*) '            vocn    = ',vocn   (i,j,iblk)
-      write(nu_diag,*) '            strtltx = ',strtltx(i,j,iblk)
-      write(nu_diag,*) '            strtlty = ',strtlty(i,j,iblk)
+      write(nu_diag,*) '            frzmlt  = ',frzmlt  (i,j,iblk)
+      write(nu_diag,*) '            sst     = ',sst     (i,j,iblk)
+      write(nu_diag,*) '            sss     = ',sss     (i,j,iblk)
+      write(nu_diag,*) '            Tf      = ',Tf      (i,j,iblk)
+      write(nu_diag,*) '            uocn    = ',uocn    (i,j,iblk)
+      write(nu_diag,*) '            vocn    = ',vocn    (i,j,iblk)
+      write(nu_diag,*) '            strtltxU= ',strtltxU(i,j,iblk)
+      write(nu_diag,*) '            strtltyU= ',strtltyU(i,j,iblk)
       write(nu_diag,*) ' '
       write(nu_diag,*) 'srf states and fluxes'
       write(nu_diag,*) '            Tref    = ',Tref  (i,j,iblk)
@@ -1944,7 +1944,7 @@
                            uvelE, vvelE, uvelE, vvelE, trcrn
       use ice_flux, only: uatm, vatm, potT, Tair, Qa, flw, frain, fsnow, &
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
-          frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltx, strtlty
+          frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltxU, strtltyU
 
       character (len=*), intent(in),optional :: plabel
       integer          , intent(in),optional :: ilabel
@@ -2060,14 +2060,14 @@
       write(nu_diag,*) '            fsnow   = ',fsnow(i,j,iblk)
       write(nu_diag,*) ' '
       write(nu_diag,*) 'ocn states and fluxes'
-      write(nu_diag,*) '            frzmlt  = ',frzmlt (i,j,iblk)
-      write(nu_diag,*) '            sst     = ',sst    (i,j,iblk)
-      write(nu_diag,*) '            sss     = ',sss    (i,j,iblk)
-      write(nu_diag,*) '            Tf      = ',Tf     (i,j,iblk)
-      write(nu_diag,*) '            uocn    = ',uocn   (i,j,iblk)
-      write(nu_diag,*) '            vocn    = ',vocn   (i,j,iblk)
-      write(nu_diag,*) '            strtltx = ',strtltx(i,j,iblk)
-      write(nu_diag,*) '            strtlty = ',strtlty(i,j,iblk)
+      write(nu_diag,*) '            frzmlt  = ',frzmlt  (i,j,iblk)
+      write(nu_diag,*) '            sst     = ',sst     (i,j,iblk)
+      write(nu_diag,*) '            sss     = ',sss     (i,j,iblk)
+      write(nu_diag,*) '            Tf      = ',Tf      (i,j,iblk)
+      write(nu_diag,*) '            uocn    = ',uocn    (i,j,iblk)
+      write(nu_diag,*) '            vocn    = ',vocn    (i,j,iblk)
+      write(nu_diag,*) '            strtltxU= ',strtltxU(i,j,iblk)
+      write(nu_diag,*) '            strtltyU= ',strtltyU(i,j,iblk)
       write(nu_diag,*) ' '
       write(nu_diag,*) 'srf states and fluxes'
       write(nu_diag,*) '            Tref    = ',Tref  (i,j,iblk)

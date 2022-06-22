@@ -136,15 +136,15 @@
           seabed_stress_method, seabed_stress, &
           stack_fields, unstack_fields
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
-          strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
-          strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
+          strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
+          strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
           strocnxT, strocnyT, strax, stray, &
-          Tbu, hwater, &
+          TbU, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, grid_average_X2Y, &
+          tarear, uarear, grid_average_X2Y, iceumask, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -178,11 +178,11 @@
          ss_tltxU   , & ! sea surface slope, x-direction (m/m)
          ss_tltyU   , & ! sea surface slope, y-direction (m/m)
          tmass      , & ! total mass of ice and snow (kg/m^2)
-         waterx     , & ! for ocean stress calculation, x (m/s)
-         watery     , & ! for ocean stress calculation, y (m/s)
-         forcex     , & ! work array: combined atm stress and ocn tilt, x
-         forcey     , & ! work array: combined atm stress and ocn tilt, y
-         aiu        , & ! ice fraction on u-grid
+         waterxU    , & ! for ocean stress calculation, x (m/s)
+         wateryU    , & ! for ocean stress calculation, y (m/s)
+         forcexU    , & ! work array: combined atm stress and ocn tilt, x
+         forceyU    , & ! work array: combined atm stress and ocn tilt, y
+         aiU        , & ! ice fraction on u-grid
          umass      , & ! total mass of ice and snow (u grid)
          umassdti       ! mass of U-cell/dte (kg/m^2 s)
 
@@ -271,7 +271,7 @@
       !-----------------------------------------------------------------
 
       call grid_average_X2Y('F', tmass    , 'T'          , umass, 'U')
-      call grid_average_X2Y('F', aice_init, 'T'          , aiu  , 'U')
+      call grid_average_X2Y('F', aice_init, 'T'          , aiU  , 'U')
       call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
       call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
       call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
@@ -288,15 +288,15 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. calc_strair) then
-         call grid_average_X2Y('F', strax, grid_atm_dynu, strairx, 'U')
-         call grid_average_X2Y('F', stray, grid_atm_dynv, strairy, 'U')
+         call grid_average_X2Y('F', strax, grid_atm_dynu, strairxU, 'U')
+         call grid_average_X2Y('F', stray, grid_atm_dynv, strairyU, 'U')
       else
          call ice_HaloUpdate (strairxT,         halo_info, &
                               field_loc_center, field_type_vector)
          call ice_HaloUpdate (strairyT,         halo_info, &
                               field_loc_center, field_type_vector)
-         call grid_average_X2Y('F', strairxT, 'T', strairx, 'U')
-         call grid_average_X2Y('F', strairyT, 'T', strairy, 'U')
+         call grid_average_X2Y('F', strairxT, 'T', strairxU, 'U')
+         call grid_average_X2Y('F', strairyT, 'T', strairyU, 'U')
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j) SCHEDULE(runtime)
@@ -317,20 +317,20 @@
                          icellt        (iblk), icellu        (iblk), &
                          indxti      (:,iblk), indxtj      (:,iblk), &
                          indxui      (:,iblk), indxuj      (:,iblk), &
-                         aiu       (:,:,iblk), umass     (:,:,iblk), &
+                         aiU       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
                          umask     (:,:,iblk),                       &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
-                         strairx   (:,:,iblk), strairy   (:,:,iblk), &
+                         strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
                          icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
-                         fm        (:,:,iblk), dt,                   &
-                         strtltx   (:,:,iblk), strtlty   (:,:,iblk), &
-                         strocnx   (:,:,iblk), strocny   (:,:,iblk), &
-                         strintx   (:,:,iblk), strinty   (:,:,iblk), &
-                         taubx     (:,:,iblk), tauby     (:,:,iblk), &
-                         waterx    (:,:,iblk), watery    (:,:,iblk), &
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), &
+                         fmU       (:,:,iblk), dt,                   &
+                         strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
+                         strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
+                         strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
+                         taubxU    (:,:,iblk), taubyU    (:,:,iblk), &
+                         waterxU   (:,:,iblk), wateryU   (:,:,iblk), &
+                         forcexU   (:,:,iblk), forceyU   (:,:,iblk), &
                          stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
                          stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
@@ -339,7 +339,7 @@
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                         Tbu       (:,:,iblk))
+                         TbU       (:,:,iblk))
 
          !-----------------------------------------------------------------
          ! Initialize structure tensor
@@ -413,7 +413,7 @@
       endif
 
       !-----------------------------------------------------------------
-      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
+      ! seabed stress factor TbU (TbU is part of Cb coefficient)
       !-----------------------------------------------------------------
 
       if (seabed_stress) then
@@ -424,7 +424,7 @@
                                               icellu    (iblk),                 &
                                               indxui  (:,iblk), indxuj(:,iblk), &
                                               vice  (:,:,iblk), aice(:,:,iblk), &
-                                              hwater(:,:,iblk), Tbu (:,:,iblk))
+                                              hwater(:,:,iblk), TbU (:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -435,7 +435,7 @@
                                                icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                                icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk), &
-                                               hwater (:,:,iblk), Tbu    (:,:,iblk))
+                                               hwater (:,:,iblk), TbU    (:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
          endif
@@ -493,17 +493,17 @@
             call stepu (nx_block,            ny_block,            &
                         icellu       (iblk), Cdn_ocn  (:,:,iblk), &
                         indxui     (:,iblk), indxuj     (:,iblk), &
-                        aiu      (:,:,iblk), strtmp   (:,:,:),    &
+                        aiU      (:,:,iblk), strtmp   (:,:,:),    &
                         uocnU    (:,:,iblk), vocnU    (:,:,iblk), &
-                        waterx   (:,:,iblk), watery   (:,:,iblk), &
-                        forcex   (:,:,iblk), forcey   (:,:,iblk), &
-                        umassdti (:,:,iblk), fm       (:,:,iblk), &
+                        waterxU  (:,:,iblk), wateryU  (:,:,iblk), &
+                        forcexU  (:,:,iblk), forceyU  (:,:,iblk), &
+                        umassdti (:,:,iblk), fmU      (:,:,iblk), &
                         uarear   (:,:,iblk),                      &
-                        strintx  (:,:,iblk), strinty  (:,:,iblk), &
-                        taubx    (:,:,iblk), tauby    (:,:,iblk), &
+                        strintxU (:,:,iblk), strintyU (:,:,iblk), &
+                        taubxU   (:,:,iblk), taubyU   (:,:,iblk), &
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk), &
                         uvel     (:,:,iblk), vvel     (:,:,iblk), &
-                        Tbu      (:,:,iblk))
+                        TbU      (:,:,iblk))
 !            call ice_timer_stop(timer_tmp2,iblk)
 
             !-----------------------------------------------------------------
@@ -561,15 +561,15 @@
                indxui    (:,iblk), indxuj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
-               aiu     (:,:,iblk), fm      (:,:,iblk), &
-               strocnx (:,:,iblk), strocny (:,:,iblk))
+               aiU     (:,:,iblk), fmU     (:,:,iblk), &
+               strocnxU(:,:,iblk), strocnyU(:,:,iblk))
 
       enddo
       !$OMP END PARALLEL DO
 
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiu to T
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
       ! TODO: This should be done elsewhere as part of generalization?
-      ! conservation requires aiu be divided before averaging
+      ! conservation requires aiU be divided before averaging
       work1 = c0
       work2 = c0
       !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
@@ -577,8 +577,8 @@
       do ij = 1, icellu(iblk)
          i = indxui(ij,iblk)
          j = indxuj(ij,iblk)
-         work1(i,j,iblk) = strocnx(i,j,iblk)/aiu(i,j,iblk)
-         work2(i,j,iblk) = strocny(i,j,iblk)/aiu(i,j,iblk)
+         work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+         work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
       enddo
       enddo
       call ice_HaloUpdate (work1,              halo_info, &

@@ -192,14 +192,14 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, iceumask, iceemask, icenmask, &
+      use ice_flux, only: rdg_conv, rdg_shear, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
-      use ice_grid, only: ULAT, NLAT, ELAT, tarea
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea, iceumask, iceemask, icenmask
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -472,16 +472,16 @@
 
       subroutine dyn_prep2 (nx_block,   ny_block,   &
                             ilo, ihi,   jlo, jhi,   &
-                            icellt,     icellu,     &
+                            icellt,     icellx,     &
                             indxti,     indxtj,     &
-                            indxui,     indxuj,     &
-                            aiu,        umass,      &
-                            umassdti,   fcor,       &
-                            umask,                  &
+                            indxxi,     indxxj,     &
+                            aix,        xmass,      &
+                            xmassdti,   fcor,       &
+                            xmask,                  &
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
-                            icetmask,   iceumask,   &
+                            icetmask,   icexmask,   &
                             fm,         dt,         &
                             strtltx,    strtlty,    &
                             strocnx,    strocny,    &
@@ -497,7 +497,7 @@
                             stress12_3, stress12_4, &
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
-                            Tbu)
+                            TbU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -505,26 +505,26 @@
 
       integer (kind=int_kind), intent(out) :: &
          icellt  , & ! no. of cells where icetmask = 1
-         icellu      ! no. of cells where iceumask = 1
+         icellx      ! no. of cells where icexmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
          indxti  , & ! compressed index in i-direction
          indxtj  , & ! compressed index in j-direction
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxxi  , & ! compressed index in i-direction
+         indxxj      ! compressed index in j-direction
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         umask       ! land/boundary mask, thickness (U-cell)
+         xmask       ! land/boundary mask, thickness (U-cell)
 
       integer (kind=int_kind), dimension (nx_block,ny_block), intent(in) :: &
          icetmask    ! ice extent mask (T-cell)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         iceumask    ! ice extent mask (U-cell)
+         icexmask    ! ice extent mask (U-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         aiu     , & ! ice fraction on u-grid
-         umass   , & ! total mass of ice and snow (u grid)
+         aix     , & ! ice fraction on u-grid
+         xmass   , & ! total mass of ice and snow (u grid)
          fcor    , & ! Coriolis parameter (1/s)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
@@ -537,10 +537,10 @@
          dt          ! time step
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         Tbu,      & ! seabed stress factor (N/m^2)
+         TbU,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
-         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         xmassdti, & ! mass of U-cell/dt (kg/m^2 s)
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
@@ -571,7 +571,7 @@
          gravit
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
-         iceumask_old      ! old-time iceumask
+         icexmask_old      ! old-time icexmask
 
       character(len=*), parameter :: subname = '(dyn_prep2)'
 
@@ -585,8 +585,8 @@
          watery   (i,j) = c0
          forcex   (i,j) = c0
          forcey   (i,j) = c0
-         umassdti (i,j) = c0
-         Tbu      (i,j) = c0
+         xmassdti (i,j) = c0
+         TbU      (i,j) = c0
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
@@ -625,27 +625,27 @@
       enddo
 
       !-----------------------------------------------------------------
-      ! Define iceumask
-      ! Identify cells where iceumask is true
+      ! Define icexmask
+      ! Identify cells where icexmask is true
       ! Initialize velocity where needed
       !-----------------------------------------------------------------
 
-      icellu = 0
+      icellx = 0
 
       do j = jlo, jhi
       do i = ilo, ihi
-         iceumask_old(i,j) = iceumask(i,j) ! save
+         icexmask_old(i,j) = icexmask(i,j) ! save
          ! ice extent mask (U-cells)
-         iceumask(i,j) = (umask(i,j)) .and. (aiu  (i,j) > a_min) &
-                                      .and. (umass(i,j) > m_min)
+         icexmask(i,j) = (xmask(i,j)) .and. (aix  (i,j) > a_min) &
+                                      .and. (xmass(i,j) > m_min)
 
-         if (iceumask(i,j)) then
-            icellu = icellu + 1
-            indxui(icellu) = i
-            indxuj(icellu) = j
+         if (icexmask(i,j)) then
+            icellx = icellx + 1
+            indxxi(icellx) = i
+            indxxj(icellx) = j
 
             ! initialize velocity for new ice points to ocean sfc current
-            if (.not. iceumask_old(i,j)) then
+            if (.not. icexmask_old(i,j)) then
                uvel(i,j) = uocn(i,j)
                vvel(i,j) = vocn(i,j)
             endif
@@ -675,13 +675,13 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellx
+         i = indxxi(ij)
+         j = indxxj(ij)
 
-         umassdti(i,j) = umass(i,j)/dt ! kg/m^2 s
+         xmassdti(i,j) = xmass(i,j)/dt ! kg/m^2 s
 
-         fm(i,j) = fcor(i,j)*umass(i,j)   ! Coriolis * mass
+         fm(i,j) = fcor(i,j)*xmass(i,j)   ! Coriolis * mass
 
          ! for ocean stress
          waterx(i,j) = uocn(i,j)*cosw - vocn(i,j)*sinw*sign(c1,fm(i,j))
@@ -693,8 +693,8 @@
             strtltx(i,j) = -fm(i,j)*vocn(i,j)
             strtlty(i,j) =  fm(i,j)*uocn(i,j)
          elseif (trim(ssh_stress) == 'coupled') then
-            strtltx(i,j) = -gravit*umass(i,j)*ss_tltx(i,j)
-            strtlty(i,j) = -gravit*umass(i,j)*ss_tlty(i,j)
+            strtltx(i,j) = -gravit*xmass(i,j)*ss_tltx(i,j)
+            strtlty(i,j) = -gravit*xmass(i,j)*ss_tlty(i,j)
          else
             call abort_ice(subname//' ERROR: unknown ssh_stress='//trim(ssh_stress), &
                file=__FILE__, line=__LINE__)
@@ -715,7 +715,7 @@
       subroutine stepu (nx_block,   ny_block, &
                         icellu,     Cw,       &
                         indxui,     indxuj,   &
-                        aiu,        str,      &
+                        aiX,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
                         forcex,     forcey,   &
@@ -725,7 +725,7 @@
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
-                        Tbu)
+                        TbU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -736,10 +736,10 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! seabed stress factor (N/m^2)
+         TbU,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on u-grid
+         aiX     , & ! ice fraction on u-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
@@ -798,13 +798,13 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
 
-         Cb  = Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
+         Cb  = TbU(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
          cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
 
@@ -841,7 +841,7 @@
       subroutine stepuv_CD (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
-                                      aiu,      &
+                                      aiX,      &
                           uocn,       vocn,     &
                           waterx,     watery,   &
                           forcex,     forcey,   &
@@ -864,7 +864,7 @@
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on [en]-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
@@ -920,7 +920,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -958,7 +958,7 @@
       subroutine stepu_C (nx_block,   ny_block, &
                            icell,      Cw,       &
                            indxi,      indxj,    &
-                                       aiu,      &
+                                       aiX,      &
                            uocn,       vocn,     &
                            waterx,     forcex,   &
                            massdti,    fm,       &
@@ -978,7 +978,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on [en]-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          massdti , & ! mass of e-cell/dt (kg/m^2 s)
@@ -1025,7 +1025,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -1057,7 +1057,7 @@
       subroutine stepv_C (nx_block,   ny_block, &
                            icell,      Cw,       &
                            indxi,      indxj,    &
-                                       aiu,      &
+                                       aiX,      &
                            uocn,       vocn,     &
                            watery,     forcey,   &
                            massdti,    fm,       &
@@ -1077,7 +1077,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on [en]-grid
          watery  , & ! for ocean stress calculation, y (m/s)
          forcey  , & ! work array: combined atm stress and ocn tilt, y
          massdti , & ! mass of n-cell/dt (kg/m^2 s)
@@ -1124,7 +1124,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
@@ -1161,7 +1161,7 @@
                              indxui,   indxuj,   &
                              uvel,     vvel,     &
                              uocn,     vocn,     &
-                             aiu,      fm,       &
+                             aiX,      fm,       &
                              strocnx,  strocny)
 
       integer (kind=int_kind), intent(in) :: &
@@ -1177,7 +1177,7 @@
          vvel    , & ! y-component of velocity (m/s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
-         aiu     , & ! ice fraction on u-grid
+         aiX     , & ! ice fraction on u-grid
          fm          ! Coriolis param. * mass in U-cell (kg/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1212,12 +1212,12 @@
                  (vocn(i,j) - vvel(i,j))**2)  ! m/s
 
 !        strocnx(i,j) = strocnx(i,j) &
-!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiu(i,j)
+!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiX(i,j)
 !        strocny(i,j) = strocny(i,j) &
-!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiu(i,j)
+!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiX(i,j)
 
          ! update strocnx to most recent iterate and complete the term
-         vrel = vrel * aiu(i,j)
+         vrel = vrel * aiX(i,j)
          strocnx(i,j) = vrel*((uocn(i,j) - uvel(i,j))*cosw &
                             - (vocn(i,j) - vvel(i,j))*sinw*sign(c1,fm(i,j)))
          strocny(i,j) = vrel*((vocn(i,j) - vvel(i,j))*cosw &
@@ -1233,7 +1233,7 @@
       end subroutine dyn_finish
 
 !=======================================================================
-! Computes seabed (basal) stress factor Tbu (landfast ice) based on mean
+! Computes seabed (basal) stress factor TbU (landfast ice) based on mean
 ! thickness and bathymetry data. LKD refers to linear keel draft. This
 ! parameterization assumes that the largest keel draft varies linearly
 ! with the mean thickness.
@@ -1248,14 +1248,14 @@
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
-! note1: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
+! note1: TbU is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
 ! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
 
       subroutine seabed_stress_factor_LKD (nx_block, ny_block,         &
                                            icellu,                     &
                                            indxui,   indxuj,           &
                                            vice,     aice,             &
-                                           hwater,   Tbu,              &
+                                           hwater,   TbU,              &
                                            grid_location)
 
       use ice_grid, only: grid_neighbor_min, grid_neighbor_max
@@ -1274,7 +1274,7 @@
          hwater        ! water depth at tracer location (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Tbu           ! seabed stress factor at 'grid_location' (N/m^2)
+         TbU           ! seabed stress factor at 'grid_location' (N/m^2)
 
       character(len=*), optional, intent(inout) :: &
          grid_location ! grid location (U, E, N), U assumed if not present
@@ -1319,14 +1319,14 @@
          hcu = au * hwu / k1
 
          ! 2- calculate seabed stress factor
-         Tbu(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+         TbU(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
       enddo                     ! ij
 
       end subroutine seabed_stress_factor_LKD
 
 !=======================================================================
-! Computes seabed (basal) stress factor Tbu (landfast ice) based on
+! Computes seabed (basal) stress factor TbU (landfast ice) based on
 ! probability of contact between the ITD and the seabed. The water depth
 ! could take into account variations of the SSH. In the simplest
 ! formulation, hwater is simply the value of the bathymetry. To calculate
@@ -1343,7 +1343,7 @@
                                             icellt, indxti,   indxtj,    &
                                             icellu, indxui,   indxuj,    &
                                             aicen,  vicen,               &
-                                            hwater, Tbu,                 &
+                                            hwater, TbU,                 &
                                             TbE,    TbN,                 &
                                             icelle, indxei,   indxej,    &
                                             icelln, indxni,   indxnj)
@@ -1371,7 +1371,7 @@
            vicen       ! partial volume for last thickness category in ITD (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-           Tbu         ! seabed stress factor at U location (N/m^2)
+           TbU         ! seabed stress factor at U location (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
            TbE,      & ! seabed stress factor at E location (N/m^2)
@@ -1521,7 +1521,7 @@
             i = indxui(ij)
             j = indxuj(ij)
             ! convert quantities to U-location
-            Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
+            TbU(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
          enddo                     ! ij
       elseif (grid_ice == "C" .or. grid_ice == "CD") then
          if (present(Tbe)    .and. present(TbN)    .and. &
