@@ -187,9 +187,9 @@ contains
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     ! from atm - black carbon deposition fluxes (3)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_bcph',  ungridded_lbound=1, ungridded_ubound=3)
-    ! from atm - wet dust deposition frluxes (4 sizes)
+    ! from atm - wet dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
-    ! from - atm dry dust deposition frluxes (4 sizes)
+    ! from atm - dry dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
 
     do n = 1,fldsToIce_num
@@ -800,19 +800,10 @@ contains
 
     if (.not.prescribed_ice) then
        call t_startf ('cice_imp_t2u')
-       call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_scalar)
-       call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_scalar)
-       ! tcraig, moved to dynamics for consistency
-       !work = uocn
-       !call grid_average_X2Y('F',work,'T',uocn,'U')
-       !work = vocn
-       !call grid_average_X2Y('F',work,'T',vocn,'U')
-       !work = ss_tltx
-       !call grid_average_X2Y('F',work,'T',ss_tltx,'U')
-       !work = ss_tlty
-       !call grid_average_X2Y('F',work,'T',ss_tlty,'U')
+       call ice_HaloUpdate(uocn, halo_info, field_loc_center, field_type_vector)
+       call ice_HaloUpdate(vocn, halo_info, field_loc_center, field_type_vector)
+       call ice_HaloUpdate(ss_tltx, halo_info, field_loc_center, field_type_vector)
+       call ice_HaloUpdate(ss_tlty, halo_info, field_loc_center, field_type_vector)
        call t_stopf ('cice_imp_t2u')
     end if
 

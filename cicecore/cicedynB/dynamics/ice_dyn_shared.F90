@@ -192,7 +192,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, iceumask, &
+      use ice_flux, only: rdg_conv, rdg_shear, iceumask, iceemask, icenmask, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -311,7 +311,10 @@
 
          ! ice extent mask on velocity points
          iceumask(i,j,iblk) = .false.
-
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            iceemask(i,j,iblk) = .false.
+            icenmask(i,j,iblk) = .false.
+         end if
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk

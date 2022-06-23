@@ -129,7 +129,7 @@
       use ice_restoring, only: restore_ice, ice_HaloRestore
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
-          biogeochemistry, save_init, step_dyn_wave, step_snow
+          biogeochemistry, step_prep, step_dyn_wave, step_snow
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column, timer_thermo, timer_bound, &
           timer_hist, timer_readwrite
