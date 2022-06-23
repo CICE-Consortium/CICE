@@ -546,12 +546,15 @@ def plot_data(data, lat, lon, units, case, plot_type):
     #plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
     plt.suptitle(f'CICE Mean Ice Thickness\n{case:s}')
 
-    # adjust subplot up. 
+    # add more whitespace between plots for colorbar. 
     plt.subplots_adjust(wspace=0.4)
 
+    # add separate axes for colorbars
+    # first get position/size of current axes
     pos1 = ax1.get_position()
     pos2 = ax2.get_position()
 
+    # now add new colormap axes using the position ax1, ax2 as reference
     cax1 = fig.add_axes([pos1.x0+pos1.width+0.03,
                          pos1.y0,
                          0.02,
@@ -563,15 +566,12 @@ def plot_data(data, lat, lon, units, case, plot_type):
                          pos2.height])
 
 
-    #cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
     if '\n- ' in case:
         # If making a difference plot, use scientific notation for colorbar
-        #cbNH = plt.colorbar(scNH, cax=ax1, orientation="horizontal", format="%.2e")
-        #cbSH = plt.colorbar(scSH, cax=ax2, orientation="horizontal", format="%.2e")
         cbNH = plt.colorbar(scNH, cax=cax1, orientation="vertical", 
-                            pad=0.1, shrink=0.6, format="%.1e")
+                            pad=0.1, format="%.1e")
         cbSH = plt.colorbar(scSH, cax=cax2, orientation="vertical", 
-                            pad=0.1, shrink=0.6, format="%.1e")
+                            pad=0.1, format="%.1e")
 
     else:
         #pass
