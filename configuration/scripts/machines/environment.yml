@@ -12,7 +12,7 @@ dependencies:
 # Python dependencies for plotting scripts
   - numpy
   - matplotlib-base
-  - basemap
+  - cartopy
   - netcdf4
 # Python dependencies for building the HTML documentation
   - sphinx

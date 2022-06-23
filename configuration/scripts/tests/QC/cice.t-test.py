@@ -394,7 +394,7 @@ def plot_data(data, lat, lon, units, case, plot_type):
     spstereo = ccrs.SouthPolarStereo(central_longitude= 90.0) # define projection
    
     # define figure
-    fig = plt.figure(figsize=[14,8])  
+    fig = plt.figure(figsize=[14,7])  
 
     # add axis for each hemishpere
     ax1 = fig.add_subplot(121,projection=npstereo)
@@ -424,31 +424,61 @@ def plot_data(data, lat, lon, units, case, plot_type):
                        draw_labels=True,
                        x_inline=False,y_inline=False)
 
-    g1 = ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
+    g2 = ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
                        draw_labels=True,
                        x_inline=False,y_inline=False)
 
 
+    # Specify Min/max colors for each hemisphere
+    # check for minus to see if it is a difference plot
+    if '\n- ' in case: # this is a difference plot
+        # specify colormap
+        mycmap = 'seismic' # blue,white,red with white centered colormap
+
+        # determine max absolute value to use for color range
+        # intent is use same min/max with center zero
+        dmin = np.abs(data.min())
+        dmax = np.abs(data.max())
+        clim = np.max([dmin,dmax])
+
+        # this specifies both hemishperes the same range.
+        cminNH = -clim
+        cmaxNH =  clim
+        cminSH = -clim
+        cmaxSH =  clim
+
+    else:  # not a difference plot
+        # specify colormap
+        mycmap = 'jet'
+
+        # arbitrary limits for each Hemishpere
+        cminNH = 0.0
+        cmaxNH = 5.0
+        cminSH = 0.0
+        cmaxSH = 2.0
+
     if plot_type == 'scatter':
         # plot NH
-        sc = ax1.scatter(lon,lat,c=data,cmap='jet',s=4,edgecolors='none',
-                         transform=ccrs.PlateCarree())
+        scNH = ax1.scatter(lon,lat,c=data,cmap=mycmap,s=4,edgecolors='none',
+                           vmin=cminNH, vmax=cmaxNH,
+                           transform=ccrs.PlateCarree())
         
         # plot SH
-        sc = ax2.scatter(lon,lat,c=data,cmap='jet',s=4,edgecolors='none',
-                        transform=ccrs.PlateCarree())
+        scSH = ax2.scatter(lon,lat,c=data,cmap=mycmap,s=4,edgecolors='none',
+                           vmin=cminSH, vmax=cmaxSH,
+                           transform=ccrs.PlateCarree())
 
     else: 
         if plot_type == 'contour':
             print("contour plot depreciated. using pcolor.")
             
-        sc = ax1.pcolormesh(lon,lat,data,cmap='jet',
-                            vmin=data.min(), vmax=data.max(),
-                            transform=ccrs.PlateCarree())
+        scNH = ax1.pcolormesh(lon,lat,data,cmap=mycmap,
+                              vmin=cminNH, vmax=cmaxNH,
+                              transform=ccrs.PlateCarree())
         
-        sc = ax2.pcolormesh(lon,lat,data,cmap='jet',
-                            vmin=data.min(), vmax=data.max(),
-                            transform=ccrs.PlateCarree())
+        scSH = ax2.pcolormesh(lon,lat,data,cmap=mycmap,
+                              vmin=cminSH, vmax=cmaxSH,
+                              transform=ccrs.PlateCarree())
 
     #else:
         # # Create new arrays to add 1 additional longitude value to prevent a
@@ -495,37 +525,64 @@ def plot_data(data, lat, lon, units, case, plot_type):
         #     data_m90_90.mask = np.logical_or(data1.mask,data_m90_90.mask)
 
         #     # plot NH 90-270
-        #     sc = ax1.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
+        #     sc = ax1.contourf(lons_90_270, lats_90_270, data_90_270, cmap=mycmap,   
         #                       transform=ccrs.PlateCarree(),
         #                       extend='both')
         #     # plot NH -90-90
-        #     sc = ax1.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
+        #     sc = ax1.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap=mycmap,   
         #                       transform=ccrs.PlateCarree(),
         #                       extend='both')
  
         #     # plot SH 90-270
-        #     sc = ax2.contourf(lons_90_270, lats_90_270, data_90_270, cmap='jet',   
+        #     sc = ax2.contourf(lons_90_270, lats_90_270, data_90_270, cmap=mycmap,   
         #                       transform=ccrs.PlateCarree(),
         #                       extend='both')
         #     # plot SH -90-90
-        #     sc = ax2.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap='jet',   
+        #     sc = ax2.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap=mycmap,   
         #                       transform=ccrs.PlateCarree(),
         #                       extend='both')
 
 
-    plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+    #plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+    plt.suptitle(f'CICE Mean Ice Thickness\n{case:s}')
 
-    # Make some room at the bottom of the figure, and create a colorbar
-    fig.subplots_adjust(bottom=0.2)
-    cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
+    # adjust subplot up. 
+    plt.subplots_adjust(wspace=0.4)
+
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+
+    cax1 = fig.add_axes([pos1.x0+pos1.width+0.03,
+                         pos1.y0,
+                         0.02,
+                         pos1.height])
+ 
+    cax2 = fig.add_axes([pos2.x0+pos2.width+0.03,
+                         pos2.y0,
+                         0.02,
+                         pos2.height])
+
+
+    #cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
     if '\n- ' in case:
-      # If making a difference plot, use scientific notation for colorbar
-      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2e")
-    else:
-      # If plotting non-difference data, do not use scientific notation for colorbar
-      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
+        # If making a difference plot, use scientific notation for colorbar
+        #cbNH = plt.colorbar(scNH, cax=ax1, orientation="horizontal", format="%.2e")
+        #cbSH = plt.colorbar(scSH, cax=ax2, orientation="horizontal", format="%.2e")
+        cbNH = plt.colorbar(scNH, cax=cax1, orientation="vertical", 
+                            pad=0.1, shrink=0.6, format="%.1e")
+        cbSH = plt.colorbar(scSH, cax=cax2, orientation="vertical", 
+                            pad=0.1, shrink=0.6, format="%.1e")
 
-    cb.set_label(units, x=1.0)
+    else:
+        #pass
+        # If plotting non-difference data, do not use scientific notation for colorbar
+        cbNH = plt.colorbar(scNH, cax=cax1, orientation="vertical", 
+                            pad=0.1, format="%.2f")
+        cbSH = plt.colorbar(scSH, cax=cax2, orientation="vertical", 
+                            pad=0.1, format="%.2f")
+
+    cbNH.set_label(units, loc='center')
+    cbSH.set_label(units, loc='center')
 
     outfile = 'ice_thickness_{}.png'.format(case.replace('\n- ','_minus_'))
     logger.info('Creating map of the data ({})'.format(outfile))
