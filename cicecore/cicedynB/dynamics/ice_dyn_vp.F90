@@ -822,6 +822,8 @@
       ! Initialization
       res_num = 0
       L2norm  = c0
+      Fx = c0
+      Fy = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
@@ -903,7 +905,8 @@
                                L2norm       (iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         nlres_norm = sqrt(global_sum_prod(Fx(:,:,:), Fx(:,:,:), distrb_info, field_loc_NEcorner) + &
+                           global_sum_prod(Fy(:,:,:), Fy(:,:,:), distrb_info, field_loc_NEcorner))
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -993,16 +996,8 @@
                              indxui   (:,:), indxuj(:,:) , &
                              res        (:),               &
                              fpresx (:,:,:), fpresy (:,:,:))
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellu    (iblk),                   &
-                                      indxui  (:,iblk), indxuj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
-         enddo
-         !$OMP END PARALLEL DO
-         fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         fpres_norm = sqrt(global_sum_prod(fpresx(:,:,:), fpresx(:,:,:), distrb_info, field_loc_NEcorner) + &
+                           global_sum_prod(fpresy(:,:,:), fpresy(:,:,:), distrb_info, field_loc_NEcorner))
 #endif
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
@@ -1131,14 +1126,10 @@
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellu    (iblk),                   &
-                                      indxui  (:,iblk), indxuj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
-         prog_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         prog_norm = sqrt(global_sum_prod(fpresx(:,:,:), fpresx(:,:,:), distrb_info, field_loc_NEcorner) + &
+                          global_sum_prod(fpresy(:,:,:), fpresy(:,:,:), distrb_info, field_loc_NEcorner))
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " progress_res_L2norm= ", prog_norm
