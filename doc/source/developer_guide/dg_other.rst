@@ -30,11 +30,11 @@ To run with an interactive debugger, the following general steps should be taken
 Reproducible Sums
 ----------------------
 
-Reproducible sums in the CICE diagnostics are set with the namelist `bfbflag`.
-CICE prognostics results do NOT depend on the global sum implementation.  The
+Reproducible sums in CICE are set with the namelist `bfbflag`.
+CICE prognostics results do NOT depend on the global sum implementation when using the default dynamics solver (EVP) or the EAP solver.  With these solvers, the
 results are bit-for-bit identical with any `bfbflag`.  The `bfbflag` only impacts
 the results and performance of the global diagnostics written to the CICE
-log file.  For best performance, the off (or lsum8 which is equivalent) setting is recommended.
+log file (for all dynamics solvers), as well as the model results when using the VP solver.  For best performance, the off (or lsum8 which is equivalent) setting is recommended.
 This will probably not produce bit-for-bit results with different decompositions.
 For bit-for-bit results, the reprosum setting is recommended.  This should be
 only slightly slower than the lsum8 implementation.
