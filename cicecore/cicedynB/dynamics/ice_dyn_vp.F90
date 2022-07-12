@@ -3016,6 +3016,7 @@
             call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
+                              halo_info_mask,                &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
                               diagx       , diagy          , &
@@ -3212,12 +3213,18 @@
       subroutine pgmres (zetax2   , etax2   , &
                          Cb       , vrel    , &
                          umassdti ,           &
+                         halo_info_mask,      &
                          bx       , by      , &
                          diagx    , diagy   , &
                          tolerance, maxinner, &
                          maxouter ,           &
                          solx     , soly    , &
                          nbiter)
+
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_info
+      use ice_fileunits, only: bfbflag
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
@@ -3227,6 +3234,9 @@
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
+
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          bx       , & ! Right hand side of the linear system (x components)
@@ -3397,14 +3407,29 @@
             call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
+                              halo_info_mask,                &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
                               diagx       , diagy          , &
                               precond_type,                  &
                               workspace_x , workspace_y)
 
-            ! NOTE: halo updates for (workspace_x, workspace_y)
-            ! are skipped here for efficiency since this is just a preconditioner
+            ! Update workspace with boundary values
+            ! NOTE: skipped for efficiency since this is just a preconditioner
+            ! unless bfbflag is active            
+            if (bfbflag /= 'off') then
+               call stack_fields(workspace_x, workspace_y, fld2)
+               call ice_timer_start(timer_bound)
+               if (maskhalo_dyn) then
+                  call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                       field_loc_NEcorner, field_type_vector)
+               else
+                  call ice_HaloUpdate (fld2,               halo_info, &
+                                       field_loc_NEcorner, field_type_vector)
+               endif
+               call ice_timer_stop(timer_bound)
+               call unstack_fields(fld2, workspace_x, workspace_y)
+            endif
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3528,6 +3553,7 @@
          call precondition(zetax2      , etax2      , &
                            Cb          , vrel       , &
                            umassdti    ,              &
+                           halo_info_mask,            &
                            workspace_x , workspace_y, &
                            diagx       , diagy      , &
                            precond_type,              &
@@ -3594,6 +3620,7 @@
       subroutine precondition(zetax2      , etax2, &
                               Cb          , vrel , &
                               umassdti    ,        &
+                              halo_info_mask,      &
                               vx          , vy   , &
                               diagx       , diagy, &
                               precond_type,        &
@@ -3608,6 +3635,9 @@
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+         
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          vx       , & ! input vector (x components)
          vy           ! input vector (y components)
@@ -3669,6 +3699,7 @@
          call pgmres (zetax2,    etax2   , &
                       Cb       , vrel    , &
                       umassdti ,           &
+                      halo_info_mask     , &
                       vx       , vy      , &
                       diagx    , diagy   , &
                       tolerance, maxinner, &
