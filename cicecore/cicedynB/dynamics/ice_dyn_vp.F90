@@ -889,7 +889,10 @@
                                L2norm       (iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         nlres_norm = global_norm(nx_block, ny_block, &
+                                  icellU  ,           &
+                                  indxUi  , indxUj  , &
+                                  Fx      , Fy        )
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -979,16 +982,10 @@
                              indxUi   (:,:), indxUj(:,:) , &
                              res        (:),               &
                              fpresx (:,:,:), fpresy (:,:,:))
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellU    (iblk),                   &
-                                      indxUi  (:,iblk), indxUj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
-         enddo
-         !$OMP END PARALLEL DO
-         fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         fpres_norm = global_norm(nx_block, ny_block, &
+                                  icellU  ,           &
+                                  indxUi  , indxUj  , &
+                                  fpresx  , fpresy    )
 #endif
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
@@ -1117,14 +1114,12 @@
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellU    (iblk),                   &
-                                      indxUi  (:,iblk), indxUj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
-         prog_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         prog_norm = global_norm(nx_block, ny_block, &
+                                 icellU  ,           &
+                                 indxUi  , indxUj  , &
+                                 fpresx  , fpresy    )
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " progress_res_L2norm= ", prog_norm
