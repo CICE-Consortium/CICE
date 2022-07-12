@@ -51,7 +51,7 @@
           seabed_stress, Ktens, stack_fields,  unstack_fields
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
-      use ice_global_reductions, only: global_sum, global_allreduce_sum
+      use ice_global_reductions, only: global_sum, global_sum_prod
       use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -1941,6 +1941,10 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      ! Initialize to zero
+      bx = c0
+      by = c0
+
       do ij = 1, icellu
          i = indxui(ij)
          j = indxuj(ij)
@@ -2821,18 +2825,8 @@
       arnoldi_basis_y = c0
 
       ! solution is zero if RHS is zero
-      !$OMP PARALLEL DO PRIVATE(iblk)
-      do iblk = 1, nblocks
-         call calc_L2norm_squared(nx_block       , ny_block      , &
-                                  icellu   (iblk),                 &
-                                  indxui (:,iblk), indxuj(:,iblk), &
-                                  bx(:,:,iblk)   , &
-                                  by(:,:,iblk)   , &
-                                  norm_squared(iblk))
-
-      enddo
-      !$OMP END PARALLEL DO
-      norm_rhs = sqrt(global_sum(sum(norm_squared), distrb_info))
+      norm_rhs = sqrt(global_sum_prod(bx(:,:,:), bx(:,:,:), distrb_info, field_loc_NEcorner) + &
+                      global_sum_prod(by(:,:,:), by(:,:,:), distrb_info, field_loc_NEcorner))
       if (norm_rhs == c0) then
          solx = bx
          soly = by
@@ -2870,18 +2864,11 @@
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared(nx_block       , ny_block      , &
-                                     icellu   (iblk),                 &
-                                     indxui (:,iblk), indxuj(:,iblk), &
-                                     arnoldi_basis_x(:,:,iblk, 1)   , &
-                                     arnoldi_basis_y(:,:,iblk, 1)   , &
-                                     norm_squared(iblk))
 
-         enddo
-         !$OMP END PARALLEL DO
-         norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
+         norm_residual = sqrt(global_sum_prod(arnoldi_basis_x(:,:,:,1), &
+                                              arnoldi_basis_x(:,:,:,1), distrb_info, field_loc_NEcorner) + &
+                              global_sum_prod(arnoldi_basis_y(:,:,:,1), &
+                                              arnoldi_basis_y(:,:,:,1), distrb_info, field_loc_NEcorner))
 
          if (my_task == master_task .and. monitor_fgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
@@ -2975,17 +2962,10 @@
                                hessenberg)
 
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
-            !$OMP PARALLEL DO PRIVATE(iblk)
-            do iblk = 1, nblocks
-               call calc_L2norm_squared(nx_block      ,  ny_block        , &
-                                        icellu   (iblk),                   &
-                                        indxui (:,iblk), indxuj(:, iblk) , &
-                                        arnoldi_basis_x(:,:,iblk, nextit), &
-                                        arnoldi_basis_y(:,:,iblk, nextit), &
-                                        norm_squared(iblk))
-            enddo
-            !$OMP END PARALLEL DO
-            hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
+            hessenberg(nextit,initer) = sqrt(global_sum_prod(arnoldi_basis_x(:,:,:,nextit), &
+                                                             arnoldi_basis_x(:,:,:,nextit), distrb_info, field_loc_NEcorner) + &
+                                             global_sum_prod(arnoldi_basis_y(:,:,:,nextit), &
+                                                             arnoldi_basis_y(:,:,:,nextit), distrb_info, field_loc_NEcorner))
 
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
@@ -3263,18 +3243,10 @@
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared(nx_block       , ny_block       , &
-                                     icellu   (iblk),                  &
-                                     indxui (:,iblk), indxuj(:, iblk), &
-                                     arnoldi_basis_x(:,:,iblk, 1),     &
-                                     arnoldi_basis_y(:,:,iblk, 1),     &
-                                     norm_squared(iblk))
-
-         enddo
-         !$OMP END PARALLEL DO
-         norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
+         norm_residual = sqrt(global_sum_prod(arnoldi_basis_x(:,:,:,1), &
+                                              arnoldi_basis_x(:,:,:,1), distrb_info, field_loc_NEcorner) + &
+                              global_sum_prod(arnoldi_basis_y(:,:,:,1), &
+                                              arnoldi_basis_y(:,:,:,1), distrb_info, field_loc_NEcorner))
 
          if (my_task == master_task .and. monitor_pgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
@@ -3357,17 +3329,10 @@
                                hessenberg)
 
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
-            !$OMP PARALLEL DO PRIVATE(iblk)
-            do iblk = 1, nblocks
-               call calc_L2norm_squared(nx_block       , ny_block        , &
-                                        icellu   (iblk),                   &
-                                        indxui (:,iblk), indxuj(:, iblk) , &
-                                        arnoldi_basis_x(:,:,iblk, nextit), &
-                                        arnoldi_basis_y(:,:,iblk, nextit), &
-                                        norm_squared(iblk))
-            enddo
-            !$OMP END PARALLEL DO
-            hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
+            hessenberg(nextit,initer) = sqrt(global_sum_prod(arnoldi_basis_x(:,:,:,nextit), &
+                                                             arnoldi_basis_x(:,:,:,nextit), distrb_info, field_loc_NEcorner) + &
+                                             global_sum_prod(arnoldi_basis_y(:,:,:,nextit), &
+                                                             arnoldi_basis_y(:,:,:,nextit), distrb_info, field_loc_NEcorner))
 
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
@@ -3646,38 +3611,19 @@
          ij      , & ! compressed index
          i, j        ! grid indices
 
-      real (kind=dbl_kind), dimension (max_blocks) :: &
-         local_dot      ! local array value to accumulate dot product of grid function over blocks
-
-      real (kind=dbl_kind), dimension(maxinner) :: &
-         dotprod_local  ! local array to accumulate several dot product computations
-
       character(len=*), parameter :: subname = '(orthogonalize)'
 
       if (trim(ortho_type) == 'cgs') then ! Classical Gram-Schmidt
          ! Classical Gram-Schmidt orthogonalisation process
          ! First loop of Gram-Schmidt (compute coefficients)
-         dotprod_local = c0
          do it = 1, initer
-            local_dot = c0
 
-            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
-            do iblk = 1, nblocks
-               do ij = 1, icellu(iblk)
-                  i = indxui(ij, iblk)
-                  j = indxuj(ij, iblk)
+            hessenberg(it, initer) = global_sum_prod(arnoldi_basis_x(:,:,:,it), &
+                                                     arnoldi_basis_x(:,:,:,nextit), distrb_info, field_loc_NEcorner) + &
+                                     global_sum_prod(arnoldi_basis_y(:,:,:,it), &
+                                                     arnoldi_basis_y(:,:,:,nextit), distrb_info, field_loc_NEcorner)
 
-                  local_dot(iblk) = local_dot(iblk) + &
-                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-               enddo ! ij
-            enddo
-            !$OMP END PARALLEL DO
-
-            dotprod_local(it) = sum(local_dot)
          end do
-
-         hessenberg(1:initer, initer) = global_allreduce_sum(dotprod_local(1:initer), distrb_info)
 
          ! Second loop of Gram-Schmidt (orthonormalize)
          do it = 1, initer
@@ -3698,22 +3644,11 @@
       elseif (trim(ortho_type) == 'mgs') then ! Modified Gram-Schmidt
          ! Modified Gram-Schmidt orthogonalisation process
          do it = 1, initer
-            local_dot = c0
 
-            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
-            do iblk = 1, nblocks
-               do ij = 1, icellu(iblk)
-                  i = indxui(ij, iblk)
-                  j = indxuj(ij, iblk)
-
-                  local_dot(iblk) = local_dot(iblk) + &
-                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-               enddo ! ij
-            enddo
-            !$OMP END PARALLEL DO
-
-            hessenberg(it,initer) = global_sum(sum(local_dot), distrb_info)
+            hessenberg(it, initer) = global_sum_prod(arnoldi_basis_x(:,:,:,it), &
+                                                     arnoldi_basis_x(:,:,:,nextit), distrb_info, field_loc_NEcorner) + &
+                                     global_sum_prod(arnoldi_basis_y(:,:,:,it), &
+                                                     arnoldi_basis_y(:,:,:,nextit), distrb_info, field_loc_NEcorner)
 
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks
