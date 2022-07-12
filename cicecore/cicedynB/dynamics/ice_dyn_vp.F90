@@ -783,9 +783,6 @@
          stress_Pr,   & ! x,y-derivatives of the replacement pressure
          diag_rheo      ! contributions of the rhelogy term to the diagonal
 
-      real (kind=dbl_kind), dimension (max_blocks) :: &
-         L2norm       ! array used to compute l^2 norm of grid function
-
       real (kind=dbl_kind), dimension (ntot) :: &
          res        , & ! current residual
          res_old    , & ! previous residual
@@ -821,7 +818,6 @@
 
       ! Initialization
       res_num = 0
-      L2norm  = c0
       Fx = c0
       Fy = c0
 
@@ -901,8 +897,7 @@
                                indxui     (:,iblk), indxuj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
-                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
-                               L2norm       (iblk))
+                               Fx       (:,:,iblk), Fy      (:,:,iblk))
          enddo
          !$OMP END PARALLEL DO
          nlres_norm = sqrt(global_sum_prod(Fx(:,:,:), Fx(:,:,:), distrb_info, field_loc_NEcorner) + &
@@ -1968,8 +1963,7 @@
                                indxui     , indxuj  , &
                                bx         , by      , &
                                Au         , Av      , &
-                               Fx         , Fy      , &
-                               sum_squared)
+                               Fx         , Fy        )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1989,9 +1983,6 @@
          Fx      , & ! x residual vector, Fx = bx - Au (N/m^2)
          Fy          ! y residual vector, Fy = by - Av (N/m^2)
 
-      real (kind=dbl_kind), intent(out), optional :: &
-         sum_squared ! sum of squared residual vector components
-
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -2000,12 +1991,8 @@
       character(len=*), parameter :: subname = '(residual_vec)'
 
       !-----------------------------------------------------------------
-      ! compute residual and sum its squared components
+      ! compute residual
       !-----------------------------------------------------------------
-
-      if (present(sum_squared)) then
-         sum_squared = c0
-      endif
 
       do ij = 1, icellu
          i = indxui(ij)
@@ -2013,9 +2000,6 @@
 
          Fx(i,j) = bx(i,j) - Au(i,j)
          Fy(i,j) = by(i,j) - Av(i,j)
-         if (present(sum_squared)) then
-            sum_squared = sum_squared + Fx(i,j)**2 + Fy(i,j)**2
-         endif
       enddo                     ! ij
 
       end subroutine residual_vec
@@ -2476,53 +2460,6 @@
       enddo                     ! ij
 
       end subroutine formDiag_step2
-
-!=======================================================================
-
-! Compute squared l^2 norm of a grid function (tpu,tpv)
-
-      subroutine calc_L2norm_squared (nx_block, ny_block, &
-                                      icellu  ,           &
-                                      indxui  , indxuj  , &
-                                      tpu     , tpv     , &
-                                      L2norm)
-
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tpu     , & ! x-component of vector grid function
-         tpv         ! y-component of vector grid function
-
-      real (kind=dbl_kind), intent(out) :: &
-         L2norm      ! squared l^2 norm of vector grid function (tpu,tpv)
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij
-
-      character(len=*), parameter :: subname = '(calc_L2norm_squared)'
-
-      !-----------------------------------------------------------------
-      ! compute squared l^2 norm of vector grid function (tpu,tpv)
-      !-----------------------------------------------------------------
-
-      L2norm = c0
-
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
-
-         L2norm = L2norm + tpu(i,j)**2 + tpv(i,j)**2
-      enddo ! ij
-
-      end subroutine calc_L2norm_squared
 
 !=======================================================================
 
