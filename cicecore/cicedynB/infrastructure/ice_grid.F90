@@ -187,7 +187,7 @@
          icenmask, &   ! ice extent mask (N-cell)
          iceemask      ! ice extent mask (E-cell)
 
-real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
       logical (kind=log_kind), private :: &
