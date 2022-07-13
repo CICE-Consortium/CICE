@@ -16,10 +16,50 @@
                          oa_C     =   4, &
                          oa_D     =   8
 
-      public :: oa_layer1
+      public :: oa_layer1, oa_count1
 
 !-----------------------------------
 CONTAINS
+!-----------------------------------
+
+      subroutine oa_count1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+
+      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
+      real*8 , intent(out)  , optional :: Ao, Do
+      real*8 , intent(inout), optional :: B
+      real*8 , intent(in)              :: Ci1
+      real*8 , intent(out)             :: Co
+      integer, intent(inout)           :: ierr
+
+      call oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+
+!      write(6,*) 'debug oa_count1 ',ierr
+
+      end subroutine oa_count1
+
+!-----------------------------------
+
+      subroutine oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+
+      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
+      real*8 , intent(out)  , optional :: Ao, Do
+      real*8 , intent(inout), optional :: B
+      real*8 , intent(in)              :: Ci1
+      real*8 , intent(out)             :: Co
+      integer, intent(inout)           :: ierr
+
+      ierr = 3 ! Ci1, Co, ierr have to be passed
+      if (present(Ai1)) ierr = ierr + 1
+      if (present(Ao) ) ierr = ierr + 1
+      if (present(B)  ) ierr = ierr + 1
+      if (present(Di1)) ierr = ierr + 1
+      if (present(Di2)) ierr = ierr + 1
+      if (present(Do) ) ierr = ierr + 1
+
+!      write(6,*) 'debug oa_count2 ',ierr
+
+      end subroutine oa_count2
+
 !-----------------------------------
 
       subroutine oa_layer1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)

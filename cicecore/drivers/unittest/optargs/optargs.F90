@@ -3,7 +3,7 @@
 
       use optargs_subs, only: computeA, computeB, computeC, computeD
       use optargs_subs, only: oa_error, oa_OK, oa_A, oa_B, oa_C, oa_D
-      use optargs_subs, only: oa_layer1
+      use optargs_subs, only: oa_layer1, oa_count1
 
       implicit none
 
@@ -48,22 +48,41 @@
 !            ierrV = oa_OK
 !            call oa_layer1()
 
-          ! test optional order
+          ! test counts of present optional arguments at 2nd level
+          ! result should be number of arguments
           case(1)
+            result = -777.; resultV = -777.
+            ierrV = 9
+            call oa_count1(Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,ierr=ierr)
+          case(2)
+            result = -777.; resultV = -777.
+            ierrV = 9
+            call oa_count1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+          case(3)
+            result = -777.; resultV = -777.
+            ierrV = 3
+            call oa_count1(Ci1=Ci1,Co=Co,ierr=ierr)
+          case(4)
+            result = -777.; resultV = -777.
+            ierrV = 5
+            call oa_count1(Ci1=Ci1,Co=Co,ierr=ierr,Ao=Ao,Di1=Di1)
+
+          ! test optional order
+          case(11)
             result = -777.; resultV = -777.
             ierrV = oa_OK
             call oa_layer1(Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,ierr=ierr)
-          case(2)
+          case(12)
             result = -777.; resultV = -777.
             ierrV = oa_OK
             call oa_layer1(Ci1=Ci1,Co=Co,ierr=ierr)
-          case(3)
+          case(13)
             result = -777.; resultV = -777.
             ierrV = oa_OK
             call oa_layer1(Ci1=Ci1,Co=Co,ierr=ierr,Ao=Ao,Di1=Di1)
 
           ! test optional argument checking
-          case(4)
+          case(21)
             computeA = .true.
             computeB = .true.
             computeC = .true.
@@ -72,7 +91,7 @@
             ierrV = oa_error
             ! B missing
             call oa_layer1(Ai1=Ai1,Ao=Ao,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,ierr=ierr)
-          case(5)
+          case(22)
             computeA = .true.
             computeB = .true.
             computeC = .true.
@@ -81,7 +100,7 @@
             ierrV = oa_error
             ! all optional missing
             call oa_layer1(Ci1=Ci1,Co=Co,ierr=ierr)
-          case(6)
+          case(23)
             computeA = .true.
             computeB = .true.
             computeC = .true.
@@ -90,7 +109,7 @@
             ierrV = oa_error
             ! some optional missing
             call oa_layer1(Ci1=Ci1,Co=Co,ierr=ierr,B=B,Ao=Ao,Di1=Di1)
-          case(7)
+          case(24)
             computeA = .true.
             computeB = .true.
             computeC = .true.
@@ -101,28 +120,28 @@
             call oa_layer1(Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Do=Do,ierr=ierr)
 
           ! test computations individually
-          case(11)
+          case(31)
             computeA = .true.
             ierrV = oa_A
             Ai1 = 5.
             resultV = 4.
             call oa_layer1(Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,ierr=ierr)
             result = Ao
-          case(12)
+          case(32)
             computeB = .true.
             ierrV = oa_B
             B = 15.
             resultV = 20.
             call oa_layer1(ierr=ierr,Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do)
             result = B
-          case(13)
+          case(33)
             computeC = .true.
             ierrV = oa_C
             Ci1 = 7.
             resultV = 14.
             call oa_layer1(B=B,Ci1=Ci1,Co=Co,Di1=Di1,Ai1=Ai1,Ao=Ao,Di2=Di2,Do=Do,ierr=ierr)
             result = Co
-          case(14)
+          case(34)
             computeD = .true.
             ierrV = oa_D
             Di1 = 19; Di2=11.
@@ -131,7 +150,7 @@
             result = Do
 
           ! test computations individually
-          case(21)
+          case(41)
             computeA = .true.
             computeC = .true.
             ierrV = oa_A + oa_C
@@ -140,7 +159,7 @@
             resultV = 21.
             call oa_layer1(Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,ierr=ierr)
             result = Ao + Co
-          case(22)
+          case(42)
             computeB = .true.
             computeC = .true.
             ierrV = oa_B + oa_C
@@ -149,7 +168,7 @@
             resultV = -11.
             call oa_layer1(ierr=ierr,Ai1=Ai1,Ao=Ao,B=B,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do)
             result = B + Co
-          case(23)
+          case(43)
             computeB = .true.
             computeD = .true.
             ierrV = oa_B + oa_D
@@ -158,7 +177,7 @@
             resultV = 31.
             call oa_layer1(B=B,Ci1=Ci1,Co=Co,Di1=Di1,Ai1=Ai1,Ao=Ao,Di2=Di2,Do=Do,ierr=ierr)
             result = B + Do
-          case(24)
+          case(44)
             computeC = .true.
             computeD = .true.
             ierrV = oa_C + oa_D
@@ -167,7 +186,7 @@
             resultV = 27.
             call oa_layer1(Ai1=Ai1,Ao=Ao,Ci1=Ci1,Co=Co,Di1=Di1,Di2=Di2,Do=Do,B=B,ierr=ierr)
             result = Co + Do
-          case(25)
+          case(45)
             computeA = .true.
             computeB = .true.
             computeC = .true.
@@ -180,7 +199,7 @@
             resultV = 49.
             call oa_layer1(Ao=Ao,B=B,Co=Co,Do=Do,Ai1=Ai1,Ci1=Ci1,Di1=Di1,Di2=Di2,ierr=ierr)
             result = Ao + B + Co + Do
-          case(26)
+          case(46)
             computeA = .true.
             computeB = .true.
             computeD = .true.
