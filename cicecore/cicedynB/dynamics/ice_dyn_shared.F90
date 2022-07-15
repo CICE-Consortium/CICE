@@ -192,14 +192,14 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, iceumask, iceemask, icenmask, &
+      use ice_flux, only: rdg_conv, rdg_shear, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
-      use ice_grid, only: ULAT, NLAT, ELAT, tarea
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea, iceumask, iceemask, icenmask
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -376,8 +376,8 @@
       subroutine dyn_prep1 (nx_block,  ny_block, &
                             ilo, ihi,  jlo, jhi, &
                             aice,      vice,     &
-                            vsno,      tmask,    &
-                            tmass,     icetmask)
+                            vsno,      Tmask,    &
+                            Tmass,     iceTmask)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -389,13 +389,13 @@
          vsno        ! volume per unit area of snow         (m)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tmask       ! land/boundary mask, thickness (T-cell)
+         Tmask       ! land/boundary mask, thickness (T-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         tmass       ! total mass of ice and snow (kg/m^2)
+         Tmass       ! total mass of ice and snow (kg/m^2)
 
       integer (kind=int_kind), dimension (nx_block,ny_block), intent(out) :: &
-         icetmask    ! ice extent mask (T-cell)
+         iceTmask    ! ice extent mask (T-cell)
 
       ! local variables
 
@@ -423,22 +423,22 @@
          ! NOTE: vice and vsno must be up to date in all grid cells,
          !       including ghost cells
          !-----------------------------------------------------------------
-         if (tmask(i,j)) then
-            tmass(i,j) = (rhoi*vice(i,j) + rhos*vsno(i,j)) ! kg/m^2
+         if (Tmask(i,j)) then
+            Tmass(i,j) = (rhoi*vice(i,j) + rhos*vsno(i,j)) ! kg/m^2
          else
-            tmass(i,j) = c0
+            Tmass(i,j) = c0
          endif
 
          !-----------------------------------------------------------------
          ! ice extent mask (T-cells)
          !-----------------------------------------------------------------
-         tmphm(i,j) = tmask(i,j) .and. (aice (i,j) > a_min) &
-                                 .and. (tmass(i,j) > m_min)
+         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > a_min) &
+                                 .and. (Tmass(i,j) > m_min)
 
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
          !-----------------------------------------------------------------
-         icetmask (i,j) = 0
+         iceTmask (i,j) = 0
 
       enddo
       enddo
@@ -450,10 +450,10 @@
          if (tmphm(i-1,j+1) .or. tmphm(i,j+1) .or. tmphm(i+1,j+1) .or. &
              tmphm(i-1,j)   .or. tmphm(i,j)   .or. tmphm(i+1,j)   .or. &
              tmphm(i-1,j-1) .or. tmphm(i,j-1) .or. tmphm(i+1,j-1) ) then
-            icetmask(i,j) = 1
+            iceTmask(i,j) = 1
          endif
 
-         if (.not.tmask(i,j)) icetmask(i,j) = 0
+         if (.not.Tmask(i,j)) iceTmask(i,j) = 0
 
       enddo
       enddo
@@ -472,16 +472,16 @@
 
       subroutine dyn_prep2 (nx_block,   ny_block,   &
                             ilo, ihi,   jlo, jhi,   &
-                            icellt,     icellu,     &
-                            indxti,     indxtj,     &
-                            indxui,     indxuj,     &
-                            aiu,        umass,      &
-                            umassdti,   fcor,       &
-                            umask,                  &
+                            icellT,     icellX,     &
+                            indxTi,     indxTj,     &
+                            indxXi,     indxXj,     &
+                            aiX,        Xmass,      &
+                            Xmassdti,   fcor,       &
+                            Xmask,                  &
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
-                            icetmask,   iceumask,   &
+                            iceTmask,   iceXmask,   &
                             fm,         dt,         &
                             strtltx,    strtlty,    &
                             strocnx,    strocny,    &
@@ -497,34 +497,34 @@
                             stress12_3, stress12_4, &
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
-                            Tbu)
+                            TbU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
       integer (kind=int_kind), intent(out) :: &
-         icellt  , & ! no. of cells where icetmask = 1
-         icellu      ! no. of cells where iceumask = 1
+         icellT  , & ! no. of cells where iceTmask = 1
+         icellX      ! no. of cells where iceXmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
-         indxti  , & ! compressed index in i-direction
-         indxtj  , & ! compressed index in j-direction
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxTi  , & ! compressed index in i-direction on T grid
+         indxTj  , & ! compressed index in j-direction
+         indxXi  , & ! compressed index in i-direction on X grid, grid depends on call
+         indxXj      ! compressed index in j-direction
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         umask       ! land/boundary mask, thickness (U-cell)
+         Xmask       ! land/boundary mask, thickness (X-grid-cell)
 
       integer (kind=int_kind), dimension (nx_block,ny_block), intent(in) :: &
-         icetmask    ! ice extent mask (T-cell)
+         iceTmask    ! ice extent mask (T-cell)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         iceumask    ! ice extent mask (U-cell)
+         iceXmask    ! ice extent mask (X-grid-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         aiu     , & ! ice fraction on u-grid
-         umass   , & ! total mass of ice and snow (u grid)
+         aiX     , & ! ice fraction on u-grid (X grid)
+         Xmass   , & ! total mass of ice and snow (X grid)
          fcor    , & ! Coriolis parameter (1/s)
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
@@ -537,10 +537,10 @@
          dt          ! time step
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         Tbu,      & ! seabed stress factor (N/m^2)
+         TbU,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
-         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         Xmassdti, & ! mass of X-grid-cell/dt (kg/m^2 s)
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
@@ -571,7 +571,7 @@
          gravit
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
-         iceumask_old      ! old-time iceumask
+         iceXmask_old      ! old-time iceXmask
 
       character(len=*), parameter :: subname = '(dyn_prep2)'
 
@@ -585,12 +585,12 @@
          watery   (i,j) = c0
          forcex   (i,j) = c0
          forcey   (i,j) = c0
-         umassdti (i,j) = c0
-         Tbu      (i,j) = c0
+         Xmassdti (i,j) = c0
+         TbU      (i,j) = c0
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (icetmask(i,j)==0) then
+         if (iceTmask(i,j)==0) then
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -608,44 +608,44 @@
       enddo                     ! j
 
       !-----------------------------------------------------------------
-      ! Identify cells where icetmask = 1
-      ! Note: The icellt mask includes north and east ghost cells
+      ! Identify cells where iceTmask = 1
+      ! Note: The icellT mask includes north and east ghost cells
       !       where stresses are needed.
       !-----------------------------------------------------------------
 
-      icellt = 0
+      icellT = 0
       do j = jlo, jhi+1
       do i = ilo, ihi+1
-         if (icetmask(i,j) == 1) then
-            icellt = icellt + 1
-            indxti(icellt) = i
-            indxtj(icellt) = j
+         if (iceTmask(i,j) == 1) then
+            icellT = icellT + 1
+            indxTi(icellT) = i
+            indxTj(icellT) = j
          endif
       enddo
       enddo
 
       !-----------------------------------------------------------------
-      ! Define iceumask
-      ! Identify cells where iceumask is true
+      ! Define iceXmask
+      ! Identify cells where iceXmask is true
       ! Initialize velocity where needed
       !-----------------------------------------------------------------
 
-      icellu = 0
+      icellX = 0
 
       do j = jlo, jhi
       do i = ilo, ihi
-         iceumask_old(i,j) = iceumask(i,j) ! save
+         iceXmask_old(i,j) = iceXmask(i,j) ! save
          ! ice extent mask (U-cells)
-         iceumask(i,j) = (umask(i,j)) .and. (aiu  (i,j) > a_min) &
-                                      .and. (umass(i,j) > m_min)
+         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > a_min) &
+                                      .and. (Xmass(i,j) > m_min)
 
-         if (iceumask(i,j)) then
-            icellu = icellu + 1
-            indxui(icellu) = i
-            indxuj(icellu) = j
+         if (iceXmask(i,j)) then
+            icellX = icellX + 1
+            indxXi(icellX) = i
+            indxXj(icellX) = j
 
             ! initialize velocity for new ice points to ocean sfc current
-            if (.not. iceumask_old(i,j)) then
+            if (.not. iceXmask_old(i,j)) then
                uvel(i,j) = uocn(i,j)
                vvel(i,j) = vocn(i,j)
             endif
@@ -675,13 +675,13 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellX
+         i = indxXi(ij)
+         j = indxXj(ij)
 
-         umassdti(i,j) = umass(i,j)/dt ! kg/m^2 s
+         Xmassdti(i,j) = Xmass(i,j)/dt ! kg/m^2 s
 
-         fm(i,j) = fcor(i,j)*umass(i,j)   ! Coriolis * mass
+         fm(i,j) = fcor(i,j)*Xmass(i,j)   ! Coriolis * mass
 
          ! for ocean stress
          waterx(i,j) = uocn(i,j)*cosw - vocn(i,j)*sinw*sign(c1,fm(i,j))
@@ -693,8 +693,8 @@
             strtltx(i,j) = -fm(i,j)*vocn(i,j)
             strtlty(i,j) =  fm(i,j)*uocn(i,j)
          elseif (trim(ssh_stress) == 'coupled') then
-            strtltx(i,j) = -gravit*umass(i,j)*ss_tltx(i,j)
-            strtlty(i,j) = -gravit*umass(i,j)*ss_tlty(i,j)
+            strtltx(i,j) = -gravit*Xmass(i,j)*ss_tltx(i,j)
+            strtlty(i,j) = -gravit*Xmass(i,j)*ss_tlty(i,j)
          else
             call abort_ice(subname//' ERROR: unknown ssh_stress='//trim(ssh_stress), &
                file=__FILE__, line=__LINE__)
@@ -713,38 +713,38 @@
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine stepu (nx_block,   ny_block, &
-                        icellu,     Cw,       &
-                        indxui,     indxuj,   &
-                        aiu,        str,      &
+                        icellU,     Cw,       &
+                        indxUi,     indxUj,   &
+                        aiX,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
                         forcex,     forcey,   &
-                        umassdti,   fm,       &
+                        Umassdti,   fm,       &
                         uarear,               &
                         strintx,    strinty,  &
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
-                        Tbu)
+                        TbU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! seabed stress factor (N/m^2)
+         TbU,      & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on u-grid
+         aiX     , & ! ice fraction on X-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey  , & ! work array: combined atm stress and ocn tilt, y
-         umassdti, & ! mass of U-cell/dt (kg/m^2 s)
+         Umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
@@ -790,23 +790,23 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij =1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          uold = uvel(i,j)
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
          tauy = vrel*watery(i,j) ! ocn stress term
 
-         Cb  = Tbu(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
+         Cb  = TbU(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*Umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
 
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
@@ -820,9 +820,9 @@
 
          ! finally, the velocity components
          cc1 = strintx(i,j) + forcex(i,j) + taux &
-             + umassdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
+             + Umassdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
          cc2 = strinty(i,j) + forcey(i,j) + tauy &
-             + umassdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+             + Umassdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
 
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
@@ -839,18 +839,18 @@
 ! Integration of the momentum equation to find velocity (u,v) at E and N locations
 
       subroutine stepuv_CD (nx_block,   ny_block, &
-                          icell,      Cw,       &
-                          indxi,      indxj,    &
-                                      aiu,      &
-                          uocn,       vocn,     &
-                          waterx,     watery,   &
-                          forcex,     forcey,   &
-                          massdti,    fm,       &
-                          strintx,    strinty,  &
-                          taubx,      tauby,    &
-                          uvel_init,  vvel_init,&
-                          uvel,       vvel,     &
-                          Tb)
+                            icell,      Cw,       &
+                            indxi,      indxj,    &
+                                        aiX,      &
+                            uocn,       vocn,     &
+                            waterx,     watery,   &
+                            forcex,     forcey,   &
+                            massdti,    fm,       &
+                            strintx,    strinty,  &
+                            taubx,      tauby,    &
+                            uvel_init,  vvel_init,&
+                            uvel,       vvel,     &
+                            Tb)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -864,7 +864,7 @@
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on X-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
@@ -920,7 +920,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -956,16 +956,16 @@
 ! Integration of the momentum equation to find velocity u at E location on C grid
 
       subroutine stepu_C (nx_block,   ny_block, &
-                           icell,      Cw,       &
-                           indxi,      indxj,    &
-                                       aiu,      &
-                           uocn,       vocn,     &
-                           waterx,     forcex,   &
-                           massdti,    fm,       &
-                           strintx,    taubx,    &
-                           uvel_init,            &
-                           uvel,       vvel,     &
-                           Tb)
+                          icell,      Cw,       &
+                          indxi,      indxj,    &
+                                      aiX,      &
+                          uocn,       vocn,     &
+                          waterx,     forcex,   &
+                          massdti,    fm,       &
+                          strintx,    taubx,    &
+                          uvel_init,            &
+                          uvel,       vvel,     &
+                          Tb)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -978,7 +978,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on X-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          massdti , & ! mass of e-cell/dt (kg/m^2 s)
@@ -1025,7 +1025,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -1055,16 +1055,16 @@
 ! Integration of the momentum equation to find velocity v at N location on C grid
 
       subroutine stepv_C (nx_block,   ny_block, &
-                           icell,      Cw,       &
-                           indxi,      indxj,    &
-                                       aiu,      &
-                           uocn,       vocn,     &
-                           watery,     forcey,   &
-                           massdti,    fm,       &
-                           strinty,    tauby,    &
-                           vvel_init,            &
-                           uvel,       vvel,     &
-                           Tb)
+                          icell,      Cw,       &
+                          indxi,      indxj,    &
+                                      aiX,      &
+                          uocn,       vocn,     &
+                          watery,     forcey,   &
+                          massdti,    fm,       &
+                          strinty,    tauby,    &
+                          vvel_init,            &
+                          uvel,       vvel,     &
+                          Tb)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1077,7 +1077,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiu     , & ! ice fraction on [en]-grid
+         aiX     , & ! ice fraction on X-grid
          watery  , & ! for ocean stress calculation, y (m/s)
          forcey  , & ! work array: combined atm stress and ocn tilt, y
          massdti , & ! mass of n-cell/dt (kg/m^2 s)
@@ -1124,7 +1124,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
@@ -1157,27 +1157,27 @@
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine dyn_finish (nx_block, ny_block, &
-                             icellu,   Cw,       &
-                             indxui,   indxuj,   &
+                             icellU,   Cw,       &
+                             indxUi,   indxUj,   &
                              uvel,     vvel,     &
                              uocn,     vocn,     &
-                             aiu,      fm,       &
+                             aiX,      fm,       &
                              strocnx,  strocny)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
-         aiu     , & ! ice fraction on u-grid
+         aiX     , & ! ice fraction on X-grid
          fm          ! Coriolis param. * mass in U-cell (kg/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1204,20 +1204,20 @@
          file=__FILE__, line=__LINE__)
 
       ! ocean-ice stress for coupling
-      do ij =1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij =1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
           vrel = rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                  (vocn(i,j) - vvel(i,j))**2)  ! m/s
 
 !        strocnx(i,j) = strocnx(i,j) &
-!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiu(i,j)
+!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiX(i,j)
 !        strocny(i,j) = strocny(i,j) &
-!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiu(i,j)
+!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiX(i,j)
 
          ! update strocnx to most recent iterate and complete the term
-         vrel = vrel * aiu(i,j)
+         vrel = vrel * aiX(i,j)
          strocnx(i,j) = vrel*((uocn(i,j) - uvel(i,j))*cosw &
                             - (vocn(i,j) - vvel(i,j))*sinw*sign(c1,fm(i,j)))
          strocny(i,j) = vrel*((vocn(i,j) - vvel(i,j))*cosw &
@@ -1233,7 +1233,7 @@
       end subroutine dyn_finish
 
 !=======================================================================
-! Computes seabed (basal) stress factor Tbu (landfast ice) based on mean
+! Computes seabed (basal) stress factor TbU (landfast ice) based on mean
 ! thickness and bathymetry data. LKD refers to linear keel draft. This
 ! parameterization assumes that the largest keel draft varies linearly
 ! with the mean thickness.
@@ -1248,25 +1248,25 @@
 !
 ! author: JF Lemieux, Philippe Blain (ECCC)
 !
-! note1: Tbu is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
+! note1: TbU is a part of the Cb as defined in Lemieux et al. 2015 and 2016.
 ! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
 
       subroutine seabed_stress_factor_LKD (nx_block, ny_block,         &
-                                           icellu,                     &
-                                           indxui,   indxuj,           &
+                                           icellU,                     &
+                                           indxUi,   indxUj,           &
                                            vice,     aice,             &
-                                           hwater,   Tbu,              &
+                                           hwater,   TbU,              &
                                            grid_location)
 
       use ice_grid, only: grid_neighbor_min, grid_neighbor_max
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellu                 ! no. of cells where ice[uen]mask = 1
+         icellU                 ! no. of cells where ice[uen]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui    , & ! compressed index in i-direction
-         indxuj        ! compressed index in j-direction
+         indxUi    , & ! compressed index in i-direction
+         indxUj        ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice      , & ! concentration of ice at tracer location
@@ -1274,7 +1274,7 @@
          hwater        ! water depth at tracer location (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         Tbu           ! seabed stress factor at 'grid_location' (N/m^2)
+         TbU           ! seabed stress factor at 'grid_location' (N/m^2)
 
       character(len=*), optional, intent(inout) :: &
          grid_location ! grid location (U, E, N), U assumed if not present
@@ -1301,9 +1301,9 @@
          l_grid_location = grid_location
       endif
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          ! convert quantities to grid_location
 
@@ -1319,14 +1319,14 @@
          hcu = au * hwu / k1
 
          ! 2- calculate seabed stress factor
-         Tbu(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+         TbU(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
       enddo                     ! ij
 
       end subroutine seabed_stress_factor_LKD
 
 !=======================================================================
-! Computes seabed (basal) stress factor Tbu (landfast ice) based on
+! Computes seabed (basal) stress factor TbU (landfast ice) based on
 ! probability of contact between the ITD and the seabed. The water depth
 ! could take into account variations of the SSH. In the simplest
 ! formulation, hwater is simply the value of the bathymetry. To calculate
@@ -1340,13 +1340,13 @@
 ! authors: D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
       subroutine seabed_stress_factor_prob (nx_block, ny_block,          &
-                                            icellt, indxti,   indxtj,    &
-                                            icellu, indxui,   indxuj,    &
+                                            icellT, indxTi,   indxTj,    &
+                                            icellU, indxUi,   indxUj,    &
                                             aicen,  vicen,               &
-                                            hwater, Tbu,                 &
+                                            hwater, TbU,                 &
                                             TbE,    TbN,                 &
-                                            icelle, indxei,   indxej,    &
-                                            icelln, indxni,   indxnj)
+                                            icellE, indxEi,   indxEj,    &
+                                            icellN, indxNi,   indxNj)
 ! use modules
 
       use ice_arrays_column, only: hin_max
@@ -1355,13 +1355,13 @@
 
       integer (kind=int_kind), intent(in) :: &
            nx_block, ny_block, &  ! block dimensions
-           icellt, icellu         ! no. of cells where ice[tu]mask = 1
+           icellT, icellU         ! no. of cells where ice[tu]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-           indxti  , & ! compressed index in i-direction
-           indxtj  , & ! compressed index in j-direction
-           indxui  , & ! compressed index in i-direction
-           indxuj      ! compressed index in j-direction
+           indxTi  , & ! compressed index in i-direction
+           indxTj  , & ! compressed index in j-direction
+           indxUi  , & ! compressed index in i-direction
+           indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
            hwater      ! water depth at tracer location (m)
@@ -1371,20 +1371,20 @@
            vicen       ! partial volume for last thickness category in ITD (m)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-           Tbu         ! seabed stress factor at U location (N/m^2)
+           TbU         ! seabed stress factor at U location (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
            TbE,      & ! seabed stress factor at E location (N/m^2)
            TbN         ! seabed stress factor at N location (N/m^2)
 
       integer (kind=int_kind), intent(in), optional :: &
-           icelle, icelln ! no. of cells where ice[en]mask = 1
+           icellE, icellN ! no. of cells where ice[en]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in), optional :: &
-           indxei  , & ! compressed index in i-direction
-           indxej  , & ! compressed index in j-direction
-           indxni  , & ! compressed index in i-direction
-           indxnj      ! compressed index in j-direction
+           indxEi  , & ! compressed index in i-direction
+           indxEj  , & ! compressed index in j-direction
+           indxNi  , & ! compressed index in i-direction
+           indxNj      ! compressed index in j-direction
 
 ! local variables
 
@@ -1444,9 +1444,9 @@
 
       Tbt=c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          atot = sum(aicen(i,j,1:ncat))
 
@@ -1517,27 +1517,27 @@
       enddo
 
       if (grid_ice == "B") then
-         do ij = 1, icellu
-            i = indxui(ij)
-            j = indxuj(ij)
+         do ij = 1, icellU
+            i = indxUi(ij)
+            j = indxUj(ij)
             ! convert quantities to U-location
-            Tbu(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
+            TbU(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
          enddo                     ! ij
       elseif (grid_ice == "C" .or. grid_ice == "CD") then
          if (present(Tbe)    .and. present(TbN)    .and. &
-             present(icelle) .and. present(icelln) .and. &
-             present(indxei) .and. present(indxej) .and. &
-             present(indxni) .and. present(indxnj)) then
+             present(icellE) .and. present(icellN) .and. &
+             present(indxEi) .and. present(indxEj) .and. &
+             present(indxNi) .and. present(indxNj)) then
 
-            do ij = 1, icelle
-               i = indxei(ij)
-               j = indxej(ij)
+            do ij = 1, icellE
+               i = indxEi(ij)
+               j = indxEj(ij)
                ! convert quantities to E-location
                   TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
             enddo
-            do ij = 1, icelln
-               i = indxni(ij)
-               j = indxnj(ij)
+            do ij = 1, icellN
+               i = indxNi(ij)
+               j = indxNj(ij)
                ! convert quantities to N-location
                TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
             enddo
@@ -1621,8 +1621,8 @@
 ! 2019: subroutine created by Philippe Blain, ECCC
 
       subroutine deformations (nx_block,   ny_block,   &
-                               icellt,                 &
-                               indxti,     indxtj,     &
+                               icellT,                 &
+                               indxTi,     indxTj,     &
                                uvel,       vvel,       &
                                dxT,        dyT,        &
                                cxp,        cyp,        &
@@ -1635,11 +1635,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
@@ -1672,9 +1672,9 @@
 
       character(len=*), parameter :: subname = '(deformations)'
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! strain rates
@@ -1719,8 +1719,8 @@
 ! Nov 2021
 
       subroutine deformationsCD_T (nx_block,   ny_block,   &
-                                   icellt,                 &
-                                   indxti,     indxtj,     &
+                                   icellT,                 &
+                                   indxTi,     indxTj,     &
                                    uvelE,      vvelE,      &
                                    uvelN,      vvelN,      &
                                    dxN,        dyE,        &
@@ -1733,11 +1733,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -1778,8 +1778,8 @@
       !-----------------------------------------------------------------
 
       call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellt     ,                &
-                           indxti(:)  , indxtj  (:)  , &
+                           icellT     ,                &
+                           indxTi(:)  , indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
@@ -1787,9 +1787,9 @@
                            divT  (:,:), tensionT(:,:), &
                            shearT(:,:), DeltaT  (:,:)  )
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
@@ -1815,8 +1815,8 @@
 ! Nov 2021
 
     subroutine deformationsC_T (nx_block,   ny_block,   &
-                                icellt,                 &
-                                indxti,     indxtj,     &
+                                icellT,                 &
+                                indxTi,     indxTj,     &
                                 uvelE,      vvelE,      &
                                 uvelN,      vvelN,      &
                                 dxN,        dyE,        &
@@ -1830,11 +1830,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -1878,8 +1878,8 @@
       !-----------------------------------------------------------------
 
       call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellt     ,                &
-                           indxti(:)  , indxtj  (:)  , &
+                           icellT     ,                &
+                           indxTi(:)  , indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
@@ -1889,9 +1889,9 @@
 
       ! DeltaT is calc by strain_rates_T but replaced by calculation below.
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
@@ -2014,22 +2014,22 @@
 ! Nov 2021
 
       subroutine strain_rates_Tdtsd (nx_block,   ny_block, &
-                                 icellt,               &
-                                 indxti,     indxtj,   &
-                                 uvelE,      vvelE,    &
-                                 uvelN,      vvelN,    &
-                                 dxN,        dyE,      &
-                                 dxT,        dyT,      &
-                                 divT,       tensionT, &
-                                 shearT,     DeltaT    )
+                                     icellT,               &
+                                     indxTi,     indxTj,   &
+                                     uvelE,      vvelE,    &
+                                     uvelN,      vvelN,    &
+                                     dxN,        dyE,      &
+                                     dxT,        dyT,      &
+                                     divT,       tensionT, &
+                                     shearT,     DeltaT    )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellt
+         icellT
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2061,8 +2061,8 @@
 
       ! compute divT, tensionT
       call strain_rates_Tdt (nx_block,   ny_block, &
-                             icellt,               &
-                             indxti,     indxtj,   &
+                             icellT,               &
+                             indxTi,     indxTj,   &
                              uvelE,      vvelE,    &
                              uvelN,      vvelN,    &
                              dxN,        dyE,      &
@@ -2072,9 +2072,9 @@
       shearT  (:,:) = c0
       deltaT  (:,:) = c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          ! shearing strain rate  =  2*e_12
          shearT(i,j) = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
@@ -2094,21 +2094,21 @@
 ! Nov 2021
 
       subroutine strain_rates_Tdt (nx_block,   ny_block, &
-                                 icellt,               &
-                                 indxti,     indxtj,   &
-                                 uvelE,      vvelE,    &
-                                 uvelN,      vvelN,    &
-                                 dxN,        dyE,      &
-                                 dxT,        dyT,      &
-                                 divT,       tensionT  )
+                                   icellT,               &
+                                   indxTi,     indxTj,   &
+                                   uvelE,      vvelE,    &
+                                   uvelN,      vvelN,    &
+                                   dxN,        dyE,      &
+                                   dxT,        dyT,      &
+                                   divT,       tensionT  )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellt
+         icellT
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2139,9 +2139,9 @@
       divT    (:,:) = c0
       tensionT(:,:) = c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          ! divergence  =  e_11 + e_22
          divT    (i,j)= dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
@@ -2162,8 +2162,8 @@
 ! Nov 2021
 
       subroutine strain_rates_U (nx_block,   ny_block,  &
-                                 icellu,                &
-                                 indxui,     indxuj,    &
+                                 icellU,                &
+                                 indxUi,     indxUj,    &
                                  uvelE,      vvelE,     &
                                  uvelN,      vvelN,     &
                                  uvelU,      vvelU,     &
@@ -2177,11 +2177,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu
+         icellU
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui   , & ! compressed index in i-direction
-         indxuj       ! compressed index in j-direction
+         indxUi   , & ! compressed index in i-direction
+         indxUj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2227,9 +2227,9 @@
       shearU  (:,:) = c0
       deltaU  (:,:) = c0
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          uNip1j = uvelN(i+1,j) * npm(i+1,j) &
                 +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)

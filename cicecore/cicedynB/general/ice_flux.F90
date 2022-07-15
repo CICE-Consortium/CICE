@@ -65,16 +65,16 @@
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
-         taubx   , & ! seabed stress (x) (N/m^2)
-         tauby   , & ! seabed stress (y) (N/m^2)
-         strairx , & ! stress on ice by air, x-direction at U points
-         strairy , & ! stress on ice by air, y-direction at U points
-         strocnx , & ! ice-ocean stress, x-direction at U points, computed in dyn_finish
-         strocny , & ! ice-ocean stress, y-direction at U points, computed in dyn_finish
-         strtltx , & ! stress due to sea surface slope, x-direction
-         strtlty , & ! stress due to sea surface slope, y-direction
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
+         taubxU  , & ! seabed stress (x) (N/m^2)
+         taubyU  , & ! seabed stress (y) (N/m^2)
+         strairxU, & ! stress on ice by air, x-direction at U points
+         strairyU, & ! stress on ice by air, y-direction at U points
+         strocnxU, & ! ice-ocean stress, x-direction at U points, computed in dyn_finish
+         strocnyU, & ! ice-ocean stress, y-direction at U points, computed in dyn_finish
+         strtltxU, & ! stress due to sea surface slope, x-direction
+         strtltyU, & ! stress due to sea surface slope, y-direction
+         strintxU, & ! divergence of internal ice stress, x (N/m^2)
+         strintyU, & ! divergence of internal ice stress, y (N/m^2)
          taubxN  , & ! seabed stress (x) at N points (N/m^2)
          taubyN  , & ! seabed stress (y) at N points (N/m^2)
          strairxN, & ! stress on ice by air, x-direction at N points
@@ -129,23 +129,11 @@
          stresspT, stressmT, stress12T, & ! sigma11+sigma22, sigma11-sigma22, sigma12
          stresspU, stressmU, stress12U    ! "
 
-      logical (kind=log_kind), &
-         dimension (:,:,:), allocatable, public :: &
-         iceumask   ! ice extent mask (U-cell)
-
-      logical (kind=log_kind), &
-         dimension (:,:,:), allocatable, public :: &
-         icenmask   ! ice extent mask (N-cell)
-
-      logical (kind=log_kind), &
-         dimension (:,:,:), allocatable, public :: &
-         iceemask   ! ice extent mask (E-cell)
-
        ! internal
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu      , & ! factor for seabed stress (N/m^2)
+         fmU      , & ! Coriolis param. * mass in U-cell (kg/s)
+         TbU      , & ! factor for seabed stress (N/m^2)
          fmE      , & ! Coriolis param. * mass in E-cell (kg/s)
          TbE      , & ! factor for seabed stress (N/m^2)
          fmN      , & ! Coriolis param. * mass in N-cell (kg/s)
@@ -406,16 +394,16 @@
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
-         taubx      (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
-         tauby      (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
-         strairx    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
-         strairy    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
-         strocnx    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
-         strocny    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
-         strtltx    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction
-         strtlty    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction
-         strintx    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
-         strinty    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
+         taubxU     (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
+         taubyU     (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
+         strairxU   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
+         strairyU   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
+         strocnxU   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
+         strocnyU   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
+         strtltxU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction
+         strtltyU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction
+         strintxU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
+         strintyU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
          daidtd     (nx_block,ny_block,max_blocks), & ! ice area tendency due to transport   (1/s)
          dvidtd     (nx_block,ny_block,max_blocks), & ! ice volume tendency due to transport (m/s)
          dagedtd    (nx_block,ny_block,max_blocks), & ! ice age tendency due to transport (s/s)
@@ -435,9 +423,8 @@
          stress12_2 (nx_block,ny_block,max_blocks), & ! sigma12
          stress12_3 (nx_block,ny_block,max_blocks), & ! sigma12
          stress12_4 (nx_block,ny_block,max_blocks), & ! sigma12
-         iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
-         fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         fmU        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
+         TbU        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
          zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
@@ -592,7 +579,6 @@
          strtltyN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
          strintxN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
          strintyN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
-         icenmask   (nx_block,ny_block,max_blocks), & ! ice extent mask (N-cell)
          fmN        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in N-cell (kg/s)
          TbN        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          taubxE     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
@@ -605,7 +591,6 @@
          strtltyE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
          strintxE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
          strintyE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
-         iceemask   (nx_block,ny_block,max_blocks), & ! ice extent mask (E-cell)
          fmE        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
          TbE        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          stresspT   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
@@ -1041,17 +1026,17 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
-      taubx   (:,:,:) = c0
-      tauby   (:,:,:) = c0
+      taubxU  (:,:,:) = c0
+      taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
-      strocnx (:,:,:) = c0
-      strocny (:,:,:) = c0
-      strairx (:,:,:) = c0
-      strairy (:,:,:) = c0
-      strtltx (:,:,:) = c0
-      strtlty (:,:,:) = c0
-      strintx (:,:,:) = c0
-      strinty (:,:,:) = c0
+      strocnxU(:,:,:) = c0
+      strocnyU(:,:,:) = c0
+      strairxU(:,:,:) = c0
+      strairyU(:,:,:) = c0
+      strtltxU(:,:,:) = c0
+      strtltyU(:,:,:) = c0
+      strintxU(:,:,:) = c0
+      strintyU(:,:,:) = c0
       dardg1dt(:,:,:) = c0
       dardg2dt(:,:,:) = c0
       dvirdgdt(:,:,:) = c0
@@ -1060,7 +1045,7 @@
       dvidtd  (:,:,:) = vice(:,:,:) ! temporary initial volume
       if (tr_iage) &
          dagedtd (:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
-      fm      (:,:,:) = c0
+      fmU     (:,:,:) = c0
       ardgn   (:,:,:,:) = c0
       vrdgn   (:,:,:,:) = c0
       krdgn   (:,:,:,:) = c1

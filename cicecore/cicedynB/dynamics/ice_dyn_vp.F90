@@ -50,7 +50,7 @@
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_fields,  unstack_fields
       use ice_fileunits, only: nu_diag
-      use ice_flux, only: fm
+      use ice_flux, only: fmU
       use ice_global_reductions, only: global_sum, global_allreduce_sum
       use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
       use ice_exit, only: abort_ice
@@ -167,15 +167,15 @@
       use ice_domain_size, only: max_blocks, ncat
       use ice_dyn_shared, only: deformations
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
-          strairx, strairy, uocn, vocn, ss_tltx, ss_tlty, iceumask, fm, &
-          strtltx, strtlty, strocnx, strocny, strintx, strinty, taubx, tauby, &
+          strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
+          strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
           strocnxT, strocnyT, strax, stray, &
-          Tbu, hwater, &
+          TbU, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
-          tarear, grid_type, grid_average_X2Y, &
+          tarear, grid_type, grid_average_X2Y, iceumask, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -199,16 +199,16 @@
          ss_tltxU , & ! sea surface slope, x-direction (m/m)
          ss_tltyU , & ! sea surface slope, y-direction (m/m)
          tmass    , & ! total mass of ice and snow (kg/m^2)
-         waterx   , & ! for ocean stress calculation, x (m/s)
-         watery   , & ! for ocean stress calculation, y (m/s)
-         forcex   , & ! work array: combined atm stress and ocn tilt, x
-         forcey   , & ! work array: combined atm stress and ocn tilt, y
+         waterxU  , & ! for ocean stress calculation, x (m/s)
+         wateryU  , & ! for ocean stress calculation, y (m/s)
+         forcexU  , & ! work array: combined atm stress and ocn tilt, x
+         forceyU  , & ! work array: combined atm stress and ocn tilt, y
          bxfix    , & ! part of bx that is constant during Picard
          byfix    , & ! part of by that is constant during Picard
          Cb       , & ! seabed stress coefficient
          fpresx   , & ! fixed point residual vector, x components: fx = uvel - uprev_k
          fpresy   , & ! fixed point residual vector, y components: fy = vvel - vprev_k
-         aiu      , & ! ice fraction on u-grid
+         aiU      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
@@ -303,7 +303,7 @@
       !-----------------------------------------------------------------
 
       call grid_average_X2Y('F',tmass    , 'T', umass, 'U')
-      call grid_average_X2Y('F',aice_init, 'T', aiu  , 'U')
+      call grid_average_X2Y('F',aice_init, 'T', aiU  , 'U')
       call grid_average_X2Y('S',uocn   , grid_ocn_dynu, uocnU   , 'U')
       call grid_average_X2Y('S',vocn   , grid_ocn_dynv, vocnU   , 'U')
       call grid_average_X2Y('S',ss_tltx, grid_ocn_dynu, ss_tltxU, 'U')
@@ -319,15 +319,15 @@
          file=__FILE__, line=__LINE__)
 
       if (.not. calc_strair) then
-         call grid_average_X2Y('F', strax, grid_atm_dynu, strairx, 'U')
-         call grid_average_X2Y('F', stray, grid_atm_dynv, strairy, 'U')
+         call grid_average_X2Y('F', strax, grid_atm_dynu, strairxU, 'U')
+         call grid_average_X2Y('F', stray, grid_atm_dynv, strairyU, 'U')
       else
          call ice_HaloUpdate (strairxT,         halo_info, &
                               field_loc_center, field_type_vector)
          call ice_HaloUpdate (strairyT,         halo_info, &
                               field_loc_center, field_type_vector)
-         call grid_average_X2Y('F',strairxT,'T',strairx,'U')
-         call grid_average_X2Y('F',strairyT,'T',strairy,'U')
+         call grid_average_X2Y('F',strairxT,'T',strairxU,'U')
+         call grid_average_X2Y('F',strairyT,'T',strairyU,'U')
       endif
 
 ! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
@@ -350,20 +350,20 @@
                          icellt(iblk),         icellu(iblk),         &
                          indxti      (:,iblk), indxtj      (:,iblk), &
                          indxui      (:,iblk), indxuj      (:,iblk), &
-                         aiu       (:,:,iblk), umass     (:,:,iblk), &
+                         aiU       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
                          umask     (:,:,iblk),                       &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
-                         strairx   (:,:,iblk), strairy   (:,:,iblk), &
+                         strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
                          icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
-                         fm        (:,:,iblk), dt,                   &
-                         strtltx   (:,:,iblk), strtlty   (:,:,iblk), &
-                         strocnx   (:,:,iblk), strocny   (:,:,iblk), &
-                         strintx   (:,:,iblk), strinty   (:,:,iblk), &
-                         taubx     (:,:,iblk), tauby     (:,:,iblk), &
-                         waterx    (:,:,iblk), watery    (:,:,iblk), &
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), &
+                         fmU       (:,:,iblk), dt,                   &
+                         strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
+                         strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
+                         strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
+                         taubxU    (:,:,iblk), taubyU    (:,:,iblk), &
+                         waterxU   (:,:,iblk), wateryU   (:,:,iblk), &
+                         forcexU   (:,:,iblk), forceyU   (:,:,iblk), &
                          stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
                          stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
                          stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
@@ -372,13 +372,13 @@
                          stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                         Tbu       (:,:,iblk))
+                         TbU       (:,:,iblk))
 
          call calc_bfix (nx_block            , ny_block            , &
                          icellu(iblk)        ,                       &
                          indxui      (:,iblk), indxuj      (:,iblk), &
                          umassdti  (:,:,iblk),                       &
-                         forcex    (:,:,iblk), forcey    (:,:,iblk), &
+                         forcexU   (:,:,iblk), forceyU   (:,:,iblk), &
                          uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                          bxfix     (:,:,iblk), byfix     (:,:,iblk))
 
@@ -427,7 +427,7 @@
       endif
 
       !-----------------------------------------------------------------
-      ! seabed stress factor Tbu (Tbu is part of Cb coefficient)
+      ! seabed stress factor TbU (TbU is part of Cb coefficient)
       !-----------------------------------------------------------------
       if (seabed_stress) then
          if ( seabed_stress_method == 'LKD' ) then
@@ -437,7 +437,7 @@
                                               icellu  (iblk),                   &
                                               indxui(:,iblk),   indxuj(:,iblk), &
                                               vice(:,:,iblk),   aice(:,:,iblk), &
-                                              hwater(:,:,iblk), Tbu(:,:,iblk))
+                                              hwater(:,:,iblk), TbU(:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -449,7 +449,7 @@
                                                icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
                                                icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk),         &
-                                               hwater(:,:,iblk), Tbu(:,:,iblk))
+                                               hwater(:,:,iblk), TbU(:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -472,17 +472,17 @@
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
       !-----------------------------------------------------------------
-      call anderson_solver (icellt  , icellu, &
-                            indxti  , indxtj, &
-                            indxui  , indxuj, &
-                            aiu     , ntot  , &
-                            uocnU   , vocnU , &
-                            waterx  , watery, &
-                            bxfix   , byfix , &
-                            umassdti, sol   , &
-                            fpresx  , fpresy, &
-                            zetax2  , etax2 , &
-                            rep_prs ,         &
+      call anderson_solver (icellt  , icellu , &
+                            indxti  , indxtj , &
+                            indxui  , indxuj , &
+                            aiU     , ntot   , &
+                            uocnU   , vocnU  , &
+                            waterxU , wateryU, &
+                            bxfix   , byfix  , &
+                            umassdti, sol    , &
+                            fpresx  , fpresy , &
+                            zetax2  , etax2  , &
+                            rep_prs ,          &
                             Cb, halo_info_mask)
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
@@ -544,7 +544,7 @@
                                      indxui      (:,iblk), indxuj      (:,iblk), &
                                      uvel      (:,:,iblk), vvel      (:,:,iblk), &
                                      Cb        (:,:,iblk),                       &
-                                     taubx     (:,:,iblk), tauby     (:,:,iblk))
+                                     taubxU    (:,:,iblk), taubyU    (:,:,iblk))
          enddo
          !$OMP END PARALLEL DO
       endif
@@ -630,17 +630,17 @@
                indxui    (:,iblk), indxuj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
-               aiu     (:,:,iblk), fm      (:,:,iblk), &
-!               strintx (:,:,iblk), strinty (:,:,iblk), &
-!               strairx (:,:,iblk), strairy (:,:,iblk), &
-               strocnx (:,:,iblk), strocny (:,:,iblk))
+               aiU     (:,:,iblk), fmU     (:,:,iblk), &
+!               strintxU(:,:,iblk), strintyU(:,:,iblk), &
+!               strairxU(:,:,iblk), strairyU(:,:,iblk), &
+               strocnxU(:,:,iblk), strocnyU(:,:,iblk))
 
       enddo
       !$OMP END PARALLEL DO
 
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiu to T
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
       ! TODO: This should be done elsewhere as part of generalization?
-      ! conservation requires aiu be divided before averaging
+      ! conservation requires aiU be divided before averaging
       work1 = c0
       work2 = c0
       !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
@@ -648,8 +648,8 @@
       do ij = 1, icellu(iblk)
          i = indxui(ij,iblk)
          j = indxuj(ij,iblk)
-         work1(i,j,iblk) = strocnx(i,j,iblk)/aiu(i,j,iblk)
-         work2(i,j,iblk) = strocny(i,j,iblk)/aiu(i,j,iblk)
+         work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+         work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
       enddo
       enddo
       call ice_HaloUpdate (work1,              halo_info, &
@@ -683,17 +683,17 @@
 ! H. F. Walker, “Anderson Acceleration: Algorithms and Implementations”
 !   [Online]. Available: https://users.wpi.edu/~walker/Papers/anderson_accn_algs_imps.pdf
 
-      subroutine anderson_solver (icellt  , icellu, &
-                                  indxti  , indxtj, &
-                                  indxui  , indxuj, &
-                                  aiu     , ntot  , &
-                                  uocn    , vocn  , &
-                                  waterx  , watery, &
-                                  bxfix   , byfix , &
-                                  umassdti, sol   , &
-                                  fpresx  , fpresy, &
-                                  zetax2  , etax2 , &
-                                  rep_prs ,         &
+      subroutine anderson_solver (icellt  , icellu , &
+                                  indxti  , indxtj , &
+                                  indxui  , indxuj , &
+                                  aiU     , ntot   , &
+                                  uocn    , vocn   , &
+                                  waterxU , wateryU, &
+                                  bxfix   , byfix  , &
+                                  umassdti, sol    , &
+                                  fpresx  , fpresy , &
+                                  zetax2  , etax2  , &
+                                  rep_prs ,          &
                                   Cb, halo_info_mask)
 
       use ice_arrays_column, only: Cdn_ocn
@@ -702,7 +702,7 @@
       use ice_constants, only: c1
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
-      use ice_flux, only:   fm, Tbu
+      use ice_flux, only:   fmU, TbU
       use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
            uarear
       use ice_dyn_shared, only: DminTarea
@@ -723,11 +723,11 @@
          indxuj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
-         aiu      , & ! ice fraction on u-grid
+         aiU      , & ! ice fraction on u-grid
          uocn     , & ! i ocean current (m/s)
          vocn     , & ! j ocean current (m/s)
-         waterx   , & ! for ocean stress calculation, x (m/s)
-         watery   , & ! for ocean stress calculation, y (m/s)
+         waterxU  , & ! for ocean stress calculation, x (m/s)
+         wateryU  , & ! for ocean stress calculation, y (m/s)
          bxfix    , & ! part of bx that is constant during Picard
          byfix    , & ! part of by that is constant during Picard
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
@@ -862,7 +862,7 @@
             call calc_vrel_Cb (nx_block           , ny_block          , &
                                icellu       (iblk), Cdn_ocn (:,:,iblk), &
                                indxui     (:,iblk), indxuj    (:,iblk), &
-                               aiu      (:,:,iblk), Tbu     (:,:,iblk), &
+                               aiU      (:,:,iblk), TbU     (:,:,iblk), &
                                uocn     (:,:,iblk), vocn    (:,:,iblk), &
                                ulin     (:,:,iblk), vlin    (:,:,iblk), &
                                vrel     (:,:,iblk), Cb      (:,:,iblk))
@@ -872,7 +872,7 @@
                             icellu       (iblk),                     &
                             indxui     (:,iblk), indxuj    (:,iblk), &
                             stress_Pr   (:,:,:), uarear  (:,:,iblk), &
-                            waterx   (:,:,iblk), watery  (:,:,iblk), &
+                            waterxU  (:,:,iblk), wateryU (:,:,iblk), &
                             bxfix    (:,:,iblk), byfix   (:,:,iblk), &
                             bx       (:,:,iblk), by      (:,:,iblk), &
                             vrel     (:,:,iblk))
@@ -889,7 +889,7 @@
                          uprev_k  (:,:,iblk)  , vprev_k  (:,:,iblk), &
                          vrel     (:,:,iblk)  , Cb       (:,:,iblk), &
                          zetax2   (:,:,iblk,:), etax2  (:,:,iblk,:), &
-                         umassdti (:,:,iblk)  , fm       (:,:,iblk), &
+                         umassdti (:,:,iblk)  , fmU      (:,:,iblk), &
                          uarear   (:,:,iblk)  ,                      &
                          Au       (:,:,iblk)  , Av       (:,:,iblk))
             call residual_vec (nx_block           , ny_block          , &
@@ -1457,7 +1457,7 @@
       subroutine calc_vrel_Cb (nx_block, ny_block, &
                                icellu  , Cw      , &
                                indxui  , indxuj  , &
-                               aiu     , Tbu     , &
+                               aiU     , TbU     , &
                                uocn    , vocn    , &
                                uvel    , vvel    , &
                                vrel    , Cb)
@@ -1473,8 +1473,8 @@
          indxuj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tbu,      & ! seabed stress factor (N/m^2)
-         aiu     , & ! ice fraction on u-grid
+         TbU,      & ! seabed stress factor (N/m^2)
+         aiU     , & ! ice fraction on u-grid
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          Cw          ! ocean-ice neutral drag coefficient
@@ -1507,10 +1507,10 @@
          j = indxuj(ij)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel(i,j) = aiu(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
+         vrel(i,j) = aiU(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                                                 (vocn(i,j) - vvel(i,j))**2)  ! m/s
 
-         Cb(i,j)  = Tbu(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for seabed stress
+         Cb(i,j)  = TbU(i,j) / (sqrt(uvel(i,j)**2 + vvel(i,j)**2) + u0) ! for seabed stress
       enddo                     ! ij
 
       end subroutine calc_vrel_Cb
@@ -1524,7 +1524,7 @@
                                      indxui  , indxuj  , &
                                      uvel    , vvel    , &
                                      Cb      ,           &
-                                     taubx   , tauby)
+                                     taubxU  , taubyU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1540,8 +1540,8 @@
          Cb          ! seabed stress coefficient
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         taubxU  , & ! seabed stress, x-direction (N/m^2)
+         taubyU      ! seabed stress, y-direction (N/m^2)
 
       ! local variables
 
@@ -1554,8 +1554,8 @@
          i = indxui(ij)
          j = indxuj(ij)
 
-         taubx(i,j) = -uvel(i,j)*Cb(i,j)
-         tauby(i,j) = -vvel(i,j)*Cb(i,j)
+         taubxU(i,j) = -uvel(i,j)*Cb(i,j)
+         taubyU(i,j) = -vvel(i,j)*Cb(i,j)
       enddo                     ! ij
 
       end subroutine calc_seabed_stress
@@ -1577,7 +1577,7 @@
                          uvel    , vvel    , &
                          vrel    , Cb      , &
                          zetax2  , etax2   , &
-                         umassdti, fm      , &
+                         umassdti, fmU     , &
                          uarear  ,           &
                          Au      , Av)
 
@@ -1610,7 +1610,7 @@
          vrel    , & ! coefficient for tauw
          Cb      , & ! coefficient for seabed stress
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
-         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
+         fmU     , & ! Coriolis param. * mass in U-cell (kg/s)
          uarear      ! 1/uarea
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,4), intent(in) :: &
@@ -1816,7 +1816,7 @@
 
          ccaimp = umassdti(i,j) + vrel(i,j) * cosw + Cb(i,j) ! kg/m^2 s
 
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
+         ccb = fmU(i,j) + sign(c1,fmU(i,j)) * vrel(i,j) * sinw ! kg/m^2 s
 
          ! divergence of the internal stress tensor
          strintx = uarear(i,j)* &
@@ -1839,7 +1839,7 @@
                             icellu   ,            &
                             indxui   , indxuj   , &
                             umassdti ,            &
-                            forcex   , forcey   , &
+                            forcexU  , forceyU  , &
                             uvel_init, vvel_init, &
                             bxfix    , byfix)
 
@@ -1855,8 +1855,8 @@
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
          vvel_init,& ! y-component of velocity (m/s), beginning of time step
          umassdti, & ! mass of U-cell/dt (kg/m^2 s)
-         forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey      ! work array: combined atm stress and ocn tilt, y
+         forcexU , & ! work array: combined atm stress and ocn tilt, x
+         forceyU     ! work array: combined atm stress and ocn tilt, y
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          bxfix   , & ! bx = taux + bxfix
@@ -1873,8 +1873,8 @@
          i = indxui(ij)
          j = indxuj(ij)
 
-         bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcex(i,j)
-         byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forcey(i,j)
+         bxfix(i,j) = umassdti(i,j)*uvel_init(i,j) + forcexU(i,j)
+         byfix(i,j) = umassdti(i,j)*vvel_init(i,j) + forceyU(i,j)
       enddo
 
       end subroutine calc_bfix
@@ -1889,7 +1889,7 @@
                             icellu  ,           &
                             indxui  , indxuj  , &
                             stPr    , uarear  , &
-                            waterx  , watery  , &
+                            waterxU , wateryU , &
                             bxfix   , byfix   , &
                             bx      , by      , &
                             vrel)
@@ -1904,8 +1904,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uarear  , & ! 1/uarea
-         waterx  , & ! for ocean stress calculation, x (m/s)
-         watery  , & ! for ocean stress calculation, y (m/s)
+         waterxU , & ! for ocean stress calculation, x (m/s)
+         wateryU , & ! for ocean stress calculation, y (m/s)
          bxfix   , & ! bx = taux + bxfix
          byfix   , & ! by = tauy + byfix
          vrel        ! relative ice-ocean velocity
@@ -1943,8 +1943,8 @@
          j = indxuj(ij)
 
          ! ice/ocean stress
-         taux = vrel(i,j)*waterx(i,j) ! NOTE this is not the entire
-         tauy = vrel(i,j)*watery(i,j) ! ocn stress term
+         taux = vrel(i,j)*waterxU(i,j) ! NOTE this is not the entire
+         tauy = vrel(i,j)*wateryU(i,j) ! ocn stress term
 
          ! divergence of the internal stress tensor (only Pr part, i.e. dPr/dx, dPr/dy)
          strintx = uarear(i,j)* &
@@ -2831,7 +2831,7 @@
                       solx       (:,:,iblk)  , soly       (:,:,iblk), &
                       vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
                       zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
-                      umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                      umassdti   (:,:,iblk)  , fmU        (:,:,iblk), &
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
          call residual_vec (nx_block             , ny_block             , &
@@ -2938,7 +2938,7 @@
                             workspace_x(:,:,iblk)  , workspace_y(:,:,iblk), &
                             vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
                             zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
-                            umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                            umassdti   (:,:,iblk)  , fmU        (:,:,iblk), &
                             uarear     (:,:,iblk)  ,                        &
                             arnoldi_basis_x(:,:,iblk,nextit),               &
                             arnoldi_basis_y(:,:,iblk,nextit))
@@ -3224,7 +3224,7 @@
                       solx       (:,:,iblk)  , soly       (:,:,iblk), &
                       vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
                       zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
-                      umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                      umassdti   (:,:,iblk)  , fmU        (:,:,iblk), &
                       uarear     (:,:,iblk)  ,                        &
                       workspace_x(:,:,iblk)  , workspace_y(:,:,iblk))
          call residual_vec (nx_block             , ny_block             , &
@@ -3320,7 +3320,7 @@
                             workspace_x(:,:,iblk)  , workspace_y(:,:,iblk), &
                             vrel       (:,:,iblk)  , Cb         (:,:,iblk), &
                             zetax2     (:,:,iblk,:), etax2    (:,:,iblk,:), &
-                            umassdti   (:,:,iblk)  , fm         (:,:,iblk), &
+                            umassdti   (:,:,iblk)  , fmU        (:,:,iblk), &
                             uarear     (:,:,iblk)  ,                        &
                             arnoldi_basis_x(:,:,iblk,nextit),               &
                             arnoldi_basis_y(:,:,iblk,nextit))
