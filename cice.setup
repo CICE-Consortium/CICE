@@ -489,6 +489,7 @@ else
 #!/bin/csh -f
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
+rm -f suite.jobs
 
 set dobuild  = true
 set doreuse  = true
