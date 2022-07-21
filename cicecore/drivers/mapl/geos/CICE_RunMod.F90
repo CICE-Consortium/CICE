@@ -726,7 +726,7 @@
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
-      character(len=*), parameter :: subname = '(ice_step)'
+      character(len=*), parameter :: subname = '(ice_fast_physics)'
 
       character (len=char_len) :: plabeld
 

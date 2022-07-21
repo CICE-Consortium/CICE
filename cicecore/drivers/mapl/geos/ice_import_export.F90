@@ -494,6 +494,143 @@ contains
 
   end subroutine ice_import_thermo1
 
+  subroutine ice_export_thermo1( exportState, rc )
+
+    ! input/output variables
+    type(ESMF_State), intent(inout) :: exportState
+    integer         , intent(out)   :: rc
+
+    ! local variables
+    type(block)             :: this_block                           ! block information for current block
+    integer                 :: i, j, iblk, n                        ! incides
+    integer                 :: n2                                   ! thickness category index
+    integer                 :: ilo, ihi, jlo, jhi                   ! beginning and end of physical domain
+    real    (kind=dbl_kind) :: workx, worky                         ! tmps for converting grid
+    integer (kind=int_kind) :: icells                               ! number of ocean/ice cells
+    logical                 :: flag
+    integer (kind=int_kind) :: indxi (nx_block*ny_block)            ! compressed indices in i
+    integer (kind=int_kind) :: indxj (nx_block*ny_block)            ! compressed indices in i
+    real    (kind=dbl_kind) :: Tsrf  (nx_block,ny_block,max_blocks) ! surface temperature
+    real    (kind=dbl_kind) :: tauxa (nx_block,ny_block,max_blocks) ! atmo/ice stress
+    real    (kind=dbl_kind) :: tauya (nx_block,ny_block,max_blocks) ! atm/ice stress
+    real    (kind=dbl_kind) :: tauxo (nx_block,ny_block,max_blocks) ! ice/ocean stress
+    real    (kind=dbl_kind) :: tauyo (nx_block,ny_block,max_blocks) ! ice/ocean stress
+    real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
+    real    (kind=dbl_kind) :: Tffresh
+    real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
+    real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
+    character(len=*),parameter :: subname = 'ice_export'
+    !-----------------------------------------------------
+
+    rc = ESMF_SUCCESS
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    call icepack_query_parameters(Tffresh_out=Tffresh)
+    !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+    !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+    !       Tffresh_out=Tffresh)
+    !    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+    !       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+    !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=u_FILE_u, line=__LINE__)
+
+    !calculate ice thickness from aice and vice. Also
+    !create Tsrf from the first tracer (trcr) in ice_state.F
+
+    ailohi(:,:,:) = c0
+    Tsrf(:,:,:)  = c0
+    tauxa(:,:,:) = c0
+    tauya(:,:,:) = c0
+    tauxo(:,:,:) = c0
+    tauyo(:,:,:) = c0
+
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky, this_block, ilo, ihi, jlo, jhi)
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo,jhi
+          do i = ilo,ihi
+             ! ice fraction
+             ailohi(i,j,iblk) = min(aice(i,j,iblk), c1)
+
+             ! surface temperature
+             Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
+
+             ! wind stress  (on POP T-grid:  convert to lat-lon)
+             workx = strairxT(i,j,iblk)                             ! N/m^2
+             worky = strairyT(i,j,iblk)                             ! N/m^2
+             tauxa(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
+             tauya(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
+
+             ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
+             workx = -strocnxT(i,j,iblk)                            ! N/m^2
+             worky = -strocnyT(i,j,iblk)                            ! N/m^2
+             tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
+             tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
+          enddo
+       enddo
+    enddo
+    !$OMP END PARALLEL DO
+
+    flag=.false.
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo,jhi
+          do i = ilo,ihi
+             if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+                flag = .true.
+             endif
+          end do
+       end do
+    end do
+    if (flag) then
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo
+          ihi = this_block%ihi
+          jlo = this_block%jlo
+          jhi = this_block%jhi
+          do j = jlo,jhi
+             do i = ilo,ihi
+                if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+                   write(nu_diag,*) &
+                        ' (ice) send: ERROR ailohi < 0.0 ',i,j,ailohi(i,j,iblk)
+                   call flush_fileunit(nu_diag)
+                endif
+             end do
+          end do
+       end do
+    endif
+
+    !---------------------------------
+    ! Create the export state
+    !---------------------------------
+
+    ! Zero out fields with tmask for proper coupler accumulation in ice free areas
+    call state_reset(exportState, c0, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    ! Create a temporary field
+    allocate(tempfld(nx_block,ny_block,nblocks))
+
+    ! Fractions and mask
+    call state_setexport(exportState, 'ice_fraction', input=ailohi, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine ice_export_thermo1
+
   !==============================================================================
   subroutine ice_import( importState, rc )
 
@@ -1533,7 +1670,6 @@ contains
     character(len=*)              , intent(in)    :: fldname
     real (kind=dbl_kind)          , intent(inout) :: output(:,:,:,:,:)
     integer                       , intent(in)    :: index
-    integer, optional             , intent(in)    :: ungridded_index
     integer                       , intent(out)   :: rc
 
     ! local variables
@@ -1625,7 +1761,7 @@ contains
   end subroutine state_getimport_3d
 
   !===============================================================================
-  subroutine state_setexport_4d(state, fldname, input, index, lmask, ifrac, ungridded_index, areacor, rc)
+  subroutine state_setexport_4d(state, fldname, input, rc)
 
     ! ----------------------------------------------
     ! Map 4d input array to export state field
@@ -1635,20 +1771,13 @@ contains
     type(ESMF_State)    ,           intent(inout) :: state
     character(len=*)    ,           intent(in)    :: fldname
     real(kind=dbl_kind) ,           intent(in)    :: input(:,:,:,:)
-    integer             ,           intent(in)    :: index
-    logical             , optional, intent(in)    :: lmask(:,:,:)
-    real(kind=dbl_kind) , optional, intent(in)    :: ifrac(:,:,:)
-    integer             , optional, intent(in)    :: ungridded_index
-    real(kind=dbl_kind) , optional, intent(in)    :: areacor(:)
     integer             ,           intent(out)   :: rc
 
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
     integer                      :: i, j, iblk, n, i1, j1 ! indices
-    real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
-    real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
-    integer                      :: ice_num
+    real(kind=dbl_kind), pointer :: dataPtr3d(:,:,:)        ! mesh
     character(len=*), parameter  :: subname='(ice_import_export:state_setexport_4d)'
     ! ----------------------------------------------
 
@@ -1658,80 +1787,27 @@ contains
     if (.not. State_FldChk(state, trim(fldname))) return
 
     ! get field pointer
-    if (present(ungridded_index)) then
-       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       if (ungridded_index == 1) then
-          dataptr2d(:,:) = c0
-       end if
-       n = 0
+    call state_getfldptr(state, trim(fldname), dataPtr3d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    do k = 1, ncat 
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
           ilo = this_block%ilo; ihi = this_block%ihi
           jlo = this_block%jlo; jhi = this_block%jhi
-          if (present(lmask) .and. present(ifrac)) then
-             do j = jlo, jhi
-                do i = ilo, ihi
-                   n = n+1
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
-                   else
-                      dataPtr2d(ungridded_index,n) = c0
-                   end if
-                end do
-             end do
-          else
-             do j = jlo, jhi
-                do i = ilo, ihi
-                   n = n+1
-                   dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
-                end do
-             end do
-          end if
-       end do
-       ice_num = n
-       if (present(areacor)) then
-          do n = 1,ice_num
-             dataPtr2d(ungridded_index,n) = dataPtr2d(ungridded_index,n) * areacor(n)
+          do j = jlo, jhi
+            j1 = j - nghost
+            do i = ilo, ihi
+                i1 = i - nghost
+                dataPtr3d(i1,j1,k) = input(i,j,k,iblk)
+            end do
           end do
-       end if
-    else
-       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       dataptr1d(:) = c0
-       n = 0
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo; ihi = this_block%ihi
-          jlo = this_block%jlo; jhi = this_block%jhi
-          if (present(lmask) .and. present(ifrac)) then
-             do j = jlo, jhi
-                do i = ilo, ihi
-                   n = n+1
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                      dataPtr1d(n) = input(i,j,index,iblk)
-                   end if
-                end do
-             end do
-          else
-             do i = ilo, ihi
-                n = n+1
-                dataPtr1d(n) = input(i,j,index,iblk)
-             end do
-          end if
-       end do
-       ice_num = n
-       if (present(areacor)) then
-          do n = 1,ice_num
-             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-          end do
-       end if
-    end if
+      end do
+    end do
 
   end subroutine state_setexport_4d
 
   !===============================================================================
-  subroutine state_setexport_3d(state, fldname, input, lmask, ifrac, ungridded_index, areacor, rc)
+  subroutine state_setexport_3d(state, fldname, input, rc)
 
     ! ----------------------------------------------
     ! Map 3d input array to export state field
@@ -1741,17 +1817,13 @@ contains
     type(ESMF_State)               , intent(inout) :: state
     character(len=*)               , intent(in)    :: fldname
     real(kind=dbl_kind)            , intent(in)    :: input(:,:,:)
-    logical             , optional , intent(in)    :: lmask(:,:,:)
-    real(kind=dbl_kind) , optional , intent(in)    :: ifrac(:,:,:)
     integer             , optional , intent(in)    :: ungridded_index
-    real(kind=dbl_kind) , optional , intent(in)    :: areacor(:)
     integer                        , intent(out)   :: rc
 
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
     integer                      :: i, j, iblk, n, i1, j1 ! incides
-    real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
     integer                      :: num_ice
     character(len=*), parameter  :: subname='(ice_import_export:state_setexport_3d)'
@@ -1763,13 +1835,8 @@ contains
     if (.not. State_FldChk(state, trim(fldname))) return
 
     ! get field pointer
-    if (present(ungridded_index)) then
-       call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else
-       call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
+    call state_getfldptr(state, trim(fldname), dataPtr2d, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     n = 0
     do iblk = 1, nblocks
@@ -1779,38 +1846,13 @@ contains
        jlo = this_block%jlo
        jhi = this_block%jhi
        do j = jlo, jhi
+          j1 = j - nghost
           do i = ilo, ihi
-             n = n+1
-             if (present(lmask) .and. present(ifrac)) then
-                if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
-                   if (present(ungridded_index)) then
-                      dataPtr2d(ungridded_index,n) = input(i,j,iblk)
-                   else
-                      dataPtr1d(n) = input(i,j,iblk)
-                   end if
-                end if
-             else
-                if (present(ungridded_index)) then
-                   dataPtr2d(ungridded_index,n) = input(i,j,iblk)
-                else
-                   dataPtr1d(n) = input(i,j,iblk)
-                end if
-             end if
+             i1 = i - nghost  
+             dataPtr2d(i1, j1) = input(i,j,iblk)
           end do
        end do
     end do
-    num_ice = n
-    if (present(areacor)) then
-       if (present(ungridded_index)) then
-          do n = 1,num_ice
-             dataPtr2d(:,n) = dataPtr2d(:,n) * areacor(n)
-          end do
-       else
-          do n = 1,num_ice
-             dataPtr1d(n) = dataPtr1d(n) * areacor(n)
-          end do
-       end if
-    end if
 
   end subroutine state_setexport_3d
 
