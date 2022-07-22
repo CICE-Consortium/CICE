@@ -44,7 +44,11 @@
       private
       public :: init_thermo_vertical, init_shortwave, &
                 init_age, init_FY, init_lvl, init_fsd, &
+#ifdef UNDEPRECATE_CESMPONDS
                 init_meltponds_cesm, init_meltponds_lvl, init_meltponds_topo, &
+#else
+                init_meltponds_lvl, init_meltponds_topo, &
+#endif
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
                 count_tracers, init_isotope, init_snowtracers
 
@@ -543,6 +547,7 @@
 
       end subroutine init_lvl
 
+#ifdef UNDEPRECATE_CESMPONDS
 !=======================================================================
 
 !  Initialize melt ponds.
@@ -558,7 +563,7 @@
       hpnd(:,:,:) = c0
 
       end subroutine init_meltponds_cesm
-
+#endif
 !=======================================================================
 
 !  Initialize melt ponds.
@@ -1813,7 +1818,11 @@
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_snow
+#ifdef UNDEPRECATE_CESMPONDS
       logical (kind=log_kind) :: tr_iso, tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
+      logical (kind=log_kind) :: tr_iso, tr_pond_lvl, tr_pond_topo
+#endif
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
@@ -1898,7 +1907,11 @@
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
+#ifdef UNDEPRECATE_CESMPONDS
          tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+#else
+         tr_pond_lvl_out=tr_pond_lvl, &
+#endif
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
          tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &

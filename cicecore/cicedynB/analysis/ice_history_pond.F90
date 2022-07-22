@@ -268,9 +268,13 @@
 
       integer (kind=int_kind) :: &
          nt_apnd, nt_hpnd, nt_alvl, nt_ipnd
-
+#ifdef UNDEPRECATE_CESMPONDS
       logical (kind=log_kind) :: &
          tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
+      logical (kind=log_kind) :: &
+         tr_pond_lvl, tr_pond_topo
+#endif
 
       real (kind=dbl_kind) :: &
          puny
@@ -285,8 +289,13 @@
       !---------------------------------------------------------------
 
          call icepack_query_parameters(puny_out=puny)
+#ifdef UNDEPRECATE_CESMPONDS
          call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
               tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+#else
+         call icepack_query_tracer_flags(tr_pond_lvl_out=tr_pond_lvl, &
+              tr_pond_topo_out=tr_pond_topo)
+#endif
          call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, &
               nt_alvl_out=nt_alvl, nt_ipnd_out=nt_ipnd)
          call icepack_warnings_flush(nu_diag)
@@ -294,6 +303,7 @@
             file=__FILE__, line=__LINE__)
 
          if (allocated(a2D)) then
+#ifdef UNDEPRECATE_CESMPONDS
          if (tr_pond_cesm) then
          if (f_apond(1:1)/= 'x') &
              call accum_hist_field(n_apond, iblk, &
@@ -311,6 +321,9 @@
                                                   * trcr(:,:,nt_hpnd,iblk), a2D)
 
          elseif (tr_pond_lvl) then
+#else
+         if (tr_pond_lvl) then
+#endif
          if (f_apond(1:1)/= 'x') &
              call accum_hist_field(n_apond, iblk, &
                             trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
