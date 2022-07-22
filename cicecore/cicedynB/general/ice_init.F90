@@ -416,7 +416,7 @@
       conserv_check = .false.  ! tracer conservation check
       shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
-#ifdef UNDEPRECATE_0layer
+#ifdef UNDEPRECATE_0LAYER
       ktherm = 1               ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
 #else
       ktherm = 1               ! -1 = OFF, 1 = BL99, 2 = mushy thermo
@@ -1865,7 +1865,7 @@
             tmpstr2 = ' : Bitz and Lipscomb 1999 thermo'
          elseif (ktherm == 2) then
             tmpstr2 = ' : mushy-layer thermo'
-#ifdef UNDEPRECATE_0layer
+#ifdef UNDEPRECATE_0LAYER
          elseif (ktherm == 0) then
             tmpstr2 = ' : zero-layer thermo'
 #endif
@@ -2446,7 +2446,7 @@
          it          , & ! tracer index
          iblk            ! block index
 
-#ifdef UNDEPRECATE_0layer
+#ifdef UNDEPRECATE_0LAYER
       logical (kind=log_kind) :: &
          heat_capacity   ! from icepack
 #endif
@@ -2467,7 +2467,7 @@
 
       !-----------------------------------------------------------------
 
-#ifdef UNDEPRECATE_0layer
+#ifdef UNDEPRECATE_0LAYER
       call icepack_query_parameters(heat_capacity_out=heat_capacity)
 #endif
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
@@ -2507,7 +2507,7 @@
                file=__FILE__, line=__LINE__)
          endif
 
-#ifdef UNDEPRECATE_0layer
+#ifdef UNDEPRECATE_0LAYER
          if (.not.heat_capacity) then
 
             if (nilyr > 1) then
