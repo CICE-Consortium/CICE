@@ -1002,6 +1002,8 @@ Numerical estimates for this bound for several POP grids, assuming
    gx1,Greenland,:math:`320\times 384`,:math:`18\times 10^3` m,5.0hr
    p4,Canada,:math:`900\times 600`,:math:`6.5\times 10^3` m,1.8hr
 
+*Note that ``krdg_partic`` = 0 has been deprecated and the flag removed.*
+
 As discussed in :cite:`Lipscomb07`, the maximum time step in practice is
 usually determined by the time scale for large changes in the ice
 strength (which depends in part on wind strength). Using the strength
