@@ -449,6 +449,10 @@ dynamics_nml
    "", "``3``", "VP dynamics", ""
    "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
    "", "``1``", "ice strength formulation :cite:`Rothrock75`", ""
+   "``krdg_partic``", "``0``", "old ridging participation function", "1"
+   "", "``1``", "new ridging participation function", ""
+   "``krdg_redist``", "``0``", "old ridging redistribution function", "1"
+   "", "``1``", "new ridging redistribution function", ""
    "``kridge``", "``-1``", "ridging disabled", "1"
    "", "``1``", "ridging enabled", ""
    "``ktransport``", "``-1``", "transport disabled", "1"
@@ -485,14 +489,6 @@ dynamics_nml
    "", "``avg_zeta``", "average zeta for viscosities on U grid", ""
    "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""
-
-..
-   krdg_partic=0 and krdg_redist=0 have been deprecated
-   The flags have been removed, using the default values = 1
-   "``krdg_partic``", "``0``", "old ridging participation function", "1"
-   "", "``1``", "new ridging participation function", ""
-   "``krdg_redist``", "``0``", "old ridging redistribution function", "1"
-   "", "``1``", "new ridging redistribution function", ""
 
 shortwave_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~

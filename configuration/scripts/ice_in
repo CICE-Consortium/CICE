@@ -140,6 +140,8 @@
     arlx            = 300.0
     advection       = 'remap'
     kstrength       = 1
+    krdg_partic     = 1
+    krdg_redist     = 1
     mu_rdg          = 3
     Pstar           = 2.75e4
     Cstar           = 20

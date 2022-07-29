@@ -91,7 +91,7 @@
           atm_data_format, ocn_data_format, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir, wave_spec_file,  &
-          oceanmixed_file, restore_ocn, trestore, &
+          oceanmixed_file, restore_ocn, trestore, & 
           ice_data_type, ice_data_conc, ice_data_dist, &
           snw_filename, &
           snw_tau_fname, snw_kappa_fname, snw_drdt0_fname, &
@@ -102,7 +102,7 @@
                           bathymetry_format, kmt_type, &
                           grid_type, grid_format, &
                           grid_ice, grid_ice_thrm, grid_ice_dynu, grid_ice_dynv, &
-                          grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, &
+                          grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, & 
                           grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, &
                           pgl_global_ext
@@ -145,11 +145,7 @@
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
         windmin, drhosdwind, snwlvlfac
 
-#ifdef UNDEPRECATE_KRDG0
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
-#else
-      integer (kind=int_kind) :: ktherm, kstrength, natmiter, &
-#endif
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
@@ -226,12 +222,8 @@
         evp_algorithm,  elasticDamp,                                    &
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
-#ifdef UNDEPRECATE_KRDG0
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-#else
-        kstrength,      mu_rdg,                                         &
-#endif
-        e_yieldcurve,   e_plasticpot,   visc_method,                    &
+        e_yieldcurve,   e_plasticpot,   visc_method,              &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -379,13 +371,9 @@
       kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
-#ifdef UNDEPRECATE_KRDG0
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
-#else
-      mu_rdg = 3              ! e-folding scale of ridged ice (m^0.5)
-#endif
       Cf = 17.0_dbl_kind      ! ratio of ridging work to PE change in ridging 
       ksno = 0.3_dbl_kind     ! snow thermal conductivity
       dxrect = 0.0_dbl_kind   ! user defined grid spacing in cm in x direction
@@ -869,10 +857,8 @@
       call broadcast_scalar(kstrength,            master_task)
       call broadcast_scalar(Pstar,                master_task)
       call broadcast_scalar(Cstar,                master_task)
-#ifdef UNDEPRECATE_KRDG0
       call broadcast_scalar(krdg_partic,          master_task)
       call broadcast_scalar(krdg_redist,          master_task)
-#endif
       call broadcast_scalar(mu_rdg,               master_task)
       call broadcast_scalar(Cf,                   master_task)
       call broadcast_scalar(ksno,                 master_task)
@@ -1840,7 +1826,6 @@
          write(nu_diag,1010) ' tr_lvl           = ', tr_lvl,' : ridging related tracers'
          write(nu_diag,1020) ' kridge           = ', kridge,trim(tmpstr2)
          if (kridge == 1) then
-#ifdef UNDEPRECATE_KRDG0
             if (krdg_partic == 1) then
                tmpstr2 = ' : new participation function'
             else
@@ -1848,16 +1833,13 @@
             endif
             write(nu_diag,1020) ' krdg_partic      = ', krdg_partic,trim(tmpstr2)
             if (krdg_partic == 1) &
-#endif
             write(nu_diag,1002) ' mu_rdg           = ', mu_rdg,' : e-folding scale of ridged ice'
-#ifdef UNDEPRECATE_KRDG0
             if (krdg_redist == 1) then
                tmpstr2 = ' : new redistribution function'
             else
                tmpstr2 = ' : old redistribution function'
             endif
             write(nu_diag,1020) ' krdg_redist      = ', krdg_redist,trim(tmpstr2)
-#endif
          endif
 
          if (kstrength == 0) then
@@ -2386,11 +2368,7 @@
          emissivity_in=emissivity, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
-#ifdef UNDEPRECATE_KRDG0
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
-#else
-         kstrength_in=kstrength, mu_rdg_in=mu_rdg, &
-#endif
          atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
