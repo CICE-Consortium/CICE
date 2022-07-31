@@ -149,7 +149,7 @@
       character(len=*), parameter :: subname='(init_thermo_vertical)'
 
       !-----------------------------------------------------------------
-      ! initialize heat_capacity, l_brine, and salinity profile
+      ! initialize
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(depressT_out=depressT)

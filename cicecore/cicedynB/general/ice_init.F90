@@ -432,7 +432,11 @@
       conserv_check = .false.  ! tracer conservation check
       shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
+#ifdef UNDEPRECATE_0LAYER
       ktherm = 1               ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+#else
+      ktherm = 1               ! -1 = OFF, 1 = BL99, 2 = mushy thermo
+#endif
       conduct = 'bubbly'       ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'latitude'    ! latitude dependent, or 'constant'
       ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
@@ -1897,8 +1901,10 @@
             tmpstr2 = ' : Bitz and Lipscomb 1999 thermo'
          elseif (ktherm == 2) then
             tmpstr2 = ' : mushy-layer thermo'
+#ifdef UNDEPRECATE_0LAYER
          elseif (ktherm == 0) then
             tmpstr2 = ' : zero-layer thermo'
+#endif
          elseif (ktherm < 0) then
             tmpstr2 = ' : Thermodynamics disabled'
          else
@@ -2488,8 +2494,10 @@
          it          , & ! tracer index
          iblk            ! block index
 
+#ifdef UNDEPRECATE_0LAYER
       logical (kind=log_kind) :: &
          heat_capacity   ! from icepack
+#endif
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero
@@ -2511,7 +2519,9 @@
 
       !-----------------------------------------------------------------
 
+#ifdef UNDEPRECATE_0LAYER
       call icepack_query_parameters(heat_capacity_out=heat_capacity)
+#endif
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
         tr_lvl_out=tr_lvl, tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
@@ -2553,6 +2563,7 @@
                file=__FILE__, line=__LINE__)
          endif
 
+#ifdef UNDEPRECATE_0LAYER
          if (.not.heat_capacity) then
 
             if (nilyr > 1) then
@@ -2570,7 +2581,7 @@
             endif
 
          endif   ! heat_capacity = F
-
+#endif
       endif      ! my_task
 
       !-----------------------------------------------------------------

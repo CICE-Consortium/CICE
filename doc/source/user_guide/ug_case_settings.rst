@@ -391,13 +391,16 @@ thermo_nml
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
    "``ktherm``", "``-1``", "thermodynamic model disabled", "1"
-   "", "``0``", "zero-layer thermodynamic model", ""
    "", "``1``", "Bitz and Lipscomb thermodynamic model", ""
    "", "``2``", "mushy-layer thermodynamic model", ""
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "", "", "", ""
+
+..
+   ktherm=0 has been deprecated
+   "", "``0``", "zero-layer thermodynamic model", ""
 
 .. _dynamics_nml:
 
