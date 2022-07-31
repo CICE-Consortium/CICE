@@ -1533,8 +1533,13 @@
       integer (kind=int_kind) :: &
          nt_alvl, nt_apnd, nt_fbri
 
+#ifdef UNDEPRECATE_CESMPONDS
       logical (kind=log_kind) :: &
          tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
+      logical (kind=log_kind) :: &
+         tr_pond_lvl, tr_pond_topo
+#endif
 
       integer (kind=int_kind) ::      &
          i, j, n, it, & ! counting indices
@@ -1542,8 +1547,13 @@
 
       character(len=*), parameter :: subname = '(state_to_work)'
 
+#ifdef UNDEPRECATE_CESMPONDS
       call icepack_query_tracer_flags(tr_pond_cesm_out=tr_pond_cesm, &
            tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+#else
+      call icepack_query_tracer_flags(tr_pond_lvl_out=tr_pond_lvl, &
+           tr_pond_topo_out=tr_pond_topo)
+#endif
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, &
            nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
@@ -1602,8 +1612,13 @@
                                         * trcrn(i,j,it     ,n)
                enddo
                enddo
+#ifdef UNDEPRECATE_CESMPONDS
             elseif (trcr_depend(it) == 2+nt_apnd .and. &
                     tr_pond_cesm .or. tr_pond_topo) then
+#else
+            elseif (trcr_depend(it) == 2+nt_apnd .and. &
+                    tr_pond_topo) then
+#endif
                do j = 1, ny_block
                do i = 1, nx_block
                   works(i,j,narrays+it) = aicen(i,j        ,n) &

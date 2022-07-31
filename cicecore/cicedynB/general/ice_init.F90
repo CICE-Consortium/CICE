@@ -73,9 +73,15 @@
                               npt, dt, ndtd, days_per_year, use_leap_years, &
                               write_ic, dump_last, npt_unit
       use ice_arrays_column, only: oceanmixed_ice
+#ifdef UNDEPRECATE_CESMPONDS
       use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
           restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
           restart_fsd, restart_iso, restart_snow
+#else
+      use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
+          restart_pond_lvl, restart_pond_topo, restart_aero, &
+          restart_fsd, restart_iso, restart_snow
+#endif
       use ice_restart_shared, only: &
           restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
@@ -157,10 +163,18 @@
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
+#ifdef UNDEPRECATE_CESMPONDS
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
+      logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
+#endif
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
+#ifdef UNDEPRECATE_CESMPONDS
       integer (kind=int_kind) :: rpcesm, rplvl, rptopo 
+#else
+      integer (kind=int_kind) :: rplvl, rptopo 
+#endif
       real (kind=dbl_kind) :: Cf, ksno, puny
       character (len=char_len) :: abort_list
       character (len=64) :: tmpstr
@@ -201,7 +215,9 @@
         tr_iage, restart_age,                                           &
         tr_FY, restart_FY,                                              &
         tr_lvl, restart_lvl,                                            &
+#ifdef UNDEPRECATE_CESMPONDS
         tr_pond_cesm, restart_pond_cesm,                                &
+#endif
         tr_pond_lvl, restart_pond_lvl,                                  &
         tr_pond_topo, restart_pond_topo,                                &
         tr_snow, restart_snow,                                          &
@@ -526,8 +542,10 @@
       restart_FY   = .false. ! ice age restart
       tr_lvl       = .false. ! level ice 
       restart_lvl  = .false. ! level ice restart
+#ifdef UNDEPRECATE_CESMPONDS
       tr_pond_cesm = .false. ! CESM melt ponds
       restart_pond_cesm = .false. ! melt ponds restart
+#endif
       tr_pond_lvl  = .false. ! level-ice melt ponds
       restart_pond_lvl  = .false. ! melt ponds restart
       tr_pond_topo = .false. ! explicit melt ponds (topographic)
@@ -993,8 +1011,10 @@
       call broadcast_scalar(restart_FY,           master_task)
       call broadcast_scalar(tr_lvl,               master_task)
       call broadcast_scalar(restart_lvl,          master_task)
+#ifdef UNDEPRECATE_CESMPONDS
       call broadcast_scalar(tr_pond_cesm,         master_task)
       call broadcast_scalar(restart_pond_cesm,    master_task)
+#endif
       call broadcast_scalar(tr_pond_lvl,          master_task)
       call broadcast_scalar(restart_pond_lvl,     master_task)
       call broadcast_scalar(tr_pond_topo,         master_task)
@@ -1087,7 +1107,9 @@
             restart_age =  .false.
             restart_fy =  .false.
             restart_lvl =  .false.
+#ifdef UNDEPRECATE_CESMPONDS
             restart_pond_cesm =  .false.
+#endif
             restart_pond_lvl =  .false.
             restart_pond_topo =  .false.
             restart_snow = .false.
@@ -1204,17 +1226,29 @@
          endif
       endif
       
+#ifdef UNDEPRECATE_CESMPONDS
       rpcesm = 0
+#endif
       rplvl  = 0
       rptopo = 0
+#ifdef UNDEPRECATE_CESMPONDS
       if (tr_pond_cesm) rpcesm = 1
+#endif
       if (tr_pond_lvl ) rplvl  = 1
       if (tr_pond_topo) rptopo = 1
 
       tr_pond = .false. ! explicit melt ponds
+#ifdef UNDEPRECATE_CESMPONDS
       if (rpcesm + rplvl + rptopo > 0) tr_pond = .true.
+#else
+      if (rplvl + rptopo > 0) tr_pond = .true.
+#endif
 
+#ifdef UNDEPRECATE_CESMPONDS
       if (rpcesm + rplvl + rptopo > 1) then
+#else
+      if (rplvl + rptopo > 1) then
+#endif
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: Must use only one melt pond scheme'
          endif
@@ -1438,10 +1472,12 @@
             abort_list = trim(abort_list)//":16"
          endif
 
+#ifdef UNDEPRECATE_CESMPONDS
          if (tr_pond_cesm) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
             abort_list = trim(abort_list)//":17"
          endif
+#endif
 
          if (.not. tr_lvl) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_lvl=F'
@@ -2043,10 +2079,14 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Melt ponds'
          write(nu_diag,*) '--------------------------------'
+#ifdef UNDEPRECATE_CESMPONDS
          if (tr_pond_cesm) then
             write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
             write(nu_diag,1002) ' pndaspect        = ', pndaspect,' : ratio of pond depth to area fraction'
          elseif (tr_pond_lvl) then
+#else
+         if (tr_pond_lvl) then
+#endif
             write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
             write(nu_diag,1002) ' pndaspect        = ', pndaspect,' : ratio of pond depth to area fraction'
             write(nu_diag,1000) ' dpscale          = ', dpscale,' : time scale for flushing in permeable ice'
@@ -2159,7 +2199,9 @@
          if (tr_lvl)       write(nu_diag,1010) ' tr_lvl           = ', tr_lvl,' : ridging related tracers'
          if (tr_pond_lvl)  write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
          if (tr_pond_topo) write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
+#ifdef UNDEPRECATE_CESMPONDS
          if (tr_pond_cesm) write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
+#endif
          if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : advanced snow physics'
          if (tr_iage)      write(nu_diag,1010) ' tr_iage          = ', tr_iage,' : chronological ice age'
          if (tr_FY)        write(nu_diag,1010) ' tr_FY            = ', tr_FY,' : first-year ice area'
@@ -2284,7 +2326,9 @@
          write(nu_diag,1011) ' restart_age      = ', restart_age
          write(nu_diag,1011) ' restart_FY       = ', restart_FY
          write(nu_diag,1011) ' restart_lvl      = ', restart_lvl
+#ifdef UNDEPRECATE_CESMPONDS
          write(nu_diag,1011) ' restart_pond_cesm= ', restart_pond_cesm
+#endif
          write(nu_diag,1011) ' restart_pond_lvl = ', restart_pond_lvl
          write(nu_diag,1011) ' restart_pond_topo= ', restart_pond_topo
          write(nu_diag,1011) ' restart_snow     = ', restart_snow
@@ -2383,7 +2427,11 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_snow_in=tr_snow, tr_pond_in=tr_pond, &
+#ifdef UNDEPRECATE_CESMPONDS
          tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+#else
+         tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+#endif
       call icepack_init_tracer_sizes(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr, &
          nfsd_in=nfsd, n_algae_in=n_algae, n_iso_in=n_iso, n_aero_in=n_aero, &
          n_DOC_in=n_DOC, n_DON_in=n_DON, &
@@ -2445,7 +2493,11 @@
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero
+#ifdef UNDEPRECATE_CESMPONDS
       logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
+      logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
+#endif
       logical (kind=log_kind) :: tr_snow, tr_fsd
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd
@@ -2463,7 +2515,11 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
         tr_lvl_out=tr_lvl, tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
+#ifdef UNDEPRECATE_CESMPONDS
         tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+#else
+        tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+#endif
         tr_snow_out=tr_snow, tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
         nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
@@ -2533,10 +2589,12 @@
       if (tr_FY)   trcr_depend(nt_FY)    = 0   ! area-weighted first-year ice area
       if (tr_lvl)  trcr_depend(nt_alvl)  = 0   ! level ice area
       if (tr_lvl)  trcr_depend(nt_vlvl)  = 1   ! level ice volume
+#ifdef UNDEPRECATE_CESMPONDS
       if (tr_pond_cesm) then
                    trcr_depend(nt_apnd)  = 0           ! melt pond area
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
       endif
+#endif
       if (tr_pond_lvl) then
                    trcr_depend(nt_apnd)  = 2+nt_alvl   ! melt pond area
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
@@ -2598,10 +2656,12 @@
          nt_strata   (it,2) = 0
       enddo
 
+#ifdef UNDEPRECATE_CESMPONDS
       if (tr_pond_cesm) then
          n_trcr_strata(nt_hpnd)   = 1       ! melt pond depth
          nt_strata    (nt_hpnd,1) = nt_apnd ! on melt pond area
       endif
+#endif
       if (tr_pond_lvl) then
          n_trcr_strata(nt_apnd)   = 1       ! melt pond area
          nt_strata    (nt_apnd,1) = nt_alvl ! on level ice area

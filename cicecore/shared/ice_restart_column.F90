@@ -29,7 +29,9 @@
       public ::  write_restart_age,       read_restart_age, &
                  write_restart_FY,        read_restart_FY, &
                  write_restart_lvl,       read_restart_lvl, &
+#ifdef UNDEPRECATE_CESMPONDS
                  write_restart_pond_cesm, read_restart_pond_cesm, &
+#endif
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
                  write_restart_snow,      read_restart_snow, &
@@ -43,7 +45,9 @@
          restart_age      , & ! if .true., read age tracer restart file
          restart_FY       , & ! if .true., read FY tracer restart file
          restart_lvl      , & ! if .true., read lvl tracer restart file
+#ifdef UNDEPRECATE_CESMPONDS
          restart_pond_cesm, & ! if .true., read meltponds restart file
+#endif
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
          restart_snow     , & ! if .true., read snow tracer restart file
@@ -256,6 +260,7 @@
 
       end subroutine read_restart_lvl
 
+#ifdef UNDEPRECATE_CESMPONDS
 !=======================================================================
 !
 ! Dumps all values needed for restarting
@@ -322,7 +327,7 @@
                               'hpnd',ncat,diag,field_loc_center,field_type_scalar)
 
       end subroutine read_restart_pond_cesm
-
+#endif
 !=======================================================================
 !
 ! Dumps all values needed for restarting

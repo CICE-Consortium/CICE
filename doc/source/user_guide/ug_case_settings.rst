@@ -353,8 +353,8 @@ tracer_nml
    "``tr_iage``", "logical", "ice age", "``.false.``"
    "``tr_iso``", "logical", "isotopes", "``.false.``"
    "``tr_lvl``", "logical", "level ice area and volume", "``.false.``"
-   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
+   "``tr_pond_cesm``", " ", "DEPRECATED", " "
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
    "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
@@ -363,11 +363,14 @@ tracer_nml
    "``restart_FY``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_iso``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_lvl``", "logical", "restart tracer values from file", "``.false.``"
-   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_lvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_topo``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_snow``", "logical", "restart snow tracer values from file", "``.false.``"
    "", "", "", ""
+
+..
+   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
+   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
 
 thermo_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~

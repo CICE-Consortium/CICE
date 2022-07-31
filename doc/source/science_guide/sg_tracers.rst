@@ -78,8 +78,6 @@ is not in use.
    "tr_FY", "1", "aice", "nt_FY", " "
    "tr_lvl", "2", "aice", "nt_alvl", " "
    " ", " ", "vice", "nt_vlvl", " "
-   "tr_pond_cesm", "2", "aice", "nt_apnd", " " 
-   " ", " ", "apnd", "nt_vpnd", " "
    "tr_pond_lvl", "3", "aice", "nt_apnd", " " 
    " ", " ", "apnd", "nt_vpnd", " "
    " ", " ", "apnd", "nt_ipnd", " "
@@ -113,7 +111,9 @@ is not in use.
    "tr_zaero", "n_zaero", "fbri or (a,v)ice", "nt_zaero", "nlt_zaero"
    " ", "1", "fbri", "nt_zbgc_frac", " "
 
-
+..
+   "tr_pond_cesm", "2", "aice", "nt_apnd", " " 
+   " ", " ", "apnd", "nt_vpnd", " "
 
 Users may add any number of additional tracers that are transported conservatively,
 provided that the dependency ``trcr_depend`` is defined appropriately. 

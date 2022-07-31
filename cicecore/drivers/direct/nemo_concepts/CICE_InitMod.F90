@@ -235,11 +235,17 @@
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
+#ifdef UNDEPRECATE_CESMPONDS
           init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
+#else
+          init_meltponds_lvl, init_meltponds_topo, &
+#endif
           init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
+#ifdef UNDEPRECATE_CESMPONDS
           restart_pond_cesm, read_restart_pond_cesm, &
+#endif
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_fsd, read_restart_fsd, &
@@ -254,7 +260,11 @@
          i, j        , & ! horizontal indices
          iblk            ! block index
       logical(kind=log_kind) :: &
+#ifdef UNDEPRECATE_CESMPONDS
           tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
+#else
+          tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
+#endif
           tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
@@ -273,7 +283,11 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+#else
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+#endif
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
            tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
@@ -332,6 +346,7 @@
             enddo ! iblk
          endif
       endif
+#ifdef UNDEPRECATE_CESMPONDS
       ! CESM melt ponds
       if (tr_pond_cesm) then
          if (trim(runtype) == 'continue') &
@@ -345,6 +360,7 @@
             enddo ! iblk
          endif
       endif
+#endif
       ! level-ice melt ponds
       if (tr_pond_lvl) then
          if (trim(runtype) == 'continue') &

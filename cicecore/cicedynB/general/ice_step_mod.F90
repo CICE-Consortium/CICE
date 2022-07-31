@@ -237,7 +237,11 @@
          nt_isosno, nt_isoice, nt_rsnw, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
+#ifdef UNDEPRECATE_CESMPONDS
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
+#else
+         tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, &
+#endif
          tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
       real (kind=dbl_kind) :: &
@@ -265,7 +269,11 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
+#ifdef UNDEPRECATE_CESMPONDS
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
+#else
+         tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
+#endif
          tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
          tr_snow_out=tr_snow)
       call icepack_query_tracer_indices( &
