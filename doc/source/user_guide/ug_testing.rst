@@ -1050,6 +1050,7 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user netCDF4
   pip install --user numpy
   pip install --user matplotlib
+  pip install --user cartopy
 
 To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
