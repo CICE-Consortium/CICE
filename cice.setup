@@ -638,7 +638,7 @@ EOF
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
 
     # Append sets from .ts file to the $sets variable
-    set sets = "$sets_base,$sets_tmp"
+    set sets = "$sets_tmp,$sets_base"
 
     # Create a new bfbcomp_base variable to store bfbcomp passed to cice.setup
     # Use bfbcomp_base or bfbcomp_tmp
