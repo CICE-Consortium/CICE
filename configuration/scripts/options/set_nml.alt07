@@ -2,5 +2,5 @@ kdyn            = 1
 evp_algorithm   = 'standard_2d'
 ndte            = 300
 capping_method  = 'sum'
-visc_method     = 'avg_zeta'
+visc_method     = 'avg_strength'
 
