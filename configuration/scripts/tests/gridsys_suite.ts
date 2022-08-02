@@ -10,9 +10,11 @@ smoke          gbox80  1x1        boxslotcyl
 smoke          gbox80  2x4        boxnodyn
 #smoke	       gbox80  2x2        boxsymn,run1day
 smoke	       gbox80  4x2        boxsyme,run1day
+smoke	       gbox80  4x2        boxsyme,run1day,vargrid
 #smoke	       gbox80  4x1        boxsymne,run1day
 #smoke	       gbox80  2x2        boxsymn,run1day,kmtislands
 smoke	       gbox80  4x1        boxsyme,run1day,kmtislands
+smoke	       gbox80  4x1        boxsyme,run1day,kmtislands,vargrid
 #smoke	       gbox80  4x2        boxsymne,run1day,kmtislands
 #smoke	       gbox80  8x1        boxislandsn,run1day
 smoke	       gbox80  4x2        boxislandse,run1day

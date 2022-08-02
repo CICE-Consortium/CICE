@@ -75,6 +75,8 @@
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
+    dxgrow         = 1.0
+    dygrow         = 1.0
     close_boundaries = .false.
     ncat         = 5
     nfsd         = 1

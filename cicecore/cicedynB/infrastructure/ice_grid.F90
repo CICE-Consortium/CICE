@@ -129,6 +129,12 @@
          dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
          dyrect    !  user_specified spacing (cm) in y-direction (uniform HTE)
 
+      ! growth factor for variable spaced grid
+      real (kind=dbl_kind), public ::  &
+         dxgrow, & !  user_specified growth factor in x direction (e.g., 1.02)
+         dygrow    !  user_specified growth factor in y direction (e.g., 1.02)
+
+
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
@@ -1361,7 +1367,7 @@
          imid, jmid
 
       real (kind=dbl_kind) :: &
-         length, &
+         length, l0, &
          rad_to_deg
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
@@ -1392,16 +1398,30 @@
 
       if (my_task == master_task) then
          work_g1 = c0
-         length = dxrect*cm_to_m/radius*rad_to_deg
+         length = dxrect*cm_to_m/radius*rad_to_deg ! dah: base dlon
 
-!         work_g1(1,:) = -55._dbl_kind   ! Weddell Sea
-         work_g1(1,:) = -156.5_dbl_kind ! Barrow AK
+         ! work_g1(1,:) = -55._dbl_kind   ! Weddell Sea
+         ! work_g1(1,:) = -156.5_dbl_kind ! Barrow AK
+         work_g1(:,:) = -156.5_dbl_kind ! Barrow AK
 
          do j = 1, ny_global
-         do i = 2, nx_global
-            work_g1(i,j) = work_g1(i-1,j) + length   ! ULON
-         enddo
-         enddo
+            ! for variable spaced grid, 
+            ! split grid spacing to work from center outward
+
+            ! do from center of grid to left (west)
+            l0 = length ! first initialize length for ULON array
+            do i = (nx_global/2)-1, 1, -1
+               work_g1(i,j) = work_g1(i+1,j) + l0   ! ULON
+               l0 = l0*dxgrow
+            enddo ! i
+
+            ! go from center to right (east)
+            l0 = length ! initialize lenght factor
+            do i = (nx_global/2)+1, nx_global, 1
+               work_g1(i,j) = work_g1(i-1,j) + l0   ! ULON
+               l0 = l0*dxgrow
+            enddo ! i
+         enddo ! j
          work_g1(:,:) = work_g1(:,:) / rad_to_deg
       endif
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
@@ -1413,14 +1433,28 @@
          work_g1 = c0
          length = dyrect*cm_to_m/radius*rad_to_deg
 
-!         work_g1(:,1) = -75._dbl_kind ! Weddell Sea
-         work_g1(:,1) = 71.35_dbl_kind ! Barrow AK
+         ! work_g1(:,1) = -75._dbl_kind ! Weddell Sea
+         ! work_g1(:,1) = 71.35_dbl_kind ! Barrow AK
+         work_g1(:,:) = 71.35_dbl_kind ! Barrow AK
 
          do i = 1, nx_global
-         do j = 2, ny_global
-            work_g1(i,j) = work_g1(i,j-1) + length   ! ULAT
-         enddo
-         enddo
+            ! split domain to work from center to South/North
+            ! to implement variable spaced grid
+
+            ! here go fom center of grid south
+            l0 = length ! initialize lenght factor
+            do j = (ny_global/2)-1, 1, -1
+               work_g1(i,j) = work_g1(i,j+1) + l0 ! ULAT
+               l0 = l0*dygrow
+            enddo ! j
+
+            ! here go fom center north
+            l0 = length ! initialize lenght factor
+            do j = (ny_global/2)+1, ny_global, 1
+               work_g1(i,j) = work_g1(i,j-1) + l0 ! ULAT
+               l0 = l0*dygrow
+            enddo ! j
+         enddo ! i
          work_g1(:,:) = work_g1(:,:) / rad_to_deg
       endif
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
@@ -1430,19 +1464,40 @@
 
       if (my_task == master_task) then
          do j = 1, ny_global
-         do i = 1, nx_global
-            work_g1(i,j) = dxrect             ! HTN
-         enddo
-         enddo
+            i = nx_global / 2     ! specify i index to initialize
+            work_g1(i,j) = dxrect ! initialize center
+            ! go from center to left (west)
+            do i = (nx_global/2)-1, 1, -1
+               ! expand based on dxgrow
+               work_g1(i,j) = work_g1(i+1,j)*dxgrow   ! HTN
+            enddo ! i
+
+            ! from center to right (east)
+            ! loop starts at center+1
+            ! already initialized center in above loop
+            do i = (nx_global/2)+1, nx_global, 1
+               ! expand based on dxgrow
+               work_g1(i,j) = work_g1(i-1,j)*dxgrow   ! HTN
+            enddo ! i
+         enddo    ! j
       endif
       call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
 
       if (my_task == master_task) then
-         do j = 1, ny_global
          do i = 1, nx_global
-            work_g1(i,j) = dyrect             ! HTE
-         enddo
-         enddo
+            j = ny_global/2       ! specify j index to initalize
+            work_g1(i,j) = dyrect ! initialize denter
+            
+            ! go from center to south
+            do j = (ny_global/2)-1, 1, -1
+               work_g1(i,j) = work_g1(i,j+1)*dygrow  ! HTE
+            enddo ! j
+
+            ! go from center to north
+            do j = (ny_global/2)+1, nx_global, 1
+               work_g1(i,j) = work_g1(i,j-1)*dygrow  ! HTE
+            enddo ! j
+         enddo    ! i
       endif
       call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
 
