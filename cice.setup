@@ -761,12 +761,21 @@ EOF
     if (${docase} == 0) then
       set soptions = ""
       # Create sorted array and remove duplicates and "none"
-      set setsarray = `echo ${sets} | sed 's/,/ /g' | fmt -1 | sort -u`
+      set setsarray = `echo ${sets_tmp} | sed 's/,/ /g' | fmt -1 | sort -u`
       if ("${setsarray}" != "") then
         foreach field (${setsarray})
           if (${field} != "none") then
             set soptions = ${soptions}"_"${field}
           endif
+        end
+      endif
+      # Add options from command line, sort and remove duplicates
+      set soptions_base = ""
+      set setsarray_base = `echo ${sets_base} | sed 's/,/ /g' | fmt -1 | sort -u`
+      if ("${setsarray_base}" != "") then
+        foreach field (${setsarray_base})
+          set soptions = ${soptions}"_"${field}
+          set soptions_base = ${soptions_base}"_"${field}
         end
       endif
       # soptions starts with _
@@ -777,26 +786,8 @@ EOF
 
       if (${dosuite} == 1) then
         # Add -s flags in cice.setup to bfbcomp name
-        # Parse bfbcomp test_grid_pes and sets
-        # Add sets_base and sort unique
-        # Create fbfbcomp string that should be consistent with base casename
-        set bfbcomp_regex="\(.*_[0-9x]*\)_\(.*\)"
-        set bfbcomp_test_grid_pes=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\1/"`
-        set bfbcomp_sets=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\2/" | sed 's/_/,/g' `
-        set bfbcomp_sets="${bfbcomp_sets},${sets_base}"
-        set bfbcomp_soptions = ""
-        # Create sorted array and remove duplicates and "none"
-        set bfbcomp_setsarray = `echo ${bfbcomp_sets} | sed 's/,/ /g' | fmt -1 | sort -u`
-        if ("${bfbcomp_setsarray}" != "") then
-          foreach field (${bfbcomp_setsarray})
-            if (${field} != "none") then
-              set bfbcomp_soptions = ${bfbcomp_soptions}"_"${field}
-            endif
-          end
-        endif
-        set fbfbcomp = ${spval}
         if ($bfbcomp != ${spval}) then
-          set fbfbcomp = ${machcomp}_${bfbcomp_test_grid_pes}${bfbcomp_soptions}
+          set fbfbcomp = ${machcomp}_${bfbcomp}${soptions_base}
         endif
       endif
     endif
