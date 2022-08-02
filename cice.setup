@@ -1180,21 +1180,26 @@ echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
+set bldstat = 0
 if (\${dobuild} == true) then
    if (\${doreuse} == true) then
      set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
      ./cice.build --exe \${ciceexe}
+     set bldstat = \${status}
      if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
    else
      ./cice.build
+     set bldstat = \${status}
    endif
 endif
-if (\${dosubmit} == true) then
-  set jobid = \`./cice.submit\`
-  echo "\$jobid"
-  echo "\$jobid  \${ICE_TESTNAME}  " >> ../suite.jobs
-else if (\${dorun} == true) then
-  ./cice.test
+if (\$bldstat == 0) then
+  if (\${dosubmit} == true) then
+    set jobid = \`./cice.submit\`
+    echo "\$jobid"
+    echo "\$jobid  \${ICE_TESTNAME}  " >> ../suite.jobs
+  else if (\${dorun} == true) then
+    ./cice.test
+  endif
 endif
 cd ..
 EOF

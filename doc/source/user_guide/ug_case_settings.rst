@@ -488,7 +488,7 @@ dynamics_nml
    "", "``geostropic``", "computed from ocean velocity", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
    "``use_mean_vrel``", "logical", "Use mean of two previous iterations for vrel in VP", "``.true.``"
-   "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_strength``"
+   "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_zeta``"
    "", "``avg_zeta``", "average zeta for viscosities on U grid", ""
    "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""

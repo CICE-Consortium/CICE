@@ -738,7 +738,7 @@ either Celsius or Kelvin units).
    "vice(n)", "volume per unit area of ice (in category n)", "m"
    "vicen_init", "ice volume at beginning of timestep", "m"
    "viscosity_dyn", "dynamic viscosity of brine", ":math:`1.79\times 10^{-3}` kg/m/s"
-   "visc_method", "method for calculating viscosities (‘avg_strength’ or ‘avg_zeta’)", "avg_strength"
+   "visc_method", "method for calculating viscosities (‘avg_strength’ or ‘avg_zeta’)", "avg_zeta"
    "vocn", "ocean current in the y-direction", "m/s"
    "vonkar", "von Karman constant", "0.4"
    "vraftn", "volume of rafted ice", "m"

@@ -404,7 +404,7 @@
       Ktens = 0.0_dbl_kind    ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
       e_yieldcurve = 2.0_dbl_kind  ! VP aspect ratio of elliptical yield curve               
       e_plasticpot = 2.0_dbl_kind  ! VP aspect ratio of elliptical plastic potential
-      visc_method = 'avg_strength' ! calc viscosities at U point: avg_strength, avg_zeta
+      visc_method = 'avg_zeta' ! calc viscosities at U point: avg_strength, avg_zeta
       deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
       capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
@@ -889,7 +889,7 @@
       call broadcast_scalar(Ktens,                master_task)
       call broadcast_scalar(e_yieldcurve,         master_task)
       call broadcast_scalar(e_plasticpot,         master_task)
-      call broadcast_scalar(visc_method,    master_task)
+      call broadcast_scalar(visc_method,          master_task)
       call broadcast_scalar(deltaminEVP,          master_task)
       call broadcast_scalar(deltaminVP,           master_task)
       call broadcast_scalar(capping_method,       master_task)
