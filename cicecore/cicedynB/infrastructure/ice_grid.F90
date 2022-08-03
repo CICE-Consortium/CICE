@@ -1409,8 +1409,8 @@
       ! strategy: initialize with dxrect.
       ! if want to scale the grid, work from center outwards,
       ! multplying neighbor cell by scale factor.
-      ! this assumes an even number of grid points and 
-      ! dx varies in x direction only. (i.e, dx is the same across same y location)
+      ! this assumes dx varies in x direction only. 
+      !(i.e, dx is the same across same y location)
       if (my_task == master_task) then
 
          ! initialize with initial dxrect
@@ -1477,8 +1477,8 @@
       ! strategy: initialize with dyrect.
       ! if want to scale the grid, work from center outwards,
       ! multplying neighbor cell by scale factor.
-      ! this assumes an even number of grid points and 
-      ! dy varies in y direction only. (i.e, dy is the same across same x location)
+      ! this assumes dy varies in y direction only. 
+      ! (i.e, dy is the same across same x location)
       if (my_task == master_task) then
 
          ! initialize with initial dxrect
