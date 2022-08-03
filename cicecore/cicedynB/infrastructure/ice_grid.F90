@@ -1419,15 +1419,26 @@
          ! scale if desired
          if (scale_dxdy) then
 
-            ! with even number of x locaitons, 
-            ! the center two y columns are center
-            center1 = nx_global/2  ! integer math
-            center2 = center1 + 1  ! integer math
+            ! check if nx is even or odd
+            ! if even, middle 2 columns are center
+            ! of odd, middle 1 row is center
+            if (mod(nx_global,2) == 0) then ! nx_global is even
+               
+               ! with even number of x locatons, 
+               ! the center two y columns are center
+               center1 = nx_global/2  ! integer math
+               center2 = center1 + 1  ! integer math
 
+            else ! nx_global = odd
+               ! only one center index. set center2=center1
+               center1 = ceiling(real(nx_global/2),int_kind) 
+               center2 = center1
+            endif
+
+            ! note loop over only half the x grid points (center1)-1 
+            ! working from the center outward.
             do j = 1, ny_global
-            ! only half the x grid points 
-            ! note the '-1' since we start scaling from the nx/2 point. 
-            do i = 1, (nx_global/2)-1 
+            do i = 1, center1-1 
                ! work from center1 to left
                work_g1(center1-i,j) = dxscale*work_g1(center1-i+1,j)
                
@@ -1435,8 +1446,9 @@
                work_g1(center2+i,j) = dxscale*work_g1(center2+i-1,j)
             enddo ! i
             enddo ! j 
-         endif ! scale_dxdy
-      endif    ! my_task == master_task
+         endif    ! scale_dxdy
+      endif       ! my_task == master_task
+
       ! note work_g1 is converted to meters in primary_grid_lengths_HTN
       call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
 
@@ -1475,15 +1487,26 @@
          ! scale if desired
          if (scale_dxdy) then
 
-            ! with even number of x locaitons, 
-            ! the center two y columns are center
-            center1 = ny_global/2  ! integer math
-            center2 = center1 + 1  ! integer math
+            ! check if ny is even or odd
+            ! if even, middle 2 columns are center
+            ! of odd, middle 1 row is center
+            if (mod(ny_global,2) == 0) then ! nx_global is even
+               
+               ! with even number of x locatons, 
+               ! the center two y columns are center
+               center1 = ny_global/2  ! integer math
+               center2 = center1 + 1  ! integer math
 
+            else ! ny_global = odd
+               ! only one center index. set center2=center1
+               center1 = ceiling(real(ny_global/2),int_kind) 
+               center2 = center1
+            endif
+
+            ! note loop over only half the y grid points (center1)-1 
+            ! working from the center outward.
             do i = 1, nx_global
-            ! only half the y grid points 
-            ! note the '-1' since we start scaling from the nx/2 point. 
-            do j = 1, (ny_global/2)-1 
+            do j = 1, center1-1 
                ! work from center1 to bottom
                work_g1(i,center1-j) = dyscale*work_g1(i,center1-j+1)
                
@@ -1491,8 +1514,9 @@
                work_g1(i,center2+j) = dyscale*work_g1(i,center2+j-1)
             enddo ! i
             enddo ! j 
-         endif ! scale_dxdy
-      endif    ! my_task == master_task
+         endif    ! scale_dxdy
+      endif       ! my_task == master_task
+ 
       ! note work_g1 is converted to meters primary_grid_lengths_HTE
       call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
 
