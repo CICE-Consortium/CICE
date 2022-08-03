@@ -1421,7 +1421,7 @@
 
             ! check if nx is even or odd
             ! if even, middle 2 columns are center
-            ! of odd, middle 1 row is center
+            ! of odd,  middle 1 column is center
             if (mod(nx_global,2) == 0) then ! nx_global is even
                
                ! with even number of x locatons, 
@@ -1488,9 +1488,9 @@
          if (scale_dxdy) then
 
             ! check if ny is even or odd
-            ! if even, middle 2 columns are center
-            ! of odd, middle 1 row is center
-            if (mod(ny_global,2) == 0) then ! nx_global is even
+            ! if even, middle 2 rows are center
+            ! of odd,  middle 1 row is center
+            if (mod(ny_global,2) == 0) then ! ny_global is even
                
                ! with even number of x locatons, 
                ! the center two y columns are center
