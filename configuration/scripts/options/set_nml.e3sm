@@ -1,3 +1,4 @@
+nslyr = 5
 atmbndy = 'ccsm3'
 highfreq = .true.
 natmiter = 10
