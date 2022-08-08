@@ -688,9 +688,7 @@
                                         istop,              jstop)
 
                if (ckflag) then
-                  write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
-                                     istep1, my_task, iblk, n
-                  call abort_ice(subname//'ERROR: monotonicity error')
+                  call diagnostic_abort(istop,jstop,iblk,' monotonicity error')
                endif
             enddo               ! n
 
