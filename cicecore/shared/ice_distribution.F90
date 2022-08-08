@@ -180,14 +180,6 @@
       do n=1,size(distribution%blockLocation)
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
-
-            if (debug_blocks .and. my_task == master_task) then
-               write(nu_diag,'(2a,3i8)') &
-                             subname,' block id, proc, local_block: ', &
-                             block_ids(distribution%blockLocalID(n)), &
-                             distribution%blockLocation(n), &
-                             distribution%blockLocalID(n)
-            endif
          endif
       end do
    endif

@@ -314,9 +314,10 @@ contains
 
    if (debug_blocks) then
       if (my_task == master_task) then
-      write(nu_diag,*) 'block i,j locations'
+      write(nu_diag,*) ' '
+      write(nu_diag,'(2a)') subname,' block ID, iblock, jblock Locations:'
       do n = 1, nblocks_tot
-         write(nu_diag,*) 'block id, iblock, jblock, tripole:', &
+         write(nu_diag,'(2a,3i8,l4)') subname,' global block ID, iblock, jblock, tripole:', &
          all_blocks(n)%block_id, &
          all_blocks(n)%iblock,   & 
          all_blocks(n)%jblock,   &

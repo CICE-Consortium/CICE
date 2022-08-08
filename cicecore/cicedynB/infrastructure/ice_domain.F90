@@ -18,7 +18,7 @@
    use ice_kinds_mod
    use ice_constants, only: shlat, nhlat
    use ice_communicate, only: my_task, master_task, get_num_procs, &
-       add_mpi_barriers
+       add_mpi_barriers, ice_barrier
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block, debug_blocks
@@ -26,7 +26,7 @@
    use ice_boundary, only: ice_halo
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-       get_fileunit, release_fileunit
+       get_fileunit, release_fileunit, flush_fileunit
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
 
@@ -326,6 +326,7 @@
       ig,jg              ,&! global indices
       igm1,igp1,jgm1,jgp1,&! global indices
       ninfo              ,&! ice_distributionGet check
+      np, nlb, m         ,&! debug blocks temporaries
       work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
       fid                ,&! file id
@@ -596,8 +597,41 @@
 
    call create_local_block_ids(blocks_ice, distrb_info)
 
+   ! write out block distribution
    ! internal check of icedistributionGet as part of verification process
    if (debug_blocks) then
+
+      call flush_fileunit(nu_diag)
+      call ice_barrier()
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname, ' Blocks by Proc:'
+      endif
+      call ice_distributionGet(distrb_info, nprocs=np, numLocalBlocks=nlb)
+      do m = 1, np
+         if (m == my_task+1) then
+            do n=1,nlb
+               write(nu_diag,'(2a,3i8)') &
+                     subname,' my_task, local block ID, global block ID: ', &
+                     my_task, n, distrb_info%blockGlobalID(n)
+            enddo
+            call flush_fileunit(nu_diag)
+         endif
+         call ice_barrier()
+      enddo
+
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname, ' Blocks by Global Block ID:'
+         do m = 1, nblocks_tot
+            write(nu_diag,'(2a,3i8)') &
+                  subname,' global block id, proc, local block ID: ', &
+                  m, distrb_info%blockLocation(m), distrb_info%blockLocalID(m)
+         enddo
+         call flush_fileunit(nu_diag)
+      endif
+      call ice_barrier()
+
       call ice_distributionGet(distrb_info, nprocs=ninfo)
       if (ninfo /= distrb_info%nprocs) &
          call abort_ice(subname//' ice_distributionGet nprocs ERROR', file=__FILE__, line=__LINE__)
@@ -635,8 +669,11 @@
 
       deallocate(blkinfo)
 
-      if (my_task == master_task) &
-         write(nu_diag,*) subname,' ice_distributionGet checks pass'
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname,' ice_distributionGet checks pass'
+         write(nu_diag,*) ' '
+      endif
    endif
 
    if (associated(blocks_ice)) then
