@@ -51,11 +51,11 @@
    !*** values for the parameter below.  A value higher than
    !*** necessary will not cause the code to fail, but will
    !*** allocate more memory than is necessary.  A value that
-   !*** is too low will cause the code to exit.  
+   !*** is too low will cause the code to exit.
    !*** A good initial guess is found using
    !*** max_blocks = (nx_global/block_size_x)*(ny_global/block_size_y)/
    !***               num_procs
- 
+
 !=======================================================================
 
       end module ice_domain_size

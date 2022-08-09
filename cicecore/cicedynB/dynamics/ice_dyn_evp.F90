@@ -871,7 +871,7 @@
                                           shearU    (:,:,iblk),                    &
                                           shear   (:,:,iblk), divu     (:,:,iblk), &
                                           rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
-                     
+
                   endif
                enddo
                !$OMP END PARALLEL DO

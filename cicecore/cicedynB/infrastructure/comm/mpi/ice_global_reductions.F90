@@ -712,7 +712,7 @@
  function global_allreduce_sum_vector_dbl(vector, dist) &
           result(globalSums)
 
-!  Computes the global sums of sets of scalars (elements of 'vector') 
+!  Computes the global sums of sets of scalars (elements of 'vector')
 !  distributed across a parallel machine.
 !
 !  This is actually the specific interface for the generic global_allreduce_sum
@@ -778,9 +778,9 @@
 !  Computes the global sum of the physical domain of a product of
 !  two 2-d arrays.
 !
-!  This is actually the specific interface for the generic 
+!  This is actually the specific interface for the generic
 !  global_sum_prod function corresponding to double precision arrays.
-!  The generic interface is identical but will handle real and integer 
+!  The generic interface is identical but will handle real and integer
 !  2-d slabs.
 
    real (dbl_kind), dimension(:,:,:), intent(in) :: &
@@ -916,9 +916,9 @@
 !  Computes the global sum of the physical domain of a product of
 !  two 2-d arrays.
 !
-!  This is actually the specific interface for the generic 
+!  This is actually the specific interface for the generic
 !  global_sum_prod function corresponding to single precision arrays.
-!  The generic interface is identical but will handle real and integer 
+!  The generic interface is identical but will handle real and integer
 !  2-d slabs.
 
    real (real_kind), dimension(:,:,:), intent(in) :: &
@@ -1054,9 +1054,9 @@
 !  Computes the global sum of the physical domain of a product of
 !  two 2-d arrays.
 !
-!  This is actually the specific interface for the generic 
+!  This is actually the specific interface for the generic
 !  global_sum_prod function corresponding to integer arrays.
-!  The generic interface is identical but will handle real and integer 
+!  The generic interface is identical but will handle real and integer
 !  2-d slabs.
 
    integer (int_kind), dimension(:,:,:), intent(in) :: &
@@ -1195,7 +1195,7 @@
 !  Computes the global maximum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to double precision arrays.  
+!  function corresponding to double precision arrays.
 
    real (dbl_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which max value needed
@@ -1302,7 +1302,7 @@
 !  Computes the global maximum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to single precision arrays.  
+!  function corresponding to single precision arrays.
 
    real (real_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which max value needed
@@ -1409,7 +1409,7 @@
 !  Computes the global maximum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to integer arrays.  
+!  function corresponding to integer arrays.
 
    integer (int_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which max value needed
@@ -1517,7 +1517,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to double precision scalars.  
+!  function corresponding to double precision scalars.
 
    real (dbl_kind), intent(in) :: &
       scalar               ! scalar for which max value needed
@@ -1575,7 +1575,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    real (real_kind), intent(in) :: &
       scalar               ! scalar for which max value needed
@@ -1633,7 +1633,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    integer (int_kind), intent(in) :: &
       scalar               ! scalar for which max value needed
@@ -1691,7 +1691,7 @@
 !  a communicator.  This method supports testing.
 !
 !  This is actually the specific interface for the generic global_maxval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    integer (int_kind), intent(in) :: &
       scalar               ! scalar for which max value needed
@@ -1740,7 +1740,7 @@
 !  Computes the global minimum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to double precision arrays.  
+!  function corresponding to double precision arrays.
 
    real (dbl_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which min value needed
@@ -1847,7 +1847,7 @@
 !  Computes the global minimum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to single precision arrays.  
+!  function corresponding to single precision arrays.
 
    real (real_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which min value needed
@@ -1954,7 +1954,7 @@
 !  Computes the global minimum value of the physical domain of a 2-d field
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to integer arrays.  
+!  function corresponding to integer arrays.
 
    integer (int_kind), dimension(:,:,:), intent(in) :: &
       array                ! array for which min value needed
@@ -2062,7 +2062,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to double precision scalars.  
+!  function corresponding to double precision scalars.
 
    real (dbl_kind), intent(in) :: &
       scalar               ! scalar for which min value needed
@@ -2120,7 +2120,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    real (real_kind), intent(in) :: &
       scalar               ! scalar for which min value needed
@@ -2178,7 +2178,7 @@
 !  a distributed machine.
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    integer (int_kind), intent(in) :: &
       scalar               ! scalar for which min value needed
@@ -2236,7 +2236,7 @@
 !  a communicator.  This method supports testing.
 !
 !  This is actually the specific interface for the generic global_minval
-!  function corresponding to single precision scalars.  
+!  function corresponding to single precision scalars.
 
    integer (int_kind), intent(in) :: &
       scalar               ! scalar for which min value needed
@@ -2296,7 +2296,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
 ! reprosum = fixed point method based on ordered double integer sums.
 !    that requires two scalar reductions per global sum.
 !    This is extremely likely to be bfb.
-!    (See Mirin and Worley, 2012, IJHPCA, 26, 1730, 
+!    (See Mirin and Worley, 2012, IJHPCA, 26, 1730,
 !    https://journals.sagepub.com/doi/10.1177/1094342011412630)
 ! ddpdd = parallel double-double algorithm using single scalar reduction.
 !    This is very likely to be bfb.

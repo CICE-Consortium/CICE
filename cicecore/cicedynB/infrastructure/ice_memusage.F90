@@ -11,7 +11,7 @@ MODULE ice_memusage
 
    implicit none
    private
-    
+
 ! PUBLIC: Public interfaces
 
    public ::  ice_memusage_getusage, &
@@ -39,20 +39,20 @@ subroutine ice_memusage_init(iunit)
    !----- arguments -----
 
    integer, optional :: iunit   !< output unit number for optional writes
-     
+
    !----- local -----
 
-   ! --- Memory stats --- 
+   ! --- Memory stats ---
    integer :: msize                   ! memory size (high water)
    integer :: mrss0,mrss1,mrss2       ! temporary rss
    integer :: mshare,mtext,mdatastack
    integer :: ierr
- 
+
    integer :: ice_memusage_gptl
 
    real(dbl_kind),allocatable :: mem_tmp(:)
    character(*),parameter  :: subname = '(ice_memusage_init)'
-    
+
    !---------------------------------------------------
 
    ! return if memory_stats are off
@@ -119,7 +119,7 @@ subroutine ice_memusage_print(iunit,string)
    integer, intent(in) :: iunit    !< unit number to write to
    character(len=*),optional, intent(in) :: string  !< optional string
 
-   !----- local ---   
+   !----- local ---
    real(dbl_kind)     :: msize,mrss
    character(len=128) :: lstring
    character(*),parameter  :: subname = '(ice_memusage_print)'

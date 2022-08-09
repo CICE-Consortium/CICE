@@ -10,7 +10,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_domain_size, only: ncat, max_blocks 
+      use ice_domain_size, only: ncat, max_blocks
       use ice_domain_size, only: nblyr, nilyr, nslyr
       use ice_domain_size, only: n_aero, n_zaero, n_algae
       use ice_domain_size, only: n_doc, n_dic, n_don
@@ -270,12 +270,12 @@
          Iswabsn(:,:,:,:,iblk) = c0
          Sswabsn(:,:,:,:,iblk) = c0
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
-         
+
          do j = 1, ny_block ! can be jlo, jhi
          do i = 1, nx_block ! can be ilo, ihi
 
@@ -397,7 +397,7 @@
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
-         
+
       !-----------------------------------------------------------------
       ! Define aerosol tracer on shortwave grid
       !-----------------------------------------------------------------
@@ -414,7 +414,7 @@
          enddo ! j
 
       !-----------------------------------------------------------------
-      ! Aggregate albedos 
+      ! Aggregate albedos
       ! Match loop order in coupling_prep for same order of operations
       !-----------------------------------------------------------------
 
@@ -528,7 +528,7 @@
 
 !  Initialize ice lvl tracers (call prior to reading restart data)
 
-      subroutine init_lvl(iblk, alvl, vlvl) 
+      subroutine init_lvl(iblk, alvl, vlvl)
 
       use ice_constants, only: c0, c1
       use ice_arrays_column, only: ffracn, dhsn
@@ -599,7 +599,7 @@
       apnd(:,:,:) = c0
       hpnd(:,:,:) = c0
       ipnd(:,:,:) = c0
-        
+
       end subroutine init_meltponds_topo
 
 !=======================================================================
@@ -751,7 +751,7 @@
 
 !  Initialize vertical profile for biogeochemistry
 
-      subroutine init_bgc() 
+      subroutine init_bgc()
 
       use ice_arrays_column, only: zfswin, trcrn_sw, &
           ocean_bio_all, ice_bio_net, snow_bio_net, &
@@ -781,15 +781,15 @@
       logical (kind=log_kind) :: &
          RayleighC    , &
          solve_zsal
-        
+
       type (block) :: &
          this_block      ! block information for current block
 
       real(kind=dbl_kind), allocatable :: &
          trcrn_bgc(:,:)
-      
+
       real(kind=dbl_kind), dimension(nilyr,ncat) :: &
-         sicen    
+         sicen
 
       real(kind=dbl_kind) :: &
          RayleighR
@@ -814,13 +814,13 @@
 
       allocate(trcrn_bgc(ntrcr,ncat))
 
-      bphi(:,:,:,:,:) = c0   ! initial porosity for no ice 
+      bphi(:,:,:,:,:) = c0   ! initial porosity for no ice
       iDi (:,:,:,:,:) = c0   ! interface diffusivity
       bTiz(:,:,:,:,:) = c0   ! initial bio grid ice temperature
       iki (:,:,:,:,:) = c0   ! permeability
 
       ocean_bio_all(:,:,:,:)   = c0
-      ice_bio_net  (:,:,:,:)   = c0 ! integrated ice tracer conc (mmol/m^2 or mg/m^2) 
+      ice_bio_net  (:,:,:,:)   = c0 ! integrated ice tracer conc (mmol/m^2 or mg/m^2)
       snow_bio_net (:,:,:,:)   = c0 ! integrated snow tracer conc (mmol/m^2 or mg/m^2)
       zfswin       (:,:,:,:,:) = c0 ! shortwave flux on bio grid
       trcrn_sw     (:,:,:,:,:) = c0 ! tracers active in the shortwave calculation
@@ -831,20 +831,20 @@
       !-----------------------------------------------------------------
       ! zsalinity initialization
       !-----------------------------------------------------------------
-      
-      if (solve_zsal) then  ! default values 
+
+      if (solve_zsal) then  ! default values
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,trcrn_bgc)
          do iblk = 1, nblocks
 
-            this_block = get_block(blocks_ice(iblk),iblk)         
+            this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
             ihi = this_block%ihi
             jlo = this_block%jlo
             jhi = this_block%jhi
 
             do j = jlo, jhi
-            do i = ilo, ihi  
+            do i = ilo, ihi
                call icepack_init_zsalinity(nblyr=nblyr, ntrcr_o=ntrcr_o, &
                             Rayleigh_criteria = RayleighC, &
                             Rayleigh_real     = RayleighR, &
@@ -863,7 +863,7 @@
                   enddo
                endif
             enddo      ! i
-            enddo      ! j  
+            enddo      ! j
          enddo         ! iblk
          !$OMP END PARALLEL DO
          call icepack_warnings_flush(nu_diag)
@@ -877,15 +877,15 @@
       ! biogeochemistry initialization
       !-----------------------------------------------------------------
 
-      if (.not. restart_bgc) then       
-     
+      if (.not. restart_bgc) then
+
       !-----------------------------------------------------------------
       ! Initial Ocean Values if not coupled to the ocean bgc
       !-----------------------------------------------------------------
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
 
-            this_block = get_block(blocks_ice(iblk),iblk)         
+            this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
             ihi = this_block%ihi
             jlo = this_block%jlo
@@ -919,14 +919,14 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
 
          do j = jlo, jhi
-         do i = ilo, ihi  
+         do i = ilo, ihi
 
             call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
                          max_algae=icepack_max_algae, max_don=icepack_max_don,   &
@@ -934,7 +934,7 @@
                          max_dic=icepack_max_dic,     max_aero=icepack_max_aero, &
                          nit =nit (i,j,  iblk), amm=amm(i,j,  iblk), sil   =sil   (i,j,  iblk), &
                          dmsp=dmsp(i,j,  iblk), dms=dms(i,j,  iblk), algalN=algalN(i,j,:,iblk), &
-                         doc =doc (i,j,:,iblk), don=don(i,j,:,iblk), dic   =dic   (i,j,:,iblk), &  
+                         doc =doc (i,j,:,iblk), don=don(i,j,:,iblk), dic   =dic   (i,j,:,iblk), &
                          fed =fed (i,j,:,iblk), fep=fep(i,j,:,iblk), zaeros=zaeros(i,j,:,iblk), &
                          hum=hum  (i,j,  iblk), ocean_bio_all=ocean_bio_all(i,j,:,iblk))
 
@@ -948,18 +948,18 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (.not. restart_bgc) then       
+      if (.not. restart_bgc) then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,sicen,trcrn_bgc)
          do iblk = 1, nblocks
 
-            this_block = get_block(blocks_ice(iblk),iblk)         
+            this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
             ihi = this_block%ihi
             jlo = this_block%jlo
             jhi = this_block%jhi
 
             do j = jlo, jhi
-            do i = ilo, ihi  
+            do i = ilo, ihi
                 do n = 1, ncat
                 do k = 1, nilyr
                    sicen(k,n) = trcrn(i,j,nt_sice+k-1,n,iblk)
@@ -987,7 +987,7 @@
       ! read restart to complete BGC initialization
       !-----------------------------------------------------------------
 
-      if (restart_zsal .or. restart_bgc) call read_restart_bgc  
+      if (restart_zsal .or. restart_bgc) call read_restart_bgc
 
       deallocate(trcrn_bgc)
 
@@ -1030,7 +1030,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
-      first_ice(:,:,:,:) = .true.            
+      first_ice(:,:,:,:) = .true.
       if (tr_brine) trcrn(:,:,nt_fbri,:,:) = c1
 
       end subroutine init_hbrine
@@ -1038,7 +1038,7 @@
 !=======================================================================
 
 ! Namelist variables, set to default values; may be altered at run time
-! 
+!
 ! author Elizabeth C. Hunke, LANL
 !        Nicole Jeffery, LANL
 
@@ -1060,7 +1060,7 @@
          tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
          tr_bgc_hum,    tr_aero
- 
+
       integer (kind=int_kind) :: &
          ktherm
 
@@ -1087,7 +1087,7 @@
         restore_bgc, restart_bgc, scale_bgc, solve_zsal, restart_zsal, &
         tr_bgc_Nit, tr_bgc_C, tr_bgc_chl, tr_bgc_Am, tr_bgc_Sil, &
         tr_bgc_DMS, tr_bgc_PON, tr_bgc_hum, tr_bgc_DON, tr_bgc_Fe, &
-        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &   
+        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &
         l_skS, phi_snow,  initbio_frac, frazil_scav, &
         ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
         ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
@@ -1124,9 +1124,9 @@
         fedtype_1          , feptype_1          , zaerotype_bc1      ,  &
         zaerotype_bc2      , zaerotype_dust1    , zaerotype_dust2    ,  &
         zaerotype_dust3    , zaerotype_dust4    , ratio_C2N_diatoms  ,  &
-        ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  & 
+        ratio_C2N_sp       , ratio_C2N_phaeo    , ratio_chl2N_diatoms,  &
         ratio_chl2N_sp     , ratio_chl2N_phaeo  , F_abs_chl_diatoms  ,  &
-        F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins 
+        F_abs_chl_sp       , F_abs_chl_phaeo    , ratio_C2N_proteins
 
       !-----------------------------------------------------------------
 
@@ -1151,22 +1151,22 @@
       restart_bgc     = .false.  ! biogeochemistry restart
       restart_zsal    = .false.  ! salinity restart
       restart_hbrine  = .false.  ! hbrine restart
-      scale_bgc       = .false.  ! initial bgc tracers proportional to S  
-      skl_bgc         = .false.  ! solve skeletal biochemistry 
+      scale_bgc       = .false.  ! initial bgc tracers proportional to S
+      skl_bgc         = .false.  ! solve skeletal biochemistry
       z_tracers       = .false.  ! solve vertically resolved tracers
       dEdd_algae      = .false.  ! dynamic algae contributes to shortwave absorption
                                  ! in delta-Eddington calculation
-      solve_zbgc      = .false.  ! turn on z layer biochemistry 
-      tr_bgc_PON      = .false.  !---------------------------------------------   
+      solve_zbgc      = .false.  ! turn on z layer biochemistry
+      tr_bgc_PON      = .false.  !---------------------------------------------
       tr_bgc_Nit      = .false.  ! biogeochemistry (skl or zbgc)
       tr_bgc_C        = .false.  ! if skl_bgc = .true. then skl
       tr_bgc_chl      = .false.  ! if z_tracers = .true. then vertically resolved
       tr_bgc_Sil      = .false.  ! if z_tracers + solve_zbgc = .true. then
-      tr_bgc_Am       = .false.  ! vertically resolved with reactions  
+      tr_bgc_Am       = .false.  ! vertically resolved with reactions
       tr_bgc_DMS      = .false.  !------------------------------------------------
-      tr_bgc_DON      = .false.  ! 
+      tr_bgc_DON      = .false.  !
       tr_bgc_hum      = .false.  !
-      tr_bgc_Fe       = .false.  ! 
+      tr_bgc_Fe       = .false.  !
       tr_bgc_N        = .true.   !
 
       ! brine height parameter
@@ -1175,17 +1175,17 @@
       ! skl biology parameters
       bgc_flux_type   = 'Jin2006'! type of ocean-ice poston velocity ('constant')
 
-      ! z biology parameters  
-      grid_o          = c5           ! for bottom flux        
-      grid_o_t        = c5           ! for top flux        
-      l_sk            = 7.0_dbl_kind ! characteristic diffusive scale (m)   
+      ! z biology parameters
+      grid_o          = c5           ! for bottom flux
+      grid_o_t        = c5           ! for top flux
+      l_sk            = 7.0_dbl_kind ! characteristic diffusive scale (m)
       initbio_frac    = c1           ! fraction of ocean trcr concentration in bio trcrs
-      frazil_scav     = c1           ! increase in initial bio tracer from ocean scavenging 
-      ratio_Si2N_diatoms = 1.8_dbl_kind    ! algal Si to N (mol/mol)                       
+      frazil_scav     = c1           ! increase in initial bio tracer from ocean scavenging
+      ratio_Si2N_diatoms = 1.8_dbl_kind    ! algal Si to N (mol/mol)
       ratio_Si2N_sp      = c0              ! diatoms, small plankton, phaeocystis
       ratio_Si2N_phaeo   = c0
       ratio_S2N_diatoms  = 0.03_dbl_kind   ! algal S  to N (mol/mol)
-      ratio_S2N_sp       = 0.03_dbl_kind 
+      ratio_S2N_sp       = 0.03_dbl_kind
       ratio_S2N_phaeo    = 0.03_dbl_kind
       ratio_Fe2C_diatoms = 0.0033_dbl_kind ! algal Fe to C  (umol/mol)
       ratio_Fe2C_sp      = 0.0033_dbl_kind
@@ -1196,7 +1196,7 @@
       ratio_Fe2DON       = 0.023_dbl_kind  ! Fe to N of DON (nmol/umol)
       ratio_Fe2DOC_s     = p1              ! Fe to C of DOC (nmol/umol) saccharids
       ratio_Fe2DOC_l     = 0.033_dbl_kind  ! Fe to C of DOC (nmol/umol) lipids
-      fr_resp            = 0.05_dbl_kind   ! frac of algal growth lost due to respiration      
+      fr_resp            = 0.05_dbl_kind   ! frac of algal growth lost due to respiration
       tau_min            = 5200.0_dbl_kind ! rapid mobile to stationary exchanges (s)
       tau_max            = 1.73e5_dbl_kind ! long time mobile to stationary exchanges (s)
       algal_vel          = 1.11e-8_dbl_kind! 0.5 cm/d(m/s) Lavoie 2005  1.5 cm/day
@@ -1205,13 +1205,13 @@
       chlabs_diatoms     = 0.03_dbl_kind   ! chl absorption (1/m/(mg/m^3))
       chlabs_sp          = 0.01_dbl_kind
       chlabs_phaeo       = 0.05_dbl_kind
-      alpha2max_low_diatoms = 0.8_dbl_kind ! light limitation (1/(W/m^2))  
+      alpha2max_low_diatoms = 0.8_dbl_kind ! light limitation (1/(W/m^2))
       alpha2max_low_sp      = 0.67_dbl_kind
       alpha2max_low_phaeo   = 0.67_dbl_kind
-      beta2max_diatoms   = 0.018_dbl_kind  ! light inhibition (1/(W/m^2))  
+      beta2max_diatoms   = 0.018_dbl_kind  ! light inhibition (1/(W/m^2))
       beta2max_sp        = 0.0025_dbl_kind
       beta2max_phaeo     = 0.01_dbl_kind
-      mu_max_diatoms     = 1.2_dbl_kind    ! maximum growth rate (1/day) 
+      mu_max_diatoms     = 1.2_dbl_kind    ! maximum growth rate (1/day)
       mu_max_sp          = 0.851_dbl_kind
       mu_max_phaeo       = 0.851_dbl_kind
       grow_Tdep_diatoms  = 0.06_dbl_kind ! Temperature dependence of growth (1/C)
@@ -1241,10 +1241,10 @@
       K_Fe_diatoms       = c1            ! iron half saturation (nM)
       K_Fe_sp            = 0.2_dbl_kind
       K_Fe_phaeo         = p1
-      f_don_protein      = 0.6_dbl_kind  ! fraction of spilled grazing to proteins           
-      kn_bac_protein     = 0.03_dbl_kind ! Bacterial degredation of DON (1/d)                
-      f_don_Am_protein   = 0.25_dbl_kind ! fraction of remineralized DON to ammonium         
-      f_doc_s            = 0.4_dbl_kind  ! fraction of mortality to DOC 
+      f_don_protein      = 0.6_dbl_kind  ! fraction of spilled grazing to proteins
+      kn_bac_protein     = 0.03_dbl_kind ! Bacterial degredation of DON (1/d)
+      f_don_Am_protein   = 0.25_dbl_kind ! fraction of remineralized DON to ammonium
+      f_doc_s            = 0.4_dbl_kind  ! fraction of mortality to DOC
       f_doc_l            = 0.4_dbl_kind
       f_exude_s          = c1            ! fraction of exudation to DOC
       f_exude_l          = c1
@@ -1254,15 +1254,15 @@
       fsal               = c1            ! Salinity limitation (ppt)
       op_dep_min         = p1            ! Light attenuates for optical depths exceeding min
       fr_graze_s         = p5            ! fraction of grazing spilled or slopped
-      fr_graze_e         = p5            ! fraction of assimilation excreted 
+      fr_graze_e         = p5            ! fraction of assimilation excreted
       fr_mort2min        = p5            ! fractionation of mortality to Am
       fr_dFe             = 0.3_dbl_kind  ! fraction of remineralized nitrogen
                                          ! (in units of algal iron)
-      k_nitrif           = c0            ! nitrification rate (1/day)           
+      k_nitrif           = c0            ! nitrification rate (1/day)
       t_iron_conv        = 3065.0_dbl_kind ! desorption loss pFe to dFe (day)
-      max_loss           = 0.9_dbl_kind ! restrict uptake to % of remaining value 
-      max_dfe_doc1       = 0.2_dbl_kind ! max ratio of dFe to saccharides in the ice 
-                                         !(nM Fe/muM C)    
+      max_loss           = 0.9_dbl_kind ! restrict uptake to % of remaining value
+      max_dfe_doc1       = 0.2_dbl_kind ! max ratio of dFe to saccharides in the ice
+                                         !(nM Fe/muM C)
       fr_resp_s          = 0.75_dbl_kind ! DMSPd fraction of respiration loss as DMSPd
       y_sk_DMS           = p5            ! fraction conversion given high yield
       t_sk_conv          = 3.0_dbl_kind  ! Stefels conversion time (d)
@@ -1296,11 +1296,11 @@
       F_abs_chl_diatoms  = 2.0_dbl_kind  ! scales absorbed radiation for dEdd
       F_abs_chl_sp       = 4.0_dbl_kind
       F_abs_chl_phaeo    = 5.0
-      ratio_C2N_proteins = 7.0_dbl_kind  ! ratio of C to N in proteins (mol/mol)       
+      ratio_C2N_proteins = 7.0_dbl_kind  ! ratio of C to N in proteins (mol/mol)
 
       ! z salinity  parameters
-      grid_oS         = c5            ! for bottom flux         
-      l_skS           = 7.0_dbl_kind  ! characteristic diffusive scale (m)  
+      grid_oS         = c5            ! for bottom flux
+      l_skS           = 7.0_dbl_kind  ! characteristic diffusive scale (m)
 
       !-----------------------------------------------------------------
       ! read from input file
@@ -1333,10 +1333,10 @@
       ! broadcast
       !-----------------------------------------------------------------
 
-      call broadcast_scalar(solve_zsal,         master_task)  
-      call broadcast_scalar(restart_zsal,       master_task)  
+      call broadcast_scalar(solve_zsal,         master_task)
+      call broadcast_scalar(restart_zsal,       master_task)
       call broadcast_scalar(tr_brine,           master_task)
-      call broadcast_scalar(restart_hbrine,     master_task) 
+      call broadcast_scalar(restart_hbrine,     master_task)
 
       call broadcast_scalar(phi_snow,           master_task)
       call broadcast_scalar(grid_oS,            master_task)
@@ -1354,14 +1354,14 @@
       call broadcast_scalar(tr_bgc_Am,          master_task)
       call broadcast_scalar(tr_bgc_Sil,         master_task)
       call broadcast_scalar(tr_bgc_hum,         master_task)
-      call broadcast_scalar(tr_bgc_DMS,         master_task) 
-      call broadcast_scalar(tr_bgc_PON,         master_task) 
-      call broadcast_scalar(tr_bgc_DON,         master_task) 
-      call broadcast_scalar(tr_bgc_Fe,          master_task) 
+      call broadcast_scalar(tr_bgc_DMS,         master_task)
+      call broadcast_scalar(tr_bgc_PON,         master_task)
+      call broadcast_scalar(tr_bgc_DON,         master_task)
+      call broadcast_scalar(tr_bgc_Fe,          master_task)
 
       call broadcast_scalar(z_tracers,          master_task)
       call broadcast_scalar(tr_zaero,           master_task)
-      call broadcast_scalar(dEdd_algae,         master_task) 
+      call broadcast_scalar(dEdd_algae,         master_task)
       call broadcast_scalar(modal_aero,         master_task)
       call broadcast_scalar(optics_file,        master_task)
       call broadcast_scalar(optics_file_fieldname, master_task)
@@ -1395,31 +1395,31 @@
       call broadcast_scalar(chlabs_diatoms ,  master_task)
       call broadcast_scalar(chlabs_sp      ,  master_task)
       call broadcast_scalar(chlabs_phaeo     ,  master_task)
-      call broadcast_scalar(alpha2max_low_diatoms ,  master_task) 
+      call broadcast_scalar(alpha2max_low_diatoms ,  master_task)
       call broadcast_scalar(alpha2max_low_sp      ,  master_task)
       call broadcast_scalar(alpha2max_low_phaeo   ,  master_task)
-      call broadcast_scalar(beta2max_diatoms ,  master_task) 
-      call broadcast_scalar(beta2max_sp      ,  master_task) 
-      call broadcast_scalar(beta2max_phaeo   ,  master_task) 
-      call broadcast_scalar(mu_max_diatoms   ,  master_task) 
-      call broadcast_scalar(mu_max_sp        ,  master_task) 
-      call broadcast_scalar(mu_max_phaeo     ,  master_task) 
-      call broadcast_scalar(grow_Tdep_diatoms,  master_task) 
-      call broadcast_scalar(grow_Tdep_sp     ,  master_task) 
-      call broadcast_scalar(grow_Tdep_phaeo  ,  master_task) 
-      call broadcast_scalar(fr_graze_diatoms ,  master_task) 
-      call broadcast_scalar(fr_graze_sp      ,  master_task) 
-      call broadcast_scalar(fr_graze_phaeo   ,  master_task)  
-      call broadcast_scalar(mort_pre_diatoms ,  master_task) 
-      call broadcast_scalar(mort_pre_sp      ,  master_task)  
-      call broadcast_scalar(mort_pre_phaeo   ,  master_task)  
-      call broadcast_scalar(mort_Tdep_diatoms,  master_task) 
-      call broadcast_scalar(mort_Tdep_sp     ,  master_task)   
-      call broadcast_scalar(mort_Tdep_phaeo  ,  master_task)   
-      call broadcast_scalar(k_exude_diatoms  ,  master_task) 
-      call broadcast_scalar(k_exude_sp       ,  master_task)   
-      call broadcast_scalar(k_exude_phaeo    ,  master_task)   
-      call broadcast_scalar(K_Nit_diatoms    ,  master_task) 
+      call broadcast_scalar(beta2max_diatoms ,  master_task)
+      call broadcast_scalar(beta2max_sp      ,  master_task)
+      call broadcast_scalar(beta2max_phaeo   ,  master_task)
+      call broadcast_scalar(mu_max_diatoms   ,  master_task)
+      call broadcast_scalar(mu_max_sp        ,  master_task)
+      call broadcast_scalar(mu_max_phaeo     ,  master_task)
+      call broadcast_scalar(grow_Tdep_diatoms,  master_task)
+      call broadcast_scalar(grow_Tdep_sp     ,  master_task)
+      call broadcast_scalar(grow_Tdep_phaeo  ,  master_task)
+      call broadcast_scalar(fr_graze_diatoms ,  master_task)
+      call broadcast_scalar(fr_graze_sp      ,  master_task)
+      call broadcast_scalar(fr_graze_phaeo   ,  master_task)
+      call broadcast_scalar(mort_pre_diatoms ,  master_task)
+      call broadcast_scalar(mort_pre_sp      ,  master_task)
+      call broadcast_scalar(mort_pre_phaeo   ,  master_task)
+      call broadcast_scalar(mort_Tdep_diatoms,  master_task)
+      call broadcast_scalar(mort_Tdep_sp     ,  master_task)
+      call broadcast_scalar(mort_Tdep_phaeo  ,  master_task)
+      call broadcast_scalar(k_exude_diatoms  ,  master_task)
+      call broadcast_scalar(k_exude_sp       ,  master_task)
+      call broadcast_scalar(k_exude_phaeo    ,  master_task)
+      call broadcast_scalar(K_Nit_diatoms    ,  master_task)
       call broadcast_scalar(K_Nit_sp         ,  master_task)
       call broadcast_scalar(K_Nit_phaeo      ,  master_task)
       call broadcast_scalar(K_Am_diatoms     ,  master_task)
@@ -1435,17 +1435,17 @@
       call broadcast_scalar(kn_bac_protein   ,  master_task)
       call broadcast_scalar(f_don_Am_protein ,  master_task)
       call broadcast_scalar(f_doc_s          ,  master_task)
-      call broadcast_scalar(f_doc_l          ,  master_task)  
+      call broadcast_scalar(f_doc_l          ,  master_task)
       call broadcast_scalar(f_exude_s        ,  master_task)
       call broadcast_scalar(f_exude_l        ,  master_task)
-      call broadcast_scalar(k_bac_s          ,  master_task) 
+      call broadcast_scalar(k_bac_s          ,  master_task)
       call broadcast_scalar(k_bac_l          ,  master_task)
       call broadcast_scalar(T_max            ,  master_task)
       call broadcast_scalar(fsal             ,  master_task)
       call broadcast_scalar(op_dep_min       ,  master_task)
-      call broadcast_scalar(fr_graze_s       ,  master_task) 
-      call broadcast_scalar(fr_graze_e       ,  master_task) 
-      call broadcast_scalar(fr_mort2min      ,  master_task) 
+      call broadcast_scalar(fr_graze_s       ,  master_task)
+      call broadcast_scalar(fr_graze_e       ,  master_task)
+      call broadcast_scalar(fr_mort2min      ,  master_task)
       call broadcast_scalar(fr_dFe           ,  master_task)
       call broadcast_scalar(k_nitrif         ,  master_task)
       call broadcast_scalar(t_iron_conv      ,  master_task)
@@ -1453,18 +1453,18 @@
       call broadcast_scalar(max_dfe_doc1     ,  master_task)
       call broadcast_scalar(fr_resp_s        ,  master_task)
       call broadcast_scalar(y_sk_DMS         ,  master_task)
-      call broadcast_scalar(t_sk_conv        ,  master_task) 
+      call broadcast_scalar(t_sk_conv        ,  master_task)
       call broadcast_scalar(t_sk_ox          ,  master_task)
       call broadcast_scalar(algaltype_diatoms,  master_task)
-      call broadcast_scalar(algaltype_sp       ,  master_task) 
-      call broadcast_scalar(algaltype_phaeo    ,  master_task) 
+      call broadcast_scalar(algaltype_sp       ,  master_task)
+      call broadcast_scalar(algaltype_phaeo    ,  master_task)
       call broadcast_scalar(nitratetype        ,  master_task)
       call broadcast_scalar(ammoniumtype       ,  master_task)
       call broadcast_scalar(silicatetype       ,  master_task)
-      call broadcast_scalar(dmspptype          ,  master_task)  
-      call broadcast_scalar(dmspdtype          ,  master_task) 
+      call broadcast_scalar(dmspptype          ,  master_task)
+      call broadcast_scalar(dmspdtype          ,  master_task)
       call broadcast_scalar(humtype            ,  master_task)
-      call broadcast_scalar(doctype_s          ,  master_task) 
+      call broadcast_scalar(doctype_s          ,  master_task)
       call broadcast_scalar(doctype_l          ,  master_task)
       call broadcast_scalar(dontype_protein    ,  master_task)
       call broadcast_scalar(fedtype_1          ,  master_task)
@@ -1484,7 +1484,7 @@
       call broadcast_scalar(F_abs_chl_diatoms  ,  master_task)
       call broadcast_scalar(F_abs_chl_sp       ,  master_task)
       call broadcast_scalar(F_abs_chl_phaeo    ,  master_task)
-      call broadcast_scalar(ratio_C2N_proteins ,  master_task) 
+      call broadcast_scalar(ratio_C2N_proteins ,  master_task)
 
       !-----------------------------------------------------------------
       ! zsalinity and brine
@@ -1503,7 +1503,7 @@
             write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
          endif
          abort_flag = 101
-      endif 
+      endif
 
       if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
          if (my_task == master_task) then
@@ -1517,7 +1517,7 @@
             write(nu_diag,*) subname,' ERROR: tr_brine=T but no biology layers compiled'
          endif
          abort_flag = 103
-      endif 
+      endif
 
       !-----------------------------------------------------------------
       ! biogeochemistry
@@ -1552,14 +1552,14 @@
          abort_flag = 107
       endif
 
-      if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then 
+      if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd'
          endif
          abort_flag = 108
       endif
 
-      if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then 
+      if (dEdd_algae .AND. (.NOT. tr_bgc_N) .AND. (.NOT. tr_zaero)) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: need tr_bgc_N or tr_zaero for dEdd_algae'
          endif
@@ -1572,8 +1572,8 @@
          endif
          abort_flag = 110
       endif
-         
-      if (modal_aero .AND. trim(shortwave) /= 'dEdd') then 
+
+      if (modal_aero .AND. trim(shortwave) /= 'dEdd') then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd'
          endif
@@ -1889,7 +1889,7 @@
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
           tr_bgc_hum
- 
+
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers
 
@@ -1971,7 +1971,7 @@
               nt_ipnd = ntrcr      ! on level-ice ponds (if frzpnd='hlid')
           endif
           if (tr_pond_topo) then
-              ntrcr = ntrcr + 1    ! 
+              ntrcr = ntrcr + 1    !
               nt_ipnd = ntrcr      ! refrozen pond ice lid thickness
           endif
       endif
@@ -2014,7 +2014,7 @@
 !tcx, modify code so we don't have to reset n_aero here
           n_aero = 0       !echmod - this is not getting set correctly (overwritten later?)
       endif
-              
+
       !-----------------------------------------------------------------
       ! initialize zbgc tracer indices
       !-----------------------------------------------------------------
@@ -2755,7 +2755,7 @@
       if (skl_bgc .or. z_tracers) then
 
       if (tr_bgc_N) then
-         do mm = 1, n_algae      
+         do mm = 1, n_algae
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_N(mm),    nlt_bgc_N(mm), &
                                algaltype(mm),   nt_depend,     &
@@ -2775,14 +2775,14 @@
                                nt_strata,       bio_index)
             bio_index_o(nlt_bgc_Nit) = icepack_max_algae + 1
       endif ! tr_bgc_Nit
-         
+
       if (tr_bgc_C) then
        !
        ! Algal C is not yet distinct from algal N
        ! * Reqires exudation and/or changing C:N ratios
        ! for implementation
        !
-       !  do mm = 1,n_algae      
+       !  do mm = 1,n_algae
        !     call init_bgc_trcr(nk,              nt_fbri,       &
        !                        nt_bgc_C(mm),    nlt_bgc_C(mm), &
        !                        algaltype(mm),   nt_depend,     &
@@ -2832,7 +2832,7 @@
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
             bio_index_o(nlt_bgc_Am) = 2*icepack_max_algae + icepack_max_doc + icepack_max_dic + 2
-      endif    
+      endif
       if (tr_bgc_Sil) then
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_Sil,      nlt_bgc_Sil,   &
@@ -2841,7 +2841,7 @@
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
             bio_index_o(nlt_bgc_Sil) = 2*icepack_max_algae + icepack_max_doc + icepack_max_dic + 3
-      endif    
+      endif
       if (tr_bgc_DMS) then   ! all together
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_DMSPp,    nlt_bgc_DMSPp, &
@@ -2866,7 +2866,7 @@
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
             bio_index_o(nlt_bgc_DMS) = 2*icepack_max_algae + icepack_max_doc + icepack_max_dic + 6
-      endif    
+      endif
       if (tr_bgc_PON) then
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_PON,      nlt_bgc_PON, &
@@ -2908,8 +2908,8 @@
             bio_index_o(nlt_bgc_Fep(mm)) = 2*icepack_max_algae + icepack_max_doc + icepack_max_dic &
                                          + icepack_max_don + icepack_max_fe + 7 + mm
          enddo   ! mm
-      endif      ! tr_bgc_Fe 
-  
+      endif      ! tr_bgc_Fe
+
       if (tr_bgc_hum) then
             call init_bgc_trcr(nk,              nt_fbri,       &
                                nt_bgc_hum,      nlt_bgc_hum,   &
@@ -2918,7 +2918,7 @@
                                trcr_base,       n_trcr_strata, &
                                nt_strata,       bio_index)
             bio_index_o(nlt_bgc_hum) =   2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic &
-                                         + icepack_max_don + 2*icepack_max_fe + icepack_max_aero 
+                                         + icepack_max_don + 2*icepack_max_fe + icepack_max_aero
       endif
       endif  ! skl_bgc or z_tracers
 
@@ -2942,7 +2942,7 @@
                           ! and 2 snow layers (snow surface + interior)
 
          nk = nblyr + 1
-         nt_depend = 2 + nt_fbri + ntd 
+         nt_depend = 2 + nt_fbri + ntd
 
          ! z layer aerosols
          if (tr_zaero) then
@@ -2963,15 +2963,15 @@
          endif      ! tr_zaero
 
          if (nbtrcr > 0) then
-            do k = 1,nbtrcr 
-               zbgc_frac_init(k) = c1   
-               trcr_depend(nt_zbgc_frac+k-1) =  2+nt_fbri 
+            do k = 1,nbtrcr
+               zbgc_frac_init(k) = c1
+               trcr_depend(nt_zbgc_frac+k-1) =  2+nt_fbri
                trcr_base(nt_zbgc_frac+ k - 1,1)  = c0
                trcr_base(nt_zbgc_frac+ k - 1,2)  = c1
                trcr_base(nt_zbgc_frac+ k - 1,3)  = c0
-               n_trcr_strata(nt_zbgc_frac+ k - 1)= 1  
+               n_trcr_strata(nt_zbgc_frac+ k - 1)= 1
                nt_strata(nt_zbgc_frac+ k - 1,1)  = nt_fbri
-               nt_strata(nt_zbgc_frac+ k - 1,2)  = 0 
+               nt_strata(nt_zbgc_frac+ k - 1,2)  = 0
                tau_ret(k) = c1
                tau_rel(k) = c1
                if (bgc_tracer_type(k) >=  c0 .and. bgc_tracer_type(k) < p5) then
@@ -2999,7 +2999,7 @@
       do k = 1, nbtrcr
          zbgc_init_frac(k) = frazil_scav
          if (bgc_tracer_type(k) < c0)  zbgc_init_frac(k) = initbio_frac
-      enddo  
+      enddo
 
       !-----------------------------------------------------------------
       ! set values in icepack
@@ -3016,7 +3016,7 @@
 
       !-----------------------------------------------------------------
       ! final consistency checks
-      !----------------------------------------------------------------- 
+      !-----------------------------------------------------------------
       if (nbtrcr > icepack_max_nbtrcr) then
          write (nu_diag,*) subname,' '
          write (nu_diag,*) subname,'nbtrcr > icepack_max_nbtrcr'
@@ -3037,13 +3037,13 @@
 
          write(nu_diag,1020) ' number of bio tracers     = ', nbtrcr
          write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
-        
+
       elseif (z_tracers) then
-         
+
          write(nu_diag,1020) ' number of ztracers        = ', nbtrcr
          write(nu_diag,1020) ' number of Isw tracers     = ', nbtrcr_sw
          write(nu_diag,1000) ' initbio_frac              = ', initbio_frac
-         write(nu_diag,1000) ' frazil_scav               = ', frazil_scav  
+         write(nu_diag,1000) ' frazil_scav               = ', frazil_scav
 
       endif  ! skl_bgc or solve_bgc
       endif  ! master_task
@@ -3092,7 +3092,7 @@
       integer (kind=int_kind) :: &
          k         , & ! loop index
          n_strata  , & ! temporary values
-         nt_strata1, & ! 
+         nt_strata1, & !
          nt_strata2
 
       real (kind=dbl_kind) :: &
@@ -3105,7 +3105,7 @@
       !--------
 
       bgc_tracer_type(nlt_bgc) = bgctype
-         
+
       if (nk > 1) then ! include vertical bgc in snow
          do k = nk, nk+1
             trcr_depend  (nt_bgc + k  ) = 2 ! snow volume
@@ -3117,10 +3117,10 @@
             nt_strata    (nt_bgc + k,2) = 0
          enddo
 
-         trcr_base1 = c0      
-         trcr_base2 = c1     
+         trcr_base1 = c0
+         trcr_base2 = c1
          trcr_base3 = c0
-         n_strata = 1    
+         n_strata = 1
          nt_strata1 = nt_fbri
          nt_strata2 = 0
       else  ! nk = 1

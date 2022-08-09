@@ -176,11 +176,11 @@
       if (icepack_warnings_aborted()) call abort_ice(subname, &
           file=__FILE__,line= __LINE__)
 
-      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
+      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical
                                                    !property tables
 
-      ! Initialize shortwave components using swdn from previous timestep 
-      ! if restarting. These components will be scaled to current forcing 
+      ! Initialize shortwave components using swdn from previous timestep
+      ! if restarting. These components will be scaled to current forcing
       ! in prep_radiation.
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
@@ -215,7 +215,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-      if (write_ic) call accum_hist(dt) ! write initial conditions 
+      if (write_ic) call accum_hist(dt) ! write initial conditions
 
       end subroutine cice_init
 
@@ -297,7 +297,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (trim(runtype) == 'continue') then 
+      if (trim(runtype) == 'continue') then
          ! start from core restart file
          call restartfile()           ! given by pointer in ice_in
          call calendar()              ! update time parameters
@@ -308,17 +308,17 @@
          ! call restartfile_v4 (ice_ic)  ! CICE v4.1 binary restart file
          !!! uncomment if EAP restart data exists
          ! if (kdyn == 2) call read_restart_eap
-      endif         
+      endif
 
       ! tracers
-      ! ice age tracer   
-      if (tr_iage) then 
+      ! ice age tracer
+      if (tr_iage) then
          if (trim(runtype) == 'continue') &
               restart_age = .true.
          if (restart_age) then
             call read_restart_age
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_age(trcrn(:,:,nt_iage,:,iblk))
             enddo ! iblk
          endif
@@ -329,7 +329,7 @@
          if (restart_FY) then
             call read_restart_FY
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_FY(trcrn(:,:,nt_FY,:,iblk))
             enddo ! iblk
          endif
@@ -340,7 +340,7 @@
          if (restart_lvl) then
             call read_restart_lvl
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
             enddo ! iblk
@@ -354,7 +354,7 @@
          if (restart_pond_cesm) then
             call read_restart_pond_cesm
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_meltponds_cesm(trcrn(:,:,nt_apnd,:,iblk), &
                                         trcrn(:,:,nt_hpnd,:,iblk))
             enddo ! iblk
@@ -368,7 +368,7 @@
          if (restart_pond_lvl) then
             call read_restart_pond_lvl
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_meltponds_lvl(trcrn(:,:,nt_apnd,:,iblk), &
                                        trcrn(:,:,nt_hpnd,:,iblk), &
                                        trcrn(:,:,nt_ipnd,:,iblk), &
@@ -383,7 +383,7 @@
          if (restart_pond_topo) then
             call read_restart_pond_topo
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_meltponds_topo(trcrn(:,:,nt_apnd,:,iblk), &
                                         trcrn(:,:,nt_hpnd,:,iblk), &
                                         trcrn(:,:,nt_ipnd,:,iblk))
@@ -404,7 +404,7 @@
          if (restart_aero) then
             call read_restart_aero
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_aerosol(trcrn(:,:,nt_aero:nt_aero+4*n_aero-1,:,iblk))
             enddo ! iblk
          endif ! .not. restart_aero

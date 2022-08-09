@@ -79,7 +79,7 @@
        distribution_type,   &! method to use for distributing blocks
                              ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
                              ! 'rake', 'spacecurve', etc
-       distribution_wght     ! method for weighting work per block 
+       distribution_wght     ! method for weighting work per block
                              ! 'block' = POP default configuration
                              ! 'blockall' = no land block elimination
                              ! 'latitude' = no. ocean points * |lat|
@@ -358,7 +358,7 @@
 !
 !  check that there are at least nghost+1 rows or columns of land cells
 !  for closed boundary conditions (otherwise grid lengths are zero in
-!  cells neighboring ocean points).  
+!  cells neighboring ocean points).
 !
 !----------------------------------------------------------------------
 
@@ -527,12 +527,12 @@
                              KMTG(igm1,jg  ) > puny .or. KMTG(igp1,jg  ) > puny .or. &
                              KMTG(ig  ,jgp1) > puny .or. KMTG(ig  ,jgm1) > puny) .and. &
                             (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
-                             ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
+                             ULATG(ig,jg) > nhlat/rad_to_deg) )            &
                              nocn(n) = nocn(n) + flat(ig,jg)
                      else
                         if (KMTG(ig,jg) > puny .and.                      &
                            (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
-                            ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
+                            ULATG(ig,jg) > nhlat/rad_to_deg) )            &
                              nocn(n) = nocn(n) + flat(ig,jg)
                      endif
                   endif
@@ -544,7 +544,7 @@
          !*** points, so where the block is not completely land,
          !*** reset nocn to be the full size of the block
 
-         ! use processor_shape = 'square-pop' and distribution_wght = 'block' 
+         ! use processor_shape = 'square-pop' and distribution_wght = 'block'
          ! to make CICE and POP decompositions/distributions identical.
 
 #ifdef CICE_IN_NEMO

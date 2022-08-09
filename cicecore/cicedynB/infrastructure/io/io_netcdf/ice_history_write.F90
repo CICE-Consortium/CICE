@@ -9,7 +9,7 @@
 !         Elizabeth C. Hunke and William H. Lipscomb, LANL
 !         C. M. Bitz, UW
 !
-! 2004 WHL: Block structure added 
+! 2004 WHL: Block structure added
 ! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Added ice_present, aicen, vicen; removed aice1...10, vice1...1.
 !           Added histfreq_n and histfreq='h' options, removed histfreq='w'
@@ -30,7 +30,7 @@
       implicit none
       private
       public :: ice_write_hist
-      
+
 !=======================================================================
 
       contains
@@ -447,7 +447,7 @@
           dimidex(4)=kmtidb
           dimidex(5)=kmtida
           dimidex(6)=fmtid
-        
+
         do i = 1, nvar_grdz
            if (igrdz(i)) then
              status = nf90_def_var(ncid, var_grdz(i)%short_name, &
@@ -782,7 +782,7 @@
               work1 = ELAT*rad_to_deg
               call gather_global(work_g1,work1,master_task,distrb_info)
           END SELECT
-          
+
           if (my_task == master_task) then
              status = nf90_inq_varid(ncid, var_coord(i)%short_name, varid)
              if (status /= nf90_noerr) call abort_ice(subname// &
@@ -903,7 +903,7 @@
         call broadcast_scalar(var_nverts(i)%short_name,master_task)
         SELECT CASE (var_nverts(i)%short_name)
         CASE ('lont_bounds')
-        do ivertex = 1, nverts 
+        do ivertex = 1, nverts
            work1(:,:,:) = lont_bounds(ivertex,:,:,:)
            call gather_global(work_g1, work1, master_task, distrb_info)
            if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)

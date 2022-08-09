@@ -1896,7 +1896,7 @@
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         
+
          shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
                     + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
                     + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &

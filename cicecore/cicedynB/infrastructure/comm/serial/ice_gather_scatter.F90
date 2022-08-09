@@ -346,7 +346,7 @@
 
    real (dbl_kind), optional :: &
      spc_val
-     
+
    real (dbl_kind), dimension(:,:), intent(inout) :: &
      ARRAY_G    ! array containing global horizontal field on dst_task
 
@@ -504,7 +504,7 @@
 
    integer (int_kind), optional :: &
      spc_val
-     
+
    integer (int_kind), dimension(:,:), intent(inout) :: &
      ARRAY_G    ! array containing global horizontal field on dst_task
 
@@ -662,7 +662,7 @@
 
    logical (log_kind), optional :: &
      spc_val
-     
+
    logical (log_kind), dimension(:,:), intent(inout) :: &
      ARRAY_G    ! array containing global horizontal field on dst_task
 
@@ -1581,7 +1581,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  initialize return array to zero 
+!  initialize return array to zero
 !
 !-----------------------------------------------------------------------
 
@@ -1754,10 +1754,10 @@
 
    this_block = get_block(1,1) ! for the tripoleTflag - all blocks have it
    if (this_block%tripoleTFlag) then
-     xoffset = 2  ! treat stresses as cell-centered scalars (they are not 
+     xoffset = 2  ! treat stresses as cell-centered scalars (they are not
      yoffset = 0  ! shared with neighboring grid cells)
    else
-     xoffset = 1  ! treat stresses as cell-centered scalars (they are not 
+     xoffset = 1  ! treat stresses as cell-centered scalars (they are not
      yoffset = 1  ! shared with neighboring grid cells)
    endif
    isign   = 1

@@ -53,7 +53,7 @@
       real (kind=dbl_kind), parameter :: &
          umax_stab   = 1.0_dbl_kind , & ! ice speed threshold for instability (m/s)
          aice_extmin = 0.15_dbl_kind    ! min aice value for ice extent calc
- 
+
       real (kind=dbl_kind), dimension(npnt), public :: &
          latpnt           , & !  latitude of diagnostic points
          lonpnt               ! longitude of diagnostic points
@@ -163,7 +163,7 @@
          etotn,   mtotn,   micen,     msnwn,   pmaxn,  ketotn, &
          etots,   mtots,   mices,     msnws,   pmaxs,  ketots, &
          urmsn,   albtotn, arean_alb, mpndn,   ptotn,  spondn, &
-         urmss,   albtots, areas_alb, mpnds,   ptots,  sponds 
+         urmss,   albtots, areas_alb, mpnds,   ptots,  sponds
 
       ! hemispheric flux quantities
       real (kind=dbl_kind) :: &
@@ -191,7 +191,7 @@
 
       ! fields at diagnostic points
       real (kind=dbl_kind), dimension(npnt) :: &
-         paice, pTair, pQa, pfsnow, pfrain, pfsw, pflw, & 
+         paice, pTair, pQa, pfsnow, pfrain, pfsw, pflw, &
          pTsfc, pevap, pfswabs, pflwout, pflat, pfsens, &
          pfsurf, pfcondtop, psst, psss, pTf, hiavg, hsavg, hbravg, &
          pfhocn, psalt, fsdavg, &
@@ -202,7 +202,7 @@
          work1, work2
 
       real (kind=dbl_kind), parameter :: &
-         maxval_spval = -0.9_dbl_kind*HUGE(0.0_dbl_kind)  ! spval to detect 
+         maxval_spval = -0.9_dbl_kind*HUGE(0.0_dbl_kind)  ! spval to detect
                  ! undefined values returned from global_maxval.  if global_maxval
                  ! is applied to a region that does not exist (for instance
                  ! southern hemisphere in box cases), global_maxval
@@ -290,7 +290,7 @@
             do n = 1, ncat
                work1(i,j,iblk) = work1(i,j,iblk)  &
                                + aicen(i,j,n,iblk) &
-                               * trcrn(i,j,nt_apnd,n,iblk) & 
+                               * trcrn(i,j,nt_apnd,n,iblk) &
                                * trcrn(i,j,nt_hpnd,n,iblk)
             enddo
          enddo
@@ -369,8 +369,8 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
-      
-      arean_alb = global_sum(aice, distrb_info, field_loc_center, work2)      
+
+      arean_alb = global_sum(aice, distrb_info, field_loc_center, work2)
 
       albtotn = global_sum_prod(aice, work1, distrb_info, &
                                 field_loc_center, work2)
@@ -395,7 +395,7 @@
       enddo
       !$OMP END PARALLEL DO
 
-      areas_alb = global_sum(aice, distrb_info, field_loc_center, work2)      
+      areas_alb = global_sum(aice, distrb_info, field_loc_center, work2)
 
       albtots = global_sum_prod(aice, work1, distrb_info, &
                                 field_loc_center, work2)
@@ -506,7 +506,7 @@
       if (pmaxs < maxval_spval) pmaxs = c0
 
       pmaxn = pmaxn / c1000   ! convert to kN/m
-      pmaxs = pmaxs / c1000 
+      pmaxs = pmaxs / c1000
 
       if (print_global) then
 
@@ -617,14 +617,14 @@
             enddo
             !$OMP END PARALLEL DO
 
-         else   ! fsurf is computed by atmosphere model 
+         else   ! fsurf is computed by atmosphere model
 
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
                   work1(i,j,iblk) = &
-                             (fsurf(i,j,iblk) - flat(i,j,iblk)) & 
+                             (fsurf(i,j,iblk) - flat(i,j,iblk)) &
                               * aice(i,j,iblk)
                enddo
                enddo
@@ -639,7 +639,7 @@
                              field_loc_center, tarean)
          fhatms = global_sum(work1, distrb_info, &
                              field_loc_center, tareas)
-  
+
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
@@ -741,7 +741,7 @@
          ! total ice, snow and pond mass
          mtotn = micen + msnwn + mpndn
          mtots = mices + msnws + mpnds
-  
+
          ! mass change since beginning of time step
          delmin = mtotn - totmn
          delmis = mtots - totms
@@ -760,14 +760,14 @@
          fluxs  = c0
          if( arean > c0) then
            ! water associated with frazil ice included in fresh
-           fluxn = rnn + snn + evpn - sfreshn 
+           fluxn = rnn + snn + evpn - sfreshn
            if (.not. update_ocn_f) then
              fluxn = fluxn + frzn
            endif
          endif
          if( areas > c0) then
            ! water associated with frazil ice included in fresh
-           fluxs = rns + sns + evps - sfreshs 
+           fluxs = rns + sns + evps - sfreshs
            if (.not. update_ocn_f) then
              fluxs = fluxs + frzs
            endif
@@ -933,7 +933,7 @@
                pfsw(n) = fsw(i,j,iblk)             ! shortwave radiation
                pflw(n) = flw(i,j,iblk)             ! longwave radiation
                paice(n) = aice(i,j,iblk)           ! ice area
-               
+
                fsdavg(n) = c0                      ! avg floe effective radius
                hiavg(n) = c0                       ! avg snow/ice thickness
                hsavg(n) = c0
@@ -998,7 +998,7 @@
                pcongel(n) = congel(i,j,iblk)       ! congelation ice
                pdhi(n) = vice(i,j,iblk) - pdhi(n)  ! ice thickness change
                pdhs(n) = vsno(i,j,iblk) - pdhs(n)  ! snow thickness change
-               pde(n) =-(work1(i,j,iblk)- pde(n))/dt ! ice/snow energy change 
+               pde(n) =-(work1(i,j,iblk)- pde(n))/dt ! ice/snow energy change
                psst(n) = sst(i,j,iblk)             ! sea surface temperature
                psss(n) = sss(i,j,iblk)             ! sea surface salinity
                pTf(n) = Tf(i,j,iblk)               ! freezing temperature
@@ -1045,7 +1045,7 @@
             call broadcast_scalar(psss     (n), pmloc(n))
             call broadcast_scalar(pTf      (n), pmloc(n))
             call broadcast_scalar(pfhocn   (n), pmloc(n))
-            
+
          enddo                  ! npnt
       endif                     ! print_points
 
@@ -1093,7 +1093,7 @@
          write(nu_diag,901) 'arwt snw mass (kg)     = ',msnwn,msnws
          if (tr_pond_topo) &
          write(nu_diag,901) 'arwt pnd mass (kg)     = ',mpndn,mpnds
- 
+
          write(nu_diag,901) 'arwt tot mass (kg)     = ',mtotn,mtots
          write(nu_diag,901) 'arwt tot mass chng(kg) = ',delmin,delmis
          write(nu_diag,901) 'arwt water flux        = ',fluxn,fluxs
@@ -1383,7 +1383,7 @@
             do n = 1, ncat
                work1(i,j,iblk) = work1(i,j,iblk)  &
                                + aicen(i,j,n,iblk) &
-                               * trcrn(i,j,nt_apnd,n,iblk) & 
+                               * trcrn(i,j,nt_apnd,n,iblk) &
                                * trcrn(i,j,nt_hpnd,n,iblk)
             enddo
          enddo
@@ -1617,7 +1617,7 @@
          plat(:)  = -999._dbl_kind
          plon(:)  = -999._dbl_kind
 
-         ! find minimum distance to diagnostic points on this processor 
+         ! find minimum distance to diagnostic points on this processor
          do n = 1, npnt
             if (lonpnt(n) > c180) lonpnt(n) = lonpnt(n) - c360
 
@@ -1632,7 +1632,7 @@
             ! This is computing closest point, Could add a CRITICAL but it's just initialization
             !!$XXXOMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,latdis,londis,totdis)
             do iblk = 1, nblocks
-               this_block = get_block(blocks_ice(iblk),iblk)         
+               this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
                ihi = this_block%ihi
                jlo = this_block%jlo
@@ -1659,7 +1659,7 @@
 
             endif
 
-            ! find global minimum distance to diagnostic points 
+            ! find global minimum distance to diagnostic points
             mindis_g = global_minval(mindis, distrb_info)
 
             ! save indices of minimum-distance grid cell
@@ -1705,7 +1705,7 @@
       character (char_len), intent(in) :: plabeld
       integer (kind=int_kind), intent(in) :: iblk
 
-      ! local 
+      ! local
       character(len=*), parameter :: subname='(debug_ice)'
 
       if (istep1 >= debug_model_step) then
@@ -1754,7 +1754,7 @@
 
       character (len=20), intent(in) :: plabel
 
-      integer (kind=int_kind), intent(in) :: & 
+      integer (kind=int_kind), intent(in) :: &
           i, j       , & ! horizontal indices
           iblk           ! block index
 
@@ -1788,14 +1788,14 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
 
       write(nu_diag,*) subname,' ',trim(plabel)
       write(nu_diag,*) subname,' istep1, my_task, i, j, iblk:', &
                         istep1, my_task, i, j, iblk
       write(nu_diag,*) subname,' Global i and j:', &
                         this_block%i_glob(i), &
-                        this_block%j_glob(j) 
+                        this_block%j_glob(j)
       write (nu_diag,*) subname,' Lat, Lon (degrees):', &
                         TLAT(i,j,iblk)*rad_to_deg, &
                         TLON(i,j,iblk)*rad_to_deg
@@ -1970,7 +1970,7 @@
          i = piloc(m)
          j = pjloc(m)
          iblk = pbloc(m)
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
 
          if (present(ilabel)) then
             write(llabel,'(i6,a1,i3,a1)') ilabel,':',m,':'
@@ -1988,7 +1988,7 @@
                            istep1, my_task, i, j, iblk
          write(nu_diag,*) trim(llabel),'Global i and j=', &
                            this_block%i_glob(i), &
-                           this_block%j_glob(j) 
+                           this_block%j_glob(j)
          write(nu_diag,*) trim(llabel),'aice0=', aice0(i,j,iblk)
 
       do n = 1, ncat
@@ -2109,7 +2109,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
 
       call flush_fileunit(nu_diag)
       if (istop > 0 .and. jstop > 0) then
@@ -2120,7 +2120,7 @@
          write (nu_diag,*) subname,' Global block:', this_block%block_id
          write (nu_diag,*) subname,' Global i and j:', &
                              this_block%i_glob(istop), &
-                             this_block%j_glob(jstop) 
+                             this_block%j_glob(jstop)
          write (nu_diag,*) subname,' Lat, Lon (degrees):', &
                             TLAT(istop,jstop,iblk)*rad_to_deg, &
                             TLON(istop,jstop,iblk)*rad_to_deg

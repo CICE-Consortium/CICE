@@ -1,7 +1,7 @@
 !=======================================================================
 
 ! 2013 module for form drag parameters
-! authors Michel Tsamados, David Schroeder, CPOM 
+! authors Michel Tsamados, David Schroeder, CPOM
 
       module ice_history_drag
 
@@ -17,7 +17,7 @@
       implicit none
       private
       public :: accum_hist_drag, init_hist_drag_2D
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -31,7 +31,7 @@
       !---------------------------------------------------------------
 
       namelist / icefields_drag_nml /     &
-           f_Cdn_atm,        f_Cdn_ocn       , & 
+           f_Cdn_atm,        f_Cdn_ocn       , &
            f_drag
 
       !---------------------------------------------------------------
@@ -47,7 +47,7 @@
            n_Cdn_atm_skin   , n_Cdn_atm_floe,  &
            n_Cdn_atm_pond   , n_Cdn_atm_rdg,  &
            n_Cdn_ocn_skin   , n_Cdn_ocn_floe,   &
-           n_Cdn_ocn_keel   , n_Cdn_atm_ratio    
+           n_Cdn_ocn_keel   , n_Cdn_atm_ratio
 
 !=======================================================================
 
@@ -124,43 +124,43 @@
             "hdraft: draught",                           &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_hridge,"hridge","m",tstr2D, tcstr, &
             "hridge: ridge height",                          &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_distrdg,"distrdg","m",tstr2D, tcstr, &
             "distrdg: distance between ridges",  &
             "none", c1, c0,            &
-            ns, f_drag)            
+            ns, f_drag)
 
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_hkeel,"hkeel","m",tstr2D, tcstr, &
             "hkeel: keel depth",                           &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_dkeel,"dkeel","m",tstr2D, tcstr, &
             "dkeel: distance between keels", &
             "none", c1, c0,            &
-            ns, f_drag)            
+            ns, f_drag)
 
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_lfloe,"lfloe","m",tstr2D, tcstr, &
             "lfloe: floe length",         &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_dfloe,"dfloe","m",tstr2D, tcstr, &
             "dfloe: distance between floes", &
             "none", c1, c0,            &
-            ns, f_drag)   
-  
+            ns, f_drag)
+
        if (f_Cdn_atm(1:1) /= 'x') &
          call define_hist_field(n_Cdn_atm,"Cdn_atm","none",tstr2D, tcstr, &
             "Ca: total ice-atm drag coefficient", &
@@ -172,49 +172,49 @@
             "Cdn_ocn: total ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_Cdn_ocn)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_atm_skin,"Cdn_atm_skin","none", &
             tstr2D, tcstr, &
             "Cdn_atm_skin: neutral skin ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_atm_floe,"Cdn_atm_floe","none", &
             tstr2D, tcstr, &
             "Cdn_atm_floe: neutral floe edge ice-atm drag coefficient", &
             "none", c1, c0,            &
-            ns, f_drag)            
- 
+            ns, f_drag)
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_atm_pond,"Cdn_atm_pond","none", &
             tstr2D, tcstr, &
             "Cdn_atm_pond: neutral pond edge ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
-            
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_atm_rdg,"Cdn_atm_rdg","none", &
             tstr2D, tcstr, &
             "Cdn_atm_rdg: neutral ridge ice-atm drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
-            
+
         if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_ocn_skin,"Cdn_ocn_skin","none", &
             tstr2D, tcstr, &
             "Cdn_ocn_skin: neutral skin ice-ocn drag coefficient", &
             "none", c1, c0,            &
             ns, f_drag)
- 
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_ocn_floe,"Cdn_ocn_floe","none", &
             tstr2D, tcstr, &
             "Cdn_ocn_floe: neutral floe edge ice-ocn drag coefficient", &
             "none", c1, c0,            &
-            ns, f_drag)            
- 
+            ns, f_drag)
+
        if (f_drag(1:1) /= 'x') &
          call define_hist_field(n_Cdn_ocn_keel,"Cdn_ocn_keel","none", &
             tstr2D, tcstr, &
@@ -281,21 +281,21 @@
         call accum_hist_field(n_lfloe, iblk, lfloe(:,:,iblk), a2D)
         call accum_hist_field(n_dfloe, iblk, dfloe(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_atm_rdg, &
-                              iblk, Cdn_atm_rdg(:,:,iblk), a2D)   
+                              iblk, Cdn_atm_rdg(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_atm_floe, &
                               iblk, Cdn_atm_floe(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_atm_pond, &
                               iblk, Cdn_atm_pond(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_atm_skin, &
-                              iblk, Cdn_atm_skin(:,:,iblk), a2D)   
+                              iblk, Cdn_atm_skin(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_atm_ratio, &
                               iblk, Cdn_atm_ratio(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_ocn_keel, &
-                              iblk, Cdn_ocn_keel(:,:,iblk), a2D)  
+                              iblk, Cdn_ocn_keel(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_ocn_floe, &
                               iblk, Cdn_ocn_floe(:,:,iblk), a2D)
         call accum_hist_field(n_Cdn_ocn_skin, &
-                              iblk, Cdn_ocn_skin(:,:,iblk), a2D)  
+                              iblk, Cdn_ocn_skin(:,:,iblk), a2D)
       end if
 
       endif ! if(allocated(a2D))

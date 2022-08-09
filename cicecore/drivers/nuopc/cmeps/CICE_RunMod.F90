@@ -231,7 +231,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                if (debug_model) then
                   plabeld = 'post step_therm1'
@@ -401,7 +401,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
-    
+
 !=======================================================================
 !
 ! Prepare for coupling
@@ -634,7 +634,7 @@
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk),         &
                             Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
- 
+
       !-----------------------------------------------------------------
       ! Define ice-ocean bgc fluxes
       !-----------------------------------------------------------------
@@ -710,7 +710,7 @@
       ! local variables
       integer (kind=int_kind) :: &
           i, j, n    ! horizontal indices
-      
+
       real (kind=dbl_kind)    :: &
           puny, &          !
           Lsub, &          !

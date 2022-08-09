@@ -17,7 +17,7 @@
       use ice_fileunits, only: nu_dump_lvl, nu_dump_pond, nu_dump_hbrine
       use ice_fileunits, only: nu_dump_iso, nu_dump_snow
       use ice_fileunits, only: nu_dump_bgc, nu_dump_aero, nu_dump_fsd
-      use ice_fileunits, only: nu_restart, nu_restart_eap, nu_restart_FY, nu_restart_age 
+      use ice_fileunits, only: nu_restart, nu_restart_eap, nu_restart_FY, nu_restart_age
       use ice_fileunits, only: nu_restart_lvl, nu_restart_pond, nu_restart_hbrine
       use ice_fileunits, only: nu_restart_bgc, nu_restart_aero, nu_restart_fsd
       use ice_fileunits, only: nu_restart_iso, nu_restart_snow
@@ -98,7 +98,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -131,7 +131,7 @@
       call broadcast_scalar(time_forc,master_task)
       call broadcast_scalar(myear,master_task)
       call set_date_from_timesecs(timesecs)
-      
+
       istep1 = istep0
 
       ! Supplemental restart files
@@ -464,7 +464,7 @@
               restart_file(1:lenstr(restart_file)),'.', &
               myear,'-',mmonth,'-',mday,'-',msec
       end if
-        
+
       ! write pointer (path/file)
       if (my_task == master_task) then
          open(nu_rst_pointer,file=pointer_file)
@@ -809,7 +809,7 @@
          endif
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.

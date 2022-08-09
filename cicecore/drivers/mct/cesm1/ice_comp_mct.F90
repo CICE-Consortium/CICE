@@ -53,7 +53,7 @@ module ice_comp_mct
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
-  use ice_boundary,    only : ice_HaloUpdate 
+  use ice_boundary,    only : ice_HaloUpdate
   use ice_scam,        only : scmlat, scmlon, single_column
   use ice_fileunits,   only : nu_diag, inst_index, inst_name, inst_suffix, &
                               release_all_fileunits
@@ -90,7 +90,7 @@ module ice_comp_mct
 !
 ! !PRIVATE VARIABLES
 
-  integer (kind=int_kind) :: ICEID       
+  integer (kind=int_kind) :: ICEID
 
   !--- for coupling on other grid from gridcpl_file ---
   type(mct_gsMap) :: gsMap_iloc  ! local gsmaps
@@ -115,7 +115,7 @@ contains
 !
 ! !DESCRIPTION:
 ! Initialize thermodynamic ice model and obtain relevant atmospheric model
-! arrays back from driver 
+! arrays back from driver
 !
 ! !USES:
 
@@ -139,7 +139,7 @@ contains
     integer                               :: xoff,yoff
     integer                               :: nxg,nyg
     integer                               :: k, iblk
- 
+
     type(mct_gsMap) :: gsmap_extend  ! local gsmaps
 
     character(len=256) :: drvarchdir         ! driver archive directory
@@ -240,7 +240,7 @@ contains
     scmlat = -999.
     scmlon = -999.
 
-    call seq_infodata_GetData( infodata, case_name=runid   ,  &  
+    call seq_infodata_GetData( infodata, case_name=runid   ,  &
        single_column=single_column ,scmlat=scmlat,scmlon=scmlon)
     call seq_infodata_GetData( infodata, start_type=starttype)
 
@@ -296,13 +296,13 @@ contains
     ! use EClock to reset calendar information on initial start
     !---------------------------------------------------------------------------
 
-    ! - on restart run 
+    ! - on restart run
     !   - istep0, time and time_forc are read from restart file
     !   - istep1 is set to istep0
     !   - date information is determined from restart
-    ! - on initial run 
+    ! - on initial run
     !   - myear, mmonth, mday, msec obtained from sync clock
-    !   - istep0 and istep1 are set to 0 
+    !   - istep0 and istep1 are set to 0
 
     call seq_timemgr_EClockGetData(EClock,               &
          start_ymd=start_ymd, start_tod=start_tod,       &
@@ -352,7 +352,7 @@ contains
 
     call calendar         ! update calendar info
     if (write_ic) call accum_hist(dt) ! write initial conditions
- 
+
     !---------------------------------------------------------------------------
     ! Initialize MCT attribute vectors and indices
     !---------------------------------------------------------------------------
@@ -362,22 +362,22 @@ contains
     ! Initialize ice gsMap
 
     if (trim(gridcpl_file) == 'unknown_gridcpl_file') then
-       call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, GSMap_ice ) 
+       call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, GSMap_ice )
        lsize = mct_gsMap_lsize(gsMap_ice, MPI_COMM_ICE)
        call ice_domain_mct( lsize, gsMap_ice, dom_i )
        other_cplgrid = .false.
        nxg = nx_global
        nyg = ny_global
     else
-       call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, GSMap_iloc ) 
+       call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, GSMap_iloc )
        lsize_loc = mct_gsMap_lsize(gsMap_iloc, MPI_COMM_ICE)
        call ice_domain_mct( lsize_loc, gsMap_iloc, dom_iloc )
- 
+
        call ice_setcoupling_mct(MPI_COMM_ICE, ICEID, gsmap_ice, dom_i)
        call ice_coffset_mct(xoff,yoff,gsmap_iloc,dom_iloc,gsmap_ice,dom_i,MPI_COMM_ICE)
        call mct_gsmap_clean(gsmap_ice)
        call mct_gGrid_clean(dom_i)
- 
+
        call ice_SetGSMap_mct( MPI_COMM_ICE, ICEID, gsmap_extend, xoff, yoff, nxcpl, nycpl)
        if (lsize_loc /= mct_gsmap_lsize(gsmap_extend,MPI_COMM_ICE)) then
           write(nu_diag,*) subname,' :: gsmap_extend extended ',lsize_loc, &
@@ -398,7 +398,7 @@ contains
        call mct_aVect_init(i2x_iloc, rList=seq_flds_i2x_fields, lsize=lsize_loc)
        call mct_aVect_zero(i2x_iloc)
        call mct_gsmap_clean(gsmap_extend)
- 
+
        other_cplgrid = .true.
        nxg = nxcpl
        nyg = nycpl
@@ -409,7 +409,7 @@ contains
     call mct_aVect_init(x2i_i, rList=seq_flds_x2i_fields, lsize=lsize)
     call mct_aVect_zero(x2i_i)
 
-    call mct_aVect_init(i2x_i, rList=seq_flds_i2x_fields, lsize=lsize) 
+    call mct_aVect_init(i2x_i, rList=seq_flds_i2x_fields, lsize=lsize)
     call mct_aVect_zero(i2x_i)
 
     !-----------------------------------------------------------------
@@ -448,7 +448,7 @@ contains
 
     ! Error check
     if ((tr_aero .or. tr_zaero) .and. .not. atm_aero) then
-       write(nu_diag,*) 'ice_import ERROR: atm_aero must be set for tr_aero/tr_zaero' 
+       write(nu_diag,*) 'ice_import ERROR: atm_aero must be set for tr_aero/tr_zaero'
        call shr_sys_abort()
     end if
 
@@ -469,7 +469,7 @@ contains
     !   write(shrlogunit,105) trim(subname)//': memory_write: model date = ',start_ymd,start_tod, &
     !           ' memory = ',msize0,' MB (highwater)    ',mrss0,' MB (usage)'
     !   endif
- 
+
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
   end subroutine ice_init_mct
@@ -514,7 +514,7 @@ contains
     integer :: lbnum
     integer :: n, myearp
     type(mct_gGrid)        , pointer :: dom_i
-    type(seq_infodata_type), pointer :: infodata   
+    type(seq_infodata_type), pointer :: infodata
     type(mct_gsMap)        , pointer :: gsMap_i
     real(r8) :: eccen, obliqr, lambm0, mvelpp
     character(len=char_len_long) :: fname
@@ -542,7 +542,7 @@ contains
     call shr_file_getLogUnit (shrlogunit)
     call shr_file_getLogLevel(shrloglev)
     call shr_file_setLogUnit (nu_diag)
-   
+
     call seq_cdata_setptrs(cdata_i, infodata=infodata, dom=dom_i, &
          gsMap=gsMap_i)
 
@@ -577,7 +577,7 @@ contains
     !-------------------------------------------------------------------
     ! get import state
     !-------------------------------------------------------------------
-    
+
     call t_barrierf('cice_run_import_BARRIER',MPI_COMM_ICE)
     call t_startf ('cice_run_import')
     call ice_timer_start(timer_cplrecv)
@@ -589,7 +589,7 @@ contains
     endif
     call ice_timer_stop(timer_cplrecv)
     call t_stopf ('cice_run_import')
- 
+
     !--------------------------------------------------------------------
     ! timestep update
     !--------------------------------------------------------------------
@@ -597,9 +597,9 @@ contains
     call CICE_Run()
 
     !-----------------------------------------------------------------
-    ! send export state to driver 
+    ! send export state to driver
     !-----------------------------------------------------------------
-    
+
     call t_barrierf('cice_run_export_BARRIER',MPI_COMM_ICE)
     call t_startf ('cice_run_export')
     call ice_timer_start(timer_cplsend)
@@ -612,7 +612,7 @@ contains
     endif
     call ice_timer_stop(timer_cplsend)
     call t_stopf ('cice_run_export')
-    
+
     !--------------------------------------------------------------------
     ! check that internal clock is in sync with master clock
     !--------------------------------------------------------------------
@@ -627,7 +627,7 @@ contains
        call shr_sys_abort( SubName// &
           ":: Internal sea-ice clock not in sync with Sync Clock")
     end if
-   
+
     ! reset shr logging to my original values
 
     call shr_file_setLogUnit (shrlogunit)
@@ -636,9 +636,9 @@ contains
     !-------------------------------------------------------------------
     ! stop timers and print timer info
     !-------------------------------------------------------------------
-    ! Need to have this logic here instead of in ice_final_mct since 
+    ! Need to have this logic here instead of in ice_final_mct since
     ! the ice_final_mct.F90 will still be called even in aqua-planet mode
-    ! Could put this logic in the driver - but it seems easier here 
+    ! Could put this logic in the driver - but it seems easier here
 
     ! Need to stop this at the end of every run phase in a coupled run.
     call ice_timer_stop(timer_total)        ! stop timing
@@ -648,7 +648,7 @@ contains
        call ice_timer_print_all(stats=.true.) ! print timing information
        call release_all_fileunits
     end if
-    
+
 !   if(tod == 0) then
 !      call shr_get_memusage(msize,mrss)
 !      call shr_mpi_max(mrss, mrss0, MPI_COMM_ICE,trim(subname)//' mrss0')
@@ -659,7 +659,7 @@ contains
 !      endif
 !   endif
     call t_stopf ('cice_run_total')
- 
+
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
   end subroutine ice_run_mct
@@ -754,12 +754,12 @@ contains
 
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
           do i = ilo, ihi
              n = n+1
@@ -771,12 +771,12 @@ contains
     allocate(gindex(lsize),stat=ier)
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
           do i = ilo, ihi
              n = n+1
@@ -787,7 +787,7 @@ contains
           enddo !i
        enddo    !j
     enddo        !iblk
-    
+
     call mct_gsMap_init( gsMap_ice, gindex, mpicom, ID, lsize, gsize )
 
     deallocate(gindex)
@@ -802,7 +802,7 @@ contains
     !
     integer        , intent(in)    :: lsize
     type(mct_gsMap), intent(in)    :: gsMap_i
-    type(mct_ggrid), intent(inout) :: dom_i     
+    type(mct_ggrid), intent(inout) :: dom_i
     !
     ! Local Variables
     !
@@ -824,7 +824,7 @@ contains
     call mct_gGrid_init( GGrid=dom_i, CoordChars=trim(seq_flds_dom_coord), &
        OtherChars=trim(seq_flds_dom_other), lsize=lsize )
     call mct_aVect_zero(dom_i%data)
-    !  
+    !
     allocate(data(lsize))
     !
     ! Determine global gridpoint number attribute, GlobGridNum, which is set automatically by MCT
@@ -835,63 +835,63 @@ contains
     ! Determine domain (numbering scheme is: West to East and South to North to South pole)
     ! Initialize attribute vector with special value
     !
-    data(:) = -9999.0_R8 
-    call mct_gGrid_importRAttr(dom_i,"lat"  ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"lon"  ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"area" ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"aream",data,lsize) 
-    data(:) = 0.0_R8     
-    call mct_gGrid_importRAttr(dom_i,"mask",data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"frac",data,lsize) 
+    data(:) = -9999.0_R8
+    call mct_gGrid_importRAttr(dom_i,"lat"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"lon"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"area" ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"aream",data,lsize)
+    data(:) = 0.0_R8
+    call mct_gGrid_importRAttr(dom_i,"mask",data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"frac",data,lsize)
     !
     ! Fill in correct values for domain components
     !
 
-    data(:) = -9999.0_R8 
+    data(:) = -9999.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = TLON(i,j,iblk)*rad_to_deg 
+          data(n) = TLON(i,j,iblk)*rad_to_deg
        enddo    !i
        enddo    !j
     enddo       !iblk
-    call mct_gGrid_importRattr(dom_i,"lon",data,lsize) 
+    call mct_gGrid_importRattr(dom_i,"lon",data,lsize)
 
-    data(:) = -9999.0_R8 
+    data(:) = -9999.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = TLAT(i,j,iblk)*rad_to_deg 
+          data(n) = TLAT(i,j,iblk)*rad_to_deg
        enddo   !i
        enddo   !j
     enddo      !iblk
-    call mct_gGrid_importRattr(dom_i,"lat",data,lsize) 
+    call mct_gGrid_importRattr(dom_i,"lat",data,lsize)
 
-    data(:) = -9999.0_R8 
+    data(:) = -9999.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
@@ -899,17 +899,17 @@ contains
        enddo   !i
        enddo   !j
     enddo      !iblk
-    call mct_gGrid_importRattr(dom_i,"area",data,lsize) 
+    call mct_gGrid_importRattr(dom_i,"area",data,lsize)
 
     data(:) = 0.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
@@ -917,17 +917,17 @@ contains
        enddo   !i
        enddo   !j
     enddo      !iblk
-    call mct_gGrid_importRattr(dom_i,"mask",data,lsize) 
+    call mct_gGrid_importRattr(dom_i,"mask",data,lsize)
 
     data(:) = 0.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
@@ -939,7 +939,7 @@ contains
        enddo   !i
        enddo   !j
     enddo      !iblk
-    call mct_gGrid_importRattr(dom_i,"frac",data,lsize) 
+    call mct_gGrid_importRattr(dom_i,"frac",data,lsize)
 
     deallocate(data)
     deallocate(idata)
@@ -948,7 +948,7 @@ contains
 
   !=======================================================================
 
-  subroutine ice_setdef_mct( i2x_i )   
+  subroutine ice_setdef_mct( i2x_i )
 
     !-----------------------------------------------------
     type(mct_aVect)   , intent(inout) :: i2x_i
@@ -1196,7 +1196,7 @@ contains
 
           start(1) = 1
           pe_loc(1) = 0
-          do n = 2,npes    
+          do n = 2,npes
              pe_loc(n) = n-1
              start(n) = start(n-1) + length(n-1)
           enddo
@@ -1231,14 +1231,14 @@ contains
     ! Initialize attribute vector with special value
 
     allocate(data(lsize))
-    data(:) = -9999.0_R8 
-    call mct_gGrid_importRAttr(dom_i,"lat"  ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"lon"  ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"area" ,data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"aream",data,lsize) 
-    data(:) = 0.0_R8     
-    call mct_gGrid_importRAttr(dom_i,"mask",data,lsize) 
-    call mct_gGrid_importRAttr(dom_i,"frac",data,lsize) 
+    data(:) = -9999.0_R8
+    call mct_gGrid_importRAttr(dom_i,"lat"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"lon"  ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"area" ,data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"aream",data,lsize)
+    data(:) = 0.0_R8
+    call mct_gGrid_importRAttr(dom_i,"mask",data,lsize)
+    call mct_gGrid_importRAttr(dom_i,"frac",data,lsize)
     deallocate(data)
 
     ! Read domain arrays

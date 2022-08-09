@@ -7,7 +7,7 @@
 !          William H. Lipscomb, LANL
 !
 ! 2006 ECH: moved exit timeLoop to prevent execution of unnecessary timestep
-! 2006 ECH: Streamlined for efficiency 
+! 2006 ECH: Streamlined for efficiency
 ! 2006 ECH: Converted to free source form (F90)
 ! 2007 BPB: Modified Delta-Eddington shortwave interface
 ! 2008 ECH: moved ESMF code to its own driver
@@ -131,7 +131,7 @@
    ! end of timestep loop
    !--------------------------------------------------------------------
 
-      call ice_timer_stop(timer_step)   ! end timestepping loop timer     
+      call ice_timer_stop(timer_step)   ! end timestepping loop timer
 
       end subroutine CICE_Run
 
@@ -175,7 +175,7 @@
           timer_hist, timer_readwrite
 
       integer (kind=int_kind) :: &
-         iblk        , & ! block index 
+         iblk        , & ! block index
          k           , & ! dynamics supercycling index
          ktherm          ! thermodynamics is off when ktherm = -1
 
@@ -257,7 +257,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
 
                if (debug_model) then
@@ -422,7 +422,7 @@
             if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
-                              call write_restart_bgc 
+                              call write_restart_bgc
             if (tr_brine)     call write_restart_hbrine
             if (kdyn == 2)    call write_restart_eap
             call final_restart
@@ -431,7 +431,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
-    
+
 !=======================================================================
 !
 ! Prepare for coupling
@@ -466,12 +466,12 @@
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
-      integer (kind=int_kind), intent(in) :: & 
-         iblk            ! block index 
+      integer (kind=int_kind), intent(in) :: &
+         iblk            ! block index
 
       ! local variables
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
@@ -607,8 +607,8 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk) 
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)  
+            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
+            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -629,7 +629,7 @@
          enddo
 
       !-----------------------------------------------------------------
-      ! Divide fluxes by ice area 
+      ! Divide fluxes by ice area
       !  - the CESM coupler assumes fluxes are per unit ice area
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
@@ -659,22 +659,22 @@
                             Qref_iso =Qref_iso (:,:,:,iblk),         &
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk))
- 
+
 #ifdef CICE_IN_NEMO
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
          if (.not. calc_Tsfc) then
 
        !---------------------------------------------------------------
-       ! If surface fluxes were provided, conserve these fluxes at ice 
-       ! free points by passing to ocean. 
+       ! If surface fluxes were provided, conserve these fluxes at ice
+       ! free points by passing to ocean.
        !---------------------------------------------------------------
 
-            call sfcflux_to_ocn & 
+            call sfcflux_to_ocn &
                          (nx_block,              ny_block,             &
                           tmask   (:,:,iblk),    aice_init(:,:,iblk),  &
                           fsurfn_f (:,:,:,iblk), flatn_f(:,:,:,iblk),  &
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
-         endif                 
+         endif
 !echmod
 #endif
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
@@ -686,10 +686,10 @@
 !=======================================================================
 !
 ! If surface heat fluxes are provided to CICE instead of CICE calculating
-! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can 
+! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can
 ! be provided at points which do not have ice.  (This is could be due to
 ! the heat fluxes being calculated on a lower resolution grid or the
-! heat fluxes not recalculated at every CICE timestep.)  At ice free points, 
+! heat fluxes not recalculated at every CICE timestep.)  At ice free points,
 ! conserve energy and water by passing these fluxes to the ocean.
 !
 ! author: A. McLaren, Met Office
@@ -722,7 +722,7 @@
       ! local variables
       integer (kind=int_kind) :: &
           i, j, n    ! horizontal indices
-      
+
       real (kind=dbl_kind)    :: &
           puny, &          !
           Lsub, &          !
