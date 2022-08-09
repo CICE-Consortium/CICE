@@ -2780,6 +2780,7 @@
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
          inverse_norm    , & ! inverse of the norm of a vector
+         norm_rhs        , & ! L^2 norm of right-hand-side vector
          nu, t               ! local temporary values
 
       integer (kind=int_kind) :: &
@@ -2818,6 +2819,25 @@
       workspace_y = c0
       arnoldi_basis_x = c0
       arnoldi_basis_y = c0
+
+      ! solution is zero if RHS is zero
+      !$OMP PARALLEL DO PRIVATE(iblk)
+      do iblk = 1, nblocks
+         call calc_L2norm_squared(nx_block       , ny_block      , &
+                                  icellu   (iblk),                 &
+                                  indxui (:,iblk), indxuj(:,iblk), &
+                                  bx(:,:,iblk)   , &
+                                  by(:,:,iblk)   , &
+                                  norm_squared(iblk))
+
+      enddo
+      !$OMP END PARALLEL DO
+      norm_rhs = sqrt(global_sum(sum(norm_squared), distrb_info))
+      if (norm_rhs == c0) then
+         solx = bx
+         soly = by
+         return
+      endif
 
       ! Residual of the initial iterate
 
