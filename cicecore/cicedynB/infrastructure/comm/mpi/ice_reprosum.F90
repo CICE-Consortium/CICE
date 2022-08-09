@@ -87,7 +87,7 @@ use mpi   ! MPI Fortran module
 !-----------------------------------------------------------------------
 
    logical :: repro_sum_use_ddpdd = .false.
-   logical :: detailed_timing = .false.
+!   logical :: detailed_timing = .false.
    character(len=char_len_long) :: tmpstr
 
    CONTAINS

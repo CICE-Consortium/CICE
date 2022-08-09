@@ -765,7 +765,7 @@
         iyear = myear
         imonth = mmonth
         iday = mday
-        isec = msec - dt
+        isec = int(msec - dt,int_kind)
 
         ! construct filename
         if (write_ic) then

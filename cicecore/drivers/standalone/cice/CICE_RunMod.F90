@@ -45,7 +45,7 @@
 
       subroutine CICE_Run
 
-      use ice_calendar, only: istep, istep1, dt, stop_now, advance_timestep
+      use ice_calendar, only: dt, stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &

@@ -846,7 +846,6 @@
   802 format (f24.17,2x,f24.17)
   803 format (a25,2x,a25)
   900 format (a25,2x,f24.17,2x,f24.17)
-  902 format (a25,10x,f6.1,1x,f6.1,9x,f6.1,1x,f6.1)
  1020 format (a30,2x,i6)    ! integer
 
       end subroutine bgc_diags
@@ -1068,7 +1067,6 @@
   803 format (a25,2x,a25)
   900 format (a25,2x,f24.17,2x,f24.17)
   902 format (a25,10x,f6.1,1x,f6.1,9x,f6.1,1x,f6.1)
-  903 format (a25,5x,i4,1x,i4,1x,i4,1x,i4,7x,i4,1x,i4,1x,i4,1x,i4)
 
       end subroutine zsal_diags
 

@@ -502,7 +502,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_snow)'
 
       call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
@@ -544,7 +544,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_snow)'
 
       call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
@@ -589,7 +589,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -624,7 +624,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -660,7 +660,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_isosno, nt_isoice, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_iso)'
 
       call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
@@ -702,7 +702,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_isosno, nt_isoice, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_iso)'
 
       call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)

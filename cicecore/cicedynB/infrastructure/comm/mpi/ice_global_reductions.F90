@@ -533,7 +533,6 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      ierr,         &! mpi error flag
       numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
       communicator   ! communicator for this distribution
@@ -603,7 +602,6 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      ierr,         &! mpi error flag
       numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
       communicator   ! communicator for this distribution
@@ -737,7 +735,6 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      ierr,         &! mpi error flag
       numProcs,     &! number of processor participating
       numBlocks,    &! number of local blocks
       communicator, &! communicator for this distribution

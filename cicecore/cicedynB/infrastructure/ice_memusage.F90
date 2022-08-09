@@ -15,7 +15,7 @@ MODULE ice_memusage
 ! PUBLIC: Public interfaces
 
    public ::  ice_memusage_getusage, &
-	      ice_memusage_init, &
+              ice_memusage_init, &
               ice_memusage_print
 
    logical(log_kind), public :: memory_stats
@@ -44,8 +44,6 @@ subroutine ice_memusage_init(iunit)
 
    ! --- Memory stats --- 
    integer :: msize                   ! memory size (high water)
-   integer :: mrss                    ! resident size (current memory use)
-   integer :: msize0,msize1           ! temporary size
    integer :: mrss0,mrss1,mrss2       ! temporary rss
    integer :: mshare,mtext,mdatastack
    integer :: ierr

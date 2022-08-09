@@ -395,6 +395,7 @@ end subroutine create_blocks
 !----------------------------------------------------------------------
 
    call get_block_parameter(blockID, iblock=iBlock, jblock=jBlock)
+   nbrID = 0   ! initial default
 
 !----------------------------------------------------------------------
 !

@@ -138,14 +138,14 @@
          fdust       (nx_block,ny_block,max_blocks), & ! ice-ocean dust flux (kg/m^2/s), positive to ocean
          hin_old     (nx_block,ny_block,ncat,max_blocks), & ! old ice thickness
          dsnown      (nx_block,ny_block,ncat,max_blocks), & ! change in snow thickness in category n (m)
-         HDO_ocn    (nx_block,ny_block,max_blocks), & ! seawater concentration of HDO (kg/kg)
-         H2_16O_ocn (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_16O (kg/kg)
-         H2_18O_ocn (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_18O (kg/kg)
-         Qa_iso     (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope specific humidity (kg/kg)
-         Qref_iso   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! 2m atm reference isotope spec humidity (kg/kg)
-         fiso_atm   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope deposition rate (kg/m^2 s)   
-         fiso_evap  (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope evaporation rate (kg/m^2 s)
-         fiso_ocn   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope flux to ocean  (kg/m^2/s)
+         HDO_ocn     (nx_block,ny_block,max_blocks), & ! seawater concentration of HDO (kg/kg)
+         H2_16O_ocn  (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_16O (kg/kg)
+         H2_18O_ocn  (nx_block,ny_block,max_blocks), & ! seawater concentration of H2_18O (kg/kg)
+         Qa_iso      (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope specific humidity (kg/kg)
+         Qref_iso    (nx_block,ny_block,icepack_max_iso,max_blocks), & ! 2m atm reference isotope spec humidity (kg/kg)
+         fiso_atm    (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope deposition rate (kg/m^2 s)   
+         fiso_evap   (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope evaporation rate (kg/m^2 s)
+         fiso_ocn    (nx_block,ny_block,icepack_max_iso,max_blocks), & ! isotope flux to ocean  (kg/m^2/s)
          faero_atm   (nx_block,ny_block,icepack_max_aero,max_blocks), & ! aerosol deposition rate (kg/m^2 s)   
          faero_ocn   (nx_block,ny_block,icepack_max_aero,max_blocks), & ! aerosol flux to ocean  (kg/m^2/s)
          zaeros      (nx_block,ny_block,icepack_max_aero,max_blocks), & ! ocean aerosols (mmol/m^3) 
@@ -153,7 +153,7 @@
          flux_bio    (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean
          flux_bio_ai (nx_block,ny_block,icepack_max_nbtrcr,max_blocks), & ! all bio fluxes to ocean, averaged over grid cell
          algalN      (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ocean algal nitrogen (mmol/m^3) (diatoms, pico, phaeo)
-         falgalN     (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ice-ocean algal nitrogen flux (mmol/m^2/s) (diatoms, pico, phaeo)
+         falgalN     (nx_block,ny_block,icepack_max_algae,max_blocks), & ! ice-ocn algalN flux (mmol/m^2/s) (diatoms, pico, phaeo)
          doc         (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ocean doc (mmol/m^3)  (saccharids, lipids, tbd )
          fdoc        (nx_block,ny_block,icepack_max_doc,max_blocks), & ! ice-ocean doc flux (mmol/m^2/s)  (saccharids, lipids, tbd)
          don         (nx_block,ny_block,icepack_max_don,max_blocks), & ! ocean don (mmol/m^3) (proteins and amino acids)

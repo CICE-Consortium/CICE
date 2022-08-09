@@ -53,7 +53,6 @@ module ice_spacecurve
               FindandMark
 
    integer(int_kind), dimension(:,:), allocatable ::  &
-        dir,      &! direction to move along each level
         ordered    ! the ordering 
    integer(int_kind), dimension(:), allocatable ::  &
         pos        ! position along each of the axes

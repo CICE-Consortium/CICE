@@ -79,7 +79,6 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
-      real    (kind=dbl_kind) :: secday
       logical (kind=log_kind) :: tr_fsd, wave_spec
 
       character(len=*), parameter :: subname = '(init_hist_fsd_2D)'

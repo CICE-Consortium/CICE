@@ -638,7 +638,6 @@
       integer (kind=int_kind), intent(in) :: day1    ! end day
 
       ! Internal variable
-      logical (kind=log_kind) :: isleap   ! Leap year logical
       integer (kind=int_kind) :: nday0, nday1
       character(len=*),parameter :: subname='(compute_days_between)'
 

@@ -331,7 +331,8 @@
       elseif (trim(atm_data_type) == 'default') then
          ! don't need to do anything more
       else
-        call abort_ice (error_message=subname//' ERROR atm_data_type unknown = '//trim(atm_data_type), file=__FILE__, line=__LINE__)
+        call abort_ice (error_message=subname//' ERROR atm_data_type unknown = '// &
+                        trim(atm_data_type), file=__FILE__, line=__LINE__)
       endif
 
       end subroutine init_forcing_atmo
@@ -539,7 +540,8 @@
       elseif (trim(ocn_data_type) == 'default') then
          ! don't need to do anything more
       else
-         call abort_ice (error_message=subname//' ERROR ocn_data_type unknown = '//trim(ocn_data_type), file=__FILE__, line=__LINE__)
+         call abort_ice (error_message=subname//' ERROR ocn_data_type unknown = '// &
+                         trim(ocn_data_type), file=__FILE__, line=__LINE__)
       endif
 
       end subroutine init_forcing_ocn
@@ -2503,9 +2505,9 @@
 
       use ice_blocks, only: block, get_block
       use ice_global_reductions, only: global_minval, global_maxval
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
+      use ice_domain, only: nblocks, distrb_info
       use ice_flux, only: fsnow, Tair, uatm, vatm, Qa, fsw, flw
-      use ice_grid, only: hm, tlon, tlat, tmask, umask
+      use ice_grid, only: hm, tmask, umask
       use ice_state, only: aice
       use ice_calendar, only: days_per_year
 
@@ -3871,11 +3873,9 @@
            'dhdx',   'dhdy',   'qdp' /
 
       integer (kind=int_kind) :: &
-        fid        , & ! file id 
-        dimid          ! dimension id 
-
-      integer (kind=int_kind) :: &
         status  , & ! status flag
+        fid     , & ! file id 
+        dimid   , & ! dimension id 
         nlat    , & ! number of longitudes of data
         nlon        ! number of latitudes  of data
 
@@ -4371,6 +4371,7 @@
 ! authors: Ann Keen, Met Office
 
       use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
       use ice_flux, only: sst, uocn, vocn
       use ice_grid, only: grid_average_X2Y, ANGLET
 
@@ -4386,9 +4387,6 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
           sstdat              ! data value toward which SST is restored
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-          work1               ! temporary array
 
       real (kind=dbl_kind) :: workx, worky
 
@@ -4535,10 +4533,6 @@
      !----------------------------------------------------------------- 
 
          ! tcraig, this is now computed in dynamics for consistency
-         !work1 = uocn
-         !call grid_average_X2Y('F',work1,'T',uocn,'U')
-         !work1 = vocn
-         !call grid_average_X2Y('F',work1,'T',vocn,'U')
 
      endif    !   ocn_data_type = hadgem_sst_uvocn
 
@@ -5251,9 +5245,6 @@
       integer (kind=int_kind) :: &
         fid         ! file id 
 
-      integer (kind=int_kind) :: &
-        status      ! status flag
-
       character(len=*), parameter :: subname = '(ocn_data_ispol_init)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
@@ -5316,7 +5307,6 @@
 ! authors: Elizabeth Hunke, LANL
 
       use ice_domain, only: nblocks, blocks_ice
-      use ice_domain_size, only: max_blocks
       use ice_calendar, only: timesecs
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
@@ -5411,8 +5401,6 @@
 ! authors: Elizabeth Hunke, LANL
 
       use ice_domain, only: nblocks, blocks_ice
-      use ice_domain_size, only: max_blocks
-      use ice_calendar, only: timesecs
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn
       use ice_grid, only: uvm
@@ -5428,9 +5416,6 @@
 
       type (block) :: &
          this_block           ! block information for current block
-
-      real (kind=dbl_kind) :: &
-         secday, pi , puny, period, pi2, tau
 
       character(len=*), parameter :: subname = '(box2001_data_ocn)'
 
@@ -5466,7 +5451,6 @@
 !     uniform wind fields in some direction
 
       use ice_domain, only: nblocks
-      use ice_domain_size, only: max_blocks
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uatm, vatm, wind, rhoa, strax, stray
       use ice_state, only: aice
@@ -5537,9 +5521,6 @@
 
 !     uniform current fields in some direction
 
-      use ice_domain, only: nblocks
-      use ice_domain_size, only: max_blocks
-      use ice_blocks, only: nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn
 
       character(len=*), intent(in) :: dir
@@ -5547,9 +5528,6 @@
       real(kind=dbl_kind), intent(in), optional :: spd ! velocity 
 
       ! local parameters
-
-      integer (kind=int_kind) :: &
-         iblk, i,j           ! loop indices
 
       real(kind=dbl_kind) :: &
            ocn_val ! value to use for ocean currents
@@ -5585,7 +5563,7 @@
       subroutine get_wave_spec
   
       use ice_read_write, only: ice_read_nc_xyf
-      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
+      use ice_arrays_column, only: wave_spectrum, &
                                    dwavefreq, wavefreq
       use ice_constants, only: c0
       use ice_domain_size, only: nfreq
@@ -5593,8 +5571,7 @@
 
       ! local variables
       integer (kind=int_kind) :: &
-         fid, &                  ! file id for netCDF routines
-         k
+         fid                    ! file id for netCDF routines
 
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
@@ -5685,9 +5662,6 @@
       character (char_len) :: &
          snw_aging_table, &   ! aging table setting
          fieldname            ! field name in netcdf file
-
-      integer (kind=int_kind) :: &
-         j, k                 ! indices
 
       character(len=*), parameter :: subname = '(init_snowtable)'
 
@@ -5816,7 +5790,8 @@
             write(nu_diag,*) subname,' snoage_tau (1,1,1)         = ',snowage_tau  (1,1,1)
             write(nu_diag,*) subname,' snoage_kappa (1,1,1)       = ',snowage_kappa(1,1,1)
             write(nu_diag,*) subname,' snoage_drdt0 (1,1,1)       = ',snowage_drdt0(1,1,1)
-            write(nu_diag,*) subname,' Data at rhos, Tgrd, T = ',snowage_rhos(idx_rhos_max),snowage_Tgrd(idx_Tgrd_max),snowage_T(idx_T_max)
+            write(nu_diag,*) subname,' Data at rhos, Tgrd, T = ', &
+                                       snowage_rhos(idx_rhos_max),snowage_Tgrd(idx_Tgrd_max),snowage_T(idx_T_max)
             write(nu_diag,*) subname,' snoage_tau (max,max,max)   = ',snowage_tau  (idx_rhos_max, idx_Tgrd_max, idx_T_max)
             write(nu_diag,*) subname,' snoage_kappa (max,max,max) = ',snowage_kappa(idx_rhos_max, idx_Tgrd_max, idx_T_max)
             write(nu_diag,*) subname,' snoage_drdt0 (max,max,max) = ',snowage_drdt0(idx_rhos_max, idx_Tgrd_max, idx_T_max)

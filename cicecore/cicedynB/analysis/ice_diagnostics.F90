@@ -1249,9 +1249,6 @@
        endif                    ! print_points
       endif                     ! my_task = master_task
 
-  799 format (27x,a24)
-  800 format (a25,2x,f24.17)
-  801 format (a25,2x,1pe24.17)
   899 format (27x,a24,2x,a24)
   900 format (a25,2x,f24.17,2x,f24.17)
   901 format (a25,2x,1pe24.17,2x,1pe24.17)
@@ -1709,7 +1706,6 @@
       integer (kind=int_kind), intent(in) :: iblk
 
       ! local 
-      integer (kind=int_kind) :: i, j, m
       character(len=*), parameter :: subname='(debug_ice)'
 
       if (istep1 >= debug_model_step) then

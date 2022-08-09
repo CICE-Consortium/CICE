@@ -795,7 +795,7 @@
             deallocate(work_gi8)
          elseif (atype == 'rda4') then
             allocate(work_gr(nx_global,ny_global))
-            work_gr = work_g1
+            work_gr = real(work_g1,real_kind)
             write(nu,rec=nrec) work_gr
             deallocate(work_gr)
          elseif (atype == 'rda8') then
@@ -899,7 +899,7 @@
             deallocate(work_gi9)
          elseif (atype == 'rda4') then
             allocate(work_gr3(nx_global,ny_global,nblyr+2))
-            work_gr3 = work_g4
+            work_gr3 = real(work_g4,real_kind)
             write(nu,rec=nrec) work_gr3
             deallocate(work_gr3)
          elseif (atype == 'rda8') then
@@ -1006,7 +1006,7 @@
             deallocate(work_gi8)
          elseif (atype == 'rda4') then
             allocate(work_gr(nx,ny))
-            work_gr = work_g1
+            work_gr = real(work_g1,real_kind)
             write(nu,rec=nrec) work_gr
             deallocate(work_gr)
          elseif (atype == 'rda8') then
@@ -1506,7 +1506,7 @@
                                  field_loc, field_type, restart_ext)
 
       use ice_fileunits, only: nu_diag
-      use ice_domain_size, only: nfsd, nfreq
+      use ice_domain_size, only: nfreq
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
@@ -1870,11 +1870,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim) :: &
          workg              ! output array (real, 8-byte)
@@ -1958,11 +1954,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim,ydim) :: &
          workg              ! output array (real, 8-byte)
@@ -2049,11 +2041,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim,ydim,zdim) :: &
          workg              ! output array (real, 8-byte)

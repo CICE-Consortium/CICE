@@ -188,7 +188,10 @@
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
-      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_blocks, only: block, get_block
+#ifdef CICE_IN_NEMO
+      use ice_blocks, only: nx_block, ny_block
+#endif
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
@@ -205,8 +208,11 @@
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
-      use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
+      use ice_state, only: aice, aicen, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
+#ifdef CICE_IN_NEMO
+      use ice_state, only: aice_init
+#endif
 
 #ifdef CESMCOUPLED
       use ice_prescribed_mod, only: prescribed_ice
@@ -601,7 +607,7 @@
       use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr, nfsd
+      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
           meltl, frazil_diag
@@ -856,7 +862,7 @@
 
       subroutine step_dyn_wave (dt)
 
-      use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
+      use ice_arrays_column, only: wave_spectrum, &
           d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice, nblocks
@@ -876,9 +882,7 @@
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          iblk,            & ! block index
-         i, j,            & ! horizontal indices
-         ntrcr,           & !
-         nbtrcr             !
+         i, j               ! horizontal indices
 
       character (len=char_len) :: wave_spec_type
 
@@ -1127,9 +1131,7 @@
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j,            & ! horizontal indices
-         n,               & ! category index
-         ns,              & ! history streams index
-         ipoint             ! index for print diagnostic
+         ns                 ! history streams index
 
       real (kind=dbl_kind) :: &
          puny

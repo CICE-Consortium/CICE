@@ -1552,9 +1552,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -1940,9 +1937,6 @@
 
    type (block) :: &
      this_block  ! block info for current block
-
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
 
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
@@ -2330,9 +2324,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -2698,9 +2689,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -3033,9 +3021,6 @@
 
    type (block) :: &
      this_block  ! block info for current block
-
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
 
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives

@@ -263,7 +263,6 @@
 
       use ice_arrays_column, only: meltsliq
       use ice_blocks, only: block, nx_block, ny_block
-      use ice_domain, only: blocks_ice
       use ice_flux, only: fsloss
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field, nzslyr
@@ -275,7 +274,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n
+         k, n
 
       integer (kind=int_kind) :: &
          nt_smice, nt_smliq, nt_rhos, nt_rsnw

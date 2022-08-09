@@ -48,7 +48,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, histfreq_n, days_per_year, use_leap_years, dayyr, &
+          histfreq, days_per_year, use_leap_years, dayyr, &
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
@@ -60,7 +60,10 @@
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
-      use ice_restart_shared, only: runid, lcdf64
+      use ice_restart_shared, only: lcdf64
+#ifdef CESMCOUPLED
+      use ice_restart_shared, only: runid
+#endif
 #ifdef USE_NETCDF
       use netcdf
 #endif

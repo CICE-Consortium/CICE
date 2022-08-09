@@ -140,7 +140,9 @@
          nml_error, & ! namelist i/o error flag
          n            ! loop index
 
+#ifdef CESMCOUPLED
       logical :: exists
+#endif
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
@@ -177,7 +179,9 @@
 #endif
       real (kind=dbl_kind) :: Cf, ksno, puny
       character (len=char_len) :: abort_list
+#ifdef CESMCOUPLED
       character (len=64) :: tmpstr
+#endif
       character (len=128) :: tmpstr2
 
       character(len=*), parameter :: subname='(input_data)'
@@ -377,7 +381,7 @@
       kdyn = 1           ! type of dynamics (-1, 0 = off, 1 = evp, 2 = eap, 3 = vp)
       ndtd = 1           ! dynamic time steps per thermodynamic time step
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
-      evp_algorithm = 'standard_2d'  ! EVP kernel (=standard_2d: standard cice evp; =shared_mem_1d: 1d shared memory and no mpi. if more mpi processors then executed on master
+      evp_algorithm = 'standard_2d'  ! EVP kernel (standard_2d=standard cice evp; shared_mem_1d=1d shared memory and no mpi
       elasticDamp = 0.36_dbl_kind    ! coefficient for calculating the parameter E
       pgl_global_ext = .false.       ! if true, init primary grid lengths (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
@@ -409,7 +413,8 @@
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
       capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
       maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
-      precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
+      precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres'
+                               ! (Jacobi-preconditioned GMRES)
       dim_fgmres = 50          ! size of fgmres Krylov subspace
       dim_pgmres = 5           ! size of pgmres Krylov subspace
       maxits_fgmres = 50       ! max nb of iteration for fgmres
@@ -422,7 +427,8 @@
       reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
-      fpfunc_andacc = 1        ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+      fpfunc_andacc = 1        ! fixed point function for Anderson acceleration: 1: 
+                               ! g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
       dim_andacc = 5           ! size of Anderson minimization matrix (number of saved previous residuals)
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
       damping_andacc = 0       ! damping factor for Anderson acceleration
@@ -2821,7 +2827,7 @@
 
       use ice_arrays_column, only: hin_max
       use ice_domain_size, only: nilyr, nslyr, nx_global, ny_global, ncat
-      use ice_grid, only: grid_type, dxrect, dyrect
+      use ice_grid, only: dxrect, dyrect
       use ice_forcing, only: ice_data_type, ice_data_conc, ice_data_dist
 
       integer (kind=int_kind), intent(in) :: &

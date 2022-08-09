@@ -448,7 +448,8 @@
          Tf         (nx_block,ny_block,max_blocks), & ! freezing temperature (C)
          qdp        (nx_block,ny_block,max_blocks), & ! deep ocean heat flux (W/m^2), negative upward
          hmix       (nx_block,ny_block,max_blocks), & ! mixed layer depth (m)
-         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)(only used in hadgem drivers)
+         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)
+                                                      ! (only used in hadgem drivers)
          fsens      (nx_block,ny_block,max_blocks), & ! sensible heat flux (W/m^2)
          flat       (nx_block,ny_block,max_blocks), & ! latent heat flux   (W/m^2)
          fswabs     (nx_block,ny_block,max_blocks), & ! shortwave flux absorbed in ice and ocean (W/m^2)

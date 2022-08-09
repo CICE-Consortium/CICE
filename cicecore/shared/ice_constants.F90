@@ -138,9 +138,10 @@
          omega_in     , &   ! angular velocity of earth (rad/sec)
          radius_in    , &   ! earth radius (m)
          spval_dbl_in , &   ! special value (double precision)
-         spval_in     , &   ! special value for netCDF output
          shlat_in     , &   ! artificial masking edge (deg)
          nhlat_in           ! artificial masking edge (deg)
+      real (kind=real_kind), intent(in), optional :: &
+         spval_in           ! special value for netCDF output
 
       character(len=*),parameter :: subname='(ice_init_constants)'
 

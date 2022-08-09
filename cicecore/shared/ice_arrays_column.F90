@@ -385,7 +385,7 @@
          fswintn      (nx_block,ny_block,ncat,max_blocks), & ! SW absorbed in ice interior, below surface (W m-2)
          first_ice_real                                    &
                       (nx_block,ny_block,ncat,max_blocks), & ! .true. = c1, .false. = c0
-         first_ice    (nx_block,ny_block,ncat,max_blocks), & ! distinguishes ice that disappears (e.g. melts) and reappears (e.g. transport)
+         first_ice    (nx_block,ny_block,ncat,max_blocks), & ! distinguishes ice that disappears (melts) and reappears (transport)
          dhbr_top     (nx_block,ny_block,ncat,max_blocks), & ! brine top change
          dhbr_bot     (nx_block,ny_block,ncat,max_blocks), & ! brine bottom change
          darcy_V      (nx_block,ny_block,ncat,max_blocks), & ! darcy velocity positive up (m/s)

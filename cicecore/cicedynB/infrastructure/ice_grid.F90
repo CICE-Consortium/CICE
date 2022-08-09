@@ -1351,13 +1351,12 @@
 
       subroutine rectgrid
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
       use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
+         i, j, &
          imid, jmid
 
       real (kind=dbl_kind) :: &
