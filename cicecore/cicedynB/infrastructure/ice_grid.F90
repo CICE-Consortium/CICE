@@ -475,6 +475,8 @@
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
 
+      l_readCenter = .false.
+
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -945,7 +947,6 @@
       call ice_open_nc(kmt_file,fid_kmt)
 
       diag = .true.       ! write diagnostic info
-      l_readCenter = .false.
       !-----------------------------------------------------------------
       ! topography
       !-----------------------------------------------------------------
