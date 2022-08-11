@@ -111,7 +111,7 @@
                           grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, & 
                           grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, dxscale, dyscale, scale_dxdy, &
-                          pgl_global_ext
+                          grid_lonref, grid_latref, pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 evp_algorithm, visc_method,     &
                                 seabed_stress, seabed_stress_method,  &
@@ -208,7 +208,8 @@
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
-        dxscale,        dyscale,         scale_dxdy,                    &
+        dxscale,        dyscale,         grid_lonref,   grid_latref,    &
+        scale_dxdy,                                                     &
         close_boundaries, orca_halogrid, grid_ice,      kmt_type,       &
         grid_atm,       grid_ocn
 
@@ -395,6 +396,8 @@
       ksno = 0.3_dbl_kind     ! snow thermal conductivity
       dxrect = 0.0_dbl_kind   ! user defined grid spacing in cm in x direction
       dyrect = 0.0_dbl_kind   ! user defined grid spacing in cm in y direction
+      grid_lonref = -156.50_dbl_kind  ! lower left corner lon for rectgrid
+      grid_latref =   71.35_dbl_kind  ! lower left corner lat for rectgrid
       scale_dxdy = .false.    ! apply dxscale, dyscale to rectgrid
       dxscale = 1.0_dbl_kind   ! user defined rectgrid x-grid scale factor (e.g., 1.02)
       dyscale = 1.0_dbl_kind   ! user defined rectgrid y-grid scale factor (e.g., 1.02)
@@ -854,6 +857,8 @@
       call broadcast_scalar(scale_dxdy,           master_task)
       call broadcast_scalar(dxscale,              master_task)
       call broadcast_scalar(dyscale,              master_task)
+      call broadcast_scalar(grid_lonref,          master_task)
+      call broadcast_scalar(grid_latref,          master_task)
       call broadcast_scalar(close_boundaries,     master_task)
       call broadcast_scalar(grid_type,            master_task)
       call broadcast_scalar(grid_ice,             master_task)

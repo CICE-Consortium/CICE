@@ -75,6 +75,8 @@
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
+    grid_lonref    = -156.5
+    grid_latref    = 71.35
     scale_dxdy     = .false.
     dxscale        = 1.0
     dyscale        = 1.0

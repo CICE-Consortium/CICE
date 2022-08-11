@@ -134,6 +134,9 @@
          dxscale, & !  scale factor for grid spacing in x direction (e.g., 1.02)
          dyscale    !  scale factor for gird spacing in y direction (e.g., 1.02)
 
+      real (kind=dbl_kind), public :: &
+         grid_lonref, & ! lower left lon for rectgrid
+         grid_latref    ! lower left lat for rectgrid
 
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -1372,7 +1375,7 @@
 
       real (kind=dbl_kind) :: &
          length,  &
-         latref, lonref, & ! reference lat, lon
+         !latref, lonref, & ! reference lat, lon
          rad_to_deg
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
@@ -1395,22 +1398,12 @@
 
       allocate(work_g1(nx_global,ny_global))
 
-      ! Weddell Sea
-      ! lower left corner of grid is 55W, 75S
-      !lonref = -55.0_dbl_kind
-      !latref = -75.0_dbl_kind
-
-      ! Barrow AK
-      ! lower left corner of grid is 156.5W, 71.35N
-      lonref = -156.5_dbl_kind
-      latref = 71.35_dbl_kind
-
       ! determine dx spacing
       ! strategy: initialize with dxrect.
       ! if want to scale the grid, work from center outwards,
       ! multplying neighbor cell by scale factor.
       ! this assumes dx varies in x direction only. 
-      !(i.e, dx is the same across same y location)
+      ! (i.e, dx is the same across same y location)
       if (my_task == master_task) then
 
          ! initialize with initial dxrect
@@ -1457,12 +1450,12 @@
          
          ! make first column reference lon in radians.
          ! the remaining work_g1 is still dx in meters
-         work_g1(1,:) = lonref/rad_to_deg ! radians
+         work_g1(1,:) = grid_lonref/rad_to_deg ! radians
 
          ! loop over remaining points and add spacing to successive 
          ! x locations
          do j = 1, ny_global
-         do i = 2, nx_global ! start from i=2. i=1 is lonref
+         do i = 2, nx_global ! start from i=2. i=1 is grid_lonref
             length = work_g1(i,j)/radius             ! grid spacing in radians
             work_g1(i,j) = work_g1(i-1,j) + length   ! ULON
          enddo ! i
@@ -1525,11 +1518,11 @@
          
          ! make first row reference lat in radians.
          ! the remaining work_g1 is still dy in meters
-         work_g1(:,1) = latref/rad_to_deg ! radians
+         work_g1(:,1) = grid_latref/rad_to_deg ! radians
 
          ! loop over remaining points and add spacing to successive 
          ! x locations
-         do j = 2, ny_global ! start from j=2. j=1 is latref
+         do j = 2, ny_global ! start from j=2. j=1 is grid_latref
          do i = 1, nx_global
             length = work_g1(i,j)/radius             ! grid spacing in radians
             work_g1(i,j) = work_g1(i,j-1) + length   ! ULAT
