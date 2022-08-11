@@ -10,10 +10,8 @@ smoke          gbox80  1x1        boxslotcyl
 smoke          gbox80  2x4        boxnodyn
 #smoke	       gbox80  2x2        boxsymn,run1day
 smoke	       gbox80  4x2        boxsyme,run1day
-smoke	       gbox80  4x2        boxsyme,run1day
 #smoke	       gbox80  4x1        boxsymne,run1day
 #smoke	       gbox80  2x2        boxsymn,run1day,kmtislands
-smoke	       gbox80  4x1        boxsyme,run1day,kmtislands
 smoke	       gbox80  4x1        boxsyme,run1day,kmtislands
 #smoke	       gbox80  4x2        boxsymne,run1day,kmtislands
 #smoke	       gbox80  8x1        boxislandsn,run1day
@@ -28,20 +26,14 @@ smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall  
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall   smoke_gx1_32x1x16x16x32_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest              smoke_gx1_32x1x16x16x32_reprosum_run10day
 
-smoke          gbox80  1x1        box2001,vargrid
-smoke          gbox80  2x2        boxwallblock,vargrid
-#smoke         gbox80  1x1        boxslotcyl,vargrid
-smoke          gbox80  2x4        boxnodyn,vargrid
-#smoke         gbox80  2x2        boxsymn,run1day,vargrid
+smoke          gbox80  2x2        boxsymn,run1day,vargrid
 smoke          gbox80  4x2        boxsyme,run1day,vargrid
-smoke          gbox80  4x2        boxsyme,run1day,vargrid
-#smoke         gbox80  4x1        boxsymne,run1day,vargrid
+smoke          gbox80  4x1        boxsymne,run1day,vargrid
 #smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid
 #smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid
 #smoke         gbox80  8x1        boxislandsn,run1day,vargrid
-smoke          gbox80  4x2        boxislandse,run1day,vargrid
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid
 #smoke         gbox80  2x4        boxislandsne,run1day,vargrid
 
 
@@ -72,20 +64,14 @@ smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall,g
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall,gridcd   smoke_gx1_32x1x16x16x32_gridcd_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridcd              smoke_gx1_32x1x16x16x32_gridcd_reprosum_run10day
 
-smoke          gbox80  1x1        box2001,vargrid,gridcd
-smoke          gbox80  2x2        boxwallblock,vargrid,gridcd
-#smoke         gbox80  1x1        boxslotcyl,vargrid,gridcd
-smoke          gbox80  2x4        boxnodyn,vargrid,gridcd
-#smoke         gbox80  2x2        boxsymn,run1day,vargrid,gridcd
+smoke          gbox80  2x2        boxsymn,run1day,vargrid,gridcd
 smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridcd
-smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridcd
-#smoke         gbox80  4x1        boxsymne,run1day,vargrid,gridcd
+smoke          gbox80  4x1        boxsymne,run1day,vargrid,gridcd
 #smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid,gridcd
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridcd
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridcd
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridcd
 #smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid,gridcd
 #smoke         gbox80  8x1        boxislandsn,run1day,vargrid,gridcd
-smoke          gbox80  4x2        boxislandse,run1day,vargrid,gridcd
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid,gridcd
 #smoke         gbox80  2x4        boxislandsne,run1day,vargrid,gridcd
 
 smoke          gx3     8x2        diag1,run5day,gridc
@@ -114,18 +100,12 @@ smoke          gx1     32x1x16x16x32   reprosum,run10day,gridc
 smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall,gridc   smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall,gridc   smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridc              smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day 
-smoke          gbox80  1x1        box2001,vargrid,gridc
-smoke          gbox80  2x2        boxwallblock,vargrid,gridc
-#smoke         gbox80  1x1        boxslotcyl,vargrid,gridc
-smoke          gbox80  2x4        boxnodyn,vargrid,gridc
-#smoke         gbox80  2x2        boxsymn,run1day,vargrid,gridc
+smoke          gbox80  2x2        boxsymn,run1day,vargrid,gridc
 smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridc
-smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridc
-#smoke         gbox80  4x1        boxsymne,run1day,vargrid,gridc
+smoke          gbox80  4x1        boxsymne,run1day,vargrid,gridc
 #smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid,gridc
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridc
-smoke          gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridc
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridc
 #smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid,gridc
 #smoke         gbox80  8x1        boxislandsn,run1day,vargrid,gridc
-smoke          gbox80  4x2        boxislandse,run1day,vargrid,gridc
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid,gridc
 #smoke         gbox80  2x4        boxislandsne,run1day,vargrid,gridc

@@ -135,8 +135,8 @@
          dyscale    !  scale factor for gird spacing in y direction (e.g., 1.02)
 
       real (kind=dbl_kind), public :: &
-         grid_lonref, & ! lower left lon for rectgrid
-         grid_latref    ! lower left lat for rectgrid
+         lonrefrect, & ! lower left lon for rectgrid
+         latrefrect    ! lower left lat for rectgrid
 
       ! Corners of grid boxes for history output
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -1450,12 +1450,12 @@
          
          ! make first column reference lon in radians.
          ! the remaining work_g1 is still dx in meters
-         work_g1(1,:) = grid_lonref/rad_to_deg ! radians
+         work_g1(1,:) = lonrefrect/rad_to_deg ! radians
 
          ! loop over remaining points and add spacing to successive 
          ! x locations
          do j = 1, ny_global
-         do i = 2, nx_global ! start from i=2. i=1 is grid_lonref
+         do i = 2, nx_global ! start from i=2. i=1 is lonrefrect
             length = work_g1(i,j)/radius             ! grid spacing in radians
             work_g1(i,j) = work_g1(i-1,j) + length   ! ULON
          enddo ! i
@@ -1518,11 +1518,11 @@
          
          ! make first row reference lat in radians.
          ! the remaining work_g1 is still dy in meters
-         work_g1(:,1) = grid_latref/rad_to_deg ! radians
+         work_g1(:,1) = latrefrect/rad_to_deg ! radians
 
          ! loop over remaining points and add spacing to successive 
          ! x locations
-         do j = 2, ny_global ! start from j=2. j=1 is grid_latref
+         do j = 2, ny_global ! start from j=2. j=1 is latrefrect
          do i = 1, nx_global
             length = work_g1(i,j)/radius             ! grid spacing in radians
             work_g1(i,j) = work_g1(i,j-1) + length   ! ULAT
