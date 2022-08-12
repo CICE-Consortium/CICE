@@ -1404,6 +1404,7 @@
          enddo
          work_g1(:,:) = work_g1(:,:) / rad_to_deg
       endif
+      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
@@ -1423,6 +1424,7 @@
          enddo
          work_g1(:,:) = work_g1(:,:) / rad_to_deg
       endif
+      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
