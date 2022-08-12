@@ -689,6 +689,8 @@
                                         istop,              jstop)
 
                if (ckflag) then
+                  write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
+                                     istep1, my_task, iblk, n
                   call diagnostic_abort(istop,jstop,iblk,' monotonicity error')
                endif
             enddo               ! n

@@ -2118,14 +2118,6 @@
          write (nu_diag,*) subname,' istep1, my_task, iblk =', &
                             istep1, my_task, iblk
          write (nu_diag,*) subname,' Global block:', this_block%block_id
-         write (nu_diag,*) subname,' Global i and j:', &
-                             this_block%i_glob(istop), &
-                             this_block%j_glob(jstop)
-         write (nu_diag,*) subname,' Lat, Lon (degrees):', &
-                            TLAT(istop,jstop,iblk)*rad_to_deg, &
-                            TLON(istop,jstop,iblk)*rad_to_deg
-         write (nu_diag,*) subname,' aice:', &
-                            aice(istop,jstop,iblk)
       endif
       call flush_fileunit(nu_diag)
       call abort_ice (subname//'ERROR: '//trim(stop_label))

@@ -844,6 +844,8 @@
                                tm    (:,:,:,n,iblk))
 
             if (l_stop) then
+               write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
+                                  istep1, my_task, iblk, n
                call diagnostic_abort(istop,jstop,iblk,'negative area (ice)')
             endif
          enddo                  ! n
