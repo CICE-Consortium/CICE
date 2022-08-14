@@ -413,8 +413,8 @@
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
       capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
       maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
-      precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres'
-                               ! (Jacobi-preconditioned GMRES)
+      precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal),
+                               ! 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50          ! size of fgmres Krylov subspace
       dim_pgmres = 5           ! size of pgmres Krylov subspace
       maxits_fgmres = 50       ! max nb of iteration for fgmres
@@ -427,8 +427,8 @@
       reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
-      fpfunc_andacc = 1        ! fixed point function for Anderson acceleration: 1:
-                               ! g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+      fpfunc_andacc = 1        ! fixed point function for Anderson acceleration:
+                               ! 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
       dim_andacc = 5           ! size of Anderson minimization matrix (number of saved previous residuals)
       reltol_andacc = 1e-6_dbl_kind  ! relative tolerance for Anderson acceleration
       damping_andacc = 0       ! damping factor for Anderson acceleration
