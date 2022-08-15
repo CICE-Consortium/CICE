@@ -75,11 +75,11 @@
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
-    lonrefrect    = -156.5
-    latrefrect    = 71.35
+    lonrefrect    = -156.50d0
+    latrefrect    =   71.35d0
     scale_dxdy     = .false.
-    dxscale        = 1.0
-    dyscale        = 1.0
+    dxscale        = 1.d0
+    dyscale        = 1.d0
     close_boundaries = .false.
     ncat         = 5
     nfsd         = 1

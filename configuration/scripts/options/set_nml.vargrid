@@ -1,6 +1,6 @@
 scale_dxdy = .true.
-dxscale    = 1.02
-dyscale    = 1.01
+dxscale    = 1.02d0
+dyscale    = 1.01d0
 f_dxt      = .true.
 f_dyt      = .true.
 f_dxu      = .true.
