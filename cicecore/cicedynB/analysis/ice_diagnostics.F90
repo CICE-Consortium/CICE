@@ -1793,6 +1793,7 @@
       write(nu_diag,*) subname,' ',trim(plabel)
       write(nu_diag,*) subname,' istep1, my_task, i, j, iblk:', &
                         istep1, my_task, i, j, iblk
+      write(nu_diag,*) subname,' Global block:', this_block%block_id
       write(nu_diag,*) subname,' Global i and j:', &
                         this_block%i_glob(i), &
                         this_block%j_glob(j)
