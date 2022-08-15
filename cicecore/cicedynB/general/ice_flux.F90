@@ -311,7 +311,7 @@
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
-         
+
       real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
@@ -330,7 +330,7 @@
       ! ice diagnostics and history files as these are more accurate.
       ! (The others suffer from problem of incorrect values at grid boxes
       !  that change from an ice free state to an icy state.)
-    
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fresh_ai, & ! fresh water flux to ocean (kg/m^2/s)
          fsalt_ai, & ! salt flux to ocean (kg/m^2/s)
@@ -344,7 +344,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fswthrun_ai  ! per-category fswthru * ai (W/m^2)
- 
+
       logical (kind=log_kind), public :: send_i2x_per_cat = .false.
 
       !-----------------------------------------------------------------
@@ -360,7 +360,7 @@
          coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
          rdg_shear   ! shear term for ridging (1/s)
- 
+
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          salinz    ,&   ! initial salinity  profile (ppt)
          Tmltz          ! initial melting temperature (^oC)
@@ -448,7 +448,8 @@
          Tf         (nx_block,ny_block,max_blocks), & ! freezing temperature (C)
          qdp        (nx_block,ny_block,max_blocks), & ! deep ocean heat flux (W/m^2), negative upward
          hmix       (nx_block,ny_block,max_blocks), & ! mixed layer depth (m)
-         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)(only used in hadgem drivers)
+         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)
+                                                      ! (only used in hadgem drivers)
          fsens      (nx_block,ny_block,max_blocks), & ! sensible heat flux (W/m^2)
          flat       (nx_block,ny_block,max_blocks), & ! latent heat flux   (W/m^2)
          fswabs     (nx_block,ny_block,max_blocks), & ! shortwave flux absorbed in ice and ocean (W/m^2)
@@ -791,7 +792,7 @@
       fdon   (:,:,:,:)= c0
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
-      
+
       allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
       fswthrun_ai(:,:,:,:) = c0
 
@@ -1278,7 +1279,7 @@
 
       ! Scale fluxes for history output
       if (present(fsurf) .and. present(fcondtop) ) then
-     
+
         do j = 1, ny_block
         do i = 1, nx_block
            if (tmask(i,j) .and. aice(i,j) > c0) then
@@ -1291,9 +1292,9 @@
            endif                  ! tmask and aice > 0
         enddo                     ! i
         enddo                     ! j
-      
+
       endif                       ! present(fsurf & fcondtop)
-      
+
       end subroutine scale_fluxes
 
 !=======================================================================

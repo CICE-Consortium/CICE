@@ -5,7 +5,9 @@ Implementation
 ========================
 
 CICE is written in FORTRAN90 and runs on platforms using UNIX, LINUX,
-and other operating systems. The code is based on a two-dimensional 
+and other operating systems. The current coding standard is Fortran2003
+with use of Fortran2008 feature CONTIGUOUS in the 1d evp solver.
+The code is based on a two-dimensional 
 horizontal orthogonal grid that is broken into two-dimensional horizontal
 blocks and parallelized over blocks 
 with MPI and OpenMP threads.  The code also includes some optimizations

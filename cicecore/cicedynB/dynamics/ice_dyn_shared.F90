@@ -1896,7 +1896,7 @@
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         
+
          shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
                     + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
                     + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
@@ -2326,7 +2326,7 @@
       subroutine dyn_haloUpdate1(halo_info, halo_info_mask, field_loc, field_type, fld1)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &
@@ -2341,12 +2341,6 @@
          fld1            ! fields to halo
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-         iblk            ! iblock
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,1,max_blocks) :: &
-         fldbundle       ! work array for boundary updates
 
       character(len=*), parameter :: subname = '(dyn_haloUpdate1)'
 
@@ -2370,7 +2364,7 @@
       subroutine dyn_haloUpdate2(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &
@@ -2386,9 +2380,6 @@
          fld2            !
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-         iblk            ! iblock
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks) :: &
          fldbundle       ! work array for boundary updates
@@ -2434,7 +2425,7 @@
       subroutine dyn_haloUpdate3(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &
@@ -2451,9 +2442,6 @@
          fld3            !
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-         iblk            ! iblock
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,3,max_blocks) :: &
          fldbundle       ! work array for boundary updates
@@ -2503,7 +2491,7 @@
       subroutine dyn_haloUpdate4(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3, fld4)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &
@@ -2521,9 +2509,6 @@
          fld4            !
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-         iblk            ! iblock
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,4,max_blocks) :: &
          fldbundle       ! work array for boundary updates
@@ -2577,7 +2562,7 @@
       subroutine dyn_haloUpdate5(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3, fld4, fld5)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: nblocks, maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &
@@ -2596,9 +2581,6 @@
          fld5            !
 
       ! local variables
-
-      integer (kind=int_kind) :: &
-         iblk            ! iblock
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,5,max_blocks) :: &
          fldbundle       ! work array for boundary updates

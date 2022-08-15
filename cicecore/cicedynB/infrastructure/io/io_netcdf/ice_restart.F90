@@ -59,7 +59,7 @@
       character(len=*), parameter :: subname = '(init_restart_read)'
 
 #ifdef USE_NETCDF
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -78,7 +78,7 @@
          status = nf90_open(trim(filename), nf90_nowrite, ncid)
          if (status /= nf90_noerr) call abort_ice(subname// &
             'ERROR: reading restart ncfile '//trim(filename))
-      
+
          if (use_restart_time) then
             status1 = nf90_noerr
             status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
@@ -262,12 +262,12 @@
             call define_rest_field(ncid,'uvelN',dims)
             call define_rest_field(ncid,'vvelN',dims)
          endif
-         
+
          if (grid_ice == 'C') then
             call define_rest_field(ncid,'uvelE',dims)
             call define_rest_field(ncid,'vvelN',dims)
          endif
-         
+
          if (restart_coszen) call define_rest_field(ncid,'coszen',dims)
 
          call define_rest_field(ncid,'scale_factor',dims)
@@ -367,11 +367,11 @@
             enddo
             endif
             if (tr_bgc_Fe ) then
-            do k=1,n_fed 
+            do k=1,n_fed
                write(nchar,'(i3.3)') k
                call define_rest_field(ncid,'fed'//trim(nchar),dims)
             enddo
-            do k=1,n_fep 
+            do k=1,n_fep
                write(nchar,'(i3.3)') k
                call define_rest_field(ncid,'fep'//trim(nchar),dims)
             enddo
@@ -482,17 +482,17 @@
             if (tr_bgc_PON) &
             call define_rest_field(ncid,'bgc_PON'  ,dims)
             if (tr_bgc_DON) then
-              do k = 1, n_don  
+              do k = 1, n_don
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_DON'//trim(nchar)    ,dims)
               enddo
             endif
             if (tr_bgc_Fe ) then
-              do k = 1, n_fed  
+              do k = 1, n_fed
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fed'//trim(nchar)    ,dims)
               enddo
-              do k = 1, n_fep  
+              do k = 1, n_fep
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fep'//trim(nchar)    ,dims)
               enddo
@@ -557,7 +557,7 @@
             call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
          enddo
          endif
-          
+
          if (z_tracers) then
             if (tr_zaero) then
              do n = 1, n_zaero
@@ -657,14 +657,14 @@
              enddo
             endif
             if (tr_bgc_Fe ) then
-             do n = 1, n_fed 
+             do n = 1, n_fed
               write(ncharb,'(i3.3)') n
               do k = 1, nblyr+3
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fed'//trim(ncharb)//trim(nchar),dims)
               enddo
              enddo
-             do n = 1, n_fep 
+             do n = 1, n_fep
               write(ncharb,'(i3.3)') n
               do k = 1, nblyr+3
                  write(nchar,'(i3.3)') k
@@ -776,7 +776,7 @@
 #endif
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.
@@ -818,7 +818,7 @@
 
 #ifdef USE_NETCDF
          status = nf90_inq_varid(ncid,trim(vname),varid)
-         if (ndim3 == ncat) then 
+         if (ndim3 == ncat) then
             if (restart_ext) then
                call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
             else
@@ -892,7 +892,7 @@
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
-        
+
       end subroutine define_rest_field
 
 !=======================================================================

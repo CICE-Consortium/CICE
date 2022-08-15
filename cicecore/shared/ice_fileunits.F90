@@ -84,7 +84,7 @@
          nu_diag_set = .false. ! flag to indicate whether nu_diag is already set
 
       integer (kind=int_kind), public :: &
-         ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below 
+         ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below
          ice_IOUnitsMaxUnit = 99    ! or above, set by setup_nml
 
       logical (kind=log_kind), dimension(:), allocatable :: &
@@ -101,8 +101,8 @@
 
 !=======================================================================
 
-!  This routine grabs needed unit numbers. 
-!  nu_diag is set to 6 (stdout) but may be reset later by the namelist. 
+!  This routine grabs needed unit numbers.
+!  nu_diag is set to 6 (stdout) but may be reset later by the namelist.
 !  nu_nml is obtained separately.
 
       subroutine init_fileunits
@@ -203,7 +203,7 @@
 
 !=======================================================================
 
-!  This routine releases unit numbers at the end of a run. 
+!  This routine releases unit numbers at the end of a run.
 
       subroutine release_all_fileunits
 

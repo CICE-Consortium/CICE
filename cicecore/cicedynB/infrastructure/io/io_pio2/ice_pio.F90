@@ -10,7 +10,7 @@
   use ice_communicate
   use ice_domain, only : nblocks, blocks_ice
   use ice_domain_size
-  use ice_fileunits  
+  use ice_fileunits
   use ice_exit, only: abort_ice
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use pio
@@ -52,7 +52,7 @@
    use perf_mod, only : t_initf
 #endif
 #endif
-     
+
    implicit none
    character(len=*)     , intent(in),    optional :: mode
    character(len=*)     , intent(in),    optional :: filename
@@ -140,14 +140,14 @@
 #endif
 
    if (present(mode) .and. present(filename) .and. present(File)) then
-      
+
       if (trim(mode) == 'write') then
          lclobber = .false.
          if (present(clobber)) lclobber=clobber
-         
+
          lcdf64 = .false.
          if (present(cdf64)) lcdf64=cdf64
-         
+
          if (File%fh<0) then
             ! filename not open
             inquire(file=trim(filename),exist=exists)
@@ -178,7 +178,7 @@
             ! filename is already open, just return
          endif
       end if
-      
+
       if (trim(mode) == 'read') then
          inquire(file=trim(filename),exist=exists)
          if (exists) then
@@ -205,7 +205,7 @@
       integer (kind=int_kind) :: &
           iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k
 
-      type(block) :: this_block 
+      type(block) :: this_block
 
       integer(kind=int_kind), pointer :: dof2d(:)
       integer(kind=int_kind) :: lprecision
@@ -218,12 +218,12 @@
 
       n=0
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
-         
+
          do j=1,ny_block
          do i=1,nx_block
             n = n+1
@@ -249,7 +249,7 @@
       endif
 
       deallocate(dof2d)
- 
+
    end subroutine ice_pio_initdecomp_2d
 
 !================================================================================
@@ -261,9 +261,9 @@
       logical, optional :: remap
       integer(kind=int_kind), optional, intent(in) :: precision
       integer (kind=int_kind) :: &
-          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k 
+          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k
 
-      type(block) :: this_block 
+      type(block) :: this_block
       logical :: lremap
       integer(kind=int_kind), pointer :: dof3d(:)
       integer(kind=int_kind) :: lprecision
@@ -279,12 +279,12 @@
          ! Reorder the ndim3 and nblocks loops to avoid a temporary array in restart read/write
          n=0
          do iblk = 1, nblocks
-            this_block = get_block(blocks_ice(iblk),iblk)         
+            this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
             ihi = this_block%ihi
             jlo = this_block%jlo
             jhi = this_block%jhi
-            do k=1,ndim3         
+            do k=1,ndim3
                do j=1,ny_block
                   do i=1,nx_block
                      n = n+1
@@ -295,7 +295,7 @@
                      else
                         lon = this_block%i_glob(i)
                         lat = this_block%j_glob(j)
-                        dof3d(n) = ((lat-1)*nx_global + lon) + (k-1)*nx_global*ny_global 
+                        dof3d(n) = ((lat-1)*nx_global + lon) + (k-1)*nx_global*ny_global
                      endif
                   enddo !i
                enddo !j
@@ -303,9 +303,9 @@
          enddo ! iblk
    else
          n=0
-         do k=1,ndim3         
+         do k=1,ndim3
             do iblk = 1, nblocks
-               this_block = get_block(blocks_ice(iblk),iblk)         
+               this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
                ihi = this_block%ihi
                jlo = this_block%jlo
@@ -320,7 +320,7 @@
                      else
                         lon = this_block%i_glob(i)
                         lat = this_block%j_glob(j)
-                        dof3d(n) = ((lat-1)*nx_global + lon) + (k-1)*nx_global*ny_global 
+                        dof3d(n) = ((lat-1)*nx_global + lon) + (k-1)*nx_global*ny_global
                      endif
                   enddo !i
                enddo !j
@@ -350,9 +350,9 @@
       integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
-          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k 
+          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k
 
-      type(block) :: this_block 
+      type(block) :: this_block
 
       integer(kind=int_kind), pointer :: dof3d(:)
       integer(kind=int_kind) :: lprecision
@@ -365,12 +365,12 @@
 
       n=0
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
-         
+
          do j=1,ny_block
          do i=1,nx_block
          do k=1,ndim3
@@ -410,9 +410,9 @@
       integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
-          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k,l 
+          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k,l
 
-      type(block) :: this_block 
+      type(block) :: this_block
 
       integer(kind=int_kind), pointer :: dof4d(:)
       integer(kind=int_kind) :: lprecision
@@ -427,12 +427,12 @@
       do l=1,ndim4
       do k=1,ndim3
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
-         
+
          do j=1,ny_block
          do i=1,nx_block
             n = n+1
@@ -444,8 +444,8 @@
                lon = this_block%i_glob(i)
                lat = this_block%j_glob(j)
                dof4d(n) = ((lat-1)*nx_global + lon) &
-                        + (k-1)*nx_global*ny_global & 
-                        + (l-1)*nx_global*ny_global*ndim3 
+                        + (k-1)*nx_global*ny_global &
+                        + (l-1)*nx_global*ny_global*ndim3
             endif
          enddo !i
          enddo !j
@@ -464,7 +464,7 @@
       deallocate(dof4d)
 
    end subroutine ice_pio_initdecomp_4d
-   
+
 !================================================================================
 
   end module ice_pio

@@ -1,7 +1,7 @@
 !=======================================================================
 
 ! Grid-dependent arrays needed for column package
-! These were originally module variables in modules that became part of 
+! These were originally module variables in modules that became part of
 ! the column package
 
 ! author: Elizabeth C. Hunke, LANL
@@ -94,9 +94,9 @@
       ! albedo components for history
       real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
-         albicen, &   ! bare ice 
-         albsnon, &   ! snow 
-         albpndn, &   ! pond 
+         albicen, &   ! bare ice
+         albsnon, &   ! snow
+         albpndn, &   ! pond
          apeffn       ! effective pond area used for radiation calculation
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -128,12 +128,12 @@
       ! aerosol optical properties   -> band  |
       !                                       v aerosol
       ! for combined dust category, use category 4 properties
-      real (kind=dbl_kind), dimension(:,:), allocatable, public :: & 
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
          waer_tab, & ! aerosol single scatter albedo (fraction)
          gaer_tab    ! aerosol asymmetry parameter (cos(theta))
 
-      real (kind=dbl_kind), dimension(:,:), allocatable, public :: & 
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
          waer_bc_tab, & ! BC single scatter albedo (fraction)
          gaer_bc_tab    ! BC aerosol asymmetry parameter (cos(theta))
@@ -146,7 +146,7 @@
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          bgrid            , &  ! biology nondimensional vertical grid points
          igrid            , &  ! biology vertical interface points
-         cgrid            , &  ! CICE vertical coordinate   
+         cgrid            , &  ! CICE vertical coordinate
          icgrid           , &  ! interface grid for CICE (shortwave variable)
          swgrid                ! grid for ice tracers used in dEdd scheme
 
@@ -187,21 +187,21 @@
                             !                2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + icepack_max_fe
                             ! Fep(1:icepack_max_fe) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + icepack_max_fe:
                             !                2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
-                            ! zaero(1:icepack_max_aero) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe: 
+                            ! zaero(1:icepack_max_aero) = 2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe:
                             !                     2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
                             !                     + icepack_max_aero
                             ! humic ==  2*icepack_max_algae + icepack_max_doc + 8 + icepack_max_dic + icepack_max_don + 2*icepack_max_fe
-                            !                     + icepack_max_aero 
+                            !                     + icepack_max_aero
 
       integer (kind=int_kind), dimension(:,:,:,:), allocatable, public :: &
-        algal_peak          ! vertical location of algal maximum, 0 if no maximum 
+        algal_peak          ! vertical location of algal maximum, 0 if no maximum
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:,:), allocatable, public :: &
          Zoo        ! N losses accumulated in timestep (ie. zooplankton/bacteria)
                     ! mmol/m^3
 
-      real (kind=dbl_kind), &  
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          dhbr_top     , & ! brine top change
          dhbr_bot         ! brine bottom change
@@ -214,7 +214,7 @@
 
       real (kind=dbl_kind), &
          dimension (:,:,:,:,:), allocatable, public :: &
-         bphi           , & ! porosity of layers    
+         bphi           , & ! porosity of layers
          bTiz               ! layer temperatures interpolated on bio grid (C)
 
       real (kind=dbl_kind), &
@@ -222,23 +222,23 @@
          darcy_V            ! darcy velocity positive up (m/s)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zsal_tot    , & ! Total ice salinity in per grid cell (g/m^2) 
-         chl_net     , & ! Total chla (mg chla/m^2) per grid cell      
-         NO_net          ! Total nitrate per grid cell  
+         zsal_tot    , & ! Total ice salinity in per grid cell (g/m^2)
+         chl_net     , & ! Total chla (mg chla/m^2) per grid cell
+         NO_net          ! Total nitrate per grid cell
 
       logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-         Rayleigh_criteria    ! .true. means Ra_c was reached   
+         Rayleigh_criteria    ! .true. means Ra_c was reached
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          Rayleigh_real        ! .true. = c1, .false. = c0
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          sice_rho     ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
-         fzsaln, &    ! category fzsal(kg/m^2/s) 
+         fzsaln, &    ! category fzsal(kg/m^2/s)
          fzsaln_g     ! salt flux from gravity drainage only
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
@@ -249,26 +249,26 @@
          zfswin       ! Shortwave flux into layers interpolated on bio grid  (W/m^2)
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         iDi      , & ! igrid Diffusivity (m^2/s)    
-         iki          ! Ice permeability (m^2)     
+         iDi      , & ! igrid Diffusivity (m^2/s)
+         iki          ! Ice permeability (m^2)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          upNO     , & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         ! ammonium uptake rate (mmol/m^2/d) times aice
-        
+
       real (kind=dbl_kind), &
          dimension(:,:,:,:,:), allocatable, public :: &
-         trcrn_sw        ! bgc tracers active in the delta-Eddington shortwave 
+         trcrn_sw        ! bgc tracers active in the delta-Eddington shortwave
                          ! calculation on the shortwave grid (swgrid)
 
       real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
-         ice_bio_net  , &   ! depth integrated tracer (mmol/m^2) 
+         ice_bio_net  , &   ! depth integrated tracer (mmol/m^2)
          snow_bio_net       ! depth integrated snow tracer (mmol/m^2)
 
       logical (kind=log_kind), public :: &
          oceanmixed_ice, &  ! if true, use internal ocean mixed layer
-         restore_bgc        ! 
+         restore_bgc        !
 
       character(char_len), public :: &
          fe_data_type   ! 'default', 'clim'
@@ -280,7 +280,7 @@
          optics_file, &        ! modal aero optics file
          optics_file_fieldname ! modal aero optics file fieldname
 
-      real (kind=dbl_kind), dimension(:), allocatable, public :: &  
+      real (kind=dbl_kind), dimension(:), allocatable, public :: &
          R_C2N_DON      ! carbon to nitrogen mole ratio of DON pool
 
       real (kind=dbl_kind), dimension(:), allocatable, public :: &
@@ -353,11 +353,11 @@
          grow_net     (nx_block,ny_block,max_blocks), & ! Specific growth rate (/s) per grid cell
          PP_net       (nx_block,ny_block,max_blocks), & ! Total production (mg C/m^2/s) per grid cell
          hbri         (nx_block,ny_block,max_blocks), & ! brine height, area-averaged for comparison with hi (m)
-         zsal_tot     (nx_block,ny_block,max_blocks), & ! Total ice salinity in per grid cell (g/m^2) 
-         chl_net      (nx_block,ny_block,max_blocks), & ! Total chla (mg chla/m^2) per grid cell      
-         NO_net       (nx_block,ny_block,max_blocks), & ! Total nitrate per grid cell  
+         zsal_tot     (nx_block,ny_block,max_blocks), & ! Total ice salinity in per grid cell (g/m^2)
+         chl_net      (nx_block,ny_block,max_blocks), & ! Total chla (mg chla/m^2) per grid cell
+         NO_net       (nx_block,ny_block,max_blocks), & ! Total nitrate per grid cell
          Rayleigh_criteria                            &
-                      (nx_block,ny_block,max_blocks), & ! .true. means Ra_c was reached   
+                      (nx_block,ny_block,max_blocks), & ! .true. means Ra_c was reached
          Rayleigh_real(nx_block,ny_block,max_blocks), & ! .true. = c1, .false. = c0
          fzsal        (nx_block,ny_block,max_blocks), & ! Total flux  of salt to ocean at time step for conservation
          fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
@@ -371,9 +371,9 @@
          alidrn       (nx_block,ny_block,ncat,max_blocks), & ! near-ir direct albedo           (fraction)
          alvdfn       (nx_block,ny_block,ncat,max_blocks), & ! visible diffuse albedo          (fraction)
          alidfn       (nx_block,ny_block,ncat,max_blocks), & ! near-ir diffuse albedo          (fraction)
-         albicen      (nx_block,ny_block,ncat,max_blocks), & ! bare ice 
-         albsnon      (nx_block,ny_block,ncat,max_blocks), & ! snow 
-         albpndn      (nx_block,ny_block,ncat,max_blocks), & ! pond 
+         albicen      (nx_block,ny_block,ncat,max_blocks), & ! bare ice
+         albsnon      (nx_block,ny_block,ncat,max_blocks), & ! snow
+         albpndn      (nx_block,ny_block,ncat,max_blocks), & ! pond
          apeffn       (nx_block,ny_block,ncat,max_blocks), & ! effective pond area used for radiation calculation
          snowfracn    (nx_block,ny_block,ncat,max_blocks), & ! Category snow fraction used in radiation
          fswsfcn      (nx_block,ny_block,ncat,max_blocks), & ! SW absorbed at ice/snow surface (W m-2)
@@ -385,21 +385,21 @@
          fswintn      (nx_block,ny_block,ncat,max_blocks), & ! SW absorbed in ice interior, below surface (W m-2)
          first_ice_real                                    &
                       (nx_block,ny_block,ncat,max_blocks), & ! .true. = c1, .false. = c0
-         first_ice    (nx_block,ny_block,ncat,max_blocks), & ! distinguishes ice that disappears (e.g. melts) and reappears (e.g. transport)
+         first_ice    (nx_block,ny_block,ncat,max_blocks), & ! distinguishes ice that disappears (melts) and reappears (transport)
          dhbr_top     (nx_block,ny_block,ncat,max_blocks), & ! brine top change
          dhbr_bot     (nx_block,ny_block,ncat,max_blocks), & ! brine bottom change
          darcy_V      (nx_block,ny_block,ncat,max_blocks), & ! darcy velocity positive up (m/s)
          sice_rho     (nx_block,ny_block,ncat,max_blocks), & ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
-         fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s) 
+         fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s)
          fzsaln_g     (nx_block,ny_block,ncat,max_blocks), & ! salt flux from gravity drainage only
          Iswabsn      (nx_block,ny_block,nilyr,ncat,max_blocks), & ! SW radiation absorbed in ice layers (W m-2)
          Sswabsn      (nx_block,ny_block,nslyr,ncat,max_blocks), & ! SW radiation absorbed in snow layers (W m-2)
          fswpenln     (nx_block,ny_block,nilyr+1,ncat,max_blocks), & ! visible SW entering ice layers (W m-2)
          Zoo          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! N losses accumulated in timestep (ie. zooplankton/bacteria)
          zfswin       (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! Shortwave flux into layers interpolated on bio grid  (W/m^2)
-         iDi          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! igrid Diffusivity (m^2/s)    
-         iki          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! Ice permeability (m^2)     
-         bphi         (nx_block,ny_block,nblyr+2,ncat,max_blocks), & ! porosity of layers    
+         iDi          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! igrid Diffusivity (m^2/s)
+         iki          (nx_block,ny_block,nblyr+1,ncat,max_blocks), & ! Ice permeability (m^2)
+         bphi         (nx_block,ny_block,nblyr+2,ncat,max_blocks), & ! porosity of layers
          bTiz         (nx_block,ny_block,nblyr+2,ncat,max_blocks), &    ! layer temperatures interpolated on bio grid (C)
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of Memory1')
@@ -409,9 +409,9 @@
          fbio_snoice  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! fluxes from snow to ice
          fbio_atmice  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! fluxes from atm to ice
          ocean_bio_all(nx_block,ny_block,max_nbtrcr,max_blocks), & ! fixed order, all values even for tracers false
-         ice_bio_net  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated tracer (mmol/m^2) 
+         ice_bio_net  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated tracer (mmol/m^2)
          snow_bio_net (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated snow tracer (mmol/m^2)
-         algal_peak   (nx_block,ny_block,max_algae ,max_blocks), & ! vertical location of algal maximum, 0 if no maximum 
+         algal_peak   (nx_block,ny_block,max_algae ,max_blocks), & ! vertical location of algal maximum, 0 if no maximum
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of Memory2')
 
@@ -420,7 +420,7 @@
          c_hi_range(ncat)           , & !
          bgrid(nblyr+2)             , & ! biology nondimensional vertical grid points
          igrid(nblyr+1)             , &  ! biology vertical interface points
-         cgrid(nilyr+1)             , &  ! CICE vertical coordinate   
+         cgrid(nilyr+1)             , &  ! CICE vertical coordinate
          icgrid(nilyr+1)            , &  ! interface grid for CICE (shortwave variable)
          swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
          stat=ierr)

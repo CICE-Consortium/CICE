@@ -1052,6 +1052,13 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user matplotlib
   pip install --user cartopy
 
+You can also setup a conda env with the same utitities
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/tests/qctest.yml
+  conda activate qctest
+
 To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
 to other settings needed.  Then use the QC script to compare history output,

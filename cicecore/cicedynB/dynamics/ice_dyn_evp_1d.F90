@@ -779,8 +779,7 @@ contains
 
       use ice_kinds_mod
       use ice_constants, only : c0, c1
-      use ice_dyn_shared, only : brlx, revp, u0, cosw, sinw, &
-          seabed_stress
+      use ice_dyn_shared, only : brlx, revp, u0, cosw, sinw
 
       implicit none
 

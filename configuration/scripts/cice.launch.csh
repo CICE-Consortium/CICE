@@ -8,18 +8,7 @@ echo "running cice.launch.csh"
 
 set jobfile = $1
 
-set ntasks = ${ICE_NTASKS}
-set nthrds = ${ICE_NTHRDS}
-set maxtpn = ${ICE_MACHINE_TPNODE}
-
-@ ncores = ${ntasks} * ${nthrds}
-@ taskpernode = ${maxtpn} / $nthrds
-if (${taskpernode} == 0) set taskpernode = 1
-@ nnodes = ${ntasks} / ${taskpernode}
-if (${nnodes} * ${taskpernode} < ${ntasks}) @ nnodes = $nnodes + 1
-set taskpernodelimit = ${taskpernode}
-if (${taskpernodelimit} > ${ntasks}) set taskpernodelimit = ${ntasks}
-@ corespernode = ${taskpernodelimit} * ${nthrds}
+source ${ICE_SCRIPTS}/setup_machparams.csh
 
 #==========================================
 if (${ICE_MACHINE} =~ cheyenne*) then

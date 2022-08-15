@@ -41,7 +41,7 @@
 
       integer function lenstr(label)
 
-      character*(*) label
+      character(len=*) :: label
 
       character(len=*),parameter :: subname='(lenstr)'
 

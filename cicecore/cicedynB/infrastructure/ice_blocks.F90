@@ -3,8 +3,8 @@
  module ice_blocks
 
 !  This module contains data types and tools for decomposing a global
-!  horizontal domain into a set of blocks.  It contains a data type 
-!  for describing each block and contains routines for creating and 
+!  horizontal domain into a set of blocks.  It contains a data type
+!  for describing each block and contains routines for creating and
 !  querying the block decomposition for a global domain.
 !
 ! author: Phil Jones, LANL
@@ -46,7 +46,7 @@
       nx_block, ny_block          !  x,y dir including ghost
 
    ! predefined directions for neighbor id routine
-   ! Note: the directions that are commented out are implemented in 
+   ! Note: the directions that are commented out are implemented in
    !       POP but not in CICE.  If the tripole cut were in the south
    !       instead of the north, these would need to be used (and also
    !       implemented in ice_boundary.F90).
@@ -314,11 +314,12 @@ contains
 
    if (debug_blocks) then
       if (my_task == master_task) then
-      write(nu_diag,*) 'block i,j locations'
+      write(nu_diag,*) ' '
+      write(nu_diag,'(2a)') subname,' block ID, iblock, jblock Locations:'
       do n = 1, nblocks_tot
-         write(nu_diag,*) 'block id, iblock, jblock, tripole:', &
+         write(nu_diag,'(2a,3i8,l4)') subname,' global block ID, iblock, jblock, tripole:', &
          all_blocks(n)%block_id, &
-         all_blocks(n)%iblock,   & 
+         all_blocks(n)%iblock,   &
          all_blocks(n)%jblock,   &
          all_blocks(n)%tripole
       enddo
@@ -380,7 +381,7 @@ end subroutine create_blocks
 !  local variables
 !
 !----------------------------------------------------------------------
-    
+
    integer (int_kind) :: &
       iBlock, jBlock,  &! i,j block location of current block
       inbr,   jnbr      ! i,j block location of neighboring block
@@ -394,6 +395,7 @@ end subroutine create_blocks
 !----------------------------------------------------------------------
 
    call get_block_parameter(blockID, iblock=iBlock, jblock=jBlock)
+   nbrID = 0   ! initial default
 
 !----------------------------------------------------------------------
 !
@@ -422,7 +424,7 @@ end subroutine create_blocks
             !*** other points if there has been padding or
             !*** if the block size does not divide the domain
             !*** evenly
-            inbr =  nblocks_x - iBlock + 1 
+            inbr =  nblocks_x - iBlock + 1
             jnbr = -jBlock
          case default
             call abort_ice(subname//'ERROR: unknown north boundary')
@@ -515,7 +517,7 @@ end subroutine create_blocks
             !*** other points if there has been padding or
             !*** if the block size does not divide the domain
             !*** evenly
-            inbr =  nblocks_x - iBlock 
+            inbr =  nblocks_x - iBlock
             if (inbr == 0) inbr = nblocks_x
             jnbr = -jBlock
          case default
@@ -554,7 +556,7 @@ end subroutine create_blocks
             !*** other points if there has been padding or
             !*** if the block size does not divide the domain
             !*** evenly
-            inbr =  nblocks_x - iBlock + 2 
+            inbr =  nblocks_x - iBlock + 2
             if (inbr > nblocks_x) inbr = 1
             jnbr = -jBlock
          case default
@@ -691,7 +693,7 @@ end subroutine create_blocks
             !*** other points if there has been padding or
             !*** if the block size does not divide the domain
             !*** evenly
-            inbr =  nblocks_x - iBlock - 1 
+            inbr =  nblocks_x - iBlock - 1
             if (inbr <= 0) inbr = inbr + nblocks_x
             jnbr = -jBlock
          case default
@@ -799,7 +801,7 @@ end subroutine create_blocks
 
 !**********************************************************************
 
- subroutine get_block_parameter(block_id, local_id,           & 
+ subroutine get_block_parameter(block_id, local_id,           &
                                 ilo, ihi, jlo, jhi,           &
                                 iblock, jblock, tripole,      &
                                 i_glob, j_glob)

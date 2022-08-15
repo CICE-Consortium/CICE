@@ -20,7 +20,7 @@
       implicit none
       private
       public :: accum_hist_pond, init_hist_pond_2D, init_hist_pond_3Dc
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -40,9 +40,9 @@
       namelist / icefields_pond_nml /     &
            f_apondn,    f_apeffn   , &
            f_hpondn,                 &
-           f_apond,     f_apond_ai , &  
-           f_hpond,     f_hpond_ai , &  
-           f_ipond,     f_ipond_ai , &  
+           f_apond,     f_apond_ai , &
+           f_hpond,     f_hpond_ai , &
+           f_ipond,     f_ipond_ai , &
            f_apeff,     f_apeff_ai
 
       !---------------------------------------------------------------
@@ -50,7 +50,7 @@
       !---------------------------------------------------------------
 
       integer (kind=int_kind), dimension(max_nstrm) :: &
-           n_apondn      , n_apeffn    , & 
+           n_apondn      , n_apeffn    , &
            n_hpondn      , &
            n_apond       , n_apond_ai, &
            n_hpond       , n_hpond_ai, &
@@ -147,7 +147,7 @@
              ns, f_apond)
 
       if (f_apond_ai(1:1) /= 'x') &
-         call define_hist_field(n_apond_ai,"apond_ai","1",tstr2D, tcstr, & 
+         call define_hist_field(n_apond_ai,"apond_ai","1",tstr2D, tcstr, &
              "melt pond fraction of grid cell",                    &
              "weighted by ice area", c1, c0,                       &
              ns, f_apond_ai)
@@ -159,7 +159,7 @@
              ns, f_hpond)
 
       if (f_hpond_ai(1:1) /= 'x') &
-         call define_hist_field(n_hpond_ai,"hpond_ai","m",tstr2D, tcstr, & 
+         call define_hist_field(n_hpond_ai,"hpond_ai","m",tstr2D, tcstr, &
              "mean melt pond depth over grid cell",                &
              "weighted by ice area", c1, c0,                       &
              ns, f_hpond)
@@ -171,7 +171,7 @@
              ns, f_ipond)
 
       if (f_ipond_ai(1:1) /= 'x') &
-         call define_hist_field(n_ipond_ai,"ipond_ai","m",tstr2D, tcstr, & 
+         call define_hist_field(n_ipond_ai,"ipond_ai","m",tstr2D, tcstr, &
              "mean pond ice thickness over grid cell",             &
              "weighted by ice area", c1, c0,                       &
              ns, f_ipond_ai)
@@ -192,7 +192,7 @@
       enddo ! nstreams
 
       endif ! tr_pond
-      
+
       end subroutine init_hist_pond_2D
 
 !=======================================================================
@@ -212,14 +212,14 @@
          file=__FILE__, line=__LINE__)
 
       if (tr_pond) then
-      
+
       ! 3D (category) variables must be looped separately
       do ns = 1, nstreams
         if (histfreq(ns) /= 'x') then
 
         if (f_apondn(1:1) /= 'x') &
            call define_hist_field(n_apondn,"apondn","1",tstr3Dc, tcstr, &
-              "melt pond fraction, category","none", c1, c0,      &            
+              "melt pond fraction, category","none", c1, c0,      &
               ns, f_apondn)
 
         if (f_hpondn(1:1) /= 'x') &
@@ -376,7 +376,7 @@
                                                   * trcr(:,:,nt_ipnd,iblk), a2D)
          endif ! ponds
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo

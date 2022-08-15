@@ -535,10 +535,10 @@ On macOS:
 
 .. code-block:: bash
 
-  # Download the Miniconda installer to ~/Downloads/miniconda.sh
-  curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o ~/Downloads/miniconda.sh
+  # Download the Miniconda installer to ~/miniconda.sh
+  curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o ~/miniconda.sh
   # Install Miniconda
-  bash ~/Downloads/miniconda.sh
+  bash ~/miniconda.sh
   
   # Follow the prompts
   

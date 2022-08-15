@@ -1,5 +1,5 @@
 !===================================================================
-!BOP 
+!BOP
 !
 ! !MODULE: ice_prescribed_mod - Prescribed Ice Model
 !
@@ -19,7 +19,7 @@
 ! 2005-Apr-19 - B. Kauffman, J. Schramm, M. Vertenstein, NCAR - design
 !
 ! !INTERFACE: ----------------------------------------------------------
- 
+
 module ice_prescribed_mod
 
 ! !USES:
@@ -72,7 +72,7 @@ module ice_prescribed_mod
    integer(SHR_KIND_IN),parameter :: nFilesMaximum = 400 ! max number of files
    integer(kind=int_kind)         :: stream_year_first   ! first year in stream to use
    integer(kind=int_kind)         :: stream_year_last    ! last year in stream to use
-   integer(kind=int_kind)         :: model_year_align    ! align stream_year_first 
+   integer(kind=int_kind)         :: model_year_align    ! align stream_year_first
                                                          ! with this model year
 
    character(len=char_len_long)   :: stream_fldVarName
@@ -88,7 +88,7 @@ module ice_prescribed_mod
 
    type(shr_strdata_type)       :: sdat         ! prescribed data stream
    character(len=char_len_long) :: fldList      ! list of fields in data stream
-   real(kind=dbl_kind), allocatable :: ice_cov(:,:,:) ! ice cover 
+   real(kind=dbl_kind), allocatable :: ice_cov(:,:,:) ! ice cover
 
 !    real (kind=dbl_kind), parameter :: &
 !       cp_sno = 0.0_dbl_kind & ! specific heat of snow                (J/kg/K)
@@ -109,13 +109,13 @@ contains
 !
 ! !IROUTINE: ice_prescribed_init -  prescribed ice initialization
 !
-! !INTERFACE: 
+! !INTERFACE:
  subroutine ice_prescribed_init(compid, gsmap, dom)
    use mpi   ! MPI Fortran module
    use shr_pio_mod, only : shr_pio_getiotype, shr_pio_getiosys
 ! !DESCRIPTION:
-!    Prescribed ice initialization - needed to 
-!    work with new shr_strdata module derived type 
+!    Prescribed ice initialization - needed to
+!    work with new shr_strdata module derived type
 !
 ! !REVISION HISTORY:
 !    2009-Oct-12 - M. Vertenstein
@@ -130,7 +130,7 @@ contains
 !EOP
    !----- Local ------
    integer(kind=int_kind) :: nml_error ! namelist i/o error flag
-   integer(kind=int_kind) :: n, nFile, ierr   
+   integer(kind=int_kind) :: n, nFile, ierr
    character(len=8)       :: fillalgo
    character(len=*), parameter :: subname = '(ice_prescribed_init)'
    character(*),parameter :: F00 = "(4a)"
@@ -227,9 +227,9 @@ contains
    if (my_task == master_task) then
       write(nu_diag,*) ' '
       write(nu_diag,*) 'This is the prescribed ice coverage option.'
-      write(nu_diag,*) '  stream_year_first  = ',stream_year_first  
-      write(nu_diag,*) '  stream_year_last   = ',stream_year_last   
-      write(nu_diag,*) '  model_year_align   = ',model_year_align   
+      write(nu_diag,*) '  stream_year_first  = ',stream_year_first
+      write(nu_diag,*) '  stream_year_last   = ',stream_year_last
+      write(nu_diag,*) '  model_year_align   = ',model_year_align
       write(nu_diag,*) '  stream_fldVarName  = ',trim(stream_fldVarName)
       do n = 1,nFile
          write(nu_diag,*) '  stream_fldFileName = ',trim(stream_fldFileName(n)),n
@@ -280,7 +280,7 @@ contains
       hin_max(1) = 999._dbl_kind
    end if
 end subroutine ice_prescribed_init
-  
+
 !=======================================================================
 !BOP ===================================================================
 !
@@ -316,7 +316,7 @@ subroutine ice_prescribed_run(mDateIn, secIn)
    logical, save          :: first_time = .true.
    character(len=*), parameter :: subname = '(ice_prescribed_run)'
    character(*),parameter :: F00 = "(a,2g20.13)"
- 
+
    !------------------------------------------------------------------------
    ! Interpolate to new ice coverage
    !------------------------------------------------------------------------
@@ -327,16 +327,16 @@ subroutine ice_prescribed_run(mDateIn, secIn)
       allocate(ice_cov(nx_block,ny_block,max_blocks))
    endif
 
-   ice_cov(:,:,:) = c0  ! This initializes ghost cells as well 
+   ice_cov(:,:,:) = c0  ! This initializes ghost cells as well
 
    n=0
    do iblk = 1, nblocks
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-      
+
       do j = jlo, jhi
       do i = ilo, ihi
          n = n+1
@@ -384,11 +384,11 @@ end subroutine ice_prescribed_run
 !     2001-May    - B. P. Briegleb - Original version
 !
 ! !INTERFACE: ------------------------------------------------------------------
- 
+
 subroutine ice_prescribed_phys
 
 ! !USES:
- 
+
    use ice_flux
    use ice_state
    use ice_arrays_column,  only : hin_max
@@ -396,9 +396,9 @@ subroutine ice_prescribed_phys
    use ice_dyn_evp
 
    implicit none
- 
+
 ! !INPUT/OUTPUT PARAMETERS:
- 
+
 !EOP
 
    !----- Local ------
@@ -411,12 +411,12 @@ subroutine ice_prescribed_phys
    real(kind=dbl_kind) :: slope     ! diff in underlying ocean tmp and ice surface tmp
    real(kind=dbl_kind) :: Ti        ! ice level temperature
    real(kind=dbl_kind) :: Tmlt      ! ice level melt temperature
-   real(kind=dbl_kind) :: qin_save(nilyr) 
+   real(kind=dbl_kind) :: qin_save(nilyr)
    real(kind=dbl_kind) :: qsn_save(nslyr)
    real(kind=dbl_kind) :: hi        ! ice prescribed (hemispheric) ice thickness
    real(kind=dbl_kind) :: hs        ! snow thickness
    real(kind=dbl_kind) :: zn        ! normalized ice thickness
-   real(kind=dbl_kind) :: salin(nilyr)  ! salinity (ppt) 
+   real(kind=dbl_kind) :: salin(nilyr)  ! salinity (ppt)
    real(kind=dbl_kind) :: rad_to_deg, pi, puny
    real(kind=dbl_kind) :: rhoi, rhos, cp_ice, cp_ocn, lfresh, depressT
 
@@ -444,11 +444,11 @@ subroutine ice_prescribed_phys
    !  aicen(:,:,:,:) = c0
    !  vicen(:,:,:,:) = c0
    !  eicen(:,:,:,:) = c0
-   
+
    !  do nc=1,ncat
    !     trcrn(:,:,nt_Tsfc,nc,:) = Tf(:,:,:)
    !  enddo
-   
+
    !-----------------------------------------------------------------
    ! Set ice cover over land to zero, not sure if this should be
    ! be done earier, before time/spatial interp??????
@@ -502,8 +502,8 @@ subroutine ice_prescribed_phys
                   endif
 
                   aicen(i,j,nc,iblk) = ice_cov(i,j,iblk)
-                  vicen(i,j,nc,iblk) = hi*aicen(i,j,nc,iblk) 
-                  vsnon(i,j,nc,iblk) = hs*aicen(i,j,nc,iblk) 
+                  vicen(i,j,nc,iblk) = hi*aicen(i,j,nc,iblk)
+                  vsnon(i,j,nc,iblk) = hs*aicen(i,j,nc,iblk)
 
                   !---------------------------------------------------------
                   ! make linear temp profile and compute enthalpy
@@ -564,7 +564,7 @@ subroutine ice_prescribed_phys
                                 trcr_base     = trcr_base(1:ntrcr,:),   &
                                 n_trcr_strata = n_trcr_strata(1:ntrcr), &
                                 nt_strata     = nt_strata(1:ntrcr,:))
-                              
+
    enddo                 ! i
    enddo                 ! j
    enddo                 ! iblk

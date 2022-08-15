@@ -8,7 +8,7 @@
       ! There are lots of issues here
       !   areas (T, U, N, E) are not locally conservative, affect X2YF
       !   X2YF is unmasked which can create havoc in U2T type directions
-      !   X2YS is masked but there can be no active cells to average (for instance, 
+      !   X2YS is masked but there can be no active cells to average (for instance,
       !        single gridcell wide channels U2T where resuilt is zero)
       !   land block elimination can lead to missing data on halo
       ! This test tries to deal with all these things....
@@ -36,7 +36,7 @@
       integer(int_kind) :: i, j, n, ib, ie, jb, je, iblock
       integer(int_kind) :: iglob, jglob
       integer(int_kind) :: blockID, numBlocks
-      type (block) :: this_block  
+      type (block) :: this_block
 
       real(dbl_kind) ,allocatable :: array1x(:,:,:), array1y(:,:,:)  ! input
       real(dbl_kind) ,allocatable :: arraysx(:,:,:), arraysy(:,:,:)  ! extra input for NE2T, NE2U
