@@ -30,7 +30,6 @@
 
       subroutine CICE_Finalize
 
-      use ice_restart_shared, only: runid
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total, &
                             timer_stats
 

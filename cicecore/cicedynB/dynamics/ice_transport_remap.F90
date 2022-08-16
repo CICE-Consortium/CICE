@@ -30,11 +30,13 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
+      use ice_calendar, only: istep1
       use ice_communicate, only: my_task
       use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
           field_loc_center, field_type_scalar, &
           field_loc_NEcorner, field_type_vector
+      use ice_diagnostics, only: diagnostic_abort
       use ice_domain_size, only: max_blocks, ncat
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
@@ -329,7 +331,6 @@
                           tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
-      use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), intent(in) ::     &
@@ -556,14 +557,7 @@
                                istop,            jstop)
 
          if (l_stop) then
-            write(nu_diag,*) 'istep1, my_task, iblk =',     &
-                              istep1, my_task, iblk
-            write (nu_diag,*) 'Global block:', this_block%block_id
-            if (istop > 0 .and. jstop > 0)                  &
-                 write(nu_diag,*) 'Global i and j:',        &
-                                  this_block%i_glob(istop), &
-                                  this_block%j_glob(jstop)
-            call abort_ice(subname//'ERROR: bad departure points')
+            call diagnostic_abort(istop,jstop,iblk,'bad departure points')
          endif
 
       enddo                     ! iblk
@@ -832,15 +826,7 @@
                              mm   (:,:,0,iblk))
 
          if (l_stop) then
-            this_block = get_block(blocks_ice(iblk),iblk)
-            write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
-                               istep1, my_task, iblk, '0'
-            write (nu_diag,*) 'Global block:', this_block%block_id
-            if (istop > 0 .and. jstop > 0)                        &
-                 write(nu_diag,*) 'Global i and j:',              &
-                                  this_block%i_glob(istop),       &
-                                  this_block%j_glob(jstop)
-            call abort_ice (subname//'ERROR: negative area (open water)')
+            call diagnostic_abort(istop,jstop,iblk,'negative area (open water)')
          endif
 
          ! ice categories
@@ -860,12 +846,7 @@
             if (l_stop) then
                write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                   istep1, my_task, iblk, n
-               write (nu_diag,*) 'Global block:', this_block%block_id
-               if (istop > 0 .and. jstop > 0)     &
-                    write(nu_diag,*) 'Global i and j:',     &
-                                     this_block%i_glob(istop),     &
-                                     this_block%j_glob(jstop)
-               call abort_ice (subname//'ERROR: negative area (ice)')
+               call diagnostic_abort(istop,jstop,iblk,'negative area (ice)')
             endif
          enddo                  ! n
 

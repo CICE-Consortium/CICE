@@ -19,6 +19,7 @@
           field_type_scalar, field_type_vector, &
           field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface
+      use ice_diagnostics, only: diagnostic_abort
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -690,7 +691,7 @@
                if (ckflag) then
                   write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
                                      istep1, my_task, iblk, n
-                  call abort_ice(subname//'ERROR: monotonicity error')
+                  call diagnostic_abort(istop,jstop,iblk,' monotonicity error')
                endif
             enddo               ! n
 

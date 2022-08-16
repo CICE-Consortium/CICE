@@ -69,7 +69,8 @@
          dim_pgmres     , & ! size of pgmres Krylov subspace
          maxits_fgmres  , & ! max nb of iteration for fgmres
          maxits_pgmres  , & ! max nb of iteration for pgmres
-         fpfunc_andacc  , & ! fixed point function for Anderson acceleration: 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
+         fpfunc_andacc  , & ! fixed point function for Anderson acceleration:
+                            ! 1: g(x) = FMGRES(A(x),b(x)), 2: g(x) = x - A(x)x + b(x)
          dim_andacc     , & ! size of Anderson minimization matrix (number of saved previous residuals)
          start_andacc       ! acceleration delay factor (acceleration starts at this iteration)
 
@@ -87,7 +88,8 @@
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
       character (len=char_len), public :: &
-         precond        , & ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 'pgmres' (Jacobi-preconditioned GMRES)
+         precond        , & ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 
+                            ! 'pgmres' (Jacobi-preconditioned GMRES)
          algo_nonlin    , & ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
          ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
 
@@ -1095,7 +1097,8 @@
             endif
 #else
             ! Anderson solver is not usable without LAPACK; abort
-            call abort_ice(error_message=subname // " CICE was not compiled with LAPACK, and Anderson solver was chosen (algo_nonlin = 'anderson')" , &
+            call abort_ice(error_message=subname // " CICE was not compiled with LAPACK, "// &
+                           "and Anderson solver was chosen (algo_nonlin = 'anderson')" , &
                file=__FILE__, line=__LINE__)
 #endif
          endif

@@ -14,7 +14,7 @@
 ! 2006: Converted to free source form (F90) by Elizabeth Hunke
 ! 2007: Option to read from netcdf files (A. Keen, Met Office)
 !       Grid reading routines reworked by E. Hunke for boundary values
-! 2021: Add N (center of north face) and E (center of east face) grids 
+! 2021: Add N (center of north face) and E (center of east face) grids
 !       to support C and CD solvers.  Defining T at center of cells, U at
 !       NE corner, N at center of top face, E at center of right face.
 !       All cells are quadrilaterals with NE, E, and N associated with
@@ -55,7 +55,7 @@
          kmt_type     , & !  options are file, default, boxislands
          bathymetry_file, & !  input bathymetry for seabed stress
          bathymetry_format, & ! bathymetry file format (default or pop)
-         grid_spacing , & !  default of 30.e3m or set by user in namelist 
+         grid_spacing , & !  default of 30.e3m or set by user in namelist
          grid_ice  , & !  Underlying model grid structure (A, B, C, CD)
          grid_ice_thrm, & !  ocean forcing grid for thermo fields (T, U, N, E)
          grid_ice_dynu, & !  ocean forcing grid for dyn U fields  (T, U, N, E)
@@ -111,12 +111,12 @@
          G_HTN      ! length of northern edge of T-cell (global ext.)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j) 
+         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j)
          cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
-         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j) 
-         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1) 
+         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j)
+         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1)
          dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
-         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1)) 
+         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1))
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          ratiodxN    , & ! - dxN(i+1,j)   / dxN(i,j)
@@ -166,14 +166,14 @@
          dimension (:,:,:,:,:), allocatable, public :: &
          mne, & ! matrices used for coordinate transformations in remapping
          mnw, & ! ne = northeast corner, nw = northwest, etc.
-         mse, & 
+         mse, &
          msw
 
       ! masks
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
          bm     , & ! task/block id
-         uvm    , & ! land/boundary mask (U-cell) 
+         uvm    , & ! land/boundary mask (U-cell)
          npm    , & ! land/boundary mask (N-cell)
          epm    , & ! land/boundary mask (E-cell)
          kmt        ! ocean topography mask for bathymetry (T-cell)
@@ -215,7 +215,7 @@
 
 !=======================================================================
 !
-! Allocate space for all variables 
+! Allocate space for all variables
 !
       subroutine alloc_grid
 
@@ -321,11 +321,11 @@
 !=======================================================================
 
 ! Distribute blocks across processors.  The distribution is optimized
-! based on latitude and topography, contained in the ULAT and KMT arrays. 
+! based on latitude and topography, contained in the ULAT and KMT arrays.
 !
 ! authors: William Lipscomb and Phil Jones, LANL
 
-      subroutine init_grid1 
+      subroutine init_grid1
 
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_array
@@ -497,7 +497,7 @@
             call popgrid_nc     ! read POP grid lengths from nc file
          else
             call popgrid        ! read POP grid lengths directly
-         endif 
+         endif
 #ifdef CESMCOUPLED
       elseif (trim(grid_type) == 'latlon') then
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
@@ -517,7 +517,7 @@
       !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
          if (my_task == master_task) then
-            !$OMP ORDERED 
+            !$OMP ORDERED
             if (iblk == 1) then
                call omp_get_schedule(ompsk,ompcs)
                write(nu_diag,*) ''
@@ -526,7 +526,7 @@
             endif
             write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
             call flush_fileunit(nu_diag)
-            !$OMP END ORDERED 
+            !$OMP END ORDERED
          endif
       enddo
       !$OMP END PARALLEL DO
@@ -591,8 +591,8 @@
             cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
             cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
             ! match order of operations in cyp, cxp for tripole grids
-            cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk)) 
-            cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk)) 
+            cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
+            cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
          enddo
          enddo
 
@@ -714,7 +714,7 @@
          enddo
          !$OMP END PARALLEL DO
       endif  ! regional
-      
+
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (ANGLET,           halo_info, &
                            field_loc_center, field_type_angle, &
@@ -770,7 +770,7 @@
 
 !=======================================================================
 
-! POP displaced pole grid and land mask (or tripole). 
+! POP displaced pole grid and land mask (or tripole).
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
 ! (2) ULON  (radians)    \\
@@ -778,7 +778,7 @@
 ! (4) HTE   (cm)         \\
 ! (5) HUS   (cm)         \\
 ! (6) HUW   (cm)         \\
-! (7) ANGLE (radians)   
+! (7) ANGLE (radians)
 !
 ! Land mask record number and field is (1) KMT.
 !
@@ -819,7 +819,7 @@
       !-----------------------------------------------------------------
 
       call ice_read(nu_kmt,1,work1,'ida4',diag, &
-                    field_loc=field_loc_center, & 
+                    field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
       hm (:,:,:) = c0
@@ -848,14 +848,14 @@
       allocate(work_g1(nx_global,ny_global))
 
       call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)   ! ULAT
-      call gridbox_verts(work_g1,latt_bounds)       
+      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
 
       call ice_read_global(nu_grid,2,work_g1,'rda8',.true.)   ! ULON
-      call gridbox_verts(work_g1,lont_bounds)       
+      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
@@ -867,7 +867,7 @@
 
       !-----------------------------------------------------------------
       ! cell dimensions
-      ! calculate derived quantities from global arrays to preserve 
+      ! calculate derived quantities from global arrays to preserve
       ! information on boundaries
       !-----------------------------------------------------------------
 
@@ -936,7 +936,7 @@
 
       type (block) :: &
          this_block           ! block information for current block
-      
+
       integer(kind=int_kind) :: &
          varid
       integer (kind=int_kind) :: &
@@ -962,7 +962,7 @@
 
       fieldname='kmt'
       call ice_read_nc(fid_kmt,1,fieldname,work1,diag, &
-                       field_loc=field_loc_center, & 
+                       field_loc=field_loc_center, &
                        field_type=field_type_scalar)
 
       hm (:,:,:) = c0
@@ -992,7 +992,7 @@
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
-      call gridbox_verts(work_g1,latt_bounds)       
+      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
@@ -1000,7 +1000,7 @@
 
       fieldname='ulon'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
-      call gridbox_verts(work_g1,lont_bounds)       
+      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
@@ -1027,7 +1027,7 @@
       endif
       call broadcast_scalar(l_readCenter,master_task)
       if (l_readCenter) then
-         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) 
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_angle)
          where (ANGLET >  pi) ANGLET =  pi
@@ -1043,7 +1043,7 @@
       endif
       !-----------------------------------------------------------------
       ! cell dimensions
-      ! calculate derived quantities from global arrays to preserve 
+      ! calculate derived quantities from global arrays to preserve
       ! information on boundaries
       !-----------------------------------------------------------------
 
@@ -1070,7 +1070,7 @@
 #ifdef CESMCOUPLED
 !=======================================================================
 
-! Read in kmt file that matches CAM lat-lon grid and has single column 
+! Read in kmt file that matches CAM lat-lon grid and has single column
 ! functionality
 ! author: Mariana Vertenstein
 ! 2007: Elizabeth Hunke upgraded to netcdf90 and cice ncdf calls
@@ -1087,8 +1087,8 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk    
-      
+         i, j, iblk
+
       integer (kind=int_kind) :: &
          ni, nj, ncid, dimid, varid, ier
 
@@ -1116,7 +1116,7 @@
         status                ! status flag
 
       real (kind=dbl_kind), allocatable :: &
-           lats(:),lons(:),pos_lons(:), glob_grid(:,:)  ! temporaries 
+           lats(:),lons(:),pos_lons(:), glob_grid(:,:)  ! temporaries
 
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
@@ -1185,12 +1185,12 @@
          status = nf90_get_var(ncid, varid, glob_grid, start3, count3)
          if (status /= nf90_noerr) call abort_ice (subname//' get_var yc')
          do j = 1,nj
-            lats(j) = glob_grid(1,j) 
+            lats(j) = glob_grid(1,j)
          end do
-         
+
          ! convert lons array and scmlon to 0,360 and find index of value closest to 0
          ! and obtain single-column longitude/latitude indices to retrieve
-         
+
          pos_lons(:)= mod(lons(:) + 360._dbl_kind,360._dbl_kind)
          pos_scmlon = mod(scmlon  + 360._dbl_kind,360._dbl_kind)
          start(1) = (MINLOC(abs(pos_lons-pos_scmlon),dim=1))
@@ -1277,7 +1277,7 @@
       ! Calculate various geometric 2d arrays
       ! The U grid (velocity) is not used when run with sequential CAM
       ! because we only use thermodynamic sea ice.  However, ULAT is used
-      ! in the default initialization of CICE so we calculate it here as 
+      ! in the default initialization of CICE so we calculate it here as
       ! a "dummy" so that CICE will initialize with ice.  If a no ice
       ! initialization is OK (or desired) this can be commented out and
       ! ULAT will remain 0 as specified above.  ULAT is located at the
@@ -1308,12 +1308,12 @@
             uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
 
             if (single_column) then
-               ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/nj)  
+               ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/nj)
             else
                if (ny_global == 1) then
                   ULAT  (i,j,iblk) = TLAT(i,j,iblk)
                else
-                  ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/ny_global)  
+                  ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/ny_global)
                endif
             endif
             ULON  (i,j,iblk) = c0
@@ -1321,9 +1321,9 @@
             NLAT  (i,j,iblk) = c0
             ELON  (i,j,iblk) = c0
             ELAT  (i,j,iblk) = c0
-            ANGLE (i,j,iblk) = c0                             
+            ANGLE (i,j,iblk) = c0
 
-            ANGLET(i,j,iblk) = c0                             
+            ANGLET(i,j,iblk) = c0
             HTN   (i,j,iblk) = 1.e36_dbl_kind
             HTE   (i,j,iblk) = 1.e36_dbl_kind
             dxT   (i,j,iblk) = 1.e36_dbl_kind
@@ -1361,13 +1361,12 @@
 
       subroutine rectgrid
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_type_scalar
       use ice_domain, only: close_boundaries
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
+         i, j, &
          imid, jmid
 
       real (kind=dbl_kind) :: &
@@ -1726,8 +1725,8 @@
 
       if (nxb < 1 .or. nyb < 1) &
          call abort_ice(subname//'ERROR: requires larger grid size')
-      
-      ! initialize work area as all ocean (c1). 
+
+      ! initialize work area as all ocean (c1).
       work(:,:) = c1
 
       ! now add land points (c0)
@@ -2130,7 +2129,7 @@
          do i = 1, nx_global
             ! assume cyclic; noncyclic will be handled during scatter
             im1 = i-1
-            if (i == 1) im1 = nx_global 
+            if (i == 1) im1 = nx_global
             work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyN
          enddo
          enddo
@@ -2139,7 +2138,7 @@
             do i = 1, nx_global
                ! assume cyclic; noncyclic will be handled during scatter
                im1 = i-1
-               if (i == 1) im1 = nx_global 
+               if (i == 1) im1 = nx_global
                work_g2(i,ny_global) = p5*(c2*work_g(i  ,ny_global-1) - work_g(i  ,ny_global-2) + &
                                           c2*work_g(im1,ny_global-1) - work_g(im1,ny_global-2))     ! dyN
             enddo
@@ -2406,7 +2405,7 @@
 ! the prior atan2 call ??? not sure what's going on.
 #if (1 == 1)
          enddo                  ! i
-         enddo                  ! j         
+         enddo                  ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -2478,9 +2477,9 @@
 
             ! ELAT in radians North
             ELAT(i,j,iblk) = asin(tz)
-            
+
          enddo                  ! i
-         enddo                  ! j         
+         enddo                  ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -3001,12 +3000,12 @@
                do i = ilo, ihi
                   wtmp = (mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                         + mask1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
-                        + mask1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                        + mask1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
                         + mask1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk))
                   if (wtmp /= c0) &
                   work2(i,j,iblk) = (mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                    + mask1(i-1,j  ,iblk)*work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
-                                   + mask1(i  ,j-1,iblk)*work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                   + mask1(i  ,j-1,iblk)*work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
                                    + mask1(i-1,j-1,iblk)*work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
                                    / wtmp
                enddo
@@ -3050,12 +3049,12 @@
                do j = jlo, jhi
                do i = ilo, ihi
                   wtmp = (mask1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
-                        + mask1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                        + mask1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  &
                         + mask1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                         + mask1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk))
                   if (wtmp /= c0) &
                   work2(i,j,iblk) = (mask1(i  ,j-1,iblk)*work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
-                                   + mask1(i+1,j-1,iblk)*work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                   + mask1(i+1,j-1,iblk)*work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  &
                                    + mask1(i  ,j  ,iblk)*work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                    + mask1(i+1,j  ,iblk)*work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
                                    / wtmp
@@ -3231,12 +3230,12 @@
                do i = ilo, ihi
                   wtmp = (wght1(i  ,j  ,iblk)  &
                         + wght1(i-1,j  ,iblk)  &
-                        + wght1(i  ,j-1,iblk)  & 
+                        + wght1(i  ,j-1,iblk)  &
                         + wght1(i-1,j-1,iblk))
                   if (wtmp /= c0) &
                   work2(i,j,iblk) = (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                    + work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
-                                   + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                   + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
                                    + work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
                                    / wtmp
                enddo
@@ -3280,12 +3279,12 @@
                do j = jlo, jhi
                do i = ilo, ihi
                   wtmp = (wght1(i  ,j-1,iblk)  &
-                        + wght1(i+1,j-1,iblk)  & 
+                        + wght1(i+1,j-1,iblk)  &
                         + wght1(i  ,j  ,iblk)  &
                         + wght1(i+1,j  ,iblk))
                   if (wtmp /= c0) &
                   work2(i,j,iblk) = (work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
-                                   + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                   + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  &
                                    + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                    + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
                                    / wtmp
@@ -3456,7 +3455,7 @@
                   work2(i,j,iblk) = p25 *  &
                                    (work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                   + work1(i-1,j  ,iblk)*wght1(i-1,j  ,iblk)  &
-                                  + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  & 
+                                  + work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
                                   + work1(i-1,j-1,iblk)*wght1(i-1,j-1,iblk)) &
                                   / wght2(i  ,j  ,iblk)
                enddo
@@ -3497,7 +3496,7 @@
                do i = ilo, ihi
                   work2(i,j,iblk) = p25 *  &
                                    (work1(i  ,j-1,iblk)*wght1(i  ,j-1,iblk)  &
-                                  + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  & 
+                                  + work1(i+1,j-1,iblk)*wght1(i+1,j-1,iblk)  &
                                   + work1(i  ,j  ,iblk)*wght1(i  ,j  ,iblk)  &
                                   + work1(i+1,j  ,iblk)*wght1(i+1,j  ,iblk)) &
                                   / wght2(i  ,j  ,iblk)
@@ -4351,7 +4350,7 @@
       if (my_task == master_task) then
          do j = 1, ny_global
          do i = 2, nx_global
-            work_g2(i,j) = work_g(i-1,j  ) * rad_to_deg         
+            work_g2(i,j) = work_g(i-1,j  ) * rad_to_deg
          enddo
          enddo
          ! extrapolate
@@ -4557,13 +4556,13 @@
 
 !=======================================================================
 
-! Read bathymetry data for seabed stress calculation (grounding scheme for 
-! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode 
-! (e.g. CICE-NEMO), hwater should be uptated at each time level so that 
+! Read bathymetry data for seabed stress calculation (grounding scheme for
+! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode
+! (e.g. CICE-NEMO), hwater should be uptated at each time level so that
 ! it varies with ocean dynamics.
 !
 ! author: Fred Dupont, CMC
-      
+
       subroutine read_seabedstress_bathy
 
       ! use module
@@ -4573,7 +4572,7 @@
       ! local variables
       integer (kind=int_kind) :: &
          fid_init        ! file id for netCDF init file
-      
+
       character (char_len_long) :: &        ! input data file names
          fieldname
 
@@ -4607,7 +4606,7 @@
       endif
 
       end subroutine read_seabedstress_bathy
-      
+
 !=======================================================================
 
       end module ice_grid

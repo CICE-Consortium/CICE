@@ -61,7 +61,7 @@
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -83,7 +83,7 @@
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
-      
+
          call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
 
@@ -122,7 +122,7 @@
 !      call broadcast_scalar(time,master_task)
 !      call broadcast_scalar(time_forc,master_task)
       call broadcast_scalar(myear,master_task)
-      
+
       istep1 = istep0
 
       ! if runid is bering then need to correct npt for istep0
@@ -219,7 +219,7 @@
               restart_file(1:lenstr(restart_file)),'.', &
               myear,'-',mmonth,'-',mday,'-',msec
       end if
-        
+
       if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
@@ -230,7 +230,7 @@
       endif
 
 !     if (restart_format(1:3) == 'pio') then
-      
+
          iotype = PIO_IOTYPE_NETCDF
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
@@ -807,14 +807,14 @@
                   write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
-         
+
          endif
 !     else
 !        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
 !     endif  ! restart_format
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.
@@ -862,10 +862,10 @@
             write(nu_diag,*)'Parallel restart file write: ',vname
 
          status = pio_inq_varid(File,trim(vname),vardesc)
-         
+
          status = pio_inq_varndims(File, vardesc, ndims)
 
-         if (ndims==3) then 
+         if (ndims==3) then
             call pio_write_darray(File, vardesc, iodesc3d_ncat,work(:,:,:,1:nblocks), &
                  status, fillval=c0)
          elseif (ndims == 2) then
@@ -937,7 +937,7 @@
       character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
-        
+
       end subroutine define_rest_field
 
 !=======================================================================

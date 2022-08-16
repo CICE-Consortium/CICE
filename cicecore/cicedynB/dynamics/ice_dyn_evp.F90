@@ -98,12 +98,12 @@
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_grid, only: hm, tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
+      use ice_grid, only: tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
           iceumask, iceemask, icenmask, &
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, &
           dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, earear, narear, grid_average_X2Y, tarea, uarea, &
+          tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
@@ -871,7 +871,7 @@
                                           shearU    (:,:,iblk),                    &
                                           shear   (:,:,iblk), divu     (:,:,iblk), &
                                           rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
-                     
+
                   endif
                enddo
                !$OMP END PARALLEL DO
@@ -1408,7 +1408,7 @@
         csigmne, csigmnw, csigmse, csigmsw        , &
         csig12ne, csig12nw, csig12se, csig12sw    , &
         str12ew, str12we, str12ns, str12sn        , &
-        strp_tmp, strm_tmp, tmp
+        strp_tmp, strm_tmp
 
       character(len=*), parameter :: subname = '(stress)'
 

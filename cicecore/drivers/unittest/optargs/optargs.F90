@@ -193,7 +193,7 @@
             computeD = .true.
             ierrV = oa_A + oa_B + oa_C + oa_D
             Ai1 = 7.
-            B   = 9. 
+            B   = 9.
             Ci1 = 7.
             Di1 = 12; Di2=3.
             resultV = 49.
@@ -205,7 +205,7 @@
             computeD = .true.
             ierrV = oa_A + oa_B + oa_D
             Ai1 = 10.
-            B   = 11. 
+            B   = 11.
             Di1 = 12; Di2=3.
             resultV = 40.
             call oa_layer1(Ao=Ao,B=B,Co=Co,Do=Do,Ai1=Ai1,Ci1=Ci1,Di1=Di1,Di2=Di2,ierr=ierr)

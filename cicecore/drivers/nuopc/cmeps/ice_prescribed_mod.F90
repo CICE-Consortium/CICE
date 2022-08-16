@@ -175,7 +175,7 @@ contains
           end do
           write(nu_diag,*) ' '
        endif
-       
+
        ! initialize sdat
        call shr_strdata_init_from_inline(sdat,               &
             my_task             = my_task,                   &

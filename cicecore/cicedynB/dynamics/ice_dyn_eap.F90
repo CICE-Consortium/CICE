@@ -1271,7 +1271,7 @@
          csigmne, csigmnw, csigmse, csigmsw        , &
          csig12ne, csig12nw, csig12se, csig12sw    , &
          str12ew, str12we, str12ns, str12sn        , &
-         strp_tmp, strm_tmp 
+         strp_tmp, strm_tmp
 
       real (kind=dbl_kind) :: &
          alpharne, alpharnw, alpharsw, alpharse,     &

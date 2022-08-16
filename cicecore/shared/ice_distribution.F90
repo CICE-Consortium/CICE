@@ -61,7 +61,7 @@
 !  by call the appropriate subroutine based on distribution type
 !  requested.  Currently three distributions are supported:
 !  2-d Cartesian distribution (cartesian), a load-balanced
-!  distribution using a rake algorithm based on an input amount of work 
+!  distribution using a rake algorithm based on an input amount of work
 !  per block, and a space-filling-curve algorithm.
 
    character (*), intent(in) :: &
@@ -180,14 +180,6 @@
       do n=1,size(distribution%blockLocation)
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
-
-            if (debug_blocks .and. my_task == master_task) then
-               write(nu_diag,'(2a,3i8)') &
-                             subname,' block id, proc, local_block: ', &
-                             block_ids(distribution%blockLocalID(n)), &
-                             distribution%blockLocation(n), &
-                             distribution%blockLocalID(n)
-            endif
          endif
       end do
    endif
@@ -597,7 +589,7 @@
    newDistrb%nprocs = nprocs
 
    call proc_decomposition(nprocs, nprocsX, nprocsY)
-                                  
+
 
 !----------------------------------------------------------------------
 !
@@ -639,7 +631,7 @@
 
    do j=1,nprocsY
    do i=1,nprocsX
-      processor = (j-1)*nprocsX + i    ! number the processors 
+      processor = (j-1)*nprocsX + i    ! number the processors
                                          ! left to right, bot to top
 
       is = (i-1)*numBlocksXPerProc + 1   ! starting block in i
@@ -783,7 +775,7 @@
 !----------------------------------------------------------------------
 
    dist = create_distrb_cart(nprocs, workPerBlock)
-                                    
+
 !----------------------------------------------------------------------
 !
 !  if the number of blocks is close to the number of processors,
@@ -909,7 +901,7 @@
          call ice_distributionRake (workTmp, procTmp, workPerBlock, &
                                     priority, dist)
       end do
-   
+
       deallocate(workTmp, procTmp, stat=istat)
       if (istat > 0) then
          call abort_ice( &
@@ -1092,7 +1084,7 @@
 
    integer (int_kind), dimension(:), allocatable :: &
       proc_tmp           ! temp processor id
-   
+
    character(len=*),parameter :: subname='(create_distrb_roundrobin)'
 
 !----------------------------------------------------------------------
@@ -1143,7 +1135,7 @@
 
    do j=1,nblocks_y
    do i=1,nblocks_x
-      
+
       globalID = globalID + 1
 
       if (workPerBlock(globalID) /= 0) then
@@ -1199,7 +1191,7 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_roundrobin
- 
+
 !***********************************************************************
 
  function create_distrb_spiralcenter(nprocs, workPerBlock) result(newDistrb)
@@ -1237,7 +1229,7 @@
       blocklist          ! temp block ordered list
    integer (int_kind), dimension(:,:), allocatable :: &
       blockchk           ! temp block check array
-   
+
    character(len=*),parameter :: subname='(create_distrb_spiralcenter)'
 
 !----------------------------------------------------------------------
@@ -1424,7 +1416,7 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_spiralcenter
- 
+
 !***********************************************************************
 
  function create_distrb_wghtfile(nprocs, workPerBlock) result(newDistrb)
@@ -1461,7 +1453,7 @@
       proc_tmp           ! temp processor id
 
    logical (log_kind) ::  up   ! direction of pe counting
-   
+
    character(len=*),parameter :: subname='(create_distrb_wghtfile)'
 
 !----------------------------------------------------------------------
@@ -1590,7 +1582,7 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_wghtfile
- 
+
 !***********************************************************************
 
  function create_distrb_sectrobin(nprocs, workPerBlock) result(newDistrb)
@@ -1628,7 +1620,7 @@
 
    logical (log_kind), dimension(:), allocatable :: &
       bfree              ! map of assigned blocks
-   
+
    integer (int_kind) :: cnt, blktogether, i2
    integer (int_kind) :: totblocks, nchunks
    logical (log_kind) :: keepgoing
@@ -1704,7 +1696,7 @@
    blktogether = max(1,nint(float(totblocks)/float(6*nprocs)))
 
 !   write(nu_diag,*) 'ice_distrb_sectrobin totblocks = ',totblocks,nblocks_y*nblocks_x
- 
+
    !------------------------------
    ! southern group of blocks
    !   weave back and forth in i vs j
@@ -1897,7 +1889,7 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_sectrobin
- 
+
 !***********************************************************************
 
  function create_distrb_sectcart(nprocs, workPerBlock) result(newDistrb)
@@ -1933,7 +1925,7 @@
 
    integer (int_kind), dimension(:), allocatable :: &
       proc_tmp           ! temp processor id
-   
+
    integer (int_kind) :: n
 
    character(len=*),parameter :: subname='(create_distrb_sectcart)'
@@ -1997,7 +1989,7 @@
    cnt = 0
    do j2=1,nblocks_y
    do i2=1,nblocks_x/2
-      
+
       if (n == 1) then
          i = i2
          j = j2
@@ -2066,7 +2058,7 @@
 !----------------------------------------------------------------------
 
  end function create_distrb_sectcart
- 
+
 !**********************************************************************
 
  function create_distrb_spacecurve(nprocs,work_per_block)
@@ -2400,7 +2392,7 @@
    integer (int_kind) :: &
       i, n,                  &! dummy loop indices
       np1,                   &! n+1 corrected for cyclical wrap
-      iproc, inext,          &! processor ids for current and next 
+      iproc, inext,          &! processor ids for current and next
       nprocs, numBlocks,   &! number of blocks, processors
       lastPriority,          &! priority for most recent block
       minPriority,           &! minimum priority

@@ -6,7 +6,7 @@
 !         Elizabeth C. Hunke and William H. Lipscomb, LANL
 !         C. M. Bitz, UW
 !
-! 2004 WHL: Block structure added 
+! 2004 WHL: Block structure added
 ! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Added ice_present, aicen, vicen; removed aice1...10, vice1...1.
 !           Added histfreq_n and histfreq='h' options, removed histfreq='w'
@@ -27,7 +27,7 @@
       implicit none
       private
       public :: ice_write_hist
-      
+
 !=======================================================================
 
       contains
@@ -407,7 +407,7 @@
           endif
           if (f_bounds) then
               status = pio_put_att(File, varid, 'bounds', trim(coord_bounds(i)))
-          endif          
+          endif
         enddo
 
         ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
@@ -446,14 +446,14 @@
           if (f_bounds) then
              status = pio_def_var(File, trim(var_nverts(i)%short_name), &
                                    lprecision,dimid_nverts, varid)
-             status = & 
+             status = &
              pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
              status = &
              pio_put_att(File, varid, 'units', trim(var_nverts(i)%units))
              call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
           endif
         enddo
- 
+
       !-----------------------------------------------------------------
       ! define attributes for time-variant variables
       !-----------------------------------------------------------------
@@ -507,7 +507,7 @@
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dz
-        
+
       !-----------------------------------------------------------------
       ! 3D (biology ice layers)
       !-----------------------------------------------------------------
@@ -690,7 +690,7 @@
           bnd_start  = (/1,1/)
           bnd_length = (/2,1/)
           status = pio_put_var(File,varid,ival=time_bounds, &
-                   start=bnd_start(:),count=bnd_length(:)) 
+                   start=bnd_start(:),count=bnd_length(:))
         endif
 
       !-----------------------------------------------------------------
@@ -738,7 +738,7 @@
             status = pio_inq_varid(File, var_grdz(i)%short_name, varid)
             SELECT CASE (var_grdz(i)%short_name)
               CASE ('NCAT')
-                status = pio_put_var(File, varid, hin_max(1:ncat_hist)) 
+                status = pio_put_var(File, varid, hin_max(1:ncat_hist))
               CASE ('NFSD')
                 status = pio_put_var(File, varid, floe_rad_c(1:nfsd_hist))
               CASE ('VGRDi')
@@ -826,35 +826,35 @@
       do i = 1, nvar_verts
         SELECT CASE (var_nverts(i)%short_name)
         CASE ('lont_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('latt_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('lonu_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('latu_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('lonn_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('latn_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('lone_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
            enddo
         CASE ('late_bounds')
-           do ivertex = 1, nverts 
+           do ivertex = 1, nverts
               workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
            enddo
         END SELECT
