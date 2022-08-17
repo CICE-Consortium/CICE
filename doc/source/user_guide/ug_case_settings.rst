@@ -248,6 +248,8 @@ grid_nml
    "``close_boundaries``", "logical", "force two gridcell wide land mask on boundaries for rectangular grids", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
+   "``lonrefrect``","real","lower left corner lon for rectgrid in deg", "-156.5"
+   "``latrefrect``","real","lower left corner lat for rectgrid in deg", "71.35"
    "``scale_dxdy``", "logical", "apply dxscale, dyscale to rectgrid", "``false``"
    "``dxscale``", "real", "user defined rectgrid x-grid scale factor", "1.0"
    "``dyscale``", "real", "user defined rectgrid y-grid scale factor", "1.0"
