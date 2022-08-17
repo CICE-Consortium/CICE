@@ -204,6 +204,10 @@
       dt_dyn = dt/real(ndtd,kind=dbl_kind) ! dynamics et al timestep
       force_restart_now = .false.
 
+      ! initialize nstreams to zero (will be initialized from namelist in 'init_hist')
+      ! this avoids using it uninitialzed in 'calendar' below
+      nstreams = 0
+
 #ifdef CESMCOUPLED
       ! calendar_type set by coupling
 #else
