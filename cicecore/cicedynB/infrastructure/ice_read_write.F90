@@ -25,7 +25,7 @@
       use ice_fileunits, only: nu_diag
 
 #ifdef USE_NETCDF
-      use netcdf      
+      use netcdf
 #endif
 
       implicit none
@@ -33,7 +33,7 @@
       private
 
       integer (kind=int_kind), parameter, private :: &
-           bits_per_byte = 8 ! number of bits per byte. 
+           bits_per_byte = 8 ! number of bits per byte.
                              ! used to determine RecSize in ice_open
 
       public :: ice_open,           &
@@ -148,7 +148,7 @@
       integer (kind=int_kind), intent(in) :: &
            nu        , & ! unit number
            nbits         ! no. of bits per variable (0 for sequential access)
-      
+
       integer (kind=int_kind) :: RecSize, nbytes
 
       character (*) :: filename
@@ -468,9 +468,9 @@
       if (present(field_loc)) then
          call scatter_global(work(:,:,k,:), work_g4(:,:,k), master_task, distrb_info, &
                              field_loc, field_type)
-      
+
       else
-      
+
          call scatter_global(work(:,:,k,:), work_g4(:,:,k), master_task, distrb_info, &
                              field_loc_noupdate, field_type_noupdate)
       endif
@@ -791,11 +791,11 @@
          elseif (atype == 'ida8') then
             allocate(work_gi8(nx_global,ny_global))
             work_gi8 = nint(work_g1)
-            write(nu,rec=nrec) work_gi8           
+            write(nu,rec=nrec) work_gi8
             deallocate(work_gi8)
          elseif (atype == 'rda4') then
             allocate(work_gr(nx_global,ny_global))
-            work_gr = work_g1
+            work_gr = real(work_g1,real_kind)
             write(nu,rec=nrec) work_gr
             deallocate(work_gr)
          elseif (atype == 'rda8') then
@@ -824,7 +824,7 @@
 
 !=======================================================================
 
-! Writes an unformatted file 
+! Writes an unformatted file
 ! work is a real array, atype indicates the format of the data
 
       subroutine ice_write_xyzt(nu, nrec, work, atype, diag)
@@ -895,11 +895,11 @@
          elseif (atype == 'ida8') then
             allocate(work_gi9(nx_global,ny_global,nblyr+2))
             work_gi9 = nint(work_g4)
-            write(nu,rec=nrec) work_gi9           
+            write(nu,rec=nrec) work_gi9
             deallocate(work_gi9)
          elseif (atype == 'rda4') then
             allocate(work_gr3(nx_global,ny_global,nblyr+2))
-            work_gr3 = work_g4
+            work_gr3 = real(work_g4,real_kind)
             write(nu,rec=nrec) work_gr3
             deallocate(work_gr3)
          elseif (atype == 'rda8') then
@@ -1002,11 +1002,11 @@
          elseif (atype == 'ida8') then
             allocate(work_gi8(nx,ny))
             work_gi8 = nint(work_g1)
-            write(nu,rec=nrec) work_gi8           
+            write(nu,rec=nrec) work_gi8
             deallocate(work_gi8)
          elseif (atype == 'rda4') then
             allocate(work_gr(nx,ny))
-            work_gr = work_g1
+            work_gr = real(work_g1,real_kind)
             write(nu,rec=nrec) work_gr
             deallocate(work_gr)
          elseif (atype == 'rda8') then
@@ -1040,7 +1040,7 @@
 
       subroutine ice_open_nc(filename, fid)
 
-      character (char_len_long), intent(in) :: & 
+      character (char_len_long), intent(in) :: &
            filename      ! netCDF filename
 
       integer (kind=int_kind), intent(out) :: &
@@ -1052,7 +1052,7 @@
 
 #ifdef USE_NETCDF
       integer (kind=int_kind) :: &
-        status        ! status variable from netCDF routine 
+        status        ! status variable from netCDF routine
 
       if (my_task == master_task) then
 
@@ -1089,12 +1089,12 @@
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      character (len=*), intent(in) :: & 
+      character (len=*), intent(in) :: &
            varname           ! field name in netcdf file
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
@@ -1113,13 +1113,13 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid          , & ! variable id
          status         , & ! status output from netcdf routines
          ndims          , & ! number of dimensions
          dimlen             ! dimension size
 
-      integer (kind=int_kind), dimension(10) :: & 
+      integer (kind=int_kind), dimension(10) :: &
          dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
@@ -1200,12 +1200,12 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,lnrec/), & 
+               start=(/1,1,lnrec/), &
                count=(/nx_global+2,ny_global+1,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1214,7 +1214,7 @@
             work_g1 = work_g2(2:nx_global+1,1:ny_global)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-                  start=(/1,1,lnrec/), & 
+                  start=(/1,1,lnrec/), &
                   count=(/nx,ny,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1230,8 +1230,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,'(2a,i8,a,i8,2a)') & 
-             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
+           write(nu_diag,'(2a,i8,a,i8,2a)') &
+             subname,' fid= ',fid, ', lnrec = ',lnrec, &
              ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -1294,9 +1294,9 @@
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
-      character (len=*), intent(in) :: & 
+      character (len=*), intent(in) :: &
            varname           ! field name in netcdf file
 
       logical (kind=log_kind), intent(in) :: &
@@ -1318,14 +1318,14 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          n,               & ! ncat index
          varid          , & ! variable id
          status         , & ! status output from netcdf routines
          ndims          , & ! number of dimensions
          dimlen             ! dimension size
 
-      integer (kind=int_kind), dimension(10) :: & 
+      integer (kind=int_kind), dimension(10) :: &
          dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
@@ -1407,12 +1407,12 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,1,lnrec/), & 
+               start=(/1,1,1,lnrec/), &
                count=(/nx_global+2,ny_global+1,ncat,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1421,7 +1421,7 @@
             work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,lnrec/), & 
+               start=(/1,1,1,lnrec/), &
                count=(/nx,ny,ncat,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1437,8 +1437,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,'(2a,i8,a,i8,2a)') & 
-              subname,' fid= ',fid, ', lnrec = ',lnrec, & 
+           write(nu_diag,'(2a,i8,a,i8,2a)') &
+              subname,' fid= ',fid, ', lnrec = ',lnrec, &
              ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -1506,14 +1506,14 @@
                                  field_loc, field_type, restart_ext)
 
       use ice_fileunits, only: nu_diag
-      use ice_domain_size, only: nfsd, nfreq
+      use ice_domain_size, only: nfreq
       use ice_gather_scatter, only: scatter_global, scatter_global_ext
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
-      character (len=*), intent(in) :: & 
+      character (len=*), intent(in) :: &
            varname           ! field name in netcdf file
 
       logical (kind=log_kind), intent(in) :: &
@@ -1533,7 +1533,7 @@
       ! local variables
 
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid,           & ! variable id
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
@@ -1542,7 +1542,7 @@
          ndims,           & ! number of dimensions
          dimlen             ! dimension size
 
-      integer (kind=int_kind), dimension(10) :: & 
+      integer (kind=int_kind), dimension(10) :: &
          dimids             ! generic size dimids
 
       real (kind=dbl_kind) :: &
@@ -1627,12 +1627,12 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
-               start=(/1,1,1,lnrec/), & 
+               start=(/1,1,1,lnrec/), &
                count=(/nx_global+2,ny_global+1,nfreq,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1641,7 +1641,7 @@
             work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
          else
             status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,1,lnrec/), & 
+               start=(/1,1,1,lnrec/), &
                count=(/nx,ny,nfreq,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1725,12 +1725,12 @@
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      character (char_len), intent(in) :: & 
+      character (char_len), intent(in) :: &
            varname           ! field name in netcdf file
 
       integer (kind=int_kind), optional, intent(in) :: &
@@ -1746,7 +1746,7 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
@@ -1754,7 +1754,7 @@
          ndims,           & ! number of dimensions
          dimlen             ! dimension size
 
-      integer (kind=int_kind), dimension(10) :: & 
+      integer (kind=int_kind), dimension(10) :: &
          dimids             ! generic size dimids
 
       real (kind=dbl_kind), dimension(1) :: &
@@ -1805,8 +1805,8 @@
        ! Read point variable
        !--------------------------------------------------------------
 
-         status = nf90_get_var(fid, varid, workg, & 
-               start= (/ lnrec /), & 
+         status = nf90_get_var(fid, varid, workg, &
+               start= (/ lnrec /), &
                count=(/ 1 /))
          if (status /= nf90_noerr) then
             call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -1819,8 +1819,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-          write(nu_diag,'(2a,i8,a,i8,2a)') & 
-             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
+          write(nu_diag,'(2a,i8,a,i8,2a)') &
+             subname,' fid= ',fid, ', lnrec = ',lnrec, &
             ', varname = ',trim(varname)
           status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
           write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -1830,7 +1830,7 @@
          enddo
       endif
 
-      work = workg(1) 
+      work = workg(1)
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
@@ -1870,11 +1870,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim) :: &
          workg              ! output array (real, 8-byte)
@@ -1958,11 +1954,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim,ydim) :: &
          workg              ! output array (real, 8-byte)
@@ -2049,11 +2041,7 @@
       integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
-         ndim, nvar,      & ! sizes of netcdf file
-         dimlen             ! size of dimension
-
-      character (char_len) :: &
-         dimname            ! dimension name
+         ndim, nvar         ! sizes of netcdf file
 
       real (kind=dbl_kind), dimension(xdim,ydim,zdim) :: &
          workg              ! output array (real, 8-byte)
@@ -2121,12 +2109,12 @@
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      character (char_len), intent(in) :: & 
+      character (char_len), intent(in) :: &
            varname           ! field name in netcdf file
 
       integer (kind=int_kind), optional, intent(in) :: &
@@ -2143,7 +2131,7 @@
            work_z
 
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status,          & ! status output from netcdf routines
          ndim, nvar,      & ! sizes of netcdf file
@@ -2151,11 +2139,11 @@
          ndims,           & ! number of dimensions
          dimlen             ! dimension size
 
-      integer (kind=int_kind), dimension(10) :: & 
+      integer (kind=int_kind), dimension(10) :: &
          dimids             ! generic size dimids
 
       character (char_len) :: &
-         dimname            ! dimension name            
+         dimname            ! dimension name
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
@@ -2204,11 +2192,11 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          status = nf90_get_var( fid, varid, work_z, &
-               start=(/1,lnrec/), & 
+               start=(/1,lnrec/), &
                count=(/nilyr,1/))
          if (status /= nf90_noerr) then
             call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -2221,8 +2209,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-          write(nu_diag,'(2a,i8,a,i8,2a)') & 
-             subname,' fid= ',fid, ', lnrec = ',lnrec, & 
+          write(nu_diag,'(2a,i8,a,i8,2a)') &
+             subname,' fid= ',fid, ', lnrec = ',lnrec, &
             ', varname = ',trim(varname)
           status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
           write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -2256,7 +2244,7 @@
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
            varid         , & ! variable id
-           nrec              ! record number 
+           nrec              ! record number
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
@@ -2276,7 +2264,7 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          status             ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
@@ -2327,11 +2315,11 @@
       if (my_task == master_task) then
 
        !--------------------------------------------------------------
-       ! Write global array 
+       ! Write global array
        !--------------------------------------------------------------
 
          status = nf90_put_var( fid, varid, work_g1, &
-               start=(/1,1,nrec/), & 
+               start=(/1,1,nrec/), &
                count=(/nx,ny,1/))
 
       endif                     ! my_task = master_task
@@ -2341,8 +2329,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-!          write(nu_diag,*) & 
-!             subname,' fid= ',fid, ', nrec = ',nrec, & 
+!          write(nu_diag,*) &
+!             subname,' fid= ',fid, ', nrec = ',nrec, &
 !            ', varid = ',varid
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -2357,7 +2345,7 @@
       endif
 
       deallocate(work_g1)
-      
+
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
          file=__FILE__, line=__LINE__)
@@ -2379,7 +2367,7 @@
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
            varid         , & ! variable id
-           nrec              ! record number 
+           nrec              ! record number
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
@@ -2399,7 +2387,7 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          n,               & ! ncat index
          status             ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
@@ -2457,11 +2445,11 @@
       if (my_task == master_task) then
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          status = nf90_put_var( fid, varid, work_g1, &
-               start=(/1,1,1,nrec/), & 
+               start=(/1,1,1,nrec/), &
                count=(/nx,ny,ncat,1/))
 
       endif                     ! my_task = master_task
@@ -2471,8 +2459,8 @@
     !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-!          write(nu_diag,*) & 
-!             subname,' fid= ',fid, ', nrec = ',nrec, & 
+!          write(nu_diag,*) &
+!             subname,' fid= ',fid, ', nrec = ',nrec, &
 !            ', varid = ',varid
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -2491,14 +2479,14 @@
       endif
 
       deallocate(work_g1)
-      
+
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
          file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_nc_xyz
-      
+
 !=======================================================================
 
 ! Read a netcdf file.
@@ -2506,15 +2494,15 @@
 ! work_g is a real array
 !
 ! Adapted by William Lipscomb, LANL, from ice_read
-! Adapted by Ann Keen, Met Office, to read from a netcdf file 
+! Adapted by Ann Keen, Met Office, to read from a netcdf file
 
       subroutine ice_read_global_nc (fid,  nrec, varname, work_g, diag)
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec              ! record number 
+           nrec              ! record number
 
-     character (char_len), intent(in) :: & 
+     character (char_len), intent(in) :: &
            varname           ! field name in netcdf file
 
       real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
@@ -2529,12 +2517,12 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid,           & ! netcdf id for field
          status             ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
 !        id,              & ! dimension index
-!        dimlen             ! size of dimension      
+!        dimlen             ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum   ! min, max values and sum of input array
@@ -2551,7 +2539,7 @@
          else
             allocate(work_g3(1,1))   ! to save memory
          endif
-         work_g3(:,:) = c0     
+         work_g3(:,:) = c0
       endif
 
       work_g(:,:) = c0
@@ -2569,9 +2557,9 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
- 
+
          if (orca_halogrid) then
             status = nf90_get_var( fid, varid, work_g3, &
                   start=(/1,1,nrec/), &
@@ -2583,7 +2571,7 @@
             work_g=work_g3(2:nx_global+1,1:ny_global)
          else
             status = nf90_get_var( fid, varid, work_g, &
-                  start=(/1,1,nrec/), & 
+                  start=(/1,1,nrec/), &
                   count=(/nx_global,ny_global,1/))
             if (status /= nf90_noerr) then
                call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &
@@ -2597,8 +2585,8 @@
     !-------------------------------------------------------------------
 
       if (my_task == master_task .and. diag) then
-!          write(nu_diag,*) & 
-!             subname,' fid= ',fid, ', nrec = ',nrec, & 
+!          write(nu_diag,*) &
+!             subname,' fid= ',fid, ', nrec = ',nrec, &
 !            ', varname = ',trim(varname)
 !          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
 !          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
@@ -2638,7 +2626,7 @@
 
 #ifdef USE_NETCDF
       integer (kind=int_kind) :: &
-        status        ! status variable from netCDF routine 
+        status        ! status variable from netCDF routine
 
       if (my_task == master_task) then
          status = nf90_close(fid)
@@ -2667,13 +2655,13 @@
 
       integer (kind=int_kind), intent(in) :: &
            fid           , & ! file id
-           nrec          , & ! record number 
+           nrec          , & ! record number
            nzlev             ! z level
 
       logical (kind=log_kind), intent(in) :: &
            diag              ! if true, write diagnostic output
 
-      character (len=*), intent(in) :: & 
+      character (len=*), intent(in) :: &
            varname           ! field name in netcdf file
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks), intent(out) :: &
@@ -2692,7 +2680,7 @@
 
 #ifdef USE_NETCDF
 ! netCDF file diagnostics:
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          varid          , & ! variable id
          status             ! status output from netcdf routines
 !        ndim, nvar,      & ! sizes of netcdf file
@@ -2739,11 +2727,11 @@
          endif
 
        !--------------------------------------------------------------
-       ! Read global array 
+       ! Read global array
        !--------------------------------------------------------------
 
          status = nf90_get_var( fid, varid, work_g1, &
-               start=(/1,1,nzlev,nrec/), & 
+               start=(/1,1,nzlev,nrec/), &
                count=(/nx,ny,1,1/))
          if (status /= nf90_noerr) then
             call abort_ice(subname//' ERROR: Cannot get variable '//trim(varname), &

@@ -20,7 +20,7 @@
       implicit none
       private
       public :: accum_hist_mechred, init_hist_mechred_2D, init_hist_mechred_3Dc
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -188,13 +188,13 @@
              "ice area ridging rate",                                      &
              "none", secday*c100, c0,                                      &
              ns, f_dardg1dt)
-      
+
       if (f_dardg2dt(1:1) /= 'x') &
          call define_hist_field(n_dardg2dt,"dardg2dt","%/day",tstr2D, tcstr, &
              "ridge area formation rate",                                  &
              "none", secday*c100, c0,                                      &
              ns, f_dardg2dt)
-      
+
       if (f_dvirdgdt(1:1) /= 'x') &
          call define_hist_field(n_dvirdgdt,"dvirdgdt","cm/day",tstr2D, tcstr, &
              "ice volume ridging rate",                                     &

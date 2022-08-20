@@ -100,8 +100,6 @@
     restart_FY   = .false.
     tr_lvl       = .true.
     restart_lvl  = .false.
-    tr_pond_cesm = .false.
-    restart_pond_cesm = .false.
     tr_pond_topo = .false.
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
@@ -149,7 +147,7 @@
     Ktens           = 0.
     e_yieldcurve    = 2.
     e_plasticpot    = 2.
-    visc_method     = 'avg_strength'
+    visc_method     = 'avg_zeta'
     elasticDamp     = 0.36d0
     deltaminEVP     = 1e-11
     deltaminVP      = 2e-9

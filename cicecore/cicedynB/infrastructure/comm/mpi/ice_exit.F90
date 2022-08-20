@@ -1,6 +1,6 @@
 !=======================================================================
 !
-! Exit the model. 
+! Exit the model.
 ! authors William H. Lipscomb (LANL)
 !         Elizabeth C. Hunke (LANL)
 ! 2006 ECH: separated serial and mpi functionality

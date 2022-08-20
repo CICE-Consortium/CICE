@@ -22,7 +22,7 @@ module cice_cap
   use ice_state
   use CICE_RunMod
   use CICE_InitMod
-  use CICE_FinalMod 
+  use CICE_FinalMod
 !end cice specific
   use ESMF
   use NUOPC
@@ -34,11 +34,11 @@ module cice_cap
     model_label_Finalize  => label_Finalize
 
   implicit none
-  
+
   private
-  
+
   public SetServices
-  
+
 !  type cice_internalstate_type
 !  end type
 
@@ -167,7 +167,7 @@ module cice_cap
     call ESMF_LogWrite(info, ESMF_LOGMSG_INFO, rc=dbrc)
 
   end subroutine
-  
+
   !-----------------------------------------------------------------------------
 
   subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
@@ -196,7 +196,7 @@ module cice_cap
     integer                                :: lbnd(2),ubnd(2)
     type(block)                            :: this_block
     type(ESMF_DELayout)                    :: delayout
-    real(ESMF_KIND_R8), pointer            :: tarray(:,:)     
+    real(ESMF_KIND_R8), pointer            :: tarray(:,:)
     real(ESMF_KIND_R8), pointer :: coordXcenter(:,:)
     real(ESMF_KIND_R8), pointer :: coordYcenter(:,:)
     real(ESMF_KIND_R8), pointer :: coordXcorner(:,:)
@@ -215,7 +215,7 @@ module cice_cap
     ! created can wrap on the data pointers in internal part of CICE
     write(tmpstr,'(a,2i8)') subname//' ice nx,ny = ',nx_global,ny_global
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
-    
+
 !    distgrid = ESMF_DistGridCreate(minIndex=(/1,1/), maxIndex=(/nx_global,ny_global/), &
 !       regDecomp=(/2,2/), rc=rc)
 
@@ -307,9 +307,9 @@ module cice_cap
        rc = rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
-    call ESMF_GridAddCoord(gridIn, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc) 
+    call ESMF_GridAddCoord(gridIn, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
-    call ESMF_GridAddCoord(gridIn, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc) 
+    call ESMF_GridAddCoord(gridIn, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
     call ESMF_GridAddItem(gridIn, itemFlag=ESMF_GRIDITEM_MASK, itemTypeKind=ESMF_TYPEKIND_I4, &
        staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
@@ -341,7 +341,7 @@ module cice_cap
        if (lbnd(1) /= 1 .or. lbnd(2) /= 1 .or. ubnd(1) /= ihi-ilo+1 .or. ubnd(2) /= jhi-jlo+1) then
           write(tmpstr,'(a,5i8)') subname//' iblk bnds ERROR '
           call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__, rc=dbrc)
-          write(tmpstr,'(a,4i8)') subname//' iblk center bnds 2',ihi, ilo, jhi,jlo 
+          write(tmpstr,'(a,4i8)') subname//' iblk center bnds 2',ihi, ilo, jhi,jlo
           call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__, rc=dbrc)
           rc = ESMF_FAILURE
           return
@@ -460,14 +460,14 @@ module cice_cap
     call ESMF_LogWrite(info, ESMF_LOGMSG_INFO, line=__LINE__, file=__FILE__, rc=dbrc)
 
   end subroutine
-  
+
   !-----------------------------------------------------------------------------
 
   ! CICE model uses same clock as parent gridComp
   subroutine SetClock(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    
+
     ! local variables
     type(ESMF_Clock)              :: clock
     type(ESMF_TimeInterval)       :: stabilityTimeStep, timestep
@@ -493,10 +493,10 @@ module cice_cap
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-      
+
     ! initialize internal clock
     ! here: parent Clock and stability timeStep determine actual model timeStep
-    call ESMF_TimeIntervalSet(stabilityTimeStep, s=nint(dt), rc=rc) 
+    call ESMF_TimeIntervalSet(stabilityTimeStep, s=nint(dt), rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -506,7 +506,7 @@ module cice_cap
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
   end subroutine
 
   !-----------------------------------------------------------------------------
@@ -514,7 +514,7 @@ module cice_cap
   subroutine ModelAdvance(gcomp, rc)
     type(ESMF_GridComp)                    :: gcomp
     integer, intent(out)                   :: rc
-    
+
     ! local variables
     type(ESMF_Clock)                       :: clock
     type(ESMF_State)                       :: importState, exportState
@@ -539,7 +539,7 @@ module cice_cap
     call ESMF_LogWrite(info, ESMF_LOGMSG_INFO, rc=dbrc)
     import_slice = import_slice + 1
     export_slice = export_slice + 1
-    
+
     ! query the Component for its clock, importState and exportState
     call NUOPC_ModelGet(gcomp, modelClock=clock, importState=importState, &
       exportState=exportState, rc=rc)
@@ -549,27 +549,27 @@ module cice_cap
       return  ! bail out
 
     ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
-    
+
     ! Because of the way that the internal Clock was set in SetClock(),
     ! its timeStep is likely smaller than the parent timeStep. As a consequence
-    ! the time interval covered by a single parent timeStep will result in 
+    ! the time interval covered by a single parent timeStep will result in
     ! multiple calls to the ModelAdvance() routine. Every time the currTime
     ! will come in by one internal timeStep advanced. This goes until the
     ! stopTime of the internal Clock has been reached.
-    
+
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing CICE from: ", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     call ESMF_ClockGet(clock, currTime=currTime, timeStep=timeStep, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     call ESMF_TimePrint(currTime + timeStep, &
       preString="--------------------------------> to: ", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -611,14 +611,14 @@ module cice_cap
     write(info,*) subname,' --- run phase 4 called --- ',rc
     call ESMF_LogWrite(info, ESMF_LOGMSG_INFO, rc=dbrc)
    if(profile_memory) call ESMF_VMLogMemInfo("Leaving CICE Model_ADVANCE: ")
-  end subroutine 
+  end subroutine
 
   subroutine cice_model_finalize(gcomp, rc)
 
     ! input arguments
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    
+
     ! local variables
     type(ESMF_Clock)     :: clock
     type(ESMF_Time)                        :: currTime
@@ -707,7 +707,7 @@ module cice_cap
     integer                                     :: npet, nx, ny, pet, elb(2), eub(2), clb(2), cub(2), tlb(2), tub(2)
     type(ESMF_VM)                               :: vm
     character(len=*),parameter  :: subname='(cice_cap:CICE_RealizeFields)'
- 
+
     rc = ESMF_SUCCESS
 
     do i = 1, nfields
@@ -734,7 +734,7 @@ module cice_cap
           file=__FILE__)) &
           return  ! bail out
       endif
-      
+
       if (NUOPC_IsConnected(state, fieldName=field_defs(i)%shortname)) then
         call NUOPC_Realize(state, field=field, rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -814,15 +814,15 @@ module cice_cap
     call fld_list_add(fldsToIce_num, fldsToIce, "freezing_melting_potential"      ,"1"   , "will provide")
     call fld_list_add(fldsToIce_num, fldsToIce, "mixed_layer_depth"               ,"m"   , "will provide")
 ! fields for export
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "sea_ice_fraction"                ,"1"   , "will provide") 
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "stress_on_ocn_ice_zonal"         ,"1"   , "will provide") 
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "stress_on_ocn_ice_merid"         ,"1"   , "will provide") 
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "sea_ice_temperature"             ,"1"   , "will provide") 
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "sea_ice_fraction"                ,"1"   , "will provide")
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "stress_on_ocn_ice_zonal"         ,"1"   , "will provide")
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "stress_on_ocn_ice_merid"         ,"1"   , "will provide")
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "sea_ice_temperature"             ,"1"   , "will provide")
 !    call fld_list_add(fldsFrIce_num, fldsFrIce, "ice_mask"                        ,"1"   , "will provide")
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_sw_pen_to_ocn"              ,"1"   , "will provide") 
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_sw_pen_to_ocn"              ,"1"   , "will provide")
     call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_fresh_water_to_ocean_rate" ,"1"   ,  "will provide")
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_salt_rate"                  ,"1"   , "will provide") 
-    call fld_list_add(fldsFrIce_num, fldsFrIce, "net_heat_flx_to_ocn"             ,"1"   , "will provide") 
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_salt_rate"                  ,"1"   , "will provide")
+    call fld_list_add(fldsFrIce_num, fldsFrIce, "net_heat_flx_to_ocn"             ,"1"   , "will provide")
     call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_ice_volume"                 ,"1"   , "will provide")
     call fld_list_add(fldsFrIce_num, fldsFrIce, "mean_snow_volume"                ,"1"   , "will provide")
 
@@ -885,9 +885,9 @@ module cice_cap
     real(kind=ESMF_KIND_R8), pointer  :: dataPtr_ocncm(:,:,:)
     real(kind=ESMF_KIND_R8), pointer  :: dataPtr_fmpot(:,:,:)
     real(kind=ESMF_KIND_R8), pointer  :: dataPtr_mld(:,:,:)
-    integer                           :: ilo,ihi,jlo,jhi 
+    integer                           :: ilo,ihi,jlo,jhi
     integer                           :: i,j,iblk,n,i1,i2,j1,j2
-    real(kind=ESMF_KIND_R8)           :: ue, vn, AngT_s 
+    real(kind=ESMF_KIND_R8)           :: ue, vn, AngT_s
     type(block)                            :: this_block
      character(len=*),parameter  :: subname='(cice_cap:CICE_Import)'
 
@@ -921,7 +921,7 @@ module cice_cap
           j1 = j - jlo + 1
           sss    (i,j,iblk) = dataPtr_sss    (i1,j1,iblk)  ! sea surface salinity (maybe for mushy layer)
           sst    (i,j,iblk) = dataPtr_sst    (i1,j1,iblk) - Tffresh  ! sea surface temp (may not be needed?)
-          
+
           frzmlt (i,j,iblk) = dataPtr_fmpot  (i1,j1,iblk)
           ue = dataPtr_ocncz  (i1,j1,iblk)
           vn = dataPtr_ocncm  (i1,j1,iblk)
@@ -969,7 +969,7 @@ module cice_cap
     integer                           :: ilo,ihi,jlo,jhi
     integer                           :: i,j,iblk,n,i1,i2,j1,j2
     real(kind=ESMF_KIND_R8)           :: ui, vj, angT
-    
+
     type(block)                            :: this_block
     character(len=*),parameter  :: subname='(cice_cap:CICE_Export)'
 !TODO clean up fields
@@ -1035,7 +1035,7 @@ module cice_cap
 !    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
 
 
-   
+
   end subroutine
 
 end module cice_cap

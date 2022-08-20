@@ -353,8 +353,8 @@ tracer_nml
    "``tr_iage``", "logical", "ice age", "``.false.``"
    "``tr_iso``", "logical", "isotopes", "``.false.``"
    "``tr_lvl``", "logical", "level ice area and volume", "``.false.``"
-   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
+   "``tr_pond_cesm``", " ", "DEPRECATED", " "
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
    "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
@@ -363,11 +363,14 @@ tracer_nml
    "``restart_FY``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_iso``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_lvl``", "logical", "restart tracer values from file", "``.false.``"
-   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_lvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_topo``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_snow``", "logical", "restart snow tracer values from file", "``.false.``"
    "", "", "", ""
+
+..
+   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
+   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
 
 thermo_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -388,13 +391,16 @@ thermo_nml
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
    "``ktherm``", "``-1``", "thermodynamic model disabled", "1"
-   "", "``0``", "zero-layer thermodynamic model", ""
    "", "``1``", "Bitz and Lipscomb thermodynamic model", ""
    "", "``2``", "mushy-layer thermodynamic model", ""
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "", "", "", ""
+
+..
+   ktherm=0 has been deprecated
+   "", "``0``", "zero-layer thermodynamic model", ""
 
 .. _dynamics_nml:
 
@@ -482,7 +488,7 @@ dynamics_nml
    "", "``geostropic``", "computed from ocean velocity", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
    "``use_mean_vrel``", "logical", "Use mean of two previous iterations for vrel in VP", "``.true.``"
-   "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_strength``"
+   "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_zeta``"
    "", "``avg_zeta``", "average zeta for viscosities on U grid", ""
    "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""

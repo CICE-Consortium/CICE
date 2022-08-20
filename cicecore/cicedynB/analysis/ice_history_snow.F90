@@ -18,7 +18,7 @@
       implicit none
       private
       public :: accum_hist_snow, init_hist_snow_2D, init_hist_snow_3Dc
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -193,7 +193,7 @@
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
       endif ! tr_snow
-      
+
       end subroutine init_hist_snow_2D
 
 !=======================================================================
@@ -206,7 +206,7 @@
       integer (kind=int_kind) :: ns
       logical (kind=log_kind) :: tr_snow
       character(len=*), parameter :: subname = '(init_hist_pond_3Dc)'
-      
+
       call icepack_query_tracer_flags(tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -263,7 +263,6 @@
 
       use ice_arrays_column, only: meltsliq
       use ice_blocks, only: block, nx_block, ny_block
-      use ice_domain, only: blocks_ice
       use ice_flux, only: fsloss
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field, nzslyr
@@ -275,7 +274,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, k, n
+         k, n
 
       integer (kind=int_kind) :: &
          nt_smice, nt_smliq, nt_rhos, nt_rsnw
@@ -356,7 +355,7 @@
          if (f_fsloss(1:1)/= 'x') &
             call accum_hist_field(n_fsloss, iblk, &
                  fsloss(:,:,iblk), a2D)
- 
+
          endif ! allocated(a2D)
 
          ! 3D category fields
@@ -422,7 +421,7 @@
          endif ! allocated(a3Dc)
 
       endif ! tr_snow
-      
+
       end subroutine accum_hist_snow
 
 !=======================================================================

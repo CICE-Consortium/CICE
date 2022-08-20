@@ -1,7 +1,7 @@
 
       program sumchk
 
-      ! This tests the CICE ice_global_reductions infrastructure by 
+      ! This tests the CICE ice_global_reductions infrastructure by
       ! using CICE_InitMod (from the standalone model) to read/initialize
       ! a CICE grid/configuration.  Then methods in ice_global_reductions
       ! are verified using hardwired inputs with known outputs.
@@ -28,7 +28,7 @@
 
       integer(int_kind) :: i, j, k, l, m, n, iblock, ib, ie, jb, je
       integer(int_kind) :: blockID, numBlocks
-      type (block) :: this_block  
+      type (block) :: this_block
 
       real(dbl_kind)   ,allocatable :: arrayA(:,:,:),arrayB(:,:,:),arrayC(:,:,:)
       integer(int_kind),allocatable :: arrayiA(:,:,:),arrayiB(:,:,:)
