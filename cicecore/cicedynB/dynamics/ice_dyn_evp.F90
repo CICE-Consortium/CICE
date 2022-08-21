@@ -774,22 +774,6 @@
                                strtmp    (:,:,:) )
 
                   !-----------------------------------------------------------------
-                  ! on last subcycle, save quantities for mechanical redistribution
-                  !-----------------------------------------------------------------
-                  if (ksub == ndte) then
-                     call deformations (nx_block          , ny_block           , &
-                                        icellt      (iblk),                      &
-                                        indxti    (:,iblk), indxtj     (:,iblk), &
-                                        uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                                        dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                        cxp     (:,:,iblk), cyp      (:,:,iblk), &
-                                        cxm     (:,:,iblk), cym      (:,:,iblk), &
-                                        tarear  (:,:,iblk),                      &
-                                        shear   (:,:,iblk), divu     (:,:,iblk), &
-                                        rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
-                  endif
-
-                  !-----------------------------------------------------------------
                   ! momentum equation
                   !-----------------------------------------------------------------
                   call stepu (nx_block           , ny_block          , &
@@ -1170,6 +1154,23 @@
                                  uvel, vvel)
 
          enddo                     ! subcycling
+         if (grid_ice == "B") then
+
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
+                  call deformations (nx_block          , ny_block           , &
+                                     icellt      (iblk),                      &
+                                     indxti    (:,iblk), indxtj     (:,iblk), &
+                                     uvel    (:,:,iblk), vvel     (:,:,iblk), &
+                                     dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                                     cxp     (:,:,iblk), cyp      (:,:,iblk), &
+                                     cxm     (:,:,iblk), cym      (:,:,iblk), &
+                                     tarear  (:,:,iblk),                      &
+                                     shear   (:,:,iblk), divu     (:,:,iblk), &
+                                     rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+            enddo
+            !$OMP END PARALLEL DO
+         endif
          call ice_timer_stop(timer_evp_2d)
       endif  ! evp_algorithm
 
