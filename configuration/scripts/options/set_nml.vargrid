@@ -1,0 +1,13 @@
+scale_dxdy = .true.
+dxscale    = 1.02d0
+dyscale    = 1.01d0
+f_dxt      = .true.
+f_dyt      = .true.
+f_dxu      = .true.
+f_dyu      = .true.
+f_dxe      = .true.
+f_dye      = .true.
+f_dxn      = .true.
+f_dyn      = .true.
+f_HTN      = .true.
+f_HTE      = .true.
