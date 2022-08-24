@@ -813,7 +813,7 @@
 
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                     field_loc_NEcorner, field_type_vector, &
                                     uvel, vvel)
 
@@ -848,7 +848,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                     field_loc_NEcorner, field_type_scalar, &
                                     shearU)
 
@@ -888,7 +888,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,        halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,        halo_info_mask,    &
                                     field_loc_center, field_type_scalar, &
                                     zetax2T, etax2T, stresspT, stressmT)
 
@@ -911,7 +911,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info         , halo_info_mask,    &
+               call dyn_haloUpdate (halo_info         , halo_info_mask,    &
                                     field_loc_NEcorner, field_type_scalar, &
                                     stress12U)
 
@@ -969,10 +969,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     uvelE)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     vvelN)
 
@@ -982,10 +982,10 @@
                vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     uvelN)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     vvelE)
 
@@ -996,9 +996,9 @@
                vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
-                                 field_loc_NEcorner, field_type_vector, &
-                                 uvel, vvel)
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
 
             enddo                     ! subcycling
 
@@ -1040,7 +1040,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,        halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,        halo_info_mask,    &
                                     field_loc_center, field_type_scalar, &
                                     zetax2T, etax2T)
 
@@ -1085,10 +1085,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,         halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,         halo_info_mask,    &
                                     field_loc_center,  field_type_scalar, &
                                     stresspT, stressmT, stress12T)
-               call dyn_HaloUpdate (halo_info,         halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,         halo_info_mask,    &
                                     field_loc_NEcorner,field_type_scalar, &
                                     stresspU, stressmU, stress12U)
 
@@ -1168,10 +1168,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     uvelE, vvelE)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     uvelN, vvelN)
 
@@ -1182,9 +1182,9 @@
                vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
-                                 field_loc_NEcorner, field_type_vector, &
-                                 uvel, vvel)
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
 
             enddo                     ! subcycling
 
