@@ -745,9 +745,10 @@
       else ! evp_algorithm == standard_2d (Standard CICE)
 
          call ice_timer_start(timer_evp_2d)
-         do ksub = 1,ndte        ! subcycling
 
-            if (grid_ice == "B") then
+         if (grid_ice == "B") then
+
+            do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
                do iblk = 1, nblocks
@@ -810,7 +811,17 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
-            elseif (grid_ice == "C") then
+               ! U fields at NE corner
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
+
+            enddo  ! sub cycling
+
+         elseif (grid_ice == "C") then
+
+            do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -837,7 +848,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                     field_loc_NEcorner, field_type_scalar, &
                                     shearU)
 
@@ -877,7 +888,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,        halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,        halo_info_mask,    &
                                     field_loc_center, field_type_scalar, &
                                     zetax2T, etax2T, stresspT, stressmT)
 
@@ -900,7 +911,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info         , halo_info_mask,    &
+               call dyn_haloUpdate (halo_info         , halo_info_mask,    &
                                     field_loc_NEcorner, field_type_scalar, &
                                     stress12U)
 
@@ -958,10 +969,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     uvelE)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     vvelN)
 
@@ -971,10 +982,10 @@
                vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     uvelN)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     vvelE)
 
@@ -983,8 +994,17 @@
 
                uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
                vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+               ! U fields at NE corner
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
 
-            elseif (grid_ice == "CD") then
+            enddo                     ! subcycling
+
+         elseif (grid_ice == "CD") then
+
+            do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk)
                do iblk = 1, nblocks
@@ -1020,7 +1040,7 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,        halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,        halo_info_mask,    &
                                     field_loc_center, field_type_scalar, &
                                     zetax2T, etax2T)
 
@@ -1065,10 +1085,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,         halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,         halo_info_mask,    &
                                     field_loc_center,  field_type_scalar, &
                                     stresspT, stressmT, stress12T)
-               call dyn_HaloUpdate (halo_info,         halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,         halo_info_mask,    &
                                     field_loc_NEcorner,field_type_scalar, &
                                     stresspU, stressmU, stress12U)
 
@@ -1148,10 +1168,10 @@
                !$OMP END PARALLEL DO
 
                ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Eface, field_type_vector, &
                                     uvelE, vvelE)
-               call dyn_HaloUpdate (halo_info,       halo_info_mask,    &
+               call dyn_haloUpdate (halo_info,       halo_info_mask,    &
                                     field_loc_Nface, field_type_vector, &
                                     uvelN, vvelN)
 
@@ -1160,16 +1180,16 @@
 
                uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
                vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+               ! U fields at NE corner
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
 
-            endif   ! grid_ice
+            enddo                     ! subcycling
 
-            ! U fields at NE corner
-            ! calls ice_haloUpdate, controls bundles and masks
-            call dyn_HaloUpdate (halo_info,          halo_info_mask,    &
-                                 field_loc_NEcorner, field_type_vector, &
-                                 uvel, vvel)
+         endif   ! grid_ice
 
-         enddo                     ! subcycling
          call ice_timer_stop(timer_evp_2d)
       endif  ! evp_algorithm
 
