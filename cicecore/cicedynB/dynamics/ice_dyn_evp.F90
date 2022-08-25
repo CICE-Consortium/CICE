@@ -864,24 +864,6 @@
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
                                  stresspT  (:,:,iblk), stressmT  (:,:,iblk))
 
-                  !-----------------------------------------------------------------
-                  ! on last subcycle, save quantities for mechanical redistribution
-                  !-----------------------------------------------------------------
-                  if (ksub == ndte) then
-
-                     call deformationsC_T (nx_block          , ny_block          , &
-                                          icellt      (iblk),                      &
-                                          indxti    (:,iblk), indxtj     (:,iblk), &
-                                          uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                          uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                          dxN     (:,:,iblk), dyE      (:,:,iblk), &
-                                          dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                          tarear  (:,:,iblk), uarea    (:,:,iblk), &
-                                          shearU    (:,:,iblk),                    &
-                                          shear   (:,:,iblk), divu     (:,:,iblk), &
-                                          rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
-
-                  endif
                enddo
                !$OMP END PARALLEL DO
 
@@ -1000,6 +982,26 @@
 
             enddo                     ! subcycling
 
+            !-----------------------------------------------------------------
+            ! save quantities for mechanical redistribution
+            !-----------------------------------------------------------------
+
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
+               call deformationsC_T (nx_block          , ny_block           , &
+                                     icellt      (iblk),                      &
+                                     indxti    (:,iblk), indxtj     (:,iblk), &
+                                     uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
+                                     uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
+                                     dxN     (:,:,iblk), dyE      (:,:,iblk), &
+                                     dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                                     tarear  (:,:,iblk), uarea    (:,:,iblk), &
+                                     shearU    (:,:,iblk),                    &
+                                     shear   (:,:,iblk), divu     (:,:,iblk), &
+                                     rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
+
          elseif (grid_ice == "CD") then
 
             do ksub = 1,ndte        ! subcycling
@@ -1019,21 +1021,6 @@
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12T (:,:,iblk) )
 
-                  !-----------------------------------------------------------------
-                  ! on last subcycle, save quantities for mechanical redistribution
-                  !-----------------------------------------------------------------
-                  if (ksub == ndte) then
-                     call deformationsCD_T (nx_block          , ny_block           , &
-                                            icellt      (iblk),                      &
-                                            indxti    (:,iblk), indxtj     (:,iblk), &
-                                            uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                            uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                            dxN     (:,:,iblk), dyE      (:,:,iblk), &
-                                            dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                            tarear  (:,:,iblk),                      &
-                                            shear   (:,:,iblk), divu     (:,:,iblk), &
-                                            rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
-                  endif
                enddo
                !$OMP END PARALLEL DO
 
@@ -1186,6 +1173,24 @@
 
             enddo                     ! subcycling
 
+            !-----------------------------------------------------------------
+            ! save quantities for mechanical redistribution
+            !-----------------------------------------------------------------
+
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
+               call deformationsCD_T (nx_block          , ny_block           , &
+                                      icellt      (iblk),                      &
+                                      indxti    (:,iblk), indxtj     (:,iblk), &
+                                      uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
+                                      uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
+                                      dxN     (:,:,iblk), dyE      (:,:,iblk), &
+                                      dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                                      tarear  (:,:,iblk),                      &
+                                      shear   (:,:,iblk), divu     (:,:,iblk), &
+                                      rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
          endif   ! grid_ice
 
          call ice_timer_stop(timer_evp_2d)
