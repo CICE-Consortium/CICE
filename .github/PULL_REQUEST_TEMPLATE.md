@@ -18,6 +18,9 @@ please refer to: <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Inde
 - Does this PR create or have dependencies on Icepack or any other models?
     - [ ] Yes
     - [ ] No
+- Does this PR update the Icepack submodule?  If so, the Icepack submodule must point to a hash on Icepack's main branch.
+    - [ ] Yes
+    - [ ] No
 - Does this PR add any new test cases?
     - [ ] Yes
     - [ ] No
