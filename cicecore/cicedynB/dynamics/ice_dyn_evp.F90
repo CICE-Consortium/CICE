@@ -795,6 +795,18 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
+               ! U fields at NE corner
+               ! calls ice_haloUpdate, controls bundles and masks
+               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
+                                    field_loc_NEcorner, field_type_vector, &
+                                    uvel, vvel)
+
+            enddo  ! sub cycling
+
+            !-----------------------------------------------------------------
+            ! save quantities for mechanical redistribution
+            !-----------------------------------------------------------------
+
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                   call deformations (nx_block          , ny_block           , &
@@ -809,13 +821,7 @@
                                      rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
             enddo
             !$OMP END PARALLEL DO
-               ! U fields at NE corner
-               ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
-                                    field_loc_NEcorner, field_type_vector, &
-                                    uvel, vvel)
 
-            enddo  ! sub cycling
 
          elseif (grid_ice == "C") then
 
