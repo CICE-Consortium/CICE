@@ -6,7 +6,7 @@
 !         Elizabeth C. Hunke and William H. Lipscomb, LANL
 !         C. M. Bitz, UW
 !
-! 2004 WHL: Block structure added 
+! 2004 WHL: Block structure added
 ! 2006 ECH: Accepted some CESM code into mainstream CICE
 !           Added ice_present, aicen, vicen; removed aice1...10, vice1...1.
 !           Added histfreq_n and histfreq='h' options, removed histfreq='w'
@@ -25,7 +25,7 @@
       implicit none
       private
       public :: ice_write_hist
-      
+
 !=======================================================================
 
       contains

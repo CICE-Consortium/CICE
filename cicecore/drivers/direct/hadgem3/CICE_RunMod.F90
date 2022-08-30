@@ -7,7 +7,7 @@
 !          William H. Lipscomb, LANL
 !
 ! 2006 ECH: moved exit timeLoop to prevent execution of unnecessary timestep
-! 2006 ECH: Streamlined for efficiency 
+! 2006 ECH: Streamlined for efficiency
 ! 2006 ECH: Converted to free source form (F90)
 ! 2007 BPB: Modified Delta-Eddington shortwave interface
 ! 2008 ECH: moved ESMF code to its own driver
@@ -46,14 +46,14 @@
       use ice_calendar, only: stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
-      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, & 
+      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, fzaero_data, &
           faero_default
       use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_couple, timer_step
       logical (kind=log_kind) :: &
           tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
-      
+
       character(len=*), parameter :: subname = '(CICE_Run)'
 
    !--------------------------------------------------------------------
@@ -118,7 +118,7 @@
    ! end of timestep loop
    !--------------------------------------------------------------------
 
-      call ice_timer_stop(timer_step)   ! end timestepping loop timer     
+      call ice_timer_stop(timer_step)   ! end timestepping loop timer
 
       end subroutine CICE_Run
 
@@ -145,7 +145,11 @@
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
+#else
+          write_restart_lvl, write_restart_pond_lvl, &
+#endif
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
@@ -159,7 +163,7 @@
           timer_hist, timer_readwrite
 
       integer (kind=int_kind) :: &
-         iblk        , & ! block index 
+         iblk        , & ! block index
          k           , & ! dynamics supercycling index
          ktherm          ! thermodynamics is off when ktherm = -1
 
@@ -168,7 +172,11 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, &
+#ifdef UNDEPRECATE_CESMPONDS
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
+#else
+          tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
+#endif
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -177,7 +185,11 @@
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+#else
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+#endif
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -226,7 +238,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                call biogeochemistry (dt, iblk) ! biogeochemistry
                call step_therm2     (dt, iblk) ! ice thickness distribution thermo
@@ -321,13 +333,15 @@
             if (tr_iage)      call write_restart_age
             if (tr_FY)        call write_restart_FY
             if (tr_lvl)       call write_restart_lvl
+#ifdef UNDEPRECATE_CESMPONDS
             if (tr_pond_cesm) call write_restart_pond_cesm
+#endif
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_fsd)       call write_restart_fsd
             if (tr_aero)      call write_restart_aero
             if (solve_zsal .or. skl_bgc .or. z_tracers) &
-                              call write_restart_bgc 
+                              call write_restart_bgc
             if (tr_brine)     call write_restart_hbrine
             if (kdyn == 2)    call write_restart_eap
             call final_restart
@@ -336,7 +350,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
-    
+
 !=======================================================================
 !
 ! Prepare for coupling
@@ -366,12 +380,12 @@
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
-      integer (kind=int_kind), intent(in) :: & 
-         iblk            ! block index 
+      integer (kind=int_kind), intent(in) :: &
+         iblk            ! block index
 
       ! local variables
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          n           , & ! thickness category index
          i,j         , & ! horizontal indices
@@ -452,7 +466,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
             if (aicen(i,j,n,iblk) > puny) then
-                  
+
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
                + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
             alidf(i,j,iblk) = alidf(i,j,iblk) &
@@ -477,7 +491,7 @@
                + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
             snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &       ! for history
                + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
-               
+
             endif ! aicen > puny
          enddo
          enddo
@@ -507,8 +521,8 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk) 
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)  
+            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
+            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -529,7 +543,7 @@
          enddo
 
       !-----------------------------------------------------------------
-      ! Divide fluxes by ice area 
+      ! Divide fluxes by ice area
       !  - the CESM coupler assumes fluxes are per unit ice area
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
@@ -554,21 +568,21 @@
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
                             fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio(:,:,1:nbtrcr,iblk))
- 
+
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
          if (.not. calc_Tsfc) then
 
        !---------------------------------------------------------------
-       ! If surface fluxes were provided, conserve these fluxes at ice 
-       ! free points by passing to ocean. 
+       ! If surface fluxes were provided, conserve these fluxes at ice
+       ! free points by passing to ocean.
        !---------------------------------------------------------------
 
-            call sfcflux_to_ocn & 
+            call sfcflux_to_ocn &
                          (nx_block,              ny_block,             &
                           tmask   (:,:,iblk),    aice_init(:,:,iblk),  &
                           fsurfn_f (:,:,:,iblk), flatn_f(:,:,:,iblk),  &
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
-         endif                 
+         endif
 !echmod
 
          call ice_timer_stop(timer_couple)   ! atm/ocn coupling
@@ -578,10 +592,10 @@
 !=======================================================================
 !
 ! If surface heat fluxes are provided to CICE instead of CICE calculating
-! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can 
+! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can
 ! be provided at points which do not have ice.  (This is could be due to
 ! the heat fluxes being calculated on a lower resolution grid or the
-! heat fluxes not recalculated at every CICE timestep.)  At ice free points, 
+! heat fluxes not recalculated at every CICE timestep.)  At ice free points,
 ! conserve energy and water by passing these fluxes to the ocean.
 !
 ! author: A. McLaren, Met Office
@@ -615,7 +629,7 @@
       ! local variables
       integer (kind=int_kind) :: &
           i, j, n    ! horizontal indices
-      
+
       real (kind=dbl_kind)    :: &
           puny, &          !
           Lsub, &          !
@@ -642,7 +656,7 @@
          enddo   ! j
       enddo      ! n
 
-#endif 
+#endif
 
       end subroutine sfcflux_to_ocn
 

@@ -325,7 +325,7 @@ If a user adds ``--set`` to the suite, all tests in that suite will add that opt
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid -s debug
 
-The option settings defined in the suite have precendence over the command line
+The option settings defined at the command line have precedence over the test suite
 values if there are conflicts.
 
 The predefined test suites are defined under **configuration/scripts/tests** and 
@@ -347,7 +347,6 @@ Lines that begin with # or are blank are ignored.  For example,
     smoke   col  1x1  debug,run1year  
    restart  col  1x1  debug  
    restart  col  1x1  diag1  
-   restart  col  1x1  pondcesm  
    restart  col  1x1  pondlvl  
    restart  col  1x1  pondtopo  
 
@@ -474,7 +473,7 @@ Test Suite Examples
       ./results.csh
 
     If there are conflicts between the ``--set`` options in the suite and on the command line,
-    the suite will take precedence.
+    the command line options will take precedence.
 
  5) **Multiple test suites from a single command line**
 
@@ -1051,6 +1050,14 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user netCDF4
   pip install --user numpy
   pip install --user matplotlib
+  pip install --user cartopy
+
+You can also setup a conda env with the same utitities
+
+.. code-block:: bash
+
+  conda env create -f configuration/scripts/tests/qctest.yml
+  conda activate qctest
 
 To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition

@@ -56,7 +56,7 @@ module ice_comp_esmf
   use ice_timers
 
   use ice_kinds_mod,   only : int_kind, dbl_kind, char_len_long, log_kind
-  use ice_boundary,    only : ice_HaloUpdate 
+  use ice_boundary,    only : ice_HaloUpdate
   use ice_scam,        only : scmlat, scmlon, single_column
   use ice_fileunits,   only : nu_diag, inst_index, inst_name, inst_suffix, &
                               release_all_fileunits
@@ -89,7 +89,7 @@ module ice_comp_esmf
 !
 ! !PRIVATE VARIABLES
 
-  integer (kind=int_kind) :: ICEID       
+  integer (kind=int_kind) :: ICEID
   type(mct_gGrid) :: dom_i
   type(mct_gsMap) :: gsMap_i
 
@@ -140,7 +140,7 @@ end subroutine
 !
 ! !DESCRIPTION:
 ! Initialize thermodynamic ice model and obtain relevant atmospheric model
-! arrays back from driver 
+! arrays back from driver
 !
 ! !USES:
 
@@ -168,7 +168,7 @@ end subroutine
     integer                               :: xoff,yoff
     integer                               :: nxg,nyg
     integer                               :: k, iblk
- 
+
     character(len=256) :: drvarchdir         ! driver archive directory
     character(len=32)  :: starttype          ! infodata start type
     integer            :: start_ymd          ! Start date (YYYYMMDD)
@@ -207,7 +207,7 @@ end subroutine
 
     call ice_cpl_indices_set()
 
-    ! duplicate the mpi communicator from the current VM 
+    ! duplicate the mpi communicator from the current VM
     call ESMF_VMGetCurrent(vm, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
@@ -218,7 +218,7 @@ end subroutine
     if(rc /= 0) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     ! Initialize cice id
-   
+
     call ESMF_AttributeGet(export_state, name="ID", value=ICEID, rc=rc)
     if (rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
@@ -324,14 +324,14 @@ end subroutine
     ! use EClock to reset calendar information on initial start
     !---------------------------------------------------------------------------
 
-    ! - on restart run 
+    ! - on restart run
     !   - istep0, time and time_forc are read from restart file
     !   - istep1 is set to istep0
     !   - idate is determined from time via the call to calendar (see below)
-    ! - on initial run 
+    ! - on initial run
     !   - iyear, month and mday obtained from sync clock
     !   - time determined from iyear, month and mday
-    !   - istep0 and istep1 are set to 0 
+    !   - istep0 and istep1 are set to 0
 
     call seq_timemgr_EClockGetData(EClock,               &
          start_ymd=start_ymd, start_tod=start_tod,       &
@@ -384,7 +384,7 @@ end subroutine
 
     call calendar(time)     ! update calendar info
     if (write_ic) call accum_hist(dt) ! write initial conditions
- 
+
     !---------------------------------------------------------------------------
     ! Initialize MCT attribute vectors and indices
     !---------------------------------------------------------------------------
@@ -413,12 +413,12 @@ end subroutine
     !-----------------------------------------
     !  Set arrayspec for dom, l2x and x2l
     !-----------------------------------------
-    
+
     call ESMF_ArraySpecSet(arrayspec, rank=2, typekind=ESMF_TYPEKIND_R8, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     !-----------------------------------------
-    ! Create dom 
+    ! Create dom
     !-----------------------------------------
 
     nfields = shr_string_listGetNum(trim(seq_flds_dom_fields))
@@ -430,11 +430,11 @@ end subroutine
     call ESMF_AttributeSet(dom, name="mct_names", value=trim(seq_flds_dom_fields), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    ! Set values of dom 
+    ! Set values of dom
     call ice_domain_esmf(dom)
 
-    !----------------------------------------- 
-    !  Create i2x 
+    !-----------------------------------------
+    !  Create i2x
     !-----------------------------------------
 
     ! 1d undistributed index of fields, 2d is packed data
@@ -447,9 +447,9 @@ end subroutine
 
     call ESMF_AttributeSet(i2x, name="mct_names", value=trim(seq_flds_i2x_fields), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
- 
-    !----------------------------------------- 
-    !  Create x2i 
+
+    !-----------------------------------------
+    !  Create x2i
     !-----------------------------------------
 
     nfields = shr_string_listGetNum(trim(seq_flds_x2i_fields))
@@ -461,16 +461,16 @@ end subroutine
     call ESMF_AttributeSet(x2i, name="mct_names", value=trim(seq_flds_x2i_fields), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
-    !----------------------------------------- 
-    ! Add esmf arrays to import and export state 
     !-----------------------------------------
- 
+    ! Add esmf arrays to import and export state
+    !-----------------------------------------
+
     call ESMF_StateAdd(export_state, (/dom/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
     call ESMF_StateAdd(export_state, (/i2x/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
- 
+
     call ESMF_StateAdd(import_state, (/x2i/), rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
@@ -575,7 +575,7 @@ end subroutine
 
     ! Error check
     if ((tr_aero .and. .not. atm_aero) .or. (tr_zaero .and. .not. atm_aero)) then
-       write(nu_diag,*) 'ice_import ERROR: atm_aero must be set for tr_aero or tr_zaero' 
+       write(nu_diag,*) 'ice_import ERROR: atm_aero must be set for tr_aero or tr_zaero'
        call shr_sys_abort()
     end if
 
@@ -596,7 +596,7 @@ end subroutine
     !   write(shrlogunit,105) trim(subname)//' memory_write: model date = ',start_ymd,start_tod, &
     !           ' memory = ',msize0,' MB (highwater)    ',mrss0,' MB (usage)'
     !   endif
- 
+
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
   end subroutine ice_init_esmf
@@ -668,7 +668,7 @@ end subroutine
     call shr_file_getLogUnit (shrlogunit)
     call shr_file_getLogLevel(shrloglev)
     call shr_file_setLogUnit (nu_diag)
-   
+
     ! Determine time of next atmospheric shortwave calculation
 
     call ESMF_AttributeGet(export_state, name="nextsw_cday", value=nextsw_cday, rc=rc)
@@ -706,7 +706,7 @@ end subroutine
     !-------------------------------------------------------------------
     ! get import state
     !-------------------------------------------------------------------
-    
+
     call t_barrierf('cice_run_import_BARRIER',MPI_COMM_ICE)
     call t_startf ('cice_run_import')
 
@@ -724,7 +724,7 @@ end subroutine
     endif
     call ice_timer_stop(timer_cplrecv)
     call t_stopf ('cice_run_import')
- 
+
     !--------------------------------------------------------------------
     ! timestep update
     !--------------------------------------------------------------------
@@ -732,9 +732,9 @@ end subroutine
     call CICE_Run()
 
     !-----------------------------------------------------------------
-    ! send export state to driver 
+    ! send export state to driver
     !-----------------------------------------------------------------
-    
+
     call t_barrierf('cice_run_export_BARRIER',MPI_COMM_ICE)
     call t_startf ('cice_run_export')
     call ice_timer_start(timer_cplsend)
@@ -752,7 +752,7 @@ end subroutine
     endif
     call ice_timer_stop(timer_cplsend)
     call t_stopf ('cice_run_export')
-    
+
     !--------------------------------------------------------------------
     ! check that internal clock is in sync with master clock
     !--------------------------------------------------------------------
@@ -767,7 +767,7 @@ end subroutine
        call shr_sys_abort( SubName// &
           ":: Internal sea-ice clock not in sync with Sync Clock")
     end if
-   
+
     ! reset shr logging to my original values
 
     call shr_file_setLogUnit (shrlogunit)
@@ -776,9 +776,9 @@ end subroutine
     !-------------------------------------------------------------------
     ! stop timers and print timer info
     !-------------------------------------------------------------------
-    ! Need to have this logic here instead of in ice_final_esmf since 
+    ! Need to have this logic here instead of in ice_final_esmf since
     ! the ice_final_esmf.F90 will still be called even in aqua-planet mode
-    ! Could put this logic in the driver - but it seems easier here 
+    ! Could put this logic in the driver - but it seems easier here
 
     ! Need to stop this at the end of every run phase in a coupled run.
     call ice_timer_stop(timer_total)        ! stop timing
@@ -788,7 +788,7 @@ end subroutine
        call ice_timer_print_all(stats=.true.) ! print timing information
        call release_all_fileunits
     end if
-    
+
 !   if(tod == 0) then
 !      call shr_get_memusage(msize,mrss)
 !      call shr_mpi_max(mrss, mrss0, MPI_COMM_ICE,trim(subname)//' mrss0')
@@ -799,7 +799,7 @@ end subroutine
 !      endif
 !   endif
     call t_stopf ('cice_run_total')
- 
+
   105  format( A, 2i8, A, f10.2, A, f10.2, A)
 
   end subroutine ice_run_esmf
@@ -881,12 +881,12 @@ end subroutine
 
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
           do i = ilo, ihi
              n = n+1
@@ -902,12 +902,12 @@ end subroutine
     allocate(gindex(lsize))
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
           do i = ilo, ihi
              n = n+1
@@ -918,7 +918,7 @@ end subroutine
           enddo !i
        enddo    !j
     enddo        !iblk
-   
+
     ice_distgrid_esmf = ESMF_DistGridCreate(arbSeqIndexList=gindex, rc=rc)
     if(rc /= ESMF_SUCCESS) call ESMF_Finalize(rc=rc, endflag=ESMF_END_ABORT)
 
@@ -969,17 +969,17 @@ end subroutine
     fptr(:,:) = -9999.0_R8
     n=0
     do iblk = 1, nblocks
-       this_block = get_block(blocks_ice(iblk),iblk)         
+       this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
        ihi = this_block%ihi
        jlo = this_block%jlo
        jhi = this_block%jhi
-       
+
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          fptr(klon, n)  = TLON(i,j,iblk)*rad_to_deg 
-          fptr(klat, n)  = TLAT(i,j,iblk)*rad_to_deg 
+          fptr(klon, n)  = TLON(i,j,iblk)*rad_to_deg
+          fptr(klat, n)  = TLAT(i,j,iblk)*rad_to_deg
           fptr(karea, n) = tarea(i,j,iblk)/(radius*radius)
           fptr(kmask, n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
           if (trim(grid_type) == 'latlon') then

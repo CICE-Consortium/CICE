@@ -121,7 +121,11 @@
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
+#else
+          write_restart_lvl, write_restart_pond_lvl, &
+#endif
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
@@ -146,7 +150,11 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
+#ifdef UNDEPRECATE_CESMPONDS
           tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+#else
+          tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+#endif
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -164,7 +172,11 @@
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
            tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+#else
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+#endif
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_iso_out=tr_iso, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
@@ -219,7 +231,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                if (debug_model) then
                   plabeld = 'post step_therm1'
@@ -370,7 +382,9 @@
             if (tr_iage)      call write_restart_age
             if (tr_FY)        call write_restart_FY
             if (tr_lvl)       call write_restart_lvl
+#ifdef UNDEPRECATE_CESMPONDS
             if (tr_pond_cesm) call write_restart_pond_cesm
+#endif
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_snow)      call write_restart_snow
@@ -387,7 +401,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
-    
+
 !=======================================================================
 !
 ! Prepare for coupling
@@ -620,7 +634,7 @@
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk),         &
                             Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
- 
+
       !-----------------------------------------------------------------
       ! Define ice-ocean bgc fluxes
       !-----------------------------------------------------------------
@@ -696,7 +710,7 @@
       ! local variables
       integer (kind=int_kind) :: &
           i, j, n    ! horizontal indices
-      
+
       real (kind=dbl_kind)    :: &
           puny, &          !
           Lsub, &          !

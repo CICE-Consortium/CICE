@@ -9,7 +9,7 @@
 ! 2004-05: Block structure added by William Lipscomb
 !          Restart module separated from history module
 ! 2006 ECH: Accepted some CESM code into mainstream CICE
-!           Converted to free source form (F90) 
+!           Converted to free source form (F90)
 ! 2008 ECH: Rearranged order in which internal stresses are written and read
 ! 2010 ECH: Changed eice, esno to qice, qsno
 ! 2012 ECH: Added routines for reading/writing extended grid
@@ -56,14 +56,14 @@
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, iceemask, icenmask, &
+          strocnxT, strocnyT, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
-          stresspU, stressmU, stress12U 
+          stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: grid_ice, tmask
+      use ice_grid, only: grid_ice, tmask, iceumask, iceemask, icenmask
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
                            uvelE, vvelE, uvelN, vvelN
 
@@ -85,7 +85,7 @@
       character(len=*), parameter :: subname = '(dumpfile)'
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
-           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -162,7 +162,7 @@
       !-----------------------------------------------------------------
       ! radiation fields
       !-----------------------------------------------------------------
-      
+
       if (restart_coszen) call write_restart_field(nu_dump,0,coszen,'ruf8','coszen',1,diag)
 
       call write_restart_field(nu_dump,0,scale_factor,'ruf8','scale_factor',1,diag)
@@ -214,7 +214,7 @@
       !-----------------------------------------------------------------
       ! ice mask for dynamics
       !-----------------------------------------------------------------
-      
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
@@ -277,14 +277,15 @@
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, iceemask, icenmask, &
+          strocnxT, strocnyT, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: tmask, grid_type, grid_ice
+      use ice_grid, only: tmask, grid_type, grid_ice, &
+          iceumask, iceemask, icenmask
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
@@ -315,7 +316,7 @@
           file=__FILE__, line=__LINE__)
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
-           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -439,7 +440,7 @@
       !-----------------------------------------------------------------
       if (my_task == master_task) write(nu_diag,*) &
            'internal stress components'
-      
+
       call read_restart_field(nu_restart,0,stressp_1,'ruf8', &
            'stressp_1',1,diag,field_loc_center,field_type_scalar) ! stressp_1
       call read_restart_field(nu_restart,0,stressp_3,'ruf8', &
@@ -707,12 +708,12 @@
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, iceumask, &
+          strocnxT, strocnyT, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_gather_scatter, only: scatter_global_stress
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, iceumask
       use ice_read_write, only: ice_open, ice_read, ice_read_global
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
@@ -754,7 +755,7 @@
           file=__FILE__, line=__LINE__)
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
-           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno) 
+           nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -884,7 +885,7 @@
       !-----------------------------------------------------------------
       if (my_task == master_task) write(nu_diag,*) &
            'internal stress components'
-      
+
       allocate (work_g1(nx_global,ny_global), &
                 work_g2(nx_global,ny_global))
 
@@ -1054,7 +1055,7 @@
 
       ! creates new file
       filename = trim(restart_dir) // '/iced.converted'
-      call dumpfile(filename) 
+      call dumpfile(filename)
       call final_restart
       ! stop
 

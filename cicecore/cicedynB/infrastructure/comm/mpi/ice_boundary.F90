@@ -7,8 +7,8 @@
 !
 !  2007-07-19: Phil Jones, Yoshi Yoshida, John Dennis
 !              new naming conventions, optimizations during
-!              initialization, true multi-dimensional updates 
-!              (rather than serial call to two-dimensional updates), 
+!              initialization, true multi-dimensional updates
+!              (rather than serial call to two-dimensional updates),
 !              fixes for non-existent blocks
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
@@ -98,7 +98,7 @@
 !-----------------------------------------------------------------------
 !
 !  to prevent frequent allocate-deallocate for 2d halo updates, create
-!  a static 2d buffer to be allocated once at creation.  if future 
+!  a static 2d buffer to be allocated once at creation.  if future
 !  creation needs larger buffer, resize during the creation.
 !
 !-----------------------------------------------------------------------
@@ -177,9 +177,9 @@ contains
       seBlock, swBlock,            &! block id southeast, southwest nbrs
       srcProc, dstProc,            &! source, dest processor locations
       srcLocalID, dstLocalID,      &! local block index of src,dst blocks
-      maxTmp,                      &! temp for global maxval      
-      blockSizeX,                  &! size of default physical domain in X 
-      blockSizeY,                  &! size of default physical domain in Y 
+      maxTmp,                      &! temp for global maxval
+      blockSizeX,                  &! size of default physical domain in X
+      blockSizeY,                  &! size of default physical domain in Y
       maxSizeSend, maxSizeRecv,    &! max buffer sizes
       numMsgSend, numMsgRecv,      &! number of messages for this halo
       eastMsgSize, westMsgSize,    &! nominal sizes for e-w msgs
@@ -305,7 +305,7 @@ contains
                                      srcProc, dstProc, msgSize)
 
       !*** if a tripole boundary block, also create a local
-      !*** message into and out of tripole buffer 
+      !*** message into and out of tripole buffer
 
       if (tripoleBlock) then
          !*** copy out of tripole buffer - includes halo
@@ -316,7 +316,7 @@ contains
          !*** copy in only required if dstProc not same as srcProc
          if (dstProc /= srcProc) then
             call ice_HaloIncrementMsgCount(sendCount, recvCount,  &
-                                           srcProc, srcProc,      & 
+                                           srcProc, srcProc,      &
                                            msgSize)
          endif
       endif
@@ -393,7 +393,7 @@ contains
                                    ewBoundaryType, nsBoundaryType)
 
       if (neBlock > 0) then
-         msgSize = cornerMsgSize  ! normal corner message 
+         msgSize = cornerMsgSize  ! normal corner message
 
          call ice_distributionGetBlockLoc(dist, neBlock, dstProc, &
                                           dstLocalID)
@@ -557,7 +557,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if messages are received from the same processor, the message is 
+!  if messages are received from the same processor, the message is
 !  actually a local copy - count them and reset to zero
 !
 !-----------------------------------------------------------------------
@@ -585,7 +585,7 @@ contains
 !   check to see if they need to be re-sized
 !
 !-----------------------------------------------------------------------
-   
+
    maxTmp = maxval(sendCount)
    maxSizeSend = global_maxval(maxTmp, dist)
    maxTmp = maxval(recvCount)
@@ -733,7 +733,7 @@ contains
                                    'north')
 
       !*** if a tripole boundary block, also create a local
-      !*** message into and out of tripole buffer 
+      !*** message into and out of tripole buffer
 
       if (tripoleBlock) then
          !*** copy out of tripole buffer - includes halo
@@ -1102,7 +1102,7 @@ contains
          elseif (mask(icel,jcel,abs(nblock)) /= 0) then
             tmpflag = .true.
          endif
-         
+
          if (tmpflag) then
             scnt = scnt + 1
             if (scnt == 1) then
@@ -1117,7 +1117,7 @@ contains
          endif
       enddo
    enddo
-   halo%numMsgSend = numMsgSend     
+   halo%numMsgSend = numMsgSend
 
    numMsgRecv = 0
    do nmsg=1,basehalo%numMsgRecv
@@ -1134,7 +1134,7 @@ contains
          elseif (mask(icel,jcel,abs(nblock)) /= 0) then
             tmpflag = .true.
          endif
-         
+
          if (tmpflag) then
             scnt = scnt + 1
             if (scnt == 1) then
@@ -1149,7 +1149,7 @@ contains
          endif
       enddo
    enddo
-   halo%numMsgRecv = numMsgRecv     
+   halo%numMsgRecv = numMsgRecv
 
 !-----------------------------------------------------------------------
 
@@ -1312,7 +1312,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -1339,7 +1339,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -1409,7 +1409,7 @@ contains
 !
 !  take care of northern boundary in tripole case
 !  bufTripole array contains the top nghost+1 rows (u-fold) or nghost+2 rows
-!  (T-fold) of physical domain for entire (global) top row 
+!  (T-fold) of physical domain for entire (global) top row
 !
 !-----------------------------------------------------------------------
 
@@ -1430,13 +1430,13 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 2,nxGlobal/2
               iDst = nxGlobal - i + 2
               x1 = bufTripoleR8(i   ,halo%tripoleRows)
@@ -1445,20 +1445,20 @@ contains
               bufTripoleR8(i   ,halo%tripoleRows) = xavg
               bufTripoleR8(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleR8(i   ,halo%tripoleRows)
@@ -1467,12 +1467,12 @@ contains
               bufTripoleR8(i   ,halo%tripoleRows) = xavg
               bufTripoleR8(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -1481,18 +1481,18 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
               x1 = bufTripoleR8(i   ,halo%tripoleRows)
@@ -1501,20 +1501,20 @@ contains
               bufTripoleR8(i   ,halo%tripoleRows) = xavg
               bufTripoleR8(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleR8(i   ,halo%tripoleRows)
@@ -1523,7 +1523,7 @@ contains
               bufTripoleR8(i   ,halo%tripoleRows) = xavg
               bufTripoleR8(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -1730,7 +1730,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -1752,7 +1752,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -1828,13 +1828,13 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 2,nxGlobal/2
               iDst = nxGlobal - i + 2
               x1 = bufTripoleR4(i   ,halo%tripoleRows)
@@ -1843,20 +1843,20 @@ contains
               bufTripoleR4(i   ,halo%tripoleRows) = xavg
               bufTripoleR4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleR4(i   ,halo%tripoleRows)
@@ -1865,32 +1865,32 @@ contains
               bufTripoleR4(i   ,halo%tripoleRows) = xavg
               bufTripoleR4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select        
+        end select
 
       else ! tripole u-fold
-  
+
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
               x1 = bufTripoleR4(i   ,halo%tripoleRows)
@@ -1899,20 +1899,20 @@ contains
               bufTripoleR4(i   ,halo%tripoleRows) = xavg
               bufTripoleR4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleR4(i   ,halo%tripoleRows)
@@ -1921,7 +1921,7 @@ contains
               bufTripoleR4(i   ,halo%tripoleRows) = xavg
               bufTripoleR4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -2128,7 +2128,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -2150,7 +2150,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -2226,13 +2226,13 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 2,nxGlobal/2
               iDst = nxGlobal - i + 2
               x1 = bufTripoleI4(i   ,halo%tripoleRows)
@@ -2241,20 +2241,20 @@ contains
               bufTripoleI4(i   ,halo%tripoleRows) = xavg
               bufTripoleI4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleI4(i   ,halo%tripoleRows)
@@ -2263,32 +2263,32 @@ contains
               bufTripoleI4(i   ,halo%tripoleRows) = xavg
               bufTripoleI4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
 
-      else ! tripole u-fold  
-  
+      else ! tripole u-fold
+
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
               x1 = bufTripoleI4(i   ,halo%tripoleRows)
@@ -2297,20 +2297,20 @@ contains
               bufTripoleI4(i   ,halo%tripoleRows) = xavg
               bufTripoleI4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
               x1 = bufTripoleI4(i   ,halo%tripoleRows)
@@ -2319,7 +2319,7 @@ contains
               bufTripoleI4(i   ,halo%tripoleRows) = xavg
               bufTripoleI4(iDst,halo%tripoleRows) = isign*xavg
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -2451,7 +2451,7 @@ contains
    real (dbl_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
 
-   integer (int_kind) :: len ! length of message 
+   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
 
@@ -2554,7 +2554,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -2576,7 +2576,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -2665,10 +2665,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -2682,20 +2682,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -2706,32 +2706,32 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select 
-  
+        end select
+
       else ! tripole u-fold
-  
+
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
@@ -2742,20 +2742,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -2766,7 +2766,7 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -2908,7 +2908,7 @@ contains
    real (real_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
 
-   integer (int_kind) :: len ! length of message 
+   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR4)'
 
@@ -3011,7 +3011,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -3033,7 +3033,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -3122,10 +3122,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -3139,20 +3139,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -3163,32 +3163,32 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select  
-  
-      else ! tripole u-fold  
-  
+        end select
+
+      else ! tripole u-fold
+
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
@@ -3199,20 +3199,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -3223,7 +3223,7 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
@@ -3468,7 +3468,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -3490,7 +3490,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -3563,7 +3563,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (nxGlobal > 0) then
- 
+
       select case (fieldKind)
       case (field_type_scalar)
          isign =  1
@@ -3579,10 +3579,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -3596,20 +3596,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -3620,32 +3620,32 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
-  
-      else ! tripole u-fold  
+
+      else ! tripole u-fold
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
               iDst = nxGlobal - i
@@ -3656,20 +3656,20 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do k=1,nz
            do i = 1,nxGlobal/2
               iDst = nxGlobal + 1 - i
@@ -3680,11 +3680,11 @@ contains
               bufTripole(iDst,halo%tripoleRows,k) = isign*xavg
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
- 
+
       endif
 
       !*** copy out of global tripole buffer into local
@@ -3929,7 +3929,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -3951,7 +3951,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -4034,7 +4034,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (nxGlobal > 0) then
- 
+
       select case (fieldKind)
       case (field_type_scalar)
          isign =  1
@@ -4050,10 +4050,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -4069,17 +4069,17 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -4095,32 +4095,32 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select  
-  
-      else ! tripole u-fold  
+        end select
+
+      else ! tripole u-fold
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
@@ -4133,20 +4133,20 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2
@@ -4159,11 +4159,11 @@ contains
            end do
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
- 
+
       endif
 
       !*** copy out of global tripole buffer into local
@@ -4410,7 +4410,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -4432,7 +4432,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -4515,7 +4515,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (nxGlobal > 0) then
- 
+
       select case (fieldKind)
       case (field_type_scalar)
          isign =  1
@@ -4531,10 +4531,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -4550,17 +4550,17 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -4576,32 +4576,32 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select  
-  
-      else ! tripole u-fold  
+        end select
+
+      else ! tripole u-fold
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
@@ -4614,20 +4614,20 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2
@@ -4640,11 +4640,11 @@ contains
            end do
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
- 
+
       endif
 
       !*** copy out of global tripole buffer into local
@@ -4891,7 +4891,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  while messages are being communicated, fill out halo region
-!  needed for masked halos to ensure halo values are filled for 
+!  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
 !-----------------------------------------------------------------------
@@ -4913,7 +4913,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -5012,10 +5012,10 @@ contains
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = -1
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -5031,17 +5031,17 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 0
            joffset = 1
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
 
@@ -5057,32 +5057,32 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = -1
            joffset = 1
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
-        end select 
-  
-      else ! tripole u-fold  
+        end select
+
+      else ! tripole u-fold
 
         select case (fieldLoc)
         case (field_loc_center)   ! cell center location
-  
+
            ioffset = 0
            joffset = 0
-  
+
         case (field_loc_NEcorner)   ! cell corner location
-  
+
            ioffset = 1
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2 - 1
@@ -5095,20 +5095,20 @@ contains
            end do
            end do
            end do
-  
+
         case (field_loc_Eface)   ! cell center location
-  
+
            ioffset = 1
            joffset = 0
-  
+
         case (field_loc_Nface)   ! cell corner (velocity) location
-  
+
            ioffset = 0
            joffset = 1
-  
+
            !*** top row is degenerate, so must enforce symmetry
            !***   use average of two degenerate points for value
-  
+
            do l=1,nt
            do k=1,nz
            do i = 1,nxGlobal/2
@@ -5121,11 +5121,11 @@ contains
            end do
            end do
            end do
-  
+
         case default
            call abort_ice(subname//'ERROR: Unknown field location')
         end select
- 
+
       endif
 
       !*** copy out of global tripole buffer into local
@@ -5354,7 +5354,7 @@ contains
 !-----------------------------------------------------------------------
 !
 !  do local copies while waiting for messages to complete
-!  if srcBlock is zero, that denotes an eliminated land block or a 
+!  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
 !    tripole buffer and will be treated later
@@ -5404,7 +5404,7 @@ contains
 !
 !  take care of northern boundary in tripole case
 !  bufTripole array contains the top haloWidth+1 rows of physical
-!    domain for entire (global) top row 
+!    domain for entire (global) top row
 !
 !-----------------------------------------------------------------------
 
@@ -5432,12 +5432,12 @@ contains
          ioffset = 1
          joffset = 1
 
-      case (field_loc_Eface) 
+      case (field_loc_Eface)
 
          ioffset = 1
          joffset = 0
 
-      case (field_loc_Nface) 
+      case (field_loc_Nface)
 
          ioffset = 0
          joffset = 1
@@ -5468,7 +5468,7 @@ contains
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
             if (iSrc == 0) iSrc = nxGlobal
- 
+
             !*** for center and Eface, do not need to replace
             !*** top row of physical domain, so jSrc should be
             !*** out of range and skipped
@@ -5537,7 +5537,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if destination all land or outside closed boundary (dstProc = 0), 
+!  if destination all land or outside closed boundary (dstProc = 0),
 !  then no send is necessary, so do the rest only for dstProc /= 0
 !
 !-----------------------------------------------------------------------
@@ -5546,7 +5546,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if the current processor is the source, must send data 
+!  if the current processor is the source, must send data
 !  local copy if dstProc = srcProc
 !
 !-----------------------------------------------------------------------
@@ -5556,14 +5556,14 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if the current processor is the destination, must receive data 
+!  if the current processor is the destination, must receive data
 !  local copy if dstProc = srcProc
 !
 !-----------------------------------------------------------------------
 
    if (dstProc == my_task + 1) then
 
-      if (srcProc > 0) then  
+      if (srcProc > 0) then
          !*** the source block has ocean points
          !*** count as a receive from srcProc
 
@@ -5631,7 +5631,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if destination all land or outside closed boundary (dstProc = 0), 
+!  if destination all land or outside closed boundary (dstProc = 0),
 !  then no send is necessary, so do the rest only for dstProc /= 0
 !
 !-----------------------------------------------------------------------
@@ -5673,7 +5673,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (srcProc == my_task+1 .and. &
-       dstProc == my_task+1) then   
+       dstProc == my_task+1) then
 
       !*** compute addresses based on direction
 
@@ -5764,7 +5764,7 @@ contains
             if (jeSrc - jbSrc + 1 < halo%tripoleRows) then
                call abort_ice(subname//'ERROR: not enough points in block for tripole')
                return
-            endif 
+            endif
 
             do j=1,halo%tripoleRows
             do i=1,ieSrc-ibSrc+1
@@ -5784,7 +5784,7 @@ contains
 
          else if (srcBlock < 0 .and. dstBlock > 0) then
 
-            !*** tripole grid - set up for copying out of 
+            !*** tripole grid - set up for copying out of
             !*** tripole buffer into ghost cell domains
             !*** include e-w ghost cells
 
@@ -5950,12 +5950,12 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  if dest block is local and source block does not exist, create a 
+!  if dest block is local and source block does not exist, create a
 !  local copy to fill halo with a fill value
 !
 !-----------------------------------------------------------------------
 
-   else if (srcProc == 0 .and. dstProc == my_task+1) then   
+   else if (srcProc == 0 .and. dstProc == my_task+1) then
 
       msgIndx = halo%numLocalCopies
 
@@ -6184,7 +6184,7 @@ contains
             bufSize = halo%sizeSend(n)
             exit srchSend
          endif
-      end do srchSend 
+      end do srchSend
 
       if (msgIndx == 0) then
          msgIndx = halo%numMsgSend + 1
@@ -6255,7 +6255,7 @@ contains
 
             halo%sizeSend(msgIndx) = bufSize
 
-         else 
+         else
 
             !*** tripole block - send top halo%tripoleRows rows of phys domain
 
@@ -6318,7 +6318,7 @@ contains
 
             halo%sizeSend(msgIndx) = bufSize
 
-         else 
+         else
 
             !*** tripole block - send top halo%tripoleRows rows of phys domain
 
@@ -6361,7 +6361,7 @@ contains
 
             halo%sizeSend(msgIndx) = bufSize
 
-         else 
+         else
 
             !*** tripole block - send top halo%tripoleRows rows of phys domain
 
@@ -6447,7 +6447,7 @@ contains
             bufSize = halo%sizeRecv(n)
             exit srchRecv
          endif
-      end do srchRecv 
+      end do srchRecv
 
       if (msgIndx == 0) then
          msgIndx = halo%numMsgRecv + 1
@@ -6705,14 +6705,14 @@ contains
 
  subroutine ice_HaloExtrapolate2DR8(ARRAY,dist,ew_bndy_type,ns_bndy_type)
 
-!  This subroutine extrapolates ARRAY values into the first row or column 
-!  of ghost cells, and is intended for grid variables whose ghost cells 
-!  would otherwise be set using the default boundary conditions (Dirichlet 
+!  This subroutine extrapolates ARRAY values into the first row or column
+!  of ghost cells, and is intended for grid variables whose ghost cells
+!  would otherwise be set using the default boundary conditions (Dirichlet
 !  or Neumann).
 !  Note: This routine will need to be modified for nghost > 1.
 !        We assume padding occurs only on east and north edges.
 !
-!  This is the specific interface for double precision arrays 
+!  This is the specific interface for double precision arrays
 !  corresponding to the generic interface ice_HaloExtrapolate
 
    use ice_blocks, only: block, nblocks_x, nblocks_y, get_block

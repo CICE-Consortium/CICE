@@ -21,7 +21,7 @@
       private
       public :: accum_hist_fsd, init_hist_fsd_2D, init_hist_fsd_3Df, &
                 init_hist_fsd_4Df
-      
+
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
@@ -79,7 +79,6 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
-      real    (kind=dbl_kind) :: secday
       logical (kind=log_kind) :: tr_fsd, wave_spec
 
       character(len=*), parameter :: subname = '(init_hist_fsd_2D)'
@@ -273,12 +272,12 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsdn(1:1) /= 'x') &
-            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, & 
+            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, &
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
          endif ! if (histfreq(ns) /= 'x') then
-      enddo ! ns 
+      enddo ! ns
 
       endif ! tr_fsd
 
@@ -398,7 +397,7 @@
       if (f_fsdrad(1:1) /= 'x') then
          do j = 1, ny_block
          do i = 1, nx_block
-            worka(i,j) = c0            
+            worka(i,j) = c0
             if (aice_init(i,j,iblk) > puny) then
              do k = 1, nfsd_hist
                 do n = 1, ncat_hist
@@ -450,7 +449,7 @@
          end do
          call accum_hist_field(n_afsd-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
- 
+
       if (f_dafsd_newi(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, &
                                     d_afsd_newi(:,:,1:nfsd_hist,iblk), a3Df)
@@ -473,7 +472,7 @@
 
       if (f_afsdn(1:1) /= 'x') then
          do n = 1, ncat_hist
-         do k = 1, nfsd_hist 
+         do k = 1, nfsd_hist
          do j = 1, ny_block
          do i = 1, nx_block
             workd(i,j,k,n) = trcrn(i,j,nt_fsd+k-1,n,iblk) &

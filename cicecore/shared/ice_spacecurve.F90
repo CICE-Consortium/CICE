@@ -4,8 +4,8 @@
 module ice_spacecurve
 
 ! !DESCRIPTION:
-!  This module contains routines necessary to 
-!  create space-filling curves.   
+!  This module contains routines necessary to
+!  create space-filling curves.
 !
 ! !REVISION HISTORY:
 !
@@ -22,7 +22,7 @@ module ice_spacecurve
    implicit none
    private
 
-! !PUBLIC TYPES: 
+! !PUBLIC TYPES:
 
    type, public :: factor_t
         integer(int_kind)        :: numfact ! The # of factors for a value
@@ -30,7 +30,7 @@ module ice_spacecurve
         integer(int_kind), dimension(:), pointer :: used
    end type
 
-! !PUBLIC MEMBER FUNCTIONS: 
+! !PUBLIC MEMBER FUNCTIONS:
 
    public :: GenSpaceCurve
 
@@ -53,11 +53,10 @@ module ice_spacecurve
               FindandMark
 
    integer(int_kind), dimension(:,:), allocatable ::  &
-        dir,      &! direction to move along each level
-        ordered    ! the ordering 
+        ordered    ! the ordering
    integer(int_kind), dimension(:), allocatable ::  &
         pos        ! position along each of the axes
-   
+
    integer(int_kind) ::  &
         maxdim,   &! dimensionality of entire space
         vcnt       ! visitation count
@@ -68,7 +67,7 @@ module ice_spacecurve
 !EOC
 !***********************************************************************
 
-contains 
+contains
 
 !***********************************************************************
 !BOP
@@ -79,19 +78,19 @@ contains
 
 ! !DESCRIPTION:
 !  This subroutine implements a Cinco space-filling curve.
-!  Cinco curves connect a Nb x Nb block of points where 
+!  Cinco curves connect a Nb x Nb block of points where
 !
-!        Nb = 5^p 
+!        Nb = 5^p
 !
 ! !REVISION HISTORY:
 !  same as module
 !
 
 
-! !INPUT PARAMETERS 
+! !INPUT PARAMETERS
 
    integer(int_kind), intent(in) ::  &
-        l,      & ! level of the space-filling curve 
+        l,      & ! level of the space-filling curve
         type,   & ! type of SFC curve
         ma,     & ! Major axis [0,1]
         md,     & ! direction of major axis [-1,1]
@@ -115,8 +114,8 @@ contains
         lmd,            &! local major direction (next level)
         lja,            &! local joiner axis (next level)
         ljd,            &! local joiner direction (next level)
-        ltype,          &! type of SFC on next level 
-        ll               ! next level down 
+        ltype,          &! type of SFC on next level
+        ll               ! next level down
 
    character(len=*),parameter :: subname='(Cinco)'
 
@@ -589,8 +588,8 @@ contains
    recursive function PeanoM(l,type,ma,md,ja,jd) result(ierr)
 
 ! !DESCRIPTION:
-!  This function implements a meandering Peano 
-!  space-filling curve. A meandering Peano curve 
+!  This function implements a meandering Peano
+!  space-filling curve. A meandering Peano curve
 !  connects a Nb x Nb block of points where
 !
 !        Nb = 3^p
@@ -947,8 +946,8 @@ contains
    function IncrementCurve(ja,jd) result(ierr)
 
 ! !DESCRIPTION:
-!   This function creates the curve which is stored in the 
-!   the ordered array.  The curve is implemented by 
+!   This function creates the curve which is stored in the
+!   the ordered array.  The curve is implemented by
 !   incrementing the curve in the direction [jd] of axis [ja].
 !
 ! !REVISION HISTORY:
@@ -990,7 +989,7 @@ contains
    function log2( n)
 
 ! !DESCRIPTION:
-!  This function calculates the log2 of its integer 
+!  This function calculates the log2 of its integer
 !  input.
 !
 ! !REVISION HISTORY:
@@ -999,8 +998,8 @@ contains
 ! !INPUT PARAMETERS:
 
    integer(int_kind), intent(in) :: n  ! integer value to find the log2
-   
-! !OUTPUT PARAMETERS: 
+
+! !OUTPUT PARAMETERS:
 
    integer(int_kind) :: log2
 
@@ -1030,10 +1029,10 @@ contains
    else  ! n > 1
       log2 = 1
       tmp =n
-      do while (tmp > 1 .and. tmp/2 .ne. 1) 
+      do while (tmp > 1 .and. tmp/2 .ne. 1)
          tmp=tmp/2
          log2=log2+1
-      enddo 
+      enddo
    endif
 
 !EOP
@@ -1048,9 +1047,9 @@ contains
 ! !INTERFACE:
 
    function  IsLoadBalanced(nelem,npart)
-   
+
 ! !DESCRIPTION:
-!  This function determines if we can create 
+!  This function determines if we can create
 !  a perfectly load-balanced partitioning.
 !
 ! !REVISION HISTORY:
@@ -1063,7 +1062,7 @@ contains
         npart          ! size of partition
 
 ! !OUTPUT PARAMETERS:
-   logical        :: IsLoadBalanced   ! .TRUE. if a perfectly load balanced 
+   logical        :: IsLoadBalanced   ! .TRUE. if a perfectly load balanced
                                       ! partition is possible
 !EOP
 !BOC
@@ -1080,7 +1079,7 @@ contains
 !-----------------------------------------------------------------------
    tmp1 = nelem/npart
 
-   if (npart*tmp1 == nelem ) then 
+   if (npart*tmp1 == nelem ) then
       IsLoadBalanced=.TRUE.
    else
       IsLoadBalanced=.FALSE.
@@ -1129,7 +1128,7 @@ contains
 !-----------------------------------------------------------------------
 
    !-------------------------------------------------
-   ! create the space-filling curve on the next level  
+   ! create the space-filling curve on the next level
    !-------------------------------------------------
 
    if(type == 2) then
@@ -1140,7 +1139,7 @@ contains
       if (f3 .and. my_task == master_task) write(nu_diag,*) subname,' calling PeanoM (3)'
       ierr = PeanoM(l,type,ma,md,ja,jd)
       f3 = .false.
-   elseif ( type == 5) then 
+   elseif ( type == 5) then
       if (f5 .and. my_task == master_task) write(nu_diag,*) subname,' calling Cinco (5)'
       ierr = Cinco(l,type,ma,md,ja,jd)
       f5 = .false.
@@ -1263,7 +1262,7 @@ contains
    function Factor(num) result(res)
 
 ! !DESCRIPTION:
-!  This function factors the input value num into a 
+!  This function factors the input value num into a
 !  product of 2,3, and 5.
 !
 ! !REVISION HISTORY:
@@ -1350,8 +1349,8 @@ contains
    enddo
 
    !------------------------------------
-   ! make sure that the input value 
-   ! only contains factors of 2,3,and 5  
+   ! make sure that the input value
+   ! only contains factors of 2,3,and 5
    !------------------------------------
    tmp=1
    do i=1,n
@@ -1373,10 +1372,10 @@ contains
 ! !INTERFACE:
 
    function IsFactorable(n)
-   
+
 ! !DESCRIPTION:
 !  This function determines if we can factor
-!   n into 2,3,and 5.  
+!   n into 2,3,and 5.
 !
 ! !REVISION HISTORY:
 !  same as module
@@ -1420,7 +1419,7 @@ contains
    subroutine map(l)
 
 ! !DESCRIPTION:
-!   Interface routine between internal subroutines and public 
+!   Interface routine between internal subroutines and public
 !   subroutines.
 !
 ! !REVISION HISTORY:
@@ -1471,7 +1470,7 @@ contains
 
 
 ! !DESCRIPTION:
-!  This subroutine prints the several low order 
+!  This subroutine prints the several low order
 !  space-filling curves in an easy to read format
 !
 ! !REVISION HISTORY:
@@ -1693,7 +1692,7 @@ contains
   subroutine  GenSpaceCurve(Mesh)
 
 ! !DESCRIPTION:
-!  This subroutine is the public interface into the 
+!  This subroutine is the public interface into the
 !  space-filling curve functionality
 !
 ! !REVISION HISTORY:
@@ -1717,7 +1716,7 @@ contains
         dim       ! dimension of SFC... currently limited to 2D
 
    integer(int_kind) :: gridsize   ! number of points on a side
-   
+
    character(len=*),parameter :: subname='(GenSpaceCurve)'
 
 !-----------------------------------------------------------------------
@@ -1743,19 +1742,19 @@ contains
    ! Setup the working arrays for the traversal
    !--------------------------------------------
    allocate(pos(0:dim-1))
-   
+
    !-----------------------------------------------------
    !  The array ordered will contain the visitation order
    !-----------------------------------------------------
    ordered(:,:) = 0
 
-   call map(level) 
+   call map(level)
 
    Mesh(:,:) = ordered(:,:)
 
    deallocate(pos,ordered)
 
-  end subroutine GenSpaceCurve 
+  end subroutine GenSpaceCurve
 
 !EOC
 !-----------------------------------------------------------------------

@@ -1,7 +1,7 @@
 !=======================================================================
 !
 ! This module defines a variety of physical and numerical constants
-! used throughout the ice model 
+! used throughout the ice model
 !
 ! author Elizabeth C. Hunke, LANL
 
@@ -33,7 +33,7 @@
       real (kind=dbl_kind), public :: &
          shlat  =  30.0_dbl_kind   ,&! artificial masking edge (deg)
          nhlat  = -30.0_dbl_kind     ! artificial masking edge (deg)
-   
+
       !-----------------------------------------------------------------
       ! numbers used outside the column package
       !-----------------------------------------------------------------
@@ -91,12 +91,12 @@
       ! location of fields for staggered grids
       !-----------------------------------------------------------------
 
-      integer (int_kind), parameter, public :: &   
-        field_loc_unknown  =  0, & 
-        field_loc_noupdate = -1, & 
-        field_loc_center   =  1, & 
-        field_loc_NEcorner =  2, & 
-        field_loc_Nface    =  3, & 
+      integer (int_kind), parameter, public :: &
+        field_loc_unknown  =  0, &
+        field_loc_noupdate = -1, &
+        field_loc_center   =  1, &
+        field_loc_NEcorner =  2, &
+        field_loc_Nface    =  3, &
         field_loc_Eface    =  4, &
         field_loc_Wface    =  5
 
@@ -105,11 +105,11 @@
       ! changes of direction across tripole boundary
       !-----------------------------------------------------------------
 
-      integer (int_kind), parameter, public :: &   
-        field_type_unknown  =  0, & 
-        field_type_noupdate = -1, & 
-        field_type_scalar   =  1, & 
-        field_type_vector   =  2, & 
+      integer (int_kind), parameter, public :: &
+        field_type_unknown  =  0, &
+        field_type_noupdate = -1, &
+        field_type_scalar   =  1, &
+        field_type_vector   =  2, &
         field_type_angle    =  3
 
       !-----------------------------------------------------------------
@@ -138,9 +138,10 @@
          omega_in     , &   ! angular velocity of earth (rad/sec)
          radius_in    , &   ! earth radius (m)
          spval_dbl_in , &   ! special value (double precision)
-         spval_in     , &   ! special value for netCDF output
          shlat_in     , &   ! artificial masking edge (deg)
          nhlat_in           ! artificial masking edge (deg)
+      real (kind=real_kind), intent(in), optional :: &
+         spval_in           ! special value for netCDF output
 
       character(len=*),parameter :: subname='(ice_init_constants)'
 

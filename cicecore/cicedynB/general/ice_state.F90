@@ -10,7 +10,7 @@
 ! aicen(i,j,n)         aice(i,j)           ---
 ! vicen(i,j,n)         vice(i,j)           m
 ! vsnon(i,j,n)         vsno(i,j)           m
-! trcrn(i,j,it,n)      trcr(i,j,it)        
+! trcrn(i,j,it,n)      trcr(i,j,it)
 !
 ! Area is dimensionless because aice is the fractional area
 ! (normalized so that the sum over all categories, including open
@@ -118,7 +118,7 @@
          strength     ! ice strength (N/m)
 
       !-----------------------------------------------------------------
-      ! ice state at start of time step, saved for later in the step 
+      ! ice state at start of time step, saved for later in the step
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
@@ -129,7 +129,7 @@
          dimension(:,:,:,:), allocatable, public :: &
          aicen_init  , & ! initial ice concentration, for linear ITD
          vicen_init  , & ! initial ice volume (m), for linear ITD
-         vsnon_init      ! initial snow volume (m), for aerosol 
+         vsnon_init      ! initial snow volume (m), for aerosol
 
 !=======================================================================
 
@@ -137,7 +137,7 @@
 
 !=======================================================================
 !
-! Allocate space for all state variables 
+! Allocate space for all state variables
 !
       subroutine alloc_state
       integer (int_kind) :: ntrcr, ierr
@@ -168,7 +168,7 @@
          vsnon     (nx_block,ny_block,ncat,max_blocks) , & ! volume per unit area of snow (m)
          aicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice concentration, for linear ITD
          vicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice volume (m), for linear ITD
-         vsnon_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow volume (m), for aerosol 
+         vsnon_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow volume (m), for aerosol
          trcr      (nx_block,ny_block,ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
          trcrn     (nx_block,ny_block,ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
          stat=ierr)
@@ -181,11 +181,13 @@
          trcr_base(ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_state): Out of memory2')
- 
+
       trcr_depend = 0
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
+      aicen = c0
+      aicen_init = c0
 
       end subroutine alloc_state
 

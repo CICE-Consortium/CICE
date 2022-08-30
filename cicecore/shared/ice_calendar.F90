@@ -4,7 +4,7 @@
 !
 ! Authors: Elizabeth C. Hunke, LANL
 !          Tony Craig, NCAR
-!          Craig MacLachlan, UK Met Office 
+!          Craig MacLachlan, UK Met Office
 !
 ! 2006 ECH: Removed 'w' option for history; added 'h' and histfreq_n.
 !           Converted to free form source (F90).
@@ -199,10 +199,14 @@
       hour=0            ! computed in calendar, but needs some reasonable initial value
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
-      idate0 = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
+      idate0 = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd)
       stop_now = 0      ! end program execution if stop_now=1
       dt_dyn = dt/real(ndtd,kind=dbl_kind) ! dynamics et al timestep
       force_restart_now = .false.
+
+      ! initialize nstreams to zero (will be initialized from namelist in 'init_hist')
+      ! this avoids using it uninitialzed in 'calendar' below
+      nstreams = 0
 
 #ifdef CESMCOUPLED
       ! calendar_type set by coupling
@@ -385,7 +389,7 @@
          call abort_ice(subname//'ERROR: model year too large')
       endif
 
-      idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd) 
+      idate = (myear)*10000 + mmonth*100 + mday ! date (yyyymmdd)
       yday = daycal(mmonth) + mday            ! day of the year
       hour = int(msec/seconds_per_hour)
 
@@ -638,7 +642,6 @@
       integer (kind=int_kind), intent(in) :: day1    ! end day
 
       ! Internal variable
-      logical (kind=log_kind) :: isleap   ! Leap year logical
       integer (kind=int_kind) :: nday0, nday1
       character(len=*),parameter :: subname='(compute_days_between)'
 
@@ -911,7 +914,7 @@
       tday = 1
       tsec = 0
 
-      ! add initial seconds to timesecs and treat lsec_ref as zero 
+      ! add initial seconds to timesecs and treat lsec_ref as zero
       ltimesecs = atimesecs + real(lsec_ref,kind=dbl_kind)
 
       ! first estimate of tyear

@@ -202,7 +202,7 @@ contains
     deallocate(gindex)
 
   end subroutine ice_mesh_set_distgrid
-  
+
   !=======================================================================
   subroutine ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc)
 
@@ -429,7 +429,7 @@ contains
     ! Allocate module variable ocn_gridcell_frac
     allocate(ocn_gridcell_frac(nx_block,ny_block,max_blocks))
     ocn_gridcell_frac(:,:,:) = scol_frac
-        
+
   end subroutine ice_mesh_create_scolumn
 
   !===============================================================================

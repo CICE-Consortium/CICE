@@ -55,13 +55,13 @@
      module procedure gather_global_dbl,  &
                       gather_global_real, &
                       gather_global_int
-   end interface 
+   end interface
 
    interface scatter_global
      module procedure scatter_global_dbl,  &
                       scatter_global_real, &
                       scatter_global_int
-   end interface 
+   end interface
 
 !-----------------------------------------------------------------------
 !
@@ -80,7 +80,7 @@
 !  This subroutine gathers a distributed array to a global-sized
 !  array on the processor dst_task.
 !
-!  This is the specific inteface for double precision arrays 
+!  This is the specific inteface for double precision arrays
 !  corresponding to the generic interface gather_global.  It is shown
 !  to provide information on the generic interface (the generic
 !  interface is identical, but chooses a specific inteface based
@@ -141,7 +141,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -308,7 +308,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -475,7 +475,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -597,7 +597,7 @@
 
    real (dbl_kind), intent(in), optional :: &
      spc_val
-     
+
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -643,7 +643,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -907,7 +907,7 @@
 
    integer (int_kind), intent(in), optional :: &
      spc_val
-     
+
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -953,7 +953,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -1217,7 +1217,7 @@
 
    logical (log_kind), intent(in), optional :: &
      spc_val
-     
+
 !-----------------------------------------------------------------------
 !
 !  local variables
@@ -1263,7 +1263,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the dst_task, copy local blocks into the global 
+!  if this task is the dst_task, copy local blocks into the global
 !  array and post receives for non-local blocks.
 !
 !-----------------------------------------------------------------------
@@ -1513,7 +1513,7 @@
 
 !  This subroutine scatters a global-sized array to a distributed array.
 !
-!  This is the specific interface for double precision arrays 
+!  This is the specific interface for double precision arrays
 !  corresponding to the generic interface scatter_global.
 
    integer (int_kind), intent(in) :: &
@@ -1551,9 +1551,6 @@
 
    type (block) :: &
      this_block  ! block info for current block
-
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
 
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
@@ -1628,7 +1625,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the src_task, copy blocks of global array into 
+!  if this task is the src_task, copy blocks of global array into
 !  message buffer and send to other processors. also copy local blocks
 !
 !-----------------------------------------------------------------------
@@ -1941,9 +1938,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -2017,7 +2011,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the src_task, copy blocks of global array into 
+!  if this task is the src_task, copy blocks of global array into
 !  message buffer and send to other processors. also copy local blocks
 !
 !-----------------------------------------------------------------------
@@ -2330,9 +2324,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -2406,7 +2397,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the src_task, copy blocks of global array into 
+!  if this task is the src_task, copy blocks of global array into
 !  message buffer and send to other processors. also copy local blocks
 !
 !-----------------------------------------------------------------------
@@ -2666,7 +2657,7 @@
 
 !  This subroutine scatters a global-sized array to a distributed array.
 !
-!  This is the specific interface for double precision arrays 
+!  This is the specific interface for double precision arrays
 !  corresponding to the generic interface scatter_global.
 
    integer (int_kind), intent(in) :: &
@@ -2698,9 +2689,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -2722,7 +2710,7 @@
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the src_task, copy blocks of global array into 
+!  if this task is the src_task, copy blocks of global array into
 !  message buffer and send to other processors. also copy local blocks
 !
 !-----------------------------------------------------------------------
@@ -3034,9 +3022,6 @@
    type (block) :: &
      this_block  ! block info for current block
 
-   integer (int_kind), dimension(MPI_STATUS_SIZE) :: &
-     status
-
    integer (int_kind), dimension(:), allocatable :: &
      rcv_request     ! request array for receives
 
@@ -3058,17 +3043,17 @@
 
    this_block = get_block(1,1) ! for the tripoleTflag - all blocks have it
    if (this_block%tripoleTFlag) then
-     xoffset = 2  ! treat stresses as cell-centered scalars (they are not 
+     xoffset = 2  ! treat stresses as cell-centered scalars (they are not
      yoffset = 0  ! shared with neighboring grid cells)
    else
-     xoffset = 1  ! treat stresses as cell-centered scalars (they are not 
+     xoffset = 1  ! treat stresses as cell-centered scalars (they are not
      yoffset = 1  ! shared with neighboring grid cells)
    endif
    isign   = 1
 
 !-----------------------------------------------------------------------
 !
-!  if this task is the src_task, copy blocks of global array into 
+!  if this task is the src_task, copy blocks of global array into
 !  message buffer and send to other processors. also copy local blocks
 !
 !-----------------------------------------------------------------------

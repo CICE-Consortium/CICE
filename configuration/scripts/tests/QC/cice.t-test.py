@@ -379,8 +379,8 @@ def plot_data(data, lat, lon, units, case, plot_type):
     try:
         # Load the necessary plotting libraries
         import matplotlib.pyplot as plt
-        from mpl_toolkits.basemap import Basemap
-        from mpl_toolkits.axes_grid1 import make_axes_locatable
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
     except ImportError:
         logger.warning('Error loading necessary Python modules in plot_data function')
         return
@@ -389,87 +389,200 @@ def plot_data(data, lat, lon, units, case, plot_type):
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    # Create the figure and axis
-    fig, axes = plt.subplots(nrows=1, ncols=2,figsize=(14, 8))
+    # define north and south polar stereographic coord ref system
+    npstereo = ccrs.NorthPolarStereo(central_longitude=-90.0) # define projection
+    spstereo = ccrs.SouthPolarStereo(central_longitude= 90.0) # define projection
+   
+    # define figure
+    fig = plt.figure(figsize=[14,7])  
 
-    # Plot the northern hemisphere data as a scatter plot
-    # Create the basemap, and draw boundaries
-    plt.sca(axes[0])
-    m = Basemap(projection='npstere', boundinglat=35,lon_0=270, resolution='l')
-    m.drawcoastlines()
-    m.fillcontinents()
-    m.drawcountries()
+    # add axis for each hemishpere
+    ax1 = fig.add_subplot(121,projection=npstereo)
+    ax2 = fig.add_subplot(122,projection=spstereo)   
+
+    # set plot extents
+    ax1.set_extent([-180.,180.,35.,90.],ccrs.PlateCarree())
+    ax2.set_extent([-180.,180.,-90.,-35.],ccrs.PlateCarree())
+   
+    # add land features NH plot
+    ax1.add_feature(cfeature.LAND, color='lightgray')
+    ax1.add_feature(cfeature.BORDERS)
+    ax1.add_feature(cfeature.COASTLINE)
+
+    # add land features SH plot
+    ax2.add_feature(cfeature.LAND, color='lightgray')
+    ax2.add_feature(cfeature.BORDERS)
+    ax2.add_feature(cfeature.COASTLINE)
+
+    # add grid lines
+    dlon = 30.0
+    dlat = 15.0
+    mpLons = np.arange(-180.  ,180.0+dlon,dlon)
+    mpLats = np.arange(-90.,90.0+dlat ,dlat)
+
+    g1 = ax1.gridlines(xlocs=mpLons,ylocs=mpLats,
+                       draw_labels=True,
+                       x_inline=False,y_inline=False)
+
+    g2 = ax2.gridlines(xlocs=mpLons,ylocs=mpLats,
+                       draw_labels=True,
+                       x_inline=False,y_inline=False)
+
+
+    # Specify Min/max colors for each hemisphere
+    # check for minus to see if it is a difference plot
+    if '\n- ' in case: # this is a difference plot
+        # specify colormap
+        mycmap = 'seismic' # blue,white,red with white centered colormap
+
+        # determine max absolute value to use for color range
+        # intent is use same min/max with center zero
+        dmin = np.abs(data.min())
+        dmax = np.abs(data.max())
+        clim = np.max([dmin,dmax])
+
+        # this specifies both hemishperes the same range.
+        cminNH = -clim
+        cmaxNH =  clim
+        cminSH = -clim
+        cmaxSH =  clim
+
+    else:  # not a difference plot
+        # specify colormap
+        mycmap = 'jet'
+
+        # arbitrary limits for each Hemishpere
+        cminNH = 0.0
+        cmaxNH = 5.0
+        cminSH = 0.0
+        cmaxSH = 2.0
 
     if plot_type == 'scatter':
-        x, y = m(lon,lat)
-        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
-    else:
-        # Create new arrays to add 1 additional longitude value to prevent a 
-        # small amount of whitespace around longitude of 0/360 degrees.
-        lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
-        mask = np.zeros((data.shape[0],data.shape[1]+1))
-        lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
+        # plot NH
+        scNH = ax1.scatter(lon,lat,c=data,cmap=mycmap,s=4,edgecolors='none',
+                           vmin=cminNH, vmax=cmaxNH,
+                           transform=ccrs.PlateCarree())
+        
+        # plot SH
+        scSH = ax2.scatter(lon,lat,c=data,cmap=mycmap,s=4,edgecolors='none',
+                           vmin=cminSH, vmax=cmaxSH,
+                           transform=ccrs.PlateCarree())
 
-        mask[:,0:-1] = data.mask[:,:]
-        mask[:,-1] = data.mask[:,0]
-        lon_cyc[:,0:-1] = lon[:,:]; lon_cyc[:,-1] = lon[:,0]
-        lat_cyc[:,0:-1] = lat[:,:]; lat_cyc[:,-1] = lat[:,0]
-
-        lon1 = np.ma.masked_array(lon_cyc, mask=mask)
-        lat1 = np.ma.masked_array(lat_cyc, mask=mask)
-
-        d = np.zeros((data.shape[0],data.shape[1]+1))
-        d[:,0:-1] = data[:,:]
-        d[:,-1] = data[:,0]
-        d1 = np.ma.masked_array(d,mask=mask)
-
-        x, y = m(lon1.data, lat1.data)
-
+    else: 
         if plot_type == 'contour':
-            sc = m.contourf(x, y, d1, cmap='jet')
-        else:  # pcolor
-            sc = m.pcolor(x, y, d1, cmap='jet')
+            print("contour plot depreciated. using pcolor.")
+            
+        scNH = ax1.pcolormesh(lon,lat,data,cmap=mycmap,
+                              vmin=cminNH, vmax=cmaxNH,
+                              transform=ccrs.PlateCarree())
+        
+        scSH = ax2.pcolormesh(lon,lat,data,cmap=mycmap,
+                              vmin=cminSH, vmax=cmaxSH,
+                              transform=ccrs.PlateCarree())
 
-    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
-    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
+    #else:
+        # # Create new arrays to add 1 additional longitude value to prevent a
+        # # small amount of whitespace around seam
+        # lon_cyc = np.zeros((lon.shape[0],lon.shape[1]+1))
+        # lat_cyc = np.zeros((lat.shape[0],lat.shape[1]+1))
+        # data1   = np.zeros((data.shape[0],data.shape[1]+1))
+        # mask    = np.zeros((data.shape[0],data.shape[1]+1))
+       
+        # mask[:,0:-1]    = data.mask[:,:]
+        # mask[:,-1]      = data.mask[:,0]
+        # lon_cyc[:,0:-1] = lon[:,:] 
+        # lon_cyc[:,-1]   = lon[:,0]
+        # lat_cyc[:,0:-1] = lat[:,:] 
+        # lat_cyc[:,-1]   = lat[:,0]
+        # data1[:,0:-1]   = data[:,:]
+        # data1[:,-1]     = data[:,0]
+        
+        # lon1  = np.ma.masked_array(lon_cyc, mask=mask)
+        # lat1  = np.ma.masked_array(lat_cyc, mask=mask)
+        # data1 = np.ma.masked_array(data1,   mask=mask)
 
-    # Plot the southern hemisphere data as a scatter plot
-    plt.sca(axes[1])
-    m = Basemap(projection='spstere', boundinglat=-45,lon_0=270, resolution='l')
-    m.drawcoastlines()
-    m.fillcontinents()
-    m.drawcountries()
+        # if plot_type == 'contour':
+        #     # plotting around -180/180 and 0/360 is a challenge.
+        #     # need to use lons in both 0-360 and +- 180
+        #     # make lons +/- 180
+        #     lon1_pm180 = np.where(lon1 < 180.0, lon1, lon1-360.0)
+        #     lon1_pm180 = np.ma.masked_where(lon1.mask,lon1_pm180)
+            
+        #     # get 90-270 lons from the lon 0-360 array (lon1)
+        #     # note: use 91, 269 to prevent small amount of white space in contour plots
+        #     lonmask = np.logical_or(lon1 <= 91.0,lon1 >= 269.0)
+        #     lons_90_270 = np.ma.masked_where(lonmask,lon1)
+        #     lats_90_270 = np.ma.MaskedArray(lat1,mask=lons_90_270.mask)
+        #     data_90_270 = np.ma.MaskedArray(data1,mask=lons_90_270.mask)
+        #     data_90_270.mask = np.logical_or(data1.mask,data_90_270.mask)
 
-    if plot_type == 'scatter':
-        x, y = m(lon,lat)
-        sc = m.scatter(x, y, c=data, cmap='jet', lw=0, s=4)
-    else:
-        x, y = m(lon1.data, lat1.data)
+        #     # get -92-92 lons from +/- 180 (lon1_pm180)
+        #     # note: use 92 to prevent small amount of white space in contour plots
+        #     lonmask = np.logical_or(lon1_pm180 <= -92.0, lon1_pm180 >= 92.0)
+        #     lons_m90_90 = np.ma.masked_where(lonmask,lon1_pm180)
+        #     lats_m90_90 = np.ma.MaskedArray(lat1,mask=lons_m90_90.mask)
+        #     data_m90_90 = np.ma.MaskedArray(data1,mask=lons_m90_90.mask)
+        #     data_m90_90.mask = np.logical_or(data1.mask,data_m90_90.mask)
 
-        # Bandaid for a bug in the version of Basemap used during development
-        outside = (x <= m.xmin) | (x >= m.xmax) | (y <= m.ymin) | (y >= m.ymax)
-        tmp = np.ma.masked_where(outside,d1)
+        #     # plot NH 90-270
+        #     sc = ax1.contourf(lons_90_270, lats_90_270, data_90_270, cmap=mycmap,   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
+        #     # plot NH -90-90
+        #     sc = ax1.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap=mycmap,   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
+ 
+        #     # plot SH 90-270
+        #     sc = ax2.contourf(lons_90_270, lats_90_270, data_90_270, cmap=mycmap,   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
+        #     # plot SH -90-90
+        #     sc = ax2.contourf(lons_m90_90, lats_m90_90, data_m90_90, cmap=mycmap,   
+        #                       transform=ccrs.PlateCarree(),
+        #                       extend='both')
 
-        if plot_type == 'contour':
-            sc = m.contourf(x, y, tmp, cmap='jet')
-        else:  # pcolor
-            sc = m.pcolor(x, y, tmp, cmap='jet')
 
-    m.drawparallels(np.arange(-90.,120.,15.),labels=[1,0,0,0]) # draw parallels
-    m.drawmeridians(np.arange(0.,420.,30.),labels=[1,1,1,1]) # draw meridians
+    #plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+    plt.suptitle(f'CICE Mean Ice Thickness\n{case:s}')
 
-    plt.suptitle('CICE Mean Ice Thickness\n{}'.format(case), y=0.95)
+    # add more whitespace between plots for colorbar. 
+    plt.subplots_adjust(wspace=0.4)
 
-    # Make some room at the bottom of the figure, and create a colorbar
-    fig.subplots_adjust(bottom=0.2)
-    cbar_ax = fig.add_axes([0.11,0.1,0.8,0.05])
+    # add separate axes for colorbars
+    # first get position/size of current axes
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+
+    # now add new colormap axes using the position ax1, ax2 as reference
+    cax1 = fig.add_axes([pos1.x0+pos1.width+0.03,
+                         pos1.y0,
+                         0.02,
+                         pos1.height])
+ 
+    cax2 = fig.add_axes([pos2.x0+pos2.width+0.03,
+                         pos2.y0,
+                         0.02,
+                         pos2.height])
+
+
     if '\n- ' in case:
-      # If making a difference plot, use scientific notation for colorbar
-      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2e")
+        # If making a difference plot, use scientific notation for colorbar
+        cbNH = plt.colorbar(scNH, cax=cax1, orientation="vertical", 
+                            pad=0.1, format="%.1e")
+        cbSH = plt.colorbar(scSH, cax=cax2, orientation="vertical", 
+                            pad=0.1, format="%.1e")
+
     else:
-      # If plotting non-difference data, do not use scientific notation for colorbar
-      cb = plt.colorbar(sc, cax=cbar_ax, orientation="horizontal", format="%.2f")
-    cb.set_label(units, x=1.0)
+        #pass
+        # If plotting non-difference data, do not use scientific notation for colorbar
+        cbNH = plt.colorbar(scNH, cax=cax1, orientation="vertical", 
+                            pad=0.1, format="%.2f")
+        cbSH = plt.colorbar(scSH, cax=cax2, orientation="vertical", 
+                            pad=0.1, format="%.2f")
+
+    cbNH.set_label(units, loc='center')
+    cbSH.set_label(units, loc='center')
 
     outfile = 'ice_thickness_{}.png'.format(case.replace('\n- ','_minus_'))
     logger.info('Creating map of the data ({})'.format(outfile))
@@ -489,7 +602,8 @@ def plot_two_stage_failures(data, lat, lon):
         logger.info('Creating map of the failures (two_stage_test_failure_map.png)')
         # Load the necessary plotting libraries
         import matplotlib.pyplot as plt
-        from mpl_toolkits.basemap import Basemap
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         from matplotlib.colors import LinearSegmentedColormap
 
@@ -497,15 +611,19 @@ def plot_two_stage_failures(data, lat, lon):
         import warnings
         warnings.filterwarnings("ignore", category=UserWarning)
 
-        # Create the figure and axis
+        # Create the figure
         fig = plt.figure(figsize=(12, 8))
-        ax = fig.add_axes([0.05, 0.08, 0.9, 0.9])
-
-        # Create the basemap, and draw boundaries
-        m = Basemap(projection='moll', lon_0=0., resolution='l')
-        m.drawmapboundary(fill_color='white')
-        m.drawcoastlines()
-        m.drawcountries()
+        
+        # define plot projection and create axis
+        pltprj = ccrs.Mollweide(central_longitude=0.0)
+        ax = fig.add_subplot(111,projection=pltprj)
+        
+        # add land
+        ax.add_feature(cfeature.LAND, color='lightgray')
+        ax.add_feature(cfeature.BORDERS)
+        ax.add_feature(cfeature.COASTLINE)
+        #gshhs = cfeature.GSHHSFeature(scale='auto',facecolor='lightgray',edgecolor='none')
+        #ax.add_feature(gshhs)
 
         # Create the custom colormap
         colors = [(0, 0, 1), (1, 0, 0)]  # Blue, Red
@@ -513,11 +631,20 @@ def plot_two_stage_failures(data, lat, lon):
         cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=2)
 
         # Plot the data as a scatter plot
-        x, y = m(lon, lat)
-        sc = m.scatter(x, y, c=int_data, cmap=cm, lw=0, vmin=0, vmax=1, s=4)
+        sc = ax.scatter(lon,lat,c=int_data,cmap=cm,s=4,lw=0,
+                        vmin=0.,vmax=1.,
+                        transform=ccrs.PlateCarree())
 
-        m.drawmeridians(np.arange(0, 360, 60), labels=[0, 0, 0, 1], fontsize=10)
-        m.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0], fontsize=10)
+        # add grid lines
+        dlon = 60.0
+        dlat = 30.0
+        mpLons = np.arange(-180.  ,180.0+dlon,dlon)
+        mpLats = np.arange(-90.,90.0+dlat ,dlat)
+        mpLabels = {"left":   "y",
+                    "bottom": "x"}
+    
+        ax.gridlines(xlocs=mpLons,ylocs=mpLats,
+                     draw_labels=mpLabels)
 
         plt.title('CICE Two-Stage Test Failures')
 
