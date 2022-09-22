@@ -189,12 +189,11 @@
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use ice_blocks, only: block, get_block
-#ifdef CICE_IN_NEMO
       use ice_blocks, only: nx_block, ny_block
-#endif
       use ice_calendar, only: yday
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
+      use ice_domain_size, only: max_blocks
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
@@ -207,7 +206,7 @@
           send_i2x_per_cat, fswthrun_ai, dsnow
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
-      use ice_grid, only: lmask_n, lmask_s, tmask
+      use ice_grid, only: lmask_n, lmask_s, tmask, grid_average_X2Y
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 #ifdef CICE_IN_NEMO
@@ -250,9 +249,11 @@
 #endif
          tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
+      real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
+         uvelT, &           ! T cell velocity, x component (m/s)
+         vvelT              ! T cell velocity, y component (m/s)
+
       real (kind=dbl_kind) :: &
-         uvel_center, &     ! cell-centered velocity, x component (m/s)
-         vvel_center, &     ! cell-centered velocity, y component (m/s)
          puny               ! a very small number
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
@@ -327,6 +328,14 @@
       enddo ! j
 #endif
 
+      if (highfreq) then ! include ice velocity in calculation of wind stress
+         call grid_average_X2Y('A', uvel, 'U', uvelT, 'T')
+         call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
+      else
+         uvelT = c0 ! not used
+         vvelT = c0
+      endif ! highfreq
+
       this_block = get_block(blocks_ice(iblk),iblk)
       ilo = this_block%ilo
       ihi = this_block%ihi
@@ -335,16 +344,6 @@
 
       do j = jlo, jhi
       do i = ilo, ihi
-
-         if (highfreq) then ! include ice velocity in calculation of wind stress
-            uvel_center = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
-                             + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
-            vvel_center = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
-                             + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
-         else
-            uvel_center = c0 ! not used
-            vvel_center = c0
-         endif ! highfreq
 
          if (tr_snow) then
             do n = 1, ncat
@@ -391,8 +390,8 @@
                       vicen        = vicen       (i,j,:,iblk), &
                       vsno         = vsno        (i,j,  iblk), &
                       vsnon        = vsnon       (i,j,:,iblk), &
-                      uvel         = uvel_center             , &
-                      vvel         = vvel_center             , &
+                      uvel         = uvelT       (i,j,  iblk), &
+                      vvel         = vvelT       (i,j,  iblk), &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
                       zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
                       zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   &
