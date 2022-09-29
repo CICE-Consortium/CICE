@@ -156,57 +156,25 @@
          igrdz(nvar_grdz)      ! true if category/vertical grid field is written
 
       character (len=25), public, parameter :: &
-         tcstr = 'area: tarea'          , & ! vcellmeas for T cell quantities
-         ucstr = 'area: uarea'          , & ! vcellmeas for U cell quantities
-         ncstr = 'area: narea'          , & ! vcellmeas for N cell quantities
-         ecstr = 'area: earea'          , & ! vcellmeas for E cell quantities
-         tstr2D  = 'TLON TLAT time'     , & ! vcoord for T cell quantities, 2D
-         ustr2D  = 'ULON ULAT time'     , & ! vcoord for U cell quantities, 2D
-         nstr2D  = 'NLON NLAT time'     , & ! vcoord for N cell quantities, 2D
-         estr2D  = 'ELON ELAT time'     , & ! vcoord for E cell quantities, 2D
-         tstr3Dz = 'TLON TLAT VGRDi time',& ! vcoord for T cell quantities, 3D
-         ustr3Dz = 'ULON ULAT VGRDi time',& ! vcoord for U cell quantities, 3D
-         nstr3Dz = 'NLON NLAT VGRDi time',& ! vcoord for N cell quantities, 3D
-         estr3Dz = 'ELON ELAT VGRDi time',& ! vcoord for E cell quantities, 3D
-         tstr3Dc = 'TLON TLAT NCAT  time',& ! vcoord for T cell quantities, 3D
-         ustr3Dc = 'ULON ULAT NCAT  time',& ! vcoord for U cell quantities, 3D
-         nstr3Dc = 'NLON NLAT NCAT  time',& ! vcoord for N cell quantities, 3D
-         estr3Dc = 'ELON ELAT NCAT  time',& ! vcoord for E cell quantities, 3D
-         tstr3Db = 'TLON TLAT VGRDb time',& ! vcoord for T cell quantities, 3D
-         ustr3Db = 'ULON ULAT VGRDb time',& ! vcoord for U cell quantities, 3D
-         nstr3Db = 'NLON NLAT VGRDb time',& ! vcoord for N cell quantities, 3D
-         estr3Db = 'ELON ELAT VGRDb time',& ! vcoord for E cell quantities, 3D
-         tstr3Da = 'TLON TLAT VGRDa time',& ! vcoord for T cell quantities, 3D
-         ustr3Da = 'ULON ULAT VGRDa time',& ! vcoord for U cell quantities, 3D
-         nstr3Da = 'NLON NLAT VGRDa time',& ! vcoord for N cell quantities, 3D
-         estr3Da = 'ELON ELAT VGRDa time',& ! vcoord for E cell quantities, 3D
-         tstr3Df = 'TLON TLAT NFSD  time',& ! vcoord for T cell quantities, 3D
-         ustr3Df = 'ULON ULAT NFSD  time',& ! vcoord for U cell quantities, 3D
-         nstr3Df = 'NLON NLAT NFSD  time',& ! vcoord for N cell quantities, 3D
-         estr3Df = 'ELON ELAT NFSD  time',& ! vcoord for E cell quantities, 3D
-
-!ferret
+         ! T grids
+         tcstr   = 'area: tarea'         , & ! vcellmeas for T cell quantities
+         tstr2D  = 'TLON TLAT time'      , & ! vcoord for T cell, 2D
+         tstr3Dc = 'TLON TLAT NCAT  time', & ! vcoord for T cell, 3D, ncat
+         tstr3Da = 'TLON TLAT VGRDa time', & ! vcoord for T cell, 3D, ice-snow-bio
+         tstr3Db = 'TLON TLAT VGRDb time', & ! vcoord for T cell, 3D, ice-bio
+         tstr3Df = 'TLON TLAT NFSD  time', & ! vcoord for T cell, 3D, fsd
          tstr4Di = 'TLON TLAT VGRDi NCAT', & ! vcoord for T cell, 4D, ice
-         ustr4Di = 'ULON ULAT VGRDi NCAT', & ! vcoord for U cell, 4D, ice
-         nstr4Di = 'NLON NLAT VGRDi NCAT', & ! vcoord for N cell, 4D, ice
-         estr4Di = 'ELON ELAT VGRDi NCAT', & ! vcoord for E cell, 4D, ice
          tstr4Ds = 'TLON TLAT VGRDs NCAT', & ! vcoord for T cell, 4D, snow
-         ustr4Ds = 'ULON ULAT VGRDs NCAT', & ! vcoord for U cell, 4D, snow
-         nstr4Ds = 'NLON NLAT VGRDs NCAT', & ! vcoord for N cell, 4D, snow
-         estr4Ds = 'ELON ELAT VGRDs NCAT', & ! vcoord for E cell, 4D, snow
          tstr4Df = 'TLON TLAT NFSD  NCAT', & ! vcoord for T cell, 4D, fsd
-         ustr4Df = 'ULON ULAT NFSD  NCAT', & ! vcoord for U cell, 4D, fsd
-         nstr4Df = 'NLON NLAT NFSD  NCAT', & ! vcoord for N cell, 4D, fsd
-         estr4Df = 'ELON ELAT NFSD  NCAT'    ! vcoord for E cell, 4D, fsd
-!ferret
-!         tstr4Di  = 'TLON TLAT VGRDi NCAT time', & ! ferret can not handle time
-!         ustr4Di  = 'ULON ULAT VGRDi NCAT time', & ! index on 4D variables.
-!         tstr4Ds  = 'TLON TLAT VGRDs NCAT time', & ! Use 'ferret' lines instead
-!         ustr4Ds  = 'ULON ULAT VGRDs NCAT time', & ! (below also)
-!         tstr4Db  = 'TLON TLAT VGRDb NCAT time', &
-!         ustr4Db  = 'ULON ULAT VGRDb NCAT time', &
-!         tstr4Df  = 'TLON TLAT NFSD  NCAT time', &
-!         ustr4Df  = 'ULON ULAT NFSD  NCAT time', &
+         ! U grids
+         ucstr   = 'area: uarea'         , & ! vcellmeas for U cell quantities
+         ustr2D  = 'ULON ULAT time'      , & ! vcoord for U cell, 2D
+         ! N grids
+         ncstr   = 'area: narea'         , & ! vcellmeas for N cell quantities
+         nstr2D  = 'NLON NLAT time'      , & ! vcoord for N cell, 2D
+         ! E grids
+         ecstr   = 'area: earea'         , & ! vcellmeas for E cell quantities
+         estr2D  = 'ELON ELAT time'          ! vcoord for E cell, 2D
 
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value

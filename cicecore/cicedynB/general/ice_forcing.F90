@@ -4129,8 +4129,8 @@
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
-             call grid_average_X2Y('F',work1,'T',ocn_frc_m(:,:,:,n  ,m),'U')
-             call grid_average_X2Y('F',work2,'T',ocn_frc_m(:,:,:,n+1,m),'U')
+             call grid_average_X2Y('A',work1,'T',ocn_frc_m(:,:,:,n  ,m),'U')
+             call grid_average_X2Y('A',work2,'T',ocn_frc_m(:,:,:,n+1,m),'U')
 
           enddo               ! month loop
         enddo               ! field loop
@@ -4373,7 +4373,7 @@
       use ice_domain, only: nblocks
       use ice_domain_size, only: max_blocks
       use ice_flux, only: sst, uocn, vocn
-      use ice_grid, only: grid_average_X2Y, ANGLET
+      use ice_grid, only: ANGLET
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step

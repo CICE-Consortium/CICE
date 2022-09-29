@@ -209,7 +209,7 @@
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
-          vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
+          vice, vicen, vsno, vsnon, trcrn, uvelT, vvelT, vsnon_init
 #ifdef CICE_IN_NEMO
       use ice_state, only: aice_init
 #endif
@@ -251,8 +251,8 @@
          tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
       real (kind=dbl_kind) :: &
-         uvel_center, &     ! cell-centered velocity, x component (m/s)
-         vvel_center, &     ! cell-centered velocity, y component (m/s)
+         uvelTij, &         ! cell-centered velocity, x component (m/s)
+         vvelTij, &         ! cell-centered velocity, y component (m/s)
          puny               ! a very small number
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
@@ -337,13 +337,11 @@
       do i = ilo, ihi
 
          if (highfreq) then ! include ice velocity in calculation of wind stress
-            uvel_center = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
-                             + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
-            vvel_center = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
-                             + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
+            uvelTij = uvelT(i,j,iblk)
+            vvelTij = vvelT(i,j,iblk)
          else
-            uvel_center = c0 ! not used
-            vvel_center = c0
+            uvelTij = c0
+            vvelTij = c0
          endif ! highfreq
 
          if (tr_snow) then
@@ -391,8 +389,8 @@
                       vicen        = vicen       (i,j,:,iblk), &
                       vsno         = vsno        (i,j,  iblk), &
                       vsnon        = vsnon       (i,j,:,iblk), &
-                      uvel         = uvel_center             , &
-                      vvel         = vvel_center             , &
+                      uvel         = uvelTij                 , &
+                      vvel         = vvelTij                 , &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
                       zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
                       zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   &
@@ -944,6 +942,8 @@
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_history_dyn
+      use ice_grid, only: grid_average_X2Y
+      use ice_state, only: uvel, vvel, uvelT, vvelT
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
@@ -960,6 +960,14 @@
       if (kdyn == 1) call evp (dt)
       if (kdyn == 2) call eap (dt)
       if (kdyn == 3) call implicit_solver (dt)
+
+      !-----------------------------------------------------------------
+      ! Compute uvelT, vvelT
+      ! only needed for highfreq, but compute anyway
+      !-----------------------------------------------------------------
+
+      call grid_average_X2Y('A', uvel, 'U', uvelT, 'T')
+      call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
