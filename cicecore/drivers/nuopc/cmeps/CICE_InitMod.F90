@@ -8,7 +8,7 @@ module CICE_InitMod
   use icepack_intfc, only: icepack_aggregate
   use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
   use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
-  use icepack_intfc, only: icepack_init_snow
+  use icepack_intfc, only: icepack_init_snow, icepack_init_radiation
   use icepack_intfc, only: icepack_configure
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
@@ -86,7 +86,7 @@ contains
     use ice_flux             , only: init_history_dyn, init_flux_atm, init_flux_ocn
     use ice_forcing          , only: init_snowtable
     use ice_forcing_bgc      , only: get_forcing_bgc, get_atm_bgc
-    use ice_forcing_bgc      , only: faero_default, faero_optics, alloc_forcing_bgc, fiso_default
+    use ice_forcing_bgc      , only: faero_default, alloc_forcing_bgc, fiso_default
     use ice_history          , only: init_hist, accum_hist
     use ice_restart_shared   , only: restart, runtype
     use ice_init             , only: input_data, init_state
@@ -155,16 +155,13 @@ contains
     call init_diags           ! initialize diagnostic output points
     call init_history_therm   ! initialize thermo history variables
     call init_history_dyn     ! initialize dynamic history variables
+    call icepack_init_radiation ! initialize icepack shortwave tables
 
     call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
     call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
-
-    if (tr_aero .or. tr_zaero) then
-       call faero_optics !initialize aerosol optical property tables
-    end if
 
     ! snow aging lookup table initialization
     if (tr_snow) then         ! advanced snow physics

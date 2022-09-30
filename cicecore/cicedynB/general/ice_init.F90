@@ -158,7 +158,7 @@
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
-        capping_method
+        capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
         sw_redist, calc_dragio, use_smliq_pnd, snwgrain
@@ -255,7 +255,7 @@
         Cf,             Pstar,          Cstar,          Ktens
 
       namelist /shortwave_nml/ &
-        shortwave,      albedo_type,                                    &
+        shortwave,      albedo_type,     snw_ssp_table,                 &
         albicev,        albicei,         albsnowv,      albsnowi,       &
         ahmax,          R_ice,           R_pnd,         R_snw,          &
         sw_redist,      sw_frac,         sw_dtemp,                      &
@@ -437,6 +437,7 @@
       advection  = 'remap'     ! incremental remapping transport scheme
       conserv_check = .false.  ! tracer conservation check
       shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      snw_ssp_table = 'test'   ! 'test' or 'snicar' dEdd_snicar_ad table data
       albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
 #ifdef UNDEPRECATE_0LAYER
       ktherm = 1               ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
@@ -902,6 +903,7 @@
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
+      call broadcast_scalar(snw_ssp_table,        master_task)
       call broadcast_scalar(albedo_type,          master_task)
       call broadcast_scalar(ktherm,               master_task)
       call broadcast_scalar(coriolis,             master_task)
@@ -1188,7 +1190,7 @@
                write(nu_diag,*) subname//' ERROR: invalid seabed stress method'
                write(nu_diag,*) subname//' ERROR: seabed_stress_method should be LKD or probabilistic'
             endif
-            abort_list = trim(abort_list)//":34"
+            abort_list = trim(abort_list)//":48"
          endif
       endif
 
@@ -1283,10 +1285,10 @@
          abort_list = trim(abort_list)//":7"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
+      if (shortwave(1:4) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_pond=T, calc_tsfc=T, invalid shortwave'
-            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
+            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
          abort_list = trim(abort_list)//":8"
       endif
@@ -1399,19 +1401,20 @@
          abort_list = trim(abort_list)//":36"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
+      if (shortwave(1:4) /= 'dEdd' .and. tr_aero) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_aero=T, invalid shortwave'
-            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
+            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
          abort_list = trim(abort_list)//":10"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. snwgrain) then
+      if (shortwave(1:4) /= 'dEdd' .and. snwgrain) then
          if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: snow grain radius activated but'
-            write (nu_diag,*) 'WARNING: dEdd shortwave is not.'
+            write (nu_diag,*) subname//' ERROR: snow grain radius is activated'
+            write (nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
+         abort_list = trim(abort_list)//":29"
       endif
 
       if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
@@ -1689,7 +1692,7 @@
          write(nu_diag,1020) ' nilyr            = ', nilyr, ' : number of ice layers (equal thickness)'
          write(nu_diag,1020) ' nslyr            = ', nslyr, ' : number of snow layers (equal thickness)'
          write(nu_diag,1020) ' nblyr            = ', nblyr, ' : number of bio layers (equal thickness)'
-         if (trim(shortwave) == 'dEdd') &
+         if (shortwave(1:4) == 'dEdd') &
          write(nu_diag,*) 'dEdd interior and sfc scattering layers are used in both ice, snow (unequal)'
          write(nu_diag,1020) ' ncat             = ', ncat,  ' : number of ice categories'
          if (kcatbound == 0) then
@@ -1937,19 +1940,24 @@
             write(nu_diag,*) '--------------------------------'
             if (trim(shortwave) == 'dEdd') then
                tmpstr2 = ' : delta-Eddington multiple-scattering method'
+            elseif (trim(shortwave) == 'dEdd_snicar_ad') then
+               tmpstr2 = ' : delta-Eddington multiple-scattering method with SNICAR AD'
             elseif (trim(shortwave) == 'ccsm3') then
                tmpstr2 = ' : NCAR CCSM3 distribution method'
             else
                tmpstr2 = ' : unknown value'
             endif
             write(nu_diag,1030) ' shortwave        = ', trim(shortwave),trim(tmpstr2)
-            if (trim(shortwave) == 'dEdd') then
+            if (shortwave(1:4) == 'dEdd') then
                write(nu_diag,1002) ' R_ice            = ', R_ice,' : tuning parameter for sea ice albedo'
                write(nu_diag,1002) ' R_pnd            = ', R_pnd,' : tuning parameter for ponded sea ice albedo'
                write(nu_diag,1002) ' R_snw            = ', R_snw,' : tuning parameter for snow broadband albedo'
                write(nu_diag,1002) ' dT_mlt           = ', dT_mlt,' : change in temperature per change in snow grain radius'
                write(nu_diag,1002) ' rsnw_mlt         = ', rsnw_mlt,' : maximum melting snow grain radius'
                write(nu_diag,1002) ' kalg             = ', kalg,' : absorption coefficient for algae'
+             if (trim(shortwave) == 'dEdd_snicar_ad') then
+               write(nu_diag,1030) ' snw_ssp_table    = ', trim(snw_ssp_table)
+             endif
             else
                if (trim(albedo_type) == 'ccsm3') then
                   tmpstr2 = ' : NCAR CCSM3 albedos'
@@ -2120,7 +2128,7 @@
             write(nu_diag,*) 'Using default dEdd melt pond scheme for testing only'
          endif
 
-         if (trim(shortwave) == 'dEdd') then
+         if (shortwave(1:4) == 'dEdd') then
             write(nu_diag,1002) ' hs0              = ', hs0,' : snow depth of transition to bare sea ice'
          endif
 
@@ -2415,7 +2423,7 @@
 
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
          albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, atmiter_conv_in=atmiter_conv, &
-         emissivity_in=emissivity, &
+         emissivity_in=emissivity, snw_ssp_table_in=snw_ssp_table, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &

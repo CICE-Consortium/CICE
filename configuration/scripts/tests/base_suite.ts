@@ -43,8 +43,9 @@ smoke          gbox128 4x4        boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
 smoke          gbox12  1x1x12x12x1  boxchan,diag1,debug
+restart        gx3     8x2        modal
 smoke          gx3     8x2        bgcz
-smoke          gx3     8x2        bgcz,debug
+smoke          gx3     8x2        bgczm,debug
 smoke          gx3     8x1        bgcskl,debug
 #smoke          gx3     4x1       bgcz,thread        smoke_gx3_8x2_bgcz
 restart        gx1     4x2        bgcsklclim,medium

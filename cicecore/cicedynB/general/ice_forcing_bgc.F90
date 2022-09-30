@@ -17,13 +17,13 @@
       use ice_calendar, only: dt, istep, msec, mday, mmonth
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
-         bgc_data_dir, fe_data_type, optics_file, optics_file_fieldname
+         bgc_data_dir, fe_data_type
       use ice_constants, only: c0, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use ice_forcing, only: bgc_data_type
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_nspint, icepack_max_aero, &
+      use icepack_intfc, only: icepack_nspint_3bd, icepack_max_aero, &
           icepack_max_algae, icepack_max_doc, icepack_max_dic
       use icepack_intfc, only: icepack_query_tracer_flags, &
           icepack_query_parameters, icepack_query_parameters, &
@@ -32,8 +32,7 @@
       implicit none
       private
       public :: get_forcing_bgc, get_atm_bgc, fzaero_data, alloc_forcing_bgc, &
-                init_bgc_data, faero_data, faero_default, faero_optics, &
-                fiso_default
+                init_bgc_data, faero_data, faero_default, fiso_default
 
       integer (kind=int_kind) :: &
          bgcrecnum = 0   ! old record number (save between steps)
@@ -839,166 +838,6 @@
       endif
 
       end subroutine init_bgc_data
-
-!=======================================================================
-!
-! Aerosol optical properties for bulk and modal aerosol formulation
-! X_bc_tab properties are from snicar_optics_5bnd_mam_c140303 (Mark Flanner 2009)
-! ==> "Mie optical parameters for CLM snowpack treatment" Includes
-! ice (effective radii from 30-1500um), black carbon, organic carbon and dust
-!
-! authors: Elizabeth Hunke, LANL
-
-      subroutine faero_optics
-
-      use ice_broadcast, only: broadcast_array
-      use ice_read_write, only: ice_open_nc, ice_close_nc
-      use ice_communicate, only: my_task, master_task
-      use ice_arrays_column, only: &
-         kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
-         waer_tab, & ! aerosol single scatter albedo (fraction)
-         gaer_tab, & ! aerosol asymmetry parameter (cos(theta))
-         kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
-         waer_bc_tab, & ! BC single scatter albedo (fraction)
-         gaer_bc_tab, & ! BC aerosol asymmetry parameter (cos(theta))
-         bcenh          ! BC absorption enhancement factor
-
-#ifdef USE_NETCDF
-      use netcdf
-#endif
-
-      ! local parameters
-
-      logical (kind=log_kind) :: modal_aero
-
-      integer (kind=int_kind) :: &
-         varid          , & ! variable id
-         status         , & ! status output from netcdf routines
-         n,  k              ! index
-
-      real (kind=dbl_kind) :: &
-         amin, amax, asum   ! min, max values and sum of input array
-
-      integer (kind=int_kind) :: &
-         fid                ! file id for netCDF file
-
-      character (char_len_long) :: &
-         fieldname          ! field name in netcdf file
-
-      character(len=*), parameter :: subname = '(faero_optics)'
-
-      ! this data is used in bulk aerosol treatment in dEdd radiation
-      kaer_tab = reshape((/ &      ! aerosol mass extinction cross section (m2/kg)
-          11580.61872,   5535.41835,   2793.79690, &
-          25798.96479,  11536.03871,   4688.24207, &
-            196.49772,    204.14078,    214.42287, &
-           2665.85867,   2256.71027,    820.36024, &
-            840.78295,   1028.24656,   1163.03298, &
-            387.51211,    414.68808,    450.29814/), &
-            (/icepack_nspint,icepack_max_aero/))
-      waer_tab = reshape((/ &      ! aerosol single scatter albedo (fraction)
-              0.29003,      0.17349,      0.06613, &
-              0.51731,      0.41609,      0.21324, &
-              0.84467,      0.94216,      0.95666, &
-              0.97764,      0.99402,      0.98552, &
-              0.94146,      0.98527,      0.99093, &
-              0.90034,      0.96543,      0.97678/), &
-              (/icepack_nspint,icepack_max_aero/))
-      gaer_tab = reshape((/ &      ! aerosol asymmetry parameter (cos(theta))
-              0.35445,      0.19838,      0.08857, &
-              0.52581,      0.32384,      0.14970, &
-              0.83162,      0.78306,      0.74375, &
-              0.68861,      0.70836,      0.54171, &
-              0.70239,      0.66115,      0.71983, &
-              0.78734,      0.73580,      0.64411/), &
-              (/icepack_nspint,icepack_max_aero/))
-
-      ! this data is used in MODAL AEROSOL treatment in dEdd radiation
-      kaer_bc_tab = reshape((/ &      ! aerosol mass extinction cross section (m2/kg)
-             12955.44732,   5946.89461, 2772.33366, &
-             12085.30664,   7438.83131, 3657.13084, &
-              9753.99698,   7342.87139, 4187.79304, &
-              7815.74879,   6659.65096, 4337.98863, &
-              6381.28194,   5876.78408, 4254.65054, &
-              5326.93163,   5156.74532, 4053.66581, &
-              4538.09763,   4538.60875, 3804.10884, &
-              3934.17604,   4020.20799, 3543.27199, &
-              3461.20656,   3587.80962, 3289.98060, &
-              3083.03396,   3226.27231, 3052.91441/), &
-              (/icepack_nspint,10/))
-
-      waer_bc_tab = reshape((/ &      ! aerosol single scatter albedo (fraction)
-              0.26107,      0.15861,    0.06535, &
-              0.37559,      0.30318,    0.19483, &
-              0.42224,      0.36913,    0.27875, &
-              0.44777,      0.40503,    0.33026, &
-              0.46444,      0.42744,    0.36426, &
-              0.47667,      0.44285,    0.38827, &
-              0.48635,      0.45428,    0.40617, &
-              0.49440,      0.46328,    0.42008, &
-              0.50131,      0.47070,    0.43128, &
-              0.50736,      0.47704,    0.44056/), &
-              (/icepack_nspint,10/))
-
-      gaer_bc_tab = reshape((/ &      ! aerosol asymmetry parameter (cos(theta))
-              0.28328,      0.19644,      0.10498, &
-              0.44488,      0.32615,      0.19612, &
-              0.54724,      0.41611,      0.26390, &
-              0.61711,      0.48475,      0.31922, &
-              0.66673,      0.53923,      0.36632, &
-              0.70296,      0.58337,      0.40732, &
-              0.73002,      0.61960,      0.44344, &
-              0.75064,      0.64959,      0.47551, &
-              0.76663,      0.67461,      0.50415, &
-              0.77926,      0.69561,      0.52981/),&
-              (/icepack_nspint,10/))
-
-      bcenh(:,:,:)     = c0
-
-    call icepack_query_parameters(modal_aero_out=modal_aero)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-       file=__FILE__, line=__LINE__)
-
-    if (modal_aero) then
-#ifdef USE_NETCDF
-        if (my_task == master_task) then
-           write (nu_diag,*) ' '
-           write (nu_diag,*) 'Read optics for modal aerosol treament in'
-           write (nu_diag,*) trim(optics_file)
-           write (nu_diag,*) 'Read optics file field name = ',trim(optics_file_fieldname)
-           call ice_open_nc(optics_file,fid)
-
-           fieldname=optics_file_fieldname
-
-           status = nf90_inq_varid(fid, trim(fieldname), varid)
-
-           if (status /= nf90_noerr) then
-             call abort_ice (subname//'ERROR: Cannot find variable '//trim(fieldname))
-           endif
-           status = nf90_get_var( fid, varid, bcenh, &
-               start=(/1,1,1,1/), &
-               count=(/3,10,8,1/) )
-           do n=1,10
-              amin = minval(bcenh(:,n,:))
-              amax = maxval(bcenh(:,n,:))
-              asum = sum   (bcenh(:,n,:))
-              write(nu_diag,*) ' min, max, sum =', amin, amax, asum
-           enddo
-           call ice_close_nc(fid)
-        endif  !master_task
-        do n=1,3
-           do k=1,8
-               call broadcast_array(bcenh(n,:,k),      master_task)
-           enddo
-        enddo
-#else
-        call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-             file=__FILE__, line=__LINE__)
-#endif
-      endif      ! modal_aero
-
-      end subroutine faero_optics
 
 !=======================================================================
 

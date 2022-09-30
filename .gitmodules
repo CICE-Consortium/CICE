@@ -1,3 +1,4 @@
 [submodule "icepack"]
 	path = icepack
-	url = https://github.com/cice-consortium/Icepack
+	url = https://github.com/E3SM-Project/Icepack.git
+	branch = cice-consortium/E3SM-icepack-initial-integration

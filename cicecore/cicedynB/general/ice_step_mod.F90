@@ -146,8 +146,7 @@
             alidr_init(i,j,iblk) = alidr_ai(i,j,iblk)
             alidf_init(i,j,iblk) = alidf_ai(i,j,iblk)
 
-            call icepack_prep_radiation (ncat=ncat, nilyr=nilyr, nslyr=nslyr,                 &
-                        scale_factor=scale_factor(i,j,iblk),                                  &
+            call icepack_prep_radiation (scale_factor=scale_factor(i,j,iblk),                 &
                         aice     = aice    (i,j,    iblk), aicen    = aicen   (i,j,  :,iblk), &
                         swvdr    = swvdr   (i,j,    iblk), swvdf    = swvdf   (i,j,    iblk), &
                         swidr    = swidr   (i,j,    iblk), swidf    = swidf   (i,j,    iblk), &
@@ -1223,8 +1222,7 @@
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           albicen, albsnon, albpndn, &
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
-          kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
-          gaer_bc_tab, bcenh, swgrid, igrid
+          swgrid, igrid
       use ice_blocks, only: block, get_block
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
       use ice_domain, only: blocks_ice
@@ -1333,9 +1331,7 @@
 
          if (tmask(i,j,iblk)) then
 
-            call icepack_step_radiation (dt=dt,   ncat=ncat,                  &
-                         nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
-                         dEdd_algae=dEdd_algae,                               &
+            call icepack_step_radiation (dt=dt,                               &
                          swgrid=swgrid(:),        igrid=igrid(:),             &
                          fbri=fbri(:),                                        &
                          aicen=aicen(i,j,        :,iblk),                     &
@@ -1355,11 +1351,6 @@
                          days_per_year=days_per_year,                         &
                          nextsw_cday=nextsw_cday, yday=yday,                  &
                          sec=msec,                                             &
-                         kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
-                         waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
-                         gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
-                         bcenh=bcenh(:,:,:),                                  &
-                         modal_aero=modal_aero,                               &
                          swvdr    =swvdr    (i,j    ,iblk), swvdf   =swvdf   (i,j    ,iblk), &
                          swidr    =swidr    (i,j    ,iblk), swidf   =swidf   (i,j    ,iblk), &
                          coszen   =coszen   (i,j    ,iblk), fsnow   =fsnow   (i,j    ,iblk), &
