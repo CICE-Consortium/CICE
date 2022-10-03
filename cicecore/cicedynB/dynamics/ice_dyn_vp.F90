@@ -2517,6 +2517,124 @@
 
 !=======================================================================
 
+! Compute global l^2 norm of a vector field (field_x, field_y)
+
+      function global_norm (nx_block, ny_block, &
+                            icellU  ,           &
+                            indxUi  , indxUj  , &
+                            field_x , field_y ) &
+               result(norm)
+
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellU                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block,max_blocks), intent(in) :: &
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         field_x     , & ! x-component of vector field
+         field_y         ! y-component of vector field
+
+      real (kind=dbl_kind) :: &
+         norm      ! l^2 norm of vector field
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         squared      ! temporary array for summed squared components
+
+      character(len=*), parameter :: subname = '(global_norm)'
+
+      norm = sqrt(global_dot_product (nx_block  , ny_block , &
+                                      icellU    ,            &
+                                      indxUi    , indxUj   , &
+                                      field_x   , field_y  , &
+                                      field_x   , field_y  ))
+
+      end function global_norm
+
+!=======================================================================
+
+! Compute global dot product of two grid vectors, each split into X and Y components
+
+      function global_dot_product (nx_block  , ny_block , &
+                                   icellU    ,            &
+                                   indxUi    , indxUj   , &
+                                   vector1_x , vector1_y, &
+                                   vector2_x , vector2_y) &
+               result(dot_product)
+
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
+      use ice_fileunits, only: bfbflag
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellU                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block,max_blocks), intent(in) :: &
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         vector1_x     , & ! x-component of first vector
+         vector1_y     , & ! y-component of first vector
+         vector2_x     , & ! x-component of second vector
+         vector2_y         ! y-component of second vector
+
+      real (kind=dbl_kind) :: &
+         dot_product      ! l^2 norm of vector field
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         prod      ! temporary array
+
+      real (kind=dbl_kind), dimension(max_blocks) :: &
+         dot       ! temporary scalar for accumulating the result
+
+      character(len=*), parameter :: subname = '(global_dot_product)'
+
+      prod = c0
+      dot  = c0
+
+      !$OMP PARALLEL DO PRIVATE(i, j, ij, iblk)
+      do iblk = 1, nblocks
+         do ij = 1, icellU(iblk)
+            i = indxUi(ij, iblk)
+            j = indxUj(ij, iblk)
+            prod(i,j,iblk) = vector1_x(i,j,iblk)*vector2_x(i,j,iblk) + vector1_y(i,j,iblk)*vector2_y(i,j,iblk)
+            dot(iblk) = dot(iblk) + prod(i,j,iblk)
+         enddo ! ij
+      enddo
+      !$OMP END PARALLEL DO
+
+      ! Use local summation result unless bfbflag is active
+      if (bfbflag == 'off') then
+         dot_product = global_sum(sum(dot), distrb_info)
+      else
+         dot_product = global_sum(prod, distrb_info, field_loc_NEcorner)
+      endif
+
+      end function global_dot_product
+
+!=======================================================================
+
 ! Convert a grid function (tpu,tpv) to a one dimensional vector
 
       subroutine arrays_to_vec (nx_block, ny_block  , &
