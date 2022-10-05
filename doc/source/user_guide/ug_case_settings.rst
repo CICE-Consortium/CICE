@@ -469,7 +469,7 @@ dynamics_nml
    "``k1``", "real", "1st free parameter for landfast parameterization", "7.5"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"
    "``maxits_fgmres``", "integer", "maximum number of restarts for FGMRES solver", "1"
-   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
+   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "4"
    "``maxits_pgmres``", "integer", "maximum number of restarts for PGMRES preconditioner", "1"
    "``monitor_fgmres``", "logical", "write velocity norm at each FGMRES iteration", "``.false.``"
    "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
