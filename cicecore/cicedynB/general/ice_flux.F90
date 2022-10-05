@@ -56,12 +56,14 @@
 
        ! out to ocean          T-cell (kg/m s^2)
        ! Note, CICE_IN_NEMO uses strocnx and strocny for coupling
-         strocnxT, & ! ice-ocean stress, x-direction at T points, per ice fraction
-         strocnyT    ! ice-ocean stress, y-direction at T points, per ice fraction
+         strocnxT_sf, & ! ice-ocean stress, x-direction at T points, per ice fraction (scaled flux)
+         strocnyT_sf    ! ice-ocean stress, y-direction at T points, per ice fraction (scaled flux)
 
        ! diagnostic
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         strocnxT, & ! ice-ocean stress, x-direction at T points, computed at end of dynamics
+         strocnyT, & ! ice-ocean stress, y-direction at T points, computed at end of dynamics
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
@@ -391,6 +393,8 @@
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
          strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
          strocnyT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
+         strocnxT_sf(nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction, per ice area
+         strocnyT_sf(nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction, per ice area
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
@@ -765,8 +769,8 @@
       ! fluxes sent to ocean
       !-----------------------------------------------------------------
 
-      strocnxT(:,:,:) = c0    ! ice-ocean stress, x-direction (T-cell)
-      strocnyT(:,:,:) = c0    ! ice-ocean stress, y-direction (T-cell)
+      strocnxT_sf (:,:,:) = c0 ! ice-ocean stress, x-direction (T-cell)
+      strocnyT_sf (:,:,:) = c0 ! ice-ocean stress, y-direction (T-cell)
       fresh   (:,:,:) = c0
       fsalt   (:,:,:) = c0
       fpond   (:,:,:) = c0

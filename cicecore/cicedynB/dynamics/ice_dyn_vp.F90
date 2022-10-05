@@ -171,7 +171,7 @@
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
-          strocnxT, strocnyT, strax, stray, &
+          strax, stray, &
           TbU, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
@@ -179,7 +179,7 @@
       use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
           tarear, grid_type, grid_average_X2Y, iceumask, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
@@ -210,7 +210,6 @@
          Cb       , & ! seabed stress coefficient
          fpresx   , & ! fixed point residual vector, x components: fx = uvel - uprev_k
          fpresy   , & ! fixed point residual vector, y components: fy = vvel - vprev_k
-         aiU      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
@@ -233,10 +232,6 @@
 
       real (kind=dbl_kind), allocatable :: &
          sol(:)          ! solution vector
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, &      ! temporary
-         work2         ! temporary
 
       character(len=*), parameter :: subname = '(implicit_solver)'
 
@@ -639,27 +634,6 @@
 
       enddo
       !$OMP END PARALLEL DO
-
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! TODO: This should be done elsewhere as part of generalization?
-      ! conservation requires aiU be divided before averaging
-      work1 = c0
-      work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
-      do iblk = 1, nblocks
-      do ij = 1, icellu(iblk)
-         i = indxui(ij,iblk)
-         j = indxuj(ij,iblk)
-         work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-         work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
-      enddo
-      enddo
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (work2,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F',work1,'U',strocnxT,'T')    ! shift
-      call grid_average_X2Y('F',work2,'U',strocnyT,'T')
 
 ! shift velocity components from CD grid locations (N, E) to B grid location (U) for transport
 ! commented out in order to focus on EVP for now within the cdgrid

@@ -54,7 +54,8 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         aice  , & ! concentration of ice
+         aice  , & ! concentration of ice on T grid
+         aiU   , & ! concentration of ice on U grid
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
@@ -151,7 +152,8 @@
           file=__FILE__, line=__LINE__)
 
       allocate ( &
-         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
+         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
+         aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water

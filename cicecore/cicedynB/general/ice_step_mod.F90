@@ -12,7 +12,14 @@
       module ice_step_mod
 
       use ice_kinds_mod
+      use ice_blocks, only: block, get_block
+      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c1000, c4, p25
+      use ice_constants, only: field_loc_center, field_loc_NEcorner, &
+          field_loc_Nface, field_loc_Eface, &
+          field_type_scalar, field_type_vector
+      use ice_domain, only: halo_info, nblocks, blocks_ice
+      use ice_domain_size, only: max_blocks
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -95,8 +102,6 @@
 
       subroutine prep_radiation (iblk)
 
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, &
@@ -188,12 +193,7 @@
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
-      use ice_blocks, only: block, get_block
-#ifdef CICE_IN_NEMO
-      use ice_blocks, only: nx_block, ny_block
-#endif
       use ice_calendar, only: yday
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
@@ -602,9 +602,7 @@
           wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
-      use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
@@ -744,8 +742,6 @@
 
       subroutine update_state (dt, daidt, dvidt, dagedt, offset)
 
-      use ice_blocks, only: nx_block, ny_block
-      use ice_domain, only: nblocks
       use ice_domain_size, only: ncat
 !     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
@@ -862,8 +858,6 @@
 
       use ice_arrays_column, only: wave_spectrum, &
           d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: ncat, nfsd, nfreq
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
@@ -937,17 +931,33 @@
 
       subroutine step_dyn_horiz (dt)
 
+      use ice_boundary, only: ice_HaloUpdate
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
+      use ice_flux, only: strocnxU, strocnyU, strocnxT, strocnyT, strocnxT_sf, strocnyT_sf
       use ice_flux, only: init_history_dyn
       use ice_grid, only: grid_average_X2Y
-      use ice_state, only: uvel, vvel, uvelT, vvelT
+      use ice_state, only: aiU, uvel, vvel, uvelT, vvelT
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! dynamics time step
+
+      ! local variables
+
+      type (block) :: &
+         this_block      ! block information for current block
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         iblk,            & ! block index
+         i, j               ! horizontal indices
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1, &     ! temporary
+         work2        ! temporary
 
       character(len=*), parameter :: subname = '(step_dyn_horiz)'
 
@@ -968,6 +978,48 @@
 
       call grid_average_X2Y('A', uvel, 'U', uvelT, 'T')
       call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
+
+      !-----------------------------------------------------------------
+      ! Compute strocnxT, strocnyT for icepack_step_therm1 and restart file
+      ! Compute strocnxT_sf, strocnyT_sf for coupling, scaled fluxes
+      !-----------------------------------------------------------------
+
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
+      ! TODO: This should be done elsewhere as part of generalization?
+      ! TODO: Rename strocn[x,y]T since it's different than strocn[x,y][U,N,E]
+      ! conservation requires aiU be divided before averaging
+      work1 = c0
+      work2 = c0
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk), iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (aiU(i,j,iblk) /= c0) then
+               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
+            endif
+        enddo
+        enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_HaloUpdate (work1,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (work2,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('F', work1, 'U', strocnxT_sf, 'T')    ! shift
+      call grid_average_X2Y('F', work2, 'U', strocnyT_sf, 'T')
+
+! correct version?
+!      call grid_average_X2Y('F', strocnxU, 'U', strocnxT, 'T')    ! shift
+!      call grid_average_X2Y('F', strocnyU, 'U', strocnyT, 'T')
+! current version
+      strocnxT = strocnxT_sf
+      strocnyT = strocnyT_sf
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
@@ -991,8 +1043,6 @@
       subroutine step_dyn_ridge (dt, ndtd, iblk)
 
       use ice_arrays_column, only: hin_max, fzsal, first_ice
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
@@ -1115,9 +1165,7 @@
 
       subroutine step_snow (dt, iblk)
 
-      use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nslyr, nilyr
       use ice_flux, only: snwcnt, wind, fresh, fhocn, fsloss, fsnow
       use ice_state, only: trcrn, vsno, vsnon, vicen, aicen, aice
@@ -1233,9 +1281,7 @@
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
           gaer_bc_tab, bcenh, swgrid, igrid
-      use ice_blocks, only: block, get_block
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
       use ice_grid, only: TLAT, TLON, tmask
@@ -1423,7 +1469,6 @@
       subroutine ocean_mixed_layer (dt, iblk)
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
-      use ice_blocks, only: nx_block, ny_block
       use ice_flux, only: sst, Tf, Qa, uatmT, vatmT, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -1580,8 +1625,6 @@
                            snow_bio_net, fswthrun, Rayleigh_criteria, &
                            ocean_bio_all, sice_rho, fzsal, fzsal_g, &
                            bgrid, igrid, icgrid, cgrid
-      use ice_blocks, only: block, get_block
-      use ice_domain, only: blocks_ice
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                                  n_doc, n_dic,  n_don, n_fed, n_fep
       use ice_flux, only: meltbn, melttn, congeln, snoicen, &

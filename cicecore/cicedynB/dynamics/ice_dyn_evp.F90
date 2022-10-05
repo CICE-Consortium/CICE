@@ -85,7 +85,7 @@
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
-          strocnxT, strocnyT, strax, stray, &
+          strax, stray, &
           TbU, hwater, &
           strairxN, strairyN, fmN, &
           strtltxN, strtltyN, strocnxN, strocnyN, strintxN, strintyN, taubxN, taubyN, &
@@ -106,7 +106,7 @@
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, vice, vsno, uvel, vvel, uvelN, vvelN, &
+      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
@@ -155,7 +155,6 @@
          wateryU  , & ! for ocean stress calculation, y (m/s)
          forcexU  , & ! work array: combined atm stress and ocn tilt, x
          forceyU  , & ! work array: combined atm stress and ocn tilt, y
-         aiU      , & ! ice fraction on u-grid
          umass    , & ! total mass of ice and snow (u grid)
          umassdti     ! mass of U-cell/dte (kg/m^2 s)
 
@@ -216,10 +215,6 @@
 
       type (block) :: &
          this_block   ! block information for current block
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, &     ! temporary
-         work2        ! temporary
 
       logical (kind=log_kind), save :: &
          first_time = .true. ! first time logical
@@ -1325,29 +1320,6 @@
          !$OMP END PARALLEL DO
 
       endif
-
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! TODO: This should be done elsewhere as part of generalization?
-      ! TODO: Rename strocn[x,y]T since it's different than strocn[x,y][U,N,E]
-      ! conservation requires aiU be divided before averaging
-      work1 = c0
-      work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-      do ij = 1, icellu(iblk)
-         i = indxui(ij,iblk)
-         j = indxuj(ij,iblk)
-         work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-         work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
-      enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (work2,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', work1, 'U', strocnxT, 'T')    ! shift
-      call grid_average_X2Y('F', work2, 'U', strocnyT, 'T')
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('S', strintxE, 'E', strintxU, 'U')    ! diagnostic

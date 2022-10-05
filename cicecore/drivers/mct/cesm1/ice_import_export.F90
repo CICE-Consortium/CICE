@@ -9,7 +9,7 @@ module ice_import_export
   use ice_constants     , only: field_type_vector, c100
   use ice_constants     , only: p001, p5
   use ice_blocks        , only: block, get_block, nx_block, ny_block
-  use ice_flux          , only: strairxT, strairyT, strocnxT, strocnyT
+  use ice_flux          , only: strairxT, strairyT, strocnxT_sf, strocnyT_sf
   use ice_flux          , only: alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux          , only: flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux          , only: fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
@@ -571,8 +571,8 @@ contains
                              + workx*sin(ANGLET(i,j,iblk))
 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
-             workx = -strocnxT(i,j,iblk)                            ! N/m^2
-             worky = -strocnyT(i,j,iblk)                            ! N/m^2
+             workx = -strocnxT_sf(i,j,iblk)                            ! N/m^2
+             worky = -strocnyT_sf(i,j,iblk)                            ! N/m^2
              tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) &
                              - worky*sin(ANGLET(i,j,iblk))
              tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
