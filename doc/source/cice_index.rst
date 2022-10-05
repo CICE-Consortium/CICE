@@ -72,7 +72,7 @@ either Celsius or Kelvin units).
    "awtvdf", "weighting factor for visible, diffuse albedo", "0.63282"
    "awtvdr", "weighting factor for visible, direct albedo", "0.00318"
    "**B**", "", ""
-   "bfb_flag", "for bit-for-bit reproducible diagnostics", ""
+   "bfbflag", "for bit-for-bit reproducible diagnostics", ""
    "bgc_data_dir", "data directory for bgc", ""
    "bgc_data_type", "source of silicate, nitrate data", ""
    "bgc_flux_type", "ice–ocean flux velocity", ""
