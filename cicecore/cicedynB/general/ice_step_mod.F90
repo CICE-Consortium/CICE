@@ -1015,11 +1015,15 @@
       call grid_average_X2Y('F', work2, 'U', strocnyT_sf, 'T')
 
 ! correct version?
-!      call grid_average_X2Y('F', strocnxU, 'U', strocnxT, 'T')    ! shift
-!      call grid_average_X2Y('F', strocnyU, 'U', strocnyT, 'T')
-! current version
-      strocnxT = strocnxT_sf
-      strocnyT = strocnyT_sf
+      call ice_HaloUpdate (strocnxU,           halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (strocnyU,           halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('F', strocnxU, 'U', strocnxT, 'T')    ! shift
+      call grid_average_X2Y('F', strocnyU, 'U', strocnyT, 'T')
+! older version
+!      strocnxT = strocnxT_sf
+!      strocnyT = strocnyT_sf
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
