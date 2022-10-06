@@ -6,13 +6,14 @@
 Quick Start
 ===========
 
-Download the model from the CICE-Consortium repository, 
-    https://github.com/CICE-Consortium/CICE
+Clone the model from the CICE-Consortium repository::
 
-Instructions for working in github with CICE (and Icepack) can be
-found in the `CICE Git and Workflow Guide <https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guidance>`_.
+  git clone --recurse-submodules https://github.com/CICE-Consortium/CICE
 
-You will probably have to download some inputdata, see the `CICE wiki <https://github.com/cice-consortium/CICE/wiki>`_ or :ref:`force`.
+Instructions for working with Git and GitHub with CICE (and Icepack) can be
+found in the `CICE Git Workflow Guide <https://github.com/CICE-Consortium/About-Us/wiki/Git-Workflow-Guide>`_.
+
+You will probably have to download some input data, see the `CICE wiki <https://github.com/cice-consortium/CICE/wiki>`_ or :ref:`force`.
 
 Software requirements are noted in this :ref:`software` section.
 
