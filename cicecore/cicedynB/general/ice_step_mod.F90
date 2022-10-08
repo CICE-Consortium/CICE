@@ -195,7 +195,7 @@
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use ice_calendar, only: yday
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
-      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
+      use ice_flux, only: frzmlt, sst, Tf, strocnxT_iavg, strocnyT_iavg, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, fsloss, &
@@ -448,8 +448,8 @@
                       sst          = sst         (i,j,  iblk), &
                       sss          = sss         (i,j,  iblk), &
                       Tf           = Tf          (i,j,  iblk), &
-                      strocnxT     = strocnxT    (i,j,  iblk), &
-                      strocnyT     = strocnyT    (i,j,  iblk), &
+                      strocnxT    = strocnxT_iavg(i,j,  iblk), &
+                      strocnyT    = strocnyT_iavg(i,j,  iblk), &
                       fbot         = fbot        (i,j,  iblk), &
                       Tbot         = Tbot        (i,j,  iblk), &
                       Tsnice       = Tsnice      (i,j,  iblk), &
@@ -936,7 +936,7 @@
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: strocnxU, strocnyU, strocnxT, strocnyT, strocnxT_sf, strocnyT_sf
+      use ice_flux, only: strocnxU, strocnyU, strocnxT_iavg, strocnyT_iavg
       use ice_flux, only: init_history_dyn
       use ice_grid, only: grid_average_X2Y
       use ice_state, only: aiU, uvel, vvel, uvelT, vvelT
@@ -980,13 +980,10 @@
       call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
 
       !-----------------------------------------------------------------
-      ! Compute strocnxT, strocnyT for icepack_step_therm1 and restart file
-      ! Compute strocnxT_sf, strocnyT_sf for coupling, scaled fluxes
+      ! Compute strocnxT_iavg, strocnyT_iavg for thermo and coupling
       !-----------------------------------------------------------------
 
       ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! TODO: This should be done elsewhere as part of generalization?
-      ! TODO: Rename strocn[x,y]T since it's different than strocn[x,y][U,N,E]
       ! conservation requires aiU be divided before averaging
       work1 = c0
       work2 = c0
@@ -1011,19 +1008,8 @@
                            field_loc_NEcorner, field_type_vector)
       call ice_HaloUpdate (work2,              halo_info, &
                            field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', work1, 'U', strocnxT_sf, 'T')    ! shift
-      call grid_average_X2Y('F', work2, 'U', strocnyT_sf, 'T')
-
-! correct version?
-      call ice_HaloUpdate (strocnxU,           halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (strocnyU,           halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', strocnxU, 'U', strocnxT, 'T')    ! shift
-      call grid_average_X2Y('F', strocnyU, 'U', strocnyT, 'T')
-! older version
-!      strocnxT = strocnxT_sf
-!      strocnyT = strocnyT_sf
+      call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
+      call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
