@@ -26,6 +26,17 @@ smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall  
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall   smoke_gx1_32x1x16x16x32_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest              smoke_gx1_32x1x16x16x32_reprosum_run10day
 
+smoke          gbox80  2x2        boxsymn,run1day,vargrid
+smoke          gbox80  4x2        boxsyme,run1day,vargrid
+smoke          gbox80  4x1        boxsymne,run1day,vargrid
+#smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid
+#smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid
+#smoke         gbox80  8x1        boxislandsn,run1day,vargrid
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid
+#smoke         gbox80  2x4        boxislandsne,run1day,vargrid
+
+
 smoke          gx3     8x2        diag1,run5day,gridcd
 smoke          gx3     8x4        diag1,run5day,debug,gridcd
 restart        gx3     4x2        debug,diag1,gridcd
@@ -53,6 +64,16 @@ smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall,g
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall,gridcd   smoke_gx1_32x1x16x16x32_gridcd_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridcd              smoke_gx1_32x1x16x16x32_gridcd_reprosum_run10day
 
+smoke          gbox80  2x2        boxsymn,run1day,vargrid,gridcd
+smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridcd
+smoke          gbox80  4x1        boxsymne,run1day,vargrid,gridcd
+#smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid,gridcd
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridcd
+#smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid,gridcd
+#smoke         gbox80  8x1        boxislandsn,run1day,vargrid,gridcd
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid,gridcd
+#smoke         gbox80  2x4        boxislandsne,run1day,vargrid,gridcd
+
 smoke          gx3     8x2        diag1,run5day,gridc
 smoke          gx3     8x4        diag1,run5day,debug,gridc
 restart        gx3     4x2        debug,diag1,gridc
@@ -78,4 +99,13 @@ smoke          gx3     1x1x5x4x580     reprosum,run10day,gridc             smoke
 smoke          gx1     32x1x16x16x32   reprosum,run10day,gridc
 smoke          gx1     32x1x16x16x32   reprosum,run10day,cmplogrest,dwblockall,gridc   smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day
 smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,dwblockall,gridc   smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day
-smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridc              smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day
+smoke          gx1     32x1x16x12x40   reprosum,run10day,cmplogrest,gridc              smoke_gx1_32x1x16x16x32_gridc_reprosum_run10day 
+smoke          gbox80  2x2        boxsymn,run1day,vargrid,gridc
+smoke          gbox80  4x2        boxsyme,run1day,vargrid,gridc
+smoke          gbox80  4x1        boxsymne,run1day,vargrid,gridc
+#smoke         gbox80  2x2        boxsymn,run1day,kmtislands,vargrid,gridc
+#smoke         gbox80  4x1        boxsyme,run1day,kmtislands,vargrid,gridc
+#smoke         gbox80  4x2        boxsymne,run1day,kmtislands,vargrid,gridc
+#smoke         gbox80  8x1        boxislandsn,run1day,vargrid,gridc
+#smoke         gbox80  4x2        boxislandse,run1day,vargrid,gridc
+#smoke         gbox80  2x4        boxislandsne,run1day,vargrid,gridc
