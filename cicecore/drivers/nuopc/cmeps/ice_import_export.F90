@@ -10,7 +10,7 @@ module ice_import_export
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
   use ice_exit           , only : abort_ice
-  use ice_flux           , only : strairxT, strairyT, strocnxT, strocnyT
+  use ice_flux           , only : strairxT, strairyT, strocnxT_iavg, strocnyT_iavg
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
@@ -914,8 +914,8 @@ contains
              tauya(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
-             workx = -strocnxT(i,j,iblk)                            ! N/m^2
-             worky = -strocnyT(i,j,iblk)                            ! N/m^2
+             workx = -strocnxT_iavg(i,j,iblk)                       ! N/m^2
+             worky = -strocnyT_iavg(i,j,iblk)                       ! N/m^2
              tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
              tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
           enddo

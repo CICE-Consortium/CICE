@@ -56,7 +56,7 @@
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -175,8 +175,8 @@
       !-----------------------------------------------------------------
       ! ocean stress (for bottom heat flux in thermo)
       !-----------------------------------------------------------------
-      call write_restart_field(nu_dump,0,strocnxT,'ruf8','strocnxT',1,diag)
-      call write_restart_field(nu_dump,0,strocnyT,'ruf8','strocnyT',1,diag)
+      call write_restart_field(nu_dump,0,strocnxT_iavg,'ruf8','strocnxT',1,diag)
+      call write_restart_field(nu_dump,0,strocnyT_iavg,'ruf8','strocnyT',1,diag)
 
       !-----------------------------------------------------------------
       ! internal stress
@@ -277,7 +277,7 @@
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -431,9 +431,9 @@
       if (my_task == master_task) &
            write(nu_diag,*) 'min/max ocean stress components'
 
-      call read_restart_field(nu_restart,0,strocnxT,'ruf8', &
+      call read_restart_field(nu_restart,0,strocnxT_iavg,'ruf8', &
            'strocnxT',1,diag,field_loc_center, field_type_vector)
-      call read_restart_field(nu_restart,0,strocnyT,'ruf8', &
+      call read_restart_field(nu_restart,0,strocnyT_iavg,'ruf8', &
            'strocnyT',1,diag,field_loc_center, field_type_vector)
 
       !-----------------------------------------------------------------
@@ -711,7 +711,7 @@
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -876,9 +876,9 @@
       if (my_task == master_task) &
            write(nu_diag,*) 'min/max ocean stress components'
 
-      call ice_read(nu_restart,0,strocnxT,'ruf8',diag, &
+      call ice_read(nu_restart,0,strocnxT_iavg,'ruf8',diag, &
                        field_loc_center, field_type_vector)
-      call ice_read(nu_restart,0,strocnyT,'ruf8',diag, &
+      call ice_read(nu_restart,0,strocnyT_iavg,'ruf8',diag, &
                        field_loc_center, field_type_vector)
 
       !-----------------------------------------------------------------
