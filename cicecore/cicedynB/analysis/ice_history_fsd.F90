@@ -137,7 +137,7 @@
       do ns = 1, nstreams
 
       if (f_wave_sig_ht(1:1) /= 'x') &
-         call define_hist_field(n_wave_sig_ht,"wave_sig_ht","1",tstr2D, tcstr, &
+         call define_hist_field(n_wave_sig_ht,"wave_sig_ht","m",tstr2D, tcstr, &
              "significant height of wind and swell waves",  &
              "from attenuated spectrum in ice", c1, c0,     &
              ns, f_wave_sig_ht)
@@ -147,7 +147,7 @@
              "for waves", c1, c0,                           &
              ns, f_aice_ww)
       if (f_diam_ww(1:1) /= 'x') &
-         call define_hist_field(n_diam_ww,"diam_ww","1",tstr2D, tcstr, &
+         call define_hist_field(n_diam_ww,"diam_ww","m",tstr2D, tcstr, &
              "Average (number) diameter of floes > Dmin",   &
              "for waves", c1, c0,                           &
              ns, f_diam_ww)
@@ -216,7 +216,7 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsd(1:1) /= 'x') &
-            call define_hist_field(n_afsd,"afsd", "1", tstr3Df, tcstr, &
+            call define_hist_field(n_afsd,"afsd", "1/m", tstr3Df, tcstr, &
                "areal floe size distribution",                 &
                "per unit bin width ", c1, c0, ns, f_afsd)
          if (f_dafsd_newi(1:1) /= 'x') &
@@ -272,7 +272,7 @@
          if (histfreq(ns) /= 'x') then
 
          if (f_afsdn(1:1) /= 'x') &
-            call define_hist_field(n_afsdn,"afsdn","1",tstr4Df, tcstr, &
+            call define_hist_field(n_afsdn,"afsdn","1/m",tstr4Df, tcstr, &
                "areal floe size and thickness distribution",    &
                "per unit bin width", c1, c0, ns, f_afsdn)
 
