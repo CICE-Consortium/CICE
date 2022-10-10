@@ -285,10 +285,10 @@
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
       use ice_grid, only: tmask, grid_type, grid_ice, &
-          iceumask, iceemask, icenmask
+          iceumask, iceemask, icenmask, grid_average_X2Y
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
-          uvelE, vvelE, uvelN, vvelN, &
+          uvelE, vvelE, uvelN, vvelN, uvelT, vvelT, &
           trcr_base, nt_strata, n_trcr_strata
 
       character (*), optional :: ice_ic
@@ -401,6 +401,9 @@
             call read_restart_field(nu_restart,0,vvelN,'ruf8', &
                  'vvelN',1,diag,field_loc_Nface, field_type_vector)
       endif
+
+      call grid_average_X2Y('A', uvel, 'U', uvelT, 'T')
+      call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
 
       !-----------------------------------------------------------------
       ! radiation fields

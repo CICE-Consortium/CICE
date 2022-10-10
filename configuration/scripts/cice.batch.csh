@@ -90,8 +90,8 @@ else if (${ICE_MACHINE} =~ nrlssc*) then
 # nrlssc queue system has nodes with different task per node
 if (${taskpernode} <= 12) set tpnstr = 'twelve'
 if (${taskpernode} == 20) set tpnstr = 'twenty'
-if (${taskpernode} == 24) set tpnstr = 'twentyfour'
-if (${taskpernode} == 28) set tpnstr = 'twentyeight'
+if (${taskpernode} >= 24) set tpnstr = 'twentyfour'
+#if (${taskpernode} == 28) set tpnstr = 'twentyeight'
 
 cat >> ${jobfile} <<EOFB
 #PBS -N ${shortcase}

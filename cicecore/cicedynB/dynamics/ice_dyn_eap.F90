@@ -270,8 +270,8 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call grid_average_X2Y('F', tmass    , 'T'          , umass, 'U')
-      call grid_average_X2Y('F', aice_init, 'T'          , aiU  , 'U')
+      call grid_average_X2Y('S', tmass    , 'T'          , umass, 'U')
+      call grid_average_X2Y('S', aice_init, 'T'          , aiU  , 'U')
       call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
       call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
       call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
