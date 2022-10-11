@@ -980,6 +980,7 @@
       call broadcast_scalar(albsnowi,             master_task)
       call broadcast_scalar(ahmax,                master_task)
       call broadcast_scalar(atmbndy,              master_task)
+      call broadcast_scalar(default_season,       master_task)
       call broadcast_scalar(fyear_init,           master_task)
       call broadcast_scalar(ycycle,               master_task)
       call broadcast_scalar(atm_data_format,      master_task)
