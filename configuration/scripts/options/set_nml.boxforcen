@@ -1,0 +1,5 @@
+atm_data_type  = 'uniform_north'
+ocn_data_type  = 'calm'
+ice_data_type  = 'uniform'
+ice_data_conc  = 'parabolic'
+ice_data_dist  = 'uniform'
