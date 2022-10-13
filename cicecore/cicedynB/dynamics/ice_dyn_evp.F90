@@ -99,7 +99,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_grid, only: tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
-          iceumask, iceemask, icenmask, &
+          icetmask, iceumask, iceemask, icenmask, &
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, &
           dxhy, dyhx, cxp, cyp, cxm, cym, &
@@ -130,7 +130,7 @@
          i, j, ij           ! local indices
 
       integer (kind=int_kind), dimension(max_blocks) :: &
-         icellt   , & ! no. of cells where icetmask = 1
+         icellt   , & ! no. of cells where icetmask = .true.
          icelln   , & ! no. of cells where icenmask = .true.
          icelle   , & ! no. of cells where iceemask = .true.
          icellu       ! no. of cells where iceumask = .true.
@@ -207,7 +207,6 @@
          calc_strair  ! calculate air/ice stress
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         icetmask, &  ! ice extent mask (T-cell)
          halomask     ! generic halo mask
 
       type (ice_halo) :: &
@@ -548,7 +547,7 @@
                stressmU (i,j,iblk) = c0
                stress12U(i,j,iblk) = c0
             endif
-            if (icetmask(i,j,iblk) == 0) then
+            if (.not.icetmask(i,j,iblk)) then
                stresspT (i,j,iblk) = c0
                stressmT (i,j,iblk) = c0
                stress12T(i,j,iblk) = c0
@@ -618,11 +617,11 @@
                jhi = this_block%jhi
                do j = jlo,jhi
                do i = ilo,ihi
-                  if (icetmask(i  ,j  ,iblk) /= 0 .or. &
-                      icetmask(i-1,j  ,iblk) /= 0 .or. &
-                      icetmask(i+1,j  ,iblk) /= 0 .or. &
-                      icetmask(i  ,j-1,iblk) /= 0 .or. &
-                      icetmask(i  ,j+1,iblk) /= 0) then
+                  if (icetmask(i  ,j  ,iblk) .or. &
+                      icetmask(i-1,j  ,iblk) .or. &
+                      icetmask(i+1,j  ,iblk) .or. &
+                      icetmask(i  ,j-1,iblk) .or. &
+                      icetmask(i  ,j+1,iblk)) then
                      halomask(i,j,iblk) = 1
                   endif
                enddo
@@ -1359,7 +1358,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellt                ! no. of cells where icetmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1656,7 +1655,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellt                ! no. of cells where icetmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1862,7 +1861,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellt                ! no. of cells where icetmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction

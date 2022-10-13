@@ -144,7 +144,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, grid_average_X2Y, iceumask, &
+          tarear, uarear, grid_average_X2Y, icetmask, iceumask, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -163,8 +163,8 @@
          i, j, ij
 
       integer (kind=int_kind), dimension(max_blocks) :: &
-         icellt     , & ! no. of cells where icetmask = 1
-         icellu         ! no. of cells where iceumask = 1
+         icellt     , & ! no. of cells where icetmask = .true.
+         icellu         ! no. of cells where iceumask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti     , & ! compressed index in i-direction
@@ -195,7 +195,6 @@
          calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         icetmask   , & ! ice extent mask (T-cell)
          halomask       ! ice mask for halo update
 
       type (ice_halo) :: &
@@ -342,7 +341,7 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-            if (icetmask(i,j,iblk)==0) then
+            if (.not.icetmask(i,j,iblk)) then
                if (tmask(i,j,iblk)) then
                   ! structure tensor
                   a11_1(i,j,iblk) = p5
@@ -1172,7 +1171,7 @@
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
          ndte              , & ! number of subcycles
-         icellt                ! no. of cells where icetmask = 1
+         icellt                ! no. of cells where icetmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1877,7 +1876,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = 1
+         icellt                ! no. of cells where icetmask = .true.
 
       real (kind=dbl_kind), intent(in) :: &
          dtei        ! 1/dte, where dte is subcycling timestep (1/s)

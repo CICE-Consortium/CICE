@@ -1035,9 +1035,7 @@ contains
 
       integer(int_kind), intent(in) :: nx, ny, nblk, nx_glob, ny_glob
       logical(kind=log_kind), dimension(nx, ny, nblk), intent(in) :: &
-         I_iceumask
-      integer(kind=int_kind), dimension(nx, ny, nblk), intent(in) :: &
-         I_icetmask
+         I_icetmask, I_iceumask
       real(kind=dbl_kind), dimension(nx, ny, nblk), intent(in) :: &
          I_cdn_ocn, I_aiu, I_uocn, I_vocn, I_forcex, I_forcey, I_Tbu, &
          I_umassdti, I_fm, I_uarear, I_tarear, I_strintx, I_strinty, &
@@ -1049,9 +1047,7 @@ contains
       ! local variables
 
       logical(kind=log_kind), dimension(nx_glob, ny_glob) :: &
-         G_iceumask
-      integer(kind=int_kind), dimension(nx_glob, ny_glob) :: &
-         G_icetmask
+         G_icetmask, G_iceumask
       real(kind=dbl_kind), dimension(nx_glob, ny_glob) :: &
          G_cdn_ocn, G_aiu, G_uocn, G_vocn, G_forcex, G_forcey, G_Tbu, &
          G_umassdti, G_fm, G_uarear, G_tarear, G_strintx, G_strinty, &
@@ -1344,10 +1340,8 @@ contains
       implicit none
 
       integer(kind=int_kind), intent(in) :: nx, ny
-      integer(kind=int_kind), dimension(nx, ny), intent(in) :: &
-         icetmask
       logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         iceumask
+         icetmask, iceumask
       integer(kind=int_kind), intent(out) :: na
 
       ! local variables
@@ -1360,7 +1354,7 @@ contains
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i,j) == 1 .or. iceumask(i,j)) na = na + 1
+            if (icetmask(i,j) .or. iceumask(i,j)) na = na + 1
          end do
       end do
 
@@ -1375,10 +1369,8 @@ contains
       implicit none
 
       integer(kind=int_kind), intent(in) :: nx, ny, na
-      integer(kind=int_kind), dimension(nx, ny), intent(in) :: &
-         icetmask
       logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         iceumask
+         icetmask, iceumask
 
       ! local variables
 
@@ -1394,11 +1386,11 @@ contains
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i,j) == 1 .or. iceumask(i,j)) then
+            if (icetmask(i,j) .or. iceumask(i,j)) then
                Nmaskt = Nmaskt + 1
                indi(Nmaskt) = i
                indj(Nmaskt) = j
-               if (icetmask(i,j) /= 1)  skiptcell(Nmaskt) = .true.
+               if (.not. icetmask(i,j)) skiptcell(Nmaskt) = .true.
                if (.not. iceumask(i,j)) skipucell(Nmaskt) = .true.
                ! NOTE: U mask does not include northern and eastern
                ! ghost cells. Skip northern and eastern ghost cells
@@ -1593,7 +1585,7 @@ contains
       implicit none
 
       integer(kind=int_kind), intent(in) :: nx, ny, na, navel
-      integer(kind=int_kind), dimension(nx, ny), intent(in) :: &
+      logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
          I_icetmask
 
       ! local variables
@@ -1619,10 +1611,10 @@ contains
          j = int((indij(iw) - 1) / (nx)) + 1
          i = indij(iw) - (j - 1) * nx
          ! if within ghost zone
-         if (i == nx .and. I_icetmask(2, j)      == 1) Ihalo(iw) = 2 + (j - 1) * nx
-         if (i == 1  .and. I_icetmask(nx - 1, j) == 1) Ihalo(iw) = (nx - 1) + (j - 1) * nx
-         if (j == ny .and. I_icetmask(i, 2)      == 1) Ihalo(iw) = i + nx
-         if (j == 1  .and. I_icetmask(i, ny - 1) == 1) Ihalo(iw) = i + (ny - 2) * nx
+         if (i == nx .and. I_icetmask(2, j)      ) Ihalo(iw) = 2 + (j - 1) * nx
+         if (i == 1  .and. I_icetmask(nx - 1, j) ) Ihalo(iw) = (nx - 1) + (j - 1) * nx
+         if (j == ny .and. I_icetmask(i, 2)      ) Ihalo(iw) = i + nx
+         if (j == 1  .and. I_icetmask(i, ny - 1) ) Ihalo(iw) = i + (ny - 2) * nx
       end do
 
       ! relate halo indices to indij vector

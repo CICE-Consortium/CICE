@@ -81,6 +81,7 @@
       module procedure ice_HaloUpdate2DR8, &
                        ice_HaloUpdate2DR4, &
                        ice_HaloUpdate2DI4, &
+                       ice_HaloUpdate2DL1, &
                        ice_HaloUpdate3DR8, &
                        ice_HaloUpdate3DR4, &
                        ice_HaloUpdate3DI4, &
@@ -2383,6 +2384,69 @@ contains
 !-----------------------------------------------------------------------
 
  end subroutine ice_HaloUpdate2DI4
+
+!***********************************************************************
+
+ subroutine ice_HaloUpdate2DL1(array, halo,                    &
+                               fieldLoc, fieldKind, &
+                               fillValue)
+
+!  This routine updates ghost cells for an input array and is a
+!  member of a group of routines under the generic interface
+!  ice\_HaloUpdate.  This routine is the specific interface
+!  for 2d horizontal integer arrays.
+
+   type (ice_halo), intent(in) :: &
+      halo                 ! precomputed halo structure containing all
+                           !  information needed for halo update
+
+   integer (int_kind), intent(in) :: &
+      fieldKind,          &! id for type of field (scalar, vector, angle)
+      fieldLoc             ! id for location on horizontal grid
+                           !  (center, NEcorner, Nface, Eface)
+
+   integer (int_kind), intent(in), optional :: &
+      fillValue            ! optional value to put in ghost cells
+                           !  where neighbor points are unknown
+                           !  (e.g. eliminated land blocks or
+                           !   closed boundaries)
+
+   logical (log_kind), dimension(:,:,:), intent(inout) :: &
+      array                ! array containing field for which halo
+                           ! needs to be updated
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), dimension(:,:,:), allocatable :: &
+      iarray            ! integer array for logical
+
+   character(len=*), parameter :: subname = '(ice_HaloUpdate2DL1)'
+
+!-----------------------------------------------------------------------
+!
+!  copy logical into integer array and call haloupdate on integer array
+!
+!-----------------------------------------------------------------------
+
+   allocate(iarray(size(array,dim=1),size(array,dim=2),size(array,dim=3)))
+   iarray(:,:,:) = 0
+   where (array) iarray = 1
+
+   call ice_HaloUpdate(iarray, halo,        &
+                       fieldLoc, fieldKind, &
+                       fillValue)
+
+   array = .false.
+   where (iarray /= 0) array = .true.
+   deallocate(iarray)
+
+!-----------------------------------------------------------------------
+
+ end subroutine ice_HaloUpdate2DL1
 
 !***********************************************************************
 
