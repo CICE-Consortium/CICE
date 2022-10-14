@@ -2086,11 +2086,11 @@
                if (trim(wave_spec_type) == 'none') then
                   tmpstr2 = ' : no wave data provided, no wave-ice interactions'
                elseif (trim(wave_spec_type) == 'profile') then
-                  tmpstr2 = ' : use fixed dummy wave spectrum for testing'
+                  tmpstr2 = ' : use fixed dummy wave spectrum for testing, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'constant') then
-                  tmpstr2 = ' : constant wave spectrum data file provided for testing'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'random') then
-                  tmpstr2 = ' : wave data file provided, sea surface height generated using random number'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using random number (multiple iterations of wave fracture to convergence)'
                else
                   tmpstr2 = ' : unknown value'
                endif
