@@ -220,23 +220,23 @@
                "areal floe size distribution",                 &
                "per unit bin width ", c1, c0, ns, f_afsd)
          if (f_dafsd_newi(1:1) /= 'x') &
-            call define_hist_field(n_dafsd_newi,"dafsd_newi","1",tstr3Df, tcstr, &
+            call define_hist_field(n_dafsd_newi,"dafsd_newi","1/s",tstr3Df, tcstr, &
                "Change in fsd: new ice",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_newi)
          if (f_dafsd_latg(1:1) /= 'x') &
-            call define_hist_field(n_dafsd_latg,"dafsd_latg","1",tstr3Df, tcstr, &
+            call define_hist_field(n_dafsd_latg,"dafsd_latg","1/s",tstr3Df, tcstr, &
                "Change in fsd: lateral growth",                &
                "Avg over freq period", c1, c0, ns, f_dafsd_latg)
          if (f_dafsd_latm(1:1) /= 'x') &
-            call define_hist_field(n_dafsd_latm,"dafsd_latm","1",tstr3Df, tcstr, &
+            call define_hist_field(n_dafsd_latm,"dafsd_latm","1/s",tstr3Df, tcstr, &
                "Change in fsd: lateral melt",                  &
                "Avg over freq period", c1, c0, ns, f_dafsd_latm)
          if (f_dafsd_wave(1:1) /= 'x') &
-            call define_hist_field(n_dafsd_wave,"dafsd_wave","1",tstr3Df, tcstr, &
+            call define_hist_field(n_dafsd_wave,"dafsd_wave","1/s",tstr3Df, tcstr, &
                "Change in fsd: waves",                         &
                "Avg over freq period", c1, c0, ns, f_dafsd_wave)
          if (f_dafsd_weld(1:1) /= 'x') &
-            call define_hist_field(n_dafsd_weld,"dafsd_weld","1",tstr3Df, tcstr, &
+            call define_hist_field(n_dafsd_weld,"dafsd_weld","1/s",tstr3Df, tcstr, &
                "Change in fsd: welding",                       &
                "Avg over freq period", c1, c0, ns, f_dafsd_weld)
          endif ! if (histfreq(ns) /= 'x')
@@ -288,7 +288,7 @@
 ! accumulate average ice quantities or snapshots
 ! author:   Elizabeth C. Hunke, LANL
 
-      subroutine accum_hist_fsd (iblk)
+      subroutine accum_hist_fsd (dt, iblk)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c2, c4
@@ -297,6 +297,9 @@
       use ice_state, only: trcrn, aicen_init, vicen, aice_init
       use ice_arrays_column, only: wave_sig_ht, floe_rad_c, floe_binwidth, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
+
+      real (kind=dbl_kind), intent(in) :: &
+         dt      ! time step
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -452,19 +455,19 @@
 
       if (f_dafsd_newi(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_newi(:,:,1:nfsd_hist,iblk), a3Df)
+                                    d_afsd_newi(:,:,1:nfsd_hist,iblk)/dt, a3Df)
       if (f_dafsd_latg(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_latg-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_latg(:,:,1:nfsd_hist,iblk), a3Df)
+                                    d_afsd_latg(:,:,1:nfsd_hist,iblk)/dt, a3Df)
       if (f_dafsd_latm(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_latm-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_latm(:,:,1:nfsd_hist,iblk), a3Df)
+                                    d_afsd_latm(:,:,1:nfsd_hist,iblk)/dt, a3Df)
       if (f_dafsd_wave(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_wave-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_wave(:,:,1:nfsd_hist,iblk), a3Df)
+                                    d_afsd_wave(:,:,1:nfsd_hist,iblk)/dt, a3Df)
       if (f_dafsd_weld(1:1)/= 'x') &
              call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_weld(:,:,1:nfsd_hist,iblk), a3Df)
+                                    d_afsd_weld(:,:,1:nfsd_hist,iblk)/dt, a3Df)
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields
