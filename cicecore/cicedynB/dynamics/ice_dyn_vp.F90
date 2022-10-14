@@ -106,7 +106,9 @@
          indxuj(:,:)      ! compressed index in j-direction
 
       real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:)    ! work array for boundary updates
+         fld2(:,:,:,:), & ! work array for boundary updates
+         fld3(:,:,:,:), & ! work array for boundary updates
+         fld4(:,:,:,:)    ! work array for boundary updates
 
 !=======================================================================
 
@@ -142,6 +144,8 @@
                indxui(nx_block*ny_block, max_blocks), &
                indxuj(nx_block*ny_block, max_blocks))
       allocate(fld2(nx_block,ny_block,2,max_blocks))
+      allocate(fld3(nx_block,ny_block,3,max_blocks))
+      allocate(fld4(nx_block,ny_block,4,max_blocks))
 
       end subroutine init_vp
 
@@ -200,6 +204,7 @@
          vocnU    , & ! j ocean current (m/s)
          ss_tltxU , & ! sea surface slope, x-direction (m/m)
          ss_tltyU , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnU , & ! ocn drag coefficient
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterxU  , & ! for ocean stress calculation, x (m/s)
          wateryU  , & ! for ocean stress calculation, y (m/s)
@@ -299,12 +304,22 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call grid_average_X2Y('S',tmass    , 'T', umass, 'U')
-      call grid_average_X2Y('S',aice_init, 'T', aiU  , 'U')
-      call grid_average_X2Y('S',uocn   , grid_ocn_dynu, uocnU   , 'U')
-      call grid_average_X2Y('S',vocn   , grid_ocn_dynv, vocnU   , 'U')
-      call grid_average_X2Y('S',ss_tltx, grid_ocn_dynu, ss_tltxU, 'U')
-      call grid_average_X2Y('S',ss_tlty, grid_ocn_dynv, ss_tltyU, 'U')
+      call stack_fields(tmass, aice_init, cdn_ocn, fld3)
+      call ice_HaloUpdate (fld3,             halo_info, &
+                           field_loc_center, field_type_scalar)
+      call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+      call ice_HaloUpdate (fld4,             halo_info, &
+                           field_loc_center, field_type_vector)
+      call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
+      call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
+
+      call grid_average_X2Y('S',tmass    , 'T'          , umass   , 'U')
+      call grid_average_X2Y('S',aice_init, 'T'          , aiU     , 'U')
+      call grid_average_X2Y('S',cdn_ocn  , 'T'          , cdn_ocnU, 'U')
+      call grid_average_X2Y('S',uocn     , grid_ocn_dynu, uocnU   , 'U')
+      call grid_average_X2Y('S',vocn     , grid_ocn_dynv, vocnU   , 'U')
+      call grid_average_X2Y('S',ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
+      call grid_average_X2Y('S',ss_tlty  , grid_ocn_dynv, ss_tltyU, 'U')
 
       !----------------------------------------------------------------
       ! Set wind stress to values supplied via NEMO or other forcing
@@ -479,7 +494,7 @@
                             umassdti, sol    , &
                             fpresx  , fpresy , &
                             zetax2  , etax2  , &
-                            rep_prs ,          &
+                            rep_prs , cdn_ocnU,&
                             Cb, halo_info_mask)
       !-----------------------------------------------------------------
       ! End of nonlinear iteration
@@ -623,7 +638,7 @@
 
          call dyn_finish                               &
               (nx_block,           ny_block,           &
-               icellu      (iblk), Cdn_ocn (:,:,iblk), &
+               icellu      (iblk), Cdn_ocnU(:,:,iblk), &
                indxui    (:,iblk), indxuj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
@@ -669,10 +684,9 @@
                                   umassdti, sol    , &
                                   fpresx  , fpresy , &
                                   zetax2  , etax2  , &
-                                  rep_prs ,          &
+                                  rep_prs , cdn_ocn, &
                                   Cb, halo_info_mask)
 
-      use ice_arrays_column, only: Cdn_ocn
       use ice_blocks, only: nx_block, ny_block
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1
@@ -702,6 +716,7 @@
          aiU      , & ! ice fraction on u-grid
          uocn     , & ! i ocean current (m/s)
          vocn     , & ! j ocean current (m/s)
+         cdn_ocn  , & ! ocn drag coefficient
          waterxU  , & ! for ocean stress calculation, x (m/s)
          wateryU  , & ! for ocean stress calculation, y (m/s)
          bxfix    , & ! part of bx that is constant during Picard
