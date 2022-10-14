@@ -2394,7 +2394,7 @@ contains
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
 !  ice\_HaloUpdate.  This routine is the specific interface
-!  for 2d horizontal integer arrays.
+!  for 2d horizontal logical arrays.
 
    type (ice_halo), intent(in) :: &
       halo                 ! precomputed halo structure containing all
