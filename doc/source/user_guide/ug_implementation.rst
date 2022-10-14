@@ -312,6 +312,34 @@ Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
 excluded.
 
+*****************
+Rectangular grids
+*****************
+
+Rectangular test grids can be defined for CICE.  They are generated 
+internally and defined by several namelist
+settings including ``grid_type`` = ``rectangular``, ``nx_global``, ``ny_global``, 
+``dx_rect``, ``dy_rect``, ``lonrefrect``, and ``latrefrect``.  Forcing and 
+initial condition can be set via namelists ``atm_data_type``, ``ocn_data_type``,
+``ice_data_type``, ``ice_data_conc``, ``ice_data_dist``.  Variable grid spacing
+is also supported with the namelist settings ``scale_dxdy`` which turns on 
+the option, and ``dxscale`` and ``dyscale`` which sets the variable grid scaling
+factor.  Values of 1.0 will produced constant grid spacing.  For rectangular grids,
+``lonrefrect`` and ``latrefrect`` define the lower left longitude and latitude
+value of the grid, ``dx_rect`` and ``dy_rect`` define the base grid spacing, and
+``dxscale`` and ``dyscale`` provide the grid space scaling.  The base spacing
+is set in the center of the rectangular domain and the scaling is applied symetrically
+outward as a multiplicative factor in the x and y directions.
+
+Several predefined rectangular grids are available in CICE with
+**cice.setup --grid** including ``gbox12``, ``gbox80``, ``gbox128``, and ``gbox180``
+where 12, 80, 128, and 180 are the number of gridcells in each direction.
+Several predefined options also exist, set with **cice.setup --set**, to
+establish varied idealized configurations of box tests including ``box2001``, 
+``boxadv``, ``boxchan``, ``boxnodyn``, ``boxrestore``, ``boxslotcyl``, and
+``boxopen``, ``boxclosed``, and ``boxforcee``.  See **cice.setup --help** for a current 
+list of supported settings.
+
 **************
 Vertical Grids
 **************

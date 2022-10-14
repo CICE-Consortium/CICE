@@ -1,5 +1,4 @@
 npt = 48
-kmt_type = 'boxislands'
 ice_ic   = 'internal'
 use_leap_years = .false.
 histfreq       = 'd','x','x','x','x'
@@ -16,11 +15,6 @@ kridge         = -1
 ktransport     = -1
 coriolis       = 'constant'
 atmbndy        = 'constant'
-atm_data_type  = 'uniform_east'
-ocn_data_type  = 'calm'
-ice_data_type  = 'uniform'
-ice_data_conc  = 'parabolic'
-ice_data_dist  = 'uniform'
 rotate_wind    = .false.
 calc_strair    = .false.
 restore_ice    = .false.
