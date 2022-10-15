@@ -377,7 +377,7 @@
                             ilo, ihi,  jlo, jhi, &
                             aice,      vice,     &
                             vsno,      Tmask,    &
-                            Tmass,     icetmask)
+                            Tmass,     iceTmask)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -395,7 +395,7 @@
          Tmass       ! total mass of ice and snow (kg/m^2)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(out) :: &
-         icetmask    ! ice extent mask (T-cell)
+         iceTmask    ! ice extent mask (T-cell)
 
       ! local variables
 
@@ -438,7 +438,7 @@
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
          !-----------------------------------------------------------------
-         icetmask (i,j) = .false.
+         iceTmask (i,j) = .false.
 
       enddo
       enddo
@@ -450,10 +450,10 @@
          if (tmphm(i-1,j+1) .or. tmphm(i,j+1) .or. tmphm(i+1,j+1) .or. &
              tmphm(i-1,j)   .or. tmphm(i,j)   .or. tmphm(i+1,j)   .or. &
              tmphm(i-1,j-1) .or. tmphm(i,j-1) .or. tmphm(i+1,j-1) ) then
-            icetmask(i,j) = .true.
+            iceTmask(i,j) = .true.
          endif
 
-         if (.not.Tmask(i,j)) icetmask(i,j) = .false.
+         if (.not.Tmask(i,j)) iceTmask(i,j) = .false.
 
       enddo
       enddo
@@ -472,8 +472,8 @@
 
       subroutine dyn_prep2 (nx_block,   ny_block,   &
                             ilo, ihi,   jlo, jhi,   &
-                            icellt,     icellX,     &
-                            indxti,     indxtj,     &
+                            icellT,     icellX,     &
+                            indxTi,     indxTj,     &
                             indxXi,     indxXj,     &
                             aiX,        Xmass,      &
                             Xmassdti,   fcor,       &
@@ -481,7 +481,7 @@
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
-                            icetmask,   icexmask,   &
+                            iceTmask,   iceXmask,   &
                             fm,         dt,         &
                             strtltx,    strtlty,    &
                             strocnx,    strocny,    &
@@ -504,12 +504,12 @@
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
       integer (kind=int_kind), intent(out) :: &
-         icellt  , & ! no. of cells where icetmask = .true.
-         icellX      ! no. of cells where icexmask = .true.
+         icellT  , & ! no. of cells where iceTmask = .true.
+         icellX      ! no. of cells where iceXmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
-         indxti  , & ! compressed index in i-direction on T grid
-         indxtj  , & ! compressed index in j-direction
+         indxTi  , & ! compressed index in i-direction on T grid
+         indxTj  , & ! compressed index in j-direction
          indxXi  , & ! compressed index in i-direction on X grid, grid depends on call
          indxXj      ! compressed index in j-direction
 
@@ -517,10 +517,10 @@
          Xmask       ! land/boundary mask, thickness (X-grid-cell)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         icetmask    ! ice extent mask (T-cell)
+         iceTmask    ! ice extent mask (T-cell)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         icexmask    ! ice extent mask (X-grid-cell)
+         iceXmask    ! ice extent mask (X-grid-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aiX     , & ! ice fraction on u-grid (X grid)
@@ -571,7 +571,7 @@
          gravit
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
-         icexmask_old      ! old-time icexmask
+         iceXmask_old      ! old-time iceXmask
 
       character(len=*), parameter :: subname = '(dyn_prep2)'
 
@@ -590,7 +590,7 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (.not.icetmask(i,j)) then
+         if (.not.iceTmask(i,j)) then
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -608,25 +608,25 @@
       enddo                     ! j
 
       !-----------------------------------------------------------------
-      ! Identify cells where icetmask = .true.
-      ! Note: The icellt mask includes north and east ghost cells
+      ! Identify cells where iceTmask = .true.
+      ! Note: The icellT mask includes north and east ghost cells
       !       where stresses are needed.
       !-----------------------------------------------------------------
 
-      icellt = 0
+      icellT = 0
       do j = jlo, jhi+1
       do i = ilo, ihi+1
-         if (icetmask(i,j)) then
-            icellt = icellt + 1
-            indxti(icellt) = i
-            indxtj(icellt) = j
+         if (iceTmask(i,j)) then
+            icellT = icellT + 1
+            indxTi(icellT) = i
+            indxTj(icellT) = j
          endif
       enddo
       enddo
 
       !-----------------------------------------------------------------
-      ! Define icexmask
-      ! Identify cells where icexmask is true
+      ! Define iceXmask
+      ! Identify cells where iceXmask is true
       ! Initialize velocity where needed
       !-----------------------------------------------------------------
 
@@ -634,18 +634,18 @@
 
       do j = jlo, jhi
       do i = ilo, ihi
-         icexmask_old(i,j) = icexmask(i,j) ! save
+         iceXmask_old(i,j) = iceXmask(i,j) ! save
          ! ice extent mask (U-cells)
-         icexmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > a_min) &
+         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > a_min) &
                                       .and. (Xmass(i,j) > m_min)
 
-         if (icexmask(i,j)) then
+         if (iceXmask(i,j)) then
             icellX = icellX + 1
             indxXi(icellX) = i
             indxXj(icellX) = j
 
             ! initialize velocity for new ice points to ocean sfc current
-            if (.not. icexmask_old(i,j)) then
+            if (.not. iceXmask_old(i,j)) then
                uvel(i,j) = uocn(i,j)
                vvel(i,j) = vocn(i,j)
             endif
@@ -713,8 +713,8 @@
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine stepu (nx_block,   ny_block, &
-                        icellu,     Cw,       &
-                        indxui,     indxuj,   &
+                        icellU,     Cw,       &
+                        indxUi,     indxUj,   &
                         aiX,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
@@ -729,11 +729,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          TbU,      & ! seabed stress factor (N/m^2)
@@ -790,9 +790,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij =1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          uold = uvel(i,j)
          vold = vvel(i,j)
@@ -1157,8 +1157,8 @@
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine dyn_finish (nx_block, ny_block, &
-                             icellu,   Cw,       &
-                             indxui,   indxuj,   &
+                             icellU,   Cw,       &
+                             indxUi,   indxUj,   &
                              uvel,     vvel,     &
                              uocn,     vocn,     &
                              aiX,      fm,       &
@@ -1166,11 +1166,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui  , & ! compressed index in i-direction
-         indxuj      ! compressed index in j-direction
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
@@ -1204,9 +1204,9 @@
          file=__FILE__, line=__LINE__)
 
       ! ocean-ice stress for coupling
-      do ij =1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij =1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
           vrel = rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                  (vocn(i,j) - vvel(i,j))**2)  ! m/s
@@ -1252,8 +1252,8 @@
 ! note2: Seabed stress (better name) was called basal stress in Lemieux et al. 2015
 
       subroutine seabed_stress_factor_LKD (nx_block, ny_block,         &
-                                           icellu,                     &
-                                           indxui,   indxuj,           &
+                                           icellU,                     &
+                                           indxUi,   indxUj,           &
                                            vice,     aice,             &
                                            hwater,   TbU,              &
                                            grid_location)
@@ -1262,11 +1262,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellu                 ! no. of cells where ice[uen]mask = 1
+         icellU                 ! no. of cells where ice[uen]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui    , & ! compressed index in i-direction
-         indxuj        ! compressed index in j-direction
+         indxUi    , & ! compressed index in i-direction
+         indxUj        ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          aice      , & ! concentration of ice at tracer location
@@ -1301,9 +1301,9 @@
          l_grid_location = grid_location
       endif
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          ! convert quantities to grid_location
 
@@ -1340,13 +1340,13 @@
 ! authors: D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
       subroutine seabed_stress_factor_prob (nx_block, ny_block,          &
-                                            icellt, indxti,   indxtj,    &
-                                            icellu, indxui,   indxuj,    &
+                                            icellT, indxTi,   indxTj,    &
+                                            icellU, indxUi,   indxUj,    &
                                             aicen,  vicen,               &
                                             hwater, TbU,                 &
                                             TbE,    TbN,                 &
-                                            icelle, indxei,   indxej,    &
-                                            icelln, indxni,   indxnj)
+                                            icellE, indxEi,   indxEj,    &
+                                            icellN, indxNi,   indxNj)
 ! use modules
 
       use ice_arrays_column, only: hin_max
@@ -1355,13 +1355,13 @@
 
       integer (kind=int_kind), intent(in) :: &
            nx_block, ny_block, &  ! block dimensions
-           icellt, icellu         ! no. of cells where ice[tu]mask = 1
+           icellT, icellU         ! no. of cells where ice[tu]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-           indxti  , & ! compressed index in i-direction
-           indxtj  , & ! compressed index in j-direction
-           indxui  , & ! compressed index in i-direction
-           indxuj      ! compressed index in j-direction
+           indxTi  , & ! compressed index in i-direction
+           indxTj  , & ! compressed index in j-direction
+           indxUi  , & ! compressed index in i-direction
+           indxUj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
            hwater      ! water depth at tracer location (m)
@@ -1378,13 +1378,13 @@
            TbN         ! seabed stress factor at N location (N/m^2)
 
       integer (kind=int_kind), intent(in), optional :: &
-           icelle, icelln ! no. of cells where ice[en]mask = 1
+           icellE, icellN ! no. of cells where ice[en]mask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in), optional :: &
-           indxei  , & ! compressed index in i-direction
-           indxej  , & ! compressed index in j-direction
-           indxni  , & ! compressed index in i-direction
-           indxnj      ! compressed index in j-direction
+           indxEi  , & ! compressed index in i-direction
+           indxEj  , & ! compressed index in j-direction
+           indxNi  , & ! compressed index in i-direction
+           indxNj      ! compressed index in j-direction
 
 ! local variables
 
@@ -1444,9 +1444,9 @@
 
       Tbt=c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          atot = sum(aicen(i,j,1:ncat))
 
@@ -1517,27 +1517,27 @@
       enddo
 
       if (grid_ice == "B") then
-         do ij = 1, icellu
-            i = indxui(ij)
-            j = indxuj(ij)
+         do ij = 1, icellU
+            i = indxUi(ij)
+            j = indxUj(ij)
             ! convert quantities to U-location
             TbU(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
          enddo                     ! ij
       elseif (grid_ice == "C" .or. grid_ice == "CD") then
          if (present(Tbe)    .and. present(TbN)    .and. &
-             present(icelle) .and. present(icelln) .and. &
-             present(indxei) .and. present(indxej) .and. &
-             present(indxni) .and. present(indxnj)) then
+             present(icellE) .and. present(icellN) .and. &
+             present(indxEi) .and. present(indxEj) .and. &
+             present(indxNi) .and. present(indxNj)) then
 
-            do ij = 1, icelle
-               i = indxei(ij)
-               j = indxej(ij)
+            do ij = 1, icellE
+               i = indxEi(ij)
+               j = indxEj(ij)
                ! convert quantities to E-location
                   TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
             enddo
-            do ij = 1, icelln
-               i = indxni(ij)
-               j = indxnj(ij)
+            do ij = 1, icellN
+               i = indxNi(ij)
+               j = indxNj(ij)
                ! convert quantities to N-location
                TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
             enddo
@@ -1621,8 +1621,8 @@
 ! 2019: subroutine created by Philippe Blain, ECCC
 
       subroutine deformations (nx_block,   ny_block,   &
-                               icellt,                 &
-                               indxti,     indxtj,     &
+                               icellT,                 &
+                               indxTi,     indxTj,     &
                                uvel,       vvel,       &
                                dxT,        dyT,        &
                                cxp,        cyp,        &
@@ -1635,11 +1635,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellT                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
@@ -1672,9 +1672,9 @@
 
       character(len=*), parameter :: subname = '(deformations)'
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! strain rates
@@ -1719,8 +1719,8 @@
 ! Nov 2021
 
       subroutine deformationsCD_T (nx_block,   ny_block,   &
-                                   icellt,                 &
-                                   indxti,     indxtj,     &
+                                   icellT,                 &
+                                   indxTi,     indxTj,     &
                                    uvelE,      vvelE,      &
                                    uvelN,      vvelN,      &
                                    dxN,        dyE,        &
@@ -1733,11 +1733,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellT                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -1778,8 +1778,8 @@
       !-----------------------------------------------------------------
 
       call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellt     ,                &
-                           indxti(:)  , indxtj  (:)  , &
+                           icellT     ,                &
+                           indxTi(:)  , indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
@@ -1787,9 +1787,9 @@
                            divT  (:,:), tensionT(:,:), &
                            shearT(:,:), DeltaT  (:,:)  )
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
@@ -1815,8 +1815,8 @@
 ! Nov 2021
 
     subroutine deformationsC_T (nx_block,   ny_block,   &
-                                icellt,                 &
-                                indxti,     indxtj,     &
+                                icellT,                 &
+                                indxTi,     indxTj,     &
                                 uvelE,      vvelE,      &
                                 uvelN,      vvelN,      &
                                 dxN,        dyE,        &
@@ -1830,11 +1830,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellT                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -1878,8 +1878,8 @@
       !-----------------------------------------------------------------
 
       call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellt     ,                &
-                           indxti(:)  , indxtj  (:)  , &
+                           icellT     ,                &
+                           indxTi(:)  , indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
@@ -1889,9 +1889,9 @@
 
       ! DeltaT is calc by strain_rates_T but replaced by calculation below.
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
@@ -2014,8 +2014,8 @@
 ! Nov 2021
 
       subroutine strain_rates_Tdtsd (nx_block,   ny_block, &
-                                     icellt,               &
-                                     indxti,     indxtj,   &
+                                     icellT,               &
+                                     indxTi,     indxTj,   &
                                      uvelE,      vvelE,    &
                                      uvelN,      vvelN,    &
                                      dxN,        dyE,      &
@@ -2025,11 +2025,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellt
+         icellT
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2061,8 +2061,8 @@
 
       ! compute divT, tensionT
       call strain_rates_Tdt (nx_block,   ny_block, &
-                             icellt,               &
-                             indxti,     indxtj,   &
+                             icellT,               &
+                             indxTi,     indxTj,   &
                              uvelE,      vvelE,    &
                              uvelN,      vvelN,    &
                              dxN,        dyE,      &
@@ -2072,9 +2072,9 @@
       shearT  (:,:) = c0
       deltaT  (:,:) = c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          ! shearing strain rate  =  2*e_12
          shearT(i,j) = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
@@ -2094,8 +2094,8 @@
 ! Nov 2021
 
       subroutine strain_rates_Tdt (nx_block,   ny_block, &
-                                   icellt,               &
-                                   indxti,     indxtj,   &
+                                   icellT,               &
+                                   indxTi,     indxTj,   &
                                    uvelE,      vvelE,    &
                                    uvelN,      vvelN,    &
                                    dxN,        dyE,      &
@@ -2104,11 +2104,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, &  ! block dimensions
-         icellt
+         icellT
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxti   , & ! compressed index in i-direction
-         indxtj       ! compressed index in j-direction
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2139,9 +2139,9 @@
       divT    (:,:) = c0
       tensionT(:,:) = c0
 
-      do ij = 1, icellt
-         i = indxti(ij)
-         j = indxtj(ij)
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
 
          ! divergence  =  e_11 + e_22
          divT    (i,j)= dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
@@ -2162,8 +2162,8 @@
 ! Nov 2021
 
       subroutine strain_rates_U (nx_block,   ny_block,  &
-                                 icellu,                &
-                                 indxui,     indxuj,    &
+                                 icellU,                &
+                                 indxUi,     indxUj,    &
                                  uvelE,      vvelE,     &
                                  uvelN,      vvelN,     &
                                  uvelU,      vvelU,     &
@@ -2177,11 +2177,11 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu
+         icellU
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxui   , & ! compressed index in i-direction
-         indxuj       ! compressed index in j-direction
+         indxUi   , & ! compressed index in i-direction
+         indxUj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
@@ -2227,9 +2227,9 @@
       shearU  (:,:) = c0
       deltaU  (:,:) = c0
 
-      do ij = 1, icellu
-         i = indxui(ij)
-         j = indxuj(ij)
+      do ij = 1, icellU
+         i = indxUi(ij)
+         j = indxUj(ij)
 
          uNip1j = uvelN(i+1,j) * npm(i+1,j) &
                 +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
