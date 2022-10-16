@@ -150,6 +150,7 @@
          vocnU    , & ! j ocean current (m/s)
          ss_tltxU , & ! sea surface slope, x-direction (m/m)
          ss_tltyU , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnU , & ! ocn drag coefficient
          tmass    , & ! total mass of ice and snow (kg/m^2)
          waterxU  , & ! for ocean stress calculation, x (m/s)
          wateryU  , & ! for ocean stress calculation, y (m/s)
@@ -163,6 +164,7 @@
          vocnN    , & ! j ocean current (m/s)
          ss_tltxN , & ! sea surface slope, x-direction (m/m)
          ss_tltyN , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnN , & ! ocn drag coefficient
          waterxN  , & ! for ocean stress calculation, x (m/s)
          wateryN  , & ! for ocean stress calculation, y (m/s)
          forcexN  , & ! work array: combined atm stress and ocn tilt, x
@@ -176,6 +178,7 @@
          vocnE    , & ! j ocean current (m/s)
          ss_tltxE , & ! sea surface slope, x-direction (m/m)
          ss_tltyE , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnE , & ! ocn drag coefficient
          waterxE  , & ! for ocean stress calculation, x (m/s)
          wateryE  , & ! for ocean stress calculation, y (m/s)
          forcexE  , & ! work array: combined atm stress and ocn tilt, x
@@ -185,9 +188,9 @@
          emassdti     ! mass of E-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:) , & ! 2 bundled fields
-         fld3(:,:,:,:) , & ! 3 bundled fields
-         fld4(:,:,:,:)     ! 4 bundled fields
+         fld2(:,:,:,:), & ! 2 bundled fields
+         fld3(:,:,:,:), & ! 3 bundled fields
+         fld4(:,:,:,:)    ! 4 bundled fields
 
       real (kind=dbl_kind), allocatable :: &
          strengthU(:,:,:), & ! strength averaged to U points
@@ -311,8 +314,18 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
+      call stack_fields(tmass, aice_init, cdn_ocn, fld3)
+      call ice_HaloUpdate (fld3,             halo_info, &
+                           field_loc_center, field_type_scalar)
+      call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+      call ice_HaloUpdate (fld4,             halo_info, &
+                           field_loc_center, field_type_vector)
+      call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
+      call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
+
       call grid_average_X2Y('S', tmass    , 'T'          , umass   , 'U')
       call grid_average_X2Y('S', aice_init, 'T'          , aiU     , 'U')
+      call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnU, 'U')
       call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
       call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
       call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
@@ -321,12 +334,14 @@
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('S', tmass    , 'T'          , emass   , 'E')
          call grid_average_X2Y('S', aice_init, 'T'          , aie     , 'E')
+         call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnE, 'E')
          call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE   , 'E')
          call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE   , 'E')
          call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxE, 'E')
          call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyE, 'E')
          call grid_average_X2Y('S', tmass    , 'T'          , nmass   , 'N')
          call grid_average_X2Y('S', aice_init, 'T'          , ain     , 'N')
+         call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnN, 'N')
          call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnN   , 'N')
          call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnN   , 'N')
          call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxN, 'N')
@@ -719,7 +734,7 @@
          call ice_dyn_evp_1d_copyin(                                      &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
             iceTmask, iceUmask,                                           &
-            cdn_ocn,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                  &
+            cdn_ocnU,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                  &
             umassdti,fmU,uarear,tarear,strintxU,strintyU,uvel_init,vvel_init,&
             strength,uvel,vvel,dxT,dyT,                                   &
             stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
@@ -772,7 +787,7 @@
                   ! momentum equation
                   !-----------------------------------------------------------------
                   call stepu (nx_block           , ny_block          , &
-                              icellU       (iblk), Cdn_ocn (:,:,iblk), &
+                              icellU       (iblk), Cdn_ocnU(:,:,iblk), &
                               indxUi     (:,iblk), indxUj    (:,iblk), &
                               aiU      (:,:,iblk), strtmp  (:,:,:),    &
                               uocnU    (:,:,iblk), vocnU   (:,:,iblk), &
@@ -923,7 +938,7 @@
                do iblk = 1, nblocks
 
                    call stepu_C (nx_block            , ny_block            , & ! u, E point
-                                 icellE        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 icellE        (iblk), Cdn_ocnE  (:,:,iblk), &
                                  indxEi      (:,iblk), indxEj      (:,iblk), &
                                                        aiE       (:,:,iblk), &
                                  uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
@@ -935,7 +950,7 @@
                                  TbE       (:,:,iblk))
 
                    call stepv_C (nx_block,             ny_block,             & ! v, N point
-                                 icellN        (iblk), Cdn_ocn   (:,:,iblk), &
+                                 icellN        (iblk), Cdn_ocnN  (:,:,iblk), &
                                  indxNi      (:,iblk), indxNj      (:,iblk), &
                                                        aiN       (:,:,iblk), &
                                  uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
@@ -1123,7 +1138,7 @@
                do iblk = 1, nblocks
 
                   call stepuv_CD (nx_block            , ny_block            , & ! E point
-                                  icellE        (iblk), Cdn_ocn   (:,:,iblk), &
+                                  icellE        (iblk), Cdn_ocnE  (:,:,iblk), &
                                   indxEi      (:,iblk), indxEj      (:,iblk), &
                                                         aiE       (:,:,iblk), &
                                   uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
@@ -1137,7 +1152,7 @@
                                   TbE       (:,:,iblk))
 
                   call stepuv_CD (nx_block            , ny_block            , & ! N point
-                                  icellN        (iblk), Cdn_ocn   (:,:,iblk), &
+                                  icellN        (iblk), Cdn_ocnN  (:,:,iblk), &
                                   indxNi      (:,iblk), indxNj      (:,iblk), &
                                                         aiN       (:,:,iblk), &
                                   uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
@@ -1283,7 +1298,7 @@
       do iblk = 1, nblocks
          call dyn_finish                               &
               (nx_block          , ny_block          , &
-               icellU      (iblk), Cdn_ocn (:,:,iblk), &
+               icellU      (iblk), Cdn_ocnU(:,:,iblk), &
                indxUi    (:,iblk), indxUj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
@@ -1299,7 +1314,7 @@
 
             call dyn_finish                               &
                  (nx_block          , ny_block          , &
-                  icellN      (iblk), Cdn_ocn (:,:,iblk), &
+                  icellN      (iblk), Cdn_ocnN(:,:,iblk), &
                   indxNi    (:,iblk), indxNj    (:,iblk), &
                   uvelN   (:,:,iblk), vvelN   (:,:,iblk), &
                   uocnN   (:,:,iblk), vocnN   (:,:,iblk), &
@@ -1308,7 +1323,7 @@
 
             call dyn_finish                               &
                  (nx_block          , ny_block          , &
-                  icellE      (iblk), Cdn_ocn (:,:,iblk), &
+                  icellE      (iblk), Cdn_ocnE(:,:,iblk), &
                   indxEi    (:,iblk), indxEj    (:,iblk), &
                   uvelE   (:,:,iblk), vvelE   (:,:,iblk), &
                   uocnE   (:,:,iblk), vocnE   (:,:,iblk), &
@@ -1321,6 +1336,11 @@
       endif
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         call ice_HaloUpdate (strintxE,        halo_info, &
+                              field_loc_Eface, field_type_vector)
+         call ice_HaloUpdate (strintyN,        halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call ice_timer_stop(timer_bound)
          call grid_average_X2Y('S', strintxE, 'E', strintxU, 'U')    ! diagnostic
          call grid_average_X2Y('S', strintyN, 'N', strintyU, 'U')    ! diagnostic
       endif
