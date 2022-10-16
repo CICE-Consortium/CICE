@@ -99,7 +99,6 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_grid, only: tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
-          icetmask, iceumask, iceemask, icenmask, &
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, &
           dxhy, dyhx, cxp, cyp, cxm, cym, &
@@ -116,6 +115,7 @@
       use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, &
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
           strain_rates_U, &
+          iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate
 
       real (kind=dbl_kind), intent(in) :: &
@@ -130,10 +130,10 @@
          i, j, ij           ! local indices
 
       integer (kind=int_kind), dimension(max_blocks) :: &
-         icellt   , & ! no. of cells where icetmask = .true.
-         icelln   , & ! no. of cells where icenmask = .true.
-         icelle   , & ! no. of cells where iceemask = .true.
-         icellu       ! no. of cells where iceumask = .true.
+         icellt   , & ! no. of cells where iceTmask = .true.
+         icelln   , & ! no. of cells where iceNmask = .true.
+         icelle   , & ! no. of cells where iceEmask = .true.
+         icellu       ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti   , & ! compressed index in i-direction
@@ -297,13 +297,13 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
                          vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         tmass   (:,:,iblk), icetmask(:,:,iblk))
+                         tmass   (:,:,iblk), iceTmask(:,:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (icetmask,          halo_info, &
+      call ice_HaloUpdate (iceTmask,          halo_info, &
                            field_loc_center,  field_type_scalar)
       call ice_timer_stop(timer_bound)
 
@@ -393,7 +393,7 @@
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                            icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                            iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
                             fmU       (:,:,iblk), dt,                   &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
@@ -423,7 +423,7 @@
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                            icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                            iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
                             fmU       (:,:,iblk), dt,                   &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
@@ -488,7 +488,7 @@
                          uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
                          strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                          ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
-                         icetmask  (:,:,iblk), icenmask  (:,:,iblk), &
+                         iceTmask  (:,:,iblk), iceNmask  (:,:,iblk), &
                          fmN       (:,:,iblk), dt,                   &
                          strtltxN  (:,:,iblk), strtltyN  (:,:,iblk), &
                          strocnxN  (:,:,iblk), strocnyN  (:,:,iblk), &
@@ -521,7 +521,7 @@
                          uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
                          strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                          ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
-                         icetmask  (:,:,iblk), iceemask  (:,:,iblk), &
+                         iceTmask  (:,:,iblk), iceEmask  (:,:,iblk), &
                          fmE       (:,:,iblk), dt,                   &
                          strtltxE  (:,:,iblk), strtltyE  (:,:,iblk), &
                          strocnxE  (:,:,iblk), strocnyE  (:,:,iblk), &
@@ -542,12 +542,12 @@
 
          do i=1,nx_block
          do j=1,ny_block
-            if (.not.iceumask(i,j,iblk)) then
+            if (.not.iceUmask(i,j,iblk)) then
                stresspU (i,j,iblk) = c0
                stressmU (i,j,iblk) = c0
                stress12U(i,j,iblk) = c0
             endif
-            if (.not.icetmask(i,j,iblk)) then
+            if (.not.iceTmask(i,j,iblk)) then
                stresspT (i,j,iblk) = c0
                stressmT (i,j,iblk) = c0
                stress12T(i,j,iblk) = c0
@@ -606,7 +606,7 @@
       if (maskhalo_dyn) then
          halomask = 0
          if (grid_ice == 'B') then
-            where (iceumask) halomask = 1
+            where (iceUmask) halomask = 1
          elseif (grid_ice == 'C' .or. grid_ice == 'CD') then
             !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,i,j) SCHEDULE(runtime)
             do iblk = 1, nblocks
@@ -617,11 +617,11 @@
                jhi = this_block%jhi
                do j = jlo,jhi
                do i = ilo,ihi
-                  if (icetmask(i  ,j  ,iblk) .or. &
-                      icetmask(i-1,j  ,iblk) .or. &
-                      icetmask(i+1,j  ,iblk) .or. &
-                      icetmask(i  ,j-1,iblk) .or. &
-                      icetmask(i  ,j+1,iblk)) then
+                  if (iceTmask(i  ,j  ,iblk) .or. &
+                      iceTmask(i-1,j  ,iblk) .or. &
+                      iceTmask(i+1,j  ,iblk) .or. &
+                      iceTmask(i  ,j-1,iblk) .or. &
+                      iceTmask(i  ,j+1,iblk)) then
                      halomask(i,j,iblk) = 1
                   endif
                enddo
@@ -718,7 +718,7 @@
          call ice_timer_start(timer_evp_1d)
          call ice_dyn_evp_1d_copyin(                                      &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-            icetmask, iceumask,                                           &
+            iceTmask, iceUmask,                                           &
             cdn_ocn,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                  &
             umassdti,fmU,uarear,tarear,strintxU,strintyU,uvel_init,vvel_init,&
             strength,uvel,vvel,dxT,dyT,                                   &
@@ -1358,7 +1358,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1655,7 +1655,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1776,7 +1776,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = 1
+         icellu                ! no. of cells where iceUmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
@@ -1861,7 +1861,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1970,7 +1970,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = 1
+         icellu                ! no. of cells where iceUmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction

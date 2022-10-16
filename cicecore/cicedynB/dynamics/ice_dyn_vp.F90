@@ -96,8 +96,8 @@
       ! module variables
 
       integer (kind=int_kind), allocatable :: &
-         icellt(:)    , & ! no. of cells where icetmask = .true.
-         icellu(:)        ! no. of cells where iceumask = .true.
+         icellt(:)    , & ! no. of cells where iceTmask = .true.
+         icellu(:)        ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), allocatable :: &
          indxti(:,:)  , & ! compressed index in i-direction
@@ -167,7 +167,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
-      use ice_dyn_shared, only: deformations
+      use ice_dyn_shared, only: deformations, iceTmask, iceUmask
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -177,7 +177,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
-          tarear, grid_type, grid_average_X2Y, icetmask, iceumask, &
+          tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -284,13 +284,13 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
                          vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         tmass   (:,:,iblk), icetmask(:,:,iblk))
+                         tmass   (:,:,iblk), iceTmask(:,:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (icetmask,          halo_info, &
+      call ice_HaloUpdate (iceTmask,          halo_info, &
                            field_loc_center,  field_type_scalar)
       call ice_timer_stop(timer_bound)
 
@@ -352,7 +352,7 @@
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                         iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
                          fmU       (:,:,iblk), dt,                   &
                          strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                          strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
@@ -415,7 +415,7 @@
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
          halomask = 0
-         where (iceumask) halomask = 1
+         where (iceUmask) halomask = 1
          call ice_HaloUpdate (halomask,          halo_info, &
                               field_loc_center,  field_type_scalar)
          call ice_timer_stop(timer_bound)
@@ -688,8 +688,8 @@
          ntot         ! size of problem for Anderson
 
       integer (kind=int_kind), dimension(max_blocks), intent(in) :: &
-         icellt   , & ! no. of cells where icetmask = .true.
-         icellu       ! no. of cells where iceumask = .true.
+         icellt   , & ! no. of cells where iceTmask = .true.
+         icellu       ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1142,7 +1142,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1188,7 +1188,7 @@
       character(len=*), parameter :: subname = '(calc_zeta_dPr)'
 
       ! Initialize stPr, zetax2 and etax2 to zero
-      ! (for cells where icetmask is false)
+      ! (for cells where iceTmask is false)
       stPr   = c0
       zetax2 = c0
       etax2  = c0
@@ -1340,7 +1340,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1442,7 +1442,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -1504,7 +1504,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -1561,8 +1561,8 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu,             & ! total count when iceumask = .true.
-         icellt                ! total count when icetmask = .true.
+         icellu,             & ! total count when iceUmask = .true.
+         icellt                ! total count when iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -1821,7 +1821,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = .true.
+         icellu                ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
@@ -1872,7 +1872,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -1951,7 +1951,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -2015,7 +2015,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! no. of cells where iceumask = .true.
+         icellu                ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui   , & ! compressed index in i-direction
@@ -2388,7 +2388,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction
@@ -2467,7 +2467,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellu                ! total count when iceumask = .true.
+         icellu                ! total count when iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxui  , & ! compressed index in i-direction

@@ -1017,7 +1017,7 @@ contains
 !=======================================================================
 
    subroutine ice_dyn_evp_1d_copyin(nx, ny, nblk, nx_glob, ny_glob, &
-      I_icetmask, I_iceumask, I_cdn_ocn, I_aiu, I_uocn, I_vocn, &
+      I_iceTmask, I_iceUmask, I_cdn_ocn, I_aiu, I_uocn, I_vocn, &
       I_forcex, I_forcey, I_Tbu, I_umassdti, I_fm, I_uarear, I_tarear, &
       I_strintx, I_strinty, I_uvel_init, I_vvel_init, I_strength, &
       I_uvel, I_vvel, I_dxT, I_dyT, I_stressp_1, I_stressp_2, &
@@ -1035,7 +1035,7 @@ contains
 
       integer(int_kind), intent(in) :: nx, ny, nblk, nx_glob, ny_glob
       logical(kind=log_kind), dimension(nx, ny, nblk), intent(in) :: &
-         I_icetmask, I_iceumask
+         I_iceTmask, I_iceUmask
       real(kind=dbl_kind), dimension(nx, ny, nblk), intent(in) :: &
          I_cdn_ocn, I_aiu, I_uocn, I_vocn, I_forcex, I_forcey, I_Tbu, &
          I_umassdti, I_fm, I_uarear, I_tarear, I_strintx, I_strinty, &
@@ -1047,7 +1047,7 @@ contains
       ! local variables
 
       logical(kind=log_kind), dimension(nx_glob, ny_glob) :: &
-         G_icetmask, G_iceumask
+         G_iceTmask, G_iceUmask
       real(kind=dbl_kind), dimension(nx_glob, ny_glob) :: &
          G_cdn_ocn, G_aiu, G_uocn, G_vocn, G_forcex, G_forcey, G_Tbu, &
          G_umassdti, G_fm, G_uarear, G_tarear, G_strintx, G_strinty, &
@@ -1059,8 +1059,8 @@ contains
       character(len=*), parameter :: &
          subname = '(ice_dyn_evp_1d_copyin)'
 
-      call gather_global_ext(G_icetmask,   I_icetmask,   master_task, distrb_info    )
-      call gather_global_ext(G_iceumask,   I_iceumask,   master_task, distrb_info    )
+      call gather_global_ext(G_iceTmask,   I_iceTmask,   master_task, distrb_info    )
+      call gather_global_ext(G_iceUmask,   I_iceUmask,   master_task, distrb_info    )
       call gather_global_ext(G_cdn_ocn,    I_cdn_ocn,    master_task, distrb_info    )
       call gather_global_ext(G_aiu,        I_aiu,        master_task, distrb_info    )
       call gather_global_ext(G_uocn,       I_uocn,       master_task, distrb_info    )
@@ -1097,9 +1097,9 @@ contains
       ! all calculations id done on master task
       if (my_task == master_task) then
          ! find number of active points and allocate 1D vectors
-         call calc_na(nx_glob, ny_glob, NA_len, G_icetmask, G_iceumask)
+         call calc_na(nx_glob, ny_glob, NA_len, G_iceTmask, G_iceUmask)
          call alloc1d(NA_len)
-         call calc_2d_indices(nx_glob, ny_glob, NA_len, G_icetmask, G_iceumask)
+         call calc_2d_indices(nx_glob, ny_glob, NA_len, G_iceTmask, G_iceUmask)
          call calc_navel(nx_glob, ny_glob, NA_len, NAVEL_len)
          call alloc1d_navel(NAVEL_len)
          ! initialize OpenMP. FIXME: ought to be called from main
@@ -1116,7 +1116,7 @@ contains
             G_stressp_2, G_stressp_3, G_stressp_4, G_stressm_1, &
             G_stressm_2, G_stressm_3, G_stressm_4, G_stress12_1, &
             G_stress12_2, G_stress12_3, G_stress12_4)
-         call calc_halo_parent(nx_glob, ny_glob, NA_len, NAVEL_len, G_icetmask)
+         call calc_halo_parent(nx_glob, ny_glob, NA_len, NAVEL_len, G_iceTmask)
       end if
 
    end subroutine ice_dyn_evp_1d_copyin
@@ -1332,7 +1332,7 @@ contains
 
 !=======================================================================
 
-   subroutine calc_na(nx, ny, na, icetmask, iceumask)
+   subroutine calc_na(nx, ny, na, iceTmask, iceUmask)
       ! Calculate number of active points
 
       use ice_blocks, only : nghost
@@ -1341,7 +1341,7 @@ contains
 
       integer(kind=int_kind), intent(in) :: nx, ny
       logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         icetmask, iceumask
+         iceTmask, iceUmask
       integer(kind=int_kind), intent(out) :: na
 
       ! local variables
@@ -1354,7 +1354,7 @@ contains
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i,j) .or. iceumask(i,j)) na = na + 1
+            if (iceTmask(i,j) .or. iceUmask(i,j)) na = na + 1
          end do
       end do
 
@@ -1362,7 +1362,7 @@ contains
 
 !=======================================================================
 
-   subroutine calc_2d_indices(nx, ny, na, icetmask, iceumask)
+   subroutine calc_2d_indices(nx, ny, na, iceTmask, iceUmask)
 
       use ice_blocks, only : nghost
 
@@ -1370,7 +1370,7 @@ contains
 
       integer(kind=int_kind), intent(in) :: nx, ny, na
       logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         icetmask, iceumask
+         iceTmask, iceUmask
 
       ! local variables
 
@@ -1386,12 +1386,12 @@ contains
       ! NOTE: T mask includes northern and eastern ghost cells
       do j = 1 + nghost, ny
          do i = 1 + nghost, nx
-            if (icetmask(i,j) .or. iceumask(i,j)) then
+            if (iceTmask(i,j) .or. iceUmask(i,j)) then
                Nmaskt = Nmaskt + 1
                indi(Nmaskt) = i
                indj(Nmaskt) = j
-               if (.not. icetmask(i,j)) skiptcell(Nmaskt) = .true.
-               if (.not. iceumask(i,j)) skipucell(Nmaskt) = .true.
+               if (.not. iceTmask(i,j)) skiptcell(Nmaskt) = .true.
+               if (.not. iceUmask(i,j)) skipucell(Nmaskt) = .true.
                ! NOTE: U mask does not include northern and eastern
                ! ghost cells. Skip northern and eastern ghost cells
                if (i == nx) skipucell(Nmaskt) = .true.
@@ -1580,13 +1580,13 @@ contains
 
 !=======================================================================
 
-   subroutine calc_halo_parent(nx, ny, na, navel, I_icetmask)
+   subroutine calc_halo_parent(nx, ny, na, navel, I_iceTmask)
 
       implicit none
 
       integer(kind=int_kind), intent(in) :: nx, ny, na, navel
       logical(kind=log_kind), dimension(nx, ny), intent(in) :: &
-         I_icetmask
+         I_iceTmask
 
       ! local variables
 
@@ -1611,10 +1611,10 @@ contains
          j = int((indij(iw) - 1) / (nx)) + 1
          i = indij(iw) - (j - 1) * nx
          ! if within ghost zone
-         if (i == nx .and. I_icetmask(2, j)      ) Ihalo(iw) = 2 + (j - 1) * nx
-         if (i == 1  .and. I_icetmask(nx - 1, j) ) Ihalo(iw) = (nx - 1) + (j - 1) * nx
-         if (j == ny .and. I_icetmask(i, 2)      ) Ihalo(iw) = i + nx
-         if (j == 1  .and. I_icetmask(i, ny - 1) ) Ihalo(iw) = i + (ny - 2) * nx
+         if (i == nx .and. I_iceTmask(2, j)      ) Ihalo(iw) = 2 + (j - 1) * nx
+         if (i == 1  .and. I_iceTmask(nx - 1, j) ) Ihalo(iw) = (nx - 1) + (j - 1) * nx
+         if (j == ny .and. I_iceTmask(i, 2)      ) Ihalo(iw) = i + nx
+         if (j == 1  .and. I_iceTmask(i, ny - 1) ) Ihalo(iw) = i + (ny - 2) * nx
       end do
 
       ! relate halo indices to indij vector

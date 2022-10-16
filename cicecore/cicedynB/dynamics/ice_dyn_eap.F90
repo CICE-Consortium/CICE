@@ -134,7 +134,7 @@
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
-          stack_fields, unstack_fields
+          stack_fields, unstack_fields, iceTmask, iceUmask
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -144,7 +144,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, grid_average_X2Y, icetmask, iceumask, &
+          tarear, uarear, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
@@ -163,8 +163,8 @@
          i, j, ij
 
       integer (kind=int_kind), dimension(max_blocks) :: &
-         icellt     , & ! no. of cells where icetmask = .true.
-         icellu         ! no. of cells where iceumask = .true.
+         icellt     , & ! no. of cells where iceTmask = .true.
+         icellu         ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
          indxti     , & ! compressed index in i-direction
@@ -250,13 +250,13 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
                          vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         tmass   (:,:,iblk), icetmask(:,:,iblk))
+                         tmass   (:,:,iblk), iceTmask(:,:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (icetmask,          halo_info, &
+      call ice_HaloUpdate (iceTmask,          halo_info, &
                            field_loc_center,  field_type_scalar)
       call ice_timer_stop(timer_bound)
 
@@ -317,7 +317,7 @@
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
+                         iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
                          fmU       (:,:,iblk), dt,                   &
                          strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                          strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
@@ -341,7 +341,7 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not.icetmask(i,j,iblk)) then
+            if (.not.iceTmask(i,j,iblk)) then
                if (tmask(i,j,iblk)) then
                   ! structure tensor
                   a11_1(i,j,iblk) = p5
@@ -358,7 +358,7 @@
                a12_2(i,j,iblk) = c0
                a12_3(i,j,iblk) = c0
                a12_4(i,j,iblk) = c0
-            endif                  ! icetmask
+            endif                  ! iceTmask
          enddo                     ! i
          enddo                     ! j
 
@@ -399,7 +399,7 @@
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
          halomask = 0
-         where (iceumask) halomask = 1
+         where (iceUmask) halomask = 1
          call ice_HaloUpdate (halomask,          halo_info, &
                               field_loc_center,  field_type_scalar)
          call ice_timer_stop(timer_bound)
@@ -1171,7 +1171,7 @@
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
          ndte              , & ! number of subcycles
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxti   , & ! compressed index in i-direction
@@ -1876,7 +1876,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellt                ! no. of cells where icetmask = .true.
+         icellt                ! no. of cells where iceTmask = .true.
 
       real (kind=dbl_kind), intent(in) :: &
          dtei        ! 1/dte, where dte is subcycling timestep (1/s)

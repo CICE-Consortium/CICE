@@ -398,16 +398,16 @@ respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
-grid. At each time step the logical masks ``icetmask`` and ``iceumask`` are
+grid. At each time step the logical masks ``iceTmask`` and ``iceUmask`` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around
 the ice pack for numerical purposes. These masks are used in the
 dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
-land masks ``hm`` and ``uvm``, the ice extent masks ``icetmask`` and ``iceumask``
+land masks ``hm`` and ``uvm``, the ice extent masks ``iceTmask`` and ``iceUmask``
 are for T-cells and U-cells, respectively. Note that the ice extent masks 
-``iceemask`` and ``icenmask`` are also defined when using the C or CD grid.
+``iceEmask`` and ``iceNmask`` are also defined when using the C or CD grid.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,

@@ -106,6 +106,12 @@
          uvelE_init      , & ! x-component of velocity (m/s), beginning of timestep
          vvelE_init          ! y-component of velocity (m/s), beginning of timestep
 
+      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
+         iceTmask, &   ! ice extent mask (T-cell)
+         iceUmask, &   ! ice extent mask (U-cell)
+         iceNmask, &   ! ice extent mask (N-cell)
+         iceEmask      ! ice extent mask (E-cell)
+
       real (kind=dbl_kind), allocatable, public :: &
          DminTarea(:,:,:)    ! deltamin * tarea (m^2/s)
 
@@ -168,6 +174,8 @@
       allocate( &
          uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+         iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
+         iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -177,6 +185,8 @@
             vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
             uvelN_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
             vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
+            iceEmask   (nx_block,ny_block,max_blocks), & ! T mask for dynamics
+            iceNmask   (nx_block,ny_block,max_blocks), & ! U mask for dynamics
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
       endif
@@ -199,7 +209,7 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
-      use ice_grid, only: ULAT, NLAT, ELAT, tarea, iceumask, iceemask, icenmask
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -310,10 +320,10 @@
          endif
 
          ! ice extent mask on velocity points
-         iceumask(i,j,iblk) = .false.
+         iceUmask(i,j,iblk) = .false.
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
-            iceemask(i,j,iblk) = .false.
-            icenmask(i,j,iblk) = .false.
+            iceEmask(i,j,iblk) = .false.
+            iceNmask(i,j,iblk) = .false.
          end if
       enddo                     ! i
       enddo                     ! j
@@ -729,7 +739,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceumask is true
+         icellU                ! total count when iceUmask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxUi  , & ! compressed index in i-direction
@@ -1166,7 +1176,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceumask is true
+         icellU                ! total count when iceUmask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxUi  , & ! compressed index in i-direction
