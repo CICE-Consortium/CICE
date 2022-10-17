@@ -234,6 +234,7 @@
 #if (defined CESMCOUPLED)
       nprocs = get_num_procs()
 #else
+      write(nu_diag,*) subname,'ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
       call abort_ice(subname//'ERROR: Input nprocs not same as system request')
 #endif
    else if (nghost < 1) then
