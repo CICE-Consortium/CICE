@@ -192,11 +192,6 @@
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
-      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-         iceumask, &   ! ice extent mask (U-cell)
-         icenmask, &   ! ice extent mask (N-cell)
-         iceemask      ! ice extent mask (E-cell)
-
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
@@ -277,7 +272,6 @@
          umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
-         iceumask (nx_block,ny_block,max_blocks), & ! u mask for dynamics
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
@@ -298,8 +292,6 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate( &
-            iceemask (nx_block,ny_block,max_blocks), & ! e mask for dynamics
-            icenmask (nx_block,ny_block,max_blocks), & ! n mask for dynamics
             ratiodxN (nx_block,ny_block,max_blocks), &
             ratiodyE (nx_block,ny_block,max_blocks), &
             ratiodxNr(nx_block,ny_block,max_blocks), &
