@@ -59,13 +59,13 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHCOMP} =~ narwhal_intelhpcx) then
+else if (${ICE_MACHCOMP} =~ narwhal_*hpcx*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} -hostfile \$PBS_NODEFILE \${EXTRA_OMPI_SETTINGS} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal) then
+else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal*) then
 cat >> ${jobfile} << EOFR
 aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
