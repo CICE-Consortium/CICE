@@ -67,7 +67,7 @@ EOFR
 #=======
 else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal*) then
 cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+aprun -q -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
