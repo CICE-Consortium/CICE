@@ -29,7 +29,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     set base_file = `ls -1t ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/cice.runlog* | head -1`
 
     echo ""
-    echo "bfb Log Compare Mode:"
+    echo "Regression Log Compare Mode:"
     echo "base_file: ${base_file}"
     echo "test_file: ${test_file}"
 
@@ -58,7 +58,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     endif
 
     echo ""
-    echo "Regression Compare Mode:"
+    echo "Regression Restart Compare Mode:"
     echo "base_dir: ${base_dir}"
     echo "test_dir: ${test_dir}"
 
@@ -71,7 +71,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
       set base_file = `ls -1t ${ICE_BASELINE}/${ICE_BASECOM}/${ICE_TESTNAME}/cice.runlog* | head -1`
 
       echo ""
-      echo "bfb Log Compare Mode:"
+      echo "Regression Log Compare Mode:"
       echo "base_file: ${base_file}"
       echo "test_file: ${test_file}"
 
