@@ -15,6 +15,7 @@
       use ice_kinds_mod
       use ice_exit, only: abort_ice
       use ice_fileunits, only: init_fileunits, nu_diag
+      use ice_memusage, only: ice_memusage_init, ice_memusage_print
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
@@ -47,9 +48,9 @@
 
       integer (kind=int_kind), optional, intent(in) :: mpi_comm ! communicator from nuopc
       character(len=*), parameter :: subname='(CICE_Initialize)'
-      !--------------------------------------------------------------------
-      ! model initialization
-      !--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! model initialization
+   !--------------------------------------------------------------------
 
       if (present(mpi_comm)) then
           call cice_init(mpi_comm)
@@ -70,13 +71,14 @@
           floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_calendar, only: dt, dt_dyn, istep, istep1, write_ic, &
+      use ice_calendar, only: dt, dt_dyn, write_ic, &
           init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
       use ice_dyn_eap, only: init_eap, alloc_dyn_eap
+      use ice_dyn_evp, only: alloc_dyn_evp
       use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
       use ice_dyn_vp, only: init_vp
       use ice_flux, only: init_coupler_flux, init_history_therm, &
@@ -122,6 +124,12 @@
       call input_zbgc           ! vertical biogeochemistry namelist
       call count_tracers        ! count tracers
 
+      ! Call this as early as possible, must be after memory_stats is read
+      if (my_task == master_task) then
+         call ice_memusage_init(nu_diag)
+         call ice_memusage_print(nu_diag,subname//':start')
+      endif
+
       call init_domain_blocks   ! set up block decomposition
       call init_grid1           ! domain distribution
       call alloc_grid           ! allocate grid arrays
@@ -138,7 +146,9 @@
       call init_hist (dt)       ! initialize output history file
 
       call init_dyn (dt_dyn)    ! define dynamics parameters, variables
-      if (kdyn == 2) then
+      if (kdyn == 1) then 
+         call alloc_dyn_evp
+      else if (kdyn == 2) then
          call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
@@ -253,6 +263,10 @@
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
+
+      if (my_task == master_task) then
+         call ice_memusage_print(nu_diag,subname//':end')
+      endif
 
       end subroutine cice_init
 
