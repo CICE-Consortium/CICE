@@ -685,6 +685,7 @@ either Celsius or Kelvin units).
    "Timelt", "melting temperature of ice top surface", "0. C"
    "Tinz", "Internal ice temperature", "C"
    "TLAT", "latitude of cell center", "radians"
+   "Tliquidus_max", "maximum liquidus temperature of mush", "0. C"
    "TLON", "longitude of cell center", "radians"
    "tmask", "land/boundary mask, thickness (T-cell)", ""
    "tmass", "total mass of ice and snow", "kg/m\ :math:`^2`"
