@@ -675,7 +675,8 @@ forcing_nml
    "``restore_ocn``", "logical", "restore sst to data", "``.false.``"
    "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
    "``rotate_wind``", "logical", "rotate wind from east/north to computation grid", "``.true.``"
-   "``tfrz_option``", "``linear_salt``", "linear function of salinity (ktherm=1)", "``mushy``"
+   "``tfrz_option``","``constant``", "constant ocean freezing temperature (Tocnfrz)","``mushy``" 
+   "", "``linear_salt``", "linear function of salinity (ktherm=1)",
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
    "``trestore``", "integer", "sst restoring time scale (days)", "90"

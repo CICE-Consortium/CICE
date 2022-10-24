@@ -2041,6 +2041,8 @@
          endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
+         elseif (trim(tfrz_option) == 'constant') then
+            tmpstr2 = ' : constant ocean freezing temperature (Tocnfrz)'
          elseif (trim(tfrz_option) == 'linear_salt') then
             tmpstr2 = ' : linear function of salinity (use with ktherm=1)'
          elseif (trim(tfrz_option) == 'mushy') then
