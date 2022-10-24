@@ -177,7 +177,7 @@
 #else
       integer (kind=int_kind) :: rplvl, rptopo
 #endif
-      real (kind=dbl_kind) :: Cf, ksno, puny
+      real (kind=dbl_kind) :: Cf, ksno, puny, Tocnfrz
       character (len=char_len) :: abort_list
 #ifdef CESMCOUPLED
       character (len=64) :: tmpstr
@@ -295,7 +295,7 @@
 
       abort_list = ""
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny,Tocnfrz_out=Tocnfrz)
 ! nu_diag not yet defined
 !      call icepack_warnings_flush(nu_diag)
 !      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
@@ -2039,10 +2039,10 @@
             write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
             write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
          endif
-         if (trim(tfrz_option) == 'minus1p8') then
-            tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
-         elseif (trim(tfrz_option) == 'constant') then
+         if (trim(tfrz_option) == 'constant') then
             tmpstr2 = ' : constant ocean freezing temperature (Tocnfrz)'
+         elseif (trim(tfrz_option) == 'minus1p8') then
+            tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
             tmpstr2 = ' : linear function of salinity (use with ktherm=1)'
          elseif (trim(tfrz_option) == 'mushy') then
@@ -2051,6 +2051,9 @@
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1030) ' tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
+         if (trim(tfrz_option) == 'constant') then
+            write(nu_diag,1002) ' Tocnfrz          = ', Tocnfrz
+         endif
          if (update_ocn_f) then
             tmpstr2 = ' : frazil water/salt fluxes included in ocean fluxes'
          else
@@ -2813,7 +2816,7 @@
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
-                                   nt_strata     = nt_strata(:,:), &
+                                   nt_strata     = nt_strata(:,:),   &
                                    Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
