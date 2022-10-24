@@ -2811,7 +2811,8 @@
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
-                                   nt_strata     = nt_strata(:,:))
+                                   nt_strata     = nt_strata(:,:), &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
 

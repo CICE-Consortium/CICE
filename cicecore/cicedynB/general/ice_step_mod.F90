@@ -750,6 +750,7 @@
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
                            bound_state, trcr_base, nt_strata, n_trcr_strata
+      use ice_flux,  only: Tf 
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound, timer_updstate
 
       real (kind=dbl_kind), intent(in) :: &
@@ -816,7 +817,8 @@
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
-                                   nt_strata     = nt_strata(:,:))
+                                   nt_strata     = nt_strata(:,:), &
+                                   Tf            = Tf(i,j,iblk))
 
          if (present(offset)) then
 
@@ -997,7 +999,7 @@
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
           dvirdgdt, opening, fpond, fresh, fhocn, &
           aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt, &
-          dvirdgndt, araftn, vraftn, fsalt
+          dvirdgndt, araftn, vraftn, fsalt, Tf
       use ice_flux_bgc, only: flux_bio, faero_ocn, fiso_ocn
       use ice_grid, only: tmask
       use ice_state, only: trcrn, vsnon, aicen, vicen, &
@@ -1089,7 +1091,8 @@
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
                          fzsal     = fzsal    (i,j,  iblk), &
-                         flux_bio  = flux_bio (i,j,1:nbtrcr,iblk))
+                         flux_bio  = flux_bio (i,j,1:nbtrcr,iblk), &
+                         Tf        = Tf(i,j,iblk))
 
          endif ! tmask
 

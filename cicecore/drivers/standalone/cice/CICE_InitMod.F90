@@ -283,6 +283,7 @@
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
           restart_zsal, restart_bgc
+      use ice_flux, only: Tf
       use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
@@ -522,7 +523,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata, &
+                                   Tf            = Tf(i,j,iblk))
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0

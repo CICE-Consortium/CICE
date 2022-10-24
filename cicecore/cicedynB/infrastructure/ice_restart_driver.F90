@@ -283,7 +283,7 @@
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_flux, only: coszen
+      use ice_flux, only: coszen, Tf
       use ice_grid, only: tmask, grid_type, grid_ice, &
           iceumask, iceemask, icenmask, grid_average_X2Y
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
@@ -676,7 +676,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata, &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo
@@ -711,7 +712,7 @@
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT, strocnyT, sst, frzmlt, Tf, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -1043,7 +1044,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata, &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo
