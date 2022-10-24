@@ -192,6 +192,7 @@
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
+      aicen_init = c0  ! new from denise
 
       end subroutine alloc_state
 

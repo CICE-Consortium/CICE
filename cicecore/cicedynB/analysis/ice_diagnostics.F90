@@ -87,6 +87,8 @@
          totms            , & ! total ice/snow water mass (sh)
          totmin           , & ! total ice water mass (nh)
          totmis           , & ! total ice water mass (sh)
+         totsn            , & ! total salt mass (nh)
+         totss            , & ! total salt mass (sh)
          toten            , & ! total ice/snow energy (J)
          totes                ! total ice/snow energy (J)
 
@@ -154,7 +156,7 @@
          rhofresh, lfresh, lvap, ice_ref_salinity, Tffresh
 
       character (len=char_len) :: &
-         snwredist
+         snwredist, saltflux_option
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
@@ -162,6 +164,8 @@
          umaxs,   hmaxs,   shmaxs,    areas,   snwmxs, extents, shmaxst, &
          etotn,   mtotn,   micen,     msnwn,   pmaxn,  ketotn, &
          etots,   mtots,   mices,     msnws,   pmaxs,  ketots, &
+         stotn, &
+         stots, &
          urmsn,   albtotn, arean_alb, mpndn,   ptotn,  spondn, &
          urmss,   albtots, areas_alb, mpnds,   ptots,  sponds
 
@@ -228,7 +232,7 @@
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf, &
            rhofresh_out=rhofresh, lfresh_out=lfresh, lvap_out=lvap, &
            ice_ref_salinity_out=ice_ref_salinity,snwredist_out=snwredist, &
-           snwgrain_out=snwgrain)
+           snwgrain_out=snwgrain, saltflux_option_out=saltflux_option)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -520,6 +524,15 @@
          etots = global_sum(work1, distrb_info, &
                             field_loc_center, tareas)
 
+         ! total salt volume
+         call total_salt   (work2)
+
+         stotn = global_sum(work2, distrb_info, &
+                            field_loc_center, tarean)
+         stots = global_sum(work2, distrb_info, &
+                            field_loc_center, tareas)
+
+
       !-----------------------------------------------------------------
       ! various fluxes
       !-----------------------------------------------------------------
@@ -793,12 +806,22 @@
          swerrs = (fswnets - fswdns) / (fswnets - c1)
 
          ! salt mass
-         msltn = micen*ice_ref_salinity*p001
-         mslts = mices*ice_ref_salinity*p001
+         if (saltflux_option == 'prognostic') then
+            ! compute the total salt mass
+            msltn = stotn*rhoi*p001
+            mslts = stots*rhoi*p001
 
-         ! change in salt mass
-         delmsltn = delmxn*ice_ref_salinity*p001
-         delmslts = delmxs*ice_ref_salinity*p001
+            ! change in salt mass
+            delmsltn = rhoi*(stotn-totsn)*p001
+            delmslts = rhoi*(stots-totss)*p001
+         else
+            msltn = micen*ice_ref_salinity*p001
+            mslts = mices*ice_ref_salinity*p001
+
+            ! change in salt mass
+            delmsltn = delmxn*ice_ref_salinity*p001
+            delmslts = delmxs*ice_ref_salinity*p001
+         endif
 
          ! salt error
          serrn = (sfsaltn + delmsltn) / (msltn + c1)
@@ -1283,7 +1306,7 @@
          rhoi, rhos, rhofresh
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+         work1, work2
 
       character(len=*), parameter :: subname = '(init_mass_diags)'
 
@@ -1317,6 +1340,12 @@
       call total_energy (work1)
       toten = global_sum(work1, distrb_info, field_loc_center, tarean)
       totes = global_sum(work1, distrb_info, field_loc_center, tareas)
+
+      ! north/south salt
+      call total_salt (work2)
+      totsn = global_sum(work2, distrb_info, field_loc_center, tarean)
+      totss = global_sum(work2, distrb_info, field_loc_center, tareas)
+
 
       if (print_points) then
          do n = 1, npnt

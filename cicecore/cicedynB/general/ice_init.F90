@@ -157,7 +157,7 @@
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
+        tfrz_option, saltflux_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
         capping_method
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
@@ -280,6 +280,7 @@
         highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
+        saltflux_option, &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
@@ -521,6 +522,7 @@
       precip_units    = 'mks'     ! 'mm_per_month' or
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
+      saltflux_option = '4psu'    ! saltflux calculation
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
       nfreq           = 25        ! number of wave frequencies
@@ -1007,6 +1009,7 @@
       call broadcast_scalar(wave_spec_file,       master_task)
       call broadcast_scalar(nfreq,                master_task)
       call broadcast_scalar(tfrz_option,          master_task)
+      call broadcast_scalar(saltflux_option,      master_task)
       call broadcast_scalar(ocn_data_format,      master_task)
       call broadcast_scalar(bgc_data_type,        master_task)
       call broadcast_scalar(fe_data_type,         master_task)
@@ -2443,6 +2446,7 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
+         saltflux_option_in=saltflux_option, &
          Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &
          windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
@@ -2908,7 +2912,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio
+         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio, Tffresh
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2950,7 +2954,7 @@
         nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
         nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
-        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall)
+        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall, Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -3188,7 +3192,8 @@
             do i = ilo, ihi
                if (tmask(i,j)) then
                   ! place ice in high latitudes where ocean sfc is cold
-                  if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
+!                 if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
+                  if ( (Tair (i,j) <= Tffresh) .and. &
                        (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
                         TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
                      icells = icells + 1
