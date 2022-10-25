@@ -14,7 +14,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
+      use ice_constants, only: c0, c1, c2, c3, c5, c12, p01, p2, p3, p5, p75, p166, &
           cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
@@ -145,7 +145,7 @@
 #endif
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, hi_min, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
@@ -237,7 +237,7 @@
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
-        floediam,       hfrazilmin,      Tliquidus_max
+        floediam,       hfrazilmin,      Tliquidus_max,   hi_min
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -459,6 +459,7 @@
       calc_Tsfc = .true.       ! calculate surface temperature
       update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
+      hi_min = p01             ! minimum ice thickness allowed (m)
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
       calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
@@ -998,6 +999,7 @@
       call broadcast_scalar(update_ocn_f,         master_task)
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
+      call broadcast_scalar(hi_min,               master_task)
       call broadcast_scalar(iceruf,               master_task)
       call broadcast_scalar(iceruf_ocn,           master_task)
       call broadcast_scalar(calc_dragio,          master_task)
@@ -1455,13 +1457,13 @@
 
 ! tcraig, is it really OK for users to run inconsistently?
 ! ech: yes, for testing sensitivities.  It's not recommended for science runs
-      if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
+      if (ktherm == 1 .and. trim(tfrz_option(1:11)) /= 'linear_salt') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = linear_salt'
          endif
       endif
-      if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
+      if (ktherm == 2 .and. trim(tfrz_option(1:5)) /= 'mushy') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 2 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
@@ -2039,19 +2041,19 @@
             write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
             write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
          endif
-         if (trim(tfrz_option) == 'constant') then
+         if (trim(tfrz_option(1:8)) == 'constant') then
             tmpstr2 = ' : constant ocean freezing temperature (Tocnfrz)'
-         elseif (trim(tfrz_option) == 'minus1p8') then
+         elseif (trim(tfrz_option(1:8)) == 'minus1p8') then
             tmpstr2 = ' : constant ocean freezing temperature (-1.8C) (to be deprecated)'
-         elseif (trim(tfrz_option) == 'linear_salt') then
+         elseif (trim(tfrz_option(1:11)) == 'linear_salt') then
             tmpstr2 = ' : linear function of salinity (use with ktherm=1)'
-         elseif (trim(tfrz_option) == 'mushy') then
+         elseif (trim(tfrz_option(1:5)) == 'mushy') then
             tmpstr2 = ' : Assur (1958) as in mushy-layer thermo (ktherm=2)'
          else
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1030) ' tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
-         if (trim(tfrz_option) == 'constant') then
+         if (trim(tfrz_option(1:8)) == 'constant') then
             write(nu_diag,1002) ' Tocnfrz          = ', Tocnfrz
          endif
          if (update_ocn_f) then
@@ -2075,6 +2077,7 @@
          endif
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
+         write(nu_diag,1000) ' hi_min           = ', hi_min,' : minimum ice thickness allowed (m)'
          if (calc_dragio) then
             tmpstr2 = ' : dragio computed from iceruf_ocn'
          else
@@ -2443,7 +2446,7 @@
 
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
          albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, atmiter_conv_in=atmiter_conv, &
-         emissivity_in=emissivity, snw_ssp_table_in=snw_ssp_table, &
+         emissivity_in=emissivity, snw_ssp_table_in=snw_ssp_table, hi_min_in=hi_min, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &

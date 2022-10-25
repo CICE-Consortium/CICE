@@ -236,6 +236,7 @@
       use ice_domain_size, only: ncat, n_iso, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
+      use ice_flux, only: Tf
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &

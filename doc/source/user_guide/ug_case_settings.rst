@@ -394,6 +394,7 @@ thermo_nml
    "``dSdt_slow_mode``", "real", "slow drainage strength parameter m/s/K", "-1.5e-7"
    "``floediam``", "real", "effective floe diameter for lateral melt in m", "300.0"
    "``hfrazilmin``", "real", "min thickness of new frazil ice in m", "0.05"
+   "``hi_min``", "real", "minimum ice thickness in m", "0.01"
    "``kitd``", "``0``", "delta function ITD approximation", "1"
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
