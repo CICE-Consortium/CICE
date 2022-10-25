@@ -130,6 +130,7 @@
     dSdt_slow_mode    = -5.0e-8
     phi_c_slow_mode   =    0.05
     phi_i_mushy       =    0.85
+    Tliquidus_max     = -0.1d0
     hfrazilmin        = 0.05d0
     floediam          = 300.0d0
 /

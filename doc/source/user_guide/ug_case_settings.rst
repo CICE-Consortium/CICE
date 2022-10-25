@@ -403,6 +403,7 @@ thermo_nml
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
+   "``Tliquidus_max``", "real", "maximum liquidus temperature of mush (C)", "0.0"
    "", "", "", ""
 
 ..
