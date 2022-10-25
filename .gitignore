@@ -12,3 +12,6 @@ doc/build
 # Ignore testsuite file/directories
 testsuite*
 caselist*
+
+# icepack on its own repo
+icepack/

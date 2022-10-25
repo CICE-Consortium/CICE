@@ -427,6 +427,9 @@
                       fsloss       = fsloss      (i,j,  iblk), &
                       fsurf        = fsurf       (i,j,  iblk), &
                       fsurfn       = fsurfn      (i,j,:,iblk), &
+#ifdef GEOSCOUPLED
+                      dfsurfdt_in  = dfsurfn_f   (i,j,:,iblk), &
+#endif
                       fcondtop     = fcondtop    (i,j,  iblk), &
                       fcondtopn    = fcondtopn   (i,j,:,iblk), &
                       fcondbot     = fcondbot    (i,j,  iblk), &

@@ -148,11 +148,15 @@
          fsensn_f   , & ! sensible heat flux (W m-2)
          flatn_f        ! latent heat flux (W m-2)
 
+
+#ifdef GEOSCOUPLED
       ! in from atmosphere when coupling to GEOS
       real (kind=dbl_kind), & 
          dimension (:,:,:,:), allocatable, public :: &
          evapn_f,  & !
          dfsurfn_f   !   
+#endif
+
 
        ! in from atmosphere
 
