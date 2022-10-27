@@ -563,7 +563,8 @@ subroutine ice_prescribed_phys
                                 trcr_depend   = trcr_depend(1:ntrcr),   &
                                 trcr_base     = trcr_base(1:ntrcr,:),   &
                                 n_trcr_strata = n_trcr_strata(1:ntrcr), &
-                                nt_strata     = nt_strata(1:ntrcr,:))
+                                nt_strata     = nt_strata(1:ntrcr,:),   &
+                                Tf            = Tf(i,j,iblk))
 
    enddo                 ! i
    enddo                 ! j

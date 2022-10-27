@@ -394,6 +394,7 @@ thermo_nml
    "``dSdt_slow_mode``", "real", "slow drainage strength parameter m/s/K", "-1.5e-7"
    "``floediam``", "real", "effective floe diameter for lateral melt in m", "300.0"
    "``hfrazilmin``", "real", "min thickness of new frazil ice in m", "0.05"
+   "``hi_min``", "real", "minimum ice thickness in m", "0.01"
    "``kitd``", "``0``", "delta function ITD approximation", "1"
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
@@ -675,7 +676,8 @@ forcing_nml
    "``restore_ocn``", "logical", "restore sst to data", "``.false.``"
    "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
    "``rotate_wind``", "logical", "rotate wind from east/north to computation grid", "``.true.``"
-   "``tfrz_option``", "``linear_salt``", "linear function of salinity (ktherm=1)", "``mushy``"
+   "``tfrz_option``","``constant``", "constant ocean freezing temperature (Tocnfrz)","``mushy``" 
+   "", "``linear_salt``", "linear function of salinity (ktherm=1)",
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
    "``trestore``", "integer", "sst restoring time scale (days)", "90"

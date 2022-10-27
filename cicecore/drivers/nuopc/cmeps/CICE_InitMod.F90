@@ -209,6 +209,7 @@ contains
     use ice_domain_size, only: ncat, n_iso, n_aero, nfsd, nslyr
     use ice_dyn_eap, only: read_restart_eap
     use ice_dyn_shared, only: kdyn
+    use ice_flux, only: Tf
     use ice_grid, only: tmask
     use ice_init, only: ice_ic
     use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
@@ -469,7 +470,8 @@ contains
                      trcr_depend   = trcr_depend,   &
                      trcr_base     = trcr_base,     &
                      n_trcr_strata = n_trcr_strata, &
-                     nt_strata     = nt_strata)
+                     nt_strata     = nt_strata,     &
+                     Tf            = Tf(i,j,iblk))
              else
                 ! tcraig, reset all tracer values on land to zero
                 trcrn(i,j,:,:,iblk) = c0

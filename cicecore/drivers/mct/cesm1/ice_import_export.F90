@@ -429,11 +429,11 @@ contains
              sss(i,j,iblk)=max(sss(i,j,iblk),c0)
 #endif
 
-             if (tfrz_option == 'minus1p8') then
+             if (tfrz_option(1:8) == 'minus1p8') then
                 Tf (i,j,iblk) = -1.8_dbl_kind
-             elseif (tfrz_option == 'linear_salt') then
+             elseif (tfrz_option(1:11) == 'linear_salt') then
                 Tf (i,j,iblk) = -0.0544_r8*sss(i,j,iblk)   ! THIS IS THE ORIGINAL POP FORMULA
-             elseif (tfrz_option == 'mushy') then
+             elseif (tfrz_option(1:5) == 'mushy') then
                 if (sss(i,j,iblk) > c0) then
                    Tf (i,j,iblk) = sss(i,j,iblk) / (-18.48_dbl_kind &
                                    + ((18.48_dbl_kind*p001)*sss(i,j,iblk)))
