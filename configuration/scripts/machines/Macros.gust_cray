@@ -1,0 +1,71 @@
+#==============================================================================
+# Makefile macros for NCAR cheyenne, intel compiler
+#==============================================================================
+
+CPP        := ftn -e P
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2
+
+FIXEDFLAGS := -132
+FREEFLAGS  :=
+FFLAGS     := -hbyteswapio
+FFLAGS_NOOPT:= -O0
+LDFLAGS    := -hbyteswapio
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -hfp0 -g -Rbcdps -Ktrap=fp
+else
+  FFLAGS     += -O2 -hfp0
+endif
+
+SCC   := cc 
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+PNETCDF_PATH := $(PNETCDF)
+#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+
+INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF)/lib
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp 
+   CFLAGS += -fopenmp 
+   FFLAGS += -fopenmp 
+else
+   LDFLAGS += -hnoomp
+#   CFLAGS += -hnoomp
+   FFLAGS += -hnoomp
+endif
+
+#ifeq ($(ICE_IOTYPE), pio1)
+#   LIB_PIO := $(PIO_LIBDIR)
+#   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+#endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   CPPDEFS := $(CPPDEFS) -DGPTL
+#   LIB_PIO := $(PIO_LIBDIR)
+#   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc -lgptl
+endif
+
