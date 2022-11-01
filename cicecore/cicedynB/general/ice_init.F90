@@ -1583,7 +1583,12 @@
 
       wave_spec = .false.
       if (tr_fsd .and. (trim(wave_spec_type) /= 'none')) wave_spec = .true.
-
+      if (tr_fsd .and. (trim(wave_spec_type) == 'none')) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: tr_fsd=T but wave_spec=F - not recommended'
+            endif
+      end if
+ 
       ! compute grid locations for thermo, u and v fields
 
       grid_ice_thrm = 'T'
@@ -2075,18 +2080,18 @@
             if (wave_spec) then
                tmpstr2 = ' : use wave spectrum for floe size distribution'
             else
-               tmpstr2 = ' : floe size distribution does not use wave spectrum'
+               tmpstr2 = 'WARNING : floe size distribution does not use wave spectrum'
             endif
             write(nu_diag,1010) ' wave_spec          = ', wave_spec,trim(tmpstr2)
             if (wave_spec) then
                if (trim(wave_spec_type) == 'none') then
                   tmpstr2 = ' : no wave data provided, no wave-ice interactions'
                elseif (trim(wave_spec_type) == 'profile') then
-                  tmpstr2 = ' : use fixed dummy wave spectrum for testing'
+                  tmpstr2 = ' : use fixed dummy wave spectrum for testing, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'constant') then
-                  tmpstr2 = ' : constant wave spectrum data file provided for testing'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'random') then
-                  tmpstr2 = ' : wave data file provided, spectrum generated using random number'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using random number (multiple iterations of wave fracture to convergence)'
                else
                   tmpstr2 = ' : unknown value'
                endif
