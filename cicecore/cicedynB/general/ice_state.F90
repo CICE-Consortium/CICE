@@ -194,6 +194,10 @@
       trcr_base = c0
       aicen = c0
       aicen_init = c0
+      vicen = c0
+      vicen_init = c0
+      vsnon = c0
+      vsnon_init = c0
 
       end subroutine alloc_state
 
