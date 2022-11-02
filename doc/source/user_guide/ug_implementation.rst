@@ -312,6 +312,34 @@ Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
 excluded.
 
+*****************
+Rectangular grids
+*****************
+
+Rectangular test grids can be defined for CICE.  They are generated 
+internally and defined by several namelist
+settings including ``grid_type`` = ``rectangular``, ``nx_global``, ``ny_global``, 
+``dx_rect``, ``dy_rect``, ``lonrefrect``, and ``latrefrect``.  Forcing and 
+initial condition can be set via namelists ``atm_data_type``, ``ocn_data_type``,
+``ice_data_type``, ``ice_data_conc``, ``ice_data_dist``.  Variable grid spacing
+is also supported with the namelist settings ``scale_dxdy`` which turns on 
+the option, and ``dxscale`` and ``dyscale`` which sets the variable grid scaling
+factor.  Values of 1.0 will produced constant grid spacing.  For rectangular grids,
+``lonrefrect`` and ``latrefrect`` define the lower left longitude and latitude
+value of the grid, ``dx_rect`` and ``dy_rect`` define the base grid spacing, and
+``dxscale`` and ``dyscale`` provide the grid space scaling.  The base spacing
+is set in the center of the rectangular domain and the scaling is applied symetrically
+outward as a multiplicative factor in the x and y directions.
+
+Several predefined rectangular grids are available in CICE with
+**cice.setup --grid** including ``gbox12``, ``gbox80``, ``gbox128``, and ``gbox180``
+where 12, 80, 128, and 180 are the number of gridcells in each direction.
+Several predefined options also exist, set with **cice.setup --set**, to
+establish varied idealized configurations of box tests including ``box2001``, 
+``boxadv``, ``boxchan``, ``boxnodyn``, ``boxrestore``, ``boxslotcyl``, and
+``boxopen``, ``boxclosed``, and ``boxforcee``.  See **cice.setup --help** for a current 
+list of supported settings.
+
 **************
 Vertical Grids
 **************
@@ -398,16 +426,16 @@ respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
-grid. At each time step the logical masks ``icetmask`` and ``iceumask`` are
+grid. At each time step the logical masks ``iceTmask`` and ``iceUmask`` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around
 the ice pack for numerical purposes. These masks are used in the
 dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
-land masks ``hm`` and ``uvm``, the ice extent masks ``icetmask`` and ``iceumask``
+land masks ``hm`` and ``uvm``, the ice extent masks ``iceTmask`` and ``iceUmask``
 are for T-cells and U-cells, respectively. Note that the ice extent masks 
-``iceemask`` and ``icenmask`` are also defined when using the C or CD grid.
+``iceEmask`` and ``iceNmask`` are also defined when using the C or CD grid.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,

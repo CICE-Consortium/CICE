@@ -54,7 +54,8 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         aice  , & ! concentration of ice
+         aice  , & ! concentration of ice on T grid
+         aiU   , & ! concentration of ice on U grid
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
@@ -109,6 +110,8 @@
          public :: &
          uvel     , & ! x-component of velocity on U grid (m/s)
          vvel     , & ! y-component of velocity on U grid (m/s)
+         uvelT    , & ! x-component of velocity on T grid (m/s)
+         vvelT    , & ! y-component of velocity on T grid (m/s)
          uvelE    , & ! x-component of velocity on E grid (m/s)
          vvelE    , & ! y-component of velocity on E grid (m/s)
          uvelN    , & ! x-component of velocity on N grid (m/s)
@@ -149,12 +152,15 @@
           file=__FILE__, line=__LINE__)
 
       allocate ( &
-         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
+         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
+         aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
          uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
          vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
+         uvelT     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on T grid (m/s)
+         vvelT     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on T grid (m/s)
          uvelE     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on E grid (m/s)
          vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
          uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)
