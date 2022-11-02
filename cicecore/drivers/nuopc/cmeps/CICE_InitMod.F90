@@ -78,7 +78,7 @@ contains
     use ice_calendar         , only: dt, dt_dyn, istep, istep1, write_ic, init_calendar, calendar
     use ice_communicate      , only: my_task, master_task
     use ice_diagnostics      , only: init_diags
-    use ice_domain_size      , only: ncat, nfsd
+    use ice_domain_size      , only: ncat, nfsd, nfreq
     use ice_dyn_eap          , only: init_eap, alloc_dyn_eap
     use ice_dyn_shared       , only: kdyn, init_dyn
     use ice_dyn_vp           , only: init_vp
@@ -94,10 +94,12 @@ contains
     use ice_restoring        , only: ice_HaloRestore_init
     use ice_timers           , only: timer_total, init_ice_timers, ice_timer_start
     use ice_transport_driver , only: init_transport
+    use ice_arrays_column    , only: wavefreq, dwavefreq
 
     logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
     logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow
     character(len=char_len) :: snw_aging_table
+    real(kind=dbl_kind), dimension(25) :: wave_spectrum_profile    ! hardwire for now
     character(len=*), parameter :: subname = '(cice_init2)'
     !----------------------------------------------------
 
@@ -176,6 +178,11 @@ contains
           call init_snowtable()
        endif
     endif
+
+    if (wave_spec) then
+       call icepack_init_wave(nfreq=nfreq, &
+            wave_spectrum_profile=wave_spectrum_profile, wavefreq=wavefreq, dwavefreq=dwavefreq)
+    end if
 
     ! Initialize shortwave components using swdn from previous timestep
     ! if restarting. These components will be scaled to current forcing
