@@ -110,8 +110,6 @@
          public :: &
          uvel     , & ! x-component of velocity on U grid (m/s)
          vvel     , & ! y-component of velocity on U grid (m/s)
-         uvelT    , & ! x-component of velocity on T grid (m/s)
-         vvelT    , & ! y-component of velocity on T grid (m/s)
          uvelE    , & ! x-component of velocity on E grid (m/s)
          vvelE    , & ! y-component of velocity on E grid (m/s)
          uvelN    , & ! x-component of velocity on N grid (m/s)
@@ -159,8 +157,6 @@
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
          uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
          vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
-         uvelT     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on T grid (m/s)
-         vvelT     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on T grid (m/s)
          uvelE     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on E grid (m/s)
          vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
          uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)

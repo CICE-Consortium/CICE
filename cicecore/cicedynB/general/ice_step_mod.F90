@@ -46,6 +46,10 @@
                 step_snow, prep_radiation, step_radiation, ocean_mixed_layer, &
                 update_state, biogeochemistry, step_dyn_wave, step_prep
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
+         uvelT_icep, &      ! uvel for wind stress computation in icepack
+         vvelT_icep         ! vvel for wind stress computation in icepack
+
 !=======================================================================
 
       contains
@@ -80,6 +84,13 @@
 
       use ice_flux, only: uatm, vatm, uatmT, vatmT
       use ice_grid, only: grid_atm_dynu, grid_atm_dynv, grid_average_X2Y
+      use ice_state, only: uvel, vvel
+
+      logical (kind=log_kind) :: &
+         highfreq    ! highfreq flag
+
+      logical (kind=log_kind), save :: &
+         first_call = .true.   ! first call flag
 
       character(len=*), parameter :: subname = '(step_prep)'
 
@@ -91,6 +102,26 @@
 
       call grid_average_X2Y('S',uatm,grid_atm_dynu,uatmT,'T')
       call grid_average_X2Y('S',vatm,grid_atm_dynv,vatmT,'T')
+
+      !-----------------------------------------------------------------
+      ! Compute uvelT_icep, vvelT_icep
+      !-----------------------------------------------------------------
+
+      if (first_call) then
+         allocate(uvelT_icep(nx_block,ny_block,max_blocks))
+         allocate(vvelT_icep(nx_block,ny_block,max_blocks))
+         uvelT_icep = c0
+         vvelT_icep = c0
+      endif
+
+      call icepack_query_parameters(highfreq_out=highfreq)
+
+      if (highfreq) then
+         call grid_average_X2Y('A', uvel, 'U', uvelT_icep, 'T')
+         call grid_average_X2Y('A', vvel, 'U', vvelT_icep, 'T')
+      endif
+
+      first_call = .false.
 
       end subroutine step_prep
 
@@ -209,7 +240,7 @@
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
-          vice, vicen, vsno, vsnon, trcrn, uvelT, vvelT, vsnon_init
+          vice, vicen, vsno, vsnon, trcrn, vsnon_init
 #ifdef CICE_IN_NEMO
       use ice_state, only: aice_init
 #endif
@@ -251,8 +282,6 @@
          tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
       real (kind=dbl_kind) :: &
-         uvelTij, &         ! cell-centered velocity, x component (m/s)
-         vvelTij, &         ! cell-centered velocity, y component (m/s)
          puny               ! a very small number
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
@@ -336,14 +365,6 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (highfreq) then ! include ice velocity in calculation of wind stress
-            uvelTij = uvelT(i,j,iblk)
-            vvelTij = vvelT(i,j,iblk)
-         else
-            uvelTij = c0
-            vvelTij = c0
-         endif ! highfreq
-
          if (tr_snow) then
             do n = 1, ncat
                do k = 1, nslyr
@@ -389,8 +410,8 @@
                       vicen        = vicen       (i,j,:,iblk), &
                       vsno         = vsno        (i,j,  iblk), &
                       vsnon        = vsnon       (i,j,:,iblk), &
-                      uvel         = uvelTij                 , &
-                      vvel         = vvelTij                 , &
+                      uvel         = uvelT_icep  (i,j,  iblk), &
+                      vvel         = vvelT_icep  (i,j,  iblk), &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
                       zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
                       zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   &
@@ -939,7 +960,7 @@
       use ice_flux, only: strocnxU, strocnyU, strocnxT_iavg, strocnyT_iavg
       use ice_flux, only: init_history_dyn
       use ice_grid, only: grid_average_X2Y
-      use ice_state, only: aiU, uvel, vvel, uvelT, vvelT
+      use ice_state, only: aiU
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
@@ -970,14 +991,6 @@
       if (kdyn == 1) call evp (dt)
       if (kdyn == 2) call eap (dt)
       if (kdyn == 3) call implicit_solver (dt)
-
-      !-----------------------------------------------------------------
-      ! Compute uvelT, vvelT
-      ! only needed for highfreq, but compute anyway
-      !-----------------------------------------------------------------
-
-      call grid_average_X2Y('A', uvel, 'U', uvelT, 'T')
-      call grid_average_X2Y('A', vvel, 'U', vvelT, 'T')
 
       !-----------------------------------------------------------------
       ! Compute strocnxT_iavg, strocnyT_iavg for thermo and coupling
