@@ -127,7 +127,7 @@
           alvdr_init, alvdf_init, alidr_init, alidf_init
       use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
       use ice_global_reductions, only: global_sum, global_sum_prod, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_ice
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas, grid_ice, grid_average_X2Y
       use ice_state   ! everything
 ! tcraig, this is likely to cause circular dependency because ice_prescribed_mod is high level routine
 #ifdef CESMCOUPLED
@@ -199,7 +199,8 @@
          prsnwavg, prhosavg, psmicetot, psmliqtot, psmtot
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, work2
+         uvelT, vvelT,   & ! u,v on T points
+         work1, work2      ! temporary
 
       real (kind=dbl_kind), parameter :: &
          maxval_spval = -0.9_dbl_kind*HUGE(0.0_dbl_kind)  ! spval to detect
@@ -208,9 +209,6 @@
                  ! southern hemisphere in box cases), global_maxval
                  ! returns -HUGE which we want to avoid writing.  The
                  ! return value is checked against maxval_spval before writing.
-
-!     real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-!        uvelT, vvelT
 
       character(len=*), parameter :: subname = '(runtime_diags)'
 
@@ -284,51 +282,45 @@
       if (tr_pond_topo) then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
          do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = c0
-            do n = 1, ncat
-               work1(i,j,iblk) = work1(i,j,iblk)  &
-                               + aicen(i,j,n,iblk) &
-                               * trcrn(i,j,nt_apnd,n,iblk) &
-                               * trcrn(i,j,nt_hpnd,n,iblk)
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               do n = 1, ncat
+                  work1(i,j,iblk) = work1(i,j,iblk)  &
+                                  + aicen(i,j,n,iblk) &
+                                  * trcrn(i,j,nt_apnd,n,iblk) &
+                                  * trcrn(i,j,nt_hpnd,n,iblk)
+               enddo
             enddo
-         enddo
-         enddo
+            enddo
          enddo
          !$OMP END PARALLEL DO
          ptotn = global_sum(work1, distrb_info, field_loc_center, tarean)
          ptots = global_sum(work1, distrb_info, field_loc_center, tareas)
       endif
 
-      ! total ice-snow kinetic energy
+      ! total ice-snow kinetic energy, on T points.
+      if (grid_ice == 'B') then
+         call grid_average_X2Y('A',uvel ,'U',uvelT,'T')
+         call grid_average_X2Y('A',vvel ,'U',vvelT,'T')
+      elseif (grid_ice == 'C') then
+         call grid_average_X2Y('A',uvelE,'E',uvelT,'T')
+         call grid_average_X2Y('A',vvelN,'N',vvelT,'T')
+      elseif (grid_ice == 'CD') then
+         call grid_average_X2Y('A',uvelE,'E',uvelN,'N',uvelT,'T')
+         call grid_average_X2Y('A',vvelE,'E',vvelN,'N',vvelT,'T')
+      endif
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            work1(i,j,iblk) = p5 &
-                           * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
-                           * (uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
+            work1(i,j,iblk) = p5 * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
+                                 * (uvelT(i,j,iblk)**2 + vvelT(i,j,iblk)**2)
          enddo
          enddo
       enddo
-      ! Eventually do energy diagnostic on T points.
-!     if (grid_ice == 'CD') then
-!     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-!     do iblk = 1, nblocks
-!        do j = 1, ny_block
-!        do i = 1, nx_block
-!           call grid_average_X2Y('E2TS',uvelE,uvelT)
-!           call grid_average_X2Y('N2TS',vvelN,vvelT)
-!           work1(i,j,iblk) = p5 &
-!                          * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
-!                          * (uvelT(i,j,iblk)*uvelT(i,j,iblk) &
-!                          +  vvelT(i,j,iblk)*vvelT(i,j,iblk))
-!        enddo
-!        enddo
-!     enddo
-!     endif
-!     !$OMP END PARALLEL DO
+      !$OMP END PARALLEL DO
       ketotn = c0
       ketots = c0
       ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
@@ -420,21 +412,22 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 &
-                                        + vvelE(i,j,iblk)**2), &
-                                     sqrt(uvelN(i,j,iblk)**2 &
-                                        + vvelN(i,j,iblk)**2))
+               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + vvelE(i,j,iblk)**2), &
+                                     sqrt(uvelN(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
             enddo
             enddo
          enddo
          !$OMP END PARALLEL DO
       elseif (grid_ice == 'C') then
+         ! map uvelE to N and vvelN to E then compute max on E and N
+         call grid_average_X2Y('A',uvelE,'E',work1,'N')  ! work1 =~ uvelN
+         call grid_average_X2Y('A',vvelN,'N',work2,'E')  ! work2 =~ vvelE
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvelE(i,j,iblk)**2 &
-                                    + vvelN(i,j,iblk)**2)
+               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + work2(i,j,iblk)**2), &
+                                     sqrt(work1(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
             enddo
             enddo
          enddo
@@ -444,8 +437,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 &
-                                    + vvel(i,j,iblk)**2)
+               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
             enddo
             enddo
          enddo
@@ -466,31 +458,31 @@
          if (umaxn > umax_stab) then
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               if (abs(work1(i,j,iblk) - umaxn) < puny) then
-                  write(nu_diag,*) ' '
-                  write(nu_diag,*) 'Warning, large ice speed'
-                  write(nu_diag,*) 'my_task, iblk, i, j, umaxn:', &
-                                    my_task, iblk, i, j, umaxn
-               endif
-            enddo
-            enddo
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (abs(work1(i,j,iblk) - umaxn) < puny) then
+                     write(nu_diag,*) ' '
+                     write(nu_diag,*) 'Warning, large ice speed'
+                     write(nu_diag,*) 'my_task, iblk, i, j, umaxn:', &
+                                       my_task, iblk, i, j, umaxn
+                  endif
+               enddo
+               enddo
             enddo
             !$OMP END PARALLEL DO
          elseif (umaxs > umax_stab) then
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               if (abs(work1(i,j,iblk) - umaxs) < puny) then
-                  write(nu_diag,*) ' '
-                  write(nu_diag,*) 'Warning, large ice speed'
-                  write(nu_diag,*) 'my_task, iblk, i, j, umaxs:', &
-                                    my_task, iblk, i, j, umaxs
-               endif
-            enddo
-            enddo
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (abs(work1(i,j,iblk) - umaxs) < puny) then
+                     write(nu_diag,*) ' '
+                     write(nu_diag,*) 'Warning, large ice speed'
+                     write(nu_diag,*) 'my_task, iblk, i, j, umaxs:', &
+                                       my_task, iblk, i, j, umaxs
+                  endif
+               enddo
+               enddo
             enddo
             !$OMP END PARALLEL DO
          endif   ! umax
@@ -1357,14 +1349,14 @@
          do n=1,n_aero
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = trcr(i,j,nt_aero  +4*(n-1),iblk)*vsno(i,j,iblk) &
-                               + trcr(i,j,nt_aero+1+4*(n-1),iblk)*vsno(i,j,iblk) &
-                               + trcr(i,j,nt_aero+2+4*(n-1),iblk)*vice(i,j,iblk) &
-                               + trcr(i,j,nt_aero+3+4*(n-1),iblk)*vice(i,j,iblk)
-            enddo
-            enddo
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  work1(i,j,iblk) = trcr(i,j,nt_aero  +4*(n-1),iblk)*vsno(i,j,iblk) &
+                                  + trcr(i,j,nt_aero+1+4*(n-1),iblk)*vsno(i,j,iblk) &
+                                  + trcr(i,j,nt_aero+2+4*(n-1),iblk)*vice(i,j,iblk) &
+                                  + trcr(i,j,nt_aero+3+4*(n-1),iblk)*vice(i,j,iblk)
+               enddo
+               enddo
             enddo
             !$OMP END PARALLEL DO
             totaeron(n)= global_sum(work1, distrb_info, field_loc_center, tarean)
@@ -1377,17 +1369,17 @@
          totps = c0
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
          do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = c0
-            do n = 1, ncat
-               work1(i,j,iblk) = work1(i,j,iblk)  &
-                               + aicen(i,j,n,iblk) &
-                               * trcrn(i,j,nt_apnd,n,iblk) &
-                               * trcrn(i,j,nt_hpnd,n,iblk)
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               do n = 1, ncat
+                  work1(i,j,iblk) = work1(i,j,iblk)  &
+                                  + aicen(i,j,n,iblk) &
+                                  * trcrn(i,j,nt_apnd,n,iblk) &
+                                  * trcrn(i,j,nt_hpnd,n,iblk)
+               enddo
             enddo
-         enddo
-         enddo
+            enddo
          enddo
          !$OMP END PARALLEL DO
          totpn = global_sum(work1, distrb_info, field_loc_center, tarean)
