@@ -154,7 +154,8 @@
       real (kind=dbl_kind), & 
          dimension (:,:,:,:), allocatable, public :: &
          evapn_f,  & !
-         dfsurfn_f   !   
+         dflatndts_f,  & 
+         dfsurfndts_f   !   
 #endif
 
 
@@ -529,8 +530,11 @@
          fcondtopn_f(nx_block,ny_block,ncat,max_blocks), & ! downward cond flux at top surface (W m-2)
          fsensn_f   (nx_block,ny_block,ncat,max_blocks), & ! sensible heat flux (W m-2)
          flatn_f    (nx_block,ny_block,ncat,max_blocks), & ! latent heat flux (W m-2)
+#ifdef GEOSCOUPLED
          evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
-         dfsurfn_f  (nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts 
+         dflatndts_f (nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Ts 
+         dfsurfndts_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts 
+#endif
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)
          meltbn     (nx_block,ny_block,ncat,max_blocks), & ! bottom melt in category n (m)
