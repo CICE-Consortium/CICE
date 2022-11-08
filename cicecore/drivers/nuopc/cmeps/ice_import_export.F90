@@ -181,13 +181,6 @@ contains
     if (flds_wiso) then
        call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
     end if
-    ! the following are advertised but might not be connected if they are not advertised in the
-    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
-    ! from wave
-    if (flds_wave) then
-       call fldlist_add(fldsToIce_num, fldsToIce, 'Sw_elevation_spectrum', ungridded_lbound=1, &
-            ungridded_ubound=25)
-    end if
 
     ! from atmosphere
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_height_lowest'            )
@@ -214,6 +207,14 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstwet', ungridded_lbound=1, ungridded_ubound=4)
     ! from atm - dry dust deposition fluxes (4 sizes)
     call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_dstdry', ungridded_lbound=1, ungridded_ubound=4)
+
+    ! the following are advertised but might not be connected if they are not advertised in the
+    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
+    ! from wave
+    if (flds_wave) then
+       call fldlist_add(fldsToIce_num, fldsToIce, 'Sw_elevation_spectrum', ungridded_lbound=1, &
+            ungridded_ubound=25)
+    end if
 
     do n = 1,fldsToIce_num
        call NUOPC_Advertise(importState, standardName=fldsToIce(n)%stdname, &
@@ -554,29 +555,6 @@ contains
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! import wave elevation spectrum from wave  (frequencies 1-25, assume that nfreq is 25)
-    if (State_FldChk(importState, 'Sw_elevation_spectrum')) then
-       if (nfreq /= 25) then
-          call abort_ice(trim(subname)//": ERROR nfreq not equal to 25 ")
-       end if
-       call state_getfldptr(importState, 'Sw_elevation_spectrum', fldptr=dataPtr2d, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       do k = 1,nfreq
-          n = 0
-          do iblk = 1, nblocks
-             this_block = get_block(blocks_ice(iblk),iblk)
-             ilo = this_block%ilo; ihi = this_block%ihi
-             jlo = this_block%jlo; jhi = this_block%jhi
-             do j = jlo, jhi
-                do i = ilo, ihi
-                   n = n+1
-                   wave_spectrum(i,j,k,iblk) = dataPtr2d(k,n)
-                end do
-             end do
-          end do
-       end do
-    end if
-
     ! perform a halo update
 
     if (.not.prescribed_ice) then
@@ -609,6 +587,29 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    ! import wave elevation spectrum from wave  (frequencies 1-25, assume that nfreq is 25)
+    if (State_FldChk(importState, 'Sw_elevation_spectrum')) then
+       if (nfreq /= 25) then
+          call abort_ice(trim(subname)//": ERROR nfreq not equal to 25 ")
+       end if
+       call state_getfldptr(importState, 'Sw_elevation_spectrum', fldptr=dataPtr2d, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       do k = 1,nfreq
+          n = 0
+          do iblk = 1, nblocks
+             this_block = get_block(blocks_ice(iblk),iblk)
+             ilo = this_block%ilo; ihi = this_block%ihi
+             jlo = this_block%jlo; jhi = this_block%jhi
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   wave_spectrum(i,j,k,iblk) = dataPtr2d(k,n)
+                end do
+             end do
+          end do
+       end do
+    end if
 
     if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -1142,6 +1143,22 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! ------
+    ! optional floe diameter and ice thickness to wave
+    ! ------
+
+    ! Sea ice thickness (m)
+    if (State_FldChk(exportState, 'Si_thick')) then
+       call state_setexport(exportState, 'Si_thick' , input=floethick , lmask=tmask, ifrac=ailohi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! Sea ice floe diameter (m)
+    if (State_FldChk(exportState, 'Si_floediam')) then
+       call state_setexport(exportState, 'Si_floediam' , input=floediam , lmask=tmask, ifrac=ailohi, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
+
+    ! ------
     ! ice/atm fluxes computed by ice
     ! ------
 
@@ -1326,22 +1343,6 @@ contains
                lmask=tmask, ifrac=ailohi, ungridded_index=n, areacor=mod2med_areacor, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
-    end if
-
-    ! ------
-    ! optional floe diameter and ice thickness to wave
-    ! ------
-
-    ! Sea ice thickness (m)
-    if (State_FldChk(exportState, 'Si_thick')) then
-       call state_setexport(exportState, 'Si_thick' , input=floethick , lmask=tmask, ifrac=ailohi, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    ! Sea ice floe diameter (m)
-    if (State_FldChk(exportState, 'Si_floediam')) then
-       call state_setexport(exportState, 'Si_floediam' , input=floediam , lmask=tmask, ifrac=ailohi, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
   end subroutine ice_export
