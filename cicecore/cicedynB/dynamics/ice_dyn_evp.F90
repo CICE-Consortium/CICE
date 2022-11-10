@@ -85,11 +85,6 @@
          emassdti(:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:), & ! 2 bundled fields
-         fld3(:,:,:,:), & ! 3 bundled fields
-         fld4(:,:,:,:)    ! 4 bundled fields
-
-      real (kind=dbl_kind), allocatable :: &
          strengthU(:,:,:), & ! strength averaged to U points
          divergU  (:,:,:), & ! div array on U points, differentiate from divu
          tensionU (:,:,:), & ! tension array on U points
@@ -100,7 +95,7 @@
          etax2T   (:,:,:), & ! etax2  = 2*eta  (shear viscosity)
          etax2U   (:,:,:)    ! etax2T averaged to U points
 
-      public :: evp, alloc_dyn_evp
+      public :: evp, init_evp
 
 !=======================================================================
 
@@ -109,18 +104,18 @@
 !=======================================================================
 ! Elastic-viscous-plastic dynamics driver
 !
-      subroutine alloc_dyn_evp
+      subroutine init_evp
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_grid, only: grid_ice
+      use ice_calendar, only: dt_dyn
+      use ice_dyn_shared, only: init_dyn_shared
 !allocate c and cd grid var. Follow structucre of eap
       integer (int_kind) :: ierr
 
-      character(len=*), parameter :: subname = '(alloc_dyn_eap)'
+      character(len=*), parameter :: subname = '(alloc_dyn_evp)'
 
-      allocate(fld2(nx_block,ny_block,2,max_blocks))
-      allocate(fld3(nx_block,ny_block,3,max_blocks))
-      allocate(fld4(nx_block,ny_block,4,max_blocks))
+      call init_dyn_shared(dt_dyn)
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -168,7 +163,7 @@
 
       endif
 
-      end subroutine alloc_dyn_evp
+      end subroutine init_evp
 
 #ifdef CICE_IN_NEMO
 ! Wind stress is set during this routine from the values supplied
@@ -222,7 +217,7 @@
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
           strain_rates_U, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
-          dyn_haloUpdate
+          dyn_haloUpdate, fld2, fld3, fld4
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
