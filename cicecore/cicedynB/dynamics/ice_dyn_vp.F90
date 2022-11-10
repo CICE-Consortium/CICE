@@ -51,7 +51,7 @@
           seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
-      use ice_global_reductions, only: global_sum, global_allreduce_sum
+      use ice_global_reductions, only: global_sum
       use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -337,9 +337,7 @@
          call grid_average_X2Y('F',strairyT,'T',strairyU,'U')
       endif
 
-! tcraig, tcx, threading here leads to some non-reproducbile results and failures in icepack_ice_strength
-! need to do more debugging
-      !$TCXOMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
+      !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,ij,i,j)
       do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
@@ -407,7 +405,7 @@
          enddo  ! ij
 
       enddo  ! iblk
-      !$TCXOMP END PARALLEL DO
+      !$OMP END PARALLEL DO
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -767,9 +765,6 @@
          stress_Pr,   & ! x,y-derivatives of the replacement pressure
          diag_rheo      ! contributions of the rhelogy term to the diagonal
 
-      real (kind=dbl_kind), dimension (max_blocks) :: &
-         L2norm       ! array used to compute l^2 norm of grid function
-
       real (kind=dbl_kind), dimension (ntot) :: &
          res        , & ! current residual
          res_old    , & ! previous residual
@@ -805,7 +800,6 @@
 
       ! Initialization
       res_num = 0
-      L2norm  = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk)
       do iblk = 1, nblocks
@@ -883,11 +877,13 @@
                                indxUi     (:,iblk), indxUj    (:,iblk), &
                                bx       (:,:,iblk), by      (:,:,iblk), &
                                Au       (:,:,iblk), Av      (:,:,iblk), &
-                               Fx       (:,:,iblk), Fy      (:,:,iblk), &
-                               L2norm       (iblk))
+                               Fx       (:,:,iblk), Fy      (:,:,iblk))
          enddo
          !$OMP END PARALLEL DO
-         nlres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         nlres_norm = global_norm(nx_block, ny_block, &
+                                  icellU  ,           &
+                                  indxUi  , indxUj  , &
+                                  Fx      , Fy        )
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " nonlin_res_L2norm= ", nlres_norm
@@ -977,16 +973,10 @@
                              indxUi   (:,:), indxUj(:,:) , &
                              res        (:),               &
                              fpresx (:,:,:), fpresy (:,:,:))
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellU    (iblk),                   &
-                                      indxUi  (:,iblk), indxUj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
-         enddo
-         !$OMP END PARALLEL DO
-         fpres_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         fpres_norm = global_norm(nx_block, ny_block, &
+                                  icellU  ,           &
+                                  indxUi  , indxUj  , &
+                                  fpresx  , fpresy    )
 #endif
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
@@ -1115,14 +1105,12 @@
          do iblk = 1, nblocks
             fpresx(:,:,iblk) = uvel(:,:,iblk) - uprev_k(:,:,iblk)
             fpresy(:,:,iblk) = vvel(:,:,iblk) - vprev_k(:,:,iblk)
-            call calc_L2norm_squared (nx_block        , ny_block        , &
-                                      icellU    (iblk),                   &
-                                      indxUi  (:,iblk), indxUj  (:,iblk), &
-                                      fpresx(:,:,iblk), fpresy(:,:,iblk), &
-                                      L2norm    (iblk))
          enddo
          !$OMP END PARALLEL DO
-         prog_norm = sqrt(global_sum(sum(L2norm), distrb_info))
+         prog_norm = global_norm(nx_block, ny_block, &
+                                 icellU  ,           &
+                                 indxUi  , indxUj  , &
+                                 fpresx  , fpresy    )
          if (my_task == master_task .and. monitor_nonlin) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_nonlin: iter_nonlin= ", it_nl, &
                                               " progress_res_L2norm= ", prog_norm
@@ -1957,8 +1945,7 @@
                                indxUi     , indxUj  , &
                                bx         , by      , &
                                Au         , Av      , &
-                               Fx         , Fy      , &
-                               sum_squared)
+                               Fx         , Fy        )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1978,9 +1965,6 @@
          Fx      , & ! x residual vector, Fx = bx - Au (N/m^2)
          Fy          ! y residual vector, Fy = by - Av (N/m^2)
 
-      real (kind=dbl_kind), intent(out), optional :: &
-         sum_squared ! sum of squared residual vector components
-
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1989,12 +1973,8 @@
       character(len=*), parameter :: subname = '(residual_vec)'
 
       !-----------------------------------------------------------------
-      ! compute residual and sum its squared components
+      ! compute residual
       !-----------------------------------------------------------------
-
-      if (present(sum_squared)) then
-         sum_squared = c0
-      endif
 
       do ij = 1, icellU
          i = indxUi(ij)
@@ -2002,9 +1982,6 @@
 
          Fx(i,j) = bx(i,j) - Au(i,j)
          Fy(i,j) = by(i,j) - Av(i,j)
-         if (present(sum_squared)) then
-            sum_squared = sum_squared + Fx(i,j)**2 + Fy(i,j)**2
-         endif
       enddo                     ! ij
 
       end subroutine residual_vec
@@ -2468,50 +2445,121 @@
 
 !=======================================================================
 
-! Compute squared l^2 norm of a grid function (tpu,tpv)
+! Compute global l^2 norm of a vector field (field_x, field_y)
 
-      subroutine calc_L2norm_squared (nx_block, ny_block, &
-                                      icellU  ,           &
-                                      indxUi  , indxUj  , &
-                                      tpu     , tpv     , &
-                                      L2norm)
+      function global_norm (nx_block, ny_block, &
+                            icellU  ,           &
+                            indxUi  , indxUj  , &
+                            field_x , field_y ) &
+               result(norm)
+
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceUmask = .true.
+         nx_block, ny_block    ! block dimensions
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellU                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block,max_blocks), intent(in) :: &
          indxUi  , & ! compressed index in i-direction
          indxUj      ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tpu     , & ! x-component of vector grid function
-         tpv         ! y-component of vector grid function
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         field_x     , & ! x-component of vector field
+         field_y         ! y-component of vector field
 
-      real (kind=dbl_kind), intent(out) :: &
-         L2norm      ! squared l^2 norm of vector grid function (tpu,tpv)
+      real (kind=dbl_kind) :: &
+         norm      ! l^2 norm of vector field
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, iblk
 
-      character(len=*), parameter :: subname = '(calc_L2norm_squared)'
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         squared      ! temporary array for summed squared components
 
-      !-----------------------------------------------------------------
-      ! compute squared l^2 norm of vector grid function (tpu,tpv)
-      !-----------------------------------------------------------------
+      character(len=*), parameter :: subname = '(global_norm)'
 
-      L2norm = c0
+      norm = sqrt(global_dot_product (nx_block  , ny_block , &
+                                      icellU    ,            &
+                                      indxUi    , indxUj   , &
+                                      field_x   , field_y  , &
+                                      field_x   , field_y  ))
 
-      do ij = 1, icellU
-         i = indxUi(ij)
-         j = indxUj(ij)
+      end function global_norm
 
-         L2norm = L2norm + tpu(i,j)**2 + tpv(i,j)**2
-      enddo ! ij
+!=======================================================================
 
-      end subroutine calc_L2norm_squared
+! Compute global dot product of two grid vectors, each split into X and Y components
+
+      function global_dot_product (nx_block  , ny_block , &
+                                   icellU    ,            &
+                                   indxUi    , indxUj   , &
+                                   vector1_x , vector1_y, &
+                                   vector2_x , vector2_y) &
+               result(dot_product)
+
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
+      use ice_fileunits, only: bfbflag
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+
+      integer (kind=int_kind), dimension (max_blocks), intent(in) :: &
+         icellU                ! total count when iceumask is true
+
+      integer (kind=int_kind), dimension (nx_block*ny_block,max_blocks), intent(in) :: &
+         indxUi  , & ! compressed index in i-direction
+         indxUj      ! compressed index in j-direction
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
+         vector1_x     , & ! x-component of first vector
+         vector1_y     , & ! y-component of first vector
+         vector2_x     , & ! x-component of second vector
+         vector2_y         ! y-component of second vector
+
+      real (kind=dbl_kind) :: &
+         dot_product      ! l^2 norm of vector field
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         prod      ! temporary array
+
+      real (kind=dbl_kind), dimension(max_blocks) :: &
+         dot       ! temporary scalar for accumulating the result
+
+      character(len=*), parameter :: subname = '(global_dot_product)'
+
+      prod = c0
+      dot  = c0
+
+      !$OMP PARALLEL DO PRIVATE(i, j, ij, iblk)
+      do iblk = 1, nblocks
+         do ij = 1, icellU(iblk)
+            i = indxUi(ij, iblk)
+            j = indxUj(ij, iblk)
+            prod(i,j,iblk) = vector1_x(i,j,iblk)*vector2_x(i,j,iblk) + vector1_y(i,j,iblk)*vector2_y(i,j,iblk)
+            dot(iblk) = dot(iblk) + prod(i,j,iblk)
+         enddo ! ij
+      enddo
+      !$OMP END PARALLEL DO
+
+      ! Use local summation result unless bfbflag is active
+      if (bfbflag == 'off') then
+         dot_product = global_sum(sum(dot), distrb_info)
+      else
+         dot_product = global_sum(prod, distrb_info, field_loc_NEcorner)
+      endif
+
+      end function global_dot_product
 
 !=======================================================================
 
@@ -2764,6 +2812,7 @@
       real (kind=dbl_kind) :: &
          norm_residual   , & ! current L^2 norm of residual vector
          inverse_norm    , & ! inverse of the norm of a vector
+         norm_rhs        , & ! L^2 norm of right-hand-side vector
          nu, t               ! local temporary values
 
       integer (kind=int_kind) :: &
@@ -2803,6 +2852,17 @@
       arnoldi_basis_x = c0
       arnoldi_basis_y = c0
 
+      ! solution is zero if RHS is zero
+      norm_rhs = global_norm(nx_block, ny_block, &
+                             icellU  ,           &
+                             indxUi  , indxUj  , &
+                             bx      , by        )
+      if (norm_rhs == c0) then
+         solx = bx
+         soly = by
+         return
+      endif
+
       ! Residual of the initial iterate
 
       !$OMP PARALLEL DO PRIVATE(iblk)
@@ -2834,18 +2894,11 @@
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared(nx_block       , ny_block      , &
-                                     icellU   (iblk),                 &
-                                     indxUi (:,iblk), indxUj(:,iblk), &
-                                     arnoldi_basis_x(:,:,iblk, 1)   , &
-                                     arnoldi_basis_y(:,:,iblk, 1)   , &
-                                     norm_squared(iblk))
-
-         enddo
-         !$OMP END PARALLEL DO
-         norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
+         norm_residual = global_norm(nx_block, ny_block, &
+                                     icellU  ,           &
+                                     indxUi  , indxUj  , &
+                                     arnoldi_basis_x(:,:,:, 1), &
+                                     arnoldi_basis_y(:,:,:, 1))
 
          if (my_task == master_task .and. monitor_fgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_fgmres: iter_fgmres= ", nbiter, &
@@ -2891,6 +2944,7 @@
             call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
+                              halo_info_mask,                &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
                               diagx       , diagy          , &
@@ -2939,17 +2993,11 @@
                                hessenberg)
 
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
-            !$OMP PARALLEL DO PRIVATE(iblk)
-            do iblk = 1, nblocks
-               call calc_L2norm_squared(nx_block      ,  ny_block        , &
-                                        icellU   (iblk),                   &
-                                        indxUi (:,iblk), indxUj(:, iblk) , &
-                                        arnoldi_basis_x(:,:,iblk, nextit), &
-                                        arnoldi_basis_y(:,:,iblk, nextit), &
-                                        norm_squared(iblk))
-            enddo
-            !$OMP END PARALLEL DO
-            hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
+            hessenberg(nextit,initer) = global_norm(nx_block, ny_block, &
+                                                    icellU  ,           &
+                                                    indxUi  , indxUj  , &
+                                                    arnoldi_basis_x(:,:,:, nextit), &
+                                                    arnoldi_basis_y(:,:,:, nextit))
 
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
@@ -3093,12 +3141,18 @@
       subroutine pgmres (zetax2   , etax2   , &
                          Cb       , vrel    , &
                          umassdti ,           &
+                         halo_info_mask,      &
                          bx       , by      , &
                          diagx    , diagy   , &
                          tolerance, maxinner, &
                          maxouter ,           &
                          solx     , soly    , &
                          nbiter)
+
+      use ice_boundary, only: ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_info
+      use ice_fileunits, only: bfbflag
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
@@ -3108,6 +3162,9 @@
          vrel  , & ! coefficient for tauw
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
+
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
 
       real (kind=dbl_kind), dimension(nx_block, ny_block, max_blocks), intent(in) :: &
          bx       , & ! Right hand side of the linear system (x components)
@@ -3227,18 +3284,11 @@
       ! Start outer (restarts) loop
       do
          ! Compute norm of initial residual
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-            call calc_L2norm_squared(nx_block       , ny_block       , &
-                                     icellU   (iblk),                  &
-                                     indxUi (:,iblk), indxUj(:, iblk), &
-                                     arnoldi_basis_x(:,:,iblk, 1),     &
-                                     arnoldi_basis_y(:,:,iblk, 1),     &
-                                     norm_squared(iblk))
-
-         enddo
-         !$OMP END PARALLEL DO
-         norm_residual = sqrt(global_sum(sum(norm_squared), distrb_info))
+         norm_residual = global_norm(nx_block, ny_block, &
+                                     icellU  ,           &
+                                     indxUi  , indxUj  , &
+                                     arnoldi_basis_x(:,:,:, 1), &
+                                     arnoldi_basis_y(:,:,:, 1))
 
          if (my_task == master_task .and. monitor_pgmres) then
             write(nu_diag, '(a,i4,a,d26.16)') "monitor_pgmres: iter_pgmres= ", nbiter, &
@@ -3285,14 +3335,29 @@
             call precondition(zetax2      , etax2          , &
                               Cb          , vrel           , &
                               umassdti    ,                  &
+                              halo_info_mask,                &
                               arnoldi_basis_x(:,:,:,initer), &
                               arnoldi_basis_y(:,:,:,initer), &
                               diagx       , diagy          , &
                               precond_type,                  &
                               workspace_x , workspace_y)
 
-            ! NOTE: halo updates for (workspace_x, workspace_y)
-            ! are skipped here for efficiency since this is just a preconditioner
+            ! Update workspace with boundary values
+            ! NOTE: skipped for efficiency since this is just a preconditioner
+            ! unless bfbflag is active            
+            if (bfbflag /= 'off') then
+               call stack_fields(workspace_x, workspace_y, fld2)
+               call ice_timer_start(timer_bound)
+               if (maskhalo_dyn) then
+                  call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                       field_loc_NEcorner, field_type_vector)
+               else
+                  call ice_HaloUpdate (fld2,               halo_info, &
+                                       field_loc_NEcorner, field_type_vector)
+               endif
+               call ice_timer_stop(timer_bound)
+               call unstack_fields(fld2, workspace_x, workspace_y)
+            endif
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3321,17 +3386,11 @@
                                hessenberg)
 
             ! Compute norm of new Arnoldi vector and update Hessenberg matrix
-            !$OMP PARALLEL DO PRIVATE(iblk)
-            do iblk = 1, nblocks
-               call calc_L2norm_squared(nx_block       , ny_block        , &
-                                        icellU   (iblk),                   &
-                                        indxUi (:,iblk), indxUj(:, iblk) , &
-                                        arnoldi_basis_x(:,:,iblk, nextit), &
-                                        arnoldi_basis_y(:,:,iblk, nextit), &
-                                        norm_squared(iblk))
-            enddo
-            !$OMP END PARALLEL DO
-            hessenberg(nextit,initer) = sqrt(global_sum(sum(norm_squared), distrb_info))
+            hessenberg(nextit,initer) = global_norm(nx_block, ny_block, &
+                                                    icellU  ,           &
+                                                    indxUi  , indxUj  , &
+                                                    arnoldi_basis_x(:,:,:, nextit), &
+                                                    arnoldi_basis_y(:,:,:, nextit))
 
             ! Watch out for happy breakdown
             if (.not. almost_zero( hessenberg(nextit,initer) ) ) then
@@ -3422,6 +3481,7 @@
          call precondition(zetax2      , etax2      , &
                            Cb          , vrel       , &
                            umassdti    ,              &
+                           halo_info_mask,            &
                            workspace_x , workspace_y, &
                            diagx       , diagy      , &
                            precond_type,              &
@@ -3488,6 +3548,7 @@
       subroutine precondition(zetax2      , etax2, &
                               Cb          , vrel , &
                               umassdti    ,        &
+                              halo_info_mask,      &
                               vx          , vy   , &
                               diagx       , diagy, &
                               precond_type,        &
@@ -3502,6 +3563,9 @@
          Cb    , & ! seabed stress coefficient
          umassdti  ! mass of U-cell/dte (kg/m^2 s)
 
+      type (ice_halo), intent(in) :: &
+         halo_info_mask !  ghost cell update info for masked halo
+         
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          vx       , & ! input vector (x components)
          vy           ! input vector (y components)
@@ -3563,6 +3627,7 @@
          call pgmres (zetax2,    etax2   , &
                       Cb       , vrel    , &
                       umassdti ,           &
+                      halo_info_mask     , &
                       vx       , vy      , &
                       diagx    , diagy   , &
                       tolerance, maxinner, &
@@ -3610,39 +3675,20 @@
          ij      , & ! compressed index
          i, j        ! grid indices
 
-      real (kind=dbl_kind), dimension (max_blocks) :: &
-         local_dot      ! local array value to accumulate dot product of grid function over blocks
-
-      real (kind=dbl_kind), dimension(maxinner) :: &
-         dotprod_local  ! local array to accumulate several dot product computations
-
       character(len=*), parameter :: subname = '(orthogonalize)'
 
       if (trim(ortho_type) == 'cgs') then ! Classical Gram-Schmidt
          ! Classical Gram-Schmidt orthogonalisation process
          ! First loop of Gram-Schmidt (compute coefficients)
-         dotprod_local = c0
          do it = 1, initer
-            local_dot = c0
-
-            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
-            do iblk = 1, nblocks
-               do ij = 1, icellU(iblk)
-                  i = indxUi(ij, iblk)
-                  j = indxUj(ij, iblk)
-
-                  local_dot(iblk) = local_dot(iblk) + &
-                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-               enddo ! ij
-            enddo
-            !$OMP END PARALLEL DO
-
-            dotprod_local(it) = sum(local_dot)
+            hessenberg(it, initer) = global_dot_product(nx_block, ny_block, &
+                                                        icellU  ,           &
+                                                        indxUi  , indxUj  , &
+                                                        arnoldi_basis_x(:,:,:, it)    , &
+                                                        arnoldi_basis_y(:,:,:, it)    , &
+                                                        arnoldi_basis_x(:,:,:, nextit), &
+                                                        arnoldi_basis_y(:,:,:, nextit))
          end do
-
-         hessenberg(1:initer, initer) = global_allreduce_sum(dotprod_local(1:initer), distrb_info)
-
          ! Second loop of Gram-Schmidt (orthonormalize)
          do it = 1, initer
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
@@ -3662,22 +3708,13 @@
       elseif (trim(ortho_type) == 'mgs') then ! Modified Gram-Schmidt
          ! Modified Gram-Schmidt orthogonalisation process
          do it = 1, initer
-            local_dot = c0
-
-            !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
-            do iblk = 1, nblocks
-               do ij = 1, icellU(iblk)
-                  i = indxUi(ij, iblk)
-                  j = indxUj(ij, iblk)
-
-                  local_dot(iblk) = local_dot(iblk) + &
-                                    (arnoldi_basis_x(i, j, iblk, it) * arnoldi_basis_x(i, j, iblk, nextit)) + &
-                                    (arnoldi_basis_y(i, j, iblk, it) * arnoldi_basis_y(i, j, iblk, nextit))
-               enddo ! ij
-            enddo
-            !$OMP END PARALLEL DO
-
-            hessenberg(it,initer) = global_sum(sum(local_dot), distrb_info)
+            hessenberg(it, initer) = global_dot_product(nx_block, ny_block, &
+                                                        icellU  ,           &
+                                                        indxUi  , indxUj  , &
+                                                        arnoldi_basis_x(:,:,:, it)    , &
+                                                        arnoldi_basis_y(:,:,:, it)    , &
+                                                        arnoldi_basis_x(:,:,:, nextit), &
+                                                        arnoldi_basis_y(:,:,:, nextit))
 
             !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
             do iblk = 1, nblocks

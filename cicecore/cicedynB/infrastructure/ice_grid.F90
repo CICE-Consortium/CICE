@@ -2680,13 +2680,23 @@
 
          ! state masked
          case('NE2US')
-            call grid_average_X2YS_2('NE2US',work1a,narea,npm,work1b,earea,epm,work2)
+            call grid_average_X2Y_2('NE2US',work1a,narea,npm,work1b,earea,epm,work2)
          case('EN2US')
-            call grid_average_X2YS_2('NE2US',work1b,narea,npm,work1a,earea,epm,work2)
+            call grid_average_X2Y_2('NE2US',work1b,narea,npm,work1a,earea,epm,work2)
          case('NE2TS')
-            call grid_average_X2YS_2('NE2TS',work1a,narea,npm,work1b,earea,epm,work2)
+            call grid_average_X2Y_2('NE2TS',work1a,narea,npm,work1b,earea,epm,work2)
          case('EN2TS')
-            call grid_average_X2YS_2('NE2TS',work1b,narea,npm,work1a,earea,epm,work2)
+            call grid_average_X2Y_2('NE2TS',work1b,narea,npm,work1a,earea,epm,work2)
+
+         ! state unmasked
+         case('NE2UA')
+            call grid_average_X2Y_2('NE2UA',work1a,narea,npm,work1b,earea,epm,work2)
+         case('EN2UA')
+            call grid_average_X2Y_2('NE2UA',work1b,narea,npm,work1a,earea,epm,work2)
+         case('NE2TA')
+            call grid_average_X2Y_2('NE2TA',work1a,narea,npm,work1b,earea,epm,work2)
+         case('EN2TA')
+            call grid_average_X2Y_2('NE2TA',work1b,narea,npm,work1a,earea,epm,work2)
 
          case default
             call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
@@ -3581,36 +3591,6 @@
       end subroutine grid_average_X2YF
 
 !=======================================================================
-! Compute the minimum of adjacent values of a field at specific indices,
-! depending on the grid location (U, E, N)
-!
-      real(kind=dbl_kind) function grid_neighbor_min(field, i, j, grid_location) result(mini)
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         field    ! field defined at T point
-
-      integer (kind=int_kind), intent(in) :: &
-         i, j
-
-      character(len=*), intent(in) :: &
-         grid_location ! grid location at which to compute the minumum (U, E, N)
-
-      character(len=*), parameter :: subname = '(grid_neighbor_min)'
-
-      select case (trim(grid_location))
-         case('U')
-            mini = min(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
-         case('E')
-            mini = min(field(i,j), field(i+1,j))
-         case('N')
-            mini = min(field(i,j), field(i,j+1))
-         case default
-            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
-      end select
-
-      end function grid_neighbor_min
-
-!=======================================================================
 ! Shifts quantities from one grid to another
 ! State masked version, simple weighted averager
 ! NOTE: Input array includes ghost cells that must be updated before
@@ -3618,7 +3598,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2YS_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
+      subroutine grid_average_X2Y_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
 
       use ice_constants, only: c0
 
@@ -3645,7 +3625,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2YS_2)'
+      character(len=*), parameter :: subname = '(grid_average_X2Y_2)'
 
       work2(:,:,:) = c0
 
@@ -3701,11 +3681,91 @@
             enddo
             !$OMP END PARALLEL DO
 
+         case('NE2UA')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1a(i  ,j  ,iblk)  &
+                        + wght1a(i+1,j  ,iblk)  &
+                        + wght1b(i  ,j  ,iblk)  &
+                        + wght1b(i  ,j+1,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                                   + work1a(i+1,j  ,iblk)*wght1a(i+1,j  ,iblk)  &
+                                   + work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)  &
+                                   + work1b(i  ,j+1,iblk)*wght1b(i  ,j+1,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
+         case('NE2TA')
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
+            do iblk = 1, nblocks
+               this_block = get_block(blocks_ice(iblk),iblk)
+               ilo = this_block%ilo
+               ihi = this_block%ihi
+               jlo = this_block%jlo
+               jhi = this_block%jhi
+               do j = jlo, jhi
+               do i = ilo, ihi
+                  wtmp = (wght1a(i  ,j-1,iblk)  &
+                        + wght1a(i  ,j  ,iblk)  &
+                        + wght1b(i-1,j  ,iblk)  &
+                        + wght1b(i  ,j  ,iblk))
+                  if (wtmp /= c0) &
+                  work2(i,j,iblk) = (work1a(i  ,j-1,iblk)*wght1a(i  ,j-1,iblk)  &
+                                   + work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
+                                   + work1b(i-1,j  ,iblk)*wght1b(i-1,j  ,iblk)  &
+                                   + work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)) &
+                                   / wtmp
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+
          case default
             call abort_ice(subname//'ERROR: unknown option '//trim(dir))
          end select
 
-      end subroutine grid_average_X2YS_2
+      end subroutine grid_average_X2Y_2
+
+!=======================================================================
+! Compute the minimum of adjacent values of a field at specific indices,
+! depending on the grid location (U, E, N)
+!
+      real(kind=dbl_kind) function grid_neighbor_min(field, i, j, grid_location) result(mini)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         field    ! field defined at T point
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j
+
+      character(len=*), intent(in) :: &
+         grid_location ! grid location at which to compute the minumum (U, E, N)
+
+      character(len=*), parameter :: subname = '(grid_neighbor_min)'
+
+      select case (trim(grid_location))
+         case('U')
+            mini = min(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
+         case('E')
+            mini = min(field(i,j), field(i+1,j))
+         case('N')
+            mini = min(field(i,j), field(i,j+1))
+         case default
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+      end select
+
+      end function grid_neighbor_min
 
 !=======================================================================
 ! Compute the maximum of adjacent values of a field at specific indices,
