@@ -9,7 +9,7 @@ This index defines many of the symbols used frequently in the CICE model
 code.  Namelist variables are partly included here but also documented
 elsewhere, see Section :ref:`tabnamelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).  
+either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
 
 .. csv-table:: *Alphabetical Index*
    :header: " ", " ", " "
@@ -771,15 +771,7 @@ either Celsius or Kelvin units).
    "zref", "reference height for stability", "10. m"
    "zTrf", "reference height for :math:`T_{ref}`, :math:`Q_{ref}`, :math:`U_{ref}`", "2. m"
    "zvir", "gas constant (water vapor)/gas constant (air) - 1", "0.606"
-
-
-Deprecated options and parameters
-==========================================
-
-.. csv-table:: *Deprecated parameters and options*
-   :header: " ", " ", " "
-   :widths: 15, 30, 15, 1
-
+   "**Deprecated options and parameters**", "", ""
    "heat_capacity", "if true, use salinity-dependent thermodynamics", "T"
    "kseaice", "thermal conductivity of ice for zero-layer thermodynamics", "2.0 W/m/deg"
    "ktherm", "thermodynamic formulation (0 = zero-layer, 1 = :cite:`Bitz99`, 2 = mushy)", ""        
