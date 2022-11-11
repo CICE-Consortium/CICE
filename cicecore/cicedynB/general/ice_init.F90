@@ -450,7 +450,7 @@
       kalg      = 0.60_dbl_kind   ! algae absorption coefficient for 0.5 m thick layer
                                   ! 0.5 m path of 75 mg Chl a / m2
       hp1       = 0.01_dbl_kind   ! critical pond lid thickness for topo ponds
-      hs0       = 0.03_dbl_kind   ! snow depth for transition to bare sea ice (m)
+      hs0       = 0.00_dbl_kind   ! snow depth for transition to bare sea ice (m)
       hs1       = 0.03_dbl_kind   ! snow depth for transition to bare pond ice (m)
       dpscale   = c1              ! alter e-folding time scale for flushing
       frzpnd    = 'cesm'          ! melt pond refreezing parameterization

@@ -535,7 +535,7 @@ ponds_nml
    "``frzpnd``", "``cesm``", "CESM pond refreezing forumulation", "``cesm``"
    "", "``hlid``", "Stefan refreezing with pond ice thickness", ""
    "``hp1``", "real", "critical ice lid thickness for topo ponds in m", "0.01"
-   "``hs0``", "real", "snow depth of transition to bare sea ice in m", "0.03"
+   "``hs0``", "real", "snow depth of transition to bare sea ice in m", ""
    "``hs1``", "real", "snow depth of transition to pond ice in m", "0.03"
    "``pndaspect``", "real", "aspect ratio of pond changes (depth:area)", "0.8"
    "``rfracmax``", ":math:`0 \le r_{max} \le 1`", "maximum melt water added to ponds", "0.85"
