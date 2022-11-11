@@ -699,7 +699,6 @@ either Celsius or Kelvin units).
    "tr_FY", "if true, use first-year area tracer", ""
    "tr_iage", "if true, use ice age tracer", ""
    "tr_lvl", "if true, use level ice area and volume tracers", ""
-   "tr_pond_cesm", "if true, use CESM melt pond scheme", ""
    "tr_pond_lvl", "if true, use level-ice melt pond scheme", ""
    "tr_pond_topo", "if true, use topo melt pond scheme", ""
    "trcr", "ice tracers", ""
@@ -773,8 +772,15 @@ either Celsius or Kelvin units).
    "zTrf", "reference height for :math:`T_{ref}`, :math:`Q_{ref}`, :math:`U_{ref}`", "2. m"
    "zvir", "gas constant (water vapor)/gas constant (air) - 1", "0.606"
 
-..
-   ktherm=0 has been deprecated
+
+Deprecated options and parameters
+==========================================
+
+The following parameters and options have been deprecated:
    "heat_capacity", "if true, use salinity-dependent thermodynamics", "T"
    "kseaice", "thermal conductivity of ice for zero-layer thermodynamics", "2.0 W/m/deg"
    "ktherm", "thermodynamic formulation (0 = zero-layer, 1 = :cite:`Bitz99`, 2 = mushy)", ""        
+   "tr_pond_cesm", "if true, use CESM melt pond scheme", ""
+
+.. 
+   new deprecation comments

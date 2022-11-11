@@ -403,9 +403,6 @@ thermo_nml
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "", "", "", ""
 
-..
-   ktherm=0 has been deprecated
-   "", "``0``", "zero-layer thermodynamic model", ""
 
 .. _dynamics_nml:
 

@@ -58,11 +58,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, tr_fsd, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-#else
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-#endif
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       character(len=char_len_long) :: &
@@ -87,11 +83,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-#else
          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
-#endif
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -235,28 +227,6 @@
             write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
          endif
       endif
-
-#ifdef UNDEPRECATE_CESMPONDS
-      if (tr_pond_cesm) then
-         if (my_task == master_task) then
-            n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: pond_cesm restart: filename discrepancy')
-            string1 = trim(filename0(1:n-1))
-            string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
-            write(filename,'(a,a,a,a)') &
-               string1(1:lenstr(string1)), &
-               restart_file(1:lenstr(restart_file)),'.pond_cesm', &
-               string2(1:lenstr(string2))
-            if (restart_ext) then
-               call ice_open_ext(nu_restart_pond,filename,0)
-            else
-               call ice_open(nu_restart_pond,filename,0)
-            endif
-            read (nu_restart_pond) iignore,rignore,rignore
-            write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
-         endif
-      endif
-#endif
 
       if (tr_pond_lvl) then
          if (my_task == master_task) then
@@ -424,11 +394,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, tr_fsd, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-#else
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-#endif
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       integer (kind=int_kind) :: &
@@ -444,11 +410,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-#else
          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
-#endif
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -580,28 +542,6 @@
          endif
 
       endif
-
-#ifdef UNDEPRECATE_CESMPONDS
-      if (tr_pond_cesm) then
-
-         write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-              restart_dir(1:lenstr(restart_dir)), &
-              restart_file(1:lenstr(restart_file)),'.pond_cesm.', &
-              myear,'-',mmonth,'-',mday,'-',msec
-
-         if (restart_ext) then
-            call ice_open_ext(nu_dump_pond,filename,0)
-         else
-            call ice_open(nu_dump_pond,filename,0)
-         endif
-
-         if (my_task == master_task) then
-           write(nu_dump_pond) istep1,timesecs,time_forc
-           write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
-         endif
-
-      endif
-#endif
 
       if (tr_pond_lvl) then
 
@@ -871,11 +811,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-#else
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-#endif
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       integer (kind=int_kind) :: &
@@ -889,11 +825,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-#ifdef UNDEPRECATE_CESMPONDS
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-#else
          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
-#endif
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -908,9 +840,6 @@
          if (tr_iage)      close(nu_dump_age)
          if (tr_FY)        close(nu_dump_FY)
          if (tr_lvl)       close(nu_dump_lvl)
-#ifdef UNDEPRECATE_CESMPONDS
-         if (tr_pond_cesm) close(nu_dump_pond)
-#endif
          if (tr_pond_lvl)  close(nu_dump_pond)
          if (tr_pond_topo) close(nu_dump_pond)
          if (tr_snow)      close(nu_dump_snow)

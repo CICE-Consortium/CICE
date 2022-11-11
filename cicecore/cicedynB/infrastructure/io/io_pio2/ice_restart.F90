@@ -151,11 +151,7 @@
           solve_zsal, skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
-#ifdef UNDEPRECATE_CESMPONDS
-          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
-#else
           tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-#endif
           tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
@@ -191,11 +187,7 @@
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-#ifdef UNDEPRECATE_CESMPONDS
-          tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
-#else
           tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
-#endif
           tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
           tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -419,13 +411,6 @@
             call define_rest_field(File,'alvl',dims)
             call define_rest_field(File,'vlvl',dims)
          end if
-
-#ifdef UNDEPRECATE_CESMPONDS
-         if (tr_pond_cesm) then
-            call define_rest_field(File,'apnd',dims)
-            call define_rest_field(File,'hpnd',dims)
-         end if
-#endif
 
          if (tr_pond_topo) then
             call define_rest_field(File,'apnd',dims)
