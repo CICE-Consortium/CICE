@@ -36,7 +36,6 @@ contains
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
-    use ice_dyn_shared    , only: alloc_dyn_shared
     use ice_flux_bgc      , only: alloc_flux_bgc
     use ice_flux          , only: alloc_flux
     use ice_timers        , only: timer_total, init_ice_timers, ice_timer_start
@@ -59,7 +58,6 @@ contains
     call alloc_grid           ! allocate grid arrays
     call alloc_arrays_column  ! allocate column arrays
     call alloc_state          ! allocate state arrays
-    call alloc_dyn_shared     ! allocate dyn shared arrays
     call alloc_flux_bgc       ! allocate flux_bgc arrays
     call alloc_flux           ! allocate flux arrays
     call init_ice_timers      ! initialize all timers

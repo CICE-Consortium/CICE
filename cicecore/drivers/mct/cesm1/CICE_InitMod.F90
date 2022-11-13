@@ -126,7 +126,6 @@
       call alloc_grid           ! allocate grid arrays
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state arrays
-      call alloc_dyn_shared     ! allocate dyn shared arrays
       call alloc_flux_bgc       ! allocate flux_bgc arrays
       call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
@@ -139,7 +138,6 @@
       if (kdyn == 1) then 
          call init_evp
       else if (kdyn == 2) then
-         call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
          call init_vp           ! define vp dynamics parameters, variables

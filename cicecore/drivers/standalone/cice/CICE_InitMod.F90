@@ -75,7 +75,7 @@
       use ice_dyn_eap, only: init_eap
       use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
-      use ice_dyn_shared, only: kdyn, alloc_dyn_shared
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -123,7 +123,6 @@
       call alloc_grid           ! allocate grid arrays
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state arrays
-      call alloc_dyn_shared     ! allocate dyn shared arrays
       call alloc_flux_bgc       ! allocate flux_bgc arrays
       call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers

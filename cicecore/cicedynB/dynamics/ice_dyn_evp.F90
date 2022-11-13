@@ -95,6 +95,20 @@
          etax2T   (:,:,:), & ! etax2  = 2*eta  (shear viscosity)
          etax2U   (:,:,:)    ! etax2T averaged to U points
 
+      real (kind=dbl_kind), allocatable :: &
+         uocnU   (:,:,:), & ! i ocean current (m/s)
+         vocnU   (:,:,:), & ! j ocean current (m/s)
+         ss_tltxU(:,:,:), & ! sea surface slope, x-direction (m/m)
+         ss_tltyU(:,:,:), & ! sea surface slope, y-direction (m/m)
+         cdn_ocnU(:,:,:), & ! ocn drag coefficient
+         tmass   (:,:,:), & ! total mass of ice and snow (kg/m^2)
+         waterxU (:,:,:), & ! for ocean stress calculation, x (m/s)
+         wateryU (:,:,:), & ! for ocean stress calculation, y (m/s)
+         forcexU (:,:,:), & ! work array: combined atm stress and ocn tilt, x
+         forceyU (:,:,:), & ! work array: combined atm stress and ocn tilt, y
+         umass   (:,:,:), & ! total mass of ice and snow (u grid)
+         umassdti(:,:,:)    ! mass of U-cell/dte (kg/m^2 s)
+
       public :: evp, init_evp
 
 !=======================================================================
@@ -110,12 +124,30 @@
       use ice_grid, only: grid_ice
       use ice_calendar, only: dt_dyn
       use ice_dyn_shared, only: init_dyn_shared
+
 !allocate c and cd grid var. Follow structucre of eap
       integer (int_kind) :: ierr
 
       character(len=*), parameter :: subname = '(alloc_dyn_evp)'
 
       call init_dyn_shared(dt_dyn)
+
+
+         allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
+                   vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
+                   ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
+                   ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
+                   cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
+                   tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
+                   waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
+                   wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
+                   forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
+                   forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
+                   umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
+                   umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                   stat=ierr)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
+
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -246,20 +278,6 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         uocnU    , & ! i ocean current (m/s)
-         vocnU    , & ! j ocean current (m/s)
-         ss_tltxU , & ! sea surface slope, x-direction (m/m)
-         ss_tltyU , & ! sea surface slope, y-direction (m/m)
-         cdn_ocnU , & ! ocn drag coefficient
-         tmass    , & ! total mass of ice and snow (kg/m^2)
-         waterxU  , & ! for ocean stress calculation, x (m/s)
-         wateryU  , & ! for ocean stress calculation, y (m/s)
-         forcexU  , & ! work array: combined atm stress and ocn tilt, x
-         forceyU  , & ! work array: combined atm stress and ocn tilt, y
-         umass    , & ! total mass of ice and snow (u grid)
-         umassdti     ! mass of U-cell/dte (kg/m^2 s)
-
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp       ! stress combinations for momentum equation
 
@@ -274,9 +292,6 @@
 
       type (block) :: &
          this_block   ! block information for current block
-
-      logical (kind=log_kind), save :: &
-         first_time = .true. ! first time logical
 
       character(len=*), parameter :: subname = '(evp)'
 
@@ -779,10 +794,6 @@
 
       if (evp_algorithm == "shared_mem_1d" ) then
 
-         if (first_time .and. my_task == master_task) then
-            write(nu_diag,'(3a)') subname,' Entering evp_algorithm version ',evp_algorithm
-            first_time = .false.
-         endif
          if (trim(grid_type) == 'tripole') then
             call abort_ice(trim(subname)//' &
                & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
@@ -1718,8 +1729,8 @@
                              dxN        , dyE       , &
                              dxT        , dyT       , &
                              uarea      , DminTarea , &
-                             strength   , shearU_loc, &
-                             zetax2T_loc, etax2T_loc, &
+                             strength   , shearU, &
+                             zetax2T, etax2T, &
                              stressp    , stressm    )
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
@@ -1743,13 +1754,13 @@
          dxT       , & ! width of T-cell through the middle (m)
          dyT       , & ! height of T-cell through the middle (m)
          strength  , & ! ice strength (N/m)
-         shearU_loc, & ! shearU local for this routine
+         shearU, & ! shearU local for this routine
          uarea     , & ! area of u cell
          DminTarea     ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T_loc, & ! zetax2 = 2*zeta (bulk viscosity)
-         etax2T_loc , & ! etax2  = 2*eta  (shear viscosity)
+         zetax2T, & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T , & ! etax2  = 2*eta  (shear viscosity)
          stressp    , & ! sigma11+sigma22
          stressm      ! sigma11-sigma22
 
@@ -1791,10 +1802,10 @@
          ! U point values (Bouillon et al., 2013, Kimmritz et al., 2016
          !-----------------------------------------------------------------
 
-         shearTsqr = (shearU_loc(i  ,j  )**2 * uarea(i  ,j  )  &
-                    + shearU_loc(i  ,j-1)**2 * uarea(i  ,j-1)  &
-                    + shearU_loc(i-1,j-1)**2 * uarea(i-1,j-1)  &
-                    + shearU_loc(i-1,j  )**2 * uarea(i-1,j  )) &
+         shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
+                    + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
+                    + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
+                    + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
                     / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
 
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
@@ -1804,7 +1815,7 @@
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                              zetax2T_loc (i,j), etax2T_loc(i,j), rep_prsT, capping)
+                              zetax2T (i,j), etax2T(i,j), rep_prsT, capping)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1813,10 +1824,10 @@
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
          stressp(i,j)  = (stressp(i,j)*(c1-arlx1i*revp) &
-                         + arlx1i*(zetax2T_loc(i,j)*divT(i,j) - rep_prsT)) * denom1
+                         + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
 
          stressm(i,j)  = (stressm(i,j)*(c1-arlx1i*revp) &
-                         + arlx1i*etax2T_loc(i,j)*tensionT(i,j)) * denom1
+                         + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
 
       enddo                     ! ij
 
@@ -1839,8 +1850,8 @@
                                             icellU    ,&
                              indxUi       , indxUj    ,&
                              uarea        ,            &
-                             etax2U_loc   , deltaU_loc,&
-                             strengthU_loc, shearU_loc,&
+                             etax2U   , deltaU,&
+                             strengthU, shearU,&
                              stress12                  )
 
       use ice_dyn_shared, only: visc_replpress, &
@@ -1856,10 +1867,10 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uarea        , & ! area of U point
-         etax2U_loc   , & ! 2*eta at the U point
-         shearU_loc   , & ! shearU array
-         deltaU_loc   , & ! deltaU array
-         strengthU_loc    ! ice strength at the U point
+         etax2U   , & ! 2*eta at the U point
+         shearU   , & ! shearU array
+         deltaU   , & ! deltaU array
+         strengthU    ! ice strength at the U point
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stress12     ! sigma12
@@ -1889,7 +1900,7 @@
             i = indxUi(ij)
             j = indxUj(ij)
             stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) &
-                            + arlx1i*p5*etax2U_loc(i,j)*shearU_loc(i,j)) * denom1
+                            + arlx1i*p5*etax2U(i,j)*shearU(i,j)) * denom1
          enddo
 
       elseif (visc_method == 'avg_strength') then
@@ -1899,10 +1910,10 @@
             DminUarea = deltaminEVP*uarea(i,j)
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
-            call visc_replpress (strengthU_loc(i,j), DminUarea, deltaU_loc(i,j), &
+            call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
                                  lzetax2U      , letax2U  , lrep_prsU  , capping)
             stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) &
-                            + arlx1i*p5*letax2U*shearU_loc(i,j)) * denom1
+                            + arlx1i*p5*letax2U*shearU(i,j)) * denom1
          enddo
 
       endif
@@ -1924,7 +1935,7 @@
                              dxT,        dyT,        &
                                          DminTarea,  &
                              strength,               &
-                             zetax2T_loc,etax2T_loc, &
+                             zetax2T,etax2T, &
                              stresspT,   stressmT,   &
                              stress12T               )
 
@@ -1952,8 +1963,8 @@
          DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T_loc, & ! zetax2 = 2*zeta (bulk viscosity)
-         etax2T_loc , & ! etax2  = 2*eta  (shear viscosity)
+         zetax2T, & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T , & ! etax2  = 2*eta  (shear viscosity)
          stresspT   , & ! sigma11+sigma22
          stressmT   , & ! sigma11-sigma22
          stress12T      ! sigma12
@@ -1998,7 +2009,7 @@
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT(i,j), &
-                              zetax2T_loc (i,j), etax2T_loc(i,j), rep_prsT   , capping)
+                              zetax2T (i,j), etax2T(i,j), rep_prsT   , capping)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -2007,13 +2018,13 @@
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
          stresspT(i,j)  = (stresspT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*(zetax2T_loc(i,j)*divT(i,j) - rep_prsT)) * denom1
+                          + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
 
          stressmT(i,j)  = (stressmT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2T_loc(i,j)*tensionT(i,j)) * denom1
+                          + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
 
          stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2T_loc(i,j)*shearT(i,j)) * denom1
+                          + arlx1i*p5*etax2T(i,j)*shearT(i,j)) * denom1
 
       enddo                     ! ij
 
@@ -2029,10 +2040,10 @@
                                            icellU,       &
                              indxUi,       indxUj,       &
                              uarea,                      &
-                             zetax2U_loc,  etax2U_loc,   &
-                             strengthU_loc,              &
-                             divergU_loc,  tensionU_loc, &
-                             shearU_loc,   deltaU_loc,   &
+                             zetax2U,  etax2U,   &
+                             strengthU,              &
+                             divergU,  tensionU, &
+                             shearU,   deltaU,   &
                              stresspU,     stressmU,     &
                              stress12U                   )
 
@@ -2050,13 +2061,13 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uarea        , & ! area of U-cell (m^2)
-         zetax2U_loc  , & ! 2*zeta at U point
-         etax2U_loc   , & ! 2*eta at U point
-         strengthU_loc, & ! ice strength at U point
-         divergU_loc  , & ! div at U point
-         tensionU_loc , & ! tension at U point
-         shearU_loc   , & ! shear at U point
-         deltaU_loc       ! delt at U point
+         zetax2U  , & ! 2*zeta at U point
+         etax2U   , & ! 2*eta at U point
+         strengthU, & ! ice strength at U point
+         divergU  , & ! div at U point
+         tensionU , & ! tension at U point
+         shearU   , & ! shear at U point
+         deltaU       ! delt at U point
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          stresspU , & ! sigma11+sigma22
@@ -2087,15 +2098,15 @@
          !-----------------------------------------------------------------
 
          if (visc_method == 'avg_zeta') then
-            lzetax2U  = zetax2U_loc(i,j)
-            letax2U   = etax2U_loc(i,j)
-            lrep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU_loc(i,j)
+            lzetax2U  = zetax2U(i,j)
+            letax2U   = etax2U(i,j)
+            lrep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU(i,j)
 
          elseif (visc_method == 'avg_strength') then
             DminUarea = deltaminEVP*uarea(i,j)
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
-            call visc_replpress (strengthU_loc(i,j), DminUarea, deltaU_loc(i,j), &
+            call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
                                  lzetax2U      , letax2U  , lrep_prsU  , capping)
          endif
 
@@ -2106,13 +2117,13 @@
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
          stresspU(i,j)  = (stresspU (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*(lzetax2U*divergU_loc(i,j) - lrep_prsU)) * denom1
+                          + arlx1i*(lzetax2U*divergU(i,j) - lrep_prsU)) * denom1
 
          stressmU(i,j)  = (stressmU (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*letax2U*tensionU_loc(i,j)) * denom1
+                          + arlx1i*letax2U*tensionU(i,j)) * denom1
 
          stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*letax2U*shearU_loc(i,j)) * denom1
+                          + arlx1i*p5*letax2U*shearU(i,j)) * denom1
 
       enddo                     ! ij
 

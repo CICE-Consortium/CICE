@@ -73,7 +73,7 @@
       use ice_dyn_eap, only: init_eap
       use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
-      use ice_dyn_shared, only: kdyn 
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -112,7 +112,6 @@
       call alloc_grid           ! allocate grid
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state
-      call alloc_dyn_shared     ! allocate dyn shared (init_uvel,init_vvel)
       call alloc_flux_bgc       ! allocate flux_bgc
       call alloc_flux           ! allocate flux
       call init_ice_timers      ! initialize all timers
@@ -126,7 +125,6 @@
       if (kdyn == 1) then 
          call init_evp
       else if (kdyn == 2) then
-         call alloc_dyn_eap     ! allocate dyn_eap arrays
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
          call init_vp           ! define vp dynamics parameters, variables
@@ -275,7 +273,7 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero, nt_fsd
 
-      character(len=*),parameter :: subname = '(init_restart)'
+      character(len=*), parameter :: subname = '(init_restart)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)

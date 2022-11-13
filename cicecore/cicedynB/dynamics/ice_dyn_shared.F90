@@ -26,7 +26,6 @@
       public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
                 principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
-                alloc_dyn_shared, &
                 deformations, deformationsC_T, deformationsCD_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
@@ -181,6 +180,15 @@
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
          iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
          iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
+         fcor_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
+         DminTarea (nx_block,ny_block,max_blocks), & ! 
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+
+      allocate( &
+         fld2(nx_block,ny_block,2,max_blocks), &
+         fld3(nx_block,ny_block,3,max_blocks), &
+         fld4(nx_block,ny_block,4,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -192,6 +200,8 @@
             vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
             iceEmask   (nx_block,ny_block,max_blocks), & ! T mask for dynamics
             iceNmask   (nx_block,ny_block,max_blocks), & ! U mask for dynamics
+            fcorE_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
+            fcorN_blk  (nx_block,ny_block,max_blocks), &   ! Coriolis
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
       endif
@@ -229,7 +239,8 @@
       character(len=*), parameter :: subname = '(init_dyn_shared)'
 
       call set_evp_parameters (dt)
-
+      ! allocate dyn shared (init_uvel,init_vvel)
+      call alloc_dyn_shared     
       ! Set halo_dynbundle, this is empirical at this point, could become namelist
       halo_dynbundle = .true.
       nprocs = get_num_procs()
@@ -240,17 +251,6 @@
          write(nu_diag,*) 'dt_subcyle = ',dt/real(ndte,kind=dbl_kind)
          write(nu_diag,*) 'tdamp =', elasticDamp * dt
          write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
-      endif
-
-      allocate(fcor_blk(nx_block,ny_block,max_blocks))
-      allocate(DminTarea(nx_block,ny_block,max_blocks))
-      allocate(fld2(nx_block,ny_block,2,max_blocks))
-      allocate(fld3(nx_block,ny_block,3,max_blocks))
-      allocate(fld4(nx_block,ny_block,4,max_blocks))
-
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         allocate(fcorE_blk(nx_block,ny_block,max_blocks))
-         allocate(fcorN_blk(nx_block,ny_block,max_blocks))
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)

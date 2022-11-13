@@ -112,7 +112,6 @@
       call alloc_grid           ! allocate grid
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state
-      call alloc_dyn_shared     ! allocate dyn shared (init_uvel,init_vvel)
       call alloc_flux_bgc       ! allocate flux_bgc
       call alloc_flux           ! allocate flux
       call init_ice_timers      ! initialize all timers
@@ -274,7 +273,7 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero, nt_fsd
 
-      character(len=*),parameter :: subname = '(init_restart)'
+      character(len=*), parameter :: subname = '(init_restart)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
