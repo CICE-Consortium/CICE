@@ -419,7 +419,7 @@
       deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
       capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
-      maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
+      maxits_nonlin = 10       ! max nb of iteration for nonlinear solver
       precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal),
                                ! 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50          ! size of fgmres Krylov subspace
@@ -431,7 +431,7 @@
       monitor_pgmres = .false. ! print pgmres residual norm
       ortho_type = 'mgs'       ! orthogonalization procedure 'cgs' or 'mgs'
       reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
-      reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
+      reltol_fgmres = 1e-1_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
       fpfunc_andacc = 1        ! fixed point function for Anderson acceleration:
@@ -1583,7 +1583,12 @@
 
       wave_spec = .false.
       if (tr_fsd .and. (trim(wave_spec_type) /= 'none')) wave_spec = .true.
-
+      if (tr_fsd .and. (trim(wave_spec_type) == 'none')) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: tr_fsd=T but wave_spec=F - not recommended'
+            endif
+      end if
+ 
       ! compute grid locations for thermo, u and v fields
 
       grid_ice_thrm = 'T'
@@ -2075,18 +2080,18 @@
             if (wave_spec) then
                tmpstr2 = ' : use wave spectrum for floe size distribution'
             else
-               tmpstr2 = ' : floe size distribution does not use wave spectrum'
+               tmpstr2 = 'WARNING : floe size distribution does not use wave spectrum'
             endif
             write(nu_diag,1010) ' wave_spec          = ', wave_spec,trim(tmpstr2)
             if (wave_spec) then
                if (trim(wave_spec_type) == 'none') then
                   tmpstr2 = ' : no wave data provided, no wave-ice interactions'
                elseif (trim(wave_spec_type) == 'profile') then
-                  tmpstr2 = ' : use fixed dummy wave spectrum for testing'
+                  tmpstr2 = ' : use fixed dummy wave spectrum for testing, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'constant') then
-                  tmpstr2 = ' : constant wave spectrum data file provided for testing'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using constant phase (1 iteration of wave fracture)'
                elseif (trim(wave_spec_type) == 'random') then
-                  tmpstr2 = ' : wave data file provided, spectrum generated using random number'
+                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using random number (multiple iterations of wave fracture to convergence)'
                else
                   tmpstr2 = ' : unknown value'
                endif

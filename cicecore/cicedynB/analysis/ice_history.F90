@@ -3546,7 +3546,7 @@
          call accum_hist_drag (iblk)
 
          ! floe size distribution
-         call accum_hist_fsd (iblk)
+         call accum_hist_fsd (dt, iblk)
 
          ! advanced snow physics
          call accum_hist_snow (iblk)
