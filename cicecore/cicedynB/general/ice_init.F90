@@ -182,7 +182,7 @@
 #ifdef CESMCOUPLED
       character (len=64) :: tmpstr
 #endif
-      character (len=128) :: tmpstr2
+      character (len=char_len_long) :: tmpstr2
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -629,11 +629,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=setup_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: setup_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: setup_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading grid_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -644,11 +650,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=grid_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: grid_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: grid_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading tracer_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -659,11 +671,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=tracer_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: tracer_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: tracer_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading thermo_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -674,11 +692,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=thermo_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: thermo_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: thermo_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading dynamics_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -689,11 +713,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=dynamics_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: dynamics_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: dynamics_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading shortwave_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -704,11 +734,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=shortwave_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: shortwave_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: shortwave_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading ponds_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -719,11 +755,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=ponds_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: ponds_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: ponds_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading snow_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -734,11 +776,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=snow_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: snow_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: snow_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          write(nu_diag,*) subname,' Reading forcing_nml'
          rewind(unit=nu_nml, iostat=nml_error)
@@ -749,11 +797,17 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=forcing_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: forcing_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: forcing_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
          close(nu_nml)
          call release_fileunit(nu_nml)

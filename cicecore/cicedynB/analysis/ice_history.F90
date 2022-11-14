@@ -102,7 +102,9 @@
       character (len=25) :: &
          cstr_gat, cstr_gau, cstr_gav, &     ! mask area name for t, u, v atm grid (ga)
          cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
-      character(len=char_len) :: description
+
+      character(len=char_len)      :: description
+      character(len=char_len_long) :: tmpstr2 ! for namelist check
 
       character(len=*), parameter :: subname = '(init_hist)'
 
@@ -239,11 +241,18 @@
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: icefields_nml reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: icefields_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
+
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif

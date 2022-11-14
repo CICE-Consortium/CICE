@@ -113,6 +113,9 @@
 
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
+   
+   character(len=char_len_long) :: &
+      tmpstr2 ! for namelist check
 
    character(len=*), parameter :: subname = '(init_domain_blocks)'
 
@@ -180,11 +183,18 @@
       nml_error =  1
       do while (nml_error > 0)
          read(nu_nml, nml=domain_nml,iostat=nml_error)
+         ! check if error
+         if (nml_error /= 0) then
+            ! backspace and re-read erroneous line
+            backspace(nu_nml)
+            read(nu_nml,fmt='(A)') tmpstr2
+            
+            call abort_ice(subname//'ERROR: domain_nml reading ' // &
+                 trim(tmpstr2), &
+                 file=__FILE__, line=__LINE__)
+         endif
       end do
-      if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: domain_nml reading ', &
-            file=__FILE__, line=__LINE__)
-      endif
+
       close(nu_nml)
       call release_fileunit(nu_nml)
    endif
