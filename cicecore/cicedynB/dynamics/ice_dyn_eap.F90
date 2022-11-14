@@ -192,7 +192,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             rdg_conv (i,j,iblk) = c0
-           rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
+            rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
             divu (i,j,iblk) = c0
             shear(i,j,iblk) = c0
             e11(i,j,iblk) = c0
@@ -576,7 +576,6 @@
          da, dx, dy, dz, &
          phi
 
-
       real (kind=dbl_kind) :: invstressconviso
 
       character(len=*), parameter :: subname = '(init_eap)'
@@ -714,8 +713,8 @@
       ! Factor to maintain the same stress as in EVP (see Section 3)
       ! Can be set to 1 otherwise
 
-         invstressconviso = c1/(c1+kfriction*kfriction)
-         invsin = c1/sin(pi2/c12) * invstressconviso
+      invstressconviso = c1/(c1+kfriction*kfriction)
+      invsin = c1/sin(pi2/c12) * invstressconviso
 
       end subroutine init_eap
 

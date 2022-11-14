@@ -57,57 +57,57 @@
       private
 ! all c or cd
       real (kind=dbl_kind), allocatable :: &
-         uocnN   (:,:,:)  , & ! i ocean current (m/s)
-         vocnN   (:,:,:)  , & ! j ocean current (m/s)
-         ss_tltxN(:,:,:)  , & ! sea surface slope, x-direction (m/m)
-         ss_tltyN(:,:,:)  , & ! sea surface slope, y-direction (m/m)
-         cdn_ocnN(:,:,:)  , & ! ocn drag coefficient
-         waterxN (:,:,:)  , & ! for ocean stress calculation, x (m/s)
-         wateryN (:,:,:)  , & ! for ocean stress calculation, y (m/s)
-         forcexN (:,:,:)  , & ! work array: combined atm stress and ocn tilt, x
-         forceyN (:,:,:)  , & ! work array: combined atm stress and ocn tilt, y
-         aiN     (:,:,:)  , & ! ice fraction on N-grid
-         nmass   (:,:,:)  , & ! total mass of ice and snow (N grid)
-         nmassdti(:,:,:)      ! mass of N-cell/dte (kg/m^2 s)
+         uocnN    (:,:,:) , & ! i ocean current (m/s)
+         vocnN    (:,:,:) , & ! j ocean current (m/s)
+         ss_tltxN (:,:,:) , & ! sea surface slope, x-direction (m/m)
+         ss_tltyN (:,:,:) , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnN (:,:,:) , & ! ocn drag coefficient
+         waterxN  (:,:,:) , & ! for ocean stress calculation, x (m/s)
+         wateryN  (:,:,:) , & ! for ocean stress calculation, y (m/s)
+         forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
+         forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
+         aiN      (:,:,:) , & ! ice fraction on N-grid
+         nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
+         nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
 ! all c or d
       real (kind=dbl_kind), allocatable :: &
-         uocnE   (:,:,:) , & ! i ocean current (m/s)
-         vocnE   (:,:,:) , & ! j ocean current (m/s)
-         ss_tltxE(:,:,:) , & ! sea surface slope, x-direction (m/m)
-         ss_tltyE(:,:,:) , & ! sea surface slope, y-direction (m/m)
-         cdn_ocnE(:,:,:) , & ! ocn drag coefficient
-         waterxE (:,:,:) , & ! for ocean stress calculation, x (m/s)
-         wateryE (:,:,:) , & ! for ocean stress calculation, y (m/s)
-         forcexE (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
-         forceyE (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         aiE     (:,:,:) , & ! ice fraction on E-grid
-         emass   (:,:,:) , & ! total mass of ice and snow (E grid)
-         emassdti(:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
+         uocnE    (:,:,:) , & ! i ocean current (m/s)
+         vocnE    (:,:,:) , & ! j ocean current (m/s)
+         ss_tltxE (:,:,:) , & ! sea surface slope, x-direction (m/m)
+         ss_tltyE (:,:,:) , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnE (:,:,:) , & ! ocn drag coefficient
+         waterxE  (:,:,:) , & ! for ocean stress calculation, x (m/s)
+         wateryE  (:,:,:) , & ! for ocean stress calculation, y (m/s)
+         forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
+         forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
+         aiE      (:,:,:) , & ! ice fraction on E-grid
+         emass    (:,:,:) , & ! total mass of ice and snow (E grid)
+         emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
       real (kind=dbl_kind), allocatable :: &
-         strengthU(:,:,:), & ! strength averaged to U points
-         divergU  (:,:,:), & ! div array on U points, differentiate from divu
-         tensionU (:,:,:), & ! tension array on U points
-         shearU   (:,:,:), & ! shear array on U points
-         deltaU   (:,:,:), & ! delta array on U points
-         zetax2T  (:,:,:), & ! zetax2 = 2*zeta (bulk viscosity)
-         zetax2U  (:,:,:), & ! zetax2T averaged to U points
-         etax2T   (:,:,:), & ! etax2  = 2*eta  (shear viscosity)
-         etax2U   (:,:,:)    ! etax2T averaged to U points
+         strengthU(:,:,:) , & ! strength averaged to U points
+         divergU  (:,:,:) , & ! div array on U points, differentiate from divu
+         tensionU (:,:,:) , & ! tension array on U points
+         shearU   (:,:,:) , & ! shear array on U points
+         deltaU   (:,:,:) , & ! delta array on U points
+         zetax2T  (:,:,:) , & ! zetax2 = 2*zeta (bulk viscosity)
+         zetax2U  (:,:,:) , & ! zetax2T averaged to U points
+         etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
+         etax2U   (:,:,:)     ! etax2T averaged to U points
 
       real (kind=dbl_kind), allocatable :: &
-         uocnU   (:,:,:), & ! i ocean current (m/s)
-         vocnU   (:,:,:), & ! j ocean current (m/s)
-         ss_tltxU(:,:,:), & ! sea surface slope, x-direction (m/m)
-         ss_tltyU(:,:,:), & ! sea surface slope, y-direction (m/m)
-         cdn_ocnU(:,:,:), & ! ocn drag coefficient
-         tmass   (:,:,:), & ! total mass of ice and snow (kg/m^2)
-         waterxU (:,:,:), & ! for ocean stress calculation, x (m/s)
-         wateryU (:,:,:), & ! for ocean stress calculation, y (m/s)
-         forcexU (:,:,:), & ! work array: combined atm stress and ocn tilt, x
-         forceyU (:,:,:), & ! work array: combined atm stress and ocn tilt, y
-         umass   (:,:,:), & ! total mass of ice and snow (u grid)
-         umassdti(:,:,:)    ! mass of U-cell/dte (kg/m^2 s)
+         uocnU    (:,:,:) , & ! i ocean current (m/s)
+         vocnU    (:,:,:) , & ! j ocean current (m/s)
+         ss_tltxU (:,:,:) , & ! sea surface slope, x-direction (m/m)
+         ss_tltyU (:,:,:) , & ! sea surface slope, y-direction (m/m)
+         cdn_ocnU (:,:,:) , & ! ocn drag coefficient
+         tmass    (:,:,:) , & ! total mass of ice and snow (kg/m^2)
+         waterxU  (:,:,:) , & ! for ocean stress calculation, x (m/s)
+         wateryU  (:,:,:) , & ! for ocean stress calculation, y (m/s)
+         forcexU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
+         forceyU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
+         umass    (:,:,:) , & ! total mass of ice and snow (u grid)
+         umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
 
       public :: evp, init_evp
 
@@ -132,21 +132,20 @@
 
       call init_dyn_shared(dt_dyn)
 
-
-         allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
-                   vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
-                   ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
-                   ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
-                   cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
-                   tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
-                   waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
-                   wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
-                   forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
-                   forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
-                   umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
-                   umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
-                   stat=ierr)
-         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
+      allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
+                vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
+                ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
+                ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
+                cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
+                tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
+                waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
+                wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
+                forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
+                forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
+                umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
+                umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
 
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
@@ -178,18 +177,18 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
 
-         allocate(uocnE    (nx_block,ny_block,max_blocks), &
-                  vocnE    (nx_block,ny_block,max_blocks), &
-                  ss_tltxE (nx_block,ny_block,max_blocks), &
-                  ss_tltyE (nx_block,ny_block,max_blocks), &
-                  cdn_ocnE (nx_block,ny_block,max_blocks), &
-                  waterxE  (nx_block,ny_block,max_blocks), &
-                  wateryE  (nx_block,ny_block,max_blocks), &
-                  forcexE  (nx_block,ny_block,max_blocks), &
-                  forceyE  (nx_block,ny_block,max_blocks), &
-                  aiE      (nx_block,ny_block,max_blocks), &
-                  emass    (nx_block,ny_block,max_blocks), &
-                  emassdti (nx_block,ny_block,max_blocks), &
+         allocate( uocnE    (nx_block,ny_block,max_blocks), &
+                   vocnE    (nx_block,ny_block,max_blocks), &
+                   ss_tltxE (nx_block,ny_block,max_blocks), &
+                   ss_tltyE (nx_block,ny_block,max_blocks), &
+                   cdn_ocnE (nx_block,ny_block,max_blocks), &
+                   waterxE  (nx_block,ny_block,max_blocks), &
+                   wateryE  (nx_block,ny_block,max_blocks), &
+                   forcexE  (nx_block,ny_block,max_blocks), &
+                   forceyE  (nx_block,ny_block,max_blocks), &
+                   aiE      (nx_block,ny_block,max_blocks), &
+                   emass    (nx_block,ny_block,max_blocks), &
+                   emassdti (nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
 
@@ -468,7 +467,7 @@
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
                             iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
-                            fmU       (:,:,iblk), dt,                   &
+                            fmU       (:,:,iblk), dt                  , &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
                             strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
@@ -499,7 +498,7 @@
                                          aice0    = aice0   (i,j,  iblk), &
                                          aicen    = aicen   (i,j,:,iblk), &
                                          vicen    = vicen   (i,j,:,iblk), &
-                                         strength = strength(i,j,  iblk) )
+                                         strength = strength(i,j,  iblk))
             enddo  ! ij
 
          enddo  ! iblk
@@ -577,7 +576,7 @@
                             strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                             ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
                             iceTmask  (:,:,iblk), iceNmask  (:,:,iblk), &
-                            fmN       (:,:,iblk), dt,                   &
+                            fmN       (:,:,iblk), dt                  , &
                             strtltxN  (:,:,iblk), strtltyN  (:,:,iblk), &
                             strocnxN  (:,:,iblk), strocnyN  (:,:,iblk), &
                             strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
@@ -610,7 +609,7 @@
                             strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                             ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
                             iceTmask  (:,:,iblk), iceEmask  (:,:,iblk), &
-                            fmE       (:,:,iblk), dt,                   &
+                            fmE       (:,:,iblk), dt                  , &
                             strtltxE  (:,:,iblk), strtltyE  (:,:,iblk), &
                             strocnxE  (:,:,iblk), strocnyE  (:,:,iblk), &
                             strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
@@ -1729,8 +1728,8 @@
                              dxN        , dyE       , &
                              dxT        , dyT       , &
                              uarea      , DminTarea , &
-                             strength   , shearU, &
-                             zetax2T, etax2T, &
+                             strength   , shearU    , &
+                             zetax2T    , etax2T    , &
                              stressp    , stressm    )
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
@@ -1754,15 +1753,15 @@
          dxT       , & ! width of T-cell through the middle (m)
          dyT       , & ! height of T-cell through the middle (m)
          strength  , & ! ice strength (N/m)
-         shearU, & ! shearU local for this routine
+         shearU    , & ! shearU local for this routine
          uarea     , & ! area of u cell
          DminTarea     ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T, & ! zetax2 = 2*zeta (bulk viscosity)
-         etax2T , & ! etax2  = 2*eta  (shear viscosity)
-         stressp    , & ! sigma11+sigma22
-         stressm      ! sigma11-sigma22
+         zetax2T , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T  , & ! etax2  = 2*eta  (shear viscosity)
+         stressp , & ! sigma11+sigma22
+         stressm     ! sigma11-sigma22
 
       ! local variables
 
@@ -1770,8 +1769,8 @@
          i, j, ij
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
-        divT      , & ! divergence at T point
-        tensionT      ! tension at T point
+        divT     , & ! divergence at T point
+        tensionT     ! tension at T point
 
       real (kind=dbl_kind) :: &
         shearTsqr , & ! strain rates squared at T point
@@ -1791,7 +1790,7 @@
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
                            dxT   (:,:), dyT     (:,:), &
-                           divT  (:,:), tensionT(:,:)  )
+                           divT  (:,:), tensionT(:,:))
 
       do ij = 1, icellT
          i = indxTi(ij)
@@ -1846,13 +1845,13 @@
 ! Kimmritz, M., S. Danilov and M. Losch (2016). The adaptive EVP method
 ! for solving the sea ice momentum equation. Ocean Model., 101, 59-67.
 
-      subroutine stressC_U  (nx_block     , ny_block  ,&
-                                            icellU    ,&
-                             indxUi       , indxUj    ,&
-                             uarea        ,            &
-                             etax2U   , deltaU,&
-                             strengthU, shearU,&
-                             stress12                  )
+      subroutine stressC_U  (nx_block , ny_block  ,&
+                                        icellU    ,&
+                             indxUi   , indxUj    ,&
+                             uarea    ,            &
+                             etax2U   , deltaU    ,&
+                             strengthU, shearU    ,&
+                             stress12)
 
       use ice_dyn_shared, only: visc_replpress, &
                                 visc_method, deltaminEVP, capping
@@ -1866,7 +1865,7 @@
          indxUj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uarea        , & ! area of U point
+         uarea    , & ! area of U point
          etax2U   , & ! 2*eta at the U point
          shearU   , & ! shearU array
          deltaU   , & ! deltaU array
@@ -1926,18 +1925,18 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-      subroutine stressCD_T (nx_block,   ny_block,   &
-                                         icellT,     &
-                             indxTi,     indxTj,     &
-                             uvelE,      vvelE,      &
-                             uvelN,      vvelN,      &
-                             dxN,        dyE,        &
-                             dxT,        dyT,        &
-                                         DminTarea,  &
-                             strength,               &
-                             zetax2T,etax2T, &
-                             stresspT,   stressmT,   &
-                             stress12T               )
+      subroutine stressCD_T (nx_block,   ny_block , &
+                                         icellT   , &
+                             indxTi  ,   indxTj   , &
+                             uvelE   ,   vvelE    , &
+                             uvelN   ,   vvelN    , &
+                             dxN     ,   dyE      , &
+                             dxT     ,   dyT      , &
+                                         DminTarea, &
+                             strength,              &
+                             zetax2T ,   etax2T   , &
+                             stresspT,   stressmT , &
+                             stress12T)
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
                                 visc_replpress
@@ -1963,11 +1962,11 @@
          DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T, & ! zetax2 = 2*zeta (bulk viscosity)
-         etax2T , & ! etax2  = 2*eta  (shear viscosity)
-         stresspT   , & ! sigma11+sigma22
-         stressmT   , & ! sigma11-sigma22
-         stress12T      ! sigma12
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T   , & ! etax2  = 2*eta  (shear viscosity)
+         stresspT , & ! sigma11+sigma22
+         stressmT , & ! sigma11-sigma22
+         stress12T    ! sigma12
 
       ! local variables
 
@@ -1992,13 +1991,13 @@
 
       call strain_rates_T (nx_block   , ny_block     , &
                            icellT     ,                &
-                           indxTi(:)  , indxTj  (:)  , &
+                           indxTi  (:), indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
                            dxT   (:,:), dyT     (:,:), &
                            divT  (:,:), tensionT(:,:), &
-                           shearT(:,:), DeltaT  (:,:)  )
+                           shearT(:,:), DeltaT  (:,:))
 
       do ij = 1, icellT
          i = indxTi(ij)
@@ -2036,16 +2035,16 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-      subroutine stressCD_U (nx_block,     ny_block,     &
-                                           icellU,       &
-                             indxUi,       indxUj,       &
-                             uarea,                      &
-                             zetax2U,  etax2U,   &
-                             strengthU,              &
-                             divergU,  tensionU, &
-                             shearU,   deltaU,   &
-                             stresspU,     stressmU,     &
-                             stress12U                   )
+      subroutine stressCD_U (nx_block,   ny_block, &
+                                         icellU  , &
+                             indxUi    , indxUj  , &
+                             uarea     ,           &
+                             zetax2U   , etax2U  , &
+                             strengthU ,           &
+                             divergU   , tensionU, &
+                             shearU    , deltaU  , &
+                             stresspU  , stressmU, &
+                             stress12U)
 
       use ice_dyn_shared, only: strain_rates_U, &
                                 visc_replpress, &
