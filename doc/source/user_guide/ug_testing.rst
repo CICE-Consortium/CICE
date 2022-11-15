@@ -342,7 +342,7 @@ available tests suites are
   tests B, C, and CD grid_ice configurations
 
 ``prod_suite`` 
-  consists of handful of test running 5 to 10 model years and includes some QC testing.  These tests will be relatively expensive and take more time compared to other suites.
+  consists of a handful of tests running 5 to 10 model years and includes some QC testing.  These tests will be relatively expensive and take more time compared to other suites.
 
 ``unittest_suite``
   runs unit tests in the CICE repository
@@ -351,9 +351,9 @@ available tests suites are
   consists of a small suite of tests suitable for running on low pe counts.  This is the suite used with Github Actions for CI in the workflow.
 
 ``first_suite``
-  this small suite of tests is redundant with tests in other suites.  It runs several of the critical baseline test that other results are compared to.  It can improve testing turnaround if listed first with a series of test suites.
+  this small suite of tests is redundant with tests in other suites.  It runs several of the critical baseline tests that other test compare to.  It can improve testing turnaround if listed first in a series of test suites.
 
-When running multiple suites on the command line (i.e. ``--suite first_suite,quick_suite,base_suite,omp_suite,decomp_suite,unittest_suite``) the suites will be run in the order defined by the user and redundant tests across multiple suites will be created and executed only once.
+When running multiple suites on the command line (i.e. ``--suite first_suite,base_suite,omp_suite``) the suites will be run in the order defined by the user and redundant tests across multiple suites will be created and executed only once.
 
 The format for the test suite file is relatively simple.  
 It is a text file with white space delimited 
