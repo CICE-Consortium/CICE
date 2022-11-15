@@ -196,7 +196,7 @@ int ice_memusage_gptl (int *size, int *rss, int *share, int *text, int *datastac
   */
 
   ret = fscanf (fd, "%d %d %d %d %d %d %d",
-		size, rss, share, text, datastack, &dum, &dum);
+                size, rss, share, text, datastack, &dum, &dum);
   ret = fclose (fd);
   return 0;
 
