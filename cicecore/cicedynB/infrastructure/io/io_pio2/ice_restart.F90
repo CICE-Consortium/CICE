@@ -957,11 +957,8 @@
 
       query_field = .false.
 
-      if (my_task == master_task) then
-         status = pio_inq_varid(File,trim(vname),vardesc)
-         if (status == PIO_noerr) query_field = .true.
-      endif
-      call broadcast_scalar(query_field,master_task)
+      status = pio_inq_varid(File,trim(vname),vardesc)
+      if (status == PIO_noerr) query_field = .true.
 
       end function query_field
 
