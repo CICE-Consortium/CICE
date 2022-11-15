@@ -102,6 +102,8 @@
       character (len=25) :: &
          cstr_gat, cstr_gau, cstr_gav, &     ! mask area name for t, u, v atm grid (ga)
          cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
+      character (len=25) :: &
+         gridstr2D, gridstr                  ! temporary string names
       character(len=char_len) :: description
 
       character(len=*), parameter :: subname = '(init_hist)'
@@ -1307,21 +1309,25 @@
          select case (grid_ice)
          case('B')
             description = ", on U grid  (NE corner values)"
+            gridstr2d = trim(ustr2D)
+            gridstr   = trim(ucstr)
          case ('CD','C')
             description = ", on T grid"
+            gridstr2d = trim(tstr2D)
+            gridstr   = trim(tcstr)
          end select
 
-         call define_hist_field(n_sig1,"sig1","1",ustr2D, ucstr, &
+         call define_hist_field(n_sig1,"sig1","1",gridstr2d, gridstr, &
              "norm. principal stress 1",                       &
              "sig1 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig1)
 
-         call define_hist_field(n_sig2,"sig2","1",ustr2D, ucstr, &
+         call define_hist_field(n_sig2,"sig2","1",gridstr2d, gridstr, &
              "norm. principal stress 2",                       &
              "sig2 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig2)
 
-         call define_hist_field(n_sigP,"sigP","1",ustr2D, ucstr, &
+         call define_hist_field(n_sigP,"sigP","1",gridstr2d, gridstr, &
              "ice pressure",                       &
              "sigP is instantaneous" // trim(description), c1, c0, &
              ns1, f_sigP)

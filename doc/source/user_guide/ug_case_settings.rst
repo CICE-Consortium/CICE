@@ -847,13 +847,13 @@ icefields_nml
 There are several icefield namelist groups to control model history output.  See the
 source code for a full list of supported output fields.
 
-* ``icefields_nml`` is in **cicecore/cicedynB/analysis/ice_history_shared.F90**
-* ``icefields_bgc_nml`` is in **cicecore/cicedynB/analysis/ice_history_bgc.F90**
-* ``icefields_drag_nml`` is in **cicecore/cicedynB/analysis/ice_history_drag.F90**
-* ``icefields_fsd_nml`` is in **cicecore/cicedynB/analysis/ice_history_fsd.F90**
-* ``icefields_mechred_nml`` is in **cicecore/cicedynB/analysis/ice_history_mechred.F90**
-* ``icefields_pond_nml`` is in **cicecore/cicedynB/analysis/ice_history_pond.F90**
-* ``icefields_snow_nml`` is in **cicecore/cicedynB/analysis/ice_history_snow.F90**
+* ``icefields_nml`` is in **cicecore/cicedyn/analysis/ice_history_shared.F90**
+* ``icefields_bgc_nml`` is in **cicecore/cicedyn/analysis/ice_history_bgc.F90**
+* ``icefields_drag_nml`` is in **cicecore/cicedyn/analysis/ice_history_drag.F90**
+* ``icefields_fsd_nml`` is in **cicecore/cicedyn/analysis/ice_history_fsd.F90**
+* ``icefields_mechred_nml`` is in **cicecore/cicedyn/analysis/ice_history_mechred.F90**
+* ``icefields_pond_nml`` is in **cicecore/cicedyn/analysis/ice_history_pond.F90**
+* ``icefields_snow_nml`` is in **cicecore/cicedyn/analysis/ice_history_snow.F90**
 
 .. csv-table:: **icefields_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
