@@ -48,7 +48,7 @@
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-          seabed_stress, Ktens, stack_fields,  unstack_fields
+          seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
       use ice_global_reductions, only: global_sum
@@ -105,11 +105,6 @@
          indxUi(:,:)  , & ! compressed index in i-direction
          indxUj(:,:)      ! compressed index in j-direction
 
-      real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:), & ! work array for boundary updates
-         fld3(:,:,:,:), & ! work array for boundary updates
-         fld4(:,:,:,:)    ! work array for boundary updates
-
 !=======================================================================
 
       contains
@@ -126,6 +121,8 @@
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
       use ice_domain, only: blocks_ice, halo_info
+      use ice_calendar, only: dt_dyn
+      use ice_dyn_shared, only: init_dyn_shared
 !      use ice_grid, only: tarea
 
       ! local variables
@@ -137,15 +134,14 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      call init_dyn_shared(dt_dyn)
+
       ! Initialize module variables
       allocate(icellT(max_blocks), icellU(max_blocks))
       allocate(indxTi(nx_block*ny_block, max_blocks), &
                indxTj(nx_block*ny_block, max_blocks), &
                indxUi(nx_block*ny_block, max_blocks), &
                indxUj(nx_block*ny_block, max_blocks))
-      allocate(fld2(nx_block,ny_block,2,max_blocks))
-      allocate(fld3(nx_block,ny_block,3,max_blocks))
-      allocate(fld4(nx_block,ny_block,4,max_blocks))
 
       end subroutine init_vp
 

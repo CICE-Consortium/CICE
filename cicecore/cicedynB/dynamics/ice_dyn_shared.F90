@@ -24,9 +24,8 @@
       implicit none
       private
       public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
-                principal_stress, init_dyn, dyn_prep1, dyn_prep2, dyn_finish, &
+                principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
-                alloc_dyn_shared, &
                 deformations, deformationsC_T, deformationsCD_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
@@ -93,6 +92,11 @@
       real (kind=dbl_kind), allocatable, public :: &
          fcorE_blk(:,:,:), & ! Coriolis parameter at E points (1/s)
          fcorN_blk(:,:,:)    ! Coriolis parameter at N points  (1/s)
+
+      real (kind=dbl_kind), allocatable, public :: &
+         fld2(:,:,:,:), & ! 2 bundled fields
+         fld3(:,:,:,:), & ! 3 bundled fields
+         fld4(:,:,:,:)    ! 4 bundled fields
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvel_init       , & ! x-component of velocity (m/s), beginning of timestep
@@ -176,6 +180,15 @@
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
          iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
          iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
+         fcor_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
+         DminTarea (nx_block,ny_block,max_blocks), & ! 
+         stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+
+      allocate( &
+         fld2(nx_block,ny_block,2,max_blocks), &
+         fld3(nx_block,ny_block,3,max_blocks), &
+         fld4(nx_block,ny_block,4,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -187,6 +200,8 @@
             vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
             iceEmask   (nx_block,ny_block,max_blocks), & ! T mask for dynamics
             iceNmask   (nx_block,ny_block,max_blocks), & ! U mask for dynamics
+            fcorE_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
+            fcorN_blk  (nx_block,ny_block,max_blocks), &   ! Coriolis
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
       endif
@@ -197,18 +212,18 @@
 ! Initialize parameters and variables needed for the dynamics
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine init_dyn (dt)
+      subroutine init_dyn_shared (dt)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: rdg_conv, rdg_shear, &
+      use ice_flux, only: &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
       use ice_grid, only: ULAT, NLAT, ELAT, tarea
 
       real (kind=dbl_kind), intent(in) :: &
@@ -221,10 +236,11 @@
          nprocs, &  ! number of processors
          iblk       ! block index
 
-      character(len=*), parameter :: subname = '(init_dyn)'
+      character(len=*), parameter :: subname = '(init_dyn_shared)'
 
       call set_evp_parameters (dt)
-
+      ! allocate dyn shared (init_uvel,init_vvel)
+      call alloc_dyn_shared     
       ! Set halo_dynbundle, this is empirical at this point, could become namelist
       halo_dynbundle = .true.
       nprocs = get_num_procs()
@@ -235,14 +251,6 @@
          write(nu_diag,*) 'dt_subcyle = ',dt/real(ndte,kind=dbl_kind)
          write(nu_diag,*) 'tdamp =', elasticDamp * dt
          write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
-      endif
-
-      allocate(fcor_blk(nx_block,ny_block,max_blocks))
-      allocate(DminTarea(nx_block,ny_block,max_blocks))
-
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         allocate(fcorE_blk(nx_block,ny_block,max_blocks))
-         allocate(fcorN_blk(nx_block,ny_block,max_blocks))
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
@@ -260,11 +268,6 @@
             vvelN(i,j,iblk) = c0
          endif
 
-         ! strain rates
-         divu (i,j,iblk) = c0
-         shear(i,j,iblk) = c0
-         rdg_conv (i,j,iblk) = c0
-         rdg_shear(i,j,iblk) = c0
 
          ! Coriolis parameter
          if (trim(coriolis) == 'constant') then
@@ -330,7 +333,7 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      end subroutine init_dyn
+  end subroutine init_dyn_shared
 
 !=======================================================================
 ! Set parameters needed for the evp dynamics.
