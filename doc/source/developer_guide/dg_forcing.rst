@@ -15,7 +15,7 @@ generally not been maintained by the Consortium and only a subset of the code is
 tested by the Consortium.
 
 The forcing implementation can be found in the file 
-**cicecore/cicedynB/general/ice_forcing.F90**.  As noted above, only a subset of the
+**cicecore/cicedyn/general/ice_forcing.F90**.  As noted above, only a subset of the
 forcing modes are tested and supported.  In many ways, the implemetation is fairly
 primitive, in part due to historical reasons and in part because standalone runs
 are discouraged for evaluating complex science.  In general, most implementations

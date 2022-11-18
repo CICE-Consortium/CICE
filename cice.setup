@@ -455,7 +455,22 @@ if ( ${dosuite} == 0 ) then
   set sets = ""
 
 else
-  set tarrays = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 | sort -u`
+  # generate unique set of suites in tarrays in order they are set
+  set tarrays0 = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 `
+  #echo "${0}: tarrays0 = ${tarrays0}"
+  set tarrays = $tarrays0[1]
+  foreach t1 ( ${tarrays0} )
+    set found = 0
+    foreach t2 ( ${tarrays} )
+      if ( ${t1} == ${t2} ) then
+         set found = 1
+      endif
+    end
+    if ( ${found} == 0 ) then
+       set tarrays = ( ${tarrays} ${t1} )
+    endif
+  end
+  #echo "${0}: tarrays = ${tarrays}"
   set testsuitecnt = 0
   foreach tarray ( ${tarrays} )
     @ testsuitecnt = ${testsuitecnt} + 1
