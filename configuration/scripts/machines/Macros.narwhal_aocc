@@ -49,7 +49,7 @@ INCLDIR := $(INCLDIR)
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -mp
-   CFLAGS += -mp
+#   CFLAGS += -mp
    FFLAGS += -mp
 else
    LDFLAGS += -nomp

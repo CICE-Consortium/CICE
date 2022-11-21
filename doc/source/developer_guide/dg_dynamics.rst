@@ -9,14 +9,14 @@ Dynamics
 The CICE **cicecore/** directory consists of the non icepack source code.  Within that
 directory there are the following subdirectories
 
-**cicecore/cicedynB/analysis** contains higher level history and diagnostic routines.
+**cicecore/cicedyn/analysis** contains higher level history and diagnostic routines.
 
-**cicecore/cicedynB/dynamics** contains all the dynamical evp, eap, and transport routines.
+**cicecore/cicedyn/dynamics** contains all the dynamical evp, eap, and transport routines.
 
-**cicecore/cicedynB/general** contains routines associated with forcing, flux calculation,
+**cicecore/cicedyn/general** contains routines associated with forcing, flux calculation,
 initialization, and model timestepping.
 
-**cicecore/cicedynB/infrastructure** contains most of the low-level infrastructure associated
+**cicecore/cicedyn/infrastructure** contains most of the low-level infrastructure associated
 with communication (halo updates, gather, scatter, global sums, etc) and I/O reading and writing
 binary and netcdf files.
 
@@ -29,7 +29,7 @@ coupling layers.
 Dynamical Solvers
 --------------------
 
-The dynamics solvers are found in **cicecore/cicedynB/dynamics/**.  A couple of different solvers are
+The dynamics solvers are found in **cicecore/cicedyn/dynamics/**.  A couple of different solvers are
 available including EVP, EAP and VP.  The dynamics solver is specified in namelist with the
 ``kdyn`` variable.  ``kdyn=1`` is evp, ``kdyn=2`` is eap, ``kdyn=3`` is VP.
 
@@ -41,7 +41,7 @@ with the tripole grid.
 Transport
 -----------------
 
-The transport (advection) methods are found in **cicecore/cicedynB/dynamics/**.  Two methods are supported,
+The transport (advection) methods are found in **cicecore/cicedyn/dynamics/**.  Two methods are supported,
 upwind and remap.  These are set in namelist via the ``advection`` variable.
 Transport can be disabled with the ``ktransport`` namelist variable.
 
@@ -94,11 +94,11 @@ Two low-level communications packages, mpi and serial, are provided as part of C
 provides a middle layer between the model and the underlying libraries.  Only the CICE mpi or
 serial directories are compiled with CICE, not both.
 
-**cicedynB/infrastructure/comm/mpi/**
+**cicedyn/infrastructure/comm/mpi/**
 is based on MPI and provides various methods to do halo updates, global sums, gather/scatter, broadcasts
 and similar using some fairly generic interfaces to isolate the MPI calls in the code.
 
-**cicedynB/infrastructure/comm/serial/** support the same interfaces, but operates
+**cicedyn/infrastructure/comm/serial/** support the same interfaces, but operates
 in shared memory mode with no MPI.  The serial library will be used, by default in the CICE scripts,
 if the number of MPI tasks is set to 1.  The serial library allows the model to be run on a single
 core or with OpenMP parallelism only without requiring an MPI library.
@@ -112,15 +112,15 @@ Only one of the three IO directories can be built with CICE.  The CICE scripts w
 by default, but other options can be selecting by setting ``ICE_IOTYPE`` in **cice.settings** in the
 case.  This has to be set before CICE is built.
 
-**cicedynB/infrastructure/io/io_netcdf/** is the
+**cicedyn/infrastructure/io/io_netcdf/** is the
 default for the standalone CICE model, and it supports writing history and restart files in netcdf
 format using standard netcdf calls.  It does this by writing from and reading to the root task and
 gathering and scattering fields from the root task to support model parallelism.
 
-**cicedynB/infrastructure/io/io_binary/** supports files in binary format using a gather/scatter
+**cicedyn/infrastructure/io/io_binary/** supports files in binary format using a gather/scatter
 approach and reading to and writing from the root task.
 
-**cicedynB/infrastructure/io/io_pio/** support reading and writing through the pio interface.  pio
+**cicedyn/infrastructure/io/io_pio/** support reading and writing through the pio interface.  pio
 is a parallel io library (https://github.com/NCAR/ParallelIO) that supports reading and writing of
 binary and netcdf file through various interfaces including netcdf and pnetcdf.  pio is generally
 more parallel in memory even when using serial netcdf than the standard gather/scatter methods,

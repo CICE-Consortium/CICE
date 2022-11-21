@@ -74,6 +74,20 @@ jobs:
            ln -s ${GITHUB_WORKSPACE}/../CICE ${HOME}/cice
 #           ls -al ${HOME}/
 #           ls -al ${GITHUB_WORKSPACE}/
+      - name: check for tabs
+        run: |
+          cd $HOME/cice/cicecore
+          set cnt = 0
+          set ffiles = `find -P . -iname "*.f*"`
+          set cfiles = `find -P . -iname "*.c*"`
+          foreach file ($ffiles $cfiles)
+            set fcnt = `sed -n '/\t/p' $file | wc -l`
+            @ cnt = $cnt + $fcnt
+            if ($fcnt > 0) then
+               echo "TAB found: $fcnt $file"
+            endif
+          end
+          exit $cnt
       - name: setup conda env
         shell: /bin/bash {0}
         run: |

@@ -24,6 +24,7 @@
       public :: alloc_arrays_column
 
       ! icepack_atmo.F90
+      ! Cdn variables on the T-grid
       real (kind=dbl_kind), public, &
          dimension (:,:,:), allocatable :: &
          Cdn_atm     , & ! atm drag coefficient

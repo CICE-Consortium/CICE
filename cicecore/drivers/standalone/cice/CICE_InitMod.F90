@@ -72,9 +72,10 @@
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
-      use ice_dyn_eap, only: init_eap, alloc_dyn_eap
-      use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
+      use ice_dyn_eap, only: init_eap
+      use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -122,7 +123,6 @@
       call alloc_grid           ! allocate grid arrays
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state arrays
-      call alloc_dyn_shared     ! allocate dyn shared arrays
       call alloc_flux_bgc       ! allocate flux_bgc arrays
       call alloc_flux           ! allocate flux arrays
       call init_ice_timers      ! initialize all timers
@@ -132,9 +132,9 @@
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
-      call init_dyn (dt_dyn)    ! define dynamics parameters, variables
-      if (kdyn == 2) then
-         call alloc_dyn_eap     ! allocate dyn_eap arrays
+      if (kdyn == 1) then 
+         call init_evp
+      else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
          call init_vp           ! define vp dynamics parameters, variables
@@ -264,17 +264,10 @@
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
-#ifdef UNDEPRECATE_CESMPONDS
-          init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
-#else
           init_meltponds_lvl, init_meltponds_topo, &
-#endif
           init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
-#ifdef UNDEPRECATE_CESMPONDS
-          restart_pond_cesm, read_restart_pond_cesm, &
-#endif
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_snow, read_restart_snow, &
@@ -292,11 +285,7 @@
          i, j        , & ! horizontal indices
          iblk            ! block index
       logical(kind=log_kind) :: &
-#ifdef UNDEPRECATE_CESMPONDS
-          tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
-#else
           tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
-#endif
           tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
@@ -316,11 +305,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-#ifdef UNDEPRECATE_CESMPONDS
-           tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
-#else
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
-#endif
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
            tr_snow_out=tr_snow, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
@@ -382,21 +367,6 @@
             enddo ! iblk
          endif
       endif
-#ifdef UNDEPRECATE_CESMPONDS
-      ! CESM melt ponds
-      if (tr_pond_cesm) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_cesm = .true.
-         if (restart_pond_cesm) then
-            call read_restart_pond_cesm
-         else
-            do iblk = 1, nblocks
-               call init_meltponds_cesm(trcrn(:,:,nt_apnd,:,iblk), &
-                                        trcrn(:,:,nt_hpnd,:,iblk))
-            enddo ! iblk
-         endif
-      endif
-#endif
       ! level-ice melt ponds
       if (tr_pond_lvl) then
          if (trim(runtype) == 'continue') &
