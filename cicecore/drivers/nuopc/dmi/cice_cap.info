@@ -1023,8 +1023,8 @@ module cice_cap
           dataPtr_vice    (i1,j1,iblk) = vice(i,j,iblk)   ! sea ice volume
           dataPtr_vsno    (i1,j1,iblk) = vsno(i,j,iblk)   ! snow volume
           dataPtr_fswthru (i1,j1,iblk) = fswthru(i,j,iblk) ! short wave penetration through ice
-          ui = strocnxT(i,j,iblk)
-          vj = strocnyT(i,j,iblk)
+          ui = strocnxT_iavg(i,j,iblk)
+          vj = strocnyT_iavg(i,j,iblk)
           angT = ANGLET(i,j,iblk)
           dataPtr_strocnxT(i1,j1,iblk) =  ui*cos(-angT) + vj*sin(angT)  ! ice ocean stress
           dataPtr_strocnyT(i1,j1,iblk) = -ui*sin(angT)  + vj*cos(-angT)  ! ice ocean stress

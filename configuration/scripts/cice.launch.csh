@@ -11,7 +11,7 @@ set jobfile = $1
 source ${ICE_SCRIPTS}/setup_machparams.csh
 
 #==========================================
-if (${ICE_MACHINE} =~ cheyenne*) then
+if (${ICE_MACHCOMP} =~ cheyenne*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -23,7 +23,19 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ hobart* || ${ICE_MACHINE} =~ izumi*) then
+else if (${ICE_MACHCOMP} =~ gust*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpiexec --cpu-bind depth -n ${ntasks} -ppn ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
+else if (${ICE_MACHCOMP} =~ hobart* || ${ICE_MACHCOMP} =~ izumi*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -35,7 +47,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ gaffney* || ${ICE_MACHINE} =~ koehr* || ${ICE_MACHINE} =~ mustang*) then
+else if (${ICE_MACHCOMP} =~ gaffney* || ${ICE_MACHCOMP} =~ koehr* || ${ICE_MACHCOMP} =~ mustang*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -47,7 +59,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ nrlssc*) then
+else if (${ICE_MACHCOMP} =~ nrlssc*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -59,13 +71,19 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ onyx* || ${ICE_MACHINE} =~ narwhal) then
+else if (${ICE_MACHCOMP} =~ narwhal_*hpcx*) then
 cat >> ${jobfile} << EOFR
-aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+mpirun -np ${ntasks} -hostfile \$PBS_NODEFILE \${EXTRA_OMPI_SETTINGS} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ cori*) then
+else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal*) then
+cat >> ${jobfile} << EOFR
+aprun -q -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+
+#=======
+else if (${ICE_MACHCOMP} =~ cori*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -77,7 +95,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ compy*) then
+else if (${ICE_MACHCOMP} =~ compy*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -89,7 +107,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ badger*) then
+else if (${ICE_MACHCOMP} =~ badger*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -101,7 +119,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ fram*) then
+else if (${ICE_MACHCOMP} =~ fram*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -113,7 +131,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ cesium*) then
+else if (${ICE_MACHCOMP} =~ cesium*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -125,7 +143,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ millikan*) then
+else if (${ICE_MACHCOMP} =~ millikan*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -137,7 +155,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ daley* || ${ICE_MACHINE} =~ banting*) then
+else if (${ICE_MACHCOMP} =~ daley* || ${ICE_MACHCOMP} =~ banting*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -149,7 +167,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ ppp5* || ${ICE_MACHINE} =~ ppp6* || ${ICE_MACHINE} =~ robert* || ${ICE_MACHINE} =~ underhill*) then
+else if (${ICE_MACHCOMP} =~ ppp5* || ${ICE_MACHCOMP} =~ ppp6* || ${ICE_MACHCOMP} =~ robert* || ${ICE_MACHCOMP} =~ underhill*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -161,7 +179,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ ppp3*) then
+else if (${ICE_MACHCOMP} =~ ppp3*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -173,7 +191,7 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ gpsc3*) then
+else if (${ICE_MACHCOMP} =~ gpsc3*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -186,7 +204,7 @@ endif
 
 
 #=======
-else if (${ICE_MACHINE} =~ freya*) then
+else if (${ICE_MACHCOMP} =~ freya*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 aprun -n 1 -N 1 -d 1 ./cice >&! \$ICE_RUNLOG_FILE
@@ -198,45 +216,45 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHINE} =~ gaea*) then
+else if (${ICE_MACHCOMP} =~ gaea*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ hera*) then
+else if (${ICE_MACHCOMP} =~ hera*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ orion*) then
+else if (${ICE_MACHCOMP} =~ orion*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ high_Sierra*) then
+else if (${ICE_MACHCOMP} =~ high_Sierra*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ phase3*) then
+else if (${ICE_MACHCOMP} =~ phase3*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
 #./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ testmachine*) then
+else if (${ICE_MACHCOMP} =~ testmachine*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ travisCI*) then
+else if (${ICE_MACHCOMP} =~ travisCI*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -251,7 +269,7 @@ endif
 #EOFR
 
 #=======
-else if (${ICE_MACHINE} =~ conda*) then
+else if (${ICE_MACHCOMP} =~ conda*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
@@ -265,7 +283,7 @@ endif
 
 #=======
 else
-  echo "${0} ERROR ${ICE_MACHINE} unknown"
+  echo "${0} ERROR ${ICE_MACHCOMP} unknown"
   exit -1
 endif
 #=======

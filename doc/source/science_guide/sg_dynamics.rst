@@ -92,8 +92,7 @@ dynamics into CICE is described in detail in
 
 The VP solver implementation mostly follows :cite:`Lemieux08`, with
 FGMRES :cite:`Saad93` as the linear solver and GMRES as the preconditioner.
-Note that the VP solver has not yet been tested on the ``tx1`` grid or with
-threading enabled.
+Note that the VP solver has not yet been tested on the ``tx1`` grid.
 
 The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
 
