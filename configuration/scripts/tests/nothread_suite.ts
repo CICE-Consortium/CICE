@@ -54,7 +54,7 @@ restart        gx3     12x1        short
 #restart        gx1     24x1       short
 
 smoke          gx3     16x1       bgcz
-smoke          gx3     16x1       bgcz,debug
+smoke          gx3     16x1       bgczm,debug
 smoke          gx3     24x1       bgcskl,debug
 #tcraig, hangs nodes intermittently on izumi
 #restart        gx1     128x1      bgcsklclim,medium

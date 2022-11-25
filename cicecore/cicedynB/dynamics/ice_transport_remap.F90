@@ -633,6 +633,7 @@
 
       endif  ! nghost
 
+      ! tcraig, this OMP loop sometimes fails with cce/14.0.3, compiler bug??
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
       !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
       !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &

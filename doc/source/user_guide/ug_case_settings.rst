@@ -247,7 +247,9 @@ grid_nml
    "", "``pop``", "pop thickness file in cm in ascii format", ""
    "``close_boundaries``", "logical", "force two gridcell wide land mask on boundaries for rectangular grids", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
+   "``dxscale``", "real", "user defined rectgrid x-grid scale factor", "1.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
+   "``dyscale``", "real", "user defined rectgrid y-grid scale factor", "1.0"
    "``gridcpl_file``", "string", "input file for coupling grid info", "'unknown_gridcpl_file'"
    "``grid_atm``", "``A``", "atm forcing/coupling grid, all fields on T grid", "``A``"
    "", "``B``", "atm forcing/coupling grid, thermo fields on T grid, dyn fields on U grid", ""
@@ -277,12 +279,15 @@ grid_nml
    "", "default", "ocean/land mask set internally, land in upper left and lower right of domain, ", ""
    "", "file", "ocean/land mask setup read from file, see kmt_file", ""
    "", "wall", "ocean/land mask set at right edge of domain", ""
+   "``latrefrect``","real","lower left corner lat for rectgrid in deg", "71.35"
+   "``lonrefrect``","real","lower left corner lon for rectgrid in deg", "-156.5"
    "``nblyr``", "integer", "number of zbgc layers", "0"
    "``ncat``", "integer", "number of ice thickness categories", "0"
    "``nfsd``", "integer", "number of floe size categories", "1"
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
    "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
+   "``scale_dxdy``", "logical", "apply dxscale, dyscale to rectgrid", "``false``"
    "``use_bathymetry``", "logical", "use read in bathymetry file for seabedstress option", "``.false.``"
    "", "", "", ""
 
@@ -398,9 +403,6 @@ thermo_nml
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "", "", "", ""
 
-..
-   ktherm=0 has been deprecated
-   "", "``0``", "zero-layer thermodynamic model", ""
 
 .. _dynamics_nml:
 
@@ -464,7 +466,7 @@ dynamics_nml
    "``k1``", "real", "1st free parameter for landfast parameterization", "7.5"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"
    "``maxits_fgmres``", "integer", "maximum number of restarts for FGMRES solver", "1"
-   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
+   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "10"
    "``maxits_pgmres``", "integer", "maximum number of restarts for PGMRES preconditioner", "1"
    "``monitor_fgmres``", "logical", "write velocity norm at each FGMRES iteration", "``.false.``"
    "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
@@ -477,7 +479,7 @@ dynamics_nml
    "", "``ident``", "Don't use a preconditioner for the FGMRES solver", ""
    "", "``pgmres``", "Use GMRES as preconditioner for FGMRES solver", ""
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
-   "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-2"
+   "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-1"
    "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
    "``reltol_pgmres``", "real", "relative tolerance for PGMRES preconditioner", "1e-6"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
@@ -533,7 +535,7 @@ ponds_nml
    "``frzpnd``", "``cesm``", "CESM pond refreezing forumulation", "``cesm``"
    "", "``hlid``", "Stefan refreezing with pond ice thickness", ""
    "``hp1``", "real", "critical ice lid thickness for topo ponds in m", "0.01"
-   "``hs0``", "real", "snow depth of transition to bare sea ice in m", "0.03"
+   "``hs0``", "real", "snow depth of transition to bare sea ice in m", ""
    "``hs1``", "real", "snow depth of transition to pond ice in m", "0.03"
    "``pndaspect``", "real", "aspect ratio of pond changes (depth:area)", "0.8"
    "``rfracmax``", ":math:`0 \le r_{max} \le 1`", "maximum melt water added to ponds", "0.85"

@@ -55,15 +55,16 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
+      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: grid_ice, tmask, iceumask, iceemask, icenmask
+      use ice_grid, only: grid_ice, tmask
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
                            uvelE, vvelE, uvelN, vvelN
 
@@ -175,8 +176,8 @@
       !-----------------------------------------------------------------
       ! ocean stress (for bottom heat flux in thermo)
       !-----------------------------------------------------------------
-      call write_restart_field(nu_dump,0,strocnxT,'ruf8','strocnxT',1,diag)
-      call write_restart_field(nu_dump,0,strocnyT,'ruf8','strocnyT',1,diag)
+      call write_restart_field(nu_dump,0,strocnxT_iavg,'ruf8','strocnxT',1,diag)
+      call write_restart_field(nu_dump,0,strocnyT_iavg,'ruf8','strocnyT',1,diag)
 
       !-----------------------------------------------------------------
       ! internal stress
@@ -220,7 +221,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             work1(i,j,iblk) = c0
-            if (iceumask(i,j,iblk)) work1(i,j,iblk) = c1
+            if (iceUmask(i,j,iblk)) work1(i,j,iblk) = c1
          enddo
          enddo
       enddo
@@ -234,7 +235,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                work1(i,j,iblk) = c0
-               if (icenmask(i,j,iblk)) work1(i,j,iblk) = c1
+               if (iceNmask(i,j,iblk)) work1(i,j,iblk) = c1
             enddo
             enddo
          enddo
@@ -246,7 +247,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                work1(i,j,iblk) = c0
-               if (iceemask(i,j,iblk)) work1(i,j,iblk) = c1
+               if (iceEmask(i,j,iblk)) work1(i,j,iblk) = c1
             enddo
             enddo
          enddo
@@ -276,16 +277,16 @@
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
+      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: tmask, grid_type, grid_ice, &
-          iceumask, iceemask, icenmask
+      use ice_grid, only: tmask, grid_type, grid_ice, grid_average_X2Y
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
@@ -428,9 +429,9 @@
       if (my_task == master_task) &
            write(nu_diag,*) 'min/max ocean stress components'
 
-      call read_restart_field(nu_restart,0,strocnxT,'ruf8', &
+      call read_restart_field(nu_restart,0,strocnxT_iavg,'ruf8', &
            'strocnxT',1,diag,field_loc_center, field_type_vector)
-      call read_restart_field(nu_restart,0,strocnyT,'ruf8', &
+      call read_restart_field(nu_restart,0,strocnyT_iavg,'ruf8', &
            'strocnyT',1,diag,field_loc_center, field_type_vector)
 
       !-----------------------------------------------------------------
@@ -529,12 +530,12 @@
       call read_restart_field(nu_restart,0,work1,'ruf8', &
            'iceumask',1,diag,field_loc_center, field_type_scalar)
 
-      iceumask(:,:,:) = .false.
+      iceUmask(:,:,:) = .false.
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) iceumask(i,j,iblk) = .true.
+            if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
          enddo
          enddo
       enddo
@@ -546,12 +547,12 @@
             call read_restart_field(nu_restart,0,work1,'ruf8', &
                  'icenmask',1,diag,field_loc_center, field_type_scalar)
 
-            icenmask(:,:,:) = .false.
+            iceNmask(:,:,:) = .false.
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
-                  if (work1(i,j,iblk) > p5) icenmask(i,j,iblk) = .true.
+                  if (work1(i,j,iblk) > p5) iceNmask(i,j,iblk) = .true.
                enddo
                enddo
             enddo
@@ -562,12 +563,12 @@
             call read_restart_field(nu_restart,0,work1,'ruf8', &
                  'iceemask',1,diag,field_loc_center, field_type_scalar)
 
-            iceemask(:,:,:) = .false.
+            iceEmask(:,:,:) = .false.
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
-                  if (work1(i,j,iblk) > p5) iceemask(i,j,iblk) = .true.
+                  if (work1(i,j,iblk) > p5) iceEmask(i,j,iblk) = .true.
                enddo
                enddo
             enddo
@@ -707,13 +708,14 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks
+      use ice_dyn_shared, only: iceUmask
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT, strocnyT, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_gather_scatter, only: scatter_global_stress
-      use ice_grid, only: tmask, iceumask
+      use ice_grid, only: tmask
       use ice_read_write, only: ice_open, ice_read, ice_read_global
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
@@ -873,9 +875,9 @@
       if (my_task == master_task) &
            write(nu_diag,*) 'min/max ocean stress components'
 
-      call ice_read(nu_restart,0,strocnxT,'ruf8',diag, &
+      call ice_read(nu_restart,0,strocnxT_iavg,'ruf8',diag, &
                        field_loc_center, field_type_vector)
-      call ice_read(nu_restart,0,strocnyT,'ruf8',diag, &
+      call ice_read(nu_restart,0,strocnyT_iavg,'ruf8',diag, &
                        field_loc_center, field_type_vector)
 
       !-----------------------------------------------------------------
@@ -942,12 +944,12 @@
       call ice_read(nu_restart,0,work1,'ruf8',diag, &
                     field_loc_center, field_type_scalar)
 
-      iceumask(:,:,:) = .false.
+      iceUmask(:,:,:) = .false.
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) iceumask(i,j,iblk) = .true.
+            if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
          enddo
          enddo
       enddo

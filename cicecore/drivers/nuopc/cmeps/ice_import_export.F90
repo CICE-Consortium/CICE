@@ -11,7 +11,7 @@ module ice_import_export
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
   use ice_domain_size    , only : nfreq, nfsd
   use ice_exit           , only : abort_ice
-  use ice_flux           , only : strairxT, strairyT, strocnxT, strocnyT
+  use ice_flux           , only : strairxT, strairyT, strocnxT_iavg, strocnyT_iavg
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
@@ -36,9 +36,9 @@ module ice_import_export
   use ice_shr_methods    , only : chkerr, state_reset
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_query_parameters, icepack_query_tracer_flags
-  use icepack_intfc      , only : icepack_query_tracer_indices
   use icepack_intfc      , only : icepack_liquidus_temperature
   use icepack_intfc      , only : icepack_sea_freezing_temperature
+  use icepack_intfc      , only : icepack_query_tracer_indices
   use icepack_parameters , only : puny, c2
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
 #ifdef CESMCOUPLED
@@ -307,6 +307,7 @@ contains
 
   !==============================================================================
   subroutine ice_realize_fields(gcomp, mesh, flds_scalar_name, flds_scalar_num, rc)
+    use ice_scam, only : single_column
 
     ! input/output variables
     type(ESMF_GridComp)            :: gcomp
@@ -320,7 +321,7 @@ contains
     type(ESMF_State)            :: exportState
     type(ESMF_Field)            :: lfield
     integer                     :: numOwnedElements
-    integer                     :: i, j, iblk, n, k
+    integer                     :: i, j, iblk, n
     integer                     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block)                 :: this_block         ! block information for current block
     real(dbl_kind), allocatable :: mesh_areas(:)
@@ -361,10 +362,10 @@ contains
          tag=subname//':CICE_Import',&
          mesh=mesh, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
 #ifdef CESMCOUPLED
     ! Get mesh areas from second field - using second field since the
     ! first field is the scalar field
+    if (single_column) return
 
     call ESMF_MeshGet(mesh, numOwnedElements=numOwnedElements, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
@@ -889,6 +890,8 @@ contains
   !===============================================================================
   subroutine ice_export( exportState, rc )
 
+    use ice_scam, only : single_column
+
     ! input/output variables
     type(ESMF_State), intent(inout) :: exportState
     integer         , intent(out)   :: rc
@@ -911,12 +914,13 @@ contains
     real    (kind=dbl_kind) :: ailohi(nx_block,ny_block,max_blocks) ! fractional ice area
     real    (kind=dbl_kind) :: floediam(nx_block,ny_block,max_blocks)
     real    (kind=dbl_kind) :: floethick(nx_block,ny_block,max_blocks) ! ice thickness
-    real    (kind=dbl_kind) :: Tffresh
     logical (kind=log_kind) :: tr_fsd
     integer (kind=int_kind) :: nt_fsd
+    real    (kind=dbl_kind) :: Tffresh
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
     real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
+    logical (kind=log_kind), save :: first_call = .true.
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
 
@@ -963,6 +967,9 @@ contains
              ! ice fraction
              ailohi(i,j,iblk) = min(aice(i,j,iblk), c1)
 
+             ! surface temperature
+             Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
+
              if (tr_fsd) then
                 ! floe thickness (m)
                 if (aice(i,j,iblk) > puny) then
@@ -984,9 +991,6 @@ contains
                 floediam(i,j,iblk) = MAX(c2*floe_rad_c(1),workx)
              endif
 
-             ! surface temperature
-             Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
-
              ! wind stress  (on POP T-grid:  convert to lat-lon)
              workx = strairxT(i,j,iblk)                             ! N/m^2
              worky = strairyT(i,j,iblk)                             ! N/m^2
@@ -994,8 +998,8 @@ contains
              tauya(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
-             workx = -strocnxT(i,j,iblk)                            ! N/m^2
-             worky = -strocnyT(i,j,iblk)                            ! N/m^2
+             workx = -strocnxT_iavg(i,j,iblk)                       ! N/m^2
+             worky = -strocnyT_iavg(i,j,iblk)                       ! N/m^2
              tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
              tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
           enddo
@@ -1042,8 +1046,11 @@ contains
     !---------------------------------
 
     ! Zero out fields with tmask for proper coupler accumulation in ice free areas
-    call state_reset(exportState, c0, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (first_call .or. .not.single_column) then
+       call state_reset(exportState, c0, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       first_call = .false.
+    endif
 
     ! Create a temporary field
     allocate(tempfld(nx_block,ny_block,nblocks))
