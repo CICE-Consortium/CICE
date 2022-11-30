@@ -1344,22 +1344,6 @@ contains
        end do
     end if
 
-    ! ------
-    ! optional floe diameter and ice thickness to wave
-    ! ------
-
-    ! Sea ice thickness (m)
-    if (State_FldChk(exportState, 'Si_thick')) then
-       call state_setexport(exportState, 'Si_thick' , input=floethick , lmask=tmask, ifrac=ailohi, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
-    ! Sea ice floe diameter (m)
-    if (State_FldChk(exportState, 'Si_floediam')) then
-       call state_setexport(exportState, 'Si_floediam' , input=floediam , lmask=tmask, ifrac=ailohi, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    end if
-
   end subroutine ice_export
 
   !===============================================================================
