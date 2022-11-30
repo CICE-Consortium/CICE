@@ -78,7 +78,7 @@ contains
     use ice_diagnostics      , only: init_diags
     use ice_domain_size      , only: ncat, nfsd, nfreq
     use ice_dyn_eap          , only: init_eap
-    use ice_dyn_shared       , only: kdyn, init_dyn_shared
+    use ice_dyn_evp          , only: init_evp
     use ice_dyn_vp           , only: init_vp
     use ice_dyn_shared       , only: kdyn
     use ice_flux             , only: init_coupler_flux, init_history_therm
@@ -106,8 +106,9 @@ contains
     call init_calendar        ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
 
-    call init_dyn_shared(dt_dyn)    ! define dynamics parameters, variables
-    if (kdyn == 2) then
+    if (kdyn == 1) then
+       call init_evp          ! define evp dynamics parameters, variables
+    elseif (kdyn == 2) then
        call init_eap          ! define eap dynamics parameters, variables
     else if (kdyn == 3) then
        call init_vp           ! define vp dynamics parameters, variables
