@@ -23,6 +23,18 @@ EOFR
 endif
 
 #=======
+else if (${ICE_MACHCOMP} =~ gust*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpiexec --cpu-bind depth -n ${ntasks} -ppn ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
 else if (${ICE_MACHCOMP} =~ hobart* || ${ICE_MACHCOMP} =~ izumi*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR

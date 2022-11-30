@@ -641,6 +641,12 @@ contains
     call cice_init1
     call t_stopf ('cice_init1')
 
+    !-----------------------------------------------------------------
+    ! Advertise fields
+    !-----------------------------------------------------------------
+    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
 #endif
 
     !----------------------------------------------------------------------------

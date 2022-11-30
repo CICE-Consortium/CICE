@@ -9,7 +9,7 @@ This index defines many of the symbols used frequently in the CICE model
 code.  Namelist variables are partly included here but also documented
 elsewhere, see Section :ref:`tabnamelist`. All
 quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).  
+either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
 
 .. csv-table:: *Alphabetical Index*
    :header: " ", " ", " "
@@ -330,7 +330,7 @@ either Celsius or Kelvin units).
    "hpmin", "minimum melt pond depth (shortwave)", "0.005 m"
    "hpondn", "melt pond depth", "m"
    "hs_min", "minimum thickness for which :math:`T_s` is computed", "1.\ :math:`\times`\ 10\ :math:`^{-4}` m"
-   "hs0", "snow depth at which transition to ice occurs (dEdd)", "0.03 m"
+   "hs0", "snow depth at which transition to ice occurs (dEdd)", "m"
    "hs1", "snow depth of transition to pond ice", "0.03 m"
    "hs_ssl", "snow surface scattering layer thickness", "0.04 m"
    "Hstar", "determines mean thickness of ridged ice", "25. m"
@@ -699,7 +699,6 @@ either Celsius or Kelvin units).
    "tr_FY", "if true, use first-year area tracer", ""
    "tr_iage", "if true, use ice age tracer", ""
    "tr_lvl", "if true, use level ice area and volume tracers", ""
-   "tr_pond_cesm", "if true, use CESM melt pond scheme", ""
    "tr_pond_lvl", "if true, use level-ice melt pond scheme", ""
    "tr_pond_topo", "if true, use topo melt pond scheme", ""
    "trcr", "ice tracers", ""
@@ -772,9 +771,11 @@ either Celsius or Kelvin units).
    "zref", "reference height for stability", "10. m"
    "zTrf", "reference height for :math:`T_{ref}`, :math:`Q_{ref}`, :math:`U_{ref}`", "2. m"
    "zvir", "gas constant (water vapor)/gas constant (air) - 1", "0.606"
-
-..
-   ktherm=0 has been deprecated
+   "**Deprecated options and parameters**", "", ""
    "heat_capacity", "if true, use salinity-dependent thermodynamics", "T"
    "kseaice", "thermal conductivity of ice for zero-layer thermodynamics", "2.0 W/m/deg"
    "ktherm", "thermodynamic formulation (0 = zero-layer, 1 = :cite:`Bitz99`, 2 = mushy)", ""        
+   "tr_pond_cesm", "if true, use CESM melt pond scheme", ""
+
+.. 
+   new deprecation comments
