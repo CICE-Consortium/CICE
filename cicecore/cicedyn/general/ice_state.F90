@@ -188,12 +188,12 @@
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
-      aicen = c0  ! new from denise
-      vicen = c0  ! new from denise
-      vsnon = c0  ! new from denise
-      aicen_init = c0  ! new from denise
-      vicen_init = c0  ! new from denise
-      vsnon_init = c0  ! new from denise
+      aicen = c0
+      aicen_init = c0
+      vicen = c0
+      vicen_init = c0
+      vsnon = c0
+      vsnon_init = c0
 
       end subroutine alloc_state
 
