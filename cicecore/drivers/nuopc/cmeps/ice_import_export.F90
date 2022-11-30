@@ -181,13 +181,6 @@ contains
     if (flds_wiso) then
        call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
     end if
-    ! the following are advertised but might not be connected if they are not advertised in the
-    ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
-    ! from wave
-    if (flds_wave) then
-       call fldlist_add(fldsToIce_num, fldsToIce, 'Sw_elevation_spectrum', ungridded_lbound=1, &
-            ungridded_ubound=25)
-    end if
 
     ! from atmosphere
     call fldlist_add(fldsToIce_num, fldsToIce, 'inst_height_lowest'            )

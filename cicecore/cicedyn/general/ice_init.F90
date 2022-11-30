@@ -761,8 +761,8 @@
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
             call get_fileUnit(nu_diag)
-            write(tmpstr,'(a,i4.4)') "ice.log.task_",my_task
-            open(nu_diag,file=tmpstr)
+            write(tmpstr2,'(a,i4.4)') "ice.log.task_",my_task
+            open(nu_diag,file=tmpstr2)
          endif
       end if
       if (trim(ice_ic) /= 'default' .and. &
