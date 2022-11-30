@@ -554,29 +554,6 @@ contains
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! import wave elevation spectrum from wave  (frequencies 1-25, assume that nfreq is 25)
-    if (State_FldChk(importState, 'Sw_elevation_spectrum')) then
-       if (nfreq /= 25) then
-          call abort_ice(trim(subname)//": ERROR nfreq not equal to 25 ")
-       end if
-       call state_getfldptr(importState, 'Sw_elevation_spectrum', fldptr=dataPtr2d, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       do k = 1,nfreq
-          n = 0
-          do iblk = 1, nblocks
-             this_block = get_block(blocks_ice(iblk),iblk)
-             ilo = this_block%ilo; ihi = this_block%ihi
-             jlo = this_block%jlo; jhi = this_block%jhi
-             do j = jlo, jhi
-                do i = ilo, ihi
-                   n = n+1
-                   wave_spectrum(i,j,k,iblk) = dataPtr2d(k,n)
-                end do
-             end do
-          end do
-       end do
-    end if
-
     ! perform a halo update
 
     if (.not.prescribed_ice) then
