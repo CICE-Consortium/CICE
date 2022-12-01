@@ -1419,6 +1419,12 @@
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
          endif
       endif
+      if (ktherm == 1 .and. trim(saltflux_option) /= 'constant') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: ktherm = 1 and saltflux_option = ',trim(saltflux_option)
+            write(nu_diag,*) subname//' WARNING:   For consistency, set saltflux_option = constant'
+         endif
+      endif
 !tcraig
       if (ktherm == 1 .and. .not.sw_redist) then
          if (my_task == master_task) then
