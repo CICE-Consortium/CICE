@@ -177,6 +177,9 @@
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           meltt, melts, meltb, congel, snoice, &
+#ifdef GEOSCOUPLED
+          dfsurfndts_f, dflatndts_f,  &
+#endif
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
           send_i2x_per_cat, fswthrun_ai, dsnow
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
@@ -428,7 +431,8 @@
                       fsurf        = fsurf       (i,j,  iblk), &
                       fsurfn       = fsurfn      (i,j,:,iblk), &
 #ifdef GEOSCOUPLED
-                      dfsurfdt_in  = dfsurfn_f   (i,j,:,iblk), &
+                      dfsurfdt     = dfsurfndts_f(i,j,:,iblk), &
+                      dflatdt      = dflatndts_f (i,j,:,iblk), &
 #endif
                       fcondtop     = fcondtop    (i,j,  iblk), &
                       fcondtopn    = fcondtopn   (i,j,:,iblk), &
