@@ -117,7 +117,10 @@
          ice_IOUnitsInUse(ice_stderr) = .true.
          if (nu_diag >= 1 .and. nu_diag <= ice_IOUnitsMaxUnit) &
               ice_IOUnitsInUse(nu_diag) = .true. ! reserve unit nu_diag
+#ifdef CESMCOUPLED
+         ! CESM can have negative unit numbers.
          if (nu_diag < 0) nu_diag_set = .true.
+#endif
 
          call get_fileunit(nu_grid)
          call get_fileunit(nu_kmt)
@@ -240,6 +243,7 @@
          call release_fileunit(nu_rst_pointer)
          call release_fileunit(nu_history)
          call release_fileunit(nu_hdr)
+         ! CESM can have negative unit numbers
          if (nu_diag > 0 .and. nu_diag /= ice_stdout) call release_fileunit(nu_diag)
 
       end subroutine release_all_fileunits
