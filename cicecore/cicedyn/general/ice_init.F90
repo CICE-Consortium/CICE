@@ -17,11 +17,11 @@
       use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
           cm_to_m
       use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
+      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
 #ifdef CESMCOUPLED
-      use ice_fileunits, only: inst_suffix
+      use ice_fileunits, only: inst_suffix, nu_diag_set
 #endif
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
