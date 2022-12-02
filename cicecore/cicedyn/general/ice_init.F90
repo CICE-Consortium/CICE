@@ -3089,9 +3089,12 @@
             do i = ilo, ihi
                if (tmask(i,j)) then
                   ! place ice in high latitudes where ocean sfc is cold
+#ifdef CESMCOUPLED
+                  ! Option to use Tair instead.
+                  if ( (Tair (i,j) <= Tffresh) .and. &
+#else
                   if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
-! Option to use Tair instead.
-!                 if ( (Tair (i,j) <= Tffresh) .and. &
+#endif
                        (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
                         TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
                      icells = icells + 1
