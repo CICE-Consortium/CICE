@@ -64,7 +64,7 @@
       use ice_calendar, only: nstreams
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
-      use ice_namelist_mod, only: goto_nml_group
+      use ice_fileunits, only: goto_nml
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
@@ -97,7 +97,7 @@
          endif
 
          ! go to this namelist
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)

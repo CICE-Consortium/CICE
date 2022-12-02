@@ -124,7 +124,8 @@
       use ice_restoring, only: restore_ice
       use ice_timers, only: timer_stats
       use ice_memusage, only: memory_stats
-      use ice_namelist_mod, only: goto_nml_group
+      use ice_fileunits, only: goto_nml
+      
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -599,7 +600,7 @@
          nml_name = 'setup_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -624,7 +625,7 @@
          nml_name = 'grid_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -649,7 +650,7 @@
          nml_name = 'tracer_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -675,7 +676,7 @@
          nml_name = 'thermo_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -702,7 +703,7 @@
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
  
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -730,7 +731,7 @@
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -757,7 +758,7 @@
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -784,7 +785,7 @@
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
          
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
@@ -811,7 +812,7 @@
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
 
          ! goto namelist in file
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)

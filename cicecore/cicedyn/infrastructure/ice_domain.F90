@@ -104,7 +104,7 @@
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
-   use ice_namelist_mod, only: goto_nml_group
+   use ice_fileunits, only: goto_nml
 !----------------------------------------------------------------------
 !
 !  local variables
@@ -181,7 +181,7 @@
               file=__FILE__, line=__LINE__)
       endif
 
-      call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+      call goto_nml(nu_nml,trim(nml_name),nml_error)
       if (nml_error /= 0) then
          call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
               file=__FILE__, line=__LINE__)

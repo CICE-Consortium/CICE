@@ -81,7 +81,7 @@
       use ice_history_fsd, only: init_hist_fsd_2D, init_hist_fsd_3Df, &
           init_hist_fsd_4Df, f_afsd, f_afsdn
       use ice_restart_shared, only: restart
-      use ice_namelist_mod, only: goto_nml_group
+      use ice_fileunits, only: goto_nml
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -244,7 +244,7 @@
          endif
 
          ! seek to this namelist
-         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)

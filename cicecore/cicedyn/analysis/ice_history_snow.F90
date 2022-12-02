@@ -69,7 +69,7 @@
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
-      use ice_namelist_mod, only: goto_nml_group
+      use ice_fileunits, only: goto_nml
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -109,7 +109,7 @@
             endif
 
             ! goto namelist in file
-            call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+            call goto_nml(nu_nml,trim(nml_name),nml_error)
             if (nml_error /= 0) then
                call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                     file=__FILE__, line=__LINE__)
