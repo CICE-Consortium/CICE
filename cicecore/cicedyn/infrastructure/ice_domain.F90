@@ -104,7 +104,7 @@
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
-
+   use ice_namelist_mod, only: goto_nml_group
 !----------------------------------------------------------------------
 !
 !  local variables
@@ -113,6 +113,9 @@
 
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
+
+   character(len=char_len)      :: nml_name ! text namelist name
+   character(len=char_len_long) :: tmpstr2 ! for namelist check
 
    character(len=*), parameter :: subname = '(init_domain_blocks)'
 
@@ -167,26 +170,41 @@
    landblockelim     = .true.      ! on by default
 
    if (my_task == master_task) then
-      write(nu_diag,*) subname,' Reading domain_nml'
-
+      nml_name = 'domain_nml'
+      write(nu_diag,*) subname,' Reading ', trim(nml_name)
+      
       call get_fileunit(nu_nml)
       open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
       if (nml_error /= 0) then
          call abort_ice(subname//'ERROR: domain_nml open file '// &
-            trim(nml_filename), &
-            file=__FILE__, line=__LINE__)
+              trim(nml_filename), &
+              file=__FILE__, line=__LINE__)
       endif
 
+      call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+      if (nml_error /= 0) then
+         call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
+              file=__FILE__, line=__LINE__)
+      endif
+      
       nml_error =  1
       do while (nml_error > 0)
          read(nu_nml, nml=domain_nml,iostat=nml_error)
+         ! check if error
+         if (nml_error /= 0) then
+            ! backspace and re-read erroneous line
+            backspace(nu_nml)
+            read(nu_nml,fmt='(A)') tmpstr2
+            
+            call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                 trim(tmpstr2), &
+                 file=__FILE__, line=__LINE__)
+         endif
       end do
-      if (nml_error /= 0) then
-         call abort_ice(subname//'ERROR: domain_nml reading ', &
-            file=__FILE__, line=__LINE__)
-      endif
+
       close(nu_nml)
       call release_fileunit(nu_nml)
+
    endif
 
    call broadcast_scalar(nprocs,            master_task)

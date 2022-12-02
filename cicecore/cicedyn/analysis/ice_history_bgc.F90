@@ -271,6 +271,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field, &
           f_fsalt, f_fsalt_ai, f_sice
+      use ice_namelist_mod, only: goto_nml_group
 
       integer (kind=int_kind) :: n, ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
@@ -282,6 +283,9 @@
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
           skl_bgc, solve_zsal, z_tracers
+
+      character(len=char_len)      :: nml_name ! for namelist check
+      character(len=char_len_long) :: tmpstr2 ! for namelist check
 
       character(len=*), parameter  :: subname = '(init_hist_bgc_2D)'
 
@@ -305,24 +309,41 @@
       !-----------------------------------------------------------------
 
       if (my_task == master_task) then
-         write(nu_diag,*) subname,' Reading icefields_bgc_nml'
+        nml_name = 'icefields_bgc_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
 
+         ! check if can open file
          call get_fileunit(nu_nml)
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: icefields_bgc_nml open file '// &
+            call abort_ice(subname//'ERROR: '//trim(nml_name)//' open file '// &
                trim(nml_filename), &
                file=__FILE__, line=__LINE__)
          endif
 
+         ! seek to namelist in file
+         call goto_nml_group(nu_nml,trim(nml_name),nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_bgc_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+
+               call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                    trim(tmpstr2), &
+                    file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: icefields_bgc_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
+
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
