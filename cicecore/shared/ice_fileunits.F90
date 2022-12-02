@@ -80,8 +80,10 @@
       integer (kind=int_kind), public :: &
          nu_diag = ice_stdout  ! diagnostics output file, unit number may be overwritten
 
+#ifdef CESMCOUPLED
       logical (kind=log_kind), public :: &
          nu_diag_set = .false. ! flag to indicate whether nu_diag is already set
+#endif
 
       integer (kind=int_kind), public :: &
          ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below
@@ -243,8 +245,12 @@
          call release_fileunit(nu_rst_pointer)
          call release_fileunit(nu_history)
          call release_fileunit(nu_hdr)
+#ifdef CESMCOUPLED
          ! CESM can have negative unit numbers
          if (nu_diag > 0 .and. nu_diag /= ice_stdout) call release_fileunit(nu_diag)
+#else
+         if (nu_diag /= ice_stdout) call release_fileunit(nu_diag)
+#endif
 
       end subroutine release_all_fileunits
 
