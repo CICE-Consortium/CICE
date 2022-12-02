@@ -945,7 +945,8 @@
                                  uarea     (:,:,iblk), DminTarea (:,:,iblk), &
                                  strength  (:,:,iblk), shearU    (:,:,iblk), &
                                  zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
-                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk))
+                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
+                                 stress12T (:,:,iblk))
 
                enddo
                !$OMP END PARALLEL DO
@@ -1730,7 +1731,8 @@
                              uarea      , DminTarea , &
                              strength   , shearU    , &
                              zetax2T    , etax2T    , &
-                             stressp    , stressm    )
+                             stresspT   , stressmT  , &
+                             stress12T)
 
       use ice_dyn_shared, only: strain_rates_T, capping, &
                                 visc_replpress, e_factor
@@ -1744,24 +1746,25 @@
          indxTj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvelE     , & ! x-component of velocity (m/s) at the E point
-         vvelE     , & ! y-component of velocity (m/s) at the E point
-         uvelN     , & ! x-component of velocity (m/s) at the N point
-         vvelN     , & ! y-component of velocity (m/s) at the N point
-         dxN       , & ! width of N-cell through the middle (m)
-         dyE       , & ! height of E-cell through the middle (m)
-         dxT       , & ! width of T-cell through the middle (m)
-         dyT       , & ! height of T-cell through the middle (m)
-         strength  , & ! ice strength (N/m)
-         shearU    , & ! shearU local for this routine
-         uarea     , & ! area of u cell
-         DminTarea     ! deltaminEVP*tarea
+         uvelE    , & ! x-component of velocity (m/s) at the E point
+         vvelE    , & ! y-component of velocity (m/s) at the E point
+         uvelN    , & ! x-component of velocity (m/s) at the N point
+         vvelN    , & ! y-component of velocity (m/s) at the N point
+         dxN      , & ! width of N-cell through the middle (m)
+         dyE      , & ! height of E-cell through the middle (m)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         strength , & ! ice strength (N/m)
+         shearU   , & ! shearU local for this routine
+         uarea    , & ! area of u cell
+         DminTarea    ! deltaminEVP*tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         zetax2T , & ! zetax2 = 2*zeta (bulk viscosity)
-         etax2T  , & ! etax2  = 2*eta  (shear viscosity)
-         stressp , & ! sigma11+sigma22
-         stressm     ! sigma11-sigma22
+         zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
+         etax2T   , & ! etax2  = 2*eta  (shear viscosity)
+         stresspT , & ! sigma11+sigma22
+         stressmT , & ! sigma11-sigma22
+         stress12T    ! sigma12
 
       ! local variables
 
@@ -1769,11 +1772,12 @@
          i, j, ij
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
-        divT     , & ! divergence at T point
-        tensionT     ! tension at T point
+        divT      , & ! divergence at T point
+        tensionT      ! tension at T point
 
       real (kind=dbl_kind) :: &
         shearTsqr , & ! strain rates squared at T point
+        shearT    , & ! strain rate at T point
         DeltaT    , & ! delt at T point
         rep_prsT      ! replacement pressure at T point
 
@@ -1807,6 +1811,12 @@
                     + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
                     / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
 
+         shearT    = (shearU(i  ,j  )    * uarea(i  ,j  )  &
+                    + shearU(i  ,j-1)    * uarea(i  ,j-1)  &
+                    + shearU(i-1,j-1)    * uarea(i-1,j-1)  &
+                    + shearU(i-1,j  )    * uarea(i-1,j  )) &
+                    / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
 
          !-----------------------------------------------------------------
@@ -1822,11 +1832,14 @@
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-         stressp(i,j)  = (stressp(i,j)*(c1-arlx1i*revp) &
-                         + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
+         stresspT(i,j)  = (stresspT (i,j)*(c1-arlx1i*revp) &
+                          + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
 
-         stressm(i,j)  = (stressm(i,j)*(c1-arlx1i*revp) &
-                         + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
+         stressmT(i,j)  = (stressmT (i,j)*(c1-arlx1i*revp) &
+                          + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
+
+         stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) &
+                          + arlx1i*p5*etax2T(i,j)*shearT    ) * denom1
 
       enddo                     ! ij
 
@@ -1851,7 +1864,7 @@
                              uarea    ,            &
                              etax2U   , deltaU    ,&
                              strengthU, shearU    ,&
-                             stress12)
+                             stress12U)
 
       use ice_dyn_shared, only: visc_replpress, &
                                 visc_method, deltaminEVP, capping
@@ -1872,7 +1885,7 @@
          strengthU    ! ice strength at the U point
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         stress12     ! sigma12
+         stress12U    ! sigma12
 
       ! local variables
 
@@ -1891,15 +1904,15 @@
       ! viscosities and replacement pressure at U point
       ! avg_zeta: Bouillon et al. 2013, C1 method of Kimmritz et al. 2016
       ! avg_strength: C2 method of Kimmritz et al. 2016
-      ! if outside do and stress12 equation repeated in each loop for performance
+      ! if outside do and stress12U equation repeated in each loop for performance
       !-----------------------------------------------------------------
 
       if (visc_method == 'avg_zeta') then
          do ij = 1, icellU
             i = indxUi(ij)
             j = indxUj(ij)
-            stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) &
-                            + arlx1i*p5*etax2U(i,j)*shearU(i,j)) * denom1
+            stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
+                             + arlx1i*p5*etax2U(i,j)*shearU(i,j)) * denom1
          enddo
 
       elseif (visc_method == 'avg_strength') then
@@ -1911,8 +1924,8 @@
             ! minimal extra calculations here even though it seems like there is
             call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
                                  lzetax2U      , letax2U  , lrep_prsU  , capping)
-            stress12(i,j) = (stress12(i,j)*(c1-arlx1i*revp) &
-                            + arlx1i*p5*letax2U*shearU(i,j)) * denom1
+            stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
+                             + arlx1i*p5*letax2U*shearU(i,j)) * denom1
          enddo
 
       endif
@@ -1976,7 +1989,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
-        shearT    , & ! sheat at T point
+        shearT    , & ! shear at T point
         DeltaT        ! delt at T point
 
       real (kind=dbl_kind) :: &
@@ -1991,7 +2004,7 @@
 
       call strain_rates_T (nx_block   , ny_block     , &
                            icellT     ,                &
-                           indxTi  (:), indxTj  (:)  , &
+                           indxTi(:)  , indxTj  (:)  , &
                            uvelE (:,:), vvelE   (:,:), &
                            uvelN (:,:), vvelN   (:,:), &
                            dxN   (:,:), dyE     (:,:), &
@@ -2046,8 +2059,7 @@
                              stresspU  , stressmU, &
                              stress12U)
 
-      use ice_dyn_shared, only: strain_rates_U, &
-                                visc_replpress, &
+      use ice_dyn_shared, only: visc_replpress, &
                                 visc_method, deltaminEVP, capping
 
       integer (kind=int_kind), intent(in) :: &
@@ -2059,7 +2071,7 @@
          indxUj       ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uarea        , & ! area of U-cell (m^2)
+         uarea    , & ! area of U-cell (m^2)
          zetax2U  , & ! 2*zeta at U point
          etax2U   , & ! 2*eta at U point
          strengthU, & ! ice strength at U point
