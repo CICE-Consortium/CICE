@@ -1779,6 +1779,7 @@
         shearTsqr , & ! strain rates squared at T point
         shearT    , & ! strain rate at T point
         DeltaT    , & ! delt at T point
+        uareaavgr , & ! 1 / uarea avg
         rep_prsT      ! replacement pressure at T point
 
       character(len=*), parameter :: subname = '(stressC_T)'
@@ -1805,17 +1806,19 @@
          ! U point values (Bouillon et al., 2013, Kimmritz et al., 2016
          !-----------------------------------------------------------------
 
+         uareaavgr = c1/(uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+
          shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
                     + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
                     + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
                     + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
-                    / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+                    * uareaavgr
 
          shearT    = (shearU(i  ,j  )    * uarea(i  ,j  )  &
                     + shearU(i  ,j-1)    * uarea(i  ,j-1)  &
                     + shearU(i-1,j-1)    * uarea(i-1,j-1)  &
                     + shearU(i-1,j  )    * uarea(i-1,j  )) &
-                    / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+                    * uareaavgr
 
          DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
 
