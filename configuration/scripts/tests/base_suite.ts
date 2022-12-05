@@ -22,6 +22,7 @@ restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05
 restart        gx3     8x2        alt06
 restart        gx3     8x3        alt07
+restart        gx3     8x3        salt
 restart        gx3    18x2        debug,maskhalo
 restart        gx3     6x2        alt01,debug,short
 restart        gx3     8x2        alt02,debug,short
