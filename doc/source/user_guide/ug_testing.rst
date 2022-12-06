@@ -23,7 +23,8 @@ The testing scripts support several features
  - Ability to compare results to prior baselines to verify bit-for-bit (``--bcmp``)
  - Ability to define where baseline tests are stored (``--bdir``)
  - Ability to compare tests against each other (``--diff``)
- - Ability to set account number (``--acct``), which is otherwise not set and may result in tests not being submitted
+ - Ability to set or overide the batch account number (``--acct``) and queue name (``--queue``)
+ - Ability to control how test suites execute (``--setup-only``, ``--setup-build``, ``--setup-build-run``, ``--setup-build-submit``)
 
 .. _indtests:
 
@@ -301,22 +302,6 @@ results.csh script in the testsuite.[testid]::
   cd testsuite.[testid]
   ./results.csh
 
-The script **create_fails.csh** will process the output from results.csh and generate a new 
-test suite file, **fails.ts**, from the failed tests.  
-**fails.ts** can then be edited and passed into ``cice.setup --suite fails.ts ...`` to rerun 
-subsets of failed tests to more efficiently move thru the development, testing, and 
-validation process.  However, a full test suite should be run on the final development
-version of the code.
-
-To report the test results, as is required for Pull Requests to be accepted into 
-the master the CICE Consortium code see :ref:`testreporting`.
-
-If using the ``--tdir`` option, that directory must not exist before the script is run.  The tdir directory will be
-created by the script and it will be populated by all tests as well as scripts that support the
-test suite::
-
-  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
-
 Multiple suites are supported on the command line as comma separated arguments::
 
   ./cice.setup --suite base_suite,decomp_suite --mach wolf --env gnu --testid myid
@@ -329,9 +314,48 @@ The option settings defined at the command line have precedence over the test su
 values if there are conflicts.
 
 The predefined test suites are defined under **configuration/scripts/tests** and 
-the files defining the suites
-have a suffix of .ts in that directory.  The format for the test suite file 
-is relatively simple.  
+the files defining the suites have a suffix of .ts in that directory.  Some of the 
+available tests suites are
+
+``quick_suite``
+  consists of a handful of basic CICE tests
+ 
+``base_suite``
+  consists of a much large suite of tests covering much of the CICE functionality
+
+``decomp_suite``
+  checks that different decompositions and pe counts produce bit-for-bit results
+
+``omp_suite``
+  checks that OpenMP single thread and multi-thread cases are bit-for-bit identical
+
+``io_suite``
+  tests the various IO options including binary, netcdf, and pio.  PIO should be installed locally and accessible to the CICE build system to make full use of this suite.
+
+``perf_suite``
+  runs a series of tests to evaluate model scaling and performance
+
+``reprosum_suite``
+  verifies that CICE log files are bit-for-bit with different decompositions and pe counts when the bfbflag is set to reprosum
+
+``gridsys_suite``
+  tests B, C, and CD grid_ice configurations
+
+``prod_suite`` 
+  consists of a handful of tests running 5 to 10 model years and includes some QC testing.  These tests will be relatively expensive and take more time compared to other suites.
+
+``unittest_suite``
+  runs unit tests in the CICE repository
+
+``travis_suite``
+  consists of a small suite of tests suitable for running on low pe counts.  This is the suite used with Github Actions for CI in the workflow.
+
+``first_suite``
+  this small suite of tests is redundant with tests in other suites.  It runs several of the critical baseline tests that other test compare to.  It can improve testing turnaround if listed first in a series of test suites.
+
+When running multiple suites on the command line (i.e. ``--suite first_suite,base_suite,omp_suite``) the suites will be run in the order defined by the user and redundant tests across multiple suites will be created and executed only once.
+
+The format for the test suite file is relatively simple.  
 It is a text file with white space delimited 
 columns that define a handful of values in a specific order.  
 The first column is the test name, the second the grid, the third the pe count, 
@@ -422,6 +446,22 @@ The *cice.setup** options ``--setup-only``, ``--setup-build``, and ``--setup-bui
 which means by default the test suite builds and submits the jobs.  By defining other values for those environment variables, users can control the suite script.  When using **suite.submit** manually, the string ``true`` (all lowercase) is the only string that will turn on a feature, and both SUITE_RUN and SUITE_SUBMIT cannot be true at the same time.  
 
 By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See :ref:`examplesuites` for an example.
+
+The script **create_fails.csh** will process the output from results.csh and generate a new 
+test suite file, **fails.ts**, from the failed tests.  
+**fails.ts** can then be edited and passed into ``cice.setup --suite fails.ts ...`` to rerun 
+subsets of failed tests to more efficiently move thru the development, testing, and 
+validation process.  However, a full test suite should be run on the final development
+version of the code.
+
+To report the test results, as is required for Pull Requests to be accepted into 
+the master the CICE Consortium code see :ref:`testreporting`.
+
+If using the ``--tdir`` option, that directory must not exist before the script is run.  The tdir directory will be
+created by the script and it will be populated by all tests as well as scripts that support the
+test suite::
+
+  ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
 
 
 .. _examplesuites:
@@ -695,9 +735,12 @@ The following are brief descriptions of some of the current unit tests,
    both sets of software are tested independently and correctness is verified.
  - **calchk** is a unit test that exercises the CICE calendar over 100,000 years and verifies correctness.
    This test does not depend on the CICE initialization.
+ - **gridavgchk** is a unit test that exercises the CICE grid_average_X2Y methods and verifies results.
  - **helloworld** is a simple test that writes out helloworld and uses no CICE infrastructure.
    This tests exists to demonstrate how to build a unit test by specifying the object files directly
    in the Makefile
+ - **optargs** is a unit test that tests passing optional arguments down a calling tree and verifying
+   that the optional attribute is preserved correctly.
  - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
    that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
    the model prior to running a suite of unit validation tests to verify correctness.

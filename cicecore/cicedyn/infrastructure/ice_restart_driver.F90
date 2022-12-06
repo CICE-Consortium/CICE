@@ -55,7 +55,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
       use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
-      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask
+      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask, kdyn
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -215,45 +215,52 @@
       !-----------------------------------------------------------------
       ! ice mask for dynamics
       !-----------------------------------------------------------------
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = c0
-            if (iceUmask(i,j,iblk)) work1(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call write_restart_field(nu_dump,0,work1,'ruf8','iceumask',1,diag)
-
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
-
+      if (kdyn > 0) then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
                work1(i,j,iblk) = c0
-               if (iceNmask(i,j,iblk)) work1(i,j,iblk) = c1
+               if (iceUmask(i,j,iblk)) work1(i,j,iblk) = c1
             enddo
             enddo
          enddo
          !$OMP END PARALLEL DO
-         call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
+         call write_restart_field(nu_dump,0,work1,'ruf8','iceumask',1,diag)
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = c0
-               if (iceEmask(i,j,iblk)) work1(i,j,iblk) = c1
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-         call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  work1(i,j,iblk) = c0
+                  if (iceNmask(i,j,iblk)) work1(i,j,iblk) = c1
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+            call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
+
+            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  work1(i,j,iblk) = c0
+                  if (iceEmask(i,j,iblk)) work1(i,j,iblk) = c1
+               enddo
+               enddo
+            enddo
+            !$OMP END PARALLEL DO
+            call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
+         endif
+      else
+         work1(:,:,:) = c0
+         call write_restart_field(nu_dump,0,work1,'ruf8','iceumask',1,diag)
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            call write_restart_field(nu_dump,0,work1,'ruf8','icenmask',1,diag)
+            call write_restart_field(nu_dump,0,work1,'ruf8','iceemask',1,diag)
+         endif
       endif
 
       ! for mixed layer model
@@ -277,7 +284,7 @@
       use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
-      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask
+      use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask,kdyn
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -524,57 +531,76 @@
       !-----------------------------------------------------------------
       ! ice mask for dynamics
       !-----------------------------------------------------------------
-      if (my_task == master_task) &
-           write(nu_diag,*) 'ice mask for dynamics'
+      if (kdyn > 0) then
 
-      call read_restart_field(nu_restart,0,work1,'ruf8', &
-           'iceumask',1,diag,field_loc_center, field_type_scalar)
-
-      iceUmask(:,:,:) = .false.
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
-
-         if (query_field(nu_restart,'icenmask')) then
+         if (my_task == master_task) &
+             write(nu_diag,*) 'ice mask for dynamics'
+         if (query_field(nu_restart,'iceumask')) then
             call read_restart_field(nu_restart,0,work1,'ruf8', &
-                 'icenmask',1,diag,field_loc_center, field_type_scalar)
+                'iceumask',1,diag,field_loc_center, field_type_scalar)
 
-            iceNmask(:,:,:) = .false.
+            iceUmask(:,:,:) = .false.
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
-                  if (work1(i,j,iblk) > p5) iceNmask(i,j,iblk) = .true.
+                  if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
                enddo
                enddo
             enddo
             !$OMP END PARALLEL DO
          endif
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-         if (query_field(nu_restart,'iceemask')) then
-            call read_restart_field(nu_restart,0,work1,'ruf8', &
-                 'iceemask',1,diag,field_loc_center, field_type_scalar)
+            if (query_field(nu_restart,'icenmask')) then
+               call read_restart_field(nu_restart,0,work1,'ruf8', &
+                    'icenmask',1,diag,field_loc_center, field_type_scalar)
 
-            iceEmask(:,:,:) = .false.
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-            do iblk = 1, nblocks
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  if (work1(i,j,iblk) > p5) iceEmask(i,j,iblk) = .true.
+               iceNmask(:,:,:) = .false.
+               !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+               do iblk = 1, nblocks
+                  do j = 1, ny_block
+                  do i = 1, nx_block
+                     if (work1(i,j,iblk) > p5) iceNmask(i,j,iblk) = .true.
+                  enddo
+                  enddo
                enddo
+               !$OMP END PARALLEL DO
+            endif
+
+            if (query_field(nu_restart,'iceemask')) then
+               call read_restart_field(nu_restart,0,work1,'ruf8', &
+                    'iceemask',1,diag,field_loc_center, field_type_scalar)
+
+               iceEmask(:,:,:) = .false.
+               !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+               do iblk = 1, nblocks
+                  do j = 1, ny_block
+                  do i = 1, nx_block
+                     if (work1(i,j,iblk) > p5) iceEmask(i,j,iblk) = .true.
+                  enddo
+                  enddo
                enddo
-            enddo
-            !$OMP END PARALLEL DO
+               !$OMP END PARALLEL DO
+            endif
          endif
-
+      else
+         if (my_task == master_task) &
+            write(nu_diag,*) 'ice mask for dynamics - not used, however mandatory to read in binary files'
+         if (query_field(nu_restart,'iceumask')) then
+            call read_restart_field(nu_restart,0,work1,'ruf8', &
+               'iceumask',1,diag,field_loc_center, field_type_scalar)
+         endif
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            if (query_field(nu_restart,'icenmask')) then
+               call read_restart_field(nu_restart,0,work1,'ruf8', &
+                    'icenmask',1,diag,field_loc_center, field_type_scalar)
+            endif
+            if (query_field(nu_restart,'iceemask')) then
+               call read_restart_field(nu_restart,0,work1,'ruf8', &
+                    'iceemask',1,diag,field_loc_center, field_type_scalar)
+            endif
+         endif
       endif
 
       ! set Tsfcn to c0 on land

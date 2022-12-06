@@ -3,7 +3,7 @@
  module ice_boundary
 
 !  This module contains data types and routines for updating halo
-!  regions (ghost cells) using MPI calls
+!  regions (ghost cells)
 !
 !  2007-07-19: Phil Jones, Yoshi Yoshida, John Dennis
 !              new naming conventions, optimizations during
@@ -13,13 +13,12 @@
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
 
-   use mpi   ! MPI Fortran module
    use ice_kinds_mod
-   use ice_communicate, only: my_task, mpiR4, mpiR8, mpitagHalo
+   use ice_communicate, only: my_task
    use ice_constants, only: field_type_scalar, &
-         field_type_vector, field_type_angle, &
-         field_loc_center,  field_loc_NEcorner, &
-         field_loc_Nface, field_loc_Eface
+           field_type_vector, field_type_angle, &
+           field_loc_center,  field_loc_NEcorner, &
+           field_loc_Nface, field_loc_Eface
    use ice_global_reductions, only: global_maxval
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -33,7 +32,7 @@
            ice_blocksSouthEast, ice_blocksSouthWest, &
            ice_blocksGetNbrID, get_block_parameter
    use ice_distribution, only: distrb, &
-          ice_distributionGetBlockLoc, ice_distributionGet
+           ice_distributionGetBlockLoc, ice_distributionGet
 
    implicit none
    private
@@ -42,8 +41,6 @@
       integer (int_kind) ::  &
          communicator,     &! communicator to use for update messages
          numLocalBlocks,   &! number of local blocks, needed for halo fill
-         numMsgSend,       &! number of messages to send halo update
-         numMsgRecv,       &! number of messages to recv halo update
          numLocalCopies,   &! num local copies for halo update
          tripoleRows        ! number of rows in tripole buffer
 
@@ -51,27 +48,17 @@
          tripoleTFlag       ! NS boundary is a tripole T-fold
 
       integer (int_kind), dimension(:), pointer :: &
-         blockGlobalID,    &! list of local block global IDs, needed for halo fill
-         recvTask,         &! task from which to recv each msg
-         sendTask,         &! task to   which to send each msg
-         sizeSend,         &! size of each sent message
-         sizeRecv,         &! size of each recvd message
-         tripSend,         &! send msg tripole flag, 0=non-zipper block
-         tripRecv           ! recv msg tripole flag, for masked halos
+         blockGlobalID      ! list of local block global IDs, needed for halo fill
 
       integer (int_kind), dimension(:,:), pointer :: &
          srcLocalAddr,     &! src addresses for each local copy
          dstLocalAddr       ! dst addresses for each local copy
 
-      integer (int_kind), dimension(:,:,:), pointer :: &
-         sendAddr,         &! src addresses for each sent message
-         recvAddr           ! dst addresses for each recvd message
-
    end type
 
-   public :: ice_HaloCreate, &
+   public :: ice_HaloCreate,  &
              ice_HaloMask, &
-             ice_HaloUpdate, &
+             ice_HaloUpdate,  &
              ice_HaloUpdate_stress, &
              ice_HaloExtrapolate, &
              ice_HaloDestroy, &
@@ -98,41 +85,17 @@
 
 !-----------------------------------------------------------------------
 !
-!  to prevent frequent allocate-deallocate for 2d halo updates, create
-!  a static 2d buffer to be allocated once at creation.  if future
-!  creation needs larger buffer, resize during the creation.
-!
-!-----------------------------------------------------------------------
-
-   integer (int_kind), public :: &
-      bufSizeSend,    &! max buffer size for send messages
-      bufSizeRecv      ! max buffer size for recv messages
-
-   integer (int_kind), dimension(:,:), allocatable, public :: &
-      bufSendI4,     &! buffer for use to send in 2D i4 halo updates
-      bufRecvI4       ! buffer for use to recv in 2D i4 halo updates
-
-   real (real_kind), dimension(:,:), allocatable, public :: &
-      bufSendR4,     &! buffer for use to send in 2D r4 halo updates
-      bufRecvR4       ! buffer for use to recv in 2D r4 halo updates
-
-   real (dbl_kind), dimension(:,:), allocatable, public :: &
-      bufSendR8,     &! buffer for use to send in 2D r8 halo updates
-      bufRecvR8       ! buffer for use to recv in 2D r8 halo updates
-
-!-----------------------------------------------------------------------
-!
 !  global buffers for tripole boundary
 !
 !-----------------------------------------------------------------------
 
-   integer (int_kind), dimension(:,:), allocatable, public :: &
+   integer (int_kind), dimension(:,:), allocatable :: &
       bufTripoleI4
 
-   real (real_kind), dimension(:,:), allocatable, public :: &
+   real (real_kind), dimension(:,:), allocatable :: &
       bufTripoleR4
 
-   real (dbl_kind), dimension(:,:), allocatable, public :: &
+   real (dbl_kind), dimension(:,:), allocatable :: &
       bufTripoleR8
 
 !***********************************************************************
@@ -178,15 +141,10 @@ contains
       seBlock, swBlock,            &! block id southeast, southwest nbrs
       srcProc, dstProc,            &! source, dest processor locations
       srcLocalID, dstLocalID,      &! local block index of src,dst blocks
-      maxTmp,                      &! temp for global maxval
       blockSizeX,                  &! size of default physical domain in X
       blockSizeY,                  &! size of default physical domain in Y
-      maxSizeSend, maxSizeRecv,    &! max buffer sizes
-      numMsgSend, numMsgRecv,      &! number of messages for this halo
       eastMsgSize, westMsgSize,    &! nominal sizes for e-w msgs
       northMsgSize, southMsgSize,  &! nominal sizes for n-s msgs
-      tripoleMsgSize,              &! size for tripole messages
-      tripoleMsgSizeOut,           &! size for tripole messages
       tripoleRows,                 &! number of rows in tripole buffer
       cornerMsgSize, msgSize        ! nominal size for corner msg
 
@@ -194,7 +152,6 @@ contains
       sendCount, recvCount          ! count number of words to each proc
 
    logical (log_kind) :: &
-      resize,               &! flag for resizing buffers
       tripoleBlock,         &! flag for identifying north tripole blocks
       tripoleTFlag           ! flag for processing tripole buffer as T-fold
 
@@ -220,20 +177,20 @@ contains
    eastMsgSize  = nghost*blockSizeY
    westMsgSize  = nghost*blockSizeY
    southMsgSize = nghost*blockSizeX
-   northMsgSize = nghost*blockSizeX
    cornerMsgSize = nghost*nghost
    tripoleRows = nghost+1
 
    !*** store some block info to fill haloes properly
    call ice_distributionGet(dist, numLocalBlocks=halo%numLocalBlocks)
-   allocate(halo%blockGlobalID(halo%numLocalBlocks))
    if (halo%numLocalBlocks > 0) then
+      allocate(halo%blockGlobalID(halo%numLocalBlocks))
       call ice_distributionGet(dist, blockGlobalID=halo%blockGlobalID)
    endif
 
    if (nsBoundaryType == 'tripole' .or. nsBoundaryType == 'tripoleT') then
       tripoleTFlag = (nsBoundaryType == 'tripoleT')
       if (tripoleTflag) tripoleRows = tripoleRows+1
+      northMsgSize = tripoleRows*blockSizeX
 
       !*** allocate tripole message buffers if not already done
 
@@ -251,11 +208,10 @@ contains
 
    else
       tripoleTFlag = .false.
+      northMsgSize = nghost*blockSizeX
    endif
    halo%tripoleTFlag = tripoleTFlag
    halo%tripoleRows = tripoleRows
-   tripoleMsgSize = tripoleRows*blockSizeX
-   tripoleMsgSizeOut = tripoleRows*nx_block
 
 !-----------------------------------------------------------------------
 !
@@ -287,39 +243,34 @@ contains
                                       ewBoundaryType, nsBoundaryType)
       if (northBlock > 0) then
          tripoleBlock = .false.
-         msgSize = northMsgSize
          call ice_distributionGetBlockLoc(dist, northBlock, dstProc, &
                                           dstLocalID)
       else if (northBlock < 0) then ! tripole north row, count block
          tripoleBlock = .true.
-         msgSize = tripoleMsgSize
          call ice_distributionGetBlockLoc(dist, abs(northBlock), &
                                  dstProc, dstLocalID)
       else
          tripoleBlock = .false.
-         msgSize = northMsgSize
          dstProc = 0
          dstLocalID = 0
       endif
 
       call ice_HaloIncrementMsgCount(sendCount, recvCount,           &
-                                     srcProc, dstProc, msgSize)
+                                     srcProc, dstProc, northMsgSize)
 
       !*** if a tripole boundary block, also create a local
       !*** message into and out of tripole buffer
 
       if (tripoleBlock) then
-         !*** copy out of tripole buffer - includes halo
+         !*** copy in
          call ice_HaloIncrementMsgCount(sendCount, recvCount,        &
                                         srcProc, srcProc,            &
-                                        tripoleMsgSizeOut)
+                                        northMsgSize)
 
-         !*** copy in only required if dstProc not same as srcProc
-         if (dstProc /= srcProc) then
-            call ice_HaloIncrementMsgCount(sendCount, recvCount,  &
+         !*** copy out of tripole buffer - includes halo
+         call ice_HaloIncrementMsgCount(sendCount, recvCount,     &
                                            srcProc, srcProc,      &
-                                           msgSize)
-         endif
+                                           (nghost+1)*nx_block)
       endif
 
       !*** find south neighbor block and add to message count
@@ -358,9 +309,10 @@ contains
       !*** needs a chunk of the north boundary, so add a message
       !*** for that
 
-      if (tripoleBlock .and. dstProc /= srcProc) then
+!echmod      if (tripoleBlock .and. dstProc /= srcProc) then
+      if (tripoleBlock) then
          call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
-                                     srcProc, dstProc, tripoleMsgSize)
+                                     srcProc, dstProc, northMsgSize)
       endif
 
       !*** find west neighbor block and add to message count
@@ -383,9 +335,10 @@ contains
       !*** needs a chunk of the north boundary, so add a message
       !*** for that
 
-      if (tripoleBlock .and. dstProc /= srcProc) then
+!echmod      if (tripoleBlock .and. dstProc /= srcProc) then
+      if (tripoleBlock) then
          call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
-                                     srcProc, dstProc, tripoleMsgSize)
+                                     srcProc, dstProc, northMsgSize)
       endif
 
       !*** find northeast neighbor block and add to message count
@@ -400,7 +353,7 @@ contains
                                           dstLocalID)
 
       else if (neBlock < 0) then ! tripole north row
-         msgSize = tripoleMsgSize  ! tripole needs whole top row of block
+         msgSize = northMsgSize  ! tripole needs whole top row of block
 
          call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
                                           dstLocalID)
@@ -424,7 +377,7 @@ contains
                                           dstLocalID)
 
       else if (nwBlock < 0) then ! tripole north row, count block
-         msgSize = tripoleMsgSize ! tripole NE corner update - entire row needed
+         msgSize = northMsgSize ! tripole NE corner update - entire row needed
 
          call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
                                           dstLocalID)
@@ -469,91 +422,6 @@ contains
       call ice_HaloIncrementMsgCount(sendCount, recvCount,            &
                                      srcProc, dstProc, cornerMsgSize)
 
-      !*** for tripole grids with padded domain, padding will
-      !*** prevent tripole buffer from getting all the info
-      !*** it needs - must extend footprint at top boundary
-
-      if (tripoleBlock                  .and. & !tripole
-          mod(nxGlobal,blockSizeX) /= 0) then   !padding
-
-         !*** find east2 neighbor block and add to message count
-
-         eastBlock = ice_blocksGetNbrID(iBlock, ice_blocksEast2,     &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (eastBlock > 0) then
-            call ice_distributionGetBlockLoc(dist, eastBlock, dstProc, &
-                                             dstLocalID)
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloIncrementMsgCount(sendCount, recvCount,       &
-                                     srcProc, dstProc, tripoleMsgSize)
-         endif
-
-         !*** find EastNorthEast neighbor block and add to message count
-
-         neBlock = ice_blocksGetNbrID(iBlock, ice_blocksEastNorthEast, &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (neBlock < 0) then ! tripole north row
-            msgSize = tripoleMsgSize  ! tripole needs whole top row of block
-
-            call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
-                                             dstLocalID)
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloIncrementMsgCount(sendCount, recvCount,   &
-                                        srcProc, dstProc, msgSize)
-         endif
-
-         !*** find west2 neighbor block and add to message count
-
-         westBlock = ice_blocksGetNbrID(iBlock, ice_blocksWest2,     &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (westBlock > 0) then
-            call ice_distributionGetBlockLoc(dist, westBlock, dstProc, &
-                                             dstLocalID)
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloIncrementMsgCount(sendCount, recvCount,       &
-                                     srcProc, dstProc, tripoleMsgSize)
-         endif
-
-         !*** find WestNorthWest neighbor block and add to message count
-
-         nwBlock = ice_blocksGetNbrID(iBlock, ice_blocksWestNorthWest, &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (nwBlock < 0) then ! tripole north row
-            msgSize = tripoleMsgSize  ! tripole needs whole top row of block
-
-            call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
-                                             dstLocalID)
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloIncrementMsgCount(sendCount, recvCount,   &
-                                        srcProc, dstProc, msgSize)
-         endif
-
-      endif
-
    end do msgCountLoop
 
 !-----------------------------------------------------------------------
@@ -570,101 +438,11 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  now count the number of actual messages to be sent and received
-!
-!-----------------------------------------------------------------------
-
-   numMsgSend = count(sendCount /= 0)
-   numMsgRecv = count(recvCount /= 0)
-   halo%numMsgSend = numMsgSend
-   halo%numMsgRecv = numMsgRecv
-
-!-----------------------------------------------------------------------
-!
-!  allocate buffers for 2-d halo updates to save time later
-!  if the buffers are already allocated by previous create call,
-!   check to see if they need to be re-sized
-!
-!-----------------------------------------------------------------------
-
-   maxTmp = maxval(sendCount)
-   maxSizeSend = global_maxval(maxTmp, dist)
-   maxTmp = maxval(recvCount)
-   maxSizeRecv = global_maxval(maxTmp, dist)
-
-   if (.not. allocated(bufSendR8)) then
-
-      bufSizeSend = maxSizeSend
-      bufSizeRecv = maxSizeRecv
-
-      allocate(bufSendI4(bufSizeSend, numMsgSend), &
-               bufRecvI4(bufSizeRecv, numMsgRecv), &
-               bufSendR4(bufSizeSend, numMsgSend), &
-               bufRecvR4(bufSizeRecv, numMsgRecv), &
-               bufSendR8(bufSizeSend, numMsgSend), &
-               bufRecvR8(bufSizeRecv, numMsgRecv), stat=istat)
-
-      if (istat > 0) then
-         call abort_ice(subname//'ERROR: allocating 2d buffers')
-         return
-      endif
-
-   else
-
-      resize = .false.
-
-      if (maxSizeSend > bufSizeSend) then
-         resize = .true.
-         bufSizeSend = maxSizeSend
-      endif
-      if (maxSizeRecv > bufSizeRecv) then
-         resize = .true.
-         bufSizeRecv = maxSizeRecv
-      endif
-
-      if (numMsgSend > size(bufSendR8,dim=2)) resize = .true.
-      if (numMsgRecv > size(bufRecvR8,dim=2)) resize = .true.
-
-      if (resize) then
-         deallocate(bufSendI4, bufRecvI4, bufSendR4, &
-                    bufRecvR4, bufSendR8, bufRecvR8, stat=istat)
-
-         if (istat > 0) then
-            call abort_ice(subname//'ERROR: deallocating 2d buffers')
-            return
-         endif
-
-         allocate(bufSendI4(bufSizeSend, numMsgSend), &
-                  bufRecvI4(bufSizeRecv, numMsgRecv), &
-                  bufSendR4(bufSizeSend, numMsgSend), &
-                  bufRecvR4(bufSizeRecv, numMsgRecv), &
-                  bufSendR8(bufSizeSend, numMsgSend), &
-                  bufRecvR8(bufSizeRecv, numMsgRecv), stat=istat)
-
-         if (istat > 0) then
-            call abort_ice(subname//'ERROR: reallocating 2d buffers')
-            return
-         endif
-
-      endif
-
-   endif
-
-!-----------------------------------------------------------------------
-!
 !  allocate arrays for message information and initialize
 !
 !-----------------------------------------------------------------------
 
-   allocate(halo%sendTask(numMsgSend), &
-            halo%recvTask(numMsgRecv), &
-            halo%sizeSend(numMsgSend), &
-            halo%sizeRecv(numMsgRecv), &
-            halo%tripSend(numMsgSend), &
-            halo%tripRecv(numMsgRecv), &
-            halo%sendAddr(3,bufSizeSend,numMsgSend), &
-            halo%recvAddr(3,bufSizeRecv,numMsgRecv), &
-            halo%srcLocalAddr(3,halo%numLocalCopies), &
+   allocate(halo%srcLocalAddr(3,halo%numLocalCopies), &
             halo%dstLocalAddr(3,halo%numLocalCopies), &
             stat = istat)
 
@@ -673,14 +451,6 @@ contains
       return
    endif
 
-   halo%sendTask = 0
-   halo%recvTask = 0
-   halo%sizeSend = 0
-   halo%sizeRecv = 0
-   halo%tripSend = 0
-   halo%tripRecv = 0
-   halo%sendAddr = 0
-   halo%recvAddr = 0
    halo%srcLocalAddr = 0
    halo%dstLocalAddr = 0
 
@@ -700,8 +470,6 @@ contains
 
    !*** reset halo scalars to use as counters
 
-   halo%numMsgSend     = 0
-   halo%numMsgRecv     = 0
    halo%numLocalCopies = 0
 
    msgConfigLoop: do iblock=1,nblocks_tot
@@ -709,292 +477,88 @@ contains
       call ice_distributionGetBlockLoc(dist, iblock, srcProc, &
                                        srcLocalID)
 
-      !*** find north neighbor block and set msg info
-      !***  also set tripole block flag for later special cases
+      !*** find north neighbor block
 
       northBlock = ice_blocksGetNbrID(iblock, ice_blocksNorth,        &
                                       ewBoundaryType, nsBoundaryType)
 
-      if (northBlock > 0) then
-         tripoleBlock = .false.
-         call ice_distributionGetBlockLoc(dist, northBlock, dstProc, &
-                                          dstLocalID)
-      else if (northBlock < 0) then ! tripole north row, count block
+      call ice_HaloMsgCreate(halo, dist, iblock, northBlock, 'north')
+
+      !*** set tripole flag and add two copies for inserting
+      !*** and extracting info from the tripole buffer
+
+      if (northBlock < 0) then
          tripoleBlock = .true.
-         call ice_distributionGetBlockLoc(dist, abs(northBlock), &
-                                 dstProc, dstLocalID)
+         call ice_HaloMsgCreate(halo, dist, iblock, -iblock, 'north')
+         call ice_HaloMsgCreate(halo, dist, -iblock, iblock, 'north')
       else
          tripoleBlock = .false.
-         dstProc = 0
-         dstLocalID = 0
       endif
 
-      call ice_HaloMsgCreate(halo, iblock,     srcProc, srcLocalID, &
-                                   northBlock, dstProc, dstLocalID, &
-                                   'north')
-
-      !*** if a tripole boundary block, also create a local
-      !*** message into and out of tripole buffer
-
-      if (tripoleBlock) then
-         !*** copy out of tripole buffer - includes halo
-         call ice_HaloMsgCreate(halo,-iblock, srcProc, srcLocalID, &
-                                      iblock, srcProc, srcLocalID, &
-                                      'north')
-
-         !*** copy in only required if dstProc not same as srcProc
-         if (dstProc /= srcProc) then
-            call ice_HaloMsgCreate(halo, iblock, srcProc, srcLocalID, &
-                                        -iblock, srcProc, srcLocalID, &
-                                         'north')
-
-         endif
-      endif
-
-      !*** find south neighbor block and add to message count
+      !*** find south neighbor block
 
       southBlock = ice_blocksGetNbrID(iblock, ice_blocksSouth,        &
                                       ewBoundaryType, nsBoundaryType)
 
-      if (southBlock > 0) then
-         call ice_distributionGetBlockLoc(dist, southBlock, dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, southBlock, 'south')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
-      endif
-
-      call ice_HaloMsgCreate(halo, iblock,     srcProc, srcLocalID, &
-                                   southBlock, dstProc, dstLocalID, &
-                                   'south')
-
-      !*** find east neighbor block and add to message count
+      !*** find east neighbor block
 
       eastBlock = ice_blocksGetNbrID(iblock, ice_blocksEast,         &
                                      ewBoundaryType, nsBoundaryType)
 
-      if (eastBlock > 0) then
-         call ice_distributionGetBlockLoc(dist, eastBlock, dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, eastBlock, 'east')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
+      !*** for tripole grids, send a north tripole message to
+      !*** the east block to make sure enough information is
+      !*** available for tripole manipulations
+
+      if (tripoleBlock) then
+         call ice_HaloMsgCreate(halo, dist, iblock, -eastBlock, 'north')
       endif
 
-      call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                   eastBlock, dstProc, dstLocalID, &
-                                   'east')
-
-      !*** if a tripole boundary block, non-local east neighbor
-      !*** needs a chunk of the north boundary, so add a message
-      !*** for that
-
-      if (tripoleBlock .and. dstProc /= srcProc) then
-         call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                     -eastBlock, dstProc, dstLocalID, &
-                                      'north')
-
-      endif
-
-      !*** find west neighbor block and add to message count
+      !*** find west neighbor block
 
       westBlock = ice_blocksGetNbrID(iblock, ice_blocksWest,         &
                                      ewBoundaryType, nsBoundaryType)
 
-      if (westBlock > 0) then
-         call ice_distributionGetBlockLoc(dist, westBlock, dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, westBlock, 'west')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
+      !*** for tripole grids, send a north tripole message to
+      !*** the west block to make sure enough information is
+      !*** available for tripole manipulations
+
+      if (tripoleBlock) then
+         call ice_HaloMsgCreate(halo, dist, iblock, -westBlock, 'north')
       endif
 
-      call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                   westBlock, dstProc, dstLocalID, &
-                                   'west')
-
-
-      !*** if a tripole boundary block, non-local west neighbor
-      !*** needs a chunk of the north boundary, so add a message
-      !*** for that
-
-      if (tripoleBlock .and. dstProc /= srcProc) then
-         call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                     -westBlock, dstProc, dstLocalID, &
-                                      'north')
-
-      endif
-
-      !*** find northeast neighbor block and add to message count
+      !*** find northeast neighbor block
 
       neBlock = ice_blocksGetNbrID(iblock, ice_blocksNorthEast,    &
                                    ewBoundaryType, nsBoundaryType)
 
-      if (neBlock /= 0) then
-         call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, neBlock, 'northeast')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
-      endif
-
-      call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                   neBlock, dstProc, dstLocalID, &
-                                   'northeast')
-
-      !*** find northwest neighbor block and add to message count
+      !*** find northwest neighbor block
 
       nwBlock = ice_blocksGetNbrID(iblock, ice_blocksNorthWest,    &
                                    ewBoundaryType, nsBoundaryType)
 
-      if (nwBlock /= 0) then
-         call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, nwBlock, 'northwest')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
-      endif
-
-      call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                   nwBlock, dstProc, dstLocalID, &
-                                   'northwest')
-
-      !*** find southeast neighbor block and add to message count
+      !*** find southeast neighbor block
 
       seBlock = ice_blocksGetNbrID(iblock, ice_blocksSouthEast,    &
                                    ewBoundaryType, nsBoundaryType)
 
-      if (seBlock > 0) then
-         call ice_distributionGetBlockLoc(dist, seBlock, dstProc, &
-                                          dstLocalID)
+      call ice_HaloMsgCreate(halo, dist, iblock, seBlock, 'southeast')
 
-      else
-         dstProc = 0
-         dstLocalID = 0
-      endif
-
-      call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                   seBlock, dstProc, dstLocalID, &
-                                   'southeast')
-
-      !*** find southwest neighbor block and add to message count
+      !*** find southwest neighbor block
 
       swBlock = ice_blocksGetNbrID(iblock, ice_blocksSouthWest,    &
                                    ewBoundaryType, nsBoundaryType)
 
-      if (swBlock > 0) then
-         call ice_distributionGetBlockLoc(dist, swBlock, dstProc, &
-                                          dstLocalID)
-
-      else
-         dstProc = 0
-         dstLocalID = 0
-      endif
-
-      call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                   swBlock, dstProc, dstLocalID, &
-                                   'southwest')
-
-      !*** for tripole grids with padded domain, padding will
-      !*** prevent tripole buffer from getting all the info
-      !*** it needs - must extend footprint at top boundary
-
-      if (tripoleBlock                  .and. & !tripole
-          mod(nxGlobal,blockSizeX) /= 0) then   !padding
-
-         !*** find east2 neighbor block and add to message count
-
-         eastBlock = ice_blocksGetNbrID(iBlock, ice_blocksEast2,     &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (eastBlock > 0) then
-            call ice_distributionGetBlockLoc(dist, eastBlock, dstProc, &
-                                             dstLocalID)
-
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                        -eastBlock, dstProc, dstLocalID, &
-                                         'north')
-
-         endif
-
-         !*** find EastNorthEast neighbor block and add to message count
-
-         neBlock = ice_blocksGetNbrID(iBlock, ice_blocksEastNorthEast, &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (neBlock < 0) then ! tripole north row
-            msgSize = tripoleMsgSize  ! tripole needs whole top row of block
-
-            call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
-                                             dstLocalID)
-
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                         neBlock, dstProc, dstLocalID, &
-                                         'north')
-         endif
-
-         !*** find west2 neighbor block and add to message count
-
-         westBlock = ice_blocksGetNbrID(iBlock, ice_blocksWest2,     &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (westBlock > 0) then
-            call ice_distributionGetBlockLoc(dist, westBlock, dstProc, &
-                                             dstLocalID)
-
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloMsgCreate(halo, iblock,    srcProc, srcLocalID, &
-                                        -westBlock, dstProc, dstLocalID, &
-                                         'north')
-
-         endif
-
-         !*** find WestNorthWest neighbor block and add to message count
-
-         nwBlock = ice_blocksGetNbrID(iBlock, ice_blocksWestNorthWest, &
-                                     ewBoundaryType, nsBoundaryType)
-
-         if (nwBlock < 0) then ! tripole north row
-            msgSize = tripoleMsgSize  ! tripole needs whole top row of block
-
-            call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
-                                             dstLocalID)
-
-         else
-            dstProc = 0
-            dstLocalID = 0
-         endif
-
-         if (dstProc /= srcProc) then
-            call ice_HaloMsgCreate(halo, iblock,  srcProc, srcLocalID, &
-                                         nwBlock, dstProc, dstLocalID, &
-                                         'north')
-
-         endif
-
-      endif
+      call ice_HaloMsgCreate(halo, dist, iblock, swBlock, 'southwest')
 
    end do msgConfigLoop
 
@@ -1019,7 +583,6 @@ contains
 
    type (ice_halo) :: &
       halo               ! a new halo type with info for halo updates
-   character(len=*), parameter :: subname = '(ice_HaloMask)'
 
 !-----------------------------------------------------------------------
 !
@@ -1028,46 +591,31 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      n,nmsg,scnt,                 &! counters
-      icel,jcel,nblock,            &! gridcell index
       istat,                       &! allocate status flag
       communicator,                &! communicator for message passing
-      numMsgSend, numMsgRecv,      &! number of messages for this halo
       numLocalCopies,              &! num local copies for halo update
       numLocalBlocks,              &! num local blocks for halo fill
-      tripoleRows,                 &! number of rows in tripole buffer
-      lbufSizeSend,                &! buffer size for send messages
-      lbufSizeRecv                  ! buffer size for recv messages
+      tripoleRows                   ! number of rows in tripole buffer
+
    logical (log_kind) :: &
-      tripoleTFlag,    &      ! flag for processing tripole buffer as T-fold
-      tmpflag                 ! temporary flag for setting halomask along T-fold
+      tripoleTFlag           ! flag for processing tripole buffer as T-fold
+
+   character(len=*), parameter :: subname = '(ice_HaloMask)'
 
 !-----------------------------------------------------------------------
 !
 !  allocate and initialize halo
-!  always keep tripole zipper msgs
+!  halos are not masked for local copies
 !
 !-----------------------------------------------------------------------
 
       communicator   = basehalo%communicator
       tripoleRows    = basehalo%tripoleRows
       tripoleTFlag   = basehalo%tripoleTFlag
-      numMsgSend     = basehalo%numMsgSend
-      numMsgRecv     = basehalo%numMsgRecv
       numLocalCopies = basehalo%numLocalCopies
       numLocalBlocks = basehalo%numLocalBlocks
-      lbufSizeSend   = size(basehalo%sendAddr,dim=2)
-      lbufSizeRecv   = size(basehalo%recvAddr,dim=2)
 
-      allocate(halo%sendTask(numMsgSend), &
-               halo%recvTask(numMsgRecv), &
-               halo%sizeSend(numMsgSend), &
-               halo%sizeRecv(numMsgRecv), &
-               halo%tripSend(numMsgSend), &
-               halo%tripRecv(numMsgRecv), &
-               halo%sendAddr(3,lbufSizeSend,numMsgSend), &
-               halo%recvAddr(3,lbufSizeRecv,numMsgRecv), &
-               halo%srcLocalAddr(3,numLocalCopies), &
+      allocate(halo%srcLocalAddr(3,numLocalCopies), &
                halo%dstLocalAddr(3,numLocalCopies), &
                halo%blockGlobalID(numLocalBlocks), &
                stat = istat)
@@ -1083,74 +631,10 @@ contains
       halo%numLocalCopies = numLocalCopies
       halo%numLocalBlocks = numLocalBlocks
 
-      halo%srcLocalAddr   = basehalo%srcLocalAddr(:,1:numLocalCopies)
-      halo%dstLocalAddr   = basehalo%dstLocalAddr(:,1:numLocalCopies)
+      halo%srcLocalAddr   = basehalo%srcLocalAddr
+      halo%dstLocalAddr   = basehalo%dstLocalAddr
 
       halo%blockGlobalID  = basehalo%blockGlobalID
-
-   numMsgSend = 0
-   do nmsg=1,basehalo%numMsgSend
-      scnt = 0
-      do n=1,basehalo%sizeSend(nmsg)
-         icel     = basehalo%sendAddr(1,n,nmsg)
-         jcel     = basehalo%sendAddr(2,n,nmsg)
-         nblock   = basehalo%sendAddr(3,n,nmsg)
-! the following line fails bounds check for mask when tripSend /= 0
-!        if (mask(icel,jcel,abs(nblock)) /= 0 .or. basehalo%tripSend(nmsg) /= 0) then
-         tmpflag = .false.
-         if (basehalo%tripSend(nmsg) /= 0) then
-            tmpflag = .true.
-         elseif (mask(icel,jcel,abs(nblock)) /= 0) then
-            tmpflag = .true.
-         endif
-
-         if (tmpflag) then
-            scnt = scnt + 1
-            if (scnt == 1) then
-               numMsgSend = numMsgSend + 1
-               halo%sendTask(numMsgSend) = basehalo%sendTask(nmsg)
-               halo%tripSend(numMsgSend) = basehalo%tripSend(nmsg)
-            endif
-            halo%sendAddr(1,scnt,numMsgSend) = icel
-            halo%sendAddr(2,scnt,numMsgSend) = jcel
-            halo%sendAddr(3,scnt,numMsgSend) = nblock
-            halo%sizeSend(numMsgSend) = scnt
-         endif
-      enddo
-   enddo
-   halo%numMsgSend = numMsgSend
-
-   numMsgRecv = 0
-   do nmsg=1,basehalo%numMsgRecv
-      scnt = 0
-      do n=1,basehalo%sizeRecv(nmsg)
-         icel     = basehalo%recvAddr(1,n,nmsg)
-         jcel     = basehalo%recvAddr(2,n,nmsg)
-         nblock   = basehalo%recvAddr(3,n,nmsg)
-! the following line fails bounds check for mask when tripRecv /= 0
-!        if (mask(icel,jcel,abs(nblock)) /= 0 .or. basehalo%tripRecv(nmsg) /= 0) then
-         tmpflag = .false.
-         if (basehalo%tripRecv(nmsg) /= 0) then
-            tmpflag = .true.
-         elseif (mask(icel,jcel,abs(nblock)) /= 0) then
-            tmpflag = .true.
-         endif
-
-         if (tmpflag) then
-            scnt = scnt + 1
-            if (scnt == 1) then
-               numMsgRecv = numMsgRecv + 1
-               halo%recvTask(numMsgRecv) = basehalo%recvTask(nmsg)
-               halo%tripRecv(numMsgRecv) = basehalo%tripRecv(nmsg)
-            endif
-            halo%recvAddr(1,scnt,numMsgRecv) = icel
-            halo%recvAddr(2,scnt,numMsgRecv) = jcel
-            halo%recvAddr(3,scnt,numMsgRecv) = nblock
-            halo%sizeRecv(numMsgRecv) = scnt
-         endif
-      enddo
-   enddo
-   halo%numMsgRecv = numMsgRecv
 
 !-----------------------------------------------------------------------
 
@@ -1164,7 +648,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 2d horizontal arrays of double precision.
 
    type (ice_halo), intent(in) :: &
@@ -1183,10 +667,7 @@ contains
                            !   closed boundaries)
 
    logical (log_kind), intent(in), optional :: &
-      tripoleOnly          ! optional flag to execute halo only across tripole seam.
-                           ! this is required for a few fields where we just want to
-                           ! ensure the tripole seam is synced up to preserve symmetry.
-                           ! Added June, 2022 by tcraig.  Only added to 2DR8 for now.
+      tripoleOnly          ! optional flag to execute halo only across tripole seam
 
    real (dbl_kind), dimension(:,:,:), intent(inout) :: &
       array                ! array containing field for which halo
@@ -1199,9 +680,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -1210,22 +690,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
    logical (log_kind) :: &
       ltripoleOnly      ! local tripoleOnly value
-
-   integer (int_kind) ::  len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DR8)'
 
@@ -1255,64 +725,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR8(1:len,nmsg), len, mpiR8, &
-                     halo%recvTask(nmsg),               &
-                     mpitagHalo + halo%recvTask(nmsg),  &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         bufSendR8(n,nmsg) = array(iSrc,jSrc,srcBlock)
-      end do
-      do n=halo%sizeSend(nmsg)+1,bufSizeSend
-         bufSendR8(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR8(1:len,nmsg), len, mpiR8, &
-                     halo%sendTask(nmsg),               &
-                     mpitagHalo + my_task,              &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -1375,35 +788,6 @@ contains
             array(iDst,jDst,dstBlock) = fill
          endif
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (ltripoleOnly) then
-            if (dstBlock < 0) then !tripole
-               bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
-            endif
-         else
-            if (dstBlock > 0) then
-               array(iDst,jDst,dstBlock) = bufRecvR8(n,nmsg)
-            else if (dstBlock < 0) then !tripole
-               bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
-            endif
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -1571,21 +955,6 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
 
  end subroutine ice_HaloUpdate2DR8
 
@@ -1597,7 +966,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 2d horizontal arrays of single precision.
 
    type (ice_halo), intent(in) :: &
@@ -1626,9 +995,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -1637,19 +1005,9 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
-
-   integer (int_kind) :: len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DR4)'
 
@@ -1673,64 +1031,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR4(1:len,nmsg), len, mpiR4, &
-                     halo%recvTask(nmsg),               &
-                     mpitagHalo + halo%recvTask(nmsg),  &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         bufSendR4(n,nmsg) = array(iSrc,jSrc,srcBlock)
-      end do
-      do n=halo%sizeSend(nmsg)+1,bufSizeSend
-         bufSendR4(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR4(1:len,nmsg), len, mpiR4, &
-                     halo%sendTask(nmsg),               &
-                     mpitagHalo + my_task,              &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -1779,29 +1080,6 @@ contains
       else if (srcBlock == 0) then
          array(iDst,jDst,dstBlock) = fill
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            array(iDst,jDst,dstBlock) = bufRecvR4(n,nmsg)
-         else if (dstBlock < 0) then !tripole
-            bufTripoleR4(iDst,jDst) = bufRecvR4(n,nmsg)
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -1969,21 +1247,6 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
 
  end subroutine ice_HaloUpdate2DR4
 
@@ -1995,7 +1258,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 2d horizontal integer arrays.
 
    type (ice_halo), intent(in) :: &
@@ -2024,9 +1287,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,n,nmsg,                &! dummy loop indices
+      i,j,nmsg,                  &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -2035,19 +1297,9 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
-
-   integer (int_kind) :: len ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DI4)'
 
@@ -2071,64 +1323,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvI4(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                     &
-                     mpitagHalo + halo%recvTask(nmsg),        &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         bufSendI4(n,nmsg) = array(iSrc,jSrc,srcBlock)
-      end do
-      do n=halo%sizeSend(nmsg)+1,bufSizeSend
-         bufSendI4(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendI4(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                     &
-                     mpitagHalo + my_task,                    &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -2177,29 +1372,6 @@ contains
       else if (srcBlock == 0) then
          array(iDst,jDst,dstBlock) = fill
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            array(iDst,jDst,dstBlock) = bufRecvI4(n,nmsg)
-         else if (dstBlock < 0) then !tripole
-            bufTripoleI4(iDst,jDst) = bufRecvI4(n,nmsg)
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -2367,21 +1539,6 @@ contains
    endif
 
 !-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
 
  end subroutine ice_HaloUpdate2DI4
 
@@ -2456,7 +1613,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 3d horizontal arrays of double precision.
 
    type (ice_halo), intent(in) :: &
@@ -2485,9 +1642,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,n,nmsg,              &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -2497,25 +1653,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   real (dbl_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 3d send,recv buffers
-
    real (dbl_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
-
-   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
 
@@ -2531,93 +1674,18 @@ contains
       fill = 0.0_dbl_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleR8)) nxGlobal = size(bufTripoleR8,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 3D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
 
-   allocate(bufSend(bufSizeSend*nz, halo%numMsgSend), &
-            bufRecv(bufSizeRecv*nz, halo%numMsgRecv), &
-            bufTripole(nxGlobal, halo%tripoleRows, nz), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleR8)) then
+      nxGlobal = size(bufTripoleR8,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR8,   &
-                     halo%recvTask(nmsg),               &
-                     mpitagHalo + halo%recvTask(nmsg),  &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,srcBlock)
-         end do
-      end do
-      do n=i+1,bufSizeSend*nz
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR8, &
-                     halo%sendTask(nmsg),             &
-                     mpitagHalo + my_task,            &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -2639,7 +1707,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -2672,36 +1740,6 @@ contains
             array(iDst,jDst,k,dstBlock) = fill
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,dstBlock) = bufRecv(i,nmsg)
-            end do
-         else if (dstBlock < 0) then !tripole
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k) = bufRecv(i,nmsg)
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -2879,27 +1917,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 3d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -2913,7 +1931,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 3d horizontal arrays of single precision.
 
    type (ice_halo), intent(in) :: &
@@ -2942,9 +1960,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,n,nmsg,              &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -2954,25 +1971,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   real (real_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 3d send,recv buffers
-
    real (real_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
-
-   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR4)'
 
@@ -2988,93 +1992,18 @@ contains
       fill = 0.0_real_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleR4)) nxGlobal = size(bufTripoleR4,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 3D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
 
-   allocate(bufSend(bufSizeSend*nz, halo%numMsgSend),  &
-            bufRecv(bufSizeRecv*nz, halo%numMsgRecv),  &
-            bufTripole(nxGlobal, halo%tripoleRows, nz), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleR4)) then
+      nxGlobal = size(bufTripoleR4,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR4,   &
-                     halo%recvTask(nmsg),               &
-                     mpitagHalo + halo%recvTask(nmsg),  &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,srcBlock)
-         end do
-      end do
-      do n=i+1,bufSizeSend*nz
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR4, &
-                     halo%sendTask(nmsg),             &
-                     mpitagHalo + my_task,            &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -3096,7 +2025,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -3129,36 +2058,6 @@ contains
             array(iDst,jDst,k,dstBlock) = fill
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,dstBlock) = bufRecv(i,nmsg)
-            end do
-         else if (dstBlock < 0) then !tripole
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k) = bufRecv(i,nmsg)
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -3336,27 +2235,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 3d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -3370,7 +2249,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 3d horizontal arrays of double precision.
 
    type (ice_halo), intent(in) :: &
@@ -3399,9 +2278,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,n,nmsg,              &! dummy loop indices
+      i,j,k,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
       iSrc,jSrc,                 &! source addresses for message
@@ -3411,25 +2289,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   integer (int_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 3d send,recv buffers
-
    integer (int_kind), dimension(:,:,:), allocatable :: &
       bufTripole                  ! 3d tripole buffer
-
-   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DI4)'
 
@@ -3445,93 +2310,18 @@ contains
       fill = 0_int_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 3D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
 
-   allocate(bufSend(bufSizeSend*nz, halo%numMsgSend),  &
-            bufRecv(bufSizeRecv*nz, halo%numMsgRecv),  &
-            bufTripole(nxGlobal, halo%tripoleRows, nz), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleI4)) then
+      nxGlobal = size(bufTripoleI4,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                   &
-                     mpitagHalo + halo%recvTask(nmsg),      &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,srcBlock)
-         end do
-      end do
-      do n=i+1,bufSizeSend*nz
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                   &
-                     mpitagHalo + my_task,                  &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -3553,7 +2343,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -3586,36 +2376,6 @@ contains
             array(iDst,jDst,k,dstBlock) = fill
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,dstBlock) = bufRecv(i,nmsg)
-            end do
-         else if (dstBlock < 0) then !tripole
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k) = bufRecv(i,nmsg)
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -3793,27 +2553,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 3d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -3827,7 +2567,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 4d horizontal arrays of double precision.
 
    type (ice_halo), intent(in) :: &
@@ -3856,9 +2596,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,l,n,nmsg,            &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -3868,25 +2607,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   real (dbl_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 4d send,recv buffers
-
    real (dbl_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
-
-   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DR8)'
 
@@ -3902,97 +2628,19 @@ contains
       fill = 0.0_dbl_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleR8)) nxGlobal = size(bufTripoleR8,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 4D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
    nt = size(array, dim=4)
 
-   allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
-            bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, halo%tripoleRows, nz, nt), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleR8)) then
+      nxGlobal = size(bufTripoleR8,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR8,  &
-                     halo%recvTask(nmsg),              &
-                     mpitagHalo + halo%recvTask(nmsg), &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do l=1,nt
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,l,srcBlock)
-         end do
-         end do
-      end do
-
-      do n=i+1,bufSizeSend*nz*nt
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR8, &
-                     halo%sendTask(nmsg),             &
-                     mpitagHalo + my_task,            &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -4014,7 +2662,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -4053,40 +2701,6 @@ contains
          end do
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,l,dstBlock) = bufRecv(i,nmsg)
-            end do
-            end do
-         else if (dstBlock < 0) then !tripole
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k,l) = bufRecv(i,nmsg)
-            end do
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -4274,27 +2888,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 4d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -4308,7 +2902,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 4d horizontal arrays of single precision.
 
    type (ice_halo), intent(in) :: &
@@ -4337,9 +2931,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,l,n,nmsg,            &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -4349,25 +2942,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   real (real_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 4d send,recv buffers
-
    real (real_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
-
-   integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DR4)'
 
@@ -4383,97 +2963,19 @@ contains
       fill = 0.0_real_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleR4)) nxGlobal = size(bufTripoleR4,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 4D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
    nt = size(array, dim=4)
 
-   allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
-            bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, halo%tripoleRows, nz, nt), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleR4)) then
+      nxGlobal = size(bufTripoleR4,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR4,  &
-                     halo%recvTask(nmsg),              &
-                     mpitagHalo + halo%recvTask(nmsg), &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do l=1,nt
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,l,srcBlock)
-         end do
-         end do
-      end do
-
-      do n=i+1,bufSizeSend*nz*nt
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR4, &
-                     halo%sendTask(nmsg),             &
-                     mpitagHalo + my_task,            &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -4495,7 +2997,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -4534,40 +3036,6 @@ contains
          end do
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,l,dstBlock) = bufRecv(i,nmsg)
-            end do
-            end do
-         else if (dstBlock < 0) then !tripole
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k,l) = bufRecv(i,nmsg)
-            end do
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -4755,27 +3223,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 4d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -4789,7 +3237,7 @@ contains
 
 !  This routine updates ghost cells for an input array and is a
 !  member of a group of routines under the generic interface
-!  ice\_HaloUpdate.  This routine is the specific interface
+!  POP\_HaloUpdate.  This routine is the specific interface
 !  for 4d horizontal integer arrays.
 
    type (ice_halo), intent(in) :: &
@@ -4818,9 +3266,8 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) ::           &
-      i,j,k,l,n,nmsg,            &! dummy loop indices
+      i,j,k,l,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
-      ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
       iSrc,jSrc,                 &! source addresses for message
@@ -4830,25 +3277,12 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
-   integer (int_kind), dimension(:,:), allocatable :: &
-      bufSend, bufRecv            ! 4d send,recv buffers
-
    integer (int_kind), dimension(:,:,:,:), allocatable :: &
       bufTripole                  ! 4d tripole buffer
-
-   integer (int_kind) :: len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DI4)'
 
@@ -4864,97 +3298,19 @@ contains
       fill = 0_int_kind
    endif
 
-   nxGlobal = 0
-   if (allocated(bufTripoleI4)) nxGlobal = size(bufTripoleI4,dim=1)
-
-!-----------------------------------------------------------------------
-!
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  allocate 4D buffers
-!
-!-----------------------------------------------------------------------
-
    nz = size(array, dim=3)
    nt = size(array, dim=4)
 
-   allocate(bufSend(bufSizeSend*nz*nt, halo%numMsgSend),   &
-            bufRecv(bufSizeRecv*nz*nt, halo%numMsgRecv),   &
-            bufTripole(nxGlobal, halo%tripoleRows, nz, nt), &
-            stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating buffers')
-      return
+   nxGlobal = 0
+   if (allocated(bufTripoleI4)) then
+      nxGlobal = size(bufTripoleI4,dim=1)
+      allocate(bufTripole(nxGlobal,halo%tripoleRows,nz,nt))
+      bufTripole = fill
    endif
 
-   bufTripole = fill
-
 !-----------------------------------------------------------------------
 !
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%recvTask(nmsg),                   &
-                     mpitagHalo + halo%recvTask(nmsg),      &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      i=0
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         do l=1,nt
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(iSrc,jSrc,k,l,srcBlock)
-         end do
-         end do
-      end do
-
-      do n=i+1,bufSizeSend*nz*nt
-         bufSend(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, MPI_INTEGER, &
-                     halo%sendTask(nmsg),                   &
-                     mpitagHalo + my_task,                  &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated, fill out halo region
+!  fill out halo region
 !  needed for masked halos to ensure halo values are filled for
 !  halo grid cells that are not updated
 !
@@ -4976,7 +3332,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -5015,40 +3371,6 @@ contains
          end do
          end do
       endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      i = 0
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock > 0) then
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               array(iDst,jDst,k,l,dstBlock) = bufRecv(i,nmsg)
-            end do
-            end do
-         else if (dstBlock < 0) then !tripole
-            do l=1,nt
-            do k=1,nz
-               i = i + 1
-               bufTripole(iDst,jDst,k,l) = bufRecv(i,nmsg)
-            end do
-            end do
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -5236,27 +3558,7 @@ contains
 
    endif
 
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
-   endif
-
-   deallocate(bufSend, bufRecv, bufTripole, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating 4d buffers')
-      return
-   endif
+   if (allocated(bufTripole)) deallocate(bufTripole)
 
 !-----------------------------------------------------------------------
 
@@ -5294,8 +3596,7 @@ contains
 !  local variables
 
    integer (int_kind) ::           &
-      n,nmsg,                    &! dummy loop indices
-      ierr,                      &! error or status flag for MPI,alloc
+      nmsg,                      &! dummy loop indices
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
       iDst,jDst,                 &! dest   addresses for message
@@ -5304,18 +3605,8 @@ contains
       ioffset, joffset,          &! address shifts for tripole
       isign                       ! sign factor for tripole grids
 
-   integer (int_kind), dimension(:), allocatable :: &
-      sndRequest,      &! MPI request ids
-      rcvRequest        ! MPI request ids
-
-   integer (int_kind), dimension(:,:), allocatable :: &
-      sndStatus,       &! MPI status flags
-      rcvStatus         ! MPI status flags
-
    real (dbl_kind) :: &
-      fill              ! value to use for unknown points
-
-   integer (int_kind) ::  len  ! length of messages
+      fill                        ! value to use for unknown points
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate_stress)'
 
@@ -5339,64 +3630,6 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  allocate request and status arrays for messages
-!
-!-----------------------------------------------------------------------
-
-   allocate(sndRequest(halo%numMsgSend), &
-            rcvRequest(halo%numMsgRecv), &
-            sndStatus(MPI_STATUS_SIZE,halo%numMsgSend), &
-            rcvStatus(MPI_STATUS_SIZE,halo%numMsgRecv), stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: allocating req,status arrays')
-      return
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  post receives
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgRecv
-
-      len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR8(1:len,nmsg), len, mpiR8, &
-                     halo%recvTask(nmsg),               &
-                     mpitagHalo + halo%recvTask(nmsg),  &
-                     halo%communicator, rcvRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  fill send buffer and post sends
-!
-!-----------------------------------------------------------------------
-
-   do nmsg=1,halo%numMsgSend
-
-      do n=1,halo%sizeSend(nmsg)
-         iSrc     = halo%sendAddr(1,n,nmsg)
-         jSrc     = halo%sendAddr(2,n,nmsg)
-         srcBlock = halo%sendAddr(3,n,nmsg)
-
-         bufSendR8(n,nmsg) = array2(iSrc,jSrc,srcBlock)
-      end do
-      do n=halo%sizeSend(nmsg)+1,bufSizeSend
-         bufSendR8(n,nmsg) = fill  ! fill remainder of buffer
-      end do
-
-      len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR8(1:len,nmsg), len, mpiR8, &
-                     halo%sendTask(nmsg),               &
-                     mpitagHalo + my_task,              &
-                     halo%communicator, sndRequest(nmsg), ierr)
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  while messages are being communicated,
 !  do NOT zero the halo out, this halo update just updates
 !  the tripole zipper as needed for stresses.  if you zero
 !  it out, all halo values will be wiped out.
@@ -5417,7 +3650,7 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  do local copies while waiting for messages to complete
+!  do local copies
 !  if srcBlock is zero, that denotes an eliminated land block or a
 !    closed boundary where ghost cell values are undefined
 !  if srcBlock is less than zero, the message is a copy out of the
@@ -5441,27 +3674,6 @@ contains
       else if (srcBlock == 0) then
          array1(iDst,jDst,dstBlock) = fill
      endif
-   end do
-
-!-----------------------------------------------------------------------
-!
-!  wait for receives to finish and then unpack the recv buffer into
-!  ghost cells
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgRecv, rcvRequest, rcvStatus, ierr)
-
-   do nmsg=1,halo%numMsgRecv
-      do n=1,halo%sizeRecv(nmsg)
-         iDst     = halo%recvAddr(1,n,nmsg)
-         jDst     = halo%recvAddr(2,n,nmsg)
-         dstBlock = halo%recvAddr(3,n,nmsg)
-
-         if (dstBlock < 0) then !tripole
-            bufTripoleR8(iDst,jDst) = bufRecvR8(n,nmsg)
-         endif
-      end do
    end do
 
 !-----------------------------------------------------------------------
@@ -5538,28 +3750,13 @@ contains
             !*** out of range and skipped
             !*** otherwise do the copy
 
-            if (jSrc <= nghost+1 .AND. jDst /= -1 ) then
+            if (jSrc <= nghost+1) then
                array1(iDst,jDst,dstBlock) = isign*bufTripoleR8(iSrc,jSrc)
             endif
 
          endif
       end do
 
-   endif
-
-!-----------------------------------------------------------------------
-!
-!  wait for sends to complete and deallocate arrays
-!
-!-----------------------------------------------------------------------
-
-   call MPI_WAITALL(halo%numMsgSend, sndRequest, sndStatus, ierr)
-
-   deallocate(sndRequest, rcvRequest, sndStatus, rcvStatus, stat=ierr)
-
-   if (ierr > 0) then
-      call abort_ice(subname//'ERROR: deallocating req,status arrays')
-      return
    endif
 
 !-----------------------------------------------------------------------
@@ -5586,6 +3783,7 @@ contains
       rcvCounter         ! array for counting messages to be received
 
    character(len=*), parameter :: subname = '(ice_HaloIncrementMsgCount)'
+
 !-----------------------------------------------------------------------
 !
 !  error check
@@ -5616,7 +3814,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (srcProc == my_task + 1) sndCounter(dstProc) = &
-                                  sndCounter(dstProc) + msgSize
+                               sndCounter(dstProc) + msgSize
 
 !-----------------------------------------------------------------------
 !
@@ -5647,17 +3845,16 @@ contains
 
 !***********************************************************************
 
-   subroutine ice_HaloMsgCreate(halo, srcBlock, srcProc, srcLocalID, &
-                                      dstBlock, dstProc, dstLocalID, &
-                                      direction)
+   subroutine ice_HaloMsgCreate(halo, dist, srcBlock, dstBlock, direction)
 
 !  This is a utility routine to determine the required address and
 !  message information for a particular pair of blocks.
 
+   type (distrb), intent(in) :: &
+      dist             ! distribution of blocks across procs
+
    integer (int_kind), intent(in) :: &
-      srcBlock,   dstBlock,   & ! source,destination block id
-      srcProc,    dstProc,    & ! source,destination processor location
-      srcLocalID, dstLocalID    ! source,destination local index
+      srcBlock,   dstBlock   ! source,destination block id
 
    character (*), intent(in) :: &
       direction              ! direction of neighbor block
@@ -5674,17 +3871,19 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      srcProc, srcLocalID,   &! source block location in distribution
+      dstProc, dstLocalID,   &! source block location in distribution
       msgIndx,               &! message counter and index into msg array
-      bufSize,               &! size of message buffer
       ibSrc, ieSrc, jbSrc, jeSrc, &! phys domain info for source block
       ibDst, ieDst, jbDst, jeDst, &! phys domain info for dest   block
       nxGlobal,              &! size of global domain in e-w direction
-      i,j,n                   ! dummy loop index
+      i,j                     ! dummy loop index
 
    integer (int_kind), dimension(:), pointer :: &
       iGlobal                 ! global i index for location in tripole
 
    character(len=*), parameter :: subname = '(ice_HaloMsgCreate)'
+
 !-----------------------------------------------------------------------
 !
 !  initialize
@@ -5692,6 +3891,28 @@ contains
 !-----------------------------------------------------------------------
 
    if (allocated(bufTripoleR8)) nxGlobal = size(bufTripoleR8,dim=1)
+
+!-----------------------------------------------------------------------
+!
+!  find source and destination block locations
+!
+!-----------------------------------------------------------------------
+
+   if (srcBlock /= 0) then
+      call ice_DistributionGetBlockLoc(dist, abs(srcBlock), srcProc, &
+                                       srcLocalID)
+   else
+      srcProc    = 0
+      srcLocalID = 0
+   endif
+
+   if (dstBlock /= 0) then
+      call ice_DistributionGetBlockLoc(dist, abs(dstBlock), dstProc, &
+                                       dstLocalID)
+   else
+      dstProc    = 0
+      dstLocalID = 0
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -5741,19 +3962,13 @@ contains
 
       !*** compute addresses based on direction
 
-      msgIndx = halo%numLocalCopies
-
-      if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
-          msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice(subname//'ERROR: msg count > array size')
-         return
-      endif
-
       select case (direction)
       case ('east')
 
          !*** copy easternmost physical domain of src
          !*** into westernmost halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,jeSrc-jbSrc+1
          do i=1,nghost
@@ -5771,10 +3986,14 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('west')
 
          !*** copy westernmost physical domain of src
          !*** into easternmost halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,jeSrc-jbSrc+1
          do i=1,nghost
@@ -5792,12 +4011,16 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('north')
 
          !*** copy northern physical domain of src
          !*** into southern halo of dst
 
          if (srcBlock > 0 .and. dstBlock > 0) then  ! normal north boundary
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,ieSrc-ibSrc+1
@@ -5815,6 +4038,8 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          else if (srcBlock > 0 .and. dstBlock < 0) then
 
             !*** tripole grid - copy info into tripole buffer
@@ -5829,6 +4054,8 @@ contains
                call abort_ice(subname//'ERROR: not enough points in block for tripole')
                return
             endif
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,halo%tripoleRows
             do i=1,ieSrc-ibSrc+1
@@ -5846,11 +4073,15 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          else if (srcBlock < 0 .and. dstBlock > 0) then
 
             !*** tripole grid - set up for copying out of
             !*** tripole buffer into ghost cell domains
             !*** include e-w ghost cells
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,halo%tripoleRows
             do i=1,ieSrc+nghost
@@ -5872,12 +4103,16 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          endif
 
       case ('south')
 
          !*** copy southern physical domain of src
          !*** into northern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,ieSrc-ibSrc+1
@@ -5895,12 +4130,16 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('northeast')
 
          !*** normal northeast boundary - just copy NE corner
          !*** of physical domain into SW halo of NE nbr block
 
          if (dstBlock > 0) then
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,nghost
@@ -5918,10 +4157,32 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          else
 
-            !*** tripole grid - this local copy should already
-            !*** have taken place for the north boundary
+            !*** tripole grid - copy entire top halo+1
+            !*** rows into global buffer at src location
+
+            msgIndx = halo%numLocalCopies
+
+            do j=1,nghost+1
+            do i=1,ieSrc-ibSrc+1
+
+               msgIndx = msgIndx + 1
+
+               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
+               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
+               halo%srcLocalAddr(3,msgIndx) = srcLocalID
+
+               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
+               halo%dstLocalAddr(2,msgIndx) = j
+               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
+
+            end do
+            end do
+
+            halo%numLocalCopies = msgIndx
 
          endif
 
@@ -5931,6 +4192,8 @@ contains
          !*** of physical domain into SE halo of NW nbr block
 
          if (dstBlock > 0) then
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,nghost
@@ -5948,10 +4211,32 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          else
 
-            !*** tripole grid - this local copy should already
-            !*** have taken place for the north boundary
+            !*** tripole grid - copy entire top halo+1
+            !*** rows into global buffer at src location
+
+            msgIndx = halo%numLocalCopies
+
+            do j=1,nghost+1
+            do i=1,ieSrc-ibSrc+1
+
+               msgIndx = msgIndx + 1
+
+               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
+               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
+               halo%srcLocalAddr(3,msgIndx) = srcLocalID
+
+               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
+               halo%dstLocalAddr(2,msgIndx) = j
+               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
+
+            end do
+            end do
+
+            halo%numLocalCopies = msgIndx
 
          endif
 
@@ -5959,6 +4244,8 @@ contains
 
          !*** copy southeastern corner of src physical domain
          !*** into northwestern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,nghost
@@ -5976,10 +4263,14 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('southwest')
 
          !*** copy southwestern corner of src physical domain
          !*** into northeastern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,nghost
@@ -5997,20 +4288,14 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case default
 
          call abort_ice(subname//'ERROR: unknown direction local copy')
          return
 
       end select
-
-      halo%numLocalCopies = msgIndx
-
-      if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
-          msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice(subname//'ERROR: msg count > array size')
-         return
-      endif
 
 !-----------------------------------------------------------------------
 !
@@ -6021,14 +4306,6 @@ contains
 
    else if (srcProc == 0 .and. dstProc == my_task+1) then
 
-      msgIndx = halo%numLocalCopies
-
-      if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
-          msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice(subname//'ERROR: msg count > array size')
-         return
-      endif
-
       !*** compute addresses based on direction
 
       select case (direction)
@@ -6036,6 +4313,8 @@ contains
 
          !*** copy easternmost physical domain of src
          !*** into westernmost halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,jeSrc-jbSrc+1
          do i=1,nghost
@@ -6053,10 +4332,14 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('west')
 
          !*** copy westernmost physical domain of src
          !*** into easternmost halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,jeSrc-jbSrc+1
          do i=1,nghost
@@ -6074,12 +4357,16 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('north')
 
          !*** copy northern physical domain of src
          !*** into southern halo of dst
 
          if (dstBlock > 0) then  ! normal north boundary
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,ieSrc-ibSrc+1
@@ -6097,12 +4384,16 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          endif
 
       case ('south')
 
          !*** copy southern physical domain of src
          !*** into northern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,ieSrc-ibSrc+1
@@ -6120,12 +4411,16 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('northeast')
 
          !*** normal northeast boundary - just copy NE corner
          !*** of physical domain into SW halo of NE nbr block
 
          if (dstBlock > 0) then
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,nghost
@@ -6143,6 +4438,8 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          endif
 
       case ('northwest')
@@ -6151,6 +4448,8 @@ contains
          !*** of physical domain into SE halo of NW nbr block
 
          if (dstBlock > 0) then
+
+            msgIndx = halo%numLocalCopies
 
             do j=1,nghost
             do i=1,nghost
@@ -6168,12 +4467,16 @@ contains
             end do
             end do
 
+            halo%numLocalCopies = msgIndx
+
          endif
 
       case ('southeast')
 
          !*** copy southeastern corner of src physical domain
          !*** into northwestern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,nghost
@@ -6191,10 +4494,14 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case ('southwest')
 
          !*** copy southwestern corner of src physical domain
          !*** into northeastern halo of dst
+
+         msgIndx = halo%numLocalCopies
 
          do j=1,nghost
          do i=1,nghost
@@ -6212,543 +4519,12 @@ contains
          end do
          end do
 
+         halo%numLocalCopies = msgIndx
+
       case default
 
          call abort_ice(subname//'ERROR: unknown direction local copy')
          return
-
-      end select
-
-      halo%numLocalCopies = msgIndx
-
-      if (msgIndx > size(halo%srcLocalAddr,dim=2) .or. &
-          msgIndx > size(halo%dstLocalAddr,dim=2)) then
-         call abort_ice(subname//'ERROR: msg count > array size')
-         return
-      endif
-
-!-----------------------------------------------------------------------
-!
-!  if source block local and dest block remote, send a message
-!
-!-----------------------------------------------------------------------
-
-   else if (srcProc == my_task+1 .and. &
-            dstProc /= my_task+1 .and. dstProc > 0) then
-
-      !*** first check to see if a message to this processor has
-      !*** already been defined
-      !*** if not, update counters and indices
-
-      msgIndx = 0
-
-      srchSend: do n=1,halo%numMsgSend
-         if (halo%sendTask(n) == dstProc - 1) then
-            msgIndx = n
-            bufSize = halo%sizeSend(n)
-            exit srchSend
-         endif
-      end do srchSend
-
-      if (msgIndx == 0) then
-         msgIndx = halo%numMsgSend + 1
-         halo%numMsgSend = msgIndx
-         halo%sendTask(msgIndx) = dstProc - 1
-         bufSize = 0
-      endif
-
-      !*** now compute message info based on msg direction
-
-      select case (direction)
-      case ('east')
-
-         !*** send easternmost physical domain of src
-         !*** into westernmost halo of dst
-
-         do j=1,jeSrc-jbSrc+1
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%sendAddr(1,bufSize,msgIndx) = ieSrc - nghost + i
-            halo%sendAddr(2,bufSize,msgIndx) = jbSrc + j - 1
-            halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-         end do
-         end do
-
-         halo%sizeSend(msgIndx) = bufSize
-
-      case ('west')
-
-         !*** copy westernmost physical domain of src
-         !*** into easternmost halo of dst
-
-         do j=1,jeSrc-jbSrc+1
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%sendAddr(1,bufSize,msgIndx) = ibSrc + i - 1
-            halo%sendAddr(2,bufSize,msgIndx) = jbSrc + j - 1
-            halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-         end do
-         end do
-
-         halo%sizeSend(msgIndx) = bufSize
-
-      case ('north')
-
-         if (dstBlock > 0) then
-
-            !*** copy northern physical domain of src
-            !*** into southern halo of dst
-
-            do j=1,nghost
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx) = ibSrc + i - 1
-               halo%sendAddr(2,bufSize,msgIndx) = jeSrc-nghost+j
-               halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - send top halo%tripoleRows rows of phys domain
-
-            halo%tripSend(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx)=ibSrc + i - 1
-               halo%sendAddr(2,bufSize,msgIndx)=jeSrc-halo%tripoleRows+j
-               halo%sendAddr(3,bufSize,msgIndx)=srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         endif
-
-      case ('south')
-
-         !*** copy southern physical domain of src
-         !*** into northern halo of dst
-
-         do j=1,nghost
-         do i=1,ieSrc-ibSrc+1
-
-            bufSize = bufSize + 1
-
-            halo%sendAddr(1,bufSize,msgIndx) = ibSrc + i - 1
-            halo%sendAddr(2,bufSize,msgIndx) = jbSrc + j - 1
-            halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-         end do
-         end do
-
-         halo%sizeSend(msgIndx) = bufSize
-
-      case ('northeast')
-
-
-         if (dstBlock > 0) then
-
-            !*** normal northeast corner
-            !*** copy northeast corner of src physical domain
-            !*** into southwestern halo of dst
-
-            do j=1,nghost
-            do i=1,nghost
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx) = ieSrc-nghost+i
-               halo%sendAddr(2,bufSize,msgIndx) = jeSrc-nghost+j
-               halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - send top halo%tripoleRows rows of phys domain
-
-            halo%tripSend(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx)=ibSrc + i - 1
-               halo%sendAddr(2,bufSize,msgIndx)=jeSrc-halo%tripoleRows+j
-               halo%sendAddr(3,bufSize,msgIndx)=srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         endif
-
-      case ('northwest')
-
-         if (dstBlock > 0) then
-
-            !*** normal northwest corner
-            !*** copy northwest corner of src physical domain
-            !*** into southeastern halo of dst
-
-            do j=1,nghost
-            do i=1,nghost
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx) = ibSrc + i - 1
-               halo%sendAddr(2,bufSize,msgIndx) = jeSrc-nghost+j
-               halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - send top halo%tripoleRows rows of phys domain
-
-            halo%tripSend(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%sendAddr(1,bufSize,msgIndx)=ibSrc + i - 1
-               halo%sendAddr(2,bufSize,msgIndx)=jeSrc-halo%tripoleRows+j
-               halo%sendAddr(3,bufSize,msgIndx)=srcLocalID
-
-            end do
-            end do
-
-            halo%sizeSend(msgIndx) = bufSize
-
-         endif
-
-      case ('southeast')
-
-         !*** copy southeastern corner of src physical domain
-         !*** into northwestern halo of dst
-
-         do j=1,nghost
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%sendAddr(1,bufSize,msgIndx) = ieSrc - nghost + i
-            halo%sendAddr(2,bufSize,msgIndx) = jbSrc + j - 1
-            halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-         end do
-         end do
-
-         halo%sizeSend(msgIndx) = bufSize
-
-      case ('southwest')
-
-         !*** copy southwestern corner of src physical domain
-         !*** into northeastern halo of dst
-
-         do j=1,nghost
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%sendAddr(1,bufSize,msgIndx) = ibSrc + i - 1
-            halo%sendAddr(2,bufSize,msgIndx) = jbSrc + j - 1
-            halo%sendAddr(3,bufSize,msgIndx) = srcLocalID
-
-         end do
-         end do
-
-         halo%sizeSend(msgIndx) = bufSize
-
-      case default
-
-         !*** already checked in previous case construct
-
-      end select
-
-!-----------------------------------------------------------------------
-!
-!  if source block remote and dest block local, recv a message
-!
-!-----------------------------------------------------------------------
-
-   else if (dstProc == my_task+1 .and. &
-            srcProc /= my_task+1 .and. srcProc > 0) then
-
-      !*** first check to see if a message from this processor has
-      !*** already been defined
-      !*** if not, update counters and indices
-
-      msgIndx = 0
-
-      srchRecv: do n=1,halo%numMsgRecv
-         if (halo%recvTask(n) == srcProc - 1) then
-            msgIndx = n
-            bufSize = halo%sizeRecv(n)
-            exit srchRecv
-         endif
-      end do srchRecv
-
-      if (msgIndx == 0) then
-         msgIndx = halo%numMsgRecv + 1
-         halo%numMsgRecv = msgIndx
-         halo%recvTask(msgIndx) = srcProc - 1
-         bufSize = 0
-      endif
-
-      !*** now compute message info based on msg direction
-
-      select case (direction)
-      case ('east')
-
-         !*** send easternmost physical domain of src
-         !*** into westernmost halo of dst
-
-         do j=1,jeSrc-jbSrc+1
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%recvAddr(1,bufSize,msgIndx) = i
-            halo%recvAddr(2,bufSize,msgIndx) = jbDst + j - 1
-            halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-         end do
-         end do
-
-         halo%sizeRecv(msgIndx) = bufSize
-
-      case ('west')
-
-         !*** copy westernmost physical domain of src
-         !*** into easternmost halo of dst
-
-         do j=1,jeSrc-jbSrc+1
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%recvAddr(1,bufSize,msgIndx) = ieDst + i
-            halo%recvAddr(2,bufSize,msgIndx) = jbDst + j - 1
-            halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-         end do
-         end do
-
-         halo%sizeRecv(msgIndx) = bufSize
-
-      case ('north')
-
-         if (dstBlock > 0) then
-
-            !*** copy northern physical domain of src
-            !*** into southern halo of dst
-
-            do j=1,nghost
-            do i=1,ieDst-ibDst+1
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = ibDst + i - 1
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - receive into tripole buffer
-
-            halo%tripRecv(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = iGlobal(ibSrc + i - 1)
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = -dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         endif
-
-      case ('south')
-
-         !*** copy southern physical domain of src
-         !*** into northern halo of dst
-
-         do j=1,nghost
-         do i=1,ieSrc-ibSrc+1
-
-            bufSize = bufSize + 1
-
-            halo%recvAddr(1,bufSize,msgIndx) = ibDst + i - 1
-            halo%recvAddr(2,bufSize,msgIndx) = jeDst + j
-            halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-         end do
-         end do
-
-         halo%sizeRecv(msgIndx) = bufSize
-
-      case ('northeast')
-
-         if (dstBlock > 0) then
-
-            !*** normal northeast neighbor
-            !*** copy northeast physical domain into
-            !*** into southwest halo of dst
-
-            do j=1,nghost
-            do i=1,nghost
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = i
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - receive into tripole buffer
-
-            halo%tripRecv(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = iGlobal(ibSrc + i - 1)
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = -dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         endif
-
-      case ('northwest')
-
-         if (dstBlock > 0) then
-
-            !*** normal northwest neighbor
-            !*** copy northwest physical domain into
-            !*** into southeast halo of dst
-
-            do j=1,nghost
-            do i=1,nghost
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = ieDst + i
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         else
-
-            !*** tripole block - receive into tripole buffer
-
-            halo%tripRecv(msgIndx) = 1
-            do j=1,halo%tripoleRows
-            do i=1,ieSrc-ibSrc+1
-
-               bufSize = bufSize + 1
-
-               halo%recvAddr(1,bufSize,msgIndx) = iGlobal(ibSrc + i - 1)
-               halo%recvAddr(2,bufSize,msgIndx) = j
-               halo%recvAddr(3,bufSize,msgIndx) = -dstLocalID
-
-            end do
-            end do
-
-            halo%sizeRecv(msgIndx) = bufSize
-
-         endif
-
-      case ('southeast')
-
-         !*** copy southeastern corner of src physical domain
-         !*** into northwestern halo of dst
-
-         do j=1,nghost
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%recvAddr(1,bufSize,msgIndx) = i
-            halo%recvAddr(2,bufSize,msgIndx) = jeDst + j
-            halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-         end do
-         end do
-
-         halo%sizeRecv(msgIndx) = bufSize
-
-      case ('southwest')
-
-         !*** copy southwestern corner of src physical domain
-         !*** into northeastern halo of dst
-
-         do j=1,nghost
-         do i=1,nghost
-
-            bufSize = bufSize + 1
-
-            halo%recvAddr(1,bufSize,msgIndx) = ieDst + i
-            halo%recvAddr(2,bufSize,msgIndx) = jeDst + j
-            halo%recvAddr(3,bufSize,msgIndx) = dstLocalID
-
-         end do
-         end do
-
-         halo%sizeRecv(msgIndx) = bufSize
-
-      case default
-
-         !*** already checked in previous case construct
 
       end select
 
@@ -6809,6 +4585,7 @@ contains
      this_block  ! block info for current block
 
    character(len=*), parameter :: subname = '(ice_HaloExtrapolate2DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  Linear extrapolation
@@ -6887,24 +4664,18 @@ contains
       istat                      ! error or status flag for MPI,alloc
 
    character(len=*), parameter :: subname = '(ice_HaloDestroy)'
+
 !-----------------------------------------------------------------------
 
-   deallocate(halo%sendTask, &
-              halo%recvTask, &
-              halo%sizeSend, &
-              halo%sizeRecv, &
-              halo%tripSend, &
-              halo%tripRecv, &
-              halo%srcLocalAddr, &
+   deallocate(halo%srcLocalAddr, &
               halo%dstLocalAddr, &
-              halo%sendAddr, &
-              halo%recvAddr, &
               halo%blockGlobalID, stat=istat)
 
    if (istat > 0) then
       call abort_ice(subname,' ERROR: deallocating')
       return
    endif
+
 end subroutine ice_HaloDestroy
 
 !***********************************************************************
@@ -6914,9 +4685,6 @@ end subroutine ice_HaloDestroy
 
 !  This subroutine adds ghost cells to global primary grid lengths array
 !  ARRAY_I and outputs result to array ARRAY_O
-
-!  Note duplicate implementation of this subroutine in:
-!  cicecore/cicedynB/infrastructure/comm/serial/ice_boundary.F90
 
    use ice_constants, only: c0
    use ice_domain_size, only: nx_global, ny_global

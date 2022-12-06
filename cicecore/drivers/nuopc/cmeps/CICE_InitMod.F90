@@ -36,7 +36,6 @@ contains
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
-    use ice_dyn_shared    , only: alloc_dyn_shared
     use ice_flux_bgc      , only: alloc_flux_bgc
     use ice_flux          , only: alloc_flux
     use ice_timers        , only: timer_total, init_ice_timers, ice_timer_start
@@ -59,7 +58,6 @@ contains
     call alloc_grid           ! allocate grid arrays
     call alloc_arrays_column  ! allocate column arrays
     call alloc_state          ! allocate state arrays
-    call alloc_dyn_shared     ! allocate dyn shared arrays
     call alloc_flux_bgc       ! allocate flux_bgc arrays
     call alloc_flux           ! allocate flux arrays
     call init_ice_timers      ! initialize all timers
@@ -79,9 +77,10 @@ contains
     use ice_communicate      , only: my_task, master_task
     use ice_diagnostics      , only: init_diags
     use ice_domain_size      , only: ncat, nfsd, nfreq
-    use ice_dyn_eap          , only: init_eap, alloc_dyn_eap
-    use ice_dyn_shared       , only: kdyn, init_dyn
+    use ice_dyn_eap          , only: init_eap
+    use ice_dyn_evp          , only: init_evp
     use ice_dyn_vp           , only: init_vp
+    use ice_dyn_shared       , only: kdyn
     use ice_flux             , only: init_coupler_flux, init_history_therm
     use ice_flux             , only: init_history_dyn, init_flux_atm, init_flux_ocn
     use ice_forcing          , only: init_snowtable
@@ -107,9 +106,9 @@ contains
     call init_calendar        ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
 
-    call init_dyn (dt_dyn)    ! define dynamics parameters, variables
+    if (kdyn == 1) then
+       call init_evp     ! allocate dyn_evp arrays
     if (kdyn == 2) then
-       call alloc_dyn_eap     ! allocate dyn_eap arrays
        call init_eap          ! define eap dynamics parameters, variables
     else if (kdyn == 3) then
        call init_vp           ! define vp dynamics parameters, variables

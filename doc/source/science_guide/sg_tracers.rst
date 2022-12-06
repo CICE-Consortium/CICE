@@ -92,7 +92,6 @@ is not in use.
    "       ","nslyr","vsno","nt_rhos"," "
    "       ","nslyr","vsno","nt_smice"," "
    "       ","nslyr","vsno","nt_smliq"," "
-   "solve_zsal", "n_trzs", "fbri or (a,v)ice", "nt_bgc_S", " "
    "tr_bgc_N", "n_algae", "fbri or (a,v)ice", "nt_bgc_N", "nlt_bgc_N"
    "tr_bgc_Nit", " ", "fbri or (a,v)ice", "nt_bgc_Nit", "nlt_bgc_Nit"
    "tr_bgc_C", "n_doc", "fbri or (a,v)ice", "nt_bgc_DOC", "nlt_bgc_DOC"
@@ -112,6 +111,7 @@ is not in use.
    " ", "1", "fbri", "nt_zbgc_frac", " "
 
 ..
+   "solve_zsal", "n_trzs", "fbri or (a,v)ice", "nt_bgc_S", " "
    "tr_pond_cesm", "2", "aice", "nt_apnd", " " 
    " ", " ", "apnd", "nt_vpnd", " "
 

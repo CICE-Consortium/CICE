@@ -25,6 +25,7 @@
           p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
+      use ice_flux, only: rdg_shear
 !      use ice_timers, only:  &
 !          ice_timer_start, ice_timer_stop, &
 !          timer_tmp1, timer_tmp2, timer_tmp3, timer_tmp4, &
@@ -36,8 +37,7 @@
 
       implicit none
       private
-      public :: eap, init_eap, write_restart_eap, read_restart_eap, &
-                alloc_dyn_eap
+      public :: eap, init_eap, write_restart_eap, read_restart_eap
 
       ! Look-up table needed for calculating structure tensor
       integer (int_kind), parameter :: &
@@ -71,42 +71,16 @@
       real (kind=dbl_kind) :: &
          puny, pi, pi2, piq, pih
 
+      real (kind=dbl_kind), parameter :: &
+         kfriction = 0.45_dbl_kind
+
+      real (kind=dbl_kind), save :: &
+         invdx, invdy, invda, invsin
+
+
 !=======================================================================
 
       contains
-
-!=======================================================================
-! Allocate space for all variables
-!
-      subroutine alloc_dyn_eap
-
-      integer (int_kind) :: ierr
-
-      character(len=*), parameter :: subname = '(alloc_dyn_eap)'
-
-      allocate( a11_1        (nx_block,ny_block,max_blocks), &
-                a11_2        (nx_block,ny_block,max_blocks), &
-                a11_3        (nx_block,ny_block,max_blocks), &
-                a11_4        (nx_block,ny_block,max_blocks), &
-                a12_1        (nx_block,ny_block,max_blocks), &
-                a12_2        (nx_block,ny_block,max_blocks), &
-                a12_3        (nx_block,ny_block,max_blocks), &
-                a12_4        (nx_block,ny_block,max_blocks), &
-                e11          (nx_block,ny_block,max_blocks), &
-                e12          (nx_block,ny_block,max_blocks), &
-                e22          (nx_block,ny_block,max_blocks), &
-                yieldstress11(nx_block,ny_block,max_blocks), &
-                yieldstress12(nx_block,ny_block,max_blocks), &
-                yieldstress22(nx_block,ny_block,max_blocks), &
-                s11          (nx_block,ny_block,max_blocks), &
-                s12          (nx_block,ny_block,max_blocks), &
-                s22          (nx_block,ny_block,max_blocks), &
-                a11          (nx_block,ny_block,max_blocks), &
-                a12          (nx_block,ny_block,max_blocks), &
-                stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory')
-
-      end subroutine alloc_dyn_eap
 
 !=======================================================================
 ! Elastic-anisotropic-plastic dynamics driver
@@ -134,7 +108,8 @@
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
-          stack_fields, unstack_fields, iceTmask, iceUmask
+          stack_fields, unstack_fields, iceTmask, iceUmask, &
+          fld2, fld3, fld4
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -186,11 +161,6 @@
          umass      , & ! total mass of ice and snow (u grid)
          umassdti       ! mass of U-cell/dte (kg/m^2 s)
 
-      real (kind=dbl_kind), allocatable :: &
-         fld2(:,:,:,:), & ! temporary for stacking fields for halo update
-         fld3(:,:,:,:), & ! temporary for stacking fields for halo update
-         fld4(:,:,:,:)    ! temporary for stacking fields for halo update
-
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp         ! stress combinations for momentum equation
 
@@ -214,10 +184,6 @@
       ! Initialize
       !-----------------------------------------------------------------
 
-      allocate(fld2(nx_block,ny_block,2,max_blocks))
-      allocate(fld3(nx_block,ny_block,3,max_blocks))
-      allocate(fld4(nx_block,ny_block,4,max_blocks))
-
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
 
@@ -226,7 +192,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             rdg_conv (i,j,iblk) = c0
-!           rdg_shear(i,j,iblk) = c0
+            rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
             divu (i,j,iblk) = c0
             shear(i,j,iblk) = c0
             e11(i,j,iblk) = c0
@@ -554,7 +520,6 @@
 
       enddo                     ! subcycling
 
-      deallocate(fld2,fld3,fld4)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       !-----------------------------------------------------------------
@@ -588,6 +553,8 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
+      use ice_calendar, only: dt_dyn
+      use ice_dyn_shared, only: init_dyn_shared
 
       ! local variables
 
@@ -599,7 +566,7 @@
          eps6 = 1.0e-6_dbl_kind
 
       integer (kind=int_kind) :: &
-         ix, iy, iz, ia
+         ix, iy, iz, ia, ierr
 
       integer (kind=int_kind), parameter :: &
          nz = 100
@@ -608,6 +575,8 @@
          ainit, xinit, yinit, zinit, &
          da, dx, dy, dz, &
          phi
+
+      real (kind=dbl_kind) :: invstressconviso
 
       character(len=*), parameter :: subname = '(init_eap)'
 
@@ -618,6 +587,31 @@
          file=__FILE__, line=__LINE__)
 
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
+
+      call init_dyn_shared(dt_dyn)
+
+      allocate( a11_1        (nx_block,ny_block,max_blocks), &
+                a11_2        (nx_block,ny_block,max_blocks), &
+                a11_3        (nx_block,ny_block,max_blocks), &
+                a11_4        (nx_block,ny_block,max_blocks), &
+                a12_1        (nx_block,ny_block,max_blocks), &
+                a12_2        (nx_block,ny_block,max_blocks), &
+                a12_3        (nx_block,ny_block,max_blocks), &
+                a12_4        (nx_block,ny_block,max_blocks), &
+                e11          (nx_block,ny_block,max_blocks), &
+                e12          (nx_block,ny_block,max_blocks), &
+                e22          (nx_block,ny_block,max_blocks), &
+                yieldstress11(nx_block,ny_block,max_blocks), &
+                yieldstress12(nx_block,ny_block,max_blocks), &
+                yieldstress22(nx_block,ny_block,max_blocks), &
+                s11          (nx_block,ny_block,max_blocks), &
+                s12          (nx_block,ny_block,max_blocks), &
+                s22          (nx_block,ny_block,max_blocks), &
+                a11          (nx_block,ny_block,max_blocks), &
+                a12          (nx_block,ny_block,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory')
+
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
@@ -640,6 +634,7 @@
          a12_2        (i,j,iblk) = c0
          a12_3        (i,j,iblk) = c0
          a12_4        (i,j,iblk) = c0
+         rdg_shear    (i,j,iblk) = c0
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk
@@ -657,6 +652,9 @@
       zinit = -pih
       dy = pi/real(ny_yield-1,kind=dbl_kind)
       yinit = -dy
+      invdx = c1/dx
+      invdy = c1/dy
+      invda = c1/da
 
       do ia=1,na_yield
       do ix=1,nx_yield
@@ -711,6 +709,12 @@
       enddo
       enddo
       enddo
+
+      ! Factor to maintain the same stress as in EVP (see Section 3)
+      ! Can be set to 1 otherwise
+
+      invstressconviso = c1/(c1+kfriction*kfriction)
+      invsin = c1/sin(pi2/c12) * invstressconviso
 
       end subroutine init_eap
 
@@ -1590,21 +1594,11 @@
          rotstemp11s, rotstemp12s, rotstemp22s, &
          sig11, sig12, sig22, &
          sgprm11, sgprm12, sgprm22, &
-         invstressconviso, &
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
          x, y, dx, dy, da, &
          dtemp1, dtemp2, atempprime, &
          kxw, kyw, kaw
-
-      real (kind=dbl_kind), save :: &
-         invdx, invdy, invda, invsin
-
-      logical (kind=log_kind), save :: &
-         first_call = .true.
-
-      real (kind=dbl_kind), parameter :: &
-         kfriction = 0.45_dbl_kind
 
       ! tcraig, temporary, should be moved to namelist
       ! turns on interpolation in stress_rdg
@@ -1612,14 +1606,6 @@
          interpolate_stress_rdg = .false.
 
       character(len=*), parameter :: subname = '(update_stress_rdg)'
-
-      ! Factor to maintain the same stress as in EVP (see Section 3)
-      ! Can be set to 1 otherwise
-
-      if (first_call) then
-         invstressconviso = c1/(c1+kfriction*kfriction)
-         invsin = c1/sin(pi2/c12) * invstressconviso
-      endif
 
       ! compute eigenvalues, eigenvectors and angles for structure tensor, strain rates
 
@@ -1716,17 +1702,6 @@
 
       if (y > pi) y = y - pi
       if (y < 0)  y = y + pi
-
-      ! Now calculate updated stress tensor
-
-      if (first_call) then
-         dx   = pi/real(nx_yield-1,kind=dbl_kind)
-         dy   = pi/real(ny_yield-1,kind=dbl_kind)
-         da   = p5/real(na_yield-1,kind=dbl_kind)
-         invdx = c1/dx
-         invdy = c1/dy
-         invda = c1/da
-      endif
 
       if (interpolate_stress_rdg) then
 
@@ -1868,8 +1843,6 @@
          alphas =  rotstemp11s*dtemp11 + c2*rotstemp12s*dtemp12 &
                  + rotstemp22s*dtemp22
       endif
-
-      first_call = .false.
 
       end subroutine update_stress_rdg
 

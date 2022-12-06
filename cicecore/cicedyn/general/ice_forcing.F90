@@ -5684,7 +5684,7 @@
 
       integer (kind=int_kind) :: & 
           ncid        , & ! netcdf file id
-	  i, j, freq  , &
+          i, j, freq  , &
           ixm,ixx,ixp , & ! record numbers for neighboring months
           recnum      , & ! record number
           maxrec      , & ! maximum record number
@@ -5785,7 +5785,7 @@
          call ice_read_nc_xyf(ncid,recnum,'efreq',wave_spectrum_data(:,:,:,2,:),debug_n_d, &
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
-	 call ice_close_nc(ncid)
+         call ice_close_nc(ncid)
 
      
       ! Interpolate
