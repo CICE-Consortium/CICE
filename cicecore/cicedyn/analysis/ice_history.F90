@@ -420,10 +420,6 @@
          f_taubyE = f_tauby
       endif
 
-#ifndef ncdf
-      f_bounds = .false.
-#endif
-
       ! write dimensions for 3D or 4D history variables
       ! note: list of variables checked here is incomplete
       if (f_aicen(1:1) /= 'x' .or. f_vicen(1:1) /= 'x' .or. &
