@@ -1543,7 +1543,7 @@
                write(nu_diag,*) subname//' WARNING: tr_fsd=T but wave_spec=F - not recommended'
             endif
       end if
- 
+
       ! compute grid locations for thermo, u and v fields
 
       grid_ice_thrm = 'T'
