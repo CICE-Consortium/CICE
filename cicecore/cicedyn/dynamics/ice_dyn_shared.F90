@@ -181,7 +181,7 @@
          iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
          iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
          fcor_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
-         DminTarea (nx_block,ny_block,max_blocks), & ! 
+         DminTarea (nx_block,ny_block,max_blocks), & !
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -240,7 +240,7 @@
 
       call set_evp_parameters (dt)
       ! allocate dyn shared (init_uvel,init_vvel)
-      call alloc_dyn_shared     
+      call alloc_dyn_shared
       ! Set halo_dynbundle, this is empirical at this point, could become namelist
       halo_dynbundle = .true.
       nprocs = get_num_procs()

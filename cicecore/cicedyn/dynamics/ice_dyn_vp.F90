@@ -88,7 +88,7 @@
          reltol_andacc      ! relative tolerance for Anderson acceleration
 
       character (len=char_len), public :: &
-         precond        , & ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal), 
+         precond        , & ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal),
                             ! 'pgmres' (Jacobi-preconditioned GMRES)
          algo_nonlin    , & ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
          ortho_type         ! type of orthogonalization for FGMRES ('cgs' or 'mgs')
@@ -3344,7 +3344,7 @@
 
             ! Update workspace with boundary values
             ! NOTE: skipped for efficiency since this is just a preconditioner
-            ! unless bfbflag is active            
+            ! unless bfbflag is active
             if (bfbflag /= 'off') then
                call stack_fields(workspace_x, workspace_y, fld2)
                call ice_timer_start(timer_bound)
@@ -3565,7 +3565,7 @@
 
       type (ice_halo), intent(in) :: &
          halo_info_mask !  ghost cell update info for masked halo
-         
+
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(in) :: &
          vx       , & ! input vector (x components)
          vy           ! input vector (y components)
