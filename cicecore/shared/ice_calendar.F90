@@ -41,6 +41,7 @@
                                        ! (relative to init date)
                                        ! needed for binary restarts
 
+
       ! semi-private, only used directly by unit tester
       public :: compute_elapsed_days ! compute elapsed days since 0000-01-01
       public :: compute_days_between ! compute elapsed days between two dates
@@ -168,7 +169,17 @@
 !=======================================================================
 ! Initialize calendar variables
 
+#ifdef GEOSCOUPLED
+      subroutine init_calendar(yr, mo, dy, hr, mn, sc)
+#else
       subroutine init_calendar
+#endif
+
+#ifdef GEOSCOUPLED
+       integer (kind=int_kind), intent(in) :: &
+          yr, mo, dy, hr, mn, sc       
+        
+#endif
 
       real    (kind=dbl_kind) :: secday           ! seconds per day
 
@@ -191,11 +202,25 @@
       endif
 
       istep = 0         ! local timestep number
+
+#ifdef GEOSCOUPLED
+      year_init = yr
+      month_init = mo
+      day_init  = dy
+#endif
       myear=year_init   ! year
       mmonth=month_init ! month
       mday=day_init     ! day of the month
+#ifdef GEOSCOUPLED
+      msec = hr*seconds_per_hour + mn*seconds_per_minute + sc
+      hh_init = hr 
+      mm_init = mn  
+      ss_init = sc  
+#else
       msec=sec_init     ! seconds into date
       call calendar_sec2hms(sec_init,hh_init,mm_init,ss_init)  ! initialize hh,mm,ss _init
+#endif
+
       hour=0            ! computed in calendar, but needs some reasonable initial value
       istep1 = istep0   ! number of steps at current timestep
                         ! real (dumped) or imagined (use to set calendar)
@@ -205,6 +230,8 @@
       force_restart_now = .false.
 
 #ifdef CESMCOUPLED
+      ! calendar_type set by coupling
+#elif GEOSCOUPLED
       ! calendar_type set by coupling
 #else
       calendar_type = ''
@@ -229,6 +256,8 @@
       call calendar()
 
       end subroutine init_calendar
+
+
 
 !=======================================================================
 ! Initialize timestep counter

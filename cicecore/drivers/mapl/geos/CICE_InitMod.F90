@@ -77,7 +77,7 @@ contains
   end subroutine cice_init1
 
   !=======================================================================
-  subroutine cice_init2()
+  subroutine cice_init2(yr, mo, dy, hr, mn, sc)
 
     !  Initialize the basic state, and all necessary parameters for
     !  running the CICE model.
@@ -104,6 +104,10 @@ contains
     use ice_timers           , only: timer_total, init_ice_timers, ice_timer_start
     use ice_transport_driver , only: init_transport
 
+
+    integer (kind=int_kind), intent(in) :: &
+          yr, mo, dy, hr, mn, sc       
+
     logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
     logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow
     character(len=char_len) :: snw_aging_table
@@ -111,7 +115,7 @@ contains
     !----------------------------------------------------
 
     call init_zbgc            ! vertical biogeochemistry initialization
-    call init_calendar        ! initialize some calendar stuff
+    call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
 
     call init_dyn (dt_dyn)    ! define dynamics parameters, variables
