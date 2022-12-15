@@ -25,7 +25,7 @@ module CICE_InitMod
 contains
 !=======================================================================
 
-  subroutine cice_init1(mpi_comm)
+  subroutine cice_init1(mpi_comm, npes, blkx, blky)
 
     !  Initialize the basic state, grid and all necessary parameters for
     !  running the CICE model.
@@ -42,16 +42,15 @@ contains
     use ice_flux          , only: alloc_flux
     use ice_timers        , only: timer_total, init_ice_timers, ice_timer_start
 
-    integer (kind=int_kind), optional, intent(in) :: &
-       mpi_comm ! communicator for sequential ccsm
+    integer (kind=int_kind), intent(in) :: &
+       mpi_comm ! communicator for sequential geos
+
+    integer (kind=int_kind), intent(in) :: &
+       npes, blkx, blky ! 
 
     character(len=*), parameter :: subname = '(cice_init1)'
     !----------------------------------------------------
-    if (present(mpi_comm)) then
-        call init_communicate(mpi_comm)     ! initial setup for message passing
-    else
-        call init_communicate     ! initial setup for message passing
-    endif
+    call init_communicate(mpi_comm)     ! initial setup for message passing
 
     call init_fileunits       ! unit numbers
     call icepack_configure()  ! initialize icepack
@@ -63,7 +62,7 @@ contains
     call input_zbgc           ! vertical biogeochemistry namelist
     call count_tracers        ! count tracers
 
-    call init_domain_blocks   ! set up block decomposition
+    call init_domain_blocks(npes, blkx, blky) ! set up block decomposition
     call init_grid1           ! domain distribution
     call alloc_grid           ! allocate grid arrays
     call alloc_arrays_column  ! allocate column arrays

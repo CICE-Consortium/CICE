@@ -93,7 +93,11 @@
 
 !***********************************************************************
 
+#ifdef GEOSCOUPLED
+ subroutine init_domain_blocks(npes, blkx, blky)
+#else
  subroutine init_domain_blocks
+#endif
 
 !  This routine reads in domain information and calls the routine
 !  to set up the block decomposition.
@@ -101,6 +105,11 @@
    use ice_distribution, only: processor_shape
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
+
+#ifdef GEOSCOUPLED
+   integer (int_kind), intent(in) :: &
+      npes, blkx, blky 
+#endif
 
 !----------------------------------------------------------------------
 !
@@ -182,6 +191,12 @@
       endif
       close(nu_nml)
       call release_fileunit(nu_nml)
+#ifdef GEOSCOUPLED
+      ! ignore values from nml, use the one passed by coupler/driver 
+      nprocs        = npes
+      block_size_x  = blkx
+      block_size_y  = blky
+#endif
    endif
 
    call broadcast_scalar(nprocs,            master_task)
