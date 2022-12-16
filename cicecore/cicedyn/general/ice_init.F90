@@ -167,7 +167,7 @@
       integer (kind=int_kind)  :: rplvl, rptopo
       real (kind=dbl_kind)     :: Cf, ksno, puny
       character (len=char_len) :: abort_list
-      character(len=char_len)       :: nml_name ! namelist name
+      character (len=char_len)      :: nml_name ! namelist name
       character (len=char_len_long) :: tmpstr2  
 
       character(len=*), parameter :: subname='(input_data)'
@@ -616,8 +616,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -641,8 +640,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: ' //trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -666,8 +664,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: ' //trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -691,8 +688,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -717,8 +713,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -743,8 +738,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '//&
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -769,8 +763,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -795,8 +788,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
@@ -821,8 +813,7 @@
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
                call abort_ice(subname//'ERROR: '// trim(nml_name)//' reading '// &
-                    trim(tmpstr2), &
-                    file=__FILE__, line=__LINE__)
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
 
