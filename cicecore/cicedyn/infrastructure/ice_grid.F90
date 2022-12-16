@@ -507,23 +507,26 @@
       ! Diagnose OpenMP thread schedule, force order in output
       !-----------------------------------------------------------------
 
+! This code does not work in CESM. Needs to be investigated further.
+#ifndef CESMCOUPLED
 #if defined (_OPENMP)
-      !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-         if (my_task == master_task) then
-            !$OMP ORDERED
-            if (iblk == 1) then
-               call omp_get_schedule(ompsk,ompcs)
-               write(nu_diag,*) ''
-               write(nu_diag,*) subname,' OpenMP runtime thread schedule:'
-               write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
-            endif
-            write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
-            call flush_fileunit(nu_diag)
-            !$OMP END ORDERED
-         endif
-      enddo
-      !$OMP END PARALLEL DO
+       !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
+       do iblk = 1, nblocks
+          if (my_task == master_task) then
+             !$OMP ORDERED
+             if (iblk == 1) then
+                call omp_get_schedule(ompsk,ompcs)
+!               write(nu_diag,*) ''
+                write(nu_diag,*) subname,' OpenMP runtime thread schedule:'
+                write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
+             endif
+             write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
+             call flush_fileunit(nu_diag)
+             !$OMP END ORDERED
+          endif
+       enddo
+       !$OMP END PARALLEL DO
+#endif
 #endif
 
       !-----------------------------------------------------------------
@@ -1393,15 +1396,15 @@
          ! original rectgrid defines latlon first
          call rectgrid_scale_dxdy
       else
-         ! rectgrid no grid spacing. 
+         ! rectgrid no grid spacing.
          ! original method with addition to use namelist lat/lon reference
-         
+
          if (my_task == master_task) then
             work_g1 = c0
             length = dxrect*cm_to_m/radius*rad_to_deg
-            
+
             work_g1(1,:) = lonrefrect ! reference lon from namelist
-            
+
             do j = 1, ny_global
             do i = 2, nx_global
                work_g1(i,j) = work_g1(i-1,j) + length   ! ULON
@@ -1413,13 +1416,13 @@
                              field_loc_NEcorner, field_type_scalar)
          call ice_HaloExtrapolate(ULON, distrb_info, &
                                   ew_boundary_type, ns_boundary_type)
-         
+
          if (my_task == master_task) then
             work_g1 = c0
             length = dyrect*cm_to_m/radius*rad_to_deg
-            
+
             work_g1(:,1) = latrefrect ! reference latitude from namelist
-            
+
             do i = 1, nx_global
             do j = 2, ny_global
                work_g1(i,j) = work_g1(i,j-1) + length   ! ULAT
@@ -1532,32 +1535,32 @@
       end subroutine rectgrid
 
 !=======================================================================
-      
+
       subroutine rectgrid_scale_dxdy
-        
+
         ! generate a variable spaced rectangluar grid.
         ! extend spacing from center of grid outward.
         use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
              field_loc_center, field_loc_NEcorner, field_type_scalar
-        
+
         integer (kind=int_kind) :: &
              i, j, iblk, &
              imid, jmid, &
              center1, center2 ! array centers for expanding dx, dy
-      
+
         real (kind=dbl_kind) :: &
              length,  &
              rad_to_deg
 
         real (kind=dbl_kind), dimension(:,:), allocatable :: &
              work_g1
-        
+
         character(len=*), parameter :: subname = '(rectgrid_scale_dxdy)'
-        
+
         call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
 
         allocate(work_g1(nx_global,ny_global))
-        
+
         ! determine dx spacing
         ! strategy: initialize with dxrect.
         ! if want to scale the grid, work from center outwards,
@@ -1565,51 +1568,51 @@
         ! this assumes dx varies in x direction only.
         ! (i.e, dx is the same across same y location)
         if (my_task == master_task) then
-           
+
            ! initialize with initial dxrect
            work_g1(:,:) = dxrect
-           
+
            ! check if nx is even or odd
            ! if even, middle 2 columns are center
            ! of odd,  middle 1 column is center
            if (mod(nx_global,2) == 0) then ! nx_global is even
-              
+
               ! with even number of x locatons,
               ! the center two y columns are center
               center1 = nx_global/2  ! integer math
               center2 = center1 + 1  ! integer math
-              
+
            else ! nx_global = odd
               ! only one center index. set center2=center1
               center1 = ceiling(real(nx_global/2),int_kind)
               center2 = center1
            endif
-           
+
            ! note loop over only half the x grid points (center1)-1
            ! working from the center outward.
            do j = 1, ny_global
            do i = 1, center1-1
               ! work from center1 to left
               work_g1(center1-i,j) = dxscale*work_g1(center1-i+1,j)
-              
+
               ! work from center2 to right
               work_g1(center2+i,j) = dxscale*work_g1(center2+i-1,j)
            enddo ! i
            enddo ! j
-           
+
         endif       ! my_task == master_task
-        
-        
+
+
         ! note work_g1 is converted to meters in primary_grid_lengths_HTN
         call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
-        
+
         ! make ULON array
         if (my_task == master_task) then
-           
+
            ! make first column reference lon in radians.
            ! the remaining work_g1 is still dx in meters
            work_g1(1,:) = lonrefrect/rad_to_deg ! radians
-           
+
            ! loop over remaining points and add spacing to successive
            ! x locations
            do j = 1, ny_global
@@ -1623,7 +1626,7 @@
                             field_loc_NEcorner, field_type_scalar)
         call ice_HaloExtrapolate(ULON, distrb_info, &
                                  ew_boundary_type, ns_boundary_type)
-        
+
         ! determine dy spacing
         ! strategy: initialize with dyrect.
         ! if want to scale the grid, work from center outwards,
@@ -1631,7 +1634,7 @@
         ! this assumes dy varies in y direction only.
         ! (i.e, dy is the same across same x location)
         if (my_task == master_task) then
-           
+
            ! initialize with initial dxrect
            work_g1(:,:) = dyrect
 
@@ -1639,25 +1642,25 @@
            ! if even, middle 2 rows are center
            ! of odd,  middle 1 row is center
            if (mod(ny_global,2) == 0) then ! ny_global is even
-              
+
               ! with even number of x locatons,
               ! the center two y columns are center
               center1 = ny_global/2  ! integer math
               center2 = center1 + 1  ! integer math
-              
+
            else ! ny_global = odd
               ! only one center index. set center2=center1
               center1 = ceiling(real(ny_global/2),int_kind)
               center2 = center1
            endif
-           
+
            ! note loop over only half the y grid points (center1)-1
            ! working from the center outward.
            do i = 1, nx_global
            do j = 1, center1-1
               ! work from center1 to bottom
               work_g1(i,center1-j) = dyscale*work_g1(i,center1-j+1)
-              
+
               ! work from center2 to top
               work_g1(i,center2+j) = dyscale*work_g1(i,center2+j-1)
            enddo ! i
@@ -1665,15 +1668,15 @@
         endif    ! mytask == master_task
         ! note work_g1 is converted to meters primary_grid_lengths_HTE
         call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
-        
+
         ! make ULAT array
         if (my_task == master_task) then
-           
+
            ! make first row reference lat in radians.
            ! the remaining work_g1 is still dy in meters
            work_g1(:,1) = latrefrect/rad_to_deg ! radians
-           
-           
+
+
            ! loop over remaining points and add spacing to successive
            ! x locations
            do j = 2, ny_global ! start from j=2. j=1 is latrefrect
@@ -1687,10 +1690,10 @@
                             field_loc_NEcorner, field_type_scalar)
         call ice_HaloExtrapolate(ULAT, distrb_info, &
                                  ew_boundary_type, ns_boundary_type)
-        
+
 
         deallocate(work_g1)
-        
+
       end subroutine rectgrid_scale_dxdy
 
 !=======================================================================

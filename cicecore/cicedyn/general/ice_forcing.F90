@@ -118,7 +118,7 @@
 
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: &
           wave_spectrum_data ! field values at 2 temporal data points
- 
+
       character(char_len), public :: &
          atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
@@ -5650,7 +5650,7 @@
                   file=__FILE__, line=__LINE__)
             else
 #ifdef USE_NETCDF
-               call wave_spec_data 
+               call wave_spec_data
 #else
                write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
                write (nu_diag,*) "wave spectrum file not available, using default profile"
@@ -5682,7 +5682,7 @@
       use ice_grid, only: hm, tlon, tlat, tmask, umask
       use ice_calendar, only: days_per_year, use_leap_years
 
-      integer (kind=int_kind) :: & 
+      integer (kind=int_kind) :: &
           ncid        , & ! netcdf file id
           i, j, freq  , &
           ixm,ixx,ixp , & ! record numbers for neighboring months
@@ -5710,7 +5710,7 @@
          wave_spectrum_profile  ! wave spectrum
 
       character(len=64) :: fieldname !netcdf field name
-      character(char_len_long) :: spec_file 
+      character(char_len_long) :: spec_file
       character(char_len) :: wave_spec_type
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(wave_spec_data)'
@@ -5736,7 +5736,7 @@
       yr = fyear  ! current year
     !-------------------------------------------------------------------
     ! 6-hourly data
-    ! 
+    !
     ! Assume that the 6-hourly value is located at the end of the
     !  6-hour period.  This is the convention for NCEP reanalysis data.
     !  E.g. record 1 gives conditions at 6 am GMT on 1 January.
@@ -5787,7 +5787,7 @@
               field_type=field_type_scalar)
          call ice_close_nc(ncid)
 
-     
+
       ! Interpolate
       call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
 

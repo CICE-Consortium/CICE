@@ -40,7 +40,7 @@
       logical (kind=log_kind), public :: &
          hist_avg  ! if true, write averaged data instead of snapshots
 
-      character (len=char_len), public :: &
+      character (len=char_len_long), public :: &
          history_file  , & ! output file for history
          incond_file       ! output file for snapshot initial conditions
 

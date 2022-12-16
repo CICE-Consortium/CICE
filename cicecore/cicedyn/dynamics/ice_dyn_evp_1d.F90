@@ -889,7 +889,7 @@ contains
 
 #ifdef _OPENACC
       !$acc parallel &
-      !$acc present(uvel, vvel) &
+      !$acc present(uvel, vvel)
       !$acc loop
       do iw = 1, NAVEL_len
          if (halo_parent(iw) == 0) cycle
