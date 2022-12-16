@@ -651,6 +651,7 @@ forcing_nml
    "", "``eastblock``", "ice block covering about 25 percent of domain at the east edge of the domain", ""
    "", "``latsst``", "ice dependent on latitude and ocean temperature", ""
    "", "``uniform``", "ice defined at all grid points", ""
+   "``ice_ref_salinity``", "real", "sea ice salinity for coupling fluxes (ppt)", "4.0"
    "``iceruf``", "real", "ice surface roughness at atmosphere interface in meters", "0.0005"
    "``l_mpond_fresh``", "``.false.``", "release pond water immediately to ocean", "``.false.``"
    "", "``true``", "retain (topo) pond water until ponds drain", ""
@@ -673,6 +674,8 @@ forcing_nml
    "``restore_ocn``", "logical", "restore sst to data", "``.false.``"
    "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
    "``rotate_wind``", "logical", "rotate wind from east/north to computation grid", "``.true.``"
+   "``saltflux_option``", "``constant``", "computed using ice_ref_salinity", "``constant``"
+   "", "``prognostic``", "computed using prognostic salinity", ""
    "``tfrz_option``","``constant``", "constant ocean freezing temperature (Tocnfrz)","``mushy``" 
    "", "``linear_salt``", "linear function of salinity (ktherm=1)",
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""

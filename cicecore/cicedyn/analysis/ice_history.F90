@@ -420,10 +420,6 @@
          f_taubyE = f_tauby
       endif
 
-#ifndef ncdf
-      f_bounds = .false.
-#endif
-
       ! write dimensions for 3D or 4D history variables
       ! note: list of variables checked here is incomplete
       if (f_aicen(1:1) /= 'x' .or. f_vicen(1:1) /= 'x' .or. &
@@ -2168,12 +2164,13 @@
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
-      real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt
+      real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
       logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_vlvl
+      character (len=char_len) :: saltflux_option
 
       type (block) :: &
          this_block           ! block information for current block
@@ -2185,6 +2182,7 @@
       call icepack_query_parameters(Tffresh_out=Tffresh, rhoi_out=rhoi, rhos_out=rhos, &
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
+      call icepack_query_parameters(saltflux_option_out=saltflux_option)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
            tr_brine_out=tr_brine, tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
@@ -2269,7 +2267,7 @@
       !---------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
+      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt,sicen, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
 
       do iblk = 1, nblocks
@@ -3228,7 +3226,16 @@
                     dfresh = -rhoi*frazil(i,j,iblk)/dt
                  endif
                  endif
-                 dfsalt = ice_ref_salinity*p001*dfresh
+                 if (saltflux_option == 'prognostic') then
+                    sicen = c0
+                    do k = 1, nzilyr
+                       sicen = sicen + trcr(i,j,nt_sice+k-1,iblk)*vice(i,j,iblk) &
+                                     / real(nzilyr,kind=dbl_kind)
+                    enddo
+                    dfsalt = sicen*p001*dfresh
+                 else
+                    dfsalt = ice_ref_salinity*p001*dfresh
+                 endif
                  worka(i,j) = aice(i,j,iblk)*(fsalt(i,j,iblk)+dfsalt)
               endif
            enddo

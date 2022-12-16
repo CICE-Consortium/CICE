@@ -257,6 +257,8 @@
     update_ocn_f    = .false.
     l_mpond_fresh   = .false.
     tfrz_option     = 'mushy'
+    saltflux_option = 'constant'
+    ice_ref_salinity = 4.0
     oceanmixed_ice  = .true.
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
