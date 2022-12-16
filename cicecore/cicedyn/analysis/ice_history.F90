@@ -264,7 +264,6 @@
                     file=__FILE__, line=__LINE__)
             endif
          end do
-
          
          close(nu_nml)
          call release_fileunit(nu_nml)

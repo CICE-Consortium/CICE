@@ -309,7 +309,7 @@
       !-----------------------------------------------------------------
 
       if (my_task == master_task) then
-        nml_name = 'icefields_bgc_nml'
+         nml_name = 'icefields_bgc_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
 
          ! check if can open file
