@@ -105,9 +105,9 @@
          cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
       character (len=25) :: &
          gridstr2D, gridstr                  ! temporary string names
-      character(len=char_len) :: description
+      character(len=char_len)      :: description
       character(len=char_len_long) :: tmpstr2 ! for namelist check
-      character(len=char_len) :: nml_name ! text namelist name
+      character(len=char_len)      :: nml_name ! text namelist name
 
       character(len=*), parameter :: subname = '(init_hist)'
 
@@ -259,7 +259,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)

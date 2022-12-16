@@ -337,7 +337,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)

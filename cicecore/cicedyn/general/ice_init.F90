@@ -164,11 +164,11 @@
       logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
-      integer (kind=int_kind) :: rplvl, rptopo
-      real (kind=dbl_kind) :: Cf, ksno, puny
+      integer (kind=int_kind)  :: rplvl, rptopo
+      real (kind=dbl_kind)     :: Cf, ksno, puny
       character (len=char_len) :: abort_list
-      character(len=char_len) :: nml_name ! namelist name
-      character (len=128) :: tmpstr2
+      character(len=char_len)       :: nml_name ! namelist name
+      character (len=char_len_long) :: tmpstr2  
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -665,7 +665,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: ' //trim(nml_name)//' reading '// &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
@@ -691,7 +690,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
@@ -718,8 +716,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
-
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
@@ -746,7 +742,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '//&
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
@@ -773,7 +768,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
@@ -800,7 +794,6 @@
                ! backspace and re-read erroneous line
                backspace(nu_nml)
                read(nu_nml,fmt='(A)') tmpstr2
-
                call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
                     trim(tmpstr2), &
                     file=__FILE__, line=__LINE__)
