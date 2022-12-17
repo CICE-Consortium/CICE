@@ -508,7 +508,6 @@
       !-----------------------------------------------------------------
 
 ! This code does not work in CESM. Needs to be investigated further.
-#ifndef CESMCOUPLED
 #if defined (_OPENMP)
        !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
        do iblk = 1, nblocks
@@ -521,12 +520,11 @@
                 write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
              endif
              write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
-             call flush_fileunit(nu_diag)
              !$OMP END ORDERED
           endif
        enddo
        !$OMP END PARALLEL DO
-#endif
+       call flush_fileunit(nu_diag)
 #endif
 
       !-----------------------------------------------------------------
