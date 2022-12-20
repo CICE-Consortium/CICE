@@ -422,7 +422,7 @@
 
       !--- compute other stuff
 
-#ifndef CESMCOUPLED
+#if !defined(CESMCOUPLED) && !defined(GEOSCOUPLED)
       if (istep >= npt+1)  stop_now = 1
       if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
 #endif
