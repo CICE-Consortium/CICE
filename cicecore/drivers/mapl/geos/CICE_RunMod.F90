@@ -784,6 +784,22 @@
                   call debug_ice (iblk, plabeld)
                endif
 
+               call step_radiation (dt, iblk)
+               if (debug_model) then
+                  plabeld = 'post step_radiation'
+                  call debug_ice (iblk, plabeld)
+               endif
+
+      !-----------------------------------------------------------------
+      ! get ready for coupling and the next time step
+      !-----------------------------------------------------------------
+
+               !call coupling_prep (iblk)
+               !if (debug_model) then
+               !   plabeld = 'post coupling_prep'
+               !  call debug_ice (iblk, plabeld)
+               !endif
+
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
