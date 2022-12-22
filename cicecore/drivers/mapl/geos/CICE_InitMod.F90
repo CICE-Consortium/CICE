@@ -18,6 +18,8 @@ module CICE_InitMod
   private
   public :: cice_init1
   public :: cice_init2
+  public :: cice_delayed_init
+  public :: cice_cal_init
 
   private :: init_restart
 
@@ -75,12 +77,44 @@ contains
 
   end subroutine cice_init1
 
-  !=======================================================================
-  subroutine cice_init2(yr, mo, dy, hr, mn, sc)
+  subroutine cice_delayed_init
 
     !  Initialize the basic state, and all necessary parameters for
     !  running the CICE model.
 
+    use ice_grid             , only: init_grid2
+
+    character(len=*), parameter :: subname = '(cice_delayed_init)'
+    !----------------------------------------------------
+
+    call init_grid2           ! finish building grid 
+
+  end subroutine cice_delayed_init
+
+  subroutine cice_cal_init(yr, mo, dy, hr, mn, sc)
+
+    !  Initialize the basic state, and all necessary parameters for
+    !  running the CICE model.
+
+    use ice_calendar         , only: dt, dt_dyn, istep, istep1, write_ic, init_calendar, calendar
+
+    character(len=*), parameter :: subname = '(cice_delayed_init)'
+    !----------------------------------------------------
+
+    integer (kind=int_kind), intent(in) :: &
+          yr, mo, dy, hr, mn, sc       
+
+    call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
+
+  end subroutine cice_cal_init
+
+  !=======================================================================
+  subroutine cice_init2!(yr, mo, dy, hr, mn, sc)
+
+    !  Initialize the basic state, and all necessary parameters for
+    !  running the CICE model.
+
+    use ice_grid             , only: init_grid2
     use ice_arrays_column    , only: hin_max, c_hi_range
     use ice_arrays_column    , only: floe_rad_l, floe_rad_c, floe_binwidth, c_fsd_range
     use ice_calendar         , only: dt, dt_dyn, istep, istep1, write_ic, init_calendar, calendar
@@ -104,8 +138,8 @@ contains
     use ice_transport_driver , only: init_transport
 
 
-    integer (kind=int_kind), intent(in) :: &
-          yr, mo, dy, hr, mn, sc       
+    ! integer (kind=int_kind), intent(in) :: &
+    !      yr, mo, dy, hr, mn, sc       
 
     logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
     logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow
@@ -113,8 +147,9 @@ contains
     character(len=*), parameter :: subname = '(cice_init2)'
     !----------------------------------------------------
 
+    call init_grid2           ! finish building grid 
     call init_zbgc            ! vertical biogeochemistry initialization
-    call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
+    !call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
 
     call init_dyn (dt_dyn)    ! define dynamics parameters, variables

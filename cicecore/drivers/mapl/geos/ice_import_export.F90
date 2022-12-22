@@ -24,7 +24,7 @@ module ice_import_export
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen_init, trcr, trcrn
-  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, hm
+  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, frocean, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr 
@@ -41,6 +41,7 @@ module ice_import_export
 
   public  :: ice_import_thermo1
   public  :: ice_export_thermo1
+  public  :: ice_import_grid
   !public  :: ice_import_thermo2
   !public  :: ice_export_thermo2
   !public  :: ice_import_dyna
@@ -98,7 +99,34 @@ module ice_import_export
 !==============================================================================
 contains
 !==============================================================================
+  subroutine ice_import_grid( fro, rc )
 
+    ! input/output variables
+    real(kind=real_kind), dimension(:,:), intent(in)  :: fro
+    integer                             , intent(out) :: rc
+
+    integer                          :: i, j, i1, j1, k, iblk, n
+    integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
+    type(block)                      :: this_block         ! block information for current block
+
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          j1 = j - nghost
+          do i = ilo, ihi
+             i1 = i - nghost
+             frocean(i,j,iblk)  = real(fro(i1, j1), kind=dbl_kind)
+          enddo
+       enddo
+    enddo
+
+    rc = ESMF_SUCCESS
+
+  end subroutine ice_import_grid 
   !===============================================================================
 
   subroutine ice_import_thermo1( importState, rc )

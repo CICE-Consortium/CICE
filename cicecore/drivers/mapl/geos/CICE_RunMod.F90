@@ -594,95 +594,11 @@
                                   ffed(:,:,:,iblk))
          endif
 
-!echmod - comment this out for efficiency, if .not. calc_Tsfc
-         if (.not. calc_Tsfc) then
-
-       !---------------------------------------------------------------
-       ! If surface fluxes were provided, conserve these fluxes at ice
-       ! free points by passing to ocean.
-       !---------------------------------------------------------------
-
-            call sfcflux_to_ocn &
-                         (nx_block,              ny_block,             &
-                          tmask   (:,:,iblk),    aice_init(:,:,iblk),  &
-                          fsurfn_f (:,:,:,iblk), flatn_f(:,:,:,iblk),  &
-                          fresh    (:,:,iblk),   fhocn    (:,:,iblk))
-         endif
-!echmod
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
       end subroutine coupling_prep
 
 !=======================================================================
-!
-! If surface heat fluxes are provided to CICE instead of CICE calculating
-! them internally (i.e. .not. calc_Tsfc), then these heat fluxes can
-! be provided at points which do not have ice.  (This is could be due to
-! the heat fluxes being calculated on a lower resolution grid or the
-! heat fluxes not recalculated at every CICE timestep.)  At ice free points,
-! conserve energy and water by passing these fluxes to the ocean.
-!
-! author: A. McLaren, Met Office
-
-      subroutine sfcflux_to_ocn(nx_block,   ny_block,     &
-                                tmask,      aice,         &
-                                fsurfn_f,   flatn_f,      &
-                                fresh,      fhocn)
-
-      use ice_domain_size, only: ncat
-
-      integer (kind=int_kind), intent(in) :: &
-          nx_block, ny_block  ! block dimensions
-
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-          tmask       ! land/boundary mask, thickness (T-cell)
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in):: &
-          aice        ! initial ice concentration
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat), intent(in) :: &
-          fsurfn_f, & ! net surface heat flux (provided as forcing)
-          flatn_f     ! latent heat flux (provided as forcing)
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout):: &
-          fresh        , & ! fresh water flux to ocean         (kg/m2/s)
-          fhocn            ! actual ocn/ice heat flx           (W/m**2)
-
-#ifdef CICE_IN_NEMO
-
-      ! local variables
-      integer (kind=int_kind) :: &
-          i, j, n    ! horizontal indices
-      
-      real (kind=dbl_kind)    :: &
-          puny, &          !
-          Lsub, &          !
-          rLsub            ! 1/Lsub
-
-      character(len=*), parameter :: subname = '(sfcflux_to_ocn)'
-
-      call icepack_query_parameters(puny_out=puny, Lsub_out=Lsub)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-      rLsub = c1 / Lsub
-
-      do n = 1, ncat
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (tmask(i,j) .and. aice(i,j) <= puny) then
-               fhocn(i,j)      = fhocn(i,j)              &
-                            + fsurfn_f(i,j,n) + flatn_f(i,j,n)
-               fresh(i,j)      = fresh(i,j)              &
-                                 + flatn_f(i,j,n) * rLsub
-            endif
-         enddo   ! i
-         enddo   ! j
-      enddo      ! n
-
-#endif
-
-      end subroutine sfcflux_to_ocn
 
       subroutine ice_fast_physics
 

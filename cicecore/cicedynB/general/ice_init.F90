@@ -100,6 +100,9 @@
                           bathymetry_file, use_bathymetry, &
                           bathymetry_format, &
                           grid_type, grid_format, &
+#ifdef GEOSCOUPLED
+                          grid_subtype, & 
+#endif
                           dxrect, dyrect, &
                           pgl_global_ext
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
@@ -183,6 +186,9 @@
 
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
+#ifdef GEOSCOUPLED
+        grid_subtype,                                                   &
+#endif
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
@@ -327,6 +333,9 @@
       ice_ic       = 'default'      ! latitude and sst-dependent
       grid_format  = 'bin'          ! file format ('bin'=binary or 'nc'=netcdf)
       grid_type    = 'rectangular'  ! define rectangular grid internally
+#ifdef GEOSCOUPLED
+      grid_subtype  = 'other'  ! not belonging to a specific subtype 
+#endif
       grid_file    = 'unknown_grid_file'
       gridcpl_file = 'unknown_gridcpl_file'
       orca_halogrid = .false.  ! orca haloed grid
@@ -802,6 +811,9 @@
       call broadcast_scalar(dyrect,               master_task)
       call broadcast_scalar(close_boundaries,     master_task)
       call broadcast_scalar(grid_type,            master_task)
+#ifdef GEOSCOUPLED
+      call broadcast_scalar(grid_subtype,         master_task)
+#endif
       call broadcast_scalar(grid_file,            master_task)
       call broadcast_scalar(gridcpl_file,         master_task)
       call broadcast_scalar(orca_halogrid,        master_task)
