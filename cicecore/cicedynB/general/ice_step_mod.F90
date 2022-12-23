@@ -185,6 +185,9 @@
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
+#ifdef GEOSCOUPLED
+      use ice_grid, only: opmask
+#endif
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 
@@ -344,7 +347,11 @@
             enddo
          endif ! tr_aero
 
+#ifdef GEOSCOUPLED
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+#else
          if (tmask(i,j,iblk)) then
+#endif
 
          call icepack_step_therm1(dt=dt, ncat=ncat,            &
                       nilyr=nilyr, nslyr=nslyr,                &
@@ -584,6 +591,9 @@
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: tmask
+#ifdef GEOSCOUPLED
+      use ice_grid, only: opmask
+#endif
       use ice_state, only: aice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
@@ -636,7 +646,11 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
+#ifdef GEOSCOUPLED
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+#else
          if (tmask(i,j,iblk)) then
+#endif
 
          ! significant wave height for FSD
          if (tr_fsd) &
@@ -1205,6 +1219,9 @@
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
       use ice_grid, only: TLAT, TLON, tmask
+#ifdef GEOSCOUPLED
+      use ice_grid, only: opmask
+#endif
       use ice_state, only: aicen, vicen, vsnon, trcrn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_sw
       use ice_communicate, only: my_task
@@ -1304,8 +1321,11 @@
                enddo
             endif
          enddo
-
+#ifdef GEOSCOUPLED
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+#else
          if (tmask(i,j,iblk)) then
+#endif
 
             call icepack_step_radiation (dt=dt,   ncat=ncat,                  &
                          nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
