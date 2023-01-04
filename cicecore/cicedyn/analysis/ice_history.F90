@@ -81,6 +81,7 @@
       use ice_history_fsd, only: init_hist_fsd_2D, init_hist_fsd_3Df, &
           init_hist_fsd_4Df, f_afsd, f_afsdn
       use ice_restart_shared, only: restart
+      use ice_fileunits, only: goto_nml
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -104,7 +105,9 @@
          cstr_got, cstr_gou, cstr_gov        ! mask area name for t, u, v ocn grid (go)
       character (len=25) :: &
          gridstr2D, gridstr                  ! temporary string names
-      character(len=char_len) :: description
+      character(len=char_len)      :: description
+      character(len=char_len_long) :: tmpstr2 ! for namelist check
+      character(len=char_len)      :: nml_name ! text namelist name
 
       character(len=*), parameter :: subname = '(init_hist)'
 
@@ -228,24 +231,39 @@
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-         write(nu_diag,*) subname,' Reading icefields_nml'
+         nml_name = 'icefields_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
 
+         ! open file
          call get_fileunit(nu_nml)
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: icefields_nml open file '// &
+            call abort_ice(subname//'ERROR: '//trim(nml_name)//' open file '// &
                trim(nml_filename), &
                file=__FILE__, line=__LINE__)
          endif
 
+         ! seek to this namelist
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
+         if (nml_error /= 0) then
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
+               file=__FILE__, line=__LINE__)
+         endif
+
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=icefields_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: icefields_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
+         
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
@@ -2164,12 +2182,13 @@
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
-      real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt
+      real (kind=dbl_kind) :: rho_ice, rho_ocn, Tice, Sbr, phi, rhob, dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
       logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_vlvl
+      character (len=char_len) :: saltflux_option
 
       type (block) :: &
          this_block           ! block information for current block
@@ -2181,6 +2200,7 @@
       call icepack_query_parameters(Tffresh_out=Tffresh, rhoi_out=rhoi, rhos_out=rhos, &
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
+      call icepack_query_parameters(saltflux_option_out=saltflux_option)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
            tr_brine_out=tr_brine, tr_snow_out=tr_snow)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
@@ -2265,7 +2285,7 @@
       !---------------------------------------------------------------
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt, &
+      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt,sicen, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
 
       do iblk = 1, nblocks
@@ -3224,7 +3244,16 @@
                     dfresh = -rhoi*frazil(i,j,iblk)/dt
                  endif
                  endif
-                 dfsalt = ice_ref_salinity*p001*dfresh
+                 if (saltflux_option == 'prognostic') then
+                    sicen = c0
+                    do k = 1, nzilyr
+                       sicen = sicen + trcr(i,j,nt_sice+k-1,iblk)*vice(i,j,iblk) &
+                                     / real(nzilyr,kind=dbl_kind)
+                    enddo
+                    dfsalt = sicen*p001*dfresh
+                 else
+                    dfsalt = ice_ref_salinity*p001*dfresh
+                 endif
                  worka(i,j) = aice(i,j,iblk)*(fsalt(i,j,iblk)+dfsalt)
               endif
            enddo

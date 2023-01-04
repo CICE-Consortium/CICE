@@ -124,7 +124,7 @@
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
-      if (kdyn == 1) then 
+      if (kdyn == 1) then
          call init_evp
       else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables

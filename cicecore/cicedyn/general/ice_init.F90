@@ -17,11 +17,11 @@
       use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
           cm_to_m
       use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
+      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
           ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
 #ifdef CESMCOUPLED
-      use ice_fileunits, only: inst_suffix
+      use ice_fileunits, only: inst_suffix, nu_diag_set
 #endif
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
@@ -124,6 +124,8 @@
       use ice_restoring, only: restore_ice
       use ice_timers, only: timer_stats
       use ice_memusage, only: memory_stats
+      use ice_fileunits, only: goto_nml
+      
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -151,7 +153,7 @@
         kitd, kcatbound, ktransport
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
+        tfrz_option, saltflux_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
         capping_method
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
@@ -163,9 +165,11 @@
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rplvl, rptopo
-      real (kind=dbl_kind) :: Cf, ksno, puny
+      real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity
+
       character (len=char_len) :: abort_list
-      character (len=128) :: tmpstr2
+      character (len=char_len)      :: nml_name ! namelist name
+      character (len=char_len_long) :: tmpstr2  
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -260,6 +264,7 @@
         highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
+        saltflux_option,ice_ref_salinity,                               &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
@@ -497,6 +502,8 @@
       precip_units    = 'mks'     ! 'mm_per_month' or
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
+      saltflux_option = 'constant'    ! saltflux calculation
+      ice_ref_salinity = 4.0_dbl_kind ! Ice reference salinity for coupling
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
       nfreq           = 25        ! number of wave frequencies
@@ -584,6 +591,7 @@
 
       if (my_task == master_task) then
 
+         ! open namelist file
          call get_fileunit(nu_nml)
          open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
          if (nml_error /= 0) then
@@ -592,141 +600,228 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         write(nu_diag,*) subname,' Reading setup_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
+         ! read setup_nml
+         nml_name = 'setup_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: setup_nml rewind ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
+         
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=setup_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
+
+         ! read grid_nml
+         nml_name = 'grid_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: setup_nml reading ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
 
-         write(nu_diag,*) subname,' Reading grid_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: grid_nml rewind ', &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=grid_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: ' //trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: grid_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
-         write(nu_diag,*) subname,' Reading tracer_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
+         ! read tracer_nml
+         nml_name = 'tracer_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: tracer_nml rewind ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
+         
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=tracer_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: ' //trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: tracer_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
-         write(nu_diag,*) subname,' Reading thermo_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
+         ! read thermo_nml
+         nml_name = 'thermo_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: thermo_nml rewind ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
+         
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=thermo_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
+
+         ! read dynamics_nml
+         nml_name = 'dynamics_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+ 
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: thermo_nml reading ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
 
-         write(nu_diag,*) subname,' Reading dynamics_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: dynamics_nml rewind ', &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=dynamics_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
+
+         ! read shortwave_nml
+         nml_name = 'shortwave_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: dynamics_nml reading ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
 
-         write(nu_diag,*) subname,' Reading shortwave_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: shortwave_nml rewind ', &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=shortwave_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '//&
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: shortwave_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
-         write(nu_diag,*) subname,' Reading ponds_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
+         ! read ponds_nml
+         nml_name = 'ponds_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: ponds_nml rewind ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
+         
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=ponds_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: ponds_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
-         write(nu_diag,*) subname,' Reading snow_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
+         ! read snow_nml
+         nml_name = 'snow_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+         
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: snow_nml rewind ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
+         
+         ! read  namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=snow_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
+
+         ! read forcing_nml
+         nml_name = 'forcing_nml'
+         write(nu_diag,*) subname,' Reading ', trim(nml_name)
+
+         ! goto namelist in file
+         call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: snow_nml reading ', &
+            call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
 
-         write(nu_diag,*) subname,' Reading forcing_nml'
-         rewind(unit=nu_nml, iostat=nml_error)
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: forcing_nml rewind ', &
-               file=__FILE__, line=__LINE__)
-         endif
+         ! read namelist
          nml_error =  1
          do while (nml_error > 0)
             read(nu_nml, nml=forcing_nml,iostat=nml_error)
+            ! check if error
+            if (nml_error /= 0) then
+               ! backspace and re-read erroneous line
+               backspace(nu_nml)
+               read(nu_nml,fmt='(A)') tmpstr2
+               call abort_ice(subname//'ERROR: '// trim(nml_name)//' reading '// &
+                    trim(tmpstr2), file=__FILE__, line=__LINE__)
+            endif
          end do
-         if (nml_error /= 0) then
-            call abort_ice(subname//'ERROR: forcing_nml reading ', &
-               file=__FILE__, line=__LINE__)
-         endif
 
+         ! done reading namelist. 
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
@@ -758,8 +853,8 @@
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
             call get_fileUnit(nu_diag)
-            write(tmpstr,'(a,i4.4)') "ice.log.task_",my_task
-            open(nu_diag,file=tmpstr)
+            write(tmpstr2,'(a,i4.4)') "ice.log.task_",my_task
+            open(nu_diag,file=tmpstr2)
          endif
       end if
       if (trim(ice_ic) /= 'default' .and. &
@@ -979,6 +1074,8 @@
       call broadcast_scalar(wave_spec_file,       master_task)
       call broadcast_scalar(nfreq,                master_task)
       call broadcast_scalar(tfrz_option,          master_task)
+      call broadcast_scalar(saltflux_option,      master_task)
+      call broadcast_scalar(ice_ref_salinity,     master_task)
       call broadcast_scalar(ocn_data_format,      master_task)
       call broadcast_scalar(bgc_data_type,        master_task)
       call broadcast_scalar(fe_data_type,         master_task)
@@ -1414,6 +1511,12 @@
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
          endif
       endif
+      if (ktherm == 1 .and. trim(saltflux_option) /= 'constant') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: ktherm = 1 and saltflux_option = ',trim(saltflux_option)
+            write(nu_diag,*) subname//' WARNING:   For consistency, set saltflux_option = constant'
+         endif
+      endif
 !tcraig
       if (ktherm == 1 .and. .not.sw_redist) then
          if (my_task == master_task) then
@@ -1532,7 +1635,7 @@
                write(nu_diag,*) subname//' WARNING: tr_fsd=T but wave_spec=F - not recommended'
             endif
       end if
- 
+
       ! compute grid locations for thermo, u and v fields
 
       grid_ice_thrm = 'T'
@@ -1974,6 +2077,10 @@
             write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
             write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
          endif
+         write(nu_diag,1030) ' saltflux_option  = ', trim(saltflux_option)
+         if (trim(saltflux_option) == 'constant') then
+            write(nu_diag,1002) ' ice_ref_salinity = ',ice_ref_salinity
+         endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -2315,8 +2422,7 @@
           grid_type  /=  'rectangular'    .and. &
           grid_type  /=  'cpom_grid'      .and. &
           grid_type  /=  'regional'       .and. &
-          grid_type  /=  'latlon'         .and. &
-          grid_type  /=  'setmask' ) then
+          grid_type  /=  'latlon') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
       endif
@@ -2378,6 +2484,7 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
+         saltflux_option_in=saltflux_option, ice_ref_salinity_in=ice_ref_salinity, &
          Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &
          windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
@@ -2793,7 +2900,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio
+         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio, Tffresh
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2835,7 +2942,7 @@
         nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
         nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
-        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall)
+        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall, Tffresh_out=Tffresh)
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -3073,7 +3180,12 @@
             do i = ilo, ihi
                if (tmask(i,j)) then
                   ! place ice in high latitudes where ocean sfc is cold
+#ifdef CESMCOUPLED
+                  ! Option to use Tair instead.
+                  if ( (Tair (i,j) <= Tffresh) .and. &
+#else
                   if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
+#endif
                        (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
                         TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
                      icells = icells + 1

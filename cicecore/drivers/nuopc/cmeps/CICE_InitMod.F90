@@ -107,8 +107,8 @@ contains
     call init_hist (dt)       ! initialize output history file
 
     if (kdyn == 1) then
-       call init_evp     ! allocate dyn_evp arrays
-    if (kdyn == 2) then
+       call init_evp          ! define evp dynamics parameters, variables
+    elseif (kdyn == 2) then
        call init_eap          ! define eap dynamics parameters, variables
     else if (kdyn == 3) then
        call init_vp           ! define vp dynamics parameters, variables
