@@ -1484,7 +1484,11 @@
             v_i = v_i - m_i**2
 
             mu_i    = log(m_i/sqrt(c1 + v_i/m_i**2)) ! parameters for the log-normal
-            sigma_i = sqrt(log(c1 + v_i/m_i**2))
+            if (v_i > 0.0) then
+              sigma_i = max(sqrt(log(c1 + v_i/m_i**2)), puny)
+            else
+              sigma_i = puny
+            endif
 
             ! max thickness associated with percentile of log-normal PDF
             ! x_kmax=x997 was obtained from an optimization procedure (Dupont et al.)
