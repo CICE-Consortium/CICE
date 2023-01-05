@@ -303,8 +303,16 @@ contains
 
     Tsrf = Tsrf - afldu(:,:,:,1,:)
 
-    ! Fractions and mask
     call state_setexport(exportState, 'DTS', input=Tsrf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call state_setexport(exportState, 'ALBVR', input=alvdr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBVF', input=alvdf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBNR', input=alidr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBNF', input=alidf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(afldu)
