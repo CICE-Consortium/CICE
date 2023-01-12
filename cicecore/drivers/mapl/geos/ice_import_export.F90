@@ -137,7 +137,7 @@ contains
 
     ! local variables
     integer,parameter                :: nfldu=6
-    integer,parameter                :: nfld=9
+    integer,parameter                :: nfld=11
     integer                          :: i, j, k, iblk, n
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
@@ -192,6 +192,11 @@ contains
     call state_getimport(importState,      'COSZ', output=afld,  index=9, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    call state_getimport(importState,      'SST', output=afld,  index=10, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,      'SSS', output=afld,  index=10, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
     ! now fill in the ice internal data types
     do k = 1, ncat
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
@@ -221,6 +226,21 @@ contains
              swvdf (i,j,iblk)         = afld(i,j,4,iblk) + afld(i,j,8,iblk)
              swidf (i,j,iblk)         = afld(i,j,6,iblk)
              coszen(i,j,iblk)         = afld(i,j,9,iblk)
+             sst   (i,j,iblk)         = afld(i,j,10,iblk) - Tffresh
+             sss   (i,j,iblk)         = afld(i,j,11,iblk)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+
+    
+    !== will changed to read in from coupler once Tf from MOM is ready
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+    do iblk = 1, nblocks
+       do j = 1,ny_block
+          do i = 1,nx_block
+            Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
           end do
        end do
     end do
