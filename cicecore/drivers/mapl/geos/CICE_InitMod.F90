@@ -28,7 +28,7 @@ module CICE_InitMod
 contains
 !=======================================================================
 
-  subroutine cice_init1(mpi_comm, npes, blkx, blky, k2c)
+  subroutine cice_init1(mpi_comm, npes, blkx, blky, k2c, alhl, alhs)
 
     !  Initialize the basic state, grid and all necessary parameters for
     !  running the CICE model.
@@ -52,20 +52,22 @@ contains
        npes, blkx, blky ! 
 
     real(kind=real_kind), intent(in) :: &
-       k2c ! 
+       k2c, alhl, alhs ! 
 
     character(len=*), parameter :: subname = '(cice_init1)'
     !----------------------------------------------------
     call init_communicate(mpi_comm)     ! initial setup for message passing
 
     call init_fileunits       ! unit numbers
+    call icepack_init_parameters(Tffresh_in = real(k2c, kind=dbl_kind)) 
+    call icepack_init_parameters(Lvap_in    = real(alhl, kind=dbl_kind)) 
+    call icepack_init_parameters(Lsub_in    = real(alhs, kind=dbl_kind)) 
     call icepack_configure()  ! initialize icepack
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
 
     call input_data           ! namelist variables
-    call icepack_init_parameters(Tffresh_in = real(k2c, kind=dbl_kind)) 
     call input_zbgc           ! vertical biogeochemistry namelist
     call count_tracers        ! count tracers
 
