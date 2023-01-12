@@ -12,6 +12,7 @@ module CICE_InitMod
   use icepack_intfc, only: icepack_configure
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
+  use icepack_intfc, only: icepack_init_parameters 
   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
 
   implicit none
@@ -27,7 +28,7 @@ module CICE_InitMod
 contains
 !=======================================================================
 
-  subroutine cice_init1(mpi_comm, npes, blkx, blky)
+  subroutine cice_init1(mpi_comm, npes, blkx, blky, k2c)
 
     !  Initialize the basic state, grid and all necessary parameters for
     !  running the CICE model.
@@ -50,6 +51,9 @@ contains
     integer (kind=int_kind), intent(in) :: &
        npes, blkx, blky ! 
 
+    real(kind=real_kind), intent(in) :: &
+       k2c ! 
+
     character(len=*), parameter :: subname = '(cice_init1)'
     !----------------------------------------------------
     call init_communicate(mpi_comm)     ! initial setup for message passing
@@ -61,6 +65,7 @@ contains
          file=__FILE__,line= __LINE__)
 
     call input_data           ! namelist variables
+    call icepack_init_parameters(Tffresh_in = real(k2c, kind=dbl_kind)) 
     call input_zbgc           ! vertical biogeochemistry namelist
     call count_tracers        ! count tracers
 
