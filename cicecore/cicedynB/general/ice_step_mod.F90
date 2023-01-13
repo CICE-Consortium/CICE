@@ -186,6 +186,7 @@
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
 #ifdef GEOSCOUPLED
+      use ice_communicate, only: my_task
       use ice_grid, only: opmask
 #endif
       use ice_state, only: aice, aicen, aice_init, aicen_init, vicen_init, &
@@ -504,7 +505,10 @@
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
-                      yday=yday, prescribed_ice=prescribed_ice)
+                      yday=yday,   &
+                      prescribed_ice=prescribed_ice,    &
+                      my_tsk = my_task, my_i = i, my_j = j, my_blk = iblk)
+
 
       !-----------------------------------------------------------------
       ! handle per-category i2x fields, no merging
