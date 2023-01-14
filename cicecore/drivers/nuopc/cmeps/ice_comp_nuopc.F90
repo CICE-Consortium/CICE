@@ -21,7 +21,7 @@ module ice_comp_nuopc
 
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
   use ice_domain_size    , only : nx_global, ny_global
-  use ice_grid           , only : grid_type, init_grid2
+  use ice_grid           , only : grid_format, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic, init_calendar
   use ice_calendar       , only : idate, mday, mmonth, myear, year_init
@@ -576,7 +576,7 @@ contains
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
-    
+
     !-----------------------------------------------------------------
     ! Advertise fields
     !-----------------------------------------------------------------
@@ -684,7 +684,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Initialize the cice mesh and the cice mask
-       if (trim(grid_type) == 'setmask') then
+       if (trim(grid_format) == 'meshnc') then
           ! In this case cap code determines the mask file
           call ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
