@@ -438,10 +438,6 @@
                       fsloss       = fsloss      (i,j,  iblk), &
                       fsurf        = fsurf       (i,j,  iblk), &
                       fsurfn       = fsurfn      (i,j,:,iblk), &
-#ifdef GEOSCOUPLED
-                      dfsurfdt     = dfsurfndts_f(i,j,:,iblk), &
-                      dflatdt      = dflatndts_f (i,j,:,iblk), &
-#endif
                       fcondtop     = fcondtop    (i,j,  iblk), &
                       fcondtopn    = fcondtopn   (i,j,:,iblk), &
                       fcondbot     = fcondbot    (i,j,  iblk), &
@@ -505,9 +501,14 @@
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
-                      yday=yday,   &
-                      prescribed_ice=prescribed_ice,    &
-                      my_tsk = my_task, my_i = i, my_j = j, my_blk = iblk)
+#ifdef GEOSCOUPLED
+                      dfsurfdt     = dfsurfndts_f(i,j,:,iblk), &
+                      dflatdt      = dflatndts_f (i,j,:,iblk), &
+#endif
+                      yday         = yday,                     &
+                      prescribed_ice=prescribed_ice,           &
+                      my_tsk = my_task, my_i = i, my_j = j,    &
+                      my_blk = iblk                            )
 
 
       !-----------------------------------------------------------------
