@@ -59,7 +59,7 @@
          yield_curve      , & ! 'ellipse' ('teardrop' needs further testing)
          visc_method      , & ! method for viscosity calc at U points (C, CD grids)
          seabed_stress_method ! method for seabed stress calculation
-                              ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. in prep.
+                              ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. 2022
 
       real (kind=dbl_kind), parameter, public :: &
          u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
@@ -1347,8 +1347,9 @@
 ! a normal distribution with sigma_b = 2.5d0. An improvement would
 ! be to provide the distribution based on high resolution data.
 !
-! Dupont, F. Dumont, D., Lemieux, J.F., Dumas-Lefebvre, E., Caya, A.
-! in prep.
+! Dupont, F., D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, A. Caya (2022).
+! A probabilistic seabed-ice keel interaction model, The Cryosphere, 16,
+! 1963-1977.
 !
 ! authors: D. Dumont, J.F. Lemieux, E. Dumas-Lefebvre, F. Dupont
 !
@@ -1487,7 +1488,7 @@
             sigma_i = sqrt(log(c1 + v_i/m_i**2))
 
             ! max thickness associated with percentile of log-normal PDF
-            ! x_kmax=x997 was obtained from an optimization procedure (Dupont et al.)
+            ! x_kmax=x997 was obtained from an optimization procedure (Dupont et al. 2022)
 
             x_kmax = exp(mu_i + sqrt(c2*sigma_i)*1.9430d0)
 
