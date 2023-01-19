@@ -1482,7 +1482,7 @@
             do n =1, ncat
                v_i = v_i + vcat(n)**2 / (max(acat(n), puny))
             enddo
-            v_i = v_i - m_i**2
+            v_i = max((v_i - m_i**2), puny)
 
             mu_i    = log(m_i/sqrt(c1 + v_i/m_i**2)) ! parameters for the log-normal
             sigma_i = sqrt(log(c1 + v_i/m_i**2))
