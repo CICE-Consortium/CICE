@@ -392,7 +392,7 @@
       dyscale = 1.0_dbl_kind   ! user defined rectgrid y-grid scale factor (e.g., 1.02)
       close_boundaries = .false.   ! true = set land on edges of grid
       seabed_stress= .false.  ! if true, seabed stress for landfast is on
-      seabed_stress_method  = 'LKD'! LKD = Lemieux et al 2015, probabilistic = Dupont et al. in prep
+      seabed_stress_method  = 'LKD'! LKD = Lemieux et al 2015, probabilistic = Dupont et al. 2022
       k1 = 7.5_dbl_kind       ! 1st free parameter for landfast parameterization
       k2 = 15.0_dbl_kind      ! 2nd free parameter (N/m^3) for landfast parametrization
       alphab = 20.0_dbl_kind  ! alphab=Cb factor in Lemieux et al 2015
