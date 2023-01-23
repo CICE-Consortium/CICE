@@ -47,7 +47,7 @@ as follows
 **cicecore/**
   CICE source code
 
-**cicecore/cicedynB/**
+**cicecore/cicedyn/**
   routines associated with the dynamics core
 
 **cicecore/drivers/**

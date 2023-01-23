@@ -35,8 +35,11 @@ versions but have not yet been implemented.
 
 Two transport schemes are available: upwind and the incremental
 remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
-:cite:`Lipscomb04`. The upwind scheme is naturally suited for a C grid discretization. As such, the C grid velocity components (i.e. :math:`uvelE=u` at the E point and :math:`vvelN=v` at the N point) are directly passed to the upwind transport scheme. On the other hand, if the B grid is used, :math:`uvel` and :math:`vvel` (respectively :math:`u` and :math:`v` at the U point) are interpolated to the E and N points such that the upwind advection can be performed. Conversely, as the remapping scheme was originally developed for B grid applications, :math:`uvel` and :math:`vvel` are directly used for the advection. If the remapping scheme is used for the C grid, :math:`uvelE` and :math:`vvelN` are first interpolated to the U points before performing the advection.
+:cite:`Lipscomb04`. 
 
+- The upwind scheme uses velocity points at the East and North face (i.e. :math:`uvelE=u` at the E point and :math:`vvelN=v` at  the N point) of a T gridcell.  As such, the prognostic C grid velocity components (:math:`uvelE` and :math:`vvelN`) can be passed directly to the upwind transport scheme.  If the upwind scheme is used with the B grid, the B grid velocities, :math:`uvelU` and :math:`vvelU` (respectively :math:`u` and :math:`v` at the U point) are interpolated to the E and N points first.  (Note however that the upwind scheme does not transport all potentially available tracers.)
+
+- The remapping scheme uses :math:`uvelU` and :math:`vvelU` if l_fixed_area is false and :math:`uvelE` and :math:`vvelN` if l_fixed_area is true.  l_fixed_area is hardcoded to false by default and further described below.  As such, the B grid velocities (:math:`uvelU` and :math:`vvelU`) are used directly in the remapping scheme, while the C grid velocities (:math:`uvelE` and :math:`vvelN`) are interpolated to U points first.  If l_fixed_area is changed to true, then the reverse is true.  The C grid velocities are used directly and the B grid velocities are interpolated.
 
 The remapping scheme has several desirable features:
 
@@ -464,14 +467,14 @@ In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
 prescribing the area of the departure region for each edge. This can be
-done in CICE 4.0 by setting `l\_fixed\_area` = true in
+done by setting `l\_fixed\_area` = true in
 **ice\_transport\_driver.F90** and passing the prescribed departure
 areas (`edgearea\_e` and `edgearea\_n`) into the remapping routine. An extra
 triangle is then constructed for each departure region to ensure that
 the total area is equal to the prescribed value. This idea was suggested
 and first implemented by Mats Bentsen of the Nansen Environmental and
 Remote Sensing Center (Norway), who applied an earlier version of the
-CICE remapping scheme to an ocean model. The implementation in CICE v4.0
+CICE remapping scheme to an ocean model. The implementation in CICE
 is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
 but not both of the grid cells that share the edge. Since this option

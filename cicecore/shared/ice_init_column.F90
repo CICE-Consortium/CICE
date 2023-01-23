@@ -1477,6 +1477,14 @@
          restart_zsal =  .false.
       endif
 
+      if (solve_zsal)  then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' ERROR: solve_zsal=T deprecated'
+         endif
+         abort_flag = 101
+      endif
+
+#ifdef UNDEPRECATE_ZSAL
       if (solve_zsal .and. nblyr < 1)  then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
@@ -1490,6 +1498,7 @@
          endif
          abort_flag = 102
       endif
+#endif
 
       if (tr_brine .and. nblyr < 1 ) then
          if (my_task == master_task) then

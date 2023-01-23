@@ -3,6 +3,8 @@ restart        gx3     4x2x25x29x4   dslenderX2
 restart        gx1     64x1x16x16x10 dwghtfile
 restart        gbox180 16x1x6x6x60   dspacecurve,debugblocks
 decomp         gx3     4x2x25x29x5   none
+decomp         gx3     4x2x25x29x5   dynpicard,reprosum
+decomp         gx3     4x2x25x29x5   dyneap
 restart        gx3     1x1x50x58x4   droundrobin,thread     restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     4x1x25x116x1  dslenderX1,thread      restart_gx3_4x2x25x29x4_dslenderX2
 restart        gx3     6x2x4x29x18   dspacecurve            restart_gx3_4x2x25x29x4_dslenderX2

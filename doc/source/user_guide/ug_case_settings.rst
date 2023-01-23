@@ -644,6 +644,7 @@ forcing_nml
    "", "``eastblock``", "ice block covering about 25 percent of domain at the east edge of the domain", ""
    "", "``latsst``", "ice dependent on latitude and ocean temperature", ""
    "", "``uniform``", "ice defined at all grid points", ""
+   "``ice_ref_salinity``", "real", "sea ice salinity for coupling fluxes (ppt)", "4.0"
    "``iceruf``", "real", "ice surface roughness at atmosphere interface in meters", "0.0005"
    "``l_mpond_fresh``", "``.false.``", "release pond water immediately to ocean", "``.false.``"
    "", "``true``", "retain (topo) pond water until ponds drain", ""
@@ -666,6 +667,8 @@ forcing_nml
    "``restore_ocn``", "logical", "restore sst to data", "``.false.``"
    "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
    "``rotate_wind``", "logical", "rotate wind from east/north to computation grid", "``.true.``"
+   "``saltflux_option``", "``constant``", "computed using ice_ref_salinity", "``constant``"
+   "", "``prognostic``", "computed using prognostic salinity", ""
    "``tfrz_option``", "``linear_salt``", "linear function of salinity (ktherm=1)", "``mushy``"
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
@@ -804,14 +807,14 @@ zbgc_nml
    "``ratio_S2N_sp``", "real", "algal S to N in mol/mol small plankton", "0.03"
    "``restart_bgc``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_hbrine``", "logical", "", "``.false.``"
-   "``restart_zsal``", "logical", "", "``.false.``"
+   "``restart_zsal``", "logical", "zsalinity DEPRECATED", "``.false.``"
    "``restore_bgc``", "logical", "restore bgc to data", "``.false.``"
    "``R_dFe2dust``", "real", "g/g :cite:`Tagliabue09`", "0.035"
    "``scale_bgc``", "logical", "", "``.false.``"
    "``silicatetype``", "real", "mobility type between stationary and mobile silicate", "-1.0"
    "``skl_bgc``", "logical", "biogeochemistry", "``.false.``"
    "``solve_zbgc``", "logical", "", "``.false.``"
-   "``solve_zsal``", "logical", "update salinity tracer profile", "``.false.``"
+   "``solve_zsal``", "logical", "zsalinity DEPRECATED, update salinity tracer profile", "``.false.``"
    "``tau_max``", "real", "long time mobile to stationary exchanges", "1.73e-5"
    "``tau_min``", "real", "rapid module to stationary exchanges", "5200."
    "``tr_bgc_Am``", "logical", "ammonium tracer", "``.false.``"
@@ -847,13 +850,13 @@ icefields_nml
 There are several icefield namelist groups to control model history output.  See the
 source code for a full list of supported output fields.
 
-* ``icefields_nml`` is in **cicecore/cicedynB/analysis/ice_history_shared.F90**
-* ``icefields_bgc_nml`` is in **cicecore/cicedynB/analysis/ice_history_bgc.F90**
-* ``icefields_drag_nml`` is in **cicecore/cicedynB/analysis/ice_history_drag.F90**
-* ``icefields_fsd_nml`` is in **cicecore/cicedynB/analysis/ice_history_fsd.F90**
-* ``icefields_mechred_nml`` is in **cicecore/cicedynB/analysis/ice_history_mechred.F90**
-* ``icefields_pond_nml`` is in **cicecore/cicedynB/analysis/ice_history_pond.F90**
-* ``icefields_snow_nml`` is in **cicecore/cicedynB/analysis/ice_history_snow.F90**
+* ``icefields_nml`` is in **cicecore/cicedyn/analysis/ice_history_shared.F90**
+* ``icefields_bgc_nml`` is in **cicecore/cicedyn/analysis/ice_history_bgc.F90**
+* ``icefields_drag_nml`` is in **cicecore/cicedyn/analysis/ice_history_drag.F90**
+* ``icefields_fsd_nml`` is in **cicecore/cicedyn/analysis/ice_history_fsd.F90**
+* ``icefields_mechred_nml`` is in **cicecore/cicedyn/analysis/ice_history_mechred.F90**
+* ``icefields_pond_nml`` is in **cicecore/cicedyn/analysis/ice_history_pond.F90**
+* ``icefields_snow_nml`` is in **cicecore/cicedyn/analysis/ice_history_snow.F90**
 
 .. csv-table:: **icefields_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
