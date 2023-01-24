@@ -27,7 +27,7 @@
 
       implicit none
       private
-      public :: CICE_Run, ice_step, ice_fast_physics
+      public :: CICE_Run, ice_step, ice_fast_physics, ice_radiation
 
 !=======================================================================
 
@@ -738,6 +738,35 @@
       end subroutine ice_fast_physics
 
 !=======================================================================
+
+      subroutine ice_radiation
+
+      use ice_calendar, only: dt
+      use ice_domain,   only: nblocks
+      use ice_step_mod, only: step_radiation
+      use ice_timers,   only: ice_timer_start, ice_timer_stop, &
+                               timer_column, timer_thermo
+
+      integer (kind=int_kind) :: &
+         iblk         ! block index
+
+      character(len=*), parameter :: subname = '(ice_radiation)'
+
+
+         call ice_timer_start(timer_column)  ! column physics
+         call ice_timer_start(timer_thermo)  ! thermodynamics
+
+         !$OMP PARALLEL DO PRIVATE(iblk)
+         do iblk = 1, nblocks
+               call step_radiation (dt, iblk)
+         enddo ! iblk
+         !$OMP END PARALLEL DO
+
+         call ice_timer_stop(timer_thermo) ! thermodynamics
+         call ice_timer_stop(timer_column) ! column physics
+
+
+      end subroutine ice_radiation
 
       end module CICE_RunMod
 

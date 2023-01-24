@@ -255,6 +255,43 @@ contains
 
   end subroutine ice_import_thermo1
 
+  subroutine ice_import_radiation( importState, rc )
+
+    ! input/output variables
+    type(ESMF_State) , intent(in)  :: importState
+    integer          , intent(out) :: rc
+
+    ! local variables
+    integer,parameter                :: nfld=1
+    integer                          :: i, j, k, iblk
+    integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
+    type(block)                      :: this_block         ! block information for current block
+    real (kind=dbl_kind),allocatable :: afld(:,:,:,:)
+    character(len=*),   parameter    :: subname = 'ice_import_radiation'
+    character(len=1024)              :: msgString
+    !-----------------------------------------------------
+
+
+    allocate( afld(nx_block,ny_block,      nfld,nblocks))
+    afld = c0
+
+    call state_getimport(importState,      'COSZ', output=afld,  index=1, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+    do iblk = 1, nblocks
+       do j = 1,ny_block
+          do i = 1,nx_block
+             coszen(i,j,iblk)         = afld(i,j,1,iblk)
+          end do
+       end do
+    end do
+    !$OMP END PARALLEL DO
+
+    deallocate(afld)
+
+  end subroutine ice_import_radiation
+
   !===============================================================================
   subroutine ice_export_thermo1( exportState, rc )
 
@@ -341,6 +378,30 @@ contains
     deallocate(afldu)
 
   end subroutine ice_export_thermo1
+
+  subroutine ice_export_radiation( exportState, rc )
+
+    ! input/output variables
+    type(ESMF_State), intent(inout) :: exportState
+    integer         , intent(out)   :: rc
+
+    ! local variables
+    character(len=*),parameter :: subname = 'ice_export_radiation'
+    !-----------------------------------------------------
+
+    rc = ESMF_SUCCESS
+    if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    call state_setexport(exportState, 'ALBVR', input=alvdr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBVF', input=alvdf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBNR', input=alidr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'ALBNF', input=alidf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+  end subroutine ice_export_radiation
 
   !===============================================================================
   logical function State_FldChk(State, fldname)
