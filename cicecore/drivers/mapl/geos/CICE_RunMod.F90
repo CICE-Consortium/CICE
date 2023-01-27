@@ -354,6 +354,7 @@
       subroutine coupling_prep (iblk)
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
+          fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
@@ -442,6 +443,11 @@
             alidf(i,j,iblk) = c0
             alvdr(i,j,iblk) = c0
             alidr(i,j,iblk) = c0
+            
+            fswthru_vdr(i,j,iblk) = c0
+            fswthru_vdf(i,j,iblk) = c0
+            fswthru_idr(i,j,iblk) = c0
+            fswthru_idf(i,j,iblk) = c0
 
             albice(i,j,iblk) = c0
             albsno(i,j,iblk) = c0
@@ -478,6 +484,15 @@
                + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
             alidr(i,j,iblk) = alidr(i,j,iblk) &
                + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
+  
+            fswthru_vdr(i,j,iblk) = fswthru_vdr(i,j,iblk) &
+               + fswthrun_vdr(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_vdf(i,j,iblk) = fswthru_vdf(i,j,iblk) &
+               + fswthrun_vdf(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_idr(i,j,iblk) = fswthru_idr(i,j,iblk) &
+               + fswthrun_idr(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_idf(i,j,iblk) = fswthru_idf(i,j,iblk) &
+               + fswthrun_idf(i,j,n,iblk)*aicen(i,j,n,iblk)
 
             netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                   + swvdf(i,j,iblk) + swidf(i,j,iblk)
@@ -710,7 +725,7 @@
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
-               !call coupling_prep (iblk)
+               call coupling_prep (iblk)
                !if (debug_model) then
                !   plabeld = 'post coupling_prep'
                !  call debug_ice (iblk, plabeld)

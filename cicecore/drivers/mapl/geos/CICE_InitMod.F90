@@ -237,9 +237,9 @@ contains
     ! if restarting. These components will be scaled to current forcing
     ! in prep_radiation.
 
-    if (trim(runtype) == 'continue' .or. restart) then
-       call init_shortwave    ! initialize radiative transfer
-    end if
+    !if (trim(runtype) == 'continue' .or. restart) then
+    !   call init_shortwave    ! initialize radiative transfer
+    !end if
 
     !--------------------------------------------------------------------
     ! coupler communication or forcing data initialization
@@ -247,9 +247,9 @@ contains
 
     if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-    if (runtype == 'initial' .and. .not. restart) then
-       call init_shortwave    ! initialize radiative transfer using current swdn
-    end if
+    !if (runtype == 'initial' .and. .not. restart) then
+    !   call init_shortwave    ! initialize radiative transfer using current swdn
+    !end if
 
     call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
     call init_flux_ocn        ! initialize ocean fluxes sent to coupler

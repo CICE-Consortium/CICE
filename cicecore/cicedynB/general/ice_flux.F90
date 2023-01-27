@@ -156,6 +156,13 @@
          evapn_f,  & !
          dflatndts_f,  & 
          dfsurfndts_f   !   
+
+      real (kind=dbl_kind), & 
+         dimension (:,:,:), allocatable, public :: &
+         druvr     , & !
+         dfuvr     , & ! 
+         drpar     , & !
+         dfpar         !   
 #endif
 
 
@@ -534,6 +541,10 @@
          evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
          dflatndts_f (nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Ts 
          dfsurfndts_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts 
+         druvr      (nx_block,ny_block,max_blocks), & ! 
+         dfuvr      (nx_block,ny_block,max_blocks), & ! 
+         drpar      (nx_block,ny_block,max_blocks), & ! 
+         dfpar      (nx_block,ny_block,max_blocks), & ! 
 #endif
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)

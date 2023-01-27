@@ -20,6 +20,7 @@ module ice_import_export
   use ice_flux_bgc       , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
+  use ice_flux           , only : druvr, dfuvr, drpar, dfpar 
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
@@ -227,6 +228,10 @@ contains
              swidr (i,j,iblk)         = afld(i,j,5,iblk)
              swvdf (i,j,iblk)         = afld(i,j,4,iblk) + afld(i,j,8,iblk)
              swidf (i,j,iblk)         = afld(i,j,6,iblk)
+             druvr (i,j,iblk)         = afld(i,j,7,iblk)
+             dfuvr (i,j,iblk)         = afld(i,j,8,iblk)
+             drpar (i,j,iblk)         = afld(i,j,3,iblk)
+             dfpar (i,j,iblk)         = afld(i,j,4,iblk)
              coszen(i,j,iblk)         = afld(i,j,9,iblk)
              sst   (i,j,iblk)         = afld(i,j,10,iblk) - Tffresh
              sss   (i,j,iblk)         = afld(i,j,11,iblk)
@@ -373,6 +378,15 @@ contains
     call state_setexport(exportState, 'ALBNR', input=alidr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_setexport(exportState, 'ALBNF', input=alidf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call state_setexport(exportState, 'PENUVR', input=fswthru_vdr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'PENUVF', input=fswthru_vdf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'PENPAR', input=fswthru_idr, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_setexport(exportState, 'PENPAF', input=fswthru_idf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(afldu)

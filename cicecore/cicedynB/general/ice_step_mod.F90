@@ -1229,6 +1229,7 @@
       use ice_grid, only: TLAT, TLON, tmask
 #ifdef GEOSCOUPLED
       use ice_grid, only: opmask
+      use ice_flux, only: druvr, dfuvr, drpar, dfpar 
 #endif
       use ice_state, only: aicen, vicen, vsnon, trcrn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_sw
@@ -1364,6 +1365,10 @@
                          modal_aero=modal_aero,                               &
                          swvdr    =swvdr    (i,j    ,iblk), swvdf   =swvdf   (i,j    ,iblk), &
                          swidr    =swidr    (i,j    ,iblk), swidf   =swidf   (i,j    ,iblk), &
+#ifdef GEOSCOUPLED
+                         druvr    =druvr    (i,j    ,iblk), dfuvr   =dfuvr   (i,j    ,iblk), &
+                         drpar    =drpar    (i,j    ,iblk), dfpar   =dfpar   (i,j    ,iblk), &
+#endif
                          coszen   =coszen   (i,j    ,iblk), fsnow   =fsnow   (i,j    ,iblk), &
                          alvdrn   =alvdrn   (i,j,:  ,iblk), alvdfn  =alvdfn  (i,j,:  ,iblk), &
                          alidrn   =alidrn   (i,j,:  ,iblk), alidfn  =alidfn  (i,j,:  ,iblk), &
@@ -1420,6 +1425,7 @@
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
+      use ice_flux, only: druvr, dfuvr, drpar, dfpar 
       use ice_grid, only: TLAT, TLON, tmask
       use ice_grid, only: opmask
       use ice_state, only: aicen, vicen, vsnon, trcrn
@@ -1552,6 +1558,8 @@
                          modal_aero=modal_aero,                               &
                          swvdr    =swvdr    (i,j    ,iblk), swvdf   =swvdf   (i,j    ,iblk), &
                          swidr    =swidr    (i,j    ,iblk), swidf   =swidf   (i,j    ,iblk), &
+                         druvr    =druvr    (i,j    ,iblk), dfuvr   =dfuvr   (i,j    ,iblk), &
+                         drpar    =drpar    (i,j    ,iblk), dfpar   =dfpar   (i,j    ,iblk), &
                          coszen   =coszen   (i,j    ,iblk), fsnow   =fsnow   (i,j    ,iblk), &
                          alvdrn   =alvdrn   (i,j,:  ,iblk), alvdfn  =alvdfn  (i,j,:  ,iblk), &
                          alidrn   =alidrn   (i,j,:  ,iblk), alidfn  =alidfn  (i,j,:  ,iblk), &
