@@ -28,7 +28,7 @@ module CICE_InitMod
 contains
 !=======================================================================
 
-  subroutine cice_init1(mpi_comm, npes, blkx, blky, k2c, alhl, alhs)
+  subroutine cice_init1(mpi_comm, npes, blkx, blky, dtg, k2c, alhl, alhs)
 
     !  Initialize the basic state, grid and all necessary parameters for
     !  running the CICE model.
@@ -37,6 +37,7 @@ contains
     use ice_communicate   , only: init_communicate, my_task, master_task
     use ice_init_column   , only: input_zbgc, count_tracers
     use ice_grid          , only: init_grid1, alloc_grid
+    use ice_calendar      , only: set_time_step 
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
@@ -49,7 +50,7 @@ contains
        mpi_comm ! communicator for sequential geos
 
     integer (kind=int_kind), intent(in) :: &
-       npes, blkx, blky ! 
+       npes, blkx, blky, dtg ! 
 
     real(kind=real_kind), intent(in) :: &
        k2c, alhl, alhs ! 
@@ -68,6 +69,7 @@ contains
          file=__FILE__,line= __LINE__)
 
     call input_data           ! namelist variables
+    call set_time_step(dtg)   ! reset time step from coupler
     call input_zbgc           ! vertical biogeochemistry namelist
     call count_tracers        ! count tracers
 

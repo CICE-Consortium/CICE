@@ -40,7 +40,9 @@
       public :: set_date_from_timesecs ! set model date from time in seconds
                                        ! (relative to init date)
                                        ! needed for binary restarts
-
+#ifdef GEOSCOUPLED
+      public :: set_time_step     ! set time step from coupler
+#endif
 
       ! semi-private, only used directly by unit tester
       public :: compute_elapsed_days ! compute elapsed days since 0000-01-01
@@ -258,6 +260,28 @@
       end subroutine init_calendar
 
 
+#ifdef GEOSCOUPLED
+       subroutine set_time_step(dtg)  
+
+       integer (kind=int_kind), intent(in) :: & 
+            dtg 
+
+
+       character(len=*),parameter :: subname='(set_time_step)'
+       real    (kind=dbl_kind) :: dt_old 
+      
+       dt_old = dt
+       dt = real(dtg, kind=dbl_kind)
+
+       if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(1x,2a,f13.2)') subname,' modified time step from ',dt_old
+         write(nu_diag,'(1x,2a,f13.2)') subname,'                      to ',dt 
+         write(nu_diag,*) ' '
+      endif
+
+       end subroutine set_time_step
+#endif
 
 !=======================================================================
 ! Initialize timestep counter
