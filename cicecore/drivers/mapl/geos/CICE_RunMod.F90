@@ -743,7 +743,7 @@
 
       use ice_calendar, only: dt
       use ice_domain,   only: nblocks
-      use ice_step_mod, only: step_radiation
+      use ice_step_mod, only: step_albedo_only
       use ice_timers,   only: ice_timer_start, ice_timer_stop, &
                                timer_column, timer_thermo
 
@@ -758,7 +758,7 @@
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-               call step_radiation (dt, iblk)
+               call step_albedo_only(dt, iblk)
          enddo ! iblk
          !$OMP END PARALLEL DO
 
