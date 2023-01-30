@@ -13,7 +13,7 @@ module ice_import_export
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndts_f, dflatndts_f 
   use ice_flux           , only : flatn_f, coszen
-  use ice_flux           , only : fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf
+  use ice_flux           , only : fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
   use ice_flux_bgc       , only : faero_atm, faero_ocn
   use ice_flux_bgc       , only : fiso_atm, fiso_ocn, fiso_evap
@@ -380,13 +380,13 @@ contains
     call state_setexport(exportState, 'ALBNF', input=alidf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_setexport(exportState, 'PENUVR', input=fswthru_vdr, rc=rc)
+    call state_setexport(exportState, 'PENUVR', input=fswthru_uvrdr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_setexport(exportState, 'PENUVF', input=fswthru_vdf, rc=rc)
+    call state_setexport(exportState, 'PENUVF', input=fswthru_uvrdf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_setexport(exportState, 'PENPAR', input=fswthru_idr, rc=rc)
+    call state_setexport(exportState, 'PENPAR', input=fswthru_pardr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_setexport(exportState, 'PENPAF', input=fswthru_idf, rc=rc)
+    call state_setexport(exportState, 'PENPAF', input=fswthru_pardf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     deallocate(afldu)

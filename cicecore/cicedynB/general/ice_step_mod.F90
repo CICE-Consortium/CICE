@@ -1217,6 +1217,7 @@
       use ice_arrays_column, only: ffracn, dhsn, &
           fswsfcn, fswintn, fswpenln, Sswabsn, Iswabsn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf,   &
           albicen, albsnon, albpndn, &
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
@@ -1378,6 +1379,10 @@
                          fswthrun_vdf =fswthrun_vdf (i,j,:  ,iblk), &
                          fswthrun_idr =fswthrun_idr (i,j,:  ,iblk), &
                          fswthrun_idf =fswthrun_idf (i,j,:  ,iblk), &
+                         fswthrun_uvrdr =fswthrun_uvrdr (i,j,:  ,iblk), &
+                         fswthrun_uvrdf =fswthrun_uvrdf (i,j,:  ,iblk), &
+                         fswthrun_pardr =fswthrun_pardr (i,j,:  ,iblk), &
+                         fswthrun_pardf =fswthrun_pardf (i,j,:  ,iblk), &
                          fswpenln=fswpenln(i,j,:,:,iblk), &
                          Sswabsn  =Sswabsn  (i,j,:,:,iblk), Iswabsn =Iswabsn (i,j,:,:,iblk), &
                          albicen  =albicen  (i,j,:  ,iblk), albsnon =albsnon (i,j,:  ,iblk), &

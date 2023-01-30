@@ -355,6 +355,7 @@
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
           albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
@@ -366,6 +367,7 @@
           fresh_ai, fsalt_ai, fsalt, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
           fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
@@ -449,6 +451,11 @@
             fswthru_idr(i,j,iblk) = c0
             fswthru_idf(i,j,iblk) = c0
 
+            fswthru_uvrdr(i,j,iblk) = c0
+            fswthru_uvrdf(i,j,iblk) = c0
+            fswthru_pardr(i,j,iblk) = c0
+            fswthru_pardf(i,j,iblk) = c0
+
             albice(i,j,iblk) = c0
             albsno(i,j,iblk) = c0
             albpnd(i,j,iblk) = c0
@@ -493,6 +500,15 @@
                + fswthrun_idr(i,j,n,iblk)*aicen(i,j,n,iblk)
             fswthru_idf(i,j,iblk) = fswthru_idf(i,j,iblk) &
                + fswthrun_idf(i,j,n,iblk)*aicen(i,j,n,iblk)
+
+            fswthru_uvrdr(i,j,iblk) = fswthru_uvrdr(i,j,iblk) &
+               + fswthrun_uvrdr(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_uvrdf(i,j,iblk) = fswthru_uvrdf(i,j,iblk) &
+               + fswthrun_uvrdf(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_pardr(i,j,iblk) = fswthru_pardr(i,j,iblk) &
+               + fswthrun_pardr(i,j,n,iblk)*aicen(i,j,n,iblk)
+            fswthru_pardf(i,j,iblk) = fswthru_pardf(i,j,iblk) &
+               + fswthrun_pardf(i,j,n,iblk)*aicen(i,j,n,iblk)
 
             netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                   + swvdf(i,j,iblk) + swidf(i,j,iblk)

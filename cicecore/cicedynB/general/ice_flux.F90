@@ -238,6 +238,10 @@
          fhocn   , & ! net heat flux to ocean (W/m^2)
          fsloss  , & ! rate of snow loss to leads (kg/m^2/s)
          fswthru , & ! shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_pardr , & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_pardf , & ! nir dif shortwave penetrating to ocean (W/m^2)
          fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
          fswthru_idr , & ! nir dir shortwave penetrating to ocean (W/m^2)
@@ -473,6 +477,10 @@
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
          fsloss     (nx_block,ny_block,max_blocks), & ! rate of snow loss to leads (kg/m^2/s)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdf (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_pardr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_pardf (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
          fswthru_idr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
@@ -1051,6 +1059,8 @@
                                flux_bio,           &
                                fsurf,    fcondtop, &
                                Uref,     wind,     &
+                               fswthru_uvrdr, fswthru_uvrdf, &
+                               fswthru_pardr, fswthru_pardf, &
                                Qref_iso,           &
                                fiso_evap,fiso_ocn)
 
@@ -1096,6 +1106,12 @@
           alidr   , & ! near-ir, direct   (fraction)
           alvdf   , & ! visible, diffuse  (fraction)
           alidf       ! near-ir, diffuse  (fraction)
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
+          fswthru_uvrdr , & ! vis dir sw radiation through ice bot    (W/m**2)
+          fswthru_uvrdf , & ! vis dif sw radiation through ice bot    (W/m**2)
+          fswthru_pardr , & ! nir dir sw radiation through ice bot    (W/m**2)
+          fswthru_pardf     ! nir dif sw radiation through ice bot    (W/m**2)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
           Uref        ! air speed reference level       (m/s)
@@ -1175,6 +1191,10 @@
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
             if (present(fiso_evap)) fiso_evap(i,j,:) = fiso_evap(i,j,:) * ar
             if (present(fiso_ocn )) fiso_ocn (i,j,:) = fiso_ocn (i,j,:) * ar
+            if (present(fswthru_uvrdr)) fswthru_uvrdr (i,j) = fswthru_uvrdr (i,j) * ar
+            if (present(fswthru_uvrdf)) fswthru_uvrdf (i,j) = fswthru_uvrdf (i,j) * ar
+            if (present(fswthru_pardr)) fswthru_pardr (i,j) = fswthru_pardr (i,j) * ar
+            if (present(fswthru_pardf)) fswthru_pardf (i,j) = fswthru_pardf (i,j) * ar
          else                   ! zero out fluxes
             strairxT(i,j) = c0
             strairyT(i,j) = c0
@@ -1207,6 +1227,10 @@
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0
             if (present(fiso_evap)) fiso_evap(i,j,:) = c0
             if (present(fiso_ocn )) fiso_ocn (i,j,:) = c0
+            if (present(fswthru_uvrdr)) fswthru_uvrdr (i,j) = c0 
+            if (present(fswthru_uvrdf)) fswthru_uvrdf (i,j) = c0 
+            if (present(fswthru_pardr)) fswthru_pardr (i,j) = c0 
+            if (present(fswthru_pardf)) fswthru_pardf (i,j) = c0 
          endif                  ! tmask and aice > 0
       enddo                     ! i
       enddo                     ! j
