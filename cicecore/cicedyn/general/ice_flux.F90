@@ -366,6 +366,7 @@
          vatmT   , & ! vatm on T grid (m/s)
          rside   , & ! fraction of ice that melts laterally
          fside   , & ! lateral heat flux (W/m^2)
+         wlat    , & ! lateral heat rate (m/s)
          fsw     , & ! incoming shortwave radiation (W/m^2)
          coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
@@ -540,7 +541,8 @@
          uatmT      (nx_block,ny_block,max_blocks), & ! uatm on T grid
          vatmT      (nx_block,ny_block,max_blocks), & ! vatm on T grid
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
-         fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
+         fside      (nx_block,ny_block,max_blocks), & ! lateral melt flux (W/m^2)
+         wlat       (nx_block,ny_block,max_blocks), & ! lateral melt rate (m/s)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
          coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
