@@ -183,6 +183,7 @@
       use ice_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen, &
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
@@ -313,6 +314,10 @@
                fswthrun_vdf(i,j,n,iblk) = c0
                fswthrun_idr(i,j,n,iblk) = c0
                fswthrun_idf(i,j,n,iblk) = c0
+               fswthrun_uvrdr(i,j,n,iblk) = c0
+               fswthrun_uvrdf(i,j,n,iblk) = c0
+               fswthrun_pardr(i,j,n,iblk) = c0
+               fswthrun_pardf(i,j,n,iblk) = c0
             enddo   ! ncat
 
          enddo
