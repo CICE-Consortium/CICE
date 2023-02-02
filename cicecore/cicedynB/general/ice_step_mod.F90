@@ -164,6 +164,7 @@
           Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_rdg, Cdn_atm_pond, &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_calendar, only: yday
@@ -176,6 +177,7 @@
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
           meltt, melts, meltb, congel, snoice, &
 #ifdef GEOSCOUPLED
           dfsurfndts_f, dflatndts_f,  &
@@ -449,6 +451,10 @@
                       fswthrun_vdf = fswthrun_vdf (i,j,:,iblk),&
                       fswthrun_idr = fswthrun_idr (i,j,:,iblk),&
                       fswthrun_idf = fswthrun_idf (i,j,:,iblk),&
+                      fswthrun_uvrdr = fswthrun_uvrdr (i,j,:,iblk),&
+                      fswthrun_uvrdf = fswthrun_uvrdf (i,j,:,iblk),&
+                      fswthrun_pardr = fswthrun_pardr (i,j,:,iblk),&
+                      fswthrun_pardf = fswthrun_pardf (i,j,:,iblk),&
                       fswabs       = fswabs      (i,j,  iblk), &
                       flwout       = flwout      (i,j,  iblk), &
                       Sswabsn      = Sswabsn     (i,j,:,:,iblk), &
@@ -469,6 +475,10 @@
                       fswthru_vdf  = fswthru_vdf (i,j,  iblk), &
                       fswthru_idr  = fswthru_idr (i,j,  iblk), &
                       fswthru_idf  = fswthru_idf (i,j,  iblk), &
+                      fswthru_uvrdr  = fswthru_uvrdr (i,j,  iblk), &
+                      fswthru_uvrdf  = fswthru_uvrdf (i,j,  iblk), &
+                      fswthru_pardr  = fswthru_pardr (i,j,  iblk), &
+                      fswthru_pardf  = fswthru_pardf (i,j,  iblk), &
                       flatn_f      = flatn_f     (i,j,:,iblk), &
                       fsensn_f     = fsensn_f    (i,j,:,iblk), &
                       fsurfn_f     = fsurfn_f    (i,j,:,iblk), &
