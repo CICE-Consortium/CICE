@@ -489,7 +489,7 @@ dynamics_nml
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
    "``seabed_stress``", "logical", "use seabed stress parameterization for landfast ice", "``.false.``"
    "``seabed_stress_method``", "``LKD``", "linear keel draft method :cite:`Lemieux16`", "``LKD``"
-   "", "``probabilistic``", "probability of contact method (Dupont et al., in prep)", ""
+   "", "``probabilistic``", "probability of contact method :cite:`Dupont22`", ""
    "``ssh_stress``", "``coupled``", "computed from coupled sea surface height gradient", "``geostrophic``"
    "", "``geostropic``", "computed from ocean velocity", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
