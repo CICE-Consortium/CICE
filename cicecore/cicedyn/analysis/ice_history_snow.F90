@@ -69,6 +69,7 @@
       use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
+      use ice_fileunits, only: goto_nml
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -76,7 +77,10 @@
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       real    (kind=dbl_kind) :: rhofresh, secday
-      logical (kind=log_kind) :: tr_snow
+      logical (kind=log_kind) :: tr_snow      
+      character(len=char_len_long) :: tmpstr2 ! for namelist check
+      character(len=char_len)      :: nml_name ! for namelist check
+
       character(len=*), parameter :: subname = '(init_hist_snow_2D)'
 
       call icepack_query_tracer_flags(tr_snow_out=tr_snow)
@@ -92,26 +96,42 @@
          !-----------------------------------------------------------------
 
          if (my_task == master_task) then
-            write(nu_diag,*) subname,' Reading icefields_snow_nml'
+            nml_name = 'icefields_snow_nml'
+            write(nu_diag,*) subname,' Reading ', trim(nml_name)
 
+            ! open namelist file
             call get_fileunit(nu_nml)
             open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
             if (nml_error /= 0) then
-               call abort_ice(subname//'ERROR: icefields_snow_nml open file '// &
+               call abort_ice(subname//'ERROR: '//trim(nml_name)//' open file '// &
                   trim(nml_filename), &
                   file=__FILE__, line=__LINE__)
             endif
 
+            ! goto namelist in file
+            call goto_nml(nu_nml,trim(nml_name),nml_error)
+            if (nml_error /= 0) then
+               call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
+                    file=__FILE__, line=__LINE__)
+            endif
+
+            ! read namelist
             nml_error =  1
             do while (nml_error > 0)
                read(nu_nml, nml=icefields_snow_nml,iostat=nml_error)
+               ! check if error
+               if (nml_error /= 0) then
+                  ! backspace and re-read erroneous line
+                  backspace(nu_nml)
+                  read(nu_nml,fmt='(A)') tmpstr2
+                  call abort_ice(subname//'ERROR: ' // trim(nml_name) // ' reading ' // &
+                       trim(tmpstr2), file=__FILE__, line=__LINE__)
+               endif
             end do
-            if (nml_error /= 0) then
-               call abort_ice(subname//'ERROR: icefields_snow_nml reading ', &
-                  file=__FILE__, line=__LINE__)
-            endif
+
             close(nu_nml)
             call release_fileunit(nu_nml)
+
          endif
 
       else ! .not. tr_snow

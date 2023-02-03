@@ -382,7 +382,7 @@ The value of :math:`k_1` can be changed at runtime using the namelist variable `
 
 This more sophisticated grounding parameterization computes the seabed stress based
 on the probability of contact between the ice thickness distribution
-(ITD) and the seabed. Multi-thickness category models such as CICE typically use a
+(ITD) and the seabed :cite:`Dupont22`. Multi-thickness category models such as CICE typically use a
 few thickness categories (5-10). This crude representation of the ITD
 does not resolve the tail of the ITD, which is crucial for grounding
 events.
