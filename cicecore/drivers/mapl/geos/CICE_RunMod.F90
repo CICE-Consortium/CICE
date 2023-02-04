@@ -276,9 +276,9 @@
 
 !MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
+         !do iblk = 1, nblocks
 
-            if (ktherm >= 0) call step_radiation (dt, iblk)
+            !if (ktherm >= 0) call step_radiation (dt, iblk)
             !if (debug_model) then
             !   plabeld = 'post step_radiation'
             !   call debug_ice (iblk, plabeld)
@@ -288,18 +288,18 @@
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
-            call coupling_prep (iblk)
+            !call coupling_prep (iblk)
             !if (debug_model) then
             !   plabeld = 'post coupling_prep'
             !   call debug_ice (iblk, plabeld)
             !endif
-         enddo ! iblk
+         !enddo ! iblk
          !$OMP END PARALLEL DO
 
-         call ice_timer_start(timer_bound)
-         call ice_HaloUpdate (scale_factor,     halo_info, &
-                              field_loc_center, field_type_scalar)
-         call ice_timer_stop(timer_bound)
+         !call ice_timer_start(timer_bound)
+         !call ice_HaloUpdate (scale_factor,     halo_info, &
+         !                     field_loc_center, field_type_scalar)
+         !call ice_timer_stop(timer_bound)
 
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
@@ -654,7 +654,7 @@
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice
+      use ice_state, only: aicen, aice, aicen_init, aice_init
       use ice_state, only: aice_init
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
@@ -685,7 +685,7 @@
          rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
 
-      character(len=*), parameter :: subname = '(coupling_prep)'
+      character(len=*), parameter :: subname = '(coupling_atm)'
 
       !-----------------------------------------------------------------
 
@@ -746,34 +746,34 @@
          do n = 1, ncat
          do j = jlo, jhi
          do i = ilo, ihi
-            if (aicen(i,j,n,iblk) > puny) then
+            if (aicen_init(i,j,n,iblk) > puny) then
 
             alvdf(i,j,iblk) = alvdf(i,j,iblk) &
-               + alvdfn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + alvdfn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             alidf(i,j,iblk) = alidf(i,j,iblk) &
-               + alidfn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + alidfn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             alvdr(i,j,iblk) = alvdr(i,j,iblk) &
-               + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + alvdrn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             alidr(i,j,iblk) = alidr(i,j,iblk) &
-               + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + alidrn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
 
             netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                   + swvdf(i,j,iblk) + swidf(i,j,iblk)
             if (netsw > puny) then ! sun above horizon
             albice(i,j,iblk) = albice(i,j,iblk) &
-               + albicen(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + albicen(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             albsno(i,j,iblk) = albsno(i,j,iblk) &
-               + albsnon(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + albsnon(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             albpnd(i,j,iblk) = albpnd(i,j,iblk) &
-               + albpndn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + albpndn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             endif
 
             apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &       ! for history
-               + apeffn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + apeffn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             snowfrac(i,j,iblk) = snowfrac(i,j,iblk) &       ! for history
-               + snowfracn(i,j,n,iblk)*aicen(i,j,n,iblk)
+               + snowfracn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
 
-            endif ! aicen > puny
+            endif ! aicen_init > puny
          enddo
          enddo
          enddo
@@ -832,7 +832,7 @@
          call scale_fluxes (nx_block,            ny_block,           &
                             tmask    (:,:,iblk), nbtrcr,             &
                             icepack_max_aero,                        &
-                            aice     (:,:,iblk), Tf      (:,:,iblk), &
+                            aice_init(:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
                             strairxT (:,:,iblk), strairyT(:,:,iblk), &
                             fsens    (:,:,iblk), flat    (:,:,iblk), &
@@ -1005,6 +1005,10 @@
                endif
 
                call coupling_atm (iblk)
+               if (debug_model) then
+                  plabeld = 'post coupling_atm'
+                 call debug_ice (iblk, plabeld)
+               endif
 
             endif ! ktherm > 0
 
