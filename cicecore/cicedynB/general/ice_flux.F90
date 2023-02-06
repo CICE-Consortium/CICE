@@ -745,6 +745,10 @@
       fswthru_vdf (:,:,:) = c0
       fswthru_idr (:,:,:) = c0
       fswthru_idf (:,:,:) = c0
+      fswthru_uvrdr (:,:,:) = c0
+      fswthru_uvrdf (:,:,:) = c0
+      fswthru_pardr (:,:,:) = c0
+      fswthru_pardf (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
       fsalt_da(:,:,:) = c0
       flux_bio (:,:,:,:) = c0 ! bgc
@@ -1061,6 +1065,7 @@
                                Uref,     wind,     &
                                fswthru_uvrdr, fswthru_uvrdf, &
                                fswthru_pardr, fswthru_pardf, &
+                               opmask,             &
                                Qref_iso,           &
                                fiso_evap,fiso_ocn)
 
@@ -1113,6 +1118,9 @@
           fswthru_pardr , & ! nir dir sw radiation through ice bot    (W/m**2)
           fswthru_pardf     ! nir dif sw radiation through ice bot    (W/m**2)
 
+      logical (kind=log_kind), dimension (nx_block,ny_block), optional, intent(in) :: &
+          opmask     ! land/boundary mask, thickness (T-cell)
+
       real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
           Uref        ! air speed reference level       (m/s)
 
@@ -1159,7 +1167,11 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
+#ifdef GEOSCOUPLED
+         if ((tmask(i,j) .or. opmask(i,j)) .and. aice(i,j) > c0) then
+#else
          if (tmask(i,j) .and. aice(i,j) > c0) then
+#endif
             ar = c1 / aice(i,j)
             strairxT(i,j) = strairxT(i,j) * ar
             strairyT(i,j) = strairyT(i,j) * ar
@@ -1240,7 +1252,12 @@
      
         do j = 1, ny_block
         do i = 1, nx_block
+
+#ifdef GEOSCOUPLED
+           if ((tmask(i,j) .or. opmask(i,j)) .and. aice(i,j) > c0) then
+#else
            if (tmask(i,j) .and. aice(i,j) > c0) then
+#endif
               ar = c1 / aice(i,j)
               fsurf   (i,j) = fsurf   (i,j) * ar
               fcondtop(i,j) = fcondtop(i,j) * ar
