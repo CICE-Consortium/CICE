@@ -653,9 +653,8 @@
           fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, opmask
       use ice_state, only: aicen, aice, aicen_init, aice_init
-      use ice_state, only: aice_init
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
@@ -854,6 +853,11 @@
                             Qref_iso =Qref_iso (:,:,:,iblk),         &
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk),         &
+                            fswthru_uvrdr = fswthru_uvrdr(:,:,iblk), & 
+                            fswthru_uvrdf = fswthru_uvrdf(:,:,iblk), & 
+                            fswthru_pardr = fswthru_pardr(:,:,iblk), & 
+                            fswthru_pardf = fswthru_pardf(:,:,iblk), & 
+                            opmask = opmask(:,:,iblk),               &
                             Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
  
       !-----------------------------------------------------------------
