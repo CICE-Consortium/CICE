@@ -19,12 +19,13 @@ module ice_import_export
   use ice_flux_bgc       , only : fiso_atm, fiso_ocn, fiso_evap
   use ice_flux_bgc       , only : Qa_iso, Qref_iso, HDO_ocn, H2_18O_ocn, H2_16O_ocn
   use ice_flux           , only : fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
+  use ice_flux           , only : fresh_ai, fsalt_ai, fhocn_ai
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : druvr, dfuvr, drpar, dfpar 
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
-  use ice_state          , only : vice, vsno, aice, aicen_init, trcr, trcrn
+  use ice_state          , only : vice, vsno, aice, aicen, aicen_init, trcr, trcrn
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, frocean, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
@@ -47,6 +48,12 @@ module ice_import_export
   !public  :: ice_export_thermo2
   !public  :: ice_import_dyna
   !public  :: ice_export_dyna
+  public  :: ice_export_field
+
+  interface ice_export_field
+     module procedure ice_export_field_2d 
+     module procedure ice_export_field_3d 
+  end interface ice_export_field 
 
   private :: state_FldChk
 
@@ -417,6 +424,73 @@ contains
 
   end subroutine ice_export_radiation
 
+  subroutine ice_export_field_3d(fldname, fld, rc)
+
+    ! input/output variables
+    character(len=*)     ,     intent(in)  :: fldname
+    real(kind=real_kind) ,     intent(out) :: fld(:,:,:)
+    integer              ,     intent(out) :: rc
+
+    ! local variables
+    character(len=*),parameter :: subname = 'ice_export_field_3d'
+    real(kind=dbl_kind)        :: Tffresh
+
+    rc = ESMF_SUCCESS
+
+    call icepack_query_parameters(Tffresh_out=Tffresh)
+    !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
+    !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
+    !       Tffresh_out=Tffresh)
+    !    call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_iage_out=tr_iage, &
+    !       tr_FY_out=tr_FY, tr_pond_out=tr_pond, tr_lvl_out=tr_lvl, &
+    !       tr_zaero_out=tr_zaero, tr_bgc_Nit_out=tr_bgc_Nit)
+
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=u_FILE_u, line=__LINE__)
+
+    if (trim(fldname) == 'TI') then
+        call arr_setexport_4d(fld,  trcrn(:,:,1,:,:), rc)  
+        fld(:,:,:)  = real(Tffresh, kind=real_kind) + fld(:,:,:)    !Kelvin (original ???)
+    elseif (trim(fldname) == 'FRSEAICE') then
+        call arr_setexport_4d(fld,  aicen,            rc)  
+    else
+        call ESMF_LogWrite(trim(subname)//": "//trim(fldname)//" not available for export", ESMF_LOGMSG_ERROR)
+        rc = ESMF_FAILURE
+        return  
+    endif
+
+  end subroutine ice_export_field_3d
+
+  subroutine ice_export_field_2d(fldname, fld, rc)
+
+    ! input/output variables
+    character(len=*)     ,     intent(in)  :: fldname
+    real(kind=real_kind) ,     intent(out) :: fld(:,:)
+    integer              ,     intent(out) :: rc
+
+    ! local variables
+    character(len=*),parameter :: subname = 'ice_export_field_2d'
+
+
+    rc = ESMF_SUCCESS
+
+    if (trim(fldname) == 'FRACICE') then
+        call arr_setexport_3d(fld,  aice,        rc)  
+    elseif (trim(fldname) == 'FHOCN') then
+        call arr_setexport_3d(fld,  fhocn_ai,    rc)  
+    elseif (trim(fldname) == 'FRESH') then
+        call arr_setexport_3d(fld,  fresh_ai,    rc)  
+    elseif (trim(fldname) == 'FSALT') then
+        call arr_setexport_3d(fld,  fsalt_ai,    rc)  
+    else
+        call ESMF_LogWrite(trim(subname)//": "//trim(fldname)//" not available for export", ESMF_LOGMSG_ERROR)
+        rc = ESMF_FAILURE
+        return  
+    endif
+
+  end subroutine ice_export_field_2d
+
   !===============================================================================
   logical function State_FldChk(State, fldname)
     ! ----------------------------------------------
@@ -557,7 +631,6 @@ contains
     character(len=*), parameter  :: subname='(ice_import_export:arr_setexport_4d)'
     ! ----------------------------------------------
 
-    rc = ESMF_SUCCESS
 
     do k = 1, ncat 
        do iblk = 1, nblocks
@@ -573,6 +646,8 @@ contains
           end do
       end do
     end do
+
+    rc = ESMF_SUCCESS
 
   end subroutine arr_setexport_4d
 

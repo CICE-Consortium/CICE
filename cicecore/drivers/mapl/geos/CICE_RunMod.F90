@@ -276,7 +276,7 @@
 
 !MHRI: CHECK THIS OMP
          !$OMP PARALLEL DO PRIVATE(iblk)
-         !do iblk = 1, nblocks
+         do iblk = 1, nblocks
 
             !if (ktherm >= 0) call step_radiation (dt, iblk)
             !if (debug_model) then
@@ -288,12 +288,12 @@
       ! get ready for coupling and the next time step
       !-----------------------------------------------------------------
 
-            !call coupling_prep (iblk)
-            !if (debug_model) then
-            !   plabeld = 'post coupling_prep'
-            !   call debug_ice (iblk, plabeld)
-            !endif
-         !enddo ! iblk
+            call coupling_ocn (iblk)
+            if (debug_model) then
+               plabeld = 'post coupling_ocn'
+               call debug_ice (iblk, plabeld)
+            endif
+         enddo ! iblk
          !$OMP END PARALLEL DO
 
          !call ice_timer_start(timer_bound)
@@ -860,6 +860,153 @@
                             opmask = opmask(:,:,iblk),               &
                             Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
  
+         do j = 1, ny_block
+         do i = 1, nx_block
+
+            fresh(i,j,iblk) =  fresh(i,j,iblk) * aice_init(i,j,iblk)
+            fhocn(i,j,iblk) =  fhocn(i,j,iblk) * aice_init(i,j,iblk)
+            fsalt(i,j,iblk) =  fsalt(i,j,iblk) * aice_init(i,j,iblk)
+
+         enddo
+         enddo 
+      !-----------------------------------------------------------------
+      ! Define ice-ocean bgc fluxes
+      !-----------------------------------------------------------------
+
+         !if (nbtrcr > 0 .or. skl_bgc) then
+         !   call bgcflux_ice_to_ocn (nx_block,       ny_block,           &
+         !                         flux_bio(:,:,1:nbtrcr,iblk),            &
+         !                         fnit(:,:,iblk),    fsil(:,:,iblk),      &
+         !                         famm(:,:,iblk),    fdmsp(:,:,iblk),     &
+         !                         fdms(:,:,iblk),    fhum(:,:,iblk),      &
+         !                         fdust(:,:,iblk),   falgalN(:,:,:,iblk), &
+         !                         fdoc(:,:,:,iblk),  fdic(:,:,:,iblk),    &
+         !                         fdon(:,:,:,iblk),  ffep(:,:,:,iblk),    &
+         !                         ffed(:,:,:,iblk))
+         !endif
+
+         call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
+
+      end subroutine coupling_atm
+
+      subroutine coupling_ocn (iblk)
+
+      use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
+          fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
+          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+      use ice_blocks, only: nx_block, ny_block, get_block, block
+      use ice_domain, only: blocks_ice
+      use ice_calendar, only: dt, nstreams
+      use ice_domain_size, only: ncat
+      use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
+          albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
+          alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
+          fresh_ai, fsalt_ai, fsalt, &
+          fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
+          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
+          fsens, flat, fswabs, flwout, evap, Tref, Qref, &
+          scale_fluxes, frzmlt_init, frzmlt, Uref, wind
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
+          fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
+      use ice_grid, only: tmask, opmask
+      use ice_state, only: aicen, aice, aicen_init, aice_init
+      use ice_flux, only: flatn_f, fsurfn_f
+      use ice_step_mod, only: ocean_mixed_layer
+      use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
+
+      integer (kind=int_kind), intent(in) :: &
+         iblk            ! block index
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         n           , & ! thickness category index
+         i,j         , & ! horizontal indices
+         k           , & ! tracer index
+         nbtrcr          !
+
+      type (block) :: &
+         this_block         ! block information for current block
+
+      logical (kind=log_kind) :: &
+         skl_bgc     , & !
+         calc_Tsfc       !
+
+      real (kind=dbl_kind) :: &
+         cszn        , & ! counter for history averaging
+         puny        , & !
+         ar          , & !           
+         rhofresh    , & !
+         netsw           ! flag for shortwave radiation presence
+
+      character(len=*), parameter :: subname = '(coupling_ocn)'
+
+      !-----------------------------------------------------------------
+
+         call icepack_query_parameters(puny_out=puny, rhofresh_out=rhofresh)
+         call icepack_query_parameters(skl_bgc_out=skl_bgc)
+         call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
+         call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
+
+         call ice_timer_start(timer_couple,iblk)   ! atm/ocn coupling
+
+         do j = 1, ny_block
+         do i = 1, nx_block
+
+      !-----------------------------------------------------------------
+      ! reduce fresh by fpond for coupling
+      !-----------------------------------------------------------------
+
+            if (l_mpond_fresh) then
+               fpond(i,j,iblk) = fpond(i,j,iblk) * rhofresh/dt
+               fresh(i,j,iblk) = fresh(i,j,iblk) - fpond(i,j,iblk)
+            endif
+
+      !----------------------------------------------------------------
+      ! Store grid box mean albedos and fluxes before scaling by aice
+      !----------------------------------------------------------------
+
+            fresh_ai  (i,j,iblk) = fresh  (i,j,iblk) 
+            fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
+            fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
+            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk) 
+            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk) 
+
+            if (nbtrcr > 0) then
+            do k = 1, nbtrcr
+              flux_bio_ai  (i,j,k,iblk) = flux_bio  (i,j,k,iblk)
+            enddo
+            endif
+
+
+         enddo
+         enddo
+
+         do j = 1, ny_block
+         do i = 1, nx_block
+             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
+                ar = c1 / aice_init(i,j,iblk)
+                fresh(i,j,iblk) =  fresh(i,j,iblk) * ar 
+                fhocn(i,j,iblk) =  fhocn(i,j,iblk) * ar
+                fsalt(i,j,iblk) =  fsalt(i,j,iblk) * ar
+            else
+                fresh(i,j,iblk) =  c0 
+                fhocn(i,j,iblk) =  c0
+                fsalt(i,j,iblk) =  c0
+            endif
+
+         enddo
+         enddo 
+ 
       !-----------------------------------------------------------------
       ! Define ice-ocean bgc fluxes
       !-----------------------------------------------------------------
@@ -878,7 +1025,7 @@
 
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
-      end subroutine coupling_atm
+      end subroutine coupling_ocn
 
 !=======================================================================
 
