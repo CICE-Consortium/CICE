@@ -681,6 +681,9 @@
       real (kind=dbl_kind) :: &
          cszn        , & ! counter for history averaging
          puny        , & !
+         ar          , &          
+         stefan_boltzmann, &
+         Tffresh     , &
          rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
 
@@ -692,6 +695,8 @@
          call icepack_query_parameters(skl_bgc_out=skl_bgc)
          call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
          call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
+         call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
+              Tffresh_out=Tffresh)
          call icepack_warnings_flush(nu_diag)
          if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
             file=__FILE__, line=__LINE__)
@@ -780,15 +785,6 @@
          do j = 1, ny_block
          do i = 1, nx_block
 
-      !-----------------------------------------------------------------
-      ! reduce fresh by fpond for coupling
-      !-----------------------------------------------------------------
-
-            if (l_mpond_fresh) then
-               fpond(i,j,iblk) = fpond(i,j,iblk) * rhofresh/dt
-               fresh(i,j,iblk) = fresh(i,j,iblk) - fpond(i,j,iblk)
-            endif
-
       !----------------------------------------------------------------
       ! Store grid box mean albedos and fluxes before scaling by aice
       !----------------------------------------------------------------
@@ -797,18 +793,10 @@
             alidf_ai  (i,j,iblk) = alidf  (i,j,iblk)
             alvdr_ai  (i,j,iblk) = alvdr  (i,j,iblk)
             alidr_ai  (i,j,iblk) = alidr  (i,j,iblk)
-            fresh_ai  (i,j,iblk) = fresh  (i,j,iblk)
-            fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
-            fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
             fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
             fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
-            if (nbtrcr > 0) then
-            do k = 1, nbtrcr
-              flux_bio_ai  (i,j,k,iblk) = flux_bio  (i,j,k,iblk)
-            enddo
-            endif
 
       !-----------------------------------------------------------------
       ! Save net shortwave for scaling factor in scale_factor
@@ -828,62 +816,62 @@
       !  - also needed for global budget in diagnostics
       !-----------------------------------------------------------------
 
-         call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr,             &
-                            icepack_max_aero,                        &
-                            aice_init(:,:,iblk), Tf      (:,:,iblk), &
-                            Tair     (:,:,iblk), Qa      (:,:,iblk), &
-                            strairxT (:,:,iblk), strairyT(:,:,iblk), &
-                            fsens    (:,:,iblk), flat    (:,:,iblk), &
-                            fswabs   (:,:,iblk), flwout  (:,:,iblk), &
-                            evap     (:,:,iblk),                     &
-                            Tref     (:,:,iblk), Qref    (:,:,iblk), &
-                            fresh    (:,:,iblk), fsalt   (:,:,iblk), &
-                            fhocn    (:,:,iblk),                     &
-                            fswthru  (:,:,iblk),                     &
-                            fswthru_vdr(:,:,iblk),                   &
-                            fswthru_vdf(:,:,iblk),                   &
-                            fswthru_idr(:,:,iblk),                   &
-                            fswthru_idf(:,:,iblk),                   &
-                            faero_ocn(:,:,:,iblk),                   &
-                            alvdr    (:,:,iblk), alidr   (:,:,iblk), &
-                            alvdf    (:,:,iblk), alidf   (:,:,iblk), &
-                            fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
-                            flux_bio (:,:,1:nbtrcr,iblk),            &
-                            Qref_iso =Qref_iso (:,:,:,iblk),         &
-                            fiso_evap=fiso_evap(:,:,:,iblk),         &
-                            fiso_ocn =fiso_ocn (:,:,:,iblk),         &
-                            fswthru_uvrdr = fswthru_uvrdr(:,:,iblk), & 
-                            fswthru_uvrdf = fswthru_uvrdf(:,:,iblk), & 
-                            fswthru_pardr = fswthru_pardr(:,:,iblk), & 
-                            fswthru_pardf = fswthru_pardf(:,:,iblk), & 
-                            opmask = opmask(:,:,iblk),               &
-                            Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
- 
          do j = 1, ny_block
          do i = 1, nx_block
-
-            fresh(i,j,iblk) =  fresh(i,j,iblk) * aice_init(i,j,iblk)
-            fhocn(i,j,iblk) =  fhocn(i,j,iblk) * aice_init(i,j,iblk)
-            fsalt(i,j,iblk) =  fsalt(i,j,iblk) * aice_init(i,j,iblk)
+             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
+               ar                 = c1 / aice_init(i,j,iblk)
+               fsens   (i,j,iblk) = fsens   (i,j,iblk) * ar
+               flat    (i,j,iblk) = flat    (i,j,iblk) * ar
+               fswabs  (i,j,iblk) = fswabs  (i,j,iblk) * ar
+               flwout  (i,j,iblk) = flwout  (i,j,iblk) * ar
+               evap    (i,j,iblk) = evap    (i,j,iblk) * ar
+               Tref    (i,j,iblk) = Tref    (i,j,iblk) * ar
+               Qref    (i,j,iblk) = Qref    (i,j,iblk) * ar
+               Uref    (i,j,iblk) = Uref    (i,j,iblk) * ar
+               fswthru (i,j,iblk) = fswthru (i,j,iblk) * ar
+               fswthru_vdr (i,j,iblk) = fswthru_vdr (i,j,iblk) * ar
+               fswthru_vdf (i,j,iblk) = fswthru_vdf (i,j,iblk) * ar
+               fswthru_idr (i,j,iblk) = fswthru_idr (i,j,iblk) * ar
+               fswthru_idf (i,j,iblk) = fswthru_idf (i,j,iblk) * ar
+               alvdr   (i,j,iblk) = alvdr   (i,j,iblk) * ar
+               alidr   (i,j,iblk) = alidr   (i,j,iblk) * ar
+               alvdf   (i,j,iblk) = alvdf   (i,j,iblk) * ar
+               alidf   (i,j,iblk) = alidf   (i,j,iblk) * ar
+               fzsal   (i,j,iblk) = fzsal   (i,j,iblk) * ar
+               fzsal_g (i,j,iblk) = fzsal_g (i,j,iblk) * ar
+               fswthru_uvrdr (i,j,iblk) = fswthru_uvrdr (i,j,iblk) * ar
+               fswthru_uvrdf (i,j,iblk) = fswthru_uvrdf (i,j,iblk) * ar
+               fswthru_pardr (i,j,iblk) = fswthru_pardr (i,j,iblk) * ar
+               fswthru_pardf (i,j,iblk) = fswthru_pardf (i,j,iblk) * ar
+            else
+               fsens   (i,j,iblk) = c0 
+               flat    (i,j,iblk) = c0 
+               fswabs  (i,j,iblk) = c0 
+               flwout  (i,j,iblk) = -stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4 
+               evap    (i,j,iblk) = c0
+               Tref    (i,j,iblk) = Tair    (i,j,iblk)
+               Qref    (i,j,iblk) = Qa      (i,j,iblk) 
+               Uref    (i,j,iblk) = wind    (i,j,iblk) 
+               fswthru (i,j,iblk) = c0 
+               fswthru_vdr (i,j,iblk) = c0 
+               fswthru_vdf (i,j,iblk) = c0 
+               fswthru_idr (i,j,iblk) = c0
+               fswthru_idf (i,j,iblk) = c0
+               alvdr   (i,j,iblk) = c0 
+               alidr   (i,j,iblk) = c0 
+               alvdf   (i,j,iblk) = c0 
+               alidf   (i,j,iblk) = c0 
+               fzsal   (i,j,iblk) = c0 
+               fzsal_g (i,j,iblk) = c0 
+               fswthru_uvrdr (i,j,iblk) = c0 
+               fswthru_uvrdf (i,j,iblk) = c0
+               fswthru_pardr (i,j,iblk) = c0
+               fswthru_pardf (i,j,iblk) = c0
+            endif
 
          enddo
          enddo 
-      !-----------------------------------------------------------------
-      ! Define ice-ocean bgc fluxes
-      !-----------------------------------------------------------------
 
-         !if (nbtrcr > 0 .or. skl_bgc) then
-         !   call bgcflux_ice_to_ocn (nx_block,       ny_block,           &
-         !                         flux_bio(:,:,1:nbtrcr,iblk),            &
-         !                         fnit(:,:,iblk),    fsil(:,:,iblk),      &
-         !                         famm(:,:,iblk),    fdmsp(:,:,iblk),     &
-         !                         fdms(:,:,iblk),    fhum(:,:,iblk),      &
-         !                         fdust(:,:,iblk),   falgalN(:,:,:,iblk), &
-         !                         fdoc(:,:,:,iblk),  fdic(:,:,:,iblk),    &
-         !                         fdon(:,:,:,iblk),  ffep(:,:,:,iblk),    &
-         !                         ffed(:,:,:,iblk))
-         !endif
 
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
 
@@ -891,24 +879,13 @@
 
       subroutine coupling_ocn (iblk)
 
-      use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
-          fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
-          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
       use ice_domain_size, only: ncat
-      use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
-          albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
-          alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
-          fresh_ai, fsalt_ai, fsalt, &
-          fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
-          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
-          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
-          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
-          fsens, flat, fswabs, flwout, evap, Tref, Qref, &
-          scale_fluxes, frzmlt_init, frzmlt, Uref, wind
+      use ice_flux, only: fpond, fresh, l_mpond_fresh, &
+          fhocn_ai, fresh_ai, fsalt_ai, fsalt, &
+          fhocn, strairxT, strairyT
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
           fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
@@ -916,7 +893,6 @@
       use ice_grid, only: tmask, opmask
       use ice_state, only: aicen, aice, aicen_init, aice_init
       use ice_flux, only: flatn_f, fsurfn_f
-      use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
       integer (kind=int_kind), intent(in) :: &
@@ -978,8 +954,6 @@
             fresh_ai  (i,j,iblk) = fresh  (i,j,iblk) 
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk) 
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk) 
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -987,21 +961,34 @@
             enddo
             endif
 
-
          enddo
          enddo
 
          do j = 1, ny_block
          do i = 1, nx_block
-             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
-                ar = c1 / aice_init(i,j,iblk)
-                fresh(i,j,iblk) =  fresh(i,j,iblk) * ar 
-                fhocn(i,j,iblk) =  fhocn(i,j,iblk) * ar
-                fsalt(i,j,iblk) =  fsalt(i,j,iblk) * ar
+             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice(i,j,iblk) > c0) then
+                ar                 = c1 / aice(i,j,iblk)
+                strairxT(i,j,iblk) = strairxT(i,j,iblk) * ar
+                strairyT(i,j,iblk) = strairyT(i,j,iblk) * ar
+                fresh(i,j,iblk)    =  fresh(i,j,iblk)   * ar
+                fhocn(i,j,iblk)    =  fhocn(i,j,iblk)   * ar
+                fsalt(i,j,iblk)    =  fsalt(i,j,iblk)   * ar
+                flux_bio (i,j,:,iblk) = flux_bio (i,j,:,iblk) * ar
+                faero_ocn(i,j,:,iblk) = faero_ocn(i,j,:,iblk) * ar
+                Qref_iso (i,j,:,iblk) = Qref_iso (i,j,:,iblk) * ar
+                fiso_evap(i,j,:,iblk) = fiso_evap(i,j,:,iblk) * ar
+                fiso_ocn (i,j,:,iblk) = fiso_ocn (i,j,:,iblk) * ar
             else
-                fresh(i,j,iblk) =  c0 
-                fhocn(i,j,iblk) =  c0
-                fsalt(i,j,iblk) =  c0
+                strairxT(i,j,iblk) =  c0
+                strairyT(i,j,iblk) =  c0
+                fresh(i,j,iblk)    =  c0
+                fhocn(i,j,iblk)    =  c0
+                fsalt(i,j,iblk)    =  c0
+                flux_bio (i,j,:,iblk) = c0
+                faero_ocn(i,j,:,iblk) = c0
+                Qref_iso (i,j,:,iblk) = c0
+                fiso_evap(i,j,:,iblk) = c0
+                fiso_ocn (i,j,:,iblk) = c0
             endif
 
          enddo
