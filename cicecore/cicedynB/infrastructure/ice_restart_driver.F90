@@ -59,9 +59,10 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_flux, only: coszen
+      use ice_communicate, only: my_task, master_task
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel
 
-      character(len=char_len_long), intent(in), optional :: filename_spec
+      character(len=*), intent(in), optional :: filename_spec
 
       ! local variables
 
@@ -85,7 +86,7 @@
          file=__FILE__, line=__LINE__)
 
       if (present(filename_spec)) then
-         call init_restart_write(filename_spec)
+         call init_restart_write(filename_spec=filename_spec)
       else
          call init_restart_write
       endif

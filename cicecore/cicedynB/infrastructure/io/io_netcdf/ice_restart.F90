@@ -138,7 +138,7 @@
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
 
-      character(len=char_len_long), intent(in), optional :: filename_spec
+      character(len=*), intent(in), optional :: filename_spec
 
       ! local variables
 

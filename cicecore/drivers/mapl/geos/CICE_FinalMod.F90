@@ -71,6 +71,9 @@
       use ice_dyn_shared, only: kdyn, kridge
       use ice_dyn_eap, only: write_restart_eap
       use ice_restart, only: final_restart
+      use ice_restart_shared, only: &
+          restart_ext, restart_dir, restart_file, pointer_file, &
+          runid, use_restart_time, lcdf64, lenstr, restart_coszen
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
@@ -88,6 +91,8 @@
 
       real (kind=dbl_kind) :: &
          offset          ! d(age)/dt time offset
+
+      character(len=char_len_long) :: filename
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
@@ -109,7 +114,9 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      call dumpfile     ! core variables for restarting
+      filename = trim(restart_dir) // trim(restart_file) 
+
+      call dumpfile(filename_spec=trim(filename))   ! core variables for restarting
       if (tr_iage)      call write_restart_age
       if (tr_FY)        call write_restart_FY
       if (tr_lvl)       call write_restart_lvl
