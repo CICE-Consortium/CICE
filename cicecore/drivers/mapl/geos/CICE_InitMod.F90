@@ -268,7 +268,7 @@ contains
     use ice_domain_size, only: ncat, n_iso, n_aero, nfsd, nslyr
     use ice_dyn_eap, only: read_restart_eap
     use ice_dyn_shared, only: kdyn
-    use ice_grid, only: tmask
+    use ice_grid, only: tmask, opmask
     use ice_init, only: ice_ic
     use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
          init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
@@ -497,7 +497,7 @@ contains
     do iblk = 1, nblocks
        do j = 1, ny_block
           do i = 1, nx_block
-             if (tmask(i,j,iblk)) then
+             if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
                 call icepack_aggregate(ncat  = ncat,                  &
                      aicen = aicen(i,j,:,iblk),     &
                      trcrn = trcrn(i,j,:,:,iblk),   &
