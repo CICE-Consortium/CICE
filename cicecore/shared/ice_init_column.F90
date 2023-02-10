@@ -197,6 +197,9 @@
                           swvdr, swvdf, swidr, swidf, scale_factor, snowfrac, &
                           albice, albsno, albpnd, apeff_ai, coszen, fsnow
       use ice_grid, only: tlat, tlon, tmask
+#ifdef GEOSCOUPLED
+      use ice_grid, only: opmask 
+#endif
       use ice_restart_shared, only: restart, runtype
       use ice_state, only: aicen, vicen, vsnon, trcrn
 
@@ -266,6 +269,11 @@
          fswpenln(:,:,:,:,iblk) = c0
          Iswabsn(:,:,:,:,iblk) = c0
          Sswabsn(:,:,:,:,iblk) = c0
+         albpndn(:,:,:,iblk)   = c0
+         apeffn(:,:,:,iblk)    = c0
+         snowfracn(:,:,:,iblk) = c0
+         albicen(:,:,:,iblk)   = c0
+         albsnon(:,:,:,iblk)   = c0
 
          this_block = get_block(blocks_ice(iblk),iblk)         
          ilo = this_block%ilo
@@ -327,7 +335,8 @@
 
             if (trim(shortwave) == 'dEdd') then ! delta Eddington
 
-#ifndef CESMCOUPLED
+!#ifndef CESMCOUPLED
+#if !defined(CESMCOUPLED) && !defined(GEOSCOUPLED)
                ! initialize orbital parameters
                ! These come from the driver in the coupled model.
                call icepack_init_orbit()
@@ -348,8 +357,11 @@
                   enddo
                endif
             enddo
-
+#ifdef GEOSCOUPLED
+            if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+#else
             if (tmask(i,j,iblk)) then
+#endif
                call icepack_step_radiation (dt=dt, ncat=ncat,                  &
                           nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
                           dEdd_algae=dEdd_algae,                               &
