@@ -1110,11 +1110,11 @@
       ! scale radiation fields
       !-----------------------------------------------------------------
 
-               if (calc_Tsfc) call prep_radiation (iblk)
-               if (debug_model) then
-                  plabeld = 'post prep_radiation'
-                  call debug_ice (iblk, plabeld)
-               endif
+               !if (calc_Tsfc) call prep_radiation (iblk)
+               !if (debug_model) then
+               !   plabeld = 'post prep_radiation'
+               !   call debug_ice (iblk, plabeld)
+               !endif
 
                call step_radiation (dt, iblk)
                if (debug_model) then
