@@ -1564,7 +1564,7 @@
          fieldname              ! field name in netCDF file
 
       real (kind=dbl_kind) :: &
-         pi
+         pi, puny
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
@@ -1584,7 +1584,7 @@
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
 #ifdef USE_NETCDF
-      call icepack_query_parameters(pi_out=pi)
+      call icepack_query_parameters(pi_out=pi, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if   (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1617,7 +1617,8 @@
          do i = ilo, ihi
             kmt(i,j,iblk) = work1(i,j,iblk)
             if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-            if (frocean(i,j,iblk) == c0) then
+            ! set grid cells which are MOM ocean but land in GEOS to land 
+            if (frocean(i,j,iblk) < puny) then
                kmt(i,j,iblk)  = c0
                hm(i,j,iblk)   = c0
             endif
@@ -1928,6 +1929,10 @@
                            field_loc_NEcorner, field_type_scalar)
       call ice_HaloUpdate (bm,               halo_info, &
                            field_loc_center, field_type_scalar)
+#ifdef GEOSCOUPLED
+      call ice_HaloUpdate (frocean,            halo_info, &
+                           field_loc_center, field_type_scalar)
+#endif
       call ice_timer_stop(timer_bound)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
