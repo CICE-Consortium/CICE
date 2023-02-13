@@ -17,7 +17,8 @@
       use ice_kinds_mod
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: oceanmixed_ice
-      use ice_constants, only: c0, c1
+      use ice_domain_size, only: max_blocks, ncat, max_nstrm, nilyr
+      use ice_constants, only: c0, c1, c5, c10, c20, c180
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -27,7 +28,8 @@
 
       implicit none
       private
-      public :: CICE_Run, ice_step, ice_fast_physics, ice_radiation
+      public :: CICE_Run, ice_step, ice_fast_physics, ice_radiation, &
+                reset_atm_flux, reset_ocn_flux
 
 !=======================================================================
 
@@ -76,16 +78,16 @@
       ! timestep loop
       !--------------------------------------------------------------------
 
-      call ice_timer_start(timer_couple)  ! atm/ocn coupling
+      !call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-      call advance_timestep()  ! advance timestep and update calendar data
+      !call advance_timestep()  ! advance timestep and update calendar data
 
-      if (z_tracers) call get_atm_bgc                   ! biogeochemistry
+      !if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-      call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-      call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+      !call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+      !call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-      call ice_timer_stop(timer_couple)    ! atm/ocn coupling
+      !call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
       call ice_step
 
@@ -1020,6 +1022,7 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
+      use ice_calendar, only: istep1, calendar, advance_timestep
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
@@ -1042,8 +1045,8 @@
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry, save_init, step_dyn_wave, step_snow
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
-          timer_diags, timer_column, timer_thermo, timer_bound, &
-          timer_hist, timer_readwrite
+          timer_diags, timer_column,  timer_step, timer_thermo, &
+          timer_bound, timer_hist, timer_readwrite
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index
@@ -1061,6 +1064,8 @@
       character(len=*), parameter :: subname = '(ice_fast_physics)'
 
       character (len=char_len) :: plabeld
+
+      call ice_timer_start(timer_step)   ! start timing entire run
 
       if (debug_model) then
          plabeld = 'beginning time step'
@@ -1080,11 +1085,22 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
+      !call ice_timer_start(timer_couple)  ! atm/ocn coupling
+
+      call advance_timestep()  ! advance timestep and update calendar data
+
+      !if (z_tracers) call get_atm_bgc                   ! biogeochemistry
+
+      !call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+      !call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+
+      !call ice_timer_stop(timer_couple)    ! atm/ocn coupling
       !-----------------------------------------------------------------
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
          if (restore_ice) call ice_HaloRestore
+      
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
@@ -1156,6 +1172,7 @@
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
 
+         call ice_timer_stop(timer_step)   ! start timing entire run
 
       end subroutine ice_fast_physics
 
@@ -1190,6 +1207,79 @@
 
 
       end subroutine ice_radiation
+
+      subroutine reset_atm_flux
+
+      use ice_flux_bgc, only: fiso_evap, Qref_iso, Qa_iso
+      use ice_flux
+
+      character(len=*), parameter :: subname = '(init_flux_atm)'
+
+      !-----------------------------------------------------------------
+      ! initialize albedo and fluxes
+      !-----------------------------------------------------------------
+
+      strairxT(:,:,:) = c0      ! wind stress, T grid
+      strairyT(:,:,:) = c0
+      ! for rectangular grid tests without thermo
+      ! strairxT(:,:,:) = 0.15_dbl_kind
+      ! strairyT(:,:,:) = 0.15_dbl_kind
+
+      fsens   (:,:,:) = c0
+      flat    (:,:,:) = c0
+      fswabs  (:,:,:) = c0
+      flwout  (:,:,:) = c0
+      evap    (:,:,:) = c0
+      Tref    (:,:,:) = c0
+      Qref    (:,:,:) = c0
+      Uref    (:,:,:) = c0
+
+      fswthru (:,:,:) = c0
+      fswthru_vdr (:,:,:) = c0
+      fswthru_vdf (:,:,:) = c0
+      fswthru_idr (:,:,:) = c0
+      fswthru_idf (:,:,:) = c0
+      fswthru_uvrdr (:,:,:) = c0
+      fswthru_uvrdf (:,:,:) = c0
+      fswthru_pardr (:,:,:) = c0
+      fswthru_pardf (:,:,:) = c0
+
+      fiso_evap(:,:,:,:) = c0
+      Qref_iso (:,:,:,:) = c0
+      Qa_iso   (:,:,:,:) = c0
+
+      end subroutine reset_atm_flux
+
+
+!=======================================================================
+
+      subroutine reset_ocn_flux
+
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
+      use ice_flux
+
+      character(len=*), parameter :: subname = '(reset_ocn_flux)'
+
+      !-----------------------------------------------------------------
+      ! fluxes sent
+      !-----------------------------------------------------------------
+
+      fresh    (:,:,:)   = c0
+      fsalt    (:,:,:)   = c0
+      fpond    (:,:,:)   = c0
+      fhocn    (:,:,:)   = c0
+
+      faero_ocn (:,:,:,:) = c0
+      fiso_ocn  (:,:,:,:) = c0
+      HDO_ocn     (:,:,:) = c0
+      H2_16O_ocn  (:,:,:) = c0
+      H2_18O_ocn  (:,:,:) = c0
+
+      if (send_i2x_per_cat) then
+         fswthrun_ai(:,:,:,:) = c0
+      endif
+
+      end subroutine reset_ocn_flux
 
       end module CICE_RunMod
 
