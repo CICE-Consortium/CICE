@@ -28,8 +28,7 @@
 
       implicit none
       private
-      public :: CICE_Run, ice_step, ice_fast_physics, ice_radiation, &
-                reset_atm_flux, reset_ocn_flux
+      public :: CICE_Run, ice_step, ice_fast_physics, ice_radiation
 
 !=======================================================================
 
@@ -644,7 +643,7 @@
       use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
           albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
           alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
-          fresh_ai, fsalt_ai, fsalt, &
+          fresh_ai, fsalt_ai, fsalt, fsurf, fcondtop, &
           fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
           fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
@@ -826,6 +825,8 @@
                flat    (i,j,iblk) = flat    (i,j,iblk) * ar
                fswabs  (i,j,iblk) = fswabs  (i,j,iblk) * ar
                flwout  (i,j,iblk) = flwout  (i,j,iblk) * ar
+               fsurf   (i,j,iblk) = fsurf   (i,j,iblk) * ar
+               fcondtop(i,j,iblk) = fcondtop(i,j,iblk) * ar
                evap    (i,j,iblk) = evap    (i,j,iblk) * ar
                Tref    (i,j,iblk) = Tref    (i,j,iblk) * ar
                Qref    (i,j,iblk) = Qref    (i,j,iblk) * ar
@@ -850,6 +851,8 @@
                flat    (i,j,iblk) = c0 
                fswabs  (i,j,iblk) = c0 
                flwout  (i,j,iblk) = -stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4 
+               fsurf   (i,j,iblk) = c0 
+               fcondtop(i,j,iblk) = c0 
                evap    (i,j,iblk) = c0
                Tref    (i,j,iblk) = Tair    (i,j,iblk)
                Qref    (i,j,iblk) = Qa      (i,j,iblk) 
@@ -1031,6 +1034,7 @@
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
           daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
+      use ice_flux, only: init_flux_atm, init_flux_ocn
       use ice_history, only: accum_hist
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
@@ -1046,7 +1050,7 @@
           biogeochemistry, save_init, step_dyn_wave, step_snow
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_diags, timer_column,  timer_step, timer_thermo, &
-          timer_bound, timer_hist, timer_readwrite
+          timer_bound, timer_couple, timer_hist, timer_readwrite
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index
@@ -1085,16 +1089,16 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      !call ice_timer_start(timer_couple)  ! atm/ocn coupling
+      call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
       call advance_timestep()  ! advance timestep and update calendar data
 
       !if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-      !call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-      !call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+      call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+      call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-      !call ice_timer_stop(timer_couple)    ! atm/ocn coupling
+      call ice_timer_stop(timer_couple)    ! atm/ocn coupling
       !-----------------------------------------------------------------
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
@@ -1185,15 +1189,52 @@
       use ice_step_mod, only: step_radiation
       use ice_timers,   only: ice_timer_start, ice_timer_stop, &
                                timer_column, timer_thermo
+      use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
+          fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
+          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+      use ice_blocks, only: nx_block, ny_block, get_block, block
+      use ice_domain, only: blocks_ice
+      use ice_calendar, only: dt, nstreams
+      use ice_domain_size, only: ncat
+      use ice_flux, only: alvdf, alidf, alvdr, alidr, albice, albsno, &
+          albpnd, albcnt, apeff_ai, fpond, fresh, l_mpond_fresh, &
+          alvdf_ai, alidf_ai, alvdr_ai, alidr_ai, fhocn_ai, &
+          fresh_ai, fsalt_ai, fsalt, &
+          fswthru_ai, fhocn, fswthru, scale_factor, snowfrac, &
+          fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
+          swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
+          fsens, flat, fswabs, flwout, evap, Tref, Qref, &
+          scale_fluxes, frzmlt_init, frzmlt, Uref, wind
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
+          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
+          fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
+      use ice_grid, only: tmask, opmask
+      use ice_state, only: aicen, aice, aicen_init, aice_init
+      use ice_flux, only: flatn_f, fsurfn_f
+      use ice_step_mod, only: ocean_mixed_layer
 
       integer (kind=int_kind) :: &
-         iblk         ! block index
+         i,j,n,iblk         ! block index
+
+      integer (kind=int_kind) :: &
+         ilo, ihi, jlo, jhi
+           
+      type (block) :: &
+         this_block         ! block information for current block
+
+      real (kind=dbl_kind) :: &
+         ar, puny
 
       character(len=*), parameter :: subname = '(ice_radiation)'
 
-
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
+
+         call icepack_query_parameters(puny_out=puny)
+
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
@@ -1202,84 +1243,69 @@
          enddo ! iblk
          !$OMP END PARALLEL DO
 
+         do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            alvdf(i,j,iblk) = c0
+            alidf(i,j,iblk) = c0
+            alvdr(i,j,iblk) = c0
+            alidr(i,j,iblk) = c0
+         enddo
+         enddo
+         enddo
+
+         do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do n = 1, ncat
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (aicen_init(i,j,n,iblk) > puny) then
+
+            alvdf(i,j,iblk) = alvdf(i,j,iblk) &
+               + alvdfn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
+            alidf(i,j,iblk) = alidf(i,j,iblk) &
+               + alidfn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
+            alvdr(i,j,iblk) = alvdr(i,j,iblk) &
+               + alvdrn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
+            alidr(i,j,iblk) = alidr(i,j,iblk) &
+               + alidrn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
+
+            endif ! aicen_init > puny
+         enddo
+         enddo
+         enddo
+         enddo
+
+         do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
+               ar                 = c1 / aice_init(i,j,iblk)
+               alvdr   (i,j,iblk) = alvdr   (i,j,iblk) * ar
+               alidr   (i,j,iblk) = alidr   (i,j,iblk) * ar
+               alvdf   (i,j,iblk) = alvdf   (i,j,iblk) * ar
+               alidf   (i,j,iblk) = alidf   (i,j,iblk) * ar
+            else
+               alvdr   (i,j,iblk) = c0 
+               alidr   (i,j,iblk) = c0 
+               alvdf   (i,j,iblk) = c0 
+               alidf   (i,j,iblk) = c0 
+            endif
+         enddo ! i
+         enddo ! j
+         enddo ! iblk
+
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
 
 
       end subroutine ice_radiation
 
-      subroutine reset_atm_flux
-
-      use ice_flux_bgc, only: fiso_evap, Qref_iso, Qa_iso
-      use ice_flux
-
-      character(len=*), parameter :: subname = '(init_flux_atm)'
-
-      !-----------------------------------------------------------------
-      ! initialize albedo and fluxes
-      !-----------------------------------------------------------------
-
-      strairxT(:,:,:) = c0      ! wind stress, T grid
-      strairyT(:,:,:) = c0
-      ! for rectangular grid tests without thermo
-      ! strairxT(:,:,:) = 0.15_dbl_kind
-      ! strairyT(:,:,:) = 0.15_dbl_kind
-
-      fsens   (:,:,:) = c0
-      flat    (:,:,:) = c0
-      fswabs  (:,:,:) = c0
-      flwout  (:,:,:) = c0
-      evap    (:,:,:) = c0
-      Tref    (:,:,:) = c0
-      Qref    (:,:,:) = c0
-      Uref    (:,:,:) = c0
-
-      fswthru (:,:,:) = c0
-      fswthru_vdr (:,:,:) = c0
-      fswthru_vdf (:,:,:) = c0
-      fswthru_idr (:,:,:) = c0
-      fswthru_idf (:,:,:) = c0
-      fswthru_uvrdr (:,:,:) = c0
-      fswthru_uvrdf (:,:,:) = c0
-      fswthru_pardr (:,:,:) = c0
-      fswthru_pardf (:,:,:) = c0
-
-      fiso_evap(:,:,:,:) = c0
-      Qref_iso (:,:,:,:) = c0
-      Qa_iso   (:,:,:,:) = c0
-
-      end subroutine reset_atm_flux
-
-
-!=======================================================================
-
-      subroutine reset_ocn_flux
-
-      use ice_flux_bgc, only: faero_ocn, fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
-      use ice_flux
-
-      character(len=*), parameter :: subname = '(reset_ocn_flux)'
-
-      !-----------------------------------------------------------------
-      ! fluxes sent
-      !-----------------------------------------------------------------
-
-      fresh    (:,:,:)   = c0
-      fsalt    (:,:,:)   = c0
-      fpond    (:,:,:)   = c0
-      fhocn    (:,:,:)   = c0
-
-      faero_ocn (:,:,:,:) = c0
-      fiso_ocn  (:,:,:,:) = c0
-      HDO_ocn     (:,:,:) = c0
-      H2_16O_ocn  (:,:,:) = c0
-      H2_18O_ocn  (:,:,:) = c0
-
-      if (send_i2x_per_cat) then
-         fswthrun_ai(:,:,:,:) = c0
-      endif
-
-      end subroutine reset_ocn_flux
 
       end module CICE_RunMod
 
