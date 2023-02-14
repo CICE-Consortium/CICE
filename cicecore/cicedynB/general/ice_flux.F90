@@ -810,6 +810,8 @@
       ! strairxT(:,:,:) = 0.15_dbl_kind
       ! strairyT(:,:,:) = 0.15_dbl_kind
 
+      fsurf   (:,:,:) = c0
+      fcondtop(:,:,:) = c0
       fsens   (:,:,:) = c0
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
