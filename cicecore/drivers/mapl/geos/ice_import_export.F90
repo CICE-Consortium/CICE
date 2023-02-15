@@ -26,6 +26,7 @@ module ice_import_export
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen, aicen_init, trcr, trcrn
+  use ice_state          , only : Tsfcn_init 
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, frocean, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
@@ -144,7 +145,7 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer,parameter                :: nfldu=6
+    integer,parameter                :: nfldu=5
     integer,parameter                :: nfld=12
     integer                          :: i, j, k, iblk, n
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
@@ -167,17 +168,17 @@ contains
     allocate( afld(nx_block,ny_block,      nfld,nblocks))
     afld = c0
 
-    call state_getimport(importState,  'TSKINICE', output=afldu, index=1, rc=rc)
+    !call state_getimport(importState,  'TSKINICE', output=afldu, index=1, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState,      'EVAP', output=afldu, index=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState,      'EVAP', output=afldu, index=2, rc=rc)
+    call state_getimport(importState,     'FSURF', output=afldu, index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState,     'FSURF', output=afldu, index=3, rc=rc)
+    call state_getimport(importState, 'DFSURFDTS', output=afldu, index=3, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'DFSURFDTS', output=afldu, index=4, rc=rc)
+    call state_getimport(importState,   'DLHFDTS', output=afldu, index=4, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState,   'DLHFDTS', output=afldu, index=5, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState,       'LHF', output=afldu, index=6, rc=rc)
+    call state_getimport(importState,       'LHF', output=afldu, index=5, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 
@@ -213,12 +214,12 @@ contains
        do iblk = 1, nblocks
           do j = 1,ny_block
              do i = 1,nx_block
-                trcrn  (i,j,1,k,iblk)      = afldu(i,j,k,1,iblk) - Tffresh
-                evapn_f  (i,j,k,iblk)      = afldu(i,j,k,2,iblk)
-                fsurfn_f (i,j,k,iblk)      = afldu(i,j,k,3,iblk)
-                dfsurfndts_f(i,j,k,iblk)   = afldu(i,j,k,4,iblk)
-                dflatndts_f(i,j,k,iblk)    = afldu(i,j,k,5,iblk)
-                flatn_f  (i,j,k,iblk)      = afldu(i,j,k,6,iblk)
+                !trcrn  (i,j,1,k,iblk)      = afldu(i,j,k,1,iblk) - Tffresh
+                evapn_f  (i,j,k,iblk)      = afldu(i,j,k,1,iblk)
+                fsurfn_f (i,j,k,iblk)      = afldu(i,j,k,2,iblk)
+                dfsurfndts_f(i,j,k,iblk)   = afldu(i,j,k,3,iblk)
+                dflatndts_f(i,j,k,iblk)    = afldu(i,j,k,4,iblk)
+                flatn_f  (i,j,k,iblk)      = afldu(i,j,k,5,iblk)
              end do
           end do
        end do
@@ -320,10 +321,10 @@ contains
     logical                 :: flag
     integer (kind=int_kind) :: indxi (nx_block*ny_block)            ! compressed indices in i
     integer (kind=int_kind) :: indxj (nx_block*ny_block)            ! compressed indices in i
-    real    (kind=dbl_kind) :: Tsrf  (nx_block,ny_block,ncat,max_blocks) ! surface temperature
+    real    (kind=dbl_kind) :: dTsrf  (nx_block,ny_block,ncat,max_blocks) ! surface temperature
     real    (kind=dbl_kind) :: Tffresh
-    integer,               parameter :: nfldu=1
-    real (kind=dbl_kind),allocatable :: afldu(:,:,:,:,:)
+    !integer,               parameter :: nfldu=1
+    !real (kind=dbl_kind),allocatable :: afldu(:,:,:,:,:)
     character(len=*),parameter :: subname = 'ice_export_thermo1'
     !-----------------------------------------------------
 
@@ -342,40 +343,17 @@ contains
     if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
         file=u_FILE_u, line=__LINE__)
 
-    !create Tsrf from the first tracer (trcr) in ice_state.F
-
-    Tsrf(:,:,:,:)  = c0
-
-    do n = 1, ncat
-
-       !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky, this_block, ilo, ihi, jlo, jhi)
-       do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-
-          do j = jlo,jhi
-             do i = ilo,ihi
-               ! surface temperature
-               Tsrf(i,j,n,iblk)  = Tffresh + trcrn(i,j,1,n,iblk)     !Kelvin (original ???)
-             enddo
-          enddo
-      enddo
-    enddo
-
     !---------------------------------
     ! Create the export state
     !---------------------------------
-    allocate(afldu(nx_block,ny_block,ncat,nfldu,nblocks))
-    afldu = c0
-    call state_getimport(exportState,  'TSKINICE', output=afldu, index=1, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    !allocate(afldu(nx_block,ny_block,ncat,nfldu,nblocks))
+    !afldu = c0
+    !call state_getimport(exportState,  'TSKINICE', output=afldu, index=1, rc=rc)
+    !if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    Tsrf = Tsrf - afldu(:,:,:,1,:)
+    dTsrf = Tsfcn_init - trcrn(:,:,1,:,:) 
 
-    call state_setexport(exportState, 'DTS', input=Tsrf, rc=rc)
+    call state_setexport(exportState, 'DTS', input=dTsrf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     call state_setexport(exportState, 'ALBVR', input=alvdr, rc=rc)
@@ -396,7 +374,7 @@ contains
     call state_setexport(exportState, 'PENPAF', input=fswthru_pardf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    deallocate(afldu)
+    !deallocate(afldu)
 
   end subroutine ice_export_thermo1
 
