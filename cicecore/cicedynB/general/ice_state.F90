@@ -127,6 +127,10 @@
          vicen_init  , & ! initial ice volume (m), for linear ITD
          vsnon_init      ! initial snow volume (m), for aerosol 
 
+      real (kind=dbl_kind), &
+         dimension(:,:,:,:), allocatable, public :: &
+         Tsfcn_init ! initial ice surface temperature (degC)   
+
 !=======================================================================
 
       contains
@@ -161,6 +165,7 @@
          aicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice concentration, for linear ITD
          vicen_init(nx_block,ny_block,ncat,max_blocks) , & ! initial ice volume (m), for linear ITD
          vsnon_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow volume (m), for aerosol 
+         Tsfcn_init(nx_block,ny_block,ncat,max_blocks) , & ! initial snow/ice surface temperature(degC)
          trcr      (nx_block,ny_block,ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
          trcrn     (nx_block,ny_block,ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
          stat=ierr)

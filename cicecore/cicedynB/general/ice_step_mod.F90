@@ -49,7 +49,7 @@
 ! saves initial values for aice, aicen, vicen, vsnon
 
       use ice_state, only: aice, aicen, aice_init, aicen_init, &
-          vicen, vicen_init, vsnon, vsnon_init
+          vicen, vicen_init, vsnon, vsnon_init, trcrn, Tsfcn_init
 
       !-----------------------------------------------------------------
       ! Save the ice area passed to the coupler (so that history fields
@@ -61,6 +61,7 @@
          aicen_init = aicen
          vicen_init = vicen
          vsnon_init = vsnon
+         Tsfcn_init = trcrn(:,:,1,:,:)
 
       end subroutine save_init
 
