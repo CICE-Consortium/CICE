@@ -254,6 +254,10 @@ contains
     call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
     call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
+    if (write_ic) then
+       call accum_hist(dt)  ! write initial conditions
+    end if
+
   end subroutine cice_init2
 
   !=======================================================================
