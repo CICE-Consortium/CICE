@@ -22,6 +22,7 @@ module ice_import_export
   use ice_flux           , only : fresh_ai, fsalt_ai, fhocn_ai
   use ice_flux           , only : rhoa, swvdr, swvdf, swidr, swidf, flw, frain
   use ice_flux           , only : druvr, dfuvr, drpar, dfpar 
+  use ice_flux           , only : fcondtop
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
@@ -351,7 +352,7 @@ contains
     !call state_getimport(exportState,  'TSKINICE', output=afldu, index=1, rc=rc)
     !if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    dTsrf = Tsfcn_init - trcrn(:,:,1,:,:) 
+    dTsrf = trcrn(:,:,1,:,:) - Tsfcn_init
 
     call state_setexport(exportState, 'DTS', input=dTsrf, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -372,6 +373,9 @@ contains
     call state_setexport(exportState, 'PENPAR', input=fswthru_pardr, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call state_setexport(exportState, 'PENPAF', input=fswthru_pardf, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call state_setexport(exportState, 'GHTSKIN', input=fcondtop, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !deallocate(afldu)
