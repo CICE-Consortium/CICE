@@ -18,8 +18,10 @@
    use ice_communicate, only: my_task, mpiR4, mpiR8, mpitagHalo
    use ice_constants, only: field_type_scalar, &
          field_type_vector, field_type_angle, &
+         field_type_unknown, field_type_noupdate, &
          field_loc_center,  field_loc_NEcorner, &
-         field_loc_Nface, field_loc_Eface
+         field_loc_Nface, field_loc_Eface, &
+         field_loc_unknown, field_loc_noupdate
    use ice_global_reductions, only: global_maxval
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -1231,6 +1233,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -1655,6 +1674,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -2053,6 +2089,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -2428,6 +2481,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  copy logical into integer array and call haloupdate on integer array
 !
 !-----------------------------------------------------------------------
@@ -2518,6 +2588,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2978,6 +3065,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -3435,6 +3539,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -3889,6 +4010,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DR8)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -4373,6 +4511,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -4854,6 +5009,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -5318,6 +5490,23 @@ contains
    integer (int_kind) ::  len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate_stress)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
