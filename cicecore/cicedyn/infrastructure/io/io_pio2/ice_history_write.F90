@@ -76,7 +76,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind= dbl_kind) :: ltime2
       character (char_len) :: title
-      character (char_len) :: time_period_freq
+      character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       integer (kind=int_kind) :: iotype
 
@@ -663,7 +663,7 @@
             write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
         end select
 
-        if (.not.write_ic) then
+        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
            status = pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq))
         endif
 

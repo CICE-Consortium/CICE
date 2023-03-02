@@ -86,7 +86,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
-      character (char_len) :: time_period_freq
+      character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
@@ -696,7 +696,7 @@
             write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
         end select
 
-        if (.not.write_ic) then
+        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
            status = nf90_put_att(ncid,nf90_global,'time_period_freq',trim(time_period_freq))
            if (status /= nf90_noerr) call abort_ice(subname// &
                          'ERROR: global attribute time_period_freq')
