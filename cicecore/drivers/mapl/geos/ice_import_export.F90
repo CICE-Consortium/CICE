@@ -26,8 +26,8 @@ module ice_import_export
   use ice_flux           , only : fsnow, uocn, vocn, sst, ss_tltx, ss_tlty, frzmlt
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
-  use ice_state          , only : vice, vsno, aice, aicen, aicen_init, trcr, trcrn
-  use ice_state          , only : Tsfcn_init 
+  use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
+  use ice_state          , only : Tsfcn_init, aice_init
   use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, frocean, hm
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
@@ -48,7 +48,7 @@ module ice_import_export
   public  :: ice_import_grid
   !public  :: ice_import_thermo2
   !public  :: ice_export_thermo2
-  !public  :: ice_import_dyna
+  public  :: ice_import_dyna
   !public  :: ice_export_dyna
   public  :: ice_export_field
 
@@ -266,6 +266,7 @@ contains
     deallocate(afldu)
     deallocate(afld)
 
+    rc = ESMF_SUCCESS
 
   end subroutine ice_import_thermo1
 
@@ -304,7 +305,54 @@ contains
 
     deallocate(afld)
 
+    rc = ESMF_SUCCESS
+
   end subroutine ice_import_radiation
+
+  subroutine ice_import_dyna( taux, tauy, rc )
+
+    ! input/output variables
+    real(kind=real_kind) ,     intent(in) :: taux(:,:)
+    real(kind=real_kind) ,     intent(in) :: tauy(:,:)
+    integer              ,     intent(out):: rc
+
+    ! local variables
+    integer                          :: i, j, k, iblk
+    integer                          :: i1, j1
+    integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
+    type(block)                      :: this_block         ! block information for current block
+    real(kind=dbl_kind)              :: workx, worky
+    character(len=*),   parameter    :: subname = 'ice_import_dyna'
+    character(len=1024)              :: msgString
+    !-----------------------------------------------------
+
+
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          j1 = j - nghost 
+          do i = ilo, ihi
+             i1 = i - nghost 
+                workx  = real(taux(i1, j1), kind=dbl_kind) 
+                worky  = real(tauy(i1, j1), kind=dbl_kind) 
+                strairxT(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+                                   + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
+                strairyT(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
+                                   - workx*sin(ANGLET(i,j,iblk))
+                ! multiply by aice to properly treat free drift 
+                strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)  
+                strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)  
+          enddo
+       enddo
+    enddo
+
+    rc = ESMF_SUCCESS
+
+  end subroutine ice_import_dyna
 
   !===============================================================================
   subroutine ice_export_thermo1( exportState, rc )
