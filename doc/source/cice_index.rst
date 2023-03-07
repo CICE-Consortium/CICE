@@ -621,6 +621,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "shlat", "southern latitude of artificial mask edge", "30\ :math:`^\circ`\ N"
    "shortwave", "flag for shortwave parameterization (‘ccsm3’ or ‘dEdd’)", ""
    "sig1(2)", "principal stress components (diagnostic)", ""
+   "sigP", "internal ice pressure", "N/m"
    "sil", "silicate concentration", "mmol/m\ :math:`^3`"
    "sinw", "sine of the turning angle in water", "0."
    "Sinz", "ice salinity profile", "ppt"
