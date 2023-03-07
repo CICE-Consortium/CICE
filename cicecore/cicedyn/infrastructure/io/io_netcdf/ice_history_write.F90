@@ -48,7 +48,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, days_per_year, use_leap_years, dayyr, &
+          histfreq, histfreq_n, days_per_year, use_leap_years, dayyr, &
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
@@ -86,6 +86,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
+      character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
@@ -681,6 +682,25 @@
         status = nf90_put_att(ncid,nf90_global,'comment3',title)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date2')
+
+        select case (histfreq(ns))
+         case ("y", "Y")
+            write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
+         case ("m", "M")
+            write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
+         case ("d", "D")
+            write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
+         case ("h", "H")
+            write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
+         case ("1")
+            write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
+        end select
+
+        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
+           status = nf90_put_att(ncid,nf90_global,'time_period_freq',trim(time_period_freq))
+           if (status /= nf90_noerr) call abort_ice(subname// &
+                         'ERROR: global attribute time_period_freq')
+        endif
 
         title = 'CF-1.0'
         status =  &

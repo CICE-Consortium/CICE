@@ -507,7 +507,6 @@
       ! Diagnose OpenMP thread schedule, force order in output
       !-----------------------------------------------------------------
 
-! This code does not work in CESM. Needs to be investigated further.
 #if defined (_OPENMP)
        !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
        do iblk = 1, nblocks

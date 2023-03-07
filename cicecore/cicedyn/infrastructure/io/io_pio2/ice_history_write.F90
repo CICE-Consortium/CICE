@@ -76,6 +76,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind= dbl_kind) :: ltime2
       character (char_len) :: title
+      character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       integer (kind=int_kind) :: iotype
 
@@ -648,6 +649,23 @@
 
         write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
         status = pio_put_att(File,pio_global,'comment3',trim(title))
+
+        select case (histfreq(ns))
+         case ("y", "Y")
+            write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
+         case ("m", "M")
+            write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
+         case ("d", "D")
+            write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
+         case ("h", "H")
+            write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
+         case ("1")
+            write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
+        end select
+
+        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
+           status = pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq))
+        endif
 
         title = 'CF-1.0'
         status =  &
