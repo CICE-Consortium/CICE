@@ -1207,7 +1207,7 @@ directory in **iceh\_ic.[timeID].nc(da)**. Several history variables are
 hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
-The normalized principal components of internal ice stress are computed
+The normalized principal components of internal ice stress (``sig1``, ``sig2``) are computed
 in *principal\_stress* and written to the history file. This calculation
 is not necessary for the simulation; principal stresses are merely
 computed for diagnostic purposes and included here for the user’s
