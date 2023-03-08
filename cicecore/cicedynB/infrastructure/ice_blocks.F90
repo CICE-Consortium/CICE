@@ -322,10 +322,10 @@ contains
          all_blocks(n)%jblock,   &
          all_blocks(n)%tripole
       enddo
-      write(nu_diag,'(*(i2, 1x))') ( i_global(all_blocks(i)%ihi,i) -  & 
+      write(nu_diag,'(*(i3, 1x))') ( i_global(all_blocks(i)%ihi,i) -  & 
                                      i_global(all_blocks(i)%ilo,i)+1, & 
                                      i=1,nblocks_x ) 
-      write(nu_diag,'(*(i2, 1x))') ( j_global(all_blocks((j-1)*nblocks_x+1)%jhi,(j-1)*nblocks_x+1) -  & 
+      write(nu_diag,'(*(i3, 1x))') ( j_global(all_blocks((j-1)*nblocks_x+1)%jhi,(j-1)*nblocks_x+1) -  & 
                                      j_global(all_blocks((j-1)*nblocks_x+1)%jlo,(j-1)*nblocks_x+1)+1, & 
                                      j=1,nblocks_y ) 
       endif
