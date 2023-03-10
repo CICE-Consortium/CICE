@@ -2,7 +2,7 @@ module ice_import_export
 
   use ESMF
   use ice_kinds_mod      , only : int_kind, dbl_kind, real_kind, char_len, log_kind
-  use ice_constants      , only : c0, c1, spval_dbl, radius
+  use ice_constants      , only : c0, c1, p5, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block, nghost
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
@@ -28,7 +28,8 @@ module ice_import_export
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
   use ice_state          , only : Tsfcn_init, aice_init
-  use ice_grid           , only : tlon, tlat, tarea, tmask, anglet, frocean, hm
+  use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, frocean, hm
+  use ice_grid           , only : dxu, dyu 
   use ice_grid           , only : grid_type, t2ugrid_vector
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr 
@@ -309,11 +310,12 @@ contains
 
   end subroutine ice_import_radiation
 
-  subroutine ice_import_dyna( taux, tauy, rc )
+  subroutine ice_import_dyna( taux, tauy, slv, rc )
 
     ! input/output variables
     real(kind=real_kind) ,     intent(in) :: taux(:,:)
     real(kind=real_kind) ,     intent(in) :: tauy(:,:)
+    real(kind=real_kind) ,     intent(in) :: slv(:,:)
     integer              ,     intent(out):: rc
 
     ! local variables
@@ -322,6 +324,7 @@ contains
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
     real(kind=dbl_kind)              :: workx, worky
+    real(kind=dbl_kind)              :: ssh(nx_block,ny_block,max_blocks) 
     character(len=*),   parameter    :: subname = 'ice_import_dyna'
     character(len=1024)              :: msgString
     !-----------------------------------------------------
@@ -346,7 +349,37 @@ contains
                 ! multiply by aice to properly treat free drift 
                 strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)  
                 strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)  
+                ssh(i,j,iblk)      = real(slv(i1,j1), kind=dbl_kind)
           enddo
+       enddo
+    enddo
+
+    call ice_HaloUpdate (ssh,     halo_info, &
+                         field_loc_center, field_type_scalar)
+
+    !*** if  C-grid ice dynamics is on, the following needs to be revised
+    !*** so a query of which dynamics (B- or C-) should be made and branch into 
+    !*** different computation of ss_tlt* terms 
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+       do i = ilo, ihi
+           if(umask(i,j,iblk)) then
+                ss_tltx(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)-ssh(i,j+1,iblk)  &
+                                       +ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
+                                       /dxu(i,j,iblk)
+                ss_tlty(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)+ssh(i,j+1,iblk)  &
+                                       -ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
+                                       /dyu(i,j,iblk)
+           else
+                ss_tltx(i,j,iblk) = c0
+                ss_tlty(i,j,iblk) = c0
+           endif
+       enddo
        enddo
     enddo
 
