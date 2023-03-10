@@ -5474,6 +5474,7 @@ contains
 !***********************************************************************
 !  This routine updates ghost cells for an input array using
 !  a second array as needed by the stress fields.
+!  This is just like 2DR8 except no averaging and only on tripole
 
  subroutine ice_HaloUpdate_stress(array1, array2, halo, &
                                fieldLoc, fieldKind,     &
@@ -5711,30 +5712,61 @@ contains
          call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
-      select case (fieldLoc)
-      case (field_loc_center)   ! cell center location
+      if (halo%tripoleTFlag) then
 
-         ioffset = 0
-         joffset = 0
+        select case (fieldLoc)
+        case (field_loc_center)   ! cell center location
 
-      case (field_loc_NEcorner)   ! cell corner location
+           ioffset = -1
+           joffset = 0
 
-         ioffset = 1
-         joffset = 1
+        case (field_loc_NEcorner)   ! cell corner location
 
-      case (field_loc_Eface)
+           ioffset = 0
+           joffset = 1
 
-         ioffset = 1
-         joffset = 0
+        case (field_loc_Eface)   ! cell center location
 
-      case (field_loc_Nface)
+           ioffset = 0
+           joffset = 0
 
-         ioffset = 0
-         joffset = 1
+        case (field_loc_Nface)   ! cell corner (velocity) location
 
-      case default
-         call abort_ice(subname//'ERROR: Unknown field location')
-      end select
+           ioffset = -1
+           joffset = 1
+
+        case default
+           call abort_ice(subname//'ERROR: Unknown field location')
+        end select
+
+      else ! tripole u-fold
+
+        select case (fieldLoc)
+        case (field_loc_center)   ! cell center location
+
+           ioffset = 0
+           joffset = 0
+
+        case (field_loc_NEcorner)   ! cell corner location
+
+           ioffset = 1
+           joffset = 1
+
+        case (field_loc_Eface)
+
+           ioffset = 1
+           joffset = 0
+
+        case (field_loc_Nface)
+
+           ioffset = 0
+           joffset = 1
+
+        case default
+           call abort_ice(subname//'ERROR: Unknown field location')
+        end select
+
+      endif
 
       !*** copy out of global tripole buffer into local
       !*** ghost cells
@@ -5765,7 +5797,7 @@ contains
             !*** out of range and skipped
             !*** otherwise do the copy
 
-            if (jSrc <= nghost+1 .AND. jDst /= -1 ) then
+            if (jSrc <= halo%tripoleRows .and. jSrc>0 .and. jDst>0) then
                array1(iDst,jDst,dstBlock) = isign*bufTripoleR8(iSrc,jSrc)
             endif
 

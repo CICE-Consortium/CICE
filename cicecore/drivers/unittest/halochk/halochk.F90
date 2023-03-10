@@ -4,7 +4,7 @@
       use CICE_InitMod
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind, log_kind
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot, nghost
-      use ice_boundary, only: ice_HaloUpdate
+      use ice_boundary, only: ice_HaloUpdate, ice_HaloUpdate_stress
       use ice_constants, only: c0, c1, p5, &
           field_loc_unknown, field_loc_noupdate, &
           field_loc_center, field_loc_NEcorner, &
@@ -55,12 +55,13 @@
       integer(int_kind), allocatable :: iarrayi2(:,:,:,:)  , iarrayj2(:,:,:,:)
       integer(int_kind), allocatable :: iarrayi3(:,:,:,:,:), iarrayj3(:,:,:,:,:)
       logical(log_kind), allocatable :: larrayi1(:,:,:)    , larrayj1(:,:,:)
+      real(dbl_kind)   , allocatable :: darrayi1str(:,:,:) , darrayj1str(:,:,:)
 
       real(dbl_kind), allocatable :: cidata_bas(:,:,:,:,:),cjdata_bas(:,:,:,:,:)
       real(dbl_kind), allocatable :: cidata_nup(:,:,:,:,:),cjdata_nup(:,:,:,:,:)
       real(dbl_kind), allocatable :: cidata_std(:,:,:,:,:),cjdata_std(:,:,:,:,:)
 
-      integer(int_kind), parameter :: maxtests = 10
+      integer(int_kind), parameter :: maxtests = 11
       integer(int_kind), parameter :: maxtypes = 4
       integer(int_kind), parameter :: maxlocs = 5
       integer(int_kind), parameter :: nz1 = 3
@@ -178,6 +179,9 @@
       allocate(iarrayj3   (nx_block,ny_block,nz1,nz2,max_blocks))
       allocate(larrayi1   (nx_block,ny_block,max_blocks))
       allocate(larrayj1   (nx_block,ny_block,max_blocks))
+      allocate(darrayi1str(nx_block,ny_block,max_blocks))
+      allocate(darrayj1str(nx_block,ny_block,max_blocks))
+
       allocate(cidata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
       allocate(cjdata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
       allocate(cidata_std(nx_block,ny_block,nz1,nz2,max_blocks))
@@ -205,6 +209,8 @@
       iarrayj3 = fillval
       larrayi1 = .false.
       larrayj1 = .true.
+      darrayi1str = fillval
+      darrayj1str = fillval
       cidata_bas = fillval
       cjdata_bas = fillval
       cidata_std = fillval
@@ -345,6 +351,8 @@
          darrayj2(:,:,:,:) = fillval
          darrayi3(:,:,:,:,:) = fillval
          darrayj3(:,:,:,:,:) = fillval
+         darrayi1str(:,:,:) = fillval
+         darrayj1str(:,:,:) = fillval
          do iblock = 1,numBlocks
             call ice_distributionGetBlockID(distrb_info, iblock, blockID)
             this_block = get_block(blockID, blockID)
@@ -466,6 +474,14 @@
             where (larrayi1) darrayi1 = c1
             darrayj1 = c0
             where (larrayj1) darrayj1 = c1
+         elseif (nn == 11) then
+            k1m = 1
+            k2m = 1
+            halofld = 'STRESS'
+            darrayi1str = darrayi1
+            darrayj1str = darrayj1
+            call ice_haloUpdate_stress(darrayi1, darrayi1str, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
+            call ice_haloUpdate_stress(darrayj1, darrayj1str, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
          endif
 
          write(teststring(testcnt),'(5a10)') trim(halofld),trim(locs_name(nl)),trim(types_name(nt)), &
@@ -491,6 +507,9 @@
                if (index(halofld,'2D') > 0) then
                   aichk = darrayi1(i,j,iblock)
                   ajchk = darrayj1(i,j,iblock)
+               elseif (index(halofld,'STRESS') > 0) then
+                  aichk = darrayi1(i,j,iblock)
+                  ajchk = darrayj1(i,j,iblock)
                elseif (index(halofld,'3D') > 0) then
                   aichk = darrayi2(i,j,k1,iblock)
                   ajchk = darrayj2(i,j,k1,iblock)
@@ -506,6 +525,7 @@
                   call abort_ice(subname//' halofld not matched '//trim(halofld),file=__FILE__,line=__LINE__)
                endif
 
+
                if (field_loc (nl) == field_loc_noupdate .or. &
                    field_type(nt) == field_type_noupdate) then
                   cichk = cidata_nup(i,j,k1,k2,iblock)
@@ -513,6 +533,12 @@
                else
                   cichk = cidata_std(i,j,k1,k2,iblock)
                   cjchk = cjdata_std(i,j,k1,k2,iblock)
+
+                  if (index(halofld,'STRESS') > 0) then
+                     ! only updates on tripole zipper for tripole grids, use daarayi1str as baseline
+                     cichk = darrayi1str(i,j,iblock)
+                     cjchk = darrayj1str(i,j,iblock)
+                  endif
 
                   !--- tripole on north boundary, need to hardcode ---
                   !--- tripole and tripoleT slightly different     ---
@@ -612,13 +638,23 @@
                      rjval = (real(this_block%j_glob(jtrip),kind=dbl_kind) + &
                               real(k1,kind=dbl_kind)*1000._dbl_kind + real(k2,kind=dbl_kind)*10000._dbl_kind)
 
-                     if (index(halofld,'L1') > 0 .and. j == je) then
+                     if (index(halofld,'STRESS') > 0) then
+                        ! only updates on tripole zipper for tripole grids, not tripoleT
+                        if (tripole_pole) then
+                           ! ends of tripole seam not averaged in CICE
+                           cichk = rsign * cidata_std(i,j,k1,k2,iblock)
+                           cjchk = rsign * cjdata_std(i,j,k1,k2,iblock)
+                        else
+                           cichk = rsign * rival
+                           cjchk = rsign * rjval
+                        endif
+                     elseif (index(halofld,'L1') > 0 .and. j == je) then
                         ! force cichk and cjchk to match on tripole average index, calc not well defined
                         spvalL1 = .true.
                         cichk = aichk
                         cjchk = ajchk
                      elseif (tripole_pole) then
-                        ! ends of tripole seam not averaged due in CICE to assumption of land
+                        ! ends of tripole seam not averaged in CICE
                         cichk = rsign * cidata_std(i,j,k1,k2,iblock)
                         cjchk = rsign * cjdata_std(i,j,k1,k2,iblock)
                      elseif (tripole_average) then
@@ -635,7 +671,8 @@
 !  if (testcnt == 186 .and. j == 61 .and. i<4) then
 !  if (testcnt == 13 .and. j > 61 .and. (i < 3 .or. i > 89)) then
 !  if (testcnt == 5 .and. j >= 61 .and. (i < 3 .or. i > 90)) then
-!     write(100+my_task,'(a,5i6,2l3,f6.2,i6)') 'tcx1 ',i,j,iblock,itrip,jtrip,tripole_average,tripole_pole,rsign,this_block%i_glob(i)
+!     write(100+my_task,'(a,5i6,2l3,f6.2,i6)') 'tcx1 ',i,j,iblock,itrip,jtrip, &
+!           tripole_average,tripole_pole,rsign,this_block%i_glob(i)
 !     write(100+my_task,'(a,4f12.2)') 'tcx2 ',cidata_std(i,j,k1,k2,iblock),rival,cichk,aichk
 !     write(100+my_task,'(a,4f12.2)') 'tcx3 ',cjdata_std(i,j,k1,k2,iblock),rjval,cjchk,ajchk
 !  endif

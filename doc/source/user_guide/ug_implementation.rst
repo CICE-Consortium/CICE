@@ -284,7 +284,27 @@ fold, on the logical grid. The point with index i along the ghost T-row
 of index :math:`n+1` physically coincides with point
 :math:`{\tt nx\_global}-{\tt i}+1` on the T-row of index :math:`n`. The
 ghost U-row of index :math:`n+1` physically coincides with the U-row of
-index :math:`n-1`.
+index :math:`n-1`.  In the schematics below, symbols A-H represent
+grid points from 1:nx_global at a given j index and the setup of the
+tripole seam is depicted within a few rows of the seam.
+
+.. _tab-tripole:
+
+.. table:: Tripole (u-fold) Grid Schematic
+   :align: center
+
+   +--------------+---------------------------------------+--------------+
+   | global j     |                                       | global j     |       
+   ! index        |          grid point IDs (i index)     | index source |
+   +==============+====+====+====+====+====+====+====+====+==============+
+   | ny_global+2  |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-1  |
+   +==============+====+====+====+====+====+====+====+====+==============+
+   | ny_global+1  |  H |  G |  F |  E |  D |  C |  B |  A | ny_global    |
+   +==============+====+====+====+====+====+====+====+====+==============+
+   | ny_global    |  A |  B |  C |  D |  E |  F |  G |  H |              |
+   +==============+====+====+====+====+====+====+====+====+==============+
+   | ny_global-1  |  A |  B |  C |  D |  E |  F |  G |  H |              |
+   +==============+====+====+====+====+====+====+====+====+==============+
 
 In the T-fold tripole grid, the poles have T-index 1 and and
 :math:`{\tt nx\_global}/2+1` on the top T-row of the physical grid, and
@@ -301,6 +321,26 @@ north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
 :math:`n-1`, and ghost U-row :math:`n+1` coincides with U-row
 :math:`n-2`.
 
+.. _tab-tripole:
+
+.. table:: TripoleT (t-fold) Grid Schematic
+   :align: center
+
+   +--------------+--------------------------------------------+--------------+
+   | global j     |                                            | global j     |       
+   ! index        |          grid point IDs (i index)          | index source |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global+2  |    |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-2  |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global+1  |    |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-1  |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global    |  A | BH | CG | DF |  E | FD | GC | HB |    |              |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global-1  |  A |  B |  C |  D |  E |  F |  G |  H |    |              |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global-2  |  A |  B |  C |  D |  E |  F |  G |  H |    |              |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+
 The tripole grid thus requires two special kinds of treatment for
 certain rows, arranged by the halo-update routines. First, within rows
 along the fold, coincident points must always have the same value. This
@@ -310,7 +350,8 @@ the coincident physical rows. Both operations involve the tripole
 buffer, which is used to assemble the data for the affected rows.
 Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
-excluded.
+excluded.  Halos of center, east, north, and northeast points is supported
+generally and require unique halo indexing.
 
 *****************
 Rectangular grids
