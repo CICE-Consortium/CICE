@@ -294,7 +294,7 @@ tripole seam is depicted within a few rows of the seam.
    :align: center
 
    +--------------+---------------------------------------+--------------+
-   | global j     |                                       | global j     |       
+   | global j     |                                       | global j     |
    ! index        |          grid point IDs (i index)     | index source |
    +==============+====+====+====+====+====+====+====+====+==============+
    | ny_global+2  |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-1  |
@@ -327,7 +327,7 @@ north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
    :align: center
 
    +--------------+--------------------------------------------+--------------+
-   | global j     |                                            | global j     |       
+   | global j     |                                            | global j     |
    ! index        |          grid point IDs (i index)          | index source |
    +==============+====+====+====+====+====+====+====+====+====+==============+
    | ny_global+2  |    |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-2  |
