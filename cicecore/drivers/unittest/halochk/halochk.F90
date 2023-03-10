@@ -5,7 +5,7 @@
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind, log_kind
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot, nghost
       use ice_boundary, only: ice_HaloUpdate
-      use ice_constants, only: c0, c1, &
+      use ice_constants, only: c0, c1, p5, &
           field_loc_unknown, field_loc_noupdate, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface, &
@@ -28,6 +28,7 @@
 
       end module halochk_data
 
+!=======================================================================
 
       program halochk
 
@@ -39,8 +40,9 @@
 
       implicit none
 
-      integer(int_kind) :: nn, nl, nt, i, j, k1, k2, n, ib, ie, jb, je, iblock
-      integer(int_kind) :: blockID, numBlocks
+      integer(int_kind) :: nn, nl, nt, i, j, k1, k2, n, ib, ie, jb, je
+      integer(int_kind) :: iblock, itrip, ioffset, joffset
+      integer(int_kind) :: blockID, numBlocks, jtrip
       type (block) :: this_block
 
       real(dbl_kind)   , allocatable :: darrayi1(:,:,:)    , darrayj1(:,:,:)
@@ -63,15 +65,16 @@
       integer(int_kind), parameter :: maxlocs = 5
       integer(int_kind), parameter :: nz1 = 3
       integer(int_kind), parameter :: nz2 = 4
-      real(dbl_kind)    :: aichk,ajchk,cichk,cjchk
+      real(dbl_kind)    :: aichk,ajchk,cichk,cjchk,rival,rjval,rsign
       character(len=16) :: locs_name(maxlocs), types_name(maxtypes)
       integer(int_kind) :: field_loc(maxlocs), field_type(maxtypes)
-      integer(int_kind) :: npes, ierr, ntask, testcnt, tottest
-      integer(int_kind) :: errorflag0, gflag, k1m, k2m, ptcntsum
+      integer(int_kind) :: npes, ierr, ntask, testcnt, tottest, tpcnt, tfcnt
+      integer(int_kind) :: errorflag0, gflag, k1m, k2m, ptcntsum, failcntsum
       integer(int_kind), allocatable :: errorflag(:)
-      integer(int_kind), allocatable :: ptcnt(:)
-      character(len=128), allocatable :: stringflag(:)
-      character(len=32) :: string
+      integer(int_kind), allocatable :: ptcnt(:), failcnt(:)
+      character(len=128), allocatable :: teststring(:)
+      character(len=32) :: halofld
+      logical :: tripole_average, tripole_pole, spvalL1
       logical :: first_call = .true.
 
       real(dbl_kind)   , parameter :: fillval = -88888.0_dbl_kind
@@ -118,9 +121,11 @@
 
       tottest = maxtests * maxlocs * maxtypes
       allocate(errorflag(tottest))
-      allocate(stringflag(tottest))
+      allocate(teststring(tottest))
       allocate(ptcnt(tottest))
+      allocate(failcnt(tottest))
       ptcnt(:) = 0
+      failcnt(:) = 0
 
       !-----------------------------------------------------------------
       ! Testing
@@ -145,7 +150,7 @@
 
       errorflag0    = passflag
       errorflag(:)  = passflag
-      stringflag(:) = ' '
+      teststring(:) = ' '
 
       ! ---------------------------
       ! TEST HALO UPDATE
@@ -295,9 +300,11 @@
          enddo
       endif
 
-         !--- halo off on north boundary ---
-      if (ns_boundary_type == 'closed' .or. &
-          ns_boundary_type == 'open'  ) then
+         !--- halo off on north boundary, tripole handled later ---
+      if (ns_boundary_type == 'closed'  .or. &
+          ns_boundary_type == 'open'    .or. &
+          ns_boundary_type == 'tripole' .or. &
+          ns_boundary_type == 'tripoleT' ) then
          do iblock = 1,numBlocks
             call ice_distributionGetBlockID(distrb_info, iblock, blockID)
             this_block = get_block(blockID, blockID)
@@ -327,8 +334,8 @@
                write(6,*) ' '
                write(6,*) 'HALOCHK FAILED'
                write(6,*) ' '
-               call abort_ice(subname//' testcnt > tottest',file=__FILE__,line=__LINE__)
             endif
+            call abort_ice(subname//' testcnt > tottest',file=__FILE__,line=__LINE__)
          endif
 
          !--- fill arrays ---
@@ -370,25 +377,25 @@
          if (nn == 1) then
             k1m = 1
             k2m = 1
-            string = '2DR8'
+            halofld = '2DR8'
             call ice_haloUpdate(darrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
             call ice_haloUpdate(darrayj1, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
          elseif (nn == 2) then
             k1m = nz1
             k2m = 1
-            string = '3DR8'
+            halofld = '3DR8'
             call ice_haloUpdate(darrayi2, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
             call ice_haloUpdate(darrayj2, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
          elseif (nn == 3) then
             k1m = nz1
             k2m = nz2
-            string = '4DR8'
+            halofld = '4DR8'
             call ice_haloUpdate(darrayi3, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
             call ice_haloUpdate(darrayj3, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
          elseif (nn == 4) then
             k1m = 1
             k2m = 1
-            string = '2DR4'
+            halofld = '2DR4'
             rarrayi1 = real(darrayi1,kind=real_kind)
             rarrayj1 = real(darrayj1,kind=real_kind)
             call ice_haloUpdate(rarrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=rhalofillval)
@@ -398,7 +405,7 @@
          elseif (nn == 5) then
             k1m = nz1
             k2m = 1
-            string = '3DR4'
+            halofld = '3DR4'
             rarrayi2 = real(darrayi2,kind=real_kind)
             rarrayj2 = real(darrayj2,kind=real_kind)
             call ice_haloUpdate(rarrayi2, halo_info, field_loc(nl), field_type(nt), fillvalue=rhalofillval)
@@ -408,7 +415,7 @@
          elseif (nn == 6) then
             k1m = nz1
             k2m = nz2
-            string = '4DR4'
+            halofld = '4DR4'
             rarrayi3 = real(darrayi3,kind=real_kind)
             rarrayj3 = real(darrayj3,kind=real_kind)
             call ice_haloUpdate(rarrayi3, halo_info, field_loc(nl), field_type(nt), fillvalue=rhalofillval)
@@ -418,7 +425,7 @@
          elseif (nn == 7) then
             k1m = 1
             k2m = 1
-            string = '2DI4'
+            halofld = '2DI4'
             iarrayi1 = nint(darrayi1)
             iarrayj1 = nint(darrayj1)
             call ice_haloUpdate(iarrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=ihalofillval)
@@ -428,7 +435,7 @@
          elseif (nn == 8) then
             k1m = nz1
             k2m = 1
-            string = '3DI4'
+            halofld = '3DI4'
             iarrayi2 = nint(darrayi2)
             iarrayj2 = nint(darrayj2)
             call ice_haloUpdate(iarrayi2, halo_info, field_loc(nl), field_type(nt), fillvalue=ihalofillval)
@@ -438,7 +445,7 @@
          elseif (nn == 9) then
             k1m = nz1
             k2m = nz2
-            string = '4DI4'
+            halofld = '4DI4'
             iarrayi3 = nint(darrayi3)
             iarrayj3 = nint(darrayj3)
             call ice_haloUpdate(iarrayi3, halo_info, field_loc(nl), field_type(nt), fillvalue=ihalofillval)
@@ -448,7 +455,7 @@
          elseif (nn == 10) then
             k1m = 1
             k2m = 1
-            string = '2DL1'
+            halofld = '2DL1'
             larrayi1 = .true.
             where (darrayi1 == fillval) larrayi1 = .false.
             larrayj1 = .false.
@@ -461,7 +468,7 @@
             where (larrayj1) darrayj1 = c1
          endif
 
-         write(stringflag(testcnt),'(5a10)') trim(string),trim(locs_name(nl)),trim(types_name(nt)), &
+         write(teststring(testcnt),'(5a10)') trim(halofld),trim(locs_name(nl)),trim(types_name(nt)), &
                       trim(ew_boundary_type),trim(ns_boundary_type)
 
          do iblock = 1,numBlocks
@@ -478,15 +485,25 @@
             do i = ib-nghost, ie+nghost
             do k1 = 1,k1m
             do k2 = 1,k2m
-               if (nn == 1 .or. nn == 4 .or. nn == 7 .or. nn == 10) then
+               tripole_average = .false.
+               tripole_pole = .false.
+               spvalL1 = .false.
+               if (index(halofld,'2D') > 0) then
                   aichk = darrayi1(i,j,iblock)
                   ajchk = darrayj1(i,j,iblock)
-               elseif (nn == 2 .or. nn == 5 .or. nn == 8) then
+               elseif (index(halofld,'3D') > 0) then
                   aichk = darrayi2(i,j,k1,iblock)
                   ajchk = darrayj2(i,j,k1,iblock)
-               elseif (nn == 3 .or. nn == 6 .or. nn == 9) then
+               elseif (index(halofld,'4D') > 0) then
                   aichk = darrayi3(i,j,k1,k2,iblock)
                   ajchk = darrayj3(i,j,k1,k2,iblock)
+               else
+                  if (my_task == master_task) then
+                     write(6,*) ' '
+                     write(6,*) 'HALOCHK FAILED'
+                     write(6,*) ' '
+                  endif
+                  call abort_ice(subname//' halofld not matched '//trim(halofld),file=__FILE__,line=__LINE__)
                endif
 
                if (field_loc (nl) == field_loc_noupdate .or. &
@@ -496,14 +513,141 @@
                else
                   cichk = cidata_std(i,j,k1,k2,iblock)
                   cjchk = cjdata_std(i,j,k1,k2,iblock)
+
+                  !--- tripole on north boundary, need to hardcode ---
+                  !--- tripole and tripoleT slightly different     ---
+                  !--- establish special set of points here        ---
+                  if ((this_block%j_glob(je) == ny_global) .and. &
+                     ((ns_boundary_type == 'tripole'  .and. &
+                       (j > je .or. &
+                        (j == je .and. (field_loc(nl) == field_loc_Nface .or. field_loc(nl) == field_loc_NEcorner)))) .or. &
+                      (ns_boundary_type == 'tripoleT' .and. &
+                       (j >= je)))) then
+
+                     ! flip sign for vector/angle
+                     if (field_type(nt) == field_type_vector .or. field_type(nt) == field_type_angle ) then
+                        rsign = -c1
+                     else
+                        rsign = c1
+                     endif
+
+                     ! for tripole
+                     if (ns_boundary_type == 'tripole') then
+
+                        ! compute itrip and jtrip, these are the location where the halo values are defined for i,j
+                        ! for j=je averaging, itrip and jtrip are the 2nd gridpoint associated with averaging
+
+                        ! standard center tripole u-fold
+                        itrip = nx_global-this_block%i_glob(i)+1
+                        jtrip = max(je - (j-je) + 1 , je)
+                        ioffset = 0
+                        joffset = 0
+
+                        if (field_loc(nl) == field_loc_NEcorner .or. field_loc(nl) == field_loc_Nface) then
+                           ! need j offset
+                           joffset = -1
+                           if (j == je) then
+                              tripole_average = .true.
+                           endif
+                        endif
+
+                        if (field_loc(nl) == field_loc_NEcorner .or. field_loc(nl) == field_loc_Eface) then
+                           ! fold plus cell offset
+                           ioffset = -1
+                           ! CICE treats j=ny_global tripole edge points incorrectly
+                           ! should do edge wraparound and average
+                           ! CICE does not update those points, assumes it's "land"
+                           if (j == je) then
+                              if (this_block%i_glob(i) == nx_global/2) then
+                                  tripole_pole = .true.
+                              elseif (this_block%i_glob(i) == nx_global  ) then
+                                  tripole_pole = .true.
+                              endif
+                           endif
+                        endif
+
+                     ! for tripoleT
+                     elseif (ns_boundary_type == 'tripoleT') then
+
+                        ! compute itrip and jtrip, these are the location where the halo values are defined for i,j
+                        ! for j=je averaging, itrip and jtrip are the 2nd gridpoint associated with averaging
+
+                        ! standard center tripoleT t-fold
+                        itrip = nx_global-this_block%i_glob(i)+2
+                        jtrip = je - (j-je)
+                        ioffset = 0
+                        joffset = 0
+
+                        if (field_loc(nl) == field_loc_NEcorner .or. field_loc(nl) == field_loc_Eface) then
+                           ! fold plus cell offset
+                           ioffset = -1
+                        endif
+
+                        if (field_loc(nl) == field_loc_NEcorner .or. field_loc(nl) == field_loc_Nface) then
+                           ! need j offset
+                           joffset = -1
+                        endif
+
+                        if (field_loc(nl) == field_loc_Center .or. field_loc(nl) == field_loc_Eface) then
+                           if (j == je) then
+                              tripole_average = .true.
+                           endif
+                        endif
+
+                        ! center point poles need to be treated special
+                        if (field_loc(nl) == field_loc_Center) then
+                           if (j == je .and. &
+                              (this_block%i_glob(i) == 1 .or. this_block%i_glob(i) == nx_global/2+1)) then
+                              tripole_pole = .true.
+                           endif
+                        endif
+
+                     endif
+
+                     itrip = mod(itrip + ioffset + nx_global-1,nx_global)+1
+                     jtrip = jtrip + joffset
+
+                     rival = (real(itrip,kind=dbl_kind) + &
+                              real(k1,kind=dbl_kind)*1000._dbl_kind + real(k2,kind=dbl_kind)*10000._dbl_kind)
+                     rjval = (real(this_block%j_glob(jtrip),kind=dbl_kind) + &
+                              real(k1,kind=dbl_kind)*1000._dbl_kind + real(k2,kind=dbl_kind)*10000._dbl_kind)
+
+                     if (index(halofld,'L1') > 0 .and. j == je) then
+                        ! force cichk and cjchk to match on tripole average index, calc not well defined
+                        spvalL1 = .true.
+                        cichk = aichk
+                        cjchk = ajchk
+                     elseif (tripole_pole) then
+                        ! ends of tripole seam not averaged due in CICE to assumption of land
+                        cichk = rsign * cidata_std(i,j,k1,k2,iblock)
+                        cjchk = rsign * cjdata_std(i,j,k1,k2,iblock)
+                     elseif (tripole_average) then
+                        ! tripole average
+                        cichk = p5 * (cidata_std(i,j,k1,k2,iblock) + rsign * rival)
+                        cjchk = p5 * (cjdata_std(i,j,k1,k2,iblock) + rsign * rjval)
+                     else
+                        ! standard tripole fold
+                        cichk = rsign * rival
+                        cjchk = rsign * rjval
+                     endif
+
+!  if (testcnt == 6 .and. j == 61 .and. i < 3) then
+!  if (testcnt == 186 .and. j == 61 .and. i<4) then
+!  if (testcnt == 13 .and. j > 61 .and. (i < 3 .or. i > 89)) then
+!  if (testcnt == 5 .and. j >= 61 .and. (i < 3 .or. i > 90)) then
+!     write(100+my_task,'(a,5i6,2l3,f6.2,i6)') 'tcx1 ',i,j,iblock,itrip,jtrip,tripole_average,tripole_pole,rsign,this_block%i_glob(i)
+!     write(100+my_task,'(a,4f12.2)') 'tcx2 ',cidata_std(i,j,k1,k2,iblock),rival,cichk,aichk
+!     write(100+my_task,'(a,4f12.2)') 'tcx3 ',cjdata_std(i,j,k1,k2,iblock),rjval,cjchk,ajchk
+!  endif
+                  endif  ! tripole or tripoleT
                endif
 
-               if (nn >= 7 .and. nn <= 9) then
+               if (index(halofld,'I4') > 0) then
                   cichk = real(nint(cichk),kind=dbl_kind)
                   cjchk = real(nint(cjchk),kind=dbl_kind)
                endif
 
-               if (nn == 10) then
+               if (index(halofld,'L1') > 0 .and. .not.spvalL1) then
                   if (cichk == dhalofillval .or. cichk == fillval) then
                      cichk = c0
                   else
@@ -517,10 +661,10 @@
                endif
 
                ptcnt(testcnt) = ptcnt(testcnt) + 1
-               call chkresults(aichk,cichk,errorflag(testcnt),testcnt, &
-                    i,j,k1,k2,iblock,first_call,stringflag(testcnt),trim(string)//'_I')
-               call chkresults(ajchk,cjchk,errorflag(testcnt),testcnt, &
-                    i,j,k1,k2,iblock,first_call,stringflag(testcnt),trim(string)//'_J')
+               call chkresults(aichk,cichk,errorflag(testcnt),testcnt,failcnt(testcnt), &
+                    i,j,k1,k2,iblock,first_call,teststring(testcnt),trim(halofld)//'_I')
+               call chkresults(ajchk,cjchk,errorflag(testcnt),testcnt,failcnt(testcnt), &
+                    i,j,k1,k2,iblock,first_call,teststring(testcnt),trim(halofld)//'_J')
             enddo  ! k2
             enddo  ! k1
             enddo  ! i
@@ -540,6 +684,8 @@
          errorflag(n) = gflag
          ptcntsum = global_sum(ptcnt(n),distrb_info)
          ptcnt(n) = ptcntsum
+         failcntsum = global_sum(failcnt(n),distrb_info)
+         failcnt(n) = failcntsum
       enddo
       errorflag0 = maxval(errorflag(:))
 
@@ -547,13 +693,20 @@
          write(6,*) ' '
          write(6,*) 'HALOCHK COMPLETED SUCCESSFULLY'
          write(6,*) ' '
+         tpcnt = 0
+         tfcnt = 0
          do n = 1,tottest
             if (errorflag(n) == passflag) then
-               write(6,*) 'PASS ',trim(stringflag(n)),ptcnt(n)
+               tpcnt = tpcnt + 1
+               write(6,*) 'PASS ',trim(teststring(n)),ptcnt(n),failcnt(n)
             else
-               write(6,*) 'FAIL ',trim(stringflag(n)),ptcnt(n)
+               tfcnt = tfcnt + 1
+               write(6,*) 'FAIL ',trim(teststring(n)),ptcnt(n),failcnt(n)
             endif
          enddo
+         write(6,*) ' '
+         write(6,*) ' total pass = ',tpcnt
+         write(6,*) ' total fail = ',tfcnt
          write(6,*) ' '
          if (errorflag0 == passflag) then
             write(6,*) 'HALOCHK TEST COMPLETED SUCCESSFULLY'
@@ -576,30 +729,32 @@
 
 !=======================================================================
 
-      subroutine chkresults(a1,r1,errorflag,testcnt,i,j,k1,k2,iblock,first_call,stringflag,string)
+      subroutine chkresults(a1,r1,errorflag,testcnt,failcnt,i,j,k1,k2,iblock,first_call,teststring,halofld)
 
       use halochk_data
 
       implicit none
 
       real(dbl_kind)   , intent(in)    :: a1,r1
-      integer(int_kind), intent(inout) :: errorflag
+      integer(int_kind), intent(inout) :: errorflag, failcnt
       integer(int_kind), intent(in)    :: i,j,k1,k2,iblock,testcnt
       logical          , intent(inout) :: first_call
-      character(len=*) , intent(in)    :: stringflag,string
+      character(len=*) , intent(in)    :: teststring,halofld
 
       logical,parameter :: print_always = .false.
       character(len=*) , parameter :: subname='(chkresults)'
 
       if (a1 /= r1 .or. print_always) then
          errorflag = failflag
+         failcnt = failcnt + 1
          if (first_call) then
             write(100+my_task,*) ' '
-            write(100+my_task,'(a,i4,2a)') '------- TEST = ',testcnt,' ',trim(stringflag)
-            write(100+my_task,'(a)') '           test  task    i     j    k1    k2  iblock  expected   computed      diff'
+            write(100+my_task,'(a,i4,2a)') '------- TEST = ',testcnt,' ',trim(teststring)
+            write(100+my_task,*) ' '
+            write(100+my_task,'(a)') '           test  task    i     j    k1    k2  iblock  expected   halocomp       diff'
             first_call = .false.
          endif
-         write(100+my_task,1001) trim(string),testcnt,my_task,i,j,k1,k2,iblock,r1,a1,r1-a1
+         write(100+my_task,1001) trim(halofld),testcnt,my_task,i,j,k1,k2,iblock,r1,a1,r1-a1
       endif
 
  1001 format(a8,7i6,3f12.3)

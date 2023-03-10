@@ -12,6 +12,11 @@
 !              fixes for non-existent blocks
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
+!  2023-03-09: Tony Craig updated the implementation to fix bug in
+!              tripoleT and reduce number of copies in tripole overall.
+!              Because all blocks are local, can fill the tripole
+!              buffer from "north" copies.  This is not true for
+!              the MPI version.
 
    use ice_kinds_mod
    use ice_communicate, only: my_task
@@ -312,10 +317,11 @@ contains
       !*** for that
 
 !echmod      if (tripoleBlock .and. dstProc /= srcProc) then
-      if (tripoleBlock) then
-         call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
-                                     srcProc, dstProc, northMsgSize)
-      endif
+! tcx,tcraig, 3/2023, this is not needed
+!      if (tripoleBlock) then
+!         call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
+!                                     srcProc, dstProc, northMsgSize)
+!      endif
 
       !*** find west neighbor block and add to message count
 
@@ -338,10 +344,11 @@ contains
       !*** for that
 
 !echmod      if (tripoleBlock .and. dstProc /= srcProc) then
-      if (tripoleBlock) then
-         call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
-                                     srcProc, dstProc, northMsgSize)
-      endif
+! tcx,tcraig, 3/2023, this is not needed
+!      if (tripoleBlock) then
+!         call ice_HaloIncrementMsgCount(sendCount, recvCount,          &
+!                                     srcProc, dstProc, northMsgSize)
+!      endif
 
       !*** find northeast neighbor block and add to message count
 
@@ -354,11 +361,12 @@ contains
          call ice_distributionGetBlockLoc(dist, neBlock, dstProc, &
                                           dstLocalID)
 
-      else if (neBlock < 0) then ! tripole north row
-         msgSize = northMsgSize  ! tripole needs whole top row of block
-
-         call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
-                                          dstLocalID)
+! tcx,tcraig, 3/2023, this is not needed
+!      else if (neBlock < 0) then ! tripole north row
+!         msgSize = northMsgSize  ! tripole needs whole top row of block
+!
+!         call ice_distributionGetBlockLoc(dist, abs(neBlock), dstProc, &
+!                                          dstLocalID)
       else
          dstProc = 0
          dstLocalID = 0
@@ -378,11 +386,12 @@ contains
          call ice_distributionGetBlockLoc(dist, nwBlock, dstProc, &
                                           dstLocalID)
 
-      else if (nwBlock < 0) then ! tripole north row, count block
-         msgSize = northMsgSize ! tripole NE corner update - entire row needed
-
-         call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
-                                          dstLocalID)
+! tcx,tcraig, 3/2023, this is not needed
+!      else if (nwBlock < 0) then ! tripole north row, count block
+!         msgSize = northMsgSize ! tripole NE corner update - entire row needed
+!
+!         call ice_distributionGetBlockLoc(dist, abs(nwBlock), dstProc, &
+!                                          dstLocalID)
 
       else
          dstProc = 0
@@ -484,8 +493,6 @@ contains
       northBlock = ice_blocksGetNbrID(iblock, ice_blocksNorth,        &
                                       ewBoundaryType, nsBoundaryType)
 
-      call ice_HaloMsgCreate(halo, dist, iblock, northBlock, 'north')
-
       !*** set tripole flag and add two copies for inserting
       !*** and extracting info from the tripole buffer
 
@@ -495,6 +502,7 @@ contains
          call ice_HaloMsgCreate(halo, dist, -iblock, iblock, 'north')
       else
          tripoleBlock = .false.
+         call ice_HaloMsgCreate(halo, dist, iblock, northBlock, 'north')
       endif
 
       !*** find south neighbor block
@@ -515,9 +523,10 @@ contains
       !*** the east block to make sure enough information is
       !*** available for tripole manipulations
 
-      if (tripoleBlock) then
-         call ice_HaloMsgCreate(halo, dist, iblock, -eastBlock, 'north')
-      endif
+! tcx,tcraig, 3/2023, this is not needed
+!      if (tripoleBlock) then
+!         call ice_HaloMsgCreate(halo, dist, iblock, -eastBlock, 'north')
+!      endif
 
       !*** find west neighbor block
 
@@ -530,9 +539,10 @@ contains
       !*** the west block to make sure enough information is
       !*** available for tripole manipulations
 
-      if (tripoleBlock) then
-         call ice_HaloMsgCreate(halo, dist, iblock, -westBlock, 'north')
-      endif
+! tcx,tcraig, 3/2023, this is not needed
+!      if (tripoleBlock) then
+!         call ice_HaloMsgCreate(halo, dist, iblock, -westBlock, 'north')
+!      endif
 
       !*** find northeast neighbor block
 
@@ -955,7 +965,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -1264,7 +1274,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -1573,7 +1583,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -1983,7 +1993,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2318,7 +2328,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2653,7 +2663,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3003,7 +3013,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3355,7 +3365,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3707,7 +3717,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3932,7 +3942,8 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
+            if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface, do not need to replace
             !*** top row of physical domain, so jSrc should be
@@ -4348,36 +4359,37 @@ contains
 
             halo%numLocalCopies = msgIndx
 
-         else
-
-            !*** tripole grid - copy entire top halo+1
-            !*** rows into global buffer at src location
-
-            msgIndx = halo%numLocalCopies
-
-            do j=1,nghost+1
-            do i=1,ieSrc-ibSrc+1
-
-               msgIndx = msgIndx + 1
-
-               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
-               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
-               halo%srcLocalAddr(3,msgIndx) = srcLocalID
-
-               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
-               halo%dstLocalAddr(2,msgIndx) = j
-               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
-
-            end do
-            end do
-
-            halo%numLocalCopies = msgIndx
+! tcx,tcraig, 3/2023, this is not needed
+!         else
+!
+!            !*** tripole grid - copy entire top halo+1
+!            !*** rows into global buffer at src location
+!
+!            msgIndx = halo%numLocalCopies
+!
+!            do j=1,nghost+1
+!            do i=1,ieSrc-ibSrc+1
+!
+!               msgIndx = msgIndx + 1
+!
+!               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
+!               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
+!               halo%srcLocalAddr(3,msgIndx) = srcLocalID
+!
+!               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
+!               halo%dstLocalAddr(2,msgIndx) = j
+!               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
+!
+!            end do
+!            end do
+!
+!            halo%numLocalCopies = msgIndx
 
          endif
 
       case ('northwest')
 
-         !*** normal northeast boundary - just copy NW corner
+         !*** normal northwest boundary - just copy NW corner
          !*** of physical domain into SE halo of NW nbr block
 
          if (dstBlock > 0) then
@@ -4402,30 +4414,31 @@ contains
 
             halo%numLocalCopies = msgIndx
 
-         else
-
-            !*** tripole grid - copy entire top halo+1
-            !*** rows into global buffer at src location
-
-            msgIndx = halo%numLocalCopies
-
-            do j=1,nghost+1
-            do i=1,ieSrc-ibSrc+1
-
-               msgIndx = msgIndx + 1
-
-               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
-               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
-               halo%srcLocalAddr(3,msgIndx) = srcLocalID
-
-               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
-               halo%dstLocalAddr(2,msgIndx) = j
-               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
-
-            end do
-            end do
-
-            halo%numLocalCopies = msgIndx
+! tcx,tcraig, 3/2023, this is not needed
+!         else
+!
+!            !*** tripole grid - copy entire top halo+1
+!            !*** rows into global buffer at src location
+!
+!            msgIndx = halo%numLocalCopies
+!
+!            do j=1,nghost+1
+!            do i=1,ieSrc-ibSrc+1
+!
+!               msgIndx = msgIndx + 1
+!
+!               halo%srcLocalAddr(1,msgIndx) = ibSrc + i - 1
+!               halo%srcLocalAddr(2,msgIndx) = jeSrc-1-nghost+j
+!               halo%srcLocalAddr(3,msgIndx) = srcLocalID
+!
+!               halo%dstLocalAddr(1,msgIndx) = iGlobal(ibSrc + i - 1)
+!               halo%dstLocalAddr(2,msgIndx) = j
+!               halo%dstLocalAddr(3,msgIndx) = -dstLocalID
+!
+!            end do
+!            end do
+!
+!            halo%numLocalCopies = msgIndx
 
          endif
 
@@ -4633,7 +4646,7 @@ contains
 
       case ('northwest')
 
-         !*** normal northeast boundary - just copy NW corner
+         !*** normal northwest boundary - just copy NW corner
          !*** of physical domain into SE halo of NW nbr block
 
          if (dstBlock > 0) then

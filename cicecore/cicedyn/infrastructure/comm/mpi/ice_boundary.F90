@@ -12,6 +12,43 @@
 !              fixes for non-existent blocks
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
+!
+!-----------------------------------------------------------------------
+!
+! Some notes on tripole, A-H below are gridpoints at i = 1:nx_global
+! where nx_global=8.  The schematics below show the general layout of the center
+! points on the tripole fold.  More complex pictures are needed to show
+! relative orientation and offsets of east, north, and northeast points
+! across the fold.  See also appendix E of the NEMO_manual,
+! https://zenodo.org/record/6334656#.YiYirhPMLXQ.  Note the NFtype=T
+! is the tripole u-fold grid with T-grid=center, U-grid=east, V-grid=north,
+! and F-grid=northeast points in CICE.  NFtype=F is similar to tripoleT
+! except for the treatment of the poles.  The CICE implementation also
+! averages all degenerate points, NEMO's strategy seems to be to copy
+! data from one side of the tripole to the other for degenerate points.
+!
+! tripole: u-fold, fold is on north edge of ny_global
+! north and northeast points on the fold are degenerate and averaged
+! A,H,D,and E are pole points
+!
+!   ny_global+2    H   G   F   E   D   C   B   A  @ny_global-1
+!   ny_global+1    H   G   F   E   D   C   B   A  @ny_global
+!   ny_global      A   B   C   D   E   F   G   H
+!   ny_global-1    A   B   C   D   E   F   G   H
+!
+! tripoleT: t-fold, fold is thru center of ny_global
+! center and east points at ny_global are degenerate and averaged
+! north and northeast point at ny_global are not prognostic, they are halos
+! A and E are pole points
+!
+!   ny_global+2        H   G   F   E   D   C   B   A  @ny_global-2
+!   ny_global+1        H   G   F   E   D   C   B   A  @ny_global-1
+!   ny_global      A   BH  CG  DF  E   FD  GC  HB  A
+!   ny_global-1    A   B   C   D   E   F   G   H
+!   ny_global-2    A   B   C   D   E   F   G   H
+!
+!-----------------------------------------------------------------------
+
 
    use mpi   ! MPI Fortran module
    use ice_kinds_mod
@@ -1571,7 +1608,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -1986,7 +2023,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2401,7 +2438,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2945,7 +2982,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3419,7 +3456,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3893,7 +3930,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -4389,7 +4426,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -4887,7 +4924,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -5385,7 +5422,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -5720,7 +5757,8 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
+            if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface, do not need to replace
             !*** top row of physical domain, so jSrc should be
