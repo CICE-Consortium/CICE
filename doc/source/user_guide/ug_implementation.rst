@@ -306,6 +306,7 @@ tripole seam is depicted within a few rows of the seam.
    | ny_global-1  |  A |  B |  C |  D |  E |  F |  G |  H |              |
    +==============+====+====+====+====+====+====+====+====+==============+
 
+
 In the T-fold tripole grid, the poles have T-index 1 and and
 :math:`{\tt nx\_global}/2+1` on the top T-row of the physical grid, and
 points with T-index i and :math:`{\tt nx\_global}-{\tt i}+2` are
@@ -321,7 +322,7 @@ north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
 :math:`n-1`, and ghost U-row :math:`n+1` coincides with U-row
 :math:`n-2`.
 
-.. _tab-tripole:
+.. _tab-tripoleT:
 
 .. table:: TripoleT (t-fold) Grid Schematic
    :align: center
@@ -340,6 +341,7 @@ north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
    +==============+====+====+====+====+====+====+====+====+====+==============+
    | ny_global-2  |  A |  B |  C |  D |  E |  F |  G |  H |    |              |
    +==============+====+====+====+====+====+====+====+====+====+==============+
+
 
 The tripole grid thus requires two special kinds of treatment for
 certain rows, arranged by the halo-update routines. First, within rows
