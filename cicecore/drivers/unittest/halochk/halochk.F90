@@ -56,6 +56,7 @@
       integer(int_kind), allocatable :: iarrayi3(:,:,:,:,:), iarrayj3(:,:,:,:,:)
       logical(log_kind), allocatable :: larrayi1(:,:,:)    , larrayj1(:,:,:)
       real(dbl_kind)   , allocatable :: darrayi1str(:,:,:) , darrayj1str(:,:,:)
+      real(dbl_kind)   , allocatable :: darrayi10(:,:,:)   , darrayj10(:,:,:)
 
       real(dbl_kind), allocatable :: cidata_bas(:,:,:,:,:),cjdata_bas(:,:,:,:,:)
       real(dbl_kind), allocatable :: cidata_nup(:,:,:,:,:),cjdata_nup(:,:,:,:,:)
@@ -181,6 +182,8 @@
       allocate(larrayj1   (nx_block,ny_block,max_blocks))
       allocate(darrayi1str(nx_block,ny_block,max_blocks))
       allocate(darrayj1str(nx_block,ny_block,max_blocks))
+      allocate(darrayi10  (nx_block,ny_block,max_blocks))
+      allocate(darrayj10  (nx_block,ny_block,max_blocks))
 
       allocate(cidata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
       allocate(cjdata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
@@ -211,6 +214,8 @@
       larrayj1 = .true.
       darrayi1str = fillval
       darrayj1str = fillval
+      darrayi10  = fillval
+      darrayj10  = fillval
       cidata_bas = fillval
       cjdata_bas = fillval
       cidata_std = fillval
@@ -379,6 +384,10 @@
             enddo
          enddo
 
+         ! copy original darray1 for "stress" compare
+         darrayi10 = darrayi1
+         darrayj10 = darrayj1
+
 
          !--- halo update ---
 
@@ -478,8 +487,8 @@
             k1m = 1
             k2m = 1
             halofld = 'STRESS'
-            darrayi1str = darrayi1
-            darrayj1str = darrayj1
+            darrayi1str = -darrayi1  ! flip sign for testing
+            darrayj1str = -darrayj1
             call ice_haloUpdate_stress(darrayi1, darrayi1str, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
             call ice_haloUpdate_stress(darrayj1, darrayj1str, halo_info, field_loc(nl), field_type(nt), fillvalue=dhalofillval)
          endif
@@ -535,9 +544,10 @@
                   cjchk = cjdata_std(i,j,k1,k2,iblock)
 
                   if (index(halofld,'STRESS') > 0) then
-                     ! only updates on tripole zipper for tripole grids, use daarayi1str as baseline
-                     cichk = darrayi1str(i,j,iblock)
-                     cjchk = darrayj1str(i,j,iblock)
+                     ! only updates on tripole zipper for tripole grids
+                     ! darrayi10 is copy of darrayi1 before halo call
+                     cichk = darrayi10(i,j,iblock)
+                     cjchk = darrayj10(i,j,iblock)
                   endif
 
                   !--- tripole on north boundary, need to hardcode ---
@@ -641,12 +651,13 @@
                      if (index(halofld,'STRESS') > 0) then
                         ! only updates on tripole zipper for tripole grids, not tripoleT
                         if (tripole_pole) then
+                           ! flip sign due to sign of darrayi1str
                            ! ends of tripole seam not averaged in CICE
-                           cichk = rsign * cidata_std(i,j,k1,k2,iblock)
-                           cjchk = rsign * cjdata_std(i,j,k1,k2,iblock)
+                           cichk = -rsign * cidata_std(i,j,k1,k2,iblock)
+                           cjchk = -rsign * cjdata_std(i,j,k1,k2,iblock)
                         else
-                           cichk = rsign * rival
-                           cjchk = rsign * rjval
+                           cichk = -rsign * rival
+                           cjchk = -rsign * rjval
                         endif
                      elseif (index(halofld,'L1') > 0 .and. j == je) then
                         ! force cichk and cjchk to match on tripole average index, calc not well defined
