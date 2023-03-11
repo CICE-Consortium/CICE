@@ -352,8 +352,8 @@ the coincident physical rows. Both operations involve the tripole
 buffer, which is used to assemble the data for the affected rows.
 Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
-excluded.  Halos of center, east, north, and northeast points is supported
-generally and require unique halo indexing.
+excluded.  Halos of center, east, north, and northeast points are supported,
+and each requires slightly different halo indexing across the tripole seam.
 
 *****************
 Rectangular grids
