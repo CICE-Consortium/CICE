@@ -275,7 +275,7 @@ the namelist variable ``ns_boundary_type``, ‘tripole’ for the U-fold and
 ‘tripoleT’ for the T-fold grid.
 
 In the U-fold tripole grid, the poles have U-index
-:math:`nx\_global/2` and :math:`nx_global` on the top U-row of the
+:math:`nx\_global/2` and :math:`nx\_global` on the top U-row of the
 physical grid, and points with U-index :math:`i` and :math:`nx\_global-i`
 are coincident. Let the fold have U-row index :math:`n` on the global
 grid; this will also be the T-row index of the T-row to the south of the
