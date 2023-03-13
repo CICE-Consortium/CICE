@@ -199,6 +199,8 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
+      if (write_ic) call accum_hist(dt) ! write initial conditions
+
 ! tcraig, use advance_timestep here
 !      istep  = istep  + 1    ! update time step counters
 !      istep1 = istep1 + 1
@@ -242,8 +244,6 @@
 
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
-
-      if (write_ic) call accum_hist(dt) ! write initial conditions
 
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
