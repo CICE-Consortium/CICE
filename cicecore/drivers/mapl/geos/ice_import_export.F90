@@ -2,7 +2,7 @@ module ice_import_export
 
   use ESMF
   use ice_kinds_mod      , only : int_kind, dbl_kind, real_kind, char_len, log_kind
-  use ice_constants      , only : c0, c1, p5, spval_dbl, radius
+  use ice_constants      , only : c0, c1, p5, p25, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block, nghost
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
@@ -27,7 +27,7 @@ module ice_import_export
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
-  use ice_state          , only : Tsfcn_init, aice_init
+  use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, frocean, hm
   use ice_grid           , only : dxu, dyu 
   use ice_grid           , only : grid_type, t2ugrid_vector
@@ -50,7 +50,7 @@ module ice_import_export
   !public  :: ice_import_thermo2
   !public  :: ice_export_thermo2
   public  :: ice_import_dyna
-  !public  :: ice_export_dyna
+  public  :: ice_export_dyna
   public  :: ice_export_field
 
   interface ice_export_field
@@ -310,12 +310,14 @@ contains
 
   end subroutine ice_import_radiation
 
-  subroutine ice_import_dyna( taux, tauy, slv, rc )
+  subroutine ice_import_dyna( taux, tauy, slv, uob, vob, rc )
 
     ! input/output variables
     real(kind=real_kind) ,     intent(in) :: taux(:,:)
     real(kind=real_kind) ,     intent(in) :: tauy(:,:)
     real(kind=real_kind) ,     intent(in) :: slv(:,:)
+    real(kind=real_kind) ,     intent(in) :: uob(:,:)
+    real(kind=real_kind) ,     intent(in) :: vob(:,:)
     integer              ,     intent(out):: rc
 
     ! local variables
@@ -340,16 +342,29 @@ contains
           j1 = j - nghost 
           do i = ilo, ihi
              i1 = i - nghost 
-                workx  = real(taux(i1, j1), kind=dbl_kind) 
-                worky  = real(tauy(i1, j1), kind=dbl_kind) 
-                strairxT(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                                   + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
-                strairyT(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
-                                   - workx*sin(ANGLET(i,j,iblk))
-                ! multiply by aice to properly treat free drift 
-                strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)  
-                strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)  
-                ssh(i,j,iblk)      = real(slv(i1,j1), kind=dbl_kind)
+                if(tmask(i,j,iblk)) then
+                   workx  = real(taux(i1, j1), kind=dbl_kind) 
+                   worky  = real(tauy(i1, j1), kind=dbl_kind) 
+                   strairxT(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+                                      + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
+                   strairyT(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
+                                      - workx*sin(ANGLET(i,j,iblk))
+                   ! multiply by aice to properly treat free drift 
+                   strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)  
+                   strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)  
+                   ssh(i,j,iblk)      = real(slv(i1,j1), kind=dbl_kind)
+                else
+                   strairxT(i,j,iblk) = c0
+                   strairyT(i,j,iblk) = c0 
+                   ssh(i,j,iblk)      = c0 
+                endif
+                if(umask(i,j,iblk)) then
+                   uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind) 
+                   vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind) 
+                else
+                   uocn(i,j,iblk) = c0 
+                   vocn(i,j,iblk) = c0 
+                endif  
           enddo
        enddo
     enddo
@@ -386,6 +401,59 @@ contains
     rc = ESMF_SUCCESS
 
   end subroutine ice_import_dyna
+
+  subroutine ice_export_dyna( tauxo, tauyo, ui, vi, rc )
+
+    ! input/output variables
+    real(kind=real_kind) ,     intent(out) :: tauxo(:,:)
+    real(kind=real_kind) ,     intent(out) :: tauyo(:,:)
+    real(kind=real_kind) ,     intent(out) :: ui   (:,:)
+    real(kind=real_kind) ,     intent(out) :: vi   (:,:)
+    integer              ,     intent(out):: rc
+
+    ! local variables
+    integer                          :: i, j, k, iblk
+    integer                          :: i1, j1
+    integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
+    type(block)                      :: this_block         ! block information for current block
+    real(kind=dbl_kind)              :: workx, worky
+    character(len=*),   parameter    :: subname = 'ice_export_dyna'
+    character(len=1024)              :: msgString
+    !-----------------------------------------------------
+
+
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          j1 = j - nghost 
+          do i = ilo, ihi
+             i1 = i - nghost 
+             ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
+             workx        = strocnxT(i,j,iblk)                            ! N/m^2
+             worky        = strocnyT(i,j,iblk)                            ! N/m^2
+             tauxo(i1,j1) = real(workx*cos(ANGLET(i,j,iblk)) - &
+                                 worky*sin(ANGLET(i,j,iblk)), kind=real_kind)
+             tauyo(i1,j1) = real(worky*cos(ANGLET(i,j,iblk)) + &
+                                 workx*sin(ANGLET(i,j,iblk)), kind=real_kind)
+             workx        = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
+                               + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
+             worky        = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
+                               + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
+             ui(i1,j1)    = real(workx*cos(ANGLET(i,j,iblk)) - &
+                                 worky*sin(ANGLET(i,j,iblk)), kind=real_kind)
+             vi(i1,j1)    = real(worky*cos(ANGLET(i,j,iblk)) + &
+                                 workx*sin(ANGLET(i,j,iblk)), kind=real_kind)
+          enddo
+       enddo
+    enddo
+
+    rc = ESMF_SUCCESS
+
+  end subroutine ice_export_dyna
 
   !===============================================================================
   subroutine ice_export_thermo1( exportState, rc )
