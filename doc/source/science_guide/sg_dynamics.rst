@@ -237,15 +237,15 @@ In the VP approach, equation :eq:`momsys` is discretized implicitly using a Back
 and stresses are not computed explicitly:
 
 .. math::
-  \begin{align}
+  \begin{aligned}
   m\frac{(u^{n}-u^{n-1})}{\Delta t} &= \frac{\partial \sigma_{1j}^n}{\partial x_j}
   - \tau_{w,x}^n + \tau_{b,x}^n +  mfv^n
    + r_{x}^n,
   \\
   m\frac{(v^{n}-v^{n-1})}{\Delta t} &= \frac{\partial \sigma^{n} _{2j}}{\partial x_j}
-  - \tau_{w,y}^n + \tau_{b,y}^n   -mfu^{n}
+  - \tau_{w,y}^n + \tau_{b,y}^n -  mfu^{n}
    + r_{y}^n
-  \end{align}
+  \end{aligned}
   :label: u_sit
 
 where :math:`r = (r_x,r_y)` contains all terms that do not depend on the velocities :math:`u^n, v^n` (namely the sea surface tilt and the wind stress).
@@ -297,7 +297,7 @@ The Hibler-Bryan form for the ice-ocean stress :cite:`Hibler87`
 is included in **ice\_dyn\_shared.F90** but is currently commented out,
 pending further testing.
 
-.. _seabed-stress:
+.. _seabedstress:
 
 Seabed stress
 ~~~~~~~~~~~~~
