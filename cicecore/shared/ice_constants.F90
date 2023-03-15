@@ -97,8 +97,7 @@
         field_loc_center   =  1, &
         field_loc_NEcorner =  2, &
         field_loc_Nface    =  3, &
-        field_loc_Eface    =  4, &
-        field_loc_Wface    =  5
+        field_loc_Eface    =  4
 
       !-----------------------------------------------------------------
       ! field type attribute - necessary for handling

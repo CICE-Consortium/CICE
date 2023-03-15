@@ -48,7 +48,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, write_ic, &
-          histfreq, days_per_year, use_leap_years, dayyr, &
+          histfreq, histfreq_n, days_per_year, use_leap_years, dayyr, &
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
@@ -86,6 +86,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title
+      character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
@@ -158,7 +159,7 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = nf90_def_dim(ncid,'d2',2,boundid)
           if (status /= nf90_noerr) call abort_ice(subname// &
              'ERROR: defining dim d2')
@@ -240,7 +241,7 @@
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = nf90_put_att(ncid,varid,'bounds','time_bounds')
           if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: time bounds')
@@ -250,7 +251,7 @@
       ! Define attributes for time bounds if hist_avg is true
       !-----------------------------------------------------------------
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           dimid(1) = boundid
           dimid(2) = timid
           status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
@@ -682,6 +683,25 @@
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: global attribute date2')
 
+        select case (histfreq(ns))
+         case ("y", "Y")
+            write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
+         case ("m", "M")
+            write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
+         case ("d", "D")
+            write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
+         case ("h", "H")
+            write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
+         case ("1")
+            write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
+        end select
+
+        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
+           status = nf90_put_att(ncid,nf90_global,'time_period_freq',trim(time_period_freq))
+           if (status /= nf90_noerr) call abort_ice(subname// &
+                         'ERROR: global attribute time_period_freq')
+        endif
+
         title = 'CF-1.0'
         status =  &
              nf90_put_att(ncid,nf90_global,'conventions',title)
@@ -725,7 +745,7 @@
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = nf90_inq_varid(ncid,'time_bounds',varid)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: getting time_bounds id')
@@ -1216,7 +1236,7 @@
       subroutine ice_write_hist_attrs(ncid, varid, hfield, ns)
 
       use ice_kinds_mod
-      use ice_calendar, only: histfreq, histfreq_n
+      use ice_calendar, only: histfreq, histfreq_n, write_ic
       use ice_history_shared, only: ice_hist_field, history_precision, &
           hist_avg
 #ifdef USE_NETCDF
@@ -1259,7 +1279,7 @@
       call ice_write_hist_fill(ncid,varid,hfield%vname,history_precision)
 
       ! Add cell_methods attribute to variables if averaged
-      if (hist_avg) then
+      if (hist_avg .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
@@ -1273,6 +1293,7 @@
 
       if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
           .or..not. hist_avg                              &
+          .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &
           .or.TRIM(hfield%vname(1:4))=='sig1' &

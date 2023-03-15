@@ -736,6 +736,7 @@ The following are brief descriptions of some of the current unit tests,
  - **calchk** is a unit test that exercises the CICE calendar over 100,000 years and verifies correctness.
    This test does not depend on the CICE initialization.
  - **gridavgchk** is a unit test that exercises the CICE grid_average_X2Y methods and verifies results.
+ - **halochk** is a unit test that exercises the CICE haloUpdate methods and verifies results.
  - **helloworld** is a simple test that writes out helloworld and uses no CICE infrastructure.
    This tests exists to demonstrate how to build a unit test by specifying the object files directly
    in the Makefile
