@@ -733,9 +733,10 @@
             snowfrac(i,j,iblk) = c0
 
             ! for history averaging
-            cszn = c0
-            netsw = swvdr(i,j,iblk)+swidr(i,j,iblk)+swvdf(i,j,iblk)+swidf(i,j,iblk)
-            if (netsw > puny) cszn = c1
+            !cszn = c0
+            !netsw = swvdr(i,j,iblk)+swidr(i,j,iblk)+swvdf(i,j,iblk)+swidf(i,j,iblk)
+            !if (netsw > puny) cszn = c1
+            cszn = c1
             do n = 1, nstreams
                albcnt(i,j,iblk,n) = albcnt(i,j,iblk,n) + cszn
             enddo
@@ -764,14 +765,14 @@
 
             netsw = swvdr(i,j,iblk) + swidr(i,j,iblk) &
                   + swvdf(i,j,iblk) + swidf(i,j,iblk)
-            if (netsw > puny) then ! sun above horizon
+            !if (netsw > puny) then ! sun above horizon
             albice(i,j,iblk) = albice(i,j,iblk) &
                + albicen(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             albsno(i,j,iblk) = albsno(i,j,iblk) &
                + albsnon(i,j,n,iblk)*aicen_init(i,j,n,iblk)
             albpnd(i,j,iblk) = albpnd(i,j,iblk) &
                + albpndn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
-            endif
+            !endif
 
             apeff_ai(i,j,iblk) = apeff_ai(i,j,iblk) &       ! for history
                + apeffn(i,j,n,iblk)*aicen_init(i,j,n,iblk)
