@@ -360,6 +360,11 @@
                         file=__FILE__, line=__LINE__)
       endif
 
+      if (grid_type == 'tripole' .and. (mod(nx_global,2)/=0)) then
+         call abort_ice(subname//'ERROR: grid_type tripole requires even nx_global number', &
+                        file=__FILE__, line=__LINE__)
+      endif
+
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'     ) then

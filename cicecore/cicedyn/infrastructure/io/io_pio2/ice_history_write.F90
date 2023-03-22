@@ -195,7 +195,7 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = pio_def_dim(File,'d2',2,boundid)
         endif
 
@@ -233,12 +233,12 @@
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = pio_put_att(File,varid,'bounds','time_bounds')
         endif
 
         ! Define attributes for time_bounds if hist_avg is true
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           dimid2(1) = boundid
           dimid2(2) = timid
           status = pio_def_var(File,'time_bounds',pio_double,dimid2,varid)
@@ -702,7 +702,7 @@
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg) then
+        if (hist_avg .and. .not. write_ic) then
           status = pio_inq_varid(File,'time_bounds',varid)
           time_bounds=(/time_beg(ns),time_end(ns)/)
           bnd_start  = (/1,1/)
@@ -1219,7 +1219,7 @@
       subroutine ice_write_hist_attrs(File, varid, hfield, ns)
 
       use ice_kinds_mod
-      use ice_calendar, only: histfreq, histfreq_n
+      use ice_calendar, only: histfreq, histfreq_n, write_ic
       use ice_history_shared, only: ice_hist_field, history_precision, &
           hist_avg
       use ice_pio
@@ -1250,7 +1250,7 @@
       call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
 
       ! Add cell_methods attribute to variables if averaged
-      if (hist_avg) then
+      if (hist_avg .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
@@ -1262,6 +1262,7 @@
 
       if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
           .or..not. hist_avg                              &
+          .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &
           .or.TRIM(hfield%vname(1:4))=='sig1' &
