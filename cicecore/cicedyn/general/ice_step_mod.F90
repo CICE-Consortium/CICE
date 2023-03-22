@@ -277,6 +277,9 @@
       isoice (:,:)   = c0
       aerosno(:,:,:) = c0
       aeroice(:,:,:) = c0
+#ifdef GEOSCOUPLED
+      fsurfn (:,:,:,:) = fsurfn_f(:,:,:,:)
+#endif
 
 #ifdef CICE_IN_NEMO
       do j = 1, ny_block
