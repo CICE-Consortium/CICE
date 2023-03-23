@@ -185,6 +185,8 @@
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
 
+      if (write_ic) call accum_hist(dt) ! write initial conditions
+
       ! determine the time and date at the end of the first timestep
       call advance_timestep()
 
@@ -214,8 +216,6 @@
 
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
-
-      if (write_ic) call accum_hist(dt) ! write initial conditions
 
       end subroutine cice_init
 
