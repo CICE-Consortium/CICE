@@ -74,7 +74,7 @@ AR    := ar
 
 .SUFFIXES:
 
-.PHONY: all cice libcice targets target db_files db_flags clean realclean helloworld calchk sumchk bcstchk gridavgchk optargs
+.PHONY: all cice libcice targets target db_files db_flags clean realclean helloworld calchk sumchk bcstchk gridavgchk halochk optargs
 all: $(EXEC)
 
 cice: $(EXEC)
@@ -93,7 +93,7 @@ targets:
 	@echo " "
 	@echo "Supported Makefile Targets are: cice, libcice, makdep, depends, clean, realclean"
 	@echo "                   Diagnostics: targets, db_files, db_flags"
-	@echo "                   Unit Tests : helloworld, calchk, sumchk, bcstchk, gridavgchk, optargs"
+	@echo "                   Unit Tests : helloworld, calchk, sumchk, bcstchk, gridavgchk, halochk, optargs"
 target: targets
 
 db_files:
@@ -150,6 +150,8 @@ sumchk: $(EXEC)
 bcstchk: $(EXEC)
 
 gridavgchk: $(EXEC)
+
+halochk: $(EXEC)
 
 # this builds just a subset of source code specified explicitly and requires a separate target
 

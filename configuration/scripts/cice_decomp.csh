@@ -156,8 +156,10 @@ if (${ICE_DECOMP_MXBLCKS} > 0) set mxblcks = ${ICE_DECOMP_MXBLCKS}
 
 set decomp = 'cartesian'
 set dshape = 'slenderX2'
-if (${nxglob} % ${cicepes} != 0) set decomp = 'roundrobin'
-if (${mxblcks} * ${blcky} * 2 < ${nyglob}) set decomp = 'roundrobin'
+if (${cicepes} % 2 != 0)                              set decomp = 'roundrobin'
+if (${nyglob} % (${blcky} * 2) != 0)                  set decomp = 'roundrobin'
+if (${nxglob} % ${blckx} != 0)                        set decomp = 'roundrobin'
+if (((${nxglob} * 2) % (${cicepes} * ${blckx})) != 0) set decomp = 'roundrobin'
 
 #--- outputs ---
 
