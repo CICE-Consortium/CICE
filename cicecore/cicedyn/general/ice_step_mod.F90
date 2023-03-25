@@ -226,7 +226,7 @@
       use ice_calendar, only: yday
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
       use ice_flux, only: frzmlt, sst, Tf, strocnxT_iavg, strocnyT_iavg, rside, fbot, Tbot, Tsnice, &
-          meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
+          meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, wlat, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, fsloss, &
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
@@ -468,6 +468,7 @@
                       frzmlt       = frzmlt      (i,j,  iblk), &
                       rside        = rside       (i,j,  iblk), &
                       fside        = fside       (i,j,  iblk), &
+                      wlat         = wlat        (i,j,  iblk), &
                       fsnow        = fsnow       (i,j,  iblk), &
                       frain        = frain       (i,j,  iblk), &
                       fpond        = fpond       (i,j,  iblk), &
@@ -617,7 +618,7 @@
       use ice_calendar, only: yday
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
-          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
+          update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, wlat, &
           meltl, frazil_diag
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
@@ -701,6 +702,7 @@
                       rside      = rside     (i,j,  iblk), &
                       meltl      = meltl     (i,j,  iblk), &
                       fside      = fside     (i,j,  iblk), &
+                      wlat       = wlat      (i,j,  iblk), &
                       frzmlt     = frzmlt    (i,j,  iblk), &
                       frazil     = frazil    (i,j,  iblk), &
                       frain      = frain     (i,j,  iblk), &

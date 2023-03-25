@@ -275,31 +275,73 @@ the namelist variable ``ns_boundary_type``, ‘tripole’ for the U-fold and
 ‘tripoleT’ for the T-fold grid.
 
 In the U-fold tripole grid, the poles have U-index
-:math:`{\tt nx\_global}/2` and ``nx_global`` on the top U-row of the
-physical grid, and points with U-index i and :math:`{\tt nx\_global-i}`
+:math:`nx\_global/2` and :math:`nx\_global` on the top U-row of the
+physical grid, and points with U-index :math:`i` and :math:`nx\_global-i`
 are coincident. Let the fold have U-row index :math:`n` on the global
 grid; this will also be the T-row index of the T-row to the south of the
 fold. There are ghost (halo) T- and U-rows to the north, beyond the
 fold, on the logical grid. The point with index i along the ghost T-row
 of index :math:`n+1` physically coincides with point
-:math:`{\tt nx\_global}-{\tt i}+1` on the T-row of index :math:`n`. The
+:math:`nx\_global-i+1` on the T-row of index :math:`n`. The
 ghost U-row of index :math:`n+1` physically coincides with the U-row of
-index :math:`n-1`.
+index :math:`n-1`.  In the schematics below, symbols A-H represent
+grid points from 1:nx_global at a given j index and the setup of the
+tripole seam is depicted within a few rows of the seam.
 
-In the T-fold tripole grid, the poles have T-index 1 and and
-:math:`{\tt nx\_global}/2+1` on the top T-row of the physical grid, and
-points with T-index i and :math:`{\tt nx\_global}-{\tt i}+2` are
+.. _tab-tripole:
+
+.. table:: Tripole (u-fold) Grid Schematic
+   :align: center
+
+   +--------------+---------------------------------------+--------------+
+   | global j     |                                       | global j     |
+   | index        |          grid point IDs (i index)     | index source |
+   +==============+====+====+====+====+====+====+====+====+==============+
+   | ny_global+2  |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-1  |
+   +--------------+----+----+----+----+----+----+----+----+--------------+
+   | ny_global+1  |  H |  G |  F |  E |  D |  C |  B |  A | ny_global    |
+   +--------------+----+----+----+----+----+----+----+----+--------------+
+   | ny_global    |  A |  B |  C |  D |  E |  F |  G |  H |              |
+   +--------------+----+----+----+----+----+----+----+----+--------------+
+   | ny_global-1  |  A |  B |  C |  D |  E |  F |  G |  H |              |
+   +--------------+----+----+----+----+----+----+----+----+--------------+
+
+
+In the T-fold tripole grid, the poles have T-index :math:`1` and and
+:math:`nx\_global/2+1` on the top T-row of the physical grid, and
+points with T-index :math:`i` and :math:`nx\_global-i+2` are
 coincident. Let the fold have T-row index :math:`n` on the global grid.
 It is usual for the northernmost row of the physical domain to be a
 U-row, but in the case of the T-fold, the U-row of index :math:`n` is
 “beyond” the fold; although it is not a ghost row, it is not physically
 independent, because it coincides with U-row :math:`n-1`, and it
 therefore has to be treated like a ghost row. Points i on U-row
-:math:`n` coincides with :math:`{\tt nx\_global}-{\tt i}+1` on U-row
+:math:`n` coincides with :math:`nx\_global-i+1` on U-row
 :math:`n-1`. There are still ghost T- and U-rows :math:`n+1` to the
 north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
 :math:`n-1`, and ghost U-row :math:`n+1` coincides with U-row
 :math:`n-2`.
+
+.. _tab-tripoleT:
+
+.. table:: TripoleT (t-fold) Grid Schematic
+   :align: center
+
+   +--------------+--------------------------------------------+--------------+
+   | global j     |                                            | global j     |
+   | index        |          grid point IDs (i index)          | index source |
+   +==============+====+====+====+====+====+====+====+====+====+==============+
+   | ny_global+2  |    |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-2  |
+   +--------------+----+----+----+----+----+----+----+----+----+--------------+
+   | ny_global+1  |    |  H |  G |  F |  E |  D |  C |  B |  A | ny_global-1  |
+   +--------------+----+----+----+----+----+----+----+----+----+--------------+
+   | ny_global    |  A | BH | CG | DF |  E | FD | GC | HB |    |              |
+   +--------------+----+----+----+----+----+----+----+----+----+--------------+
+   | ny_global-1  |  A |  B |  C |  D |  E |  F |  G |  H |    |              |
+   +--------------+----+----+----+----+----+----+----+----+----+--------------+
+   | ny_global-2  |  A |  B |  C |  D |  E |  F |  G |  H |    |              |
+   +--------------+----+----+----+----+----+----+----+----+----+--------------+
+
 
 The tripole grid thus requires two special kinds of treatment for
 certain rows, arranged by the halo-update routines. First, within rows
@@ -310,7 +352,8 @@ the coincident physical rows. Both operations involve the tripole
 buffer, which is used to assemble the data for the affected rows.
 Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
-excluded.
+excluded.  Halos of center, east, north, and northeast points are supported,
+and each requires slightly different halo indexing across the tripole seam.
 
 *****************
 Rectangular grids
@@ -1207,7 +1250,7 @@ directory in **iceh\_ic.[timeID].nc(da)**. Several history variables are
 hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
-The normalized principal components of internal ice stress are computed
+The normalized principal components of internal ice stress (``sig1``, ``sig2``) are computed
 in *principal\_stress* and written to the history file. This calculation
 is not necessary for the simulation; principal stresses are merely
 computed for diagnostic purposes and included here for the user’s

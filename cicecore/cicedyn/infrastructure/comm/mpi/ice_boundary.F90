@@ -12,14 +12,53 @@
 !              fixes for non-existent blocks
 !  2008-01-28: Elizabeth Hunke replaced old routines with new POP
 !              infrastructure
+!
+!-----------------------------------------------------------------------
+!
+! Some notes on tripole, A-H below are gridpoints at i = 1:nx_global
+! where nx_global=8.  The schematics below show the general layout of the center
+! points on the tripole fold.  More complex pictures are needed to show
+! relative orientation and offsets of east, north, and northeast points
+! across the fold.  See also appendix E of the NEMO_manual,
+! https://zenodo.org/record/6334656#.YiYirhPMLXQ.  Note the NFtype=T
+! is the tripole u-fold grid with T-grid=center, U-grid=east, V-grid=north,
+! and F-grid=northeast points in CICE.  NFtype=F is similar to tripoleT
+! except for the treatment of the poles.  The CICE implementation also
+! averages all degenerate points, NEMO's strategy seems to be to copy
+! data from one side of the tripole to the other for degenerate points.
+!
+! tripole: u-fold, fold is on north edge of ny_global
+! north and northeast points on the fold are degenerate and averaged
+! A,H,D,and E are pole points
+!
+!   ny_global+2    H   G   F   E   D   C   B   A  @ny_global-1
+!   ny_global+1    H   G   F   E   D   C   B   A  @ny_global
+!   ny_global      A   B   C   D   E   F   G   H
+!   ny_global-1    A   B   C   D   E   F   G   H
+!
+! tripoleT: t-fold, fold is thru center of ny_global
+! center and east points at ny_global are degenerate and averaged
+! north and northeast point at ny_global are not prognostic, they are halos
+! A and E are pole points
+!
+!   ny_global+2        H   G   F   E   D   C   B   A  @ny_global-2
+!   ny_global+1        H   G   F   E   D   C   B   A  @ny_global-1
+!   ny_global      A   BH  CG  DF  E   FD  GC  HB  A
+!   ny_global-1    A   B   C   D   E   F   G   H
+!   ny_global-2    A   B   C   D   E   F   G   H
+!
+!-----------------------------------------------------------------------
+
 
    use mpi   ! MPI Fortran module
    use ice_kinds_mod
    use ice_communicate, only: my_task, mpiR4, mpiR8, mpitagHalo
    use ice_constants, only: field_type_scalar, &
          field_type_vector, field_type_angle, &
+         field_type_unknown, field_type_noupdate, &
          field_loc_center,  field_loc_NEcorner, &
-         field_loc_Nface, field_loc_Eface
+         field_loc_Nface, field_loc_Eface, &
+         field_loc_unknown, field_loc_noupdate
    use ice_global_reductions, only: global_maxval
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -1231,6 +1270,23 @@ contains
 
 !-----------------------------------------------------------------------
 !
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
+
+!-----------------------------------------------------------------------
+!
 !  initialize error code and fill value
 !
 !-----------------------------------------------------------------------
@@ -1552,7 +1608,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -1652,6 +1708,23 @@ contains
    integer (int_kind) :: len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DR4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -1950,7 +2023,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2050,6 +2123,23 @@ contains
    integer (int_kind) :: len ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DI4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2348,7 +2438,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2425,6 +2515,23 @@ contains
       iarray            ! integer array for logical
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DL1)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2518,6 +2625,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR8)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -2858,7 +2982,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -2975,6 +3099,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DR4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -3315,7 +3456,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3432,6 +3573,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate3DI4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -3772,7 +3930,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -3889,6 +4047,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DR8)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -4251,7 +4426,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -4370,6 +4545,23 @@ contains
    integer (int_kind) :: len ! length of message
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DR4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -4732,7 +4924,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -4851,6 +5043,23 @@ contains
    integer (int_kind) :: len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate4DI4)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -5213,7 +5422,7 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
             if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface on u-fold, and NE corner and Nface
@@ -5265,6 +5474,7 @@ contains
 !***********************************************************************
 !  This routine updates ghost cells for an input array using
 !  a second array as needed by the stress fields.
+!  This is just like 2DR8 except no averaging and only on tripole
 
  subroutine ice_HaloUpdate_stress(array1, array2, halo, &
                                fieldLoc, fieldKind,     &
@@ -5318,6 +5528,23 @@ contains
    integer (int_kind) ::  len  ! length of messages
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate_stress)'
+
+!-----------------------------------------------------------------------
+!
+!  abort or return on unknown or noupdate field_loc or field_type
+!
+!-----------------------------------------------------------------------
+
+   if (fieldLoc  == field_loc_unknown .or. &
+       fieldKind == field_type_unknown) then
+      call abort_ice(subname//'ERROR: use of field_loc/type_unknown not allowed')
+      return
+   endif
+
+   if (fieldLoc  == field_loc_noupdate .or. &
+       fieldKind == field_type_noupdate) then
+      return
+   endif
 
 !-----------------------------------------------------------------------
 !
@@ -5485,30 +5712,61 @@ contains
          call abort_ice(subname//'ERROR: Unknown field kind')
       end select
 
-      select case (fieldLoc)
-      case (field_loc_center)   ! cell center location
+      if (halo%tripoleTFlag) then
 
-         ioffset = 0
-         joffset = 0
+        select case (fieldLoc)
+        case (field_loc_center)   ! cell center location
 
-      case (field_loc_NEcorner)   ! cell corner location
+           ioffset = -1
+           joffset = 0
 
-         ioffset = 1
-         joffset = 1
+        case (field_loc_NEcorner)   ! cell corner location
 
-      case (field_loc_Eface)
+           ioffset = 0
+           joffset = 1
 
-         ioffset = 1
-         joffset = 0
+        case (field_loc_Eface)   ! cell center location
 
-      case (field_loc_Nface)
+           ioffset = 0
+           joffset = 0
 
-         ioffset = 0
-         joffset = 1
+        case (field_loc_Nface)   ! cell corner (velocity) location
 
-      case default
-         call abort_ice(subname//'ERROR: Unknown field location')
-      end select
+           ioffset = -1
+           joffset = 1
+
+        case default
+           call abort_ice(subname//'ERROR: Unknown field location')
+        end select
+
+      else ! tripole u-fold
+
+        select case (fieldLoc)
+        case (field_loc_center)   ! cell center location
+
+           ioffset = 0
+           joffset = 0
+
+        case (field_loc_NEcorner)   ! cell corner location
+
+           ioffset = 1
+           joffset = 1
+
+        case (field_loc_Eface)
+
+           ioffset = 1
+           joffset = 0
+
+        case (field_loc_Nface)
+
+           ioffset = 0
+           joffset = 1
+
+        case default
+           call abort_ice(subname//'ERROR: Unknown field location')
+        end select
+
+      endif
 
       !*** copy out of global tripole buffer into local
       !*** ghost cells
@@ -5531,14 +5789,15 @@ contains
             !*** correct for offsets
             iSrc = iSrc - ioffset
             jSrc = jSrc - joffset
-            if (iSrc == 0) iSrc = nxGlobal
+            if (iSrc < 1       ) iSrc = iSrc + nxGlobal
+            if (iSrc > nxGlobal) iSrc = iSrc - nxGlobal
 
             !*** for center and Eface, do not need to replace
             !*** top row of physical domain, so jSrc should be
             !*** out of range and skipped
             !*** otherwise do the copy
 
-            if (jSrc <= nghost+1 .AND. jDst /= -1 ) then
+            if (jSrc <= halo%tripoleRows .and. jSrc>0 .and. jDst>0) then
                array1(iDst,jDst,dstBlock) = isign*bufTripoleR8(iSrc,jSrc)
             endif
 

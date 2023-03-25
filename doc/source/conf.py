@@ -38,6 +38,9 @@ extensions = [
     'sphinxcontrib.bibtex',
 ]
 
+# Name of the bibliography file for sphinxcontrib.bibtex.
+bibtex_bibfiles = ['master_list.bib']
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

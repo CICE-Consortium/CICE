@@ -1341,7 +1341,7 @@
              "sig2 is instantaneous" // trim(description), c1, c0, &
              ns1, f_sig2)
 
-         call define_hist_field(n_sigP,"sigP","1",gridstr2d, gridstr, &
+         call define_hist_field(n_sigP,"sigP","N/m",gridstr2d, gridstr, &
              "ice pressure",                       &
              "sigP is instantaneous" // trim(description), c1, c0, &
              ns1, f_sigP)
