@@ -87,7 +87,7 @@ use mpi   ! MPI Fortran module
 !-----------------------------------------------------------------------
 
    logical :: repro_sum_use_ddpdd = .false.
-!   logical :: detailed_timing = .false.
+   logical :: detailed_timing = .false.
    character(len=char_len_long) :: tmpstr
 
    CONTAINS
@@ -100,10 +100,10 @@ use mpi   ! MPI Fortran module
 !-----------------------------------------------------------------------
 
    subroutine ice_reprosum_setopts(repro_sum_use_ddpdd_in,    &
-                                     repro_sum_rel_diff_max_in, &
-                                     repro_sum_recompute_in,    &
-                                     repro_sum_master,          &
-                                     repro_sum_logunit          )
+                                   repro_sum_rel_diff_max_in, &
+                                   repro_sum_recompute_in,    &
+                                   repro_sum_master,          &
+                                   repro_sum_logunit          )
 
 !------------------------------Arguments--------------------------------
       logical, intent(in), optional :: repro_sum_use_ddpdd_in
@@ -260,12 +260,12 @@ use mpi   ! MPI Fortran module
 
 !----------------------------------------------------------------------
    subroutine ice_reprosum_calc (arr, arr_gsum, nsummands, dsummands,     &
-                                   nflds, ddpdd_sum,                        &
-                                   arr_gbl_max, arr_gbl_max_out,            &
-                                   arr_max_levels, arr_max_levels_out,      &
-                                   gbl_max_nsummands, gbl_max_nsummands_out,&
-                                   gbl_count, repro_sum_validate,           &
-                                   repro_sum_stats, rel_diff, commid        )
+                                 nflds, ddpdd_sum,                        &
+                                 arr_gbl_max, arr_gbl_max_out,            &
+                                 arr_max_levels, arr_max_levels_out,      &
+                                 gbl_max_nsummands, gbl_max_nsummands_out,&
+                                 gbl_count, repro_sum_validate,           &
+                                 repro_sum_stats, rel_diff, commid        )
 !----------------------------------------------------------------------
 
 ! Arguments
@@ -434,7 +434,7 @@ use mpi   ! MPI Fortran module
 !         if (detailed_timing) call xicex_timer_start('ice_reprosum_ddpdd')
 
          call ice_reprosum_ddpdd(arr, arr_gsum, nsummands, dsummands, &
-                              nflds, mpi_comm)
+                                 nflds, mpi_comm)
          repro_sum_fast = 1
 
 !         if (detailed_timing) call xicex_timer_stop('ice_reprosum_ddpdd')
@@ -774,9 +774,9 @@ use mpi   ! MPI Fortran module
 !----------------------------------------------------------------------
 
    subroutine ice_reprosum_int (arr, arr_gsum, nsummands, dsummands, nflds, &
-                                  arr_max_shift, arr_gmax_exp, max_levels,    &
-                                  max_level, validate, recompute,             &
-                                  omp_nthreads, mpi_comm                      )
+                                arr_max_shift, arr_gmax_exp, max_levels,    &
+                                max_level, validate, recompute,             &
+                                omp_nthreads, mpi_comm                      )
 
 !----------------------------------------------------------------------
 
@@ -1224,7 +1224,7 @@ use mpi   ! MPI Fortran module
 !----------------------------------------------------------------------
 
    logical function ice_reprosum_tolExceeded (name, nflds, master, &
-                                                logunit, rel_diff    )
+                                              logunit, rel_diff    )
 !----------------------------------------------------------------------
 
 ! Arguments
@@ -1310,7 +1310,7 @@ use mpi   ! MPI Fortran module
 !----------------------------------------------------------------------
 
    subroutine ice_reprosum_ddpdd (arr, arr_gsum, nsummands, dsummands,  &
-                                    nflds, mpi_comm                       )
+                                  nflds, mpi_comm                       )
 !----------------------------------------------------------------------
 
 ! Arguments

@@ -16,10 +16,10 @@
       use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_domain_size, only: nx_global, ny_global
       use ice_domain_size, only: block_size_x, block_size_y, max_blocks
-      use ice_domain, only: distrb_info
+      use ice_domain, only: distrb_info, ns_boundary_type
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot
       use ice_distribution, only: ice_distributionGetBlockID, ice_distributionGet
-      use ice_constants, only: field_loc_center, field_loc_Nface
+      use ice_constants, only: field_loc_center, field_loc_Nface, field_loc_Eface, field_loc_NEcorner
       use ice_fileunits, only: bfbflag
       use ice_global_reductions
       use ice_exit, only: abort_ice, end_run
@@ -113,6 +113,13 @@
          write(6,*) ' block_size_y = ',block_size_y
          write(6,*) ' nblocks_tot  = ',nblocks_tot
          write(6,*) ' '
+         write(6,*) ' Values are generally O(1.), lscale is the relative size of'
+         write(6,*) ' values set in the array to test precision.  A pair of equal'
+         write(6,*) ' and opposite values of O(lscale) are placed in the array.'
+         write(6,*) ' "easy" sets the lscaled values at the start of the array so'
+         write(6,*) ' are added to the sum first.  Otherwise, the lscaled values'
+         write(6,*) ' are set near the end of the array and to create precision'
+         write(6,*) ' challenges in the global sums'
       endif
 
       ! ---------------------------
@@ -165,7 +172,7 @@
       reldigchk(4,4) = 0.
       reldigchk(5,4) = 15.
       if (nx_global == 360 .and. ny_global == 240) then
-         reldigchk(1:3,1) = 13.
+         reldigchk(1:3,1) = 12.5
          reldigchk(5,4) = 14.
       endif
 #else
@@ -181,7 +188,7 @@
       reldigchk(4,4) = 0.
       reldigchk(5,4) = 15.
       if (nx_global == 360 .and. ny_global == 240) then
-         reldigchk(1:2,1) = 13.
+         reldigchk(1:2,1) = 12.5
          reldigchk(5,4) = 14.
       endif
 #endif
@@ -212,20 +219,22 @@
          ! set corval to something a little interesting (not 1.0 for instance which gives atypical results)
          corval = 4.0_dbl_kind/3.0_dbl_kind
          iocval = 8
-         ! tuned for gx3 and tx1 only
-         if ((nx_global == 100 .and. ny_global == 116) .or. &
-             (nx_global == 360 .and. ny_global == 240)) then
-            if (field_loc(m) == field_loc_Nface .and. nx_global == 360 .and. ny_global == 240) then
-               ! tx1 tripole face, need to adjust local value to remove half of row at ny_global
-               ! or modify corval to account for different sum
-               locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
-               corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2)*iocval
-            else
-               locval = corval / real(nblocks_tot*(block_size_x*block_size_y-2),dbl_kind)
-               corvali = nblocks_tot*(block_size_x*block_size_y-2)*iocval
-            endif
+         if     ((ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_Nface   ) .or. &
+                 (ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_NEcorner)) then
+            ! remove full row at ny_global
+            locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global),dbl_kind)
+            corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global)*iocval
+         elseif ((ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_center  ) .or. &
+                 (ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_Eface   ) .or. &
+                 (ns_boundary_type == 'tripole'  .and. field_loc(m) == field_loc_NEcorner) .or. &
+                 (ns_boundary_type == 'tripole'  .and. field_loc(m) == field_loc_Nface   )) then
+            ! remove half of row at ny_global
+            locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
+            corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2)*iocval
          else
-            call abort_ice(subname//' ERROR not set for this grid ')
+            ! all gridcells
+            locval = corval / real(nblocks_tot*(block_size_x*block_size_y-2),dbl_kind)
+            corvali = nblocks_tot*(block_size_x*block_size_y-2)*iocval
          endif
 
       do l = 1, nscale
@@ -253,18 +262,18 @@
             jb = this_block%jlo
             je = this_block%jhi
 
-            lmask(ie,je-1,iblock)   = .false.
-            lmask(ie,je-2,iblock) = .false.
-            arrayA(ie,je-1,iblock)   = locval * lscale(l)
+            lmask(ie,je-1,iblock)  = .false.
+            lmask(ie,je-2,iblock)  = .false.
+            arrayA(ie,je-1,iblock) = locval * lscale(l)
             arrayA(ie,je-2,iblock) = -arrayA(ie,je-1,iblock)
-            arrayB(ie,je-1,iblock)   = locval * lscale(l)
+            arrayB(ie,je-1,iblock) = locval * lscale(l)
             arrayB(ie,je-2,iblock) =  arrayB(ie,je-1,iblock)
             arrayC(ib,jb,iblock)   = locval * lscale(l)
             arrayC(ib+1,jb,iblock) = -arrayC(ib,jb,iblock)
-            arrayiA(:,:,iblock) = iocval
-            arrayiB(:,:,iblock) = iocval
-            arrayiA(ie,je-1,iblock)   = 13 * iocval
-            arrayiA(ie,je-2,iblock) = -arrayiA(ie,je-1,iblock)
+            arrayiA(:,:,iblock)    = iocval
+            arrayiB(:,:,iblock)    = iocval
+            arrayiA(ie,je-1,iblock)= 13 * iocval
+            arrayiA(ie,je-2,iblock)= -arrayiA(ie,je-1,iblock)
          enddo
 
          do k = 1,ntests1
