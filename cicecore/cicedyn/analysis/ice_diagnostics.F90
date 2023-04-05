@@ -261,10 +261,8 @@
       !$OMP END PARALLEL DO
       extentn = c0
       extents = c0
-      extentn = global_sum(work1, distrb_info, field_loc_center, &
-                           tarean)
-      extents = global_sum(work1, distrb_info, field_loc_center, &
-                           tareas)
+      extentn = global_sum(work1, distrb_info, field_loc_center, tarean)
+      extents = global_sum(work1, distrb_info, field_loc_center, tareas)
       extentn = extentn * m2_to_km2
       extents = extents * m2_to_km2
 
