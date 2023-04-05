@@ -2502,7 +2502,7 @@
                                    vector2_x , vector2_y) &
                result(dot_product)
 
-      use ice_domain, only: distrb_info
+      use ice_domain, only: distrb_info, ns_boundary_type
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: bfbflag
 
@@ -2557,8 +2557,9 @@
       ! blocks, and calls global_sum on a scalar and should be just as accurate as
       ! bfbflag = 'off', 'lsum8', and 'lsum4' without the extra copies and overhead
       ! in the more general array global_sum.  But use the array global_sum
-      ! if bfbflag is more strict.
-      if (bfbflag == 'off' .or. bfbflag == 'lsum8' .or. bfbflag == 'lsum4') then
+      ! if bfbflag is more strict or for tripole grids (requires special masking)
+      if (ns_boundary_type /= 'tripole' .and. ns_boundary_type /= 'tripoleT' .and. &
+         (bfbflag == 'off' .or. bfbflag == 'lsum8' .or. bfbflag == 'lsum4')) then
          dot_product = global_sum(sum(dot), distrb_info)
       else
          dot_product = global_sum(prod, distrb_info, field_loc_NEcorner)
