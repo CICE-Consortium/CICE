@@ -202,7 +202,7 @@ contains
     deallocate(gindex)
 
   end subroutine ice_mesh_set_distgrid
-  
+
   !=======================================================================
   subroutine ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc)
 
@@ -427,17 +427,17 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Allocate module variable ocn_gridcell_frac
-    allocate(ocn_gridcell_frac(nx_block,ny_block,max_blocks))
+    allocate(ocn_gridcell_frac(2,2,1))
     ocn_gridcell_frac(:,:,:) = scol_frac
-        
+
   end subroutine ice_mesh_create_scolumn
 
   !===============================================================================
   subroutine ice_mesh_init_tlon_tlat_area_hm()
 
     use ice_grid      , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
-    use ice_grid      , only : uarea, uarear, tarear, tinyarea
-    use ice_grid      , only : dxt, dyt, dxu, dyu, dyhx, dxhy, cyp, cxp, cym, cxm
+    use ice_grid      , only : uarea, uarear, tarear!, tinyarea
+    use ice_grid      , only : dxT, dyT, dxU, dyU, dyhx, dxhy, cyp, cxp, cym, cxm
     use ice_grid      , only : makemask
     use ice_boundary  , only : ice_HaloUpdate
     use ice_domain    , only : blocks_ice, nblocks, halo_info, distrb_info
@@ -517,7 +517,7 @@ contains
              endif
              tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
              uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
-             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
+!             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
 
              if (.not. single_column) then
                 if (ny_global == 1) then
@@ -531,10 +531,10 @@ contains
 
              HTN   (i,j,iblk) = 1.e36_dbl_kind
              HTE   (i,j,iblk) = 1.e36_dbl_kind
-             dxt   (i,j,iblk) = 1.e36_dbl_kind
-             dyt   (i,j,iblk) = 1.e36_dbl_kind
-             dxu   (i,j,iblk) = 1.e36_dbl_kind
-             dyu   (i,j,iblk) = 1.e36_dbl_kind
+             dxT   (i,j,iblk) = 1.e36_dbl_kind
+             dyT   (i,j,iblk) = 1.e36_dbl_kind
+             dxU   (i,j,iblk) = 1.e36_dbl_kind
+             dyU   (i,j,iblk) = 1.e36_dbl_kind
              dxhy  (i,j,iblk) = 1.e36_dbl_kind
              dyhx  (i,j,iblk) = 1.e36_dbl_kind
              cyp   (i,j,iblk) = 1.e36_dbl_kind
@@ -560,7 +560,7 @@ contains
     ! Check CICE mesh
 
     use ice_constants, only : c1,c0,c360
-    use ice_grid     , only : tlon, tlat
+    use ice_grid     , only : tlon, tlat, hm
 
     ! input/output parameters
     type(ESMF_GridComp) , intent(inout) :: gcomp
@@ -569,7 +569,8 @@ contains
 
     ! local variables
     type(ESMF_DistGrid)          :: distGrid
-    integer                      :: n,c,g,i,j,m        ! indices
+    type(ESMF_Array)             :: elemMaskArray
+    integer                      :: n,i,j              ! indices
     integer                      :: iblk, jblk         ! indices
     integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block)                  :: this_block         ! block information for current block
@@ -578,11 +579,15 @@ contains
     real(dbl_kind), pointer      :: ownedElemCoords(:)
     real(dbl_kind), pointer      :: lat(:), latMesh(:)
     real(dbl_kind), pointer      :: lon(:), lonMesh(:)
+    integer       , pointer      :: model_mask(:)
     real(dbl_kind)               :: diff_lon
     real(dbl_kind)               :: diff_lat
     real(dbl_kind)               :: rad_to_deg
     real(dbl_kind)               :: tmplon, eps_imesh
     logical                      :: isPresent, isSet
+    logical                      :: mask_error
+    integer                      :: mask_internal
+    integer                      :: mask_file
     character(len=char_len_long) :: cvalue
     character(len=char_len_long) :: logmsg
     character(len=*), parameter  :: subname = ' ice_mesh_check: '
@@ -606,7 +611,7 @@ contains
     allocate(ownedElemCoords(spatialDim*numownedelements))
     allocate(lonmesh(numOwnedElements))
     allocate(latmesh(numOwnedElements))
-    call ESMF_MeshGet(ice_mesh, ownedElemCoords=ownedElemCoords)
+    call ESMF_MeshGet(ice_mesh, ownedElemCoords=ownedElemCoords, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     do n = 1,numOwnedElements
        lonMesh(n) = ownedElemCoords(2*n-1)
@@ -650,8 +655,45 @@ contains
        enddo
     enddo
 
-100 format('ERROR: CICE n, lonmesh, lon, diff_lon = ',i6,2(f21.13,3x),d21.5)
-101 format('ERROR: CICE n, latmesh, lat, diff_lat = ',i6,2(f21.13,3x),d21.5)
+    ! obtain internally generated ice mask for error checks
+    allocate(model_mask(numOwnedElements))
+    call ESMF_MeshGet(ice_mesh, elementdistGrid=distGrid, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    elemMaskArray = ESMF_ArrayCreate(distGrid, model_mask, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call ESMF_MeshGet(ice_mesh, elemMaskArray=elemMaskArray, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    mask_error = .false.
+    n=0
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       do j = jlo, jhi
+          jlo = this_block%jlo
+          jhi = this_block%jhi
+          do i = ilo, ihi
+             ilo = this_block%ilo
+             ihi = this_block%ihi
+             n = n+1
+             mask_internal = nint(hm(i,j,iblk),kind=dbl_kind)
+             mask_file = model_mask(n)
+             if (mask_internal /= mask_file) then
+                write(6,102) n,mask_internal,mask_file
+                mask_error = .true.
+             end if
+          enddo !i
+       enddo !j
+    enddo !iblk
+    if (mask_error) then
+       call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+    end if
+
+    call ESMF_ArrayDestroy(elemMaskArray, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+100 format('ERROR: CICE n, mesh_lon , lon, diff_lon = ',i8,2(f21.13,3x),d21.5)
+101 format('ERROR: CICE n, mesh_lat , lat, diff_lat = ',i8,2(f21.13,3x),d21.5)
+102 format('ERROR: CICE n, mesh_internal, mask_file = ',i8,2(i2,2x))
 
     ! deallocate memory
     deallocate(ownedElemCoords)

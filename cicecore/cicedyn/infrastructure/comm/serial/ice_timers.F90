@@ -54,6 +54,7 @@
       timer_diags,            &! diagnostics/history
       timer_hist,             &! diagnostics/history
       timer_bound,            &! boundary updates
+      timer_bundbound,        &! boundary updates
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
       timer_evp_1d,           &! timer only loop
@@ -115,7 +116,7 @@
    type (timer_data), dimension(max_timers) :: &
       all_timers               ! timer data for all timers
 
-   integer (int_kind) ::      & 
+   integer (int_kind) ::      &
       cycles_max               ! max clock cycles allowed by system
 
    real (dbl_kind) ::               &
@@ -147,8 +148,8 @@
 !-----------------------------------------------------------------------
 !
 !  Call F90 intrinsic system_clock to determine clock rate
-!  and maximum cycles for single-processor runs.  If no clock 
-!  available, print message.  
+!  and maximum cycles for single-processor runs.  If no clock
+!  available, print message.
 !
 !-----------------------------------------------------------------------
 
@@ -206,6 +207,7 @@
    call get_ice_timer(timer_diags,    'Diags    ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_hist,     'History  ',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound,    'Bound',    nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_bundbound,'Bundbound',nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc,      'BGC',      nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp_1d,   '1d-evp',   nblocks,distrb_info%nprocs)
@@ -229,7 +231,7 @@
 
  subroutine get_ice_timer(timer_id, name_choice, num_blocks, num_nodes)
 
-!  This routine initializes a timer with a given name and returns a 
+!  This routine initializes a timer with a given name and returns a
 !  timer id.
 
    character (*), intent(in) :: &
@@ -242,7 +244,7 @@
                                 !  threaded region)
 
    integer (int_kind), intent(out) :: &
-      timer_id           ! timer number assigned to this timer 
+      timer_id           ! timer number assigned to this timer
 
 !-----------------------------------------------------------------------
 !
@@ -273,7 +275,7 @@
          all_timers(n)%name       = name_choice
          all_timers(n)%in_use     = .true.
          all_timers(n)%num_blocks = num_blocks
-         all_timers(n)%num_nodes  = num_nodes 
+         all_timers(n)%num_nodes  = num_nodes
 
          allocate(all_timers(n)%block_started   (num_blocks), &
                   all_timers(n)%block_cycles1   (num_blocks), &
@@ -291,7 +293,7 @@
 
    if (srch_error /= 0) &
       call abort_ice(subname//'ERROR: Exceeded maximum number of timers')
-                    
+
 
 !-----------------------------------------------------------------------
 
@@ -332,7 +334,7 @@
       all_timers(timer_id)%block_accum_time(:) = c0
    else
       call abort_ice(subname//'ERROR: attempt to reset undefined timer')
-                    
+
    endif
 
 !-----------------------------------------------------------------------
@@ -394,7 +396,7 @@
          !*** another thread.  if already started, keep track
          !*** of number of start requests in order to match
          !*** start and stop requests
- 
+
          !$OMP CRITICAL
 
          if (.not. all_timers(timer_id)%node_started) then
@@ -429,18 +431,18 @@
       endif
    else
       call abort_ice(subname//'ERROR: attempt to start undefined timer')
-                    
+
    endif
 
 !-----------------------------------------------------------------------
 
  end subroutine ice_timer_start
- 
+
 !***********************************************************************
 
  subroutine ice_timer_stop(timer_id, block_id)
 
-!  This routine stops a given node timer if appropriate.  If block 
+!  This routine stops a given node timer if appropriate.  If block
 !  information is available the appropriate block timer is also stopped.
 
    integer (int_kind), intent(in) :: &
@@ -511,7 +513,7 @@
          !*** stop node timer if number of requested stops
          !*** matches the number of starts (to avoid stopping
          !*** a node timer started by multiple threads)
- 
+
          cycles1 = all_timers(timer_id)%node_cycles1
 
          !$OMP CRITICAL
@@ -564,13 +566,13 @@
       endif
    else
       call abort_ice(subname//'ERROR: attempt to stop undefined timer')
-                    
+
    endif
 
 !-----------------------------------------------------------------------
 
  end subroutine ice_timer_stop
- 
+
 !***********************************************************************
 
  subroutine ice_timer_print(timer_id,stats)
@@ -646,7 +648,7 @@
          local_time = c0
       endif
       max_time = global_maxval(local_time,distrb_info)
-      
+
       if (my_task == master_task) then
         write (nu_diag,timer_format) timer_id, &
               trim(all_timers(timer_id)%name),max_time
@@ -711,7 +713,7 @@
       if (lrestart_timer) call ice_timer_start(timer_id)
    else
       call abort_ice(subname//'ERROR: attempt to print undefined timer')
-                    
+
    endif
 
 !-----------------------------------------------------------------------
@@ -769,7 +771,7 @@
  subroutine ice_timer_check(timer_id,block_id)
 
 !  This routine checks a given timer by stopping and restarting the
-!  timer.  This is primarily used to periodically accumulate time in 
+!  timer.  This is primarily used to periodically accumulate time in
 !  the timer to prevent timer cycles from wrapping around max_cycles.
 
    integer (int_kind), intent(in) :: &

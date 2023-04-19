@@ -1,0 +1,4 @@
+shortwave  = 'dEdd'
+tr_aero    = .true.
+modal_aero = .true.
+

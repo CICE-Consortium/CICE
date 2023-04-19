@@ -191,7 +191,8 @@ setup_nml
    "``history_format``", "``default``", "read/write history files in default format", "``default``"
    "", "``pio_pnetcdf``", "read/write restart files with pnetcdf in pio", ""
    "``history_precision``", "integer", "history file precision: 4 or 8 byte", "4"
-   "``ice_ic``", "``default``", "latitude and sst dependent initial condition", "``default``"
+   "``ice_ic``", "``default``", "equal to internal", "``default``"
+   "", "``internal``", "initial conditions set based on ice\_data\_type,conc,dist inputs", ""
    "", "``none``", "no ice", ""
    "", "'path/file'", "restart file name", ""
    "``incond_dir``", "string", "path to initial condition directory", "'./'"
@@ -200,6 +201,7 @@ setup_nml
    "``latpnt``", "real", "latitude of (2) diagnostic points", "90.0,-65.0"
    "``lcdf64``", "logical", "use 64-bit netcdf format", "``.false.``"
    "``lonpnt``", "real", "longitude of (2) diagnostic points", "0.0,-45.0"
+   "``memory_stats``", "logical", "turns on memory use diagnostics", "``.false.``"
    "``month_init``", "integer", "the initial month if not using restart", "1"
    "``ndtd``", "integer", "number of dynamics/advection/ridging/steps per thermo timestep", "1"
    "``npt``", "integer", "total number of npt_units to run the model", "99999"
@@ -243,13 +245,25 @@ grid_nml
    "``bathymetry_file``", "string", "name of bathymetry file to be read", "'unknown_bathymetry_file'"
    "``bathymetry_format``", "``default``", "NetCDF depth field", "'default'"
    "", "``pop``", "pop thickness file in cm in ascii format", ""
-   "``close_boundaries``", "logical", "force two gridcell wide land mask on boundaries", "``.false.``"
+   "``close_boundaries``", "logical", "force two gridcell wide land mask on boundaries for rectangular grids", "``.false.``"
    "``dxrect``", "real", "x-direction grid spacing for rectangular grid in cm", "0.0"
+   "``dxscale``", "real", "user defined rectgrid x-grid scale factor", "1.0"
    "``dyrect``", "real", "y-direction grid spacing for rectangular grid in cm", "0.0"
+   "``dyscale``", "real", "user defined rectgrid y-grid scale factor", "1.0"
    "``gridcpl_file``", "string", "input file for coupling grid info", "'unknown_gridcpl_file'"
+   "``grid_atm``", "``A``", "atm forcing/coupling grid, all fields on T grid", "``A``"
+   "", "``B``", "atm forcing/coupling grid, thermo fields on T grid, dyn fields on U grid", ""
+   "", "``C``", "atm forcing/coupling grid, thermo fields on T grid, dynu fields on E grid, dynv fields on N grid", ""
+   "", "``CD``", "atm forcing/coupling grid, thermo fields on T grid, dyn fields on N and E grid", ""
    "``grid_file``", "string", "name of grid file to be read", "'unknown_grid_file'"
    "``grid_format``", "``bin``", "read direct access grid and kmt files", "``bin``"
    "", "``nc``", "read grid and kmt files", ""
+   "``grid_ice``", "``B``", "use B grid structure with T at center and U at NE corner", "``B``"
+   "", "``C``", "use C grid structure with T at center, U at E edge, V at N edge", ""
+   "``grid_ocn``", "``A``", "ocn forcing/coupling grid, all fields on T grid", "``A``"
+   "", "``B``", "ocn forcing/coupling grid, thermo fields on T grid, dyn fields on U grid", ""
+   "", "``C``", "ocn forcing/coupling grid, thermo fields on T grid, dynu fields on E grid, dynv fields on N grid", ""
+   "", "``CD``", "ocn forcing/coupling grid, thermo fields on T grid, dyn fields on N and E grid", ""
    "``grid_type``", "``displaced_pole``", "read from file in *popgrid*", "``rectangular``"
    "", "``rectangular``", "defined in *rectgrid*", ""
    "", "``regional``", "read from file in *popgrid*", ""
@@ -259,13 +273,21 @@ grid_nml
    "", "``1``", "new formulation with round numbers", ""
    "", "``2``", "WMO standard categories", ""
    "", "``3``", "asymptotic scheme", ""
-   "``kmt_file``", "string", "name of land mask file to be read", "'unknown_kmt_file'"
+   "``kmt_file``", "string", "name of land mask file to be read", "``unknown_kmt_file``"
+   "``kmt_type``", "boxislands", "ocean/land mask set internally, complex test geometory", "file"
+   "", "channel", "ocean/land mask set internally as zonal channel", ""
+   "", "default", "ocean/land mask set internally, land in upper left and lower right of domain, ", ""
+   "", "file", "ocean/land mask setup read from file, see kmt_file", ""
+   "", "wall", "ocean/land mask set at right edge of domain", ""
+   "``latrefrect``","real","lower left corner lat for rectgrid in deg", "71.35"
+   "``lonrefrect``","real","lower left corner lon for rectgrid in deg", "-156.5"
    "``nblyr``", "integer", "number of zbgc layers", "0"
    "``ncat``", "integer", "number of ice thickness categories", "0"
    "``nfsd``", "integer", "number of floe size categories", "1"
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
    "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
+   "``scale_dxdy``", "logical", "apply dxscale, dyscale to rectgrid", "``false``"
    "``use_bathymetry``", "logical", "use read in bathymetry file for seabedstress option", "``.false.``"
    "", "", "", ""
 
@@ -289,7 +311,8 @@ domain_nml
    "", "``spacecurve``", "distribute blocks via space-filling curves", ""
    "", "``spiralcenter``", "distribute blocks via roundrobin from center of grid outward in a spiral", ""
    "", "``wghtfile``", "distribute blocks based on weights specified in ``distribution_wght_file``", ""
-   "``distribution_wght``", "``block``", "full block size distribution weight method", "``latitude``"
+   "``distribution_wght``", "``block``", "full block weight method with land block elimination", "``latitude``"
+   "", "``blockall``", "full block weight method without land block elimination", ""
    "", "``latitude``", "latitude/ocean sets ``work_per_block``", ""
    "``distribution_wght_file``", "string", "distribution weight file when distribution_type is ``wghtfile``", "'unknown'"
    "``ew_boundary_type``", "``cyclic``", "periodic boundary conditions in x-direction", "``cyclic``"
@@ -335,8 +358,8 @@ tracer_nml
    "``tr_iage``", "logical", "ice age", "``.false.``"
    "``tr_iso``", "logical", "isotopes", "``.false.``"
    "``tr_lvl``", "logical", "level ice area and volume", "``.false.``"
-   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
    "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
+   "``tr_pond_cesm``", " ", "DEPRECATED", " "
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
    "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
@@ -345,10 +368,14 @@ tracer_nml
    "``restart_FY``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_iso``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_lvl``", "logical", "restart tracer values from file", "``.false.``"
-   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_lvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_topo``", "logical", "restart tracer values from file", "``.false.``"
+   "``restart_snow``", "logical", "restart snow tracer values from file", "``.false.``"
    "", "", "", ""
+
+..
+   "``tr_pond_cesm``", "logical", "CESM melt ponds", "``.false.``"
+   "``restart_pond_cesm``", "logical", "restart tracer values from file", "``.false.``"
 
 thermo_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -369,7 +396,6 @@ thermo_nml
    "", "``1``", "linear remapping ITD approximation", ""
    "``ksno``", "real", "snow thermal conductivity", "0.3"
    "``ktherm``", "``-1``", "thermodynamic model disabled", "1"
-   "", "``0``", "zero-layer thermodynamic model", ""
    "", "``1``", "Bitz and Lipscomb thermodynamic model", ""
    "", "``2``", "mushy-layer thermodynamic model", ""
    "``phi_c_slow_mode``", ":math:`0<\phi_c < 1`", "critical liquid fraction", "0.05"
@@ -377,10 +403,21 @@ thermo_nml
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "", "", "", ""
 
+
 .. _dynamics_nml:
 
 dynamics_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+..
+   commented out
+   "``damping_andacc``", "integer", "damping factor for Anderson acceleration", "0"
+   "``dim_andacc``", "integer", "size of Anderson minimization matrix", "5"
+   "``fpfunc_andacc``", "``1``", "fix point function for Anderson acceleration, FMGRES(A(x),b(x))", "1"
+   "", "``2``", "fix point function for Anderson acceleration, x-A(x)x+b(x)", ""
+   "``reltol_andacc``", "real", "relative tolerance for Anderson acceleration", "1e-6"
+   "``start_andacc``", "integer", "acceleration delay factor for Anderson acceleration", "0"
+   commented out
 
 .. csv-table:: **dynamics_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
@@ -394,21 +431,27 @@ dynamics_nml
    "``alphab``", "real", ":math:`\alpha_{b}` factor in :cite:`Lemieux16`", "20.0"
    "``arlx``", "real", "revised_evp value", "300.0"
    "``brlx``", "real", "revised_evp value", "300.0"
+   "``capping_method``", "``max``", "max capping in :cite:`Hibler79`", "max"
+   "", "``sum``", "sum capping in :cite:`Kreyscher00`", ""
    "``Cf``", "real", "ratio of ridging work to PE change in ridging", "17.0"
    "``coriolis``", "``constant``", "constant coriolis value = 1.46e-4 s\ :math:`^{-1}`", "``latitude``"
    "", "``latitude``", "coriolis variable by latitude", ""
    "", "``zero``", "zero coriolis", ""
    "``Cstar``", "real", "constant in Hibler strength formula", "20"
-   "``e_ratio``", "real", "EVP ellipse aspect ratio", "2.0"
+   "``deltaminEVP``", "real", "minimum delta for viscosities", "1e-11"
+   "``deltaminVP``", "real", "minimum delta for viscosities", "2e-9"
    "``dim_fgmres``", "integer", "maximum number of Arnoldi iterations for FGMRES solver", "50"
    "``dim_pgmres``", "integer", "maximum number of Arnoldi iterations for PGMRES preconditioner", "5"
+   "``e_plasticpot``", "real", "aspect ratio of elliptical plastic potential", "2.0"
+   "``e_yieldcurve``", "real", "aspect ratio of elliptical yield curve", "2.0"
+   "``elasticDamp``", "real", "elastic damping parameter", "0.36"
+   "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
+   "", "``shared_mem_1d``", "1d shared memory solver", ""
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
    "", "``0``", "dynamics OFF", ""
    "", "``1``", "EVP dynamics", ""
    "", "``2``", "EAP dynamics", ""
    "", "``3``", "VP dynamics", ""
-   "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
-   "", "``shared_mem_1d``", "1d shared memory solver", ""
    "``kstrength``", "``0``", "ice strength formulation :cite:`Hibler79`", "1"
    "", "``1``", "ice strength formulation :cite:`Rothrock75`", ""
    "``krdg_partic``", "``0``", "old ridging participation function", "1"
@@ -420,13 +463,13 @@ dynamics_nml
    "``ktransport``", "``-1``", "transport disabled", "1"
    "", "``1``", "transport enabled", ""
    "``Ktens``", "real", "Tensile strength factor (see :cite:`Konig10`)", "0.0"
-   "``k1``", "real", "1st free parameter for landfast parameterization", "8.0"
+   "``k1``", "real", "1st free parameter for landfast parameterization", "7.5"
    "``k2``", "real", "2nd free parameter (N/m\ :math:`^3`) for landfast parameterization", "15.0"
-   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "1000"
    "``maxits_fgmres``", "integer", "maximum number of restarts for FGMRES solver", "1"
+   "``maxits_nonlin``", "integer", "maximum number of nonlinear iterations for VP solver", "10"
    "``maxits_pgmres``", "integer", "maximum number of restarts for PGMRES preconditioner", "1"
-   "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
    "``monitor_fgmres``", "logical", "write velocity norm at each FGMRES iteration", "``.false.``"
+   "``monitor_nonlin``", "logical", "write velocity norm at each nonlinear iteration", "``.false.``"
    "``monitor_pgmres``", "logical", "write velocity norm at each PGMRES iteration", "``.false.``"
    "``mu_rdg``", "real", "e-folding scale of ridged ice for ``krdg_partic`` = 1 in m^0.5", "3.0"
    "``ndte``", "integer", "number of EVP subcycles", "120"
@@ -436,8 +479,8 @@ dynamics_nml
    "", "``ident``", "Don't use a preconditioner for the FGMRES solver", ""
    "", "``pgmres``", "Use GMRES as preconditioner for FGMRES solver", ""
    "``Pstar``", "real", "constant in Hibler strength formula (N/m\ :math:`^2`)", "2.75e4"
+   "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-1"
    "``reltol_nonlin``", "real", "relative tolerance for nonlinear solver", "1e-8"
-   "``reltol_fgmres``", "real", "relative tolerance for FGMRES solver", "1e-2"
    "``reltol_pgmres``", "real", "relative tolerance for PGMRES preconditioner", "1e-6"
    "``revised_evp``", "logical", "use revised EVP formulation", "``.false.``"
    "``seabed_stress``", "logical", "use seabed stress parameterization for landfast ice", "``.false.``"
@@ -446,8 +489,10 @@ dynamics_nml
    "``ssh_stress``", "``coupled``", "computed from coupled sea surface height gradient", "``geostrophic``"
    "", "``geostropic``", "computed from ocean velocity", ""
    "``threshold_hw``", "real", "Max water depth for grounding (see :cite:`Amundrud04`)", "30."
-   "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "``use_mean_vrel``", "logical", "Use mean of two previous iterations for vrel in VP", "``.true.``"
+   "``visc_method``", "``avg_strength``", "average strength for viscosities on U grid", "``avg_zeta``"
+   "", "``avg_zeta``", "average zeta for viscosities on U grid", ""
+   "``yield_curve``", "``ellipse``", "elliptical yield curve", "``ellipse``"
    "", "", "", ""
 
 shortwave_nml
@@ -490,7 +535,7 @@ ponds_nml
    "``frzpnd``", "``cesm``", "CESM pond refreezing forumulation", "``cesm``"
    "", "``hlid``", "Stefan refreezing with pond ice thickness", ""
    "``hp1``", "real", "critical ice lid thickness for topo ponds in m", "0.01"
-   "``hs0``", "real", "snow depth of transition to bare sea ice in m", "0.03"
+   "``hs0``", "real", "snow depth of transition to bare sea ice in m", ""
    "``hs1``", "real", "snow depth of transition to pond ice in m", "0.03"
    "``pndaspect``", "real", "aspect ratio of pond changes (depth:area)", "0.8"
    "``rfracmax``", ":math:`0 \le r_{max} \le 1`", "maximum melt water added to ponds", "0.85"
@@ -534,6 +579,12 @@ snow_nml
 forcing_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+..
+   commented out
+   "``calc_dragio``", "logical", "compute dragio from iceruf_ocean and thickness of first ocean level, not supported", "``.false.``"
+   "``iceruf_ocn``", "real", "under ice roughness in meters, not supported", "0.03"
+   commented out
+
 .. csv-table:: **forcing_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -574,10 +625,27 @@ forcing_nml
    "``formdrag``", "logical", "calculate form drag", "``.false.``"
    "``fyear_init``", "integer", "first year of atmospheric forcing data", "1900"
    "``highfreq``", "logical", "high-frequency atmo coupling", "``.false.``"
-   "``ice_data_type``", "``boxslotcyl``", "initialize ice concentration and velocity for :ref:`boxslotcyl` test (:cite:`Zalesak79`)", "``default``"
-   "", "``box2001``", "initialize ice concentration for :ref:`box2001` test (:cite:`Hunke01`)", ""
-   "", "``default``", "no special initialization", ""
-   "``iceruf``", "real", "ice surface roughness at atmosphere interface", "0.0005"
+   "``ice_data_conc``",  "``box2001``", "ice distribution ramped from 0 to 1 west to east consistent with :ref:`box2001` test (:cite:`Hunke01`)", "``default``"
+   "", "``c1``", "initial ice concentation of 1.0", ""
+   "", "``default``", "same as parabolic", ""
+   "", "``p5``", "initial concentration of 0.5", ""
+   "", "``p8``", "initial concentration of 0.8", ""
+   "", "``p9``", "initial concentration of 0.9", ""
+   "", "``parabolic``", "parabolic in ice thickness space with sum of aicen=1.0", ""
+   "``ice_data_dist``",  "``box2001``", "ice distribution ramped from 0 to 1 west to east consistent with :ref:`box2001` test (:cite:`Hunke01`)", "``default``"
+   "", "``default``", "uniform distribution, equivalent to uniform", ""
+   "", "``gauss``", "gauss distbution of ice with a peak in the center of the domain", ""
+   "", "``uniform``", "uniform distribution, equivalent to default", ""
+   "``ice_data_type``",  "``block``", "ice block covering about 25 percent of the area in center of domain", "``default``"
+   "", "``boxslotcyl``", "slot cylinder ice mask associated with :ref:`boxslotcyl` test (:cite:`Zalesak79`)", ""
+   "", "``box2001``", "box2001 ice mask associate with :ref:`box2001` test (:cite:`Hunke01`)", ""
+   "", "``channel``", "ice defined on entire grid in i-direction and 50% in j-direction in center of domain", ""
+   "", "``default``", "same as latsst", ""
+   "", "``eastblock``", "ice block covering about 25 percent of domain at the east edge of the domain", ""
+   "", "``latsst``", "ice dependent on latitude and ocean temperature", ""
+   "", "``uniform``", "ice defined at all grid points", ""
+   "``ice_ref_salinity``", "real", "sea ice salinity for coupling fluxes (ppt)", "4.0"
+   "``iceruf``", "real", "ice surface roughness at atmosphere interface in meters", "0.0005"
    "``l_mpond_fresh``", "``.false.``", "release pond water immediately to ocean", "``.false.``"
    "", "``true``", "retain (topo) pond water until ponds drain", ""
    "``natmiter``", "integer", "number of atmo boundary layer iterations", "5"
@@ -599,11 +667,13 @@ forcing_nml
    "``restore_ocn``", "logical", "restore sst to data", "``.false.``"
    "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
    "``rotate_wind``", "logical", "rotate wind from east/north to computation grid", "``.true.``"
-   "``tfrz_option``", "``linear_salt``", "linear functino of salinity (ktherm=1)", "``mushy``"
+   "``saltflux_option``", "``constant``", "computed using ice_ref_salinity", "``constant``"
+   "", "``prognostic``", "computed using prognostic salinity", ""
+   "``tfrz_option``", "``linear_salt``", "linear function of salinity (ktherm=1)", "``mushy``"
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
    "``trestore``", "integer", "sst restoring time scale (days)", "90"
-   "``ustar_min``", "real", "minimum value of ocean friction velocity", "0.0005 m/s"
+   "``ustar_min``", "real", "minimum value of ocean friction velocity in m/s", "0.0005"
    "``update_ocn_f``", "``.false.``", "do not include frazil water/salt fluxes in ocn fluxes", "``.false.``"
    "", "``true``", "include frazil water/salt fluxes in ocn fluxes", ""
    "``wave_spec_file``", "string", "data file containing wave spectrum forcing data", ""
@@ -737,14 +807,14 @@ zbgc_nml
    "``ratio_S2N_sp``", "real", "algal S to N in mol/mol small plankton", "0.03"
    "``restart_bgc``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_hbrine``", "logical", "", "``.false.``"
-   "``restart_zsal``", "logical", "", "``.false.``"
+   "``restart_zsal``", "logical", "zsalinity DEPRECATED", "``.false.``"
    "``restore_bgc``", "logical", "restore bgc to data", "``.false.``"
    "``R_dFe2dust``", "real", "g/g :cite:`Tagliabue09`", "0.035"
    "``scale_bgc``", "logical", "", "``.false.``"
    "``silicatetype``", "real", "mobility type between stationary and mobile silicate", "-1.0"
    "``skl_bgc``", "logical", "biogeochemistry", "``.false.``"
    "``solve_zbgc``", "logical", "", "``.false.``"
-   "``solve_zsal``", "logical", "update salinity tracer profile", "``.false.``"
+   "``solve_zsal``", "logical", "zsalinity DEPRECATED, update salinity tracer profile", "``.false.``"
    "``tau_max``", "real", "long time mobile to stationary exchanges", "1.73e-5"
    "``tau_min``", "real", "rapid module to stationary exchanges", "5200."
    "``tr_bgc_Am``", "logical", "ammonium tracer", "``.false.``"
@@ -777,6 +847,17 @@ zbgc_nml
 icefields_nml
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+There are several icefield namelist groups to control model history output.  See the
+source code for a full list of supported output fields.
+
+* ``icefields_nml`` is in **cicecore/cicedyn/analysis/ice_history_shared.F90**
+* ``icefields_bgc_nml`` is in **cicecore/cicedyn/analysis/ice_history_bgc.F90**
+* ``icefields_drag_nml`` is in **cicecore/cicedyn/analysis/ice_history_drag.F90**
+* ``icefields_fsd_nml`` is in **cicecore/cicedyn/analysis/ice_history_fsd.F90**
+* ``icefields_mechred_nml`` is in **cicecore/cicedyn/analysis/ice_history_mechred.F90**
+* ``icefields_pond_nml`` is in **cicecore/cicedyn/analysis/ice_history_pond.F90**
+* ``icefields_snow_nml`` is in **cicecore/cicedyn/analysis/ice_history_snow.F90**
+
 .. csv-table:: **icefields_nml namelist options**
    :header: "variable", "options/format", "description", "default value"
    :widths: 15, 15, 30, 15 
@@ -797,4 +878,5 @@ icefields_nml
    "", "``1``", "write field cell average var every time step", ""
    "", "``md``", "*e.g.,* write both monthly and daily files", ""
    "", "", "", ""
+
 

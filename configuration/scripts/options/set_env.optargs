@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/optargs
+setenv ICE_TARGET     optargs

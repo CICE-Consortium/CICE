@@ -6,6 +6,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
       use ice_kinds_mod
@@ -22,7 +23,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       type(file_desc_t)     :: File
       type(var_desc_t)      :: vardesc
@@ -43,7 +45,6 @@
 
       use ice_calendar, only: istep0, istep1, myear, mmonth, &
                               mday, msec, npt
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
 
@@ -60,7 +61,7 @@
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -82,7 +83,7 @@
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
-      
+
          call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
 
@@ -121,7 +122,7 @@
 !      call broadcast_scalar(time,master_task)
 !      call broadcast_scalar(time_forc,master_task)
       call broadcast_scalar(myear,master_task)
-      
+
       istep1 = istep0
 
       ! if runid is bering then need to correct npt for istep0
@@ -139,18 +140,18 @@
       subroutine init_restart_write(filename_spec)
 
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_dyn_shared, only: kdyn
       use ice_arrays_column, only: oceanmixed_ice
+      use ice_grid, only: grid_ice
 
       logical (kind=log_kind) :: &
           solve_zsal, skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
           tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
@@ -186,7 +187,7 @@
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-          tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
           tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
           tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -210,7 +211,7 @@
               restart_file(1:lenstr(restart_file)),'.', &
               myear,'-',mmonth,'-',mday,'-',msec
       end if
-        
+
       if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
@@ -221,7 +222,7 @@
       endif
 
 !     if (restart_format(1:3) == 'pio') then
-      
+
          iotype = PIO_IOTYPE_NETCDF
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
@@ -251,6 +252,20 @@
 
          call define_rest_field(File,'uvel',dims)
          call define_rest_field(File,'vvel',dims)
+
+         if (grid_ice == 'CD') then
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelE',dims)
+            call define_rest_field(File,'uvelN',dims)
+            call define_rest_field(File,'vvelN',dims)
+         endif
+
+         if (grid_ice == 'C') then
+            call define_rest_field(File,'uvelE',dims)
+            call define_rest_field(File,'vvelN',dims)
+         endif
+
+
          if (restart_coszen) call define_rest_field(File,'coszen',dims)
          call define_rest_field(File,'scale_factor',dims)
          call define_rest_field(File,'swvdr',dims)
@@ -277,6 +292,17 @@
          call define_rest_field(File,'stress12_4',dims)
 
          call define_rest_field(File,'iceumask',dims)
+
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            call define_rest_field(File,'stresspT' ,dims)
+            call define_rest_field(File,'stressmT' ,dims)
+            call define_rest_field(File,'stress12T',dims)
+            call define_rest_field(File,'stresspU' ,dims)
+            call define_rest_field(File,'stressmU' ,dims)
+            call define_rest_field(File,'stress12U',dims)
+            call define_rest_field(File,'icenmask',dims)
+            call define_rest_field(File,'iceemask',dims)
+         endif
 
          if (oceanmixed_ice) then
             call define_rest_field(File,'sst',dims)
@@ -384,11 +410,6 @@
          if (tr_lvl) then
             call define_rest_field(File,'alvl',dims)
             call define_rest_field(File,'vlvl',dims)
-         end if
-
-         if (tr_pond_cesm) then
-            call define_rest_field(File,'apnd',dims)
-            call define_rest_field(File,'hpnd',dims)
          end if
 
          if (tr_pond_topo) then
@@ -669,7 +690,6 @@
                                     field_loc, field_type)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: halo_info, distrb_info, nblocks
@@ -729,10 +749,6 @@
 !         if (ndim3 == ncat .and. ncat>1) then
          if (ndim3 == ncat .and. ndims == 3) then
             call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
-!#ifndef CESM1_PIO
-!!           This only works for PIO2
-!            where (work == PIO_FILL_DOUBLE) work = c0
-!#endif
             if (present(field_loc)) then
                do n=1,ndim3
                   call ice_HaloUpdate (work(:,:,n,:), halo_info, &
@@ -742,10 +758,6 @@
 !         elseif (ndim3 == 1) then
          elseif (ndim3 == 1 .and. ndims == 2) then
             call pio_read_darray(File, vardesc, iodesc2d, work, status)
-!#ifndef CESM1_PIO
-!!           This only works for PIO2
-!            where (work == PIO_FILL_DOUBLE) work = c0
-!#endif
             if (present(field_loc)) then
                call ice_HaloUpdate (work(:,:,1,:), halo_info, &
                                     field_loc, field_type)
@@ -761,8 +773,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -770,19 +781,17 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
-                  write(nu_diag,*) ''
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
-         
+
          endif
 !     else
 !        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
 !     endif  ! restart_format
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.
@@ -791,7 +800,6 @@
       subroutine write_restart_field(nu,nrec,work,atype,vname,ndim3,diag)
 
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, field_loc_center
       use ice_domain, only: distrb_info, nblocks
       use ice_domain_size, only: max_blocks, ncat
@@ -831,10 +839,10 @@
             write(nu_diag,*)'Parallel restart file write: ',vname
 
          status = pio_inq_varid(File,trim(vname),vardesc)
-         
+
          status = pio_inq_varndims(File, vardesc, ndims)
 
-         if (ndims==3) then 
+         if (ndims==3) then
             call pio_write_darray(File, vardesc, iodesc3d_ncat,work(:,:,:,1:nblocks), &
                  status, fillval=c0)
          elseif (ndims == 2) then
@@ -851,8 +859,7 @@
                   amax = global_maxval(work(:,:,n,:),distrb_info)
                   asum = global_sum(work(:,:,n,:), distrb_info, field_loc_center)
                   if (my_task == master_task) then
-                     write(nu_diag,*) ' min and max =', amin, amax
-                     write(nu_diag,*) ' sum =',asum
+                     write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                   endif
                enddo
             else
@@ -860,8 +867,7 @@
                amax = global_maxval(work(:,:,1,:),distrb_info)
                asum = global_sum(work(:,:,1,:), distrb_info, field_loc_center)
                if (my_task == master_task) then
-                  write(nu_diag,*) ' min and max =', amin, amax
-                  write(nu_diag,*) ' sum =',asum
+                  write(nu_diag,*) ' min, max, sum =', amin, amax, asum, trim(vname)
                endif
             endif
          endif
@@ -879,7 +885,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate, msec
-      use ice_communicate, only: my_task, master_task
 
       character(len=*), parameter :: subname = '(final_restart)'
 
@@ -909,8 +914,30 @@
       character(len=*), parameter :: subname = '(define_rest_field)'
 
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
-        
+
       end subroutine define_rest_field
+
+!=======================================================================
+
+! Inquire field existance
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      integer (kind=int_kind) :: status, varid
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .false.
+
+      status = pio_inq_varid(File,trim(vname),vardesc)
+      if (status == PIO_noerr) query_field = .true.
+
+      end function query_field
 
 !=======================================================================
 

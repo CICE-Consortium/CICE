@@ -18,7 +18,7 @@
    use ice_kinds_mod
    use ice_constants, only: shlat, nhlat
    use ice_communicate, only: my_task, master_task, get_num_procs, &
-       add_mpi_barriers
+       add_mpi_barriers, ice_barrier
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
        nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block, debug_blocks
@@ -26,7 +26,7 @@
    use ice_boundary, only: ice_halo
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_nml, nml_filename, nu_diag, &
-       get_fileunit, release_fileunit
+       get_fileunit, release_fileunit, flush_fileunit
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
 
@@ -63,6 +63,8 @@
       maskhalo_dyn   , & ! if true, use masked halo updates for dynamics
       maskhalo_remap , & ! if true, use masked halo updates for transport
       maskhalo_bound , & ! if true, use masked halo updates for bound_state
+      halo_dynbundle , & ! if true, bundle halo update in dynamics
+      landblockelim  , & ! if true, land block elimination is on
       orca_halogrid      ! if true, input fields are haloed as defined by orca grid
 
 !-----------------------------------------------------------------------
@@ -77,8 +79,9 @@
        distribution_type,   &! method to use for distributing blocks
                              ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
                              ! 'rake', 'spacecurve', etc
-       distribution_wght     ! method for weighting work per block 
+       distribution_wght     ! method for weighting work per block
                              ! 'block' = POP default configuration
+                             ! 'blockall' = no land block elimination
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &
@@ -162,13 +165,15 @@
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
+   halo_dynbundle    = .true.      ! if true, bundle halo updates in dynamics
    add_mpi_barriers  = .false.     ! if true, throttle communication
    debug_blocks      = .false.     ! if true, print verbose block information
-   max_blocks        = -1           ! max number of blocks per processor
+   max_blocks        = -1          ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
    nx_global         = -1          ! NXGLOB,  i-axis size
    ny_global         = -1          ! NYGLOB,  j-axis size
+   landblockelim     = .true.      ! on by default
 
    if (my_task == master_task) then
       write(nu_diag,*) subname,' Reading domain_nml'
@@ -244,6 +249,7 @@
 #if (defined CESMCOUPLED)
       nprocs = get_num_procs()
 #else
+      write(nu_diag,*) subname,'ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
       call abort_ice(subname//'ERROR: Input nprocs not same as system request')
 #endif
    else if (nghost < 1) then
@@ -299,7 +305,7 @@
 
 !***********************************************************************
 
- subroutine init_domain_distribution(KMTG,ULATG)
+ subroutine init_domain_distribution(KMTG,ULATG,grid_ice)
 
 !  This routine calls appropriate setup routines to distribute blocks
 !  across processors and defines arrays with block ids for any local
@@ -313,6 +319,9 @@
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG           ,&! global topography
       ULATG            ! global latitude field (radians)
+
+   character(len=*), intent(in) :: &
+      grid_ice         ! grid_ice, B, C, CD, etc
 
 !----------------------------------------------------------------------
 !
@@ -331,7 +340,9 @@
    integer (int_kind) :: &
       i,j,n              ,&! dummy loop indices
       ig,jg              ,&! global indices
+      igm1,igp1,jgm1,jgp1,&! global indices
       ninfo              ,&! ice_distributionGet check
+      np, nlb, m         ,&! debug blocks temporaries
       work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
       fid                ,&! file id
@@ -363,7 +374,7 @@
 !
 !  check that there are at least nghost+1 rows or columns of land cells
 !  for closed boundary conditions (otherwise grid lengths are zero in
-!  cells neighboring ocean points).  
+!  cells neighboring ocean points).
 !
 !----------------------------------------------------------------------
 
@@ -464,6 +475,8 @@
        flat = 1
    endif
 
+   if (distribution_wght == 'blockall') landblockelim = .false.
+
    allocate(nocn(nblocks_tot))
 
    if (distribution_wght == 'file') then
@@ -519,10 +532,25 @@
                   if (this_block%i_glob(i) > 0) then
                      ig = this_block%i_glob(i)
                      jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny .and.                      &
-                        (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
-                         ULATG(ig,jg) > nhlat/rad_to_deg) )            & 
-                          nocn(n) = nocn(n) + flat(ig,jg)
+                     if (grid_ice == 'C' .or. grid_ice == 'CD') then
+                        ! Have to be careful about block elimination with C/CD
+                        ! Use a bigger stencil
+                        igm1 = mod(ig-2+nx_global,nx_global)+1
+                        igp1 = mod(ig,nx_global)+1
+                        jgm1 = max(jg-1,1)
+                        jgp1 = min(jg+1,ny_global)
+                        if ((KMTG(ig  ,jg  ) > puny .or.                             &
+                             KMTG(igm1,jg  ) > puny .or. KMTG(igp1,jg  ) > puny .or. &
+                             KMTG(ig  ,jgp1) > puny .or. KMTG(ig  ,jgm1) > puny) .and. &
+                            (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
+                             ULATG(ig,jg) > nhlat/rad_to_deg) )            &
+                             nocn(n) = nocn(n) + flat(ig,jg)
+                     else
+                        if (KMTG(ig,jg) > puny .and.                      &
+                           (ULATG(ig,jg) < shlat/rad_to_deg .or.          &
+                            ULATG(ig,jg) > nhlat/rad_to_deg) )            &
+                             nocn(n) = nocn(n) + flat(ig,jg)
+                     endif
                   endif
                end do
             endif
@@ -532,15 +560,15 @@
          !*** points, so where the block is not completely land,
          !*** reset nocn to be the full size of the block
 
-         ! use processor_shape = 'square-pop' and distribution_wght = 'block' 
+         ! use processor_shape = 'square-pop' and distribution_wght = 'block'
          ! to make CICE and POP decompositions/distributions identical.
 
 #ifdef CICE_IN_NEMO
          ! Keep all blocks even the ones only containing land points
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
-         if (distribution_wght == 'block' .and. &   ! POP style
-             nocn(n) > 0) nocn(n) = nx_block*ny_block
+         if (distribution_wght == 'block' .and. nocn(n) > 0) nocn(n) = nx_block*ny_block
+         if (.not. landblockelim) nocn(n) = max(nocn(n),1)
 #endif
       end do
    endif  ! distribution_wght = file
@@ -585,8 +613,41 @@
 
    call create_local_block_ids(blocks_ice, distrb_info)
 
+   ! write out block distribution
    ! internal check of icedistributionGet as part of verification process
    if (debug_blocks) then
+
+      call flush_fileunit(nu_diag)
+      call ice_barrier()
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname, ' Blocks by Proc:'
+      endif
+      call ice_distributionGet(distrb_info, nprocs=np, numLocalBlocks=nlb)
+      do m = 1, np
+         if (m == my_task+1) then
+            do n=1,nlb
+               write(nu_diag,'(2a,3i8)') &
+                     subname,' my_task, local block ID, global block ID: ', &
+                     my_task, n, distrb_info%blockGlobalID(n)
+            enddo
+            call flush_fileunit(nu_diag)
+         endif
+         call ice_barrier()
+      enddo
+
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname, ' Blocks by Global Block ID:'
+         do m = 1, nblocks_tot
+            write(nu_diag,'(2a,3i8)') &
+                  subname,' global block id, proc, local block ID: ', &
+                  m, distrb_info%blockLocation(m), distrb_info%blockLocalID(m)
+         enddo
+         call flush_fileunit(nu_diag)
+      endif
+      call ice_barrier()
+
       call ice_distributionGet(distrb_info, nprocs=ninfo)
       if (ninfo /= distrb_info%nprocs) &
          call abort_ice(subname//' ice_distributionGet nprocs ERROR', file=__FILE__, line=__LINE__)
@@ -624,8 +685,11 @@
 
       deallocate(blkinfo)
 
-      if (my_task == master_task) &
-         write(nu_diag,*) subname,' ice_distributionGet checks pass'
+      if (my_task == master_task) then
+         write(nu_diag,*) ' '
+         write(nu_diag,'(2a)') subname,' ice_distributionGet checks pass'
+         write(nu_diag,*) ' '
+      endif
    endif
 
    if (associated(blocks_ice)) then

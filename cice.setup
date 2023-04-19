@@ -455,7 +455,22 @@ if ( ${dosuite} == 0 ) then
   set sets = ""
 
 else
-  set tarrays = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 | sort -u`
+  # generate unique set of suites in tarrays in order they are set
+  set tarrays0 = `echo ${testsuite} | sed 's/,/ /g' | fmt -1 `
+  #echo "${0}: tarrays0 = ${tarrays0}"
+  set tarrays = $tarrays0[1]
+  foreach t1 ( ${tarrays0} )
+    set found = 0
+    foreach t2 ( ${tarrays} )
+      if ( ${t1} == ${t2} ) then
+         set found = 1
+      endif
+    end
+    if ( ${found} == 0 ) then
+       set tarrays = ( ${tarrays} ${t1} )
+    endif
+  end
+  #echo "${0}: tarrays = ${tarrays}"
   set testsuitecnt = 0
   foreach tarray ( ${tarrays} )
     @ testsuitecnt = ${testsuitecnt} + 1
@@ -489,6 +504,7 @@ else
 #!/bin/csh -f
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
+rm -f suite.jobs
 
 set dobuild  = true
 set doreuse  = true
@@ -637,7 +653,7 @@ EOF
     set bfbcomp_tmp = `echo $line | cut -d' ' -f5`
 
     # Append sets from .ts file to the $sets variable
-    set sets = "$sets_base,$sets_tmp"
+    set sets = "$sets_tmp,$sets_base"
 
     # Create a new bfbcomp_base variable to store bfbcomp passed to cice.setup
     # Use bfbcomp_base or bfbcomp_tmp
@@ -760,12 +776,21 @@ EOF
     if (${docase} == 0) then
       set soptions = ""
       # Create sorted array and remove duplicates and "none"
-      set setsarray = `echo ${sets} | sed 's/,/ /g' | fmt -1 | sort -u`
+      set setsarray = `echo ${sets_tmp} | sed 's/,/ /g' | fmt -1 | sort -u`
       if ("${setsarray}" != "") then
         foreach field (${setsarray})
           if (${field} != "none") then
             set soptions = ${soptions}"_"${field}
           endif
+        end
+      endif
+      # Add options from command line, sort and remove duplicates
+      set soptions_base = ""
+      set setsarray_base = `echo ${sets_base} | sed 's/,/ /g' | fmt -1 | sort -u`
+      if ("${setsarray_base}" != "") then
+        foreach field (${setsarray_base})
+          set soptions = ${soptions}"_"${field}
+          set soptions_base = ${soptions_base}"_"${field}
         end
       endif
       # soptions starts with _
@@ -776,26 +801,8 @@ EOF
 
       if (${dosuite} == 1) then
         # Add -s flags in cice.setup to bfbcomp name
-        # Parse bfbcomp test_grid_pes and sets
-        # Add sets_base and sort unique
-        # Create fbfbcomp string that should be consistent with base casename
-        set bfbcomp_regex="\(.*_[0-9x]*\)_\(.*\)"
-        set bfbcomp_test_grid_pes=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\1/"`
-        set bfbcomp_sets=`echo ${bfbcomp} | sed "s/${bfbcomp_regex}/\2/" | sed 's/_/,/g' `
-        set bfbcomp_sets="${bfbcomp_sets},${sets_base}"
-        set bfbcomp_soptions = ""
-        # Create sorted array and remove duplicates and "none"
-        set bfbcomp_setsarray = `echo ${bfbcomp_sets} | sed 's/,/ /g' | fmt -1 | sort -u`
-        if ("${bfbcomp_setsarray}" != "") then
-          foreach field (${bfbcomp_setsarray})
-            if (${field} != "none") then
-              set bfbcomp_soptions = ${bfbcomp_soptions}"_"${field}
-            endif
-          end
-        endif
-        set fbfbcomp = ${spval}
         if ($bfbcomp != ${spval}) then
-          set fbfbcomp = ${machcomp}_${bfbcomp_test_grid_pes}${bfbcomp_soptions}
+          set fbfbcomp = ${machcomp}_${bfbcomp}${soptions_base}
         endif
       endif
     endif
@@ -1179,21 +1186,26 @@ echo "-------test--------------"
 echo "${testname_base}"
 cd ${testname_base}
 source ./cice.settings
+set bldstat = 0
 if (\${dobuild} == true) then
    if (\${doreuse} == true) then
      set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
      ./cice.build --exe \${ciceexe}
+     set bldstat = \${status}
      if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}
    else
      ./cice.build
+     set bldstat = \${status}
    endif
 endif
-if (\${dosubmit} == true) then
-  set jobid = \`./cice.submit\`
-  echo "\$jobid"
-  echo "\$jobid  \${ICE_TESTNAME}  " >> ../suite.jobs
-else if (\${dorun} == true) then
-  ./cice.test
+if (\$bldstat == 0) then
+  if (\${dosubmit} == true) then
+    set jobid = \`./cice.submit\`
+    echo "\$jobid"
+    echo "\$jobid  \${ICE_TESTNAME}  " >> ../suite.jobs
+  else if (\${dorun} == true) then
+    ./cice.test
+  endif
 endif
 cd ..
 EOF

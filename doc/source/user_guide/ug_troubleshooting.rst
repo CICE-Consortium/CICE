@@ -7,6 +7,16 @@ Troubleshooting
 
 Check the FAQ: https://github.com/CICE-Consortium/CICE/wiki
 
+.. _dirsetup:
+
+Directory Structure
+---------------------
+
+In November, 2022, the cicedynB directory was renamed to cicedyn.
+A soft link was temporarily added to preserve the ability to use
+cicedynB as a path when compiling CICE in other build systems.  This
+soft link will be removed in the future.
+
 .. _setup:
 
 Initial setup
@@ -219,6 +229,16 @@ Interpretation of albedos
 More information about interpretation of albedos can 
 be found in the 
 `Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/master/user_guide/index.html>`_.
+
+
+VP dynamics results
+----------------------------------------
+
+The VP dynamics solver (`kdyn=3`) requires a global sum.  This global sum
+is computed by default via an efficient implementation that is not bit-for-bit
+for different decompositions or pe counts.  Bit-for-bit identical results
+can be recovered for the VP dynamics solver by setting the namelist
+`bfbflag = reprosum` or using the `-s reprosum` option when setting up a case.
 
 
 Proliferating subprocess parameterizations

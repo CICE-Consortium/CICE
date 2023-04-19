@@ -21,6 +21,8 @@ restart        gx3    12x2        alt03,maskhalo,droundrobin
 restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05
 restart        gx3     8x2        alt06
+restart        gx3     8x3        alt07
+restart        gx3     8x3        saltflux
 restart        gx3    18x2        debug,maskhalo
 restart        gx3     6x2        alt01,debug,short
 restart        gx3     8x2        alt02,debug,short
@@ -29,6 +31,7 @@ smoke          gx3    12x2        alt03,debug,short,maskhalo,droundrobin
 smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
 smoke          gx3     8x2        alt06,debug,short
+smoke          gx3     8x3        alt07,debug,short
 smoke          gx3     10x2       debug,diag1,run5day,gx3sep2
 smoke          gx3     7x2x5x29x12 diag1,bigdiag,run1day,debug
 restart        gbox128 4x2        short
@@ -40,8 +43,10 @@ restart        gbox128 4x4        boxrestore,short
 smoke          gbox128 4x4        boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
+smoke          gbox12  1x1x12x12x1  boxchan,diag1,debug
+restart        gx3     8x2        modal
 smoke          gx3     8x2        bgcz
-smoke          gx3     8x2        bgcz,debug
+smoke          gx3     8x2        bgczm,debug
 smoke          gx3     8x1        bgcskl,debug
 #smoke          gx3     4x1       bgcz,thread        smoke_gx3_8x2_bgcz
 restart        gx1     4x2        bgcsklclim,medium
@@ -66,8 +71,6 @@ restart        gx3     4x4        histall,precision8,cdf64
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
-smoke          gx3     8x2        diag24,run5day,zsal,debug
-restart        gx3     8x2        zsal
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        gx3ncarbulk,diag1
 smoke          gx3     4x1        calcdragio

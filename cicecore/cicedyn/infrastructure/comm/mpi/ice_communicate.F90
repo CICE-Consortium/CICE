@@ -72,7 +72,7 @@
    if (present(mpicom)) then
      ice_comm = mpicom
    else
-     ice_comm = MPI_COMM_WORLD  ! Global communicator 
+     ice_comm = MPI_COMM_WORLD  ! Global communicator
    endif
 
    call MPI_INITIALIZED(flag,ierr)

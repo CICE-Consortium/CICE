@@ -32,6 +32,7 @@ setenv ICE_BFBCOMP    undefined
 setenv ICE_BFBTYPE    restart
 setenv ICE_SPVAL      undefined
 setenv ICE_RUNLENGTH  -1
+setenv ICE_MEMUSE     -1
 setenv ICE_ACCOUNT    undefined
 setenv ICE_QUEUE      undefined
 

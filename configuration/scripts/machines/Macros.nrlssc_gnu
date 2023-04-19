@@ -1,0 +1,59 @@
+#==============================================================================
+# Makefile macros for NRLSSC GCC and openmpi compilers
+#==============================================================================
+
+# specific Netcdf and MPI paths, since we use /common instead of /usr
+
+#MPIHOME      := /common/openmpi/gnu10.1.0/3.1.6
+#CDFHOME      := /common/netcdf/gnu10.1.0/openmpi3.1.6/4.7.4
+
+# use MY defined vars from .setenv_linux
+MPIHOME      := ${MPI_HOME}
+CDFHOME      := ${NETCDF_HOME}
+
+CPP          := cpp
+CPPDEFS      := -DFORTRANUNDERSCORE -DNO_R16 -DHAVE_F2008_CONTIGUOUS -DLINUX -DCPRINTEL ${ICE_CPPDEFS}
+CFLAGS       := -c -O2
+
+FIXEDFLAGS   := -ffixed-line-length-132
+FREEFLAGS    := -ffree-form
+FFLAGS       := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FFLAGS_NOOPT := -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+else
+  FFLAGS     += -O2
+endif
+
+FC := $(MPIHOME)/bin/mpif90
+
+CC:= $(MPIHOME)/bin/mpicc
+
+MPICC:= $(MPIHOME)/bin/mpicc
+
+MPIFC:= $(MPIHOME)/bin/mpif90
+LD:= $(FC) 
+
+NETCDF_PATH := $(CDFHOME)
+
+ifeq ($(ICE_IOTYPE), netcdf)
+    # NETCDF_PATH := $(shell nc-config --prefix)
+    INCLDIR := $(INCLDIR) -I$(NETCDF_PATH)/include
+    LIB_NETCDF := $(NETCDF_PATH)/lib
+    LIB_PNETCDF := 
+    LD      := $(LD) -Wl,-rpath,$(LIB_NETCDF)
+    SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+else
+    SLIBS   := 
+endif
+
+LIB_MPI := 
+SCC:= gcc
+SFC:= gfortran
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
+endif

@@ -5,7 +5,9 @@ Implementation
 ========================
 
 CICE is written in FORTRAN90 and runs on platforms using UNIX, LINUX,
-and other operating systems. The code is based on a two-dimensional 
+and other operating systems. The current coding standard is Fortran2003
+with use of Fortran2008 feature CONTIGUOUS in the 1d evp solver.
+The code is based on a two-dimensional 
 horizontal orthogonal grid that is broken into two-dimensional horizontal
 blocks and parallelized over blocks 
 with MPI and OpenMP threads.  The code also includes some optimizations
@@ -45,7 +47,7 @@ as follows
 **cicecore/**
   CICE source code
 
-**cicecore/cicedynB/**
+**cicecore/cicedyn/**
   routines associated with the dynamics core
 
 **cicecore/drivers/**
@@ -79,8 +81,8 @@ this tool.
 Grid, boundary conditions and masks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The spatial discretization is specialized for a generalized orthogonal
-B-grid as in :cite:`Murray96` or
+The spatial discretization of the original implementation is specialized 
+for a generalized orthogonal B-grid as in :cite:`Murray96` or
 :cite:`Smith95`. Figure :ref:`fig-Bgrid` is a schematic of CICE 
 B-grid. This cell with the tracer point :math:`t(i,j)` in the middle
 is referred to as T-cell. The ice and snow area, volume and energy are
@@ -90,18 +92,17 @@ corner. The other corners of the T-cell are northwest (NW), southwest
 (SW) and southeast (SE). The lengths of the four edges of the T-cell
 are respectively HTN, HTW, HTS and HTE for the northern, western,
 southern and eastern edges. The lengths of the T-cell through the
-middle are respectively dxt and dyt along the x and y axis. 
+middle are respectively dxT and dyT along the x and y axis. 
 
 We also occasionally refer to “U-cells,” which are centered on the
 northeast corner of the corresponding T-cells and have velocity in the
 center of each. The velocity components are aligned along grid lines.
 
 The internal ice stress tensor takes four different values within a grid
-cell; bilinear approximations are used for the stress tensor and the ice
+cell with the B-grid implementation; bilinear approximations are used for the stress tensor and the ice
 velocity across the cell, as described in :cite:`Hunke02`.
 This tends to avoid the grid decoupling problems associated with the
-B-grid. EVP is available on the C-grid through the MITgcm code
-distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/. 
+B-grid.
 
 .. _fig-Bgrid:
 
@@ -111,7 +112,24 @@ distribution, http://mitgcm.org/viewvc/MITgcm/MITgcm/pkg/seaice/.
 
    Schematic of CICE B-grid. 
 
-The user has several choices of grid routines: *popgrid* reads grid
+The ability to solve on the C and CD grids was added later. With the C-grid, 
+the u velocity points are located on the E edges and the v velocity points 
+are located on the N edges of the T cell rather than at the T cell corners. 
+On the CD-grid, the u and v velocity points are located on both the N and E edges. 
+To support this capability, N and E grids were added to the existing T and U grids, 
+and the N and E grids are defined at the northern and eastern edge of the T cell. 
+This is shown in Figure :ref:`fig-Cgrid`.
+
+.. _fig-Cgrid:
+
+.. figure:: ./figures/CICE_Cgrid.png
+   :align: center
+   :scale: 55%
+
+   Schematic of CICE CD-grid. 
+
+
+The user has several ways to initialize the grid: *popgrid* reads grid
 lengths and other parameters for a nonuniform grid (including tripole
 and regional grids), and *rectgrid* creates a regular rectangular grid.
 The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
@@ -121,6 +139,35 @@ The input files **global\_gx3.grid** and **global\_gx3.kmt** contain the
 and **global\_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
 tripole grid and land mask. These are binary unformatted, direct access,
 Big Endian files.
+
+The input grid file for the B-grid and CD-grid is identical.  That file
+contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
+variables, the longitude, latitude, grid lengths (dx and dy), areas,
+and masks can be derived for all grids.  Table :ref:`tab-gridvars` lists
+the primary prognostic grid variable names on the different grids.
+
+.. _tab-gridvars:
+
+.. table:: Primary CICE Prognostic Grid Variable Names
+
+   +----------------+-------+-------+-------+-------+
+   | variable       |   T   |   U   |   N   |   E   |
+   +================+=======+=======+=======+=======+
+   | longitude      |  TLON |  ULON |  NLON |  ELON |
+   +----------------+-------+-------+-------+-------+
+   | latitude       |  TLAT |  ULAT |  NLAT |  ELAT |
+   +----------------+-------+-------+-------+-------+
+   | dx             |  dxT  |  dxU  |  dxN  |  dxE  |
+   +----------------+-------+-------+-------+-------+
+   | dy             |  dyT  |  dyU  |  dyN  |  dyE  |
+   +----------------+-------+-------+-------+-------+
+   | area           | tarea | uarea | narea | earea |
+   +----------------+-------+-------+-------+-------+
+   | mask (logical) | tmask | umask | nmask | emask |
+   +----------------+-------+-------+-------+-------+
+   | mask (real)    |  hm   | uvm   | npm   | epm   |
+   +----------------+-------+-------+-------+-------+
+
 
 In CESM, the sea ice model may exchange coupling fluxes using a
 different grid than the computational grid. This functionality is
@@ -265,6 +312,34 @@ Special treatment is also required in the scattering routine, and when
 computing global sums one of each pair of coincident points has to be
 excluded.
 
+*****************
+Rectangular grids
+*****************
+
+Rectangular test grids can be defined for CICE.  They are generated 
+internally and defined by several namelist
+settings including ``grid_type`` = ``rectangular``, ``nx_global``, ``ny_global``, 
+``dx_rect``, ``dy_rect``, ``lonrefrect``, and ``latrefrect``.  Forcing and 
+initial condition can be set via namelists ``atm_data_type``, ``ocn_data_type``,
+``ice_data_type``, ``ice_data_conc``, ``ice_data_dist``.  Variable grid spacing
+is also supported with the namelist settings ``scale_dxdy`` which turns on 
+the option, and ``dxscale`` and ``dyscale`` which sets the variable grid scaling
+factor.  Values of 1.0 will produced constant grid spacing.  For rectangular grids,
+``lonrefrect`` and ``latrefrect`` define the lower left longitude and latitude
+value of the grid, ``dx_rect`` and ``dy_rect`` define the base grid spacing, and
+``dxscale`` and ``dyscale`` provide the grid space scaling.  The base spacing
+is set in the center of the rectangular domain and the scaling is applied symetrically
+outward as a multiplicative factor in the x and y directions.
+
+Several predefined rectangular grids are available in CICE with
+**cice.setup --grid** including ``gbox12``, ``gbox80``, ``gbox128``, and ``gbox180``
+where 12, 80, 128, and 180 are the number of gridcells in each direction.
+Several predefined options also exist, set with **cice.setup --set**, to
+establish varied idealized configurations of box tests including ``box2001``, 
+``boxadv``, ``boxchan``, ``boxnodyn``, ``boxrestore``, ``boxslotcyl``, and
+``boxopen``, ``boxclosed``, and ``boxforcee``.  See **cice.setup --help** for a current 
+list of supported settings.
+
 **************
 Vertical Grids
 **************
@@ -331,27 +406,36 @@ testing.
 Masks
 *****
 
-A land mask hm (:math:`M_h`) is specified in the cell centers, with 0
-representing land and 1 representing ocean cells. A corresponding mask
-uvm (:math:`M_u`) for velocity and other corner quantities is given by
+A land mask hm (:math:`M_h`) is specified in the cell centers (on the
+T-grid), with 0
+representing land and 1 representing ocean cells. Corresponding masks
+for the U, N, and E grids are given by
 
 .. math:: 
    M_u(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j),\,(i,j+1),\,(i+1,j+1)\}.
 
-The logical masks ``tmask`` and ``umask`` (which correspond to the real masks
-``hm`` and ``uvm``, respectively) are useful in conditional statements.
+.. math:: 
+   M_n(i,j)=\min\{M_h(l),\,l=(i,j),\,(i,j+1)\}.
+
+.. math:: 
+   M_e(i,j)=\min\{M_h(l),\,l=(i,j),\,(i+1,j)\}.
+
+The logical masks ``tmask``, ``umask``, ``nmask``, and ``emask`` 
+(which correspond to the real masks ``hm``, ``uvm``, ``npm``, and ``epm`` 
+respectively) are useful in conditional statements.
 
 In addition to the land masks, two other masks are implemented in
 *dyn\_prep* in order to reduce the dynamics component’s work on a global
-grid. At each time step the logical masks ``ice_tmask`` and ``ice_umask`` are
+grid. At each time step the logical masks ``iceTmask`` and ``iceUmask`` are
 determined from the current ice extent, such that they have the value
 “true” wherever ice exists. They also include a border of cells around
 the ice pack for numerical purposes. These masks are used in the
 dynamics component to prevent unnecessary calculations on grid points
 where there is no ice. They are not used in the thermodynamics
 component, so that ice may form in previously ice-free cells. Like the
-land masks ``hm`` and ``uvm``, the ice extent masks ``ice_tmask`` and ``ice_umask``
-are for T-cells and U-cells, respectively.
+land masks ``hm`` and ``uvm``, the ice extent masks ``iceTmask`` and ``iceUmask``
+are for T-cells and U-cells, respectively. Note that the ice extent masks 
+``iceEmask`` and ``iceNmask`` are also defined when using the C or CD grid.
 
 Improved parallel performance may result from utilizing halo masks for
 boundary updates of the full ice state, incremental remapping transport,
@@ -365,6 +449,122 @@ and ``lmask_s`` can be used to compute or write data only for the northern
 or southern hemispheres, respectively. Special constants (``spval`` and
 ``spval_dbl``, each equal to :math:`10^{30}`) are used to indicate land
 points in the history files and diagnostics.
+
+
+.. _interpolation:
+
+****************************
+Interpolating between grids
+****************************
+
+Fields in CICE are generally defined at particular grid locations, such as T cell centers, 
+U corners, or N or E edges. These are assigned internally in CICE based on the ``grid_ice``
+namelist variable. Forcing/coupling fields are also associated with a
+specific set of grid locations that may or may not be the same as on the internal CICE model grid.
+The namelist variables ``grid_atm`` and ``grid_ocn`` define the forcing/coupling grids.
+The ``grid_ice``, ``grid_atm``, and ``grid_ocn`` variables are independent and take
+values like ``A``, ``B``, ``C``, or ``CD`` consistent with the Arakawa grid convention :cite:`Arakawa77`.
+The relationship between the grid system and the internal grids is shown in :ref:`tab-gridsys`.
+
+.. _tab-gridsys:
+
+.. table:: Grid System and Type Definitions
+   :align: center
+
+   +--------------+----------------+----------------+----------------+
+   | grid system  |   thermo grid  | u dynamic grid | v dynamic grid |
+   +==============+================+================+================+
+   |     A        |       T        |       T        |       T        |
+   +--------------+----------------+----------------+----------------+
+   |     B        |       T        |       U        |       U        |
+   +--------------+----------------+----------------+----------------+
+   |     C        |       T        |       E        |       N        |
+   +--------------+----------------+----------------+----------------+
+   |     CD       |       T        |       N+E      |       N+E      |
+   +--------------+----------------+----------------+----------------+
+
+For all grid systems, thermodynamic variables are always defined on the ``T`` grid for the model and 
+model forcing/coupling fields.  However, the dynamics u and v fields vary.
+In the ``CD`` grid, there are twice as many u and v fields as on the other grids.  Within the CICE model,
+the variables ``grid_ice_thrm``, ``grid_ice_dynu``, ``grid_ice_dynv``, ``grid_atm_thrm``, 
+``grid_atm_dynu``, ``grid_atm_dynv``, ``grid_ocn_thrm``, ``grid_ocn_dynu``,  and ``grid_ocn_dynv`` are
+character strings (``T``, ``U``, ``N``, ``E`` , ``NE``) derived from the ``grid_ice``, ``grid_atm``, 
+and ``grid_ocn`` namelist values.
+
+The CICE model has several internal methods that will interpolate (a.k.a. map or average) fields on 
+(``T``, ``U``, ``N``, ``E``, ``NE``) grids to (``T``, ``U``, ``N``, ``E``).  An interpolation
+to an identical grid results in a field copy.  The generic interface to this method is ``grid_average_X2Y``,
+and there are several forms.
+
+.. code-block:: fortran
+
+      subroutine grid_average_X2Y(type,work1,grid1,work2,grid2)
+        character(len=*)    , intent(in)  :: type           ! mapping type (S, A, F)
+        real (kind=dbl_kind), intent(in)  :: work1(:,:,:)   ! input field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid1          ! work1 grid (T, U, N, E)
+        real (kind=dbl_kind), intent(out) :: work2(:,:,:)   ! output field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid2          ! work2 grid (T, U, N, E)
+
+where type is an interpolation type with the following valid values,
+
+type = ``S`` is a normalized, masked, area-weighted interpolation
+
+.. math:: 
+   work2 = \frac{\sum_{i=1}^{n} (M_{1i}A_{1i}work1_{i})} {\sum_{i=1}^{n} (M_{1i}A_{1i})}
+
+type = ``A`` is a normalized, unmasked, area-weighted interpolation
+
+.. math:: 
+   work2 = \frac{\sum_{i=1}^{n} (A_{1i}work1_{i})} {\sum_{i=1}^{n} (A_{1i})}
+
+type = ``F`` is a normalized, unmasked, conservative flux interpolation
+
+.. math:: 
+   work2 = \frac{\sum_{i=1}^{n} (A_{1i}work1_{i})} {n*A_{2}}
+
+with A defined as the appropriate gridcell area and M as the gridcell mask.
+Another form of the ``grid_average_X2Y`` is
+
+.. code-block:: fortran
+
+      subroutine grid_average_X2Y(type,work1,grid1,wght1,mask1,work2,grid2)
+        character(len=*)    , intent(in)  :: type           ! mapping type (S, A, F)
+        real (kind=dbl_kind), intent(in)  :: work1(:,:,:)   ! input field(nx_block, ny_block, max_blocks)
+        real (kind=dbl_kind), intent(in)  :: wght1(:,:,:)   ! input weight(nx_block, ny_block, max_blocks)
+        real (kind=dbl_kind), intent(in)  :: mask1(:,:,:)   ! input mask(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid1          ! work1 grid (T, U, N, E)
+        real (kind=dbl_kind), intent(out) :: work2(:,:,:)   ! output field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid2          ! work2 grid (T, U, N, E)
+
+In this case, the input arrays `wght1` and `mask1` are used in the interpolation equations instead of gridcell
+area and mask.  This version allows the user to define the weights and mask
+explicitly.  This implementation is supported only for type = ``S`` or ``A`` interpolations.
+
+A final form of the ``grid_average_X2Y`` interface is
+
+.. code-block:: fortran
+
+      subroutine grid_average_X2Y(type,work1a,grid1a,work1b,grid1b,work2,grid2)
+        character(len=*)    , intent(in)  :: type           ! mapping type (S, A, F)
+        real (kind=dbl_kind), intent(in)  :: work1a(:,:,:)  ! input field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid1a         ! work1 grid (N, E)
+        real (kind=dbl_kind), intent(in)  :: work1b(:,:,:)  ! input field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid1b         ! work1 grid (N, E)
+        real (kind=dbl_kind), intent(out) :: work2(:,:,:)   ! output field(nx_block, ny_block, max_blocks)
+        character(len=*)    , intent(in)  :: grid2          ! work2 grid (T, U)
+
+This version supports mapping from an ``NE`` grid to a ``T`` or ``U`` grid.  In this case, the ``1a`` arguments
+are for either the `N` or `E` field and the 1b arguments are for the complementary field (``E`` or ``N`` respectively).
+At present, only ``S`` type mappings are supported with this interface.
+
+In all cases, the work1, wght1, and mask1 input arrays should have correct halo values when called.  Examples of usage
+can be found in the source code, but the following example maps the uocn and vocn fields from their native 
+forcing/coupling grid to the ``U`` grid using a masked, area-weighted, average method.
+
+.. code-block:: fortran
+
+      call grid_average_X2Y('S', uocn, grid_ocn_dynu, uocnU, 'U')
+      call grid_average_X2Y('S', vocn, grid_ocn_dynv, vocnU, 'U')
 
 
 .. _performance:
@@ -466,7 +666,9 @@ block equally.  This is useful in POP which always has work in
 each block and is written with a lot of
 array syntax requiring calculations over entire blocks (whether or not
 land is present).  This option is provided in CICE as well for 
-direct-communication compatibility with POP. The ‘latitude’ option 
+direct-communication compatibility with POP. Blocks that contain 100%
+land grid cells are eliminated with 'block'.  The 'blockall' option is identical
+to 'block' but does not do land block elimination.  The ‘latitude’ option 
 weights the blocks based on latitude and the number of ocean grid 
 cells they contain.  Many of the non-cartesian decompositions support 
 automatic land block elimination and provide alternative ways to
@@ -721,9 +923,11 @@ Three namelist variables generally control model initialization, ``runtype``,
 are ``initial`` or ``continue``.  When ``runtype`` = `continue`, the
 restart filename is stored in a small text (pointer) file, ``use_restart_time``
 is forced to true and ``ice_ic`` plays no role.  When ``runtype`` =
-`initial`, ``ice_ic`` has three options, ``none``, ``default``,
-or *filename*.  These initial states are no-ice, latitudinal dependent
-ice, and ice defined by a file respectively.  In `initial` mode,
+`initial`, ``ice_ic`` has three options, ``none``, ``internal``,
+or *filename*.  These initial states are no-ice, namelist driven initial
+condition, and ice defined by a file respectively.  If ``ice_ic`` is set
+to ``internal``, the initial state is defined by the namelist values
+``ice_data_type``, ``ice_data_dist``, and ``ice_data_conc``.  In `initial` mode,
 ``use_restart_time`` should generally be set to false and the initial
 time is then defined by ``year_init``, ``month_init``, ``day_init``, 
 and ``sec_init``.  These combinations options are summarized in 
@@ -766,8 +970,8 @@ the model.  If namelist defines the start date, it's done with
    | `initial`      | `none`                   | not used                             | no ice,                                |
    |                |                          |                                      | namelist defines start date            |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
-   | `initial`      | `default`                | not used                             | latitude dependent internal ic,        |
-   |                |                          |                                      | namelist defines start date            |
+   | `initial`      | `internal` or            | not used                             | set by namelist ice_data_type,         |
+   |                | `default`                |                                      | ice_data_dist, ice_data_conc           |
    +----------------+--------------------------+--------------------------------------+----------------------------------------+
    | `initial`      | *filename*               | false                                | read ice state from filename,          |
    |                |                          |                                      | namelist defines start date            |
@@ -855,9 +1059,9 @@ t_e`) is thus
 .. math::
    dte = dt\_dyn/ndte.
 
-A second parameter, :math:`E_\circ` (``eyc``), defines the elastic wave
+A second parameter, :math:`E_\circ` (``elasticDamp``), defines the elastic wave
 damping timescale :math:`T`, described in Section :ref:`dynam`, as
-``eyc * dt_dyn``. The forcing terms are not updated during the subcycling.
+``elasticDamp * dt_dyn``. The forcing terms are not updated during the subcycling.
 Given the small step (``dte``) at which the EVP dynamics model is subcycled,
 the elastic parameter :math:`E` is also limited by stability
 constraints, as discussed in :cite:`Hunke97`. Linear stability
@@ -866,10 +1070,7 @@ stable as long as the subcycling time step :math:`\Delta t_e`
 sufficiently resolves the damping timescale :math:`T`. For the stability
 analysis we had to make several simplifications of the problem; hence
 the location of the boundary between stable and unstable regions is
-merely an estimate. In practice, the ratio
-:math:`\Delta t_e ~:~ T ~:~ \Delta t`  = 1 : 40 : 120 provides both
-stability and acceptable efficiency for time steps (:math:`\Delta t`) on
-the order of 1 hour.
+merely an estimate. The current default parameters for the EVP and EAP are :math:`ndte=240` and :math:`E_\circ=0.36`. For high resolution applications, it is however recommended to increase the value of :math:`ndte` :cite:`Koldunov19`, :cite:`Bouchat22`.
 
 Note that only :math:`T` and :math:`\Delta t_e` figure into the
 stability of the dynamics component; :math:`\Delta t` does not. Although
@@ -1066,6 +1267,11 @@ namelist, the point associated with ``lonpnt(1)`` and ``latpnt(1)`` is used.
 ``debug_model`` is normally used when the model aborts and needs to be debugged
 in detail at a particular (usually failing) grid point.
 
+Memory use diagnostics are controlled by the logical namelist ``memory_stats``.
+This feature uses an intrinsic query in C defined in **ice\_memusage\_gptl.c**.
+Memory diagnostics will be written at the the frequency defined by
+diagfreq.
+
 Timers are declared and initialized in **ice\_timers.F90**, and the code
 to be timed is wrapped with calls to *ice\_timer\_start* and
 *ice\_timer\_stop*. Finally, *ice\_timer\_print* writes the results to
@@ -1123,15 +1329,17 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
    +--------------+-------------+----------------------------------------------------+
    | 14           | Bound       | boundary conditions and subdomain communications   |
    +--------------+-------------+----------------------------------------------------+
-   | 15           | BGC         | biogeochemistry, part of Thermo timer              |
+   | 15           | BundBound   | halo update bundle copy                            |
    +--------------+-------------+----------------------------------------------------+
-   | 16           | Forcing     | forcing                                            |
+   | 16           | BGC         | biogeochemistry, part of Thermo timer              |
    +--------------+-------------+----------------------------------------------------+
-   | 17           | 1d-evp      | 1d evp, part of Dynamics timer                     |
+   | 17           | Forcing     | forcing                                            |
    +--------------+-------------+----------------------------------------------------+
-   | 18           | 2d-evp      | 2d evp, part of Dynamics timer                     |
+   | 18           | 1d-evp      | 1d evp, part of Dynamics timer                     |
    +--------------+-------------+----------------------------------------------------+
-   | 19           | UpdState    | update state                                       |
+   | 19           | 2d-evp      | 2d evp, part of Dynamics timer                     |
+   +--------------+-------------+----------------------------------------------------+
+   | 20           | UpdState    | update state                                       |
    +--------------+-------------+----------------------------------------------------+
 
 .. _restartfiles:

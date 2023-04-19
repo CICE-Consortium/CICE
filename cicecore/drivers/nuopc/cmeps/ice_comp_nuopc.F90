@@ -17,14 +17,16 @@ module ice_comp_nuopc
   use NUOPC_Model        , only : NUOPC_ModelGet, SetVM
   use ice_constants      , only : ice_init_constants, c0
   use ice_shr_methods    , only : chkerr, state_setscalar, state_getscalar, state_diagnose, alarmInit
-  use ice_shr_methods    , only : set_component_logging, get_component_instance, state_flddebug
+  use ice_shr_methods    , only : get_component_instance, state_flddebug
+
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
   use ice_domain_size    , only : nx_global, ny_global
   use ice_grid           , only : grid_type, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
-  use ice_calendar       , only : force_restart_now, write_ic
+  use ice_calendar       , only : force_restart_now, write_ic, init_calendar
   use ice_calendar       , only : idate, mday, mmonth, myear, year_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
@@ -39,7 +41,10 @@ module ice_comp_nuopc
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
-  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj
+  use ice_scam           , only : scmlat, scmlon, scol_mask, scol_frac, scol_ni, scol_nj, scol_area
+  use nuopc_shr_methods  , only : set_component_logging
+#else
+  use ice_shr_methods    , only : set_component_logging
 #endif
   use ice_timers
   use CICE_InitMod       , only : cice_init1, cice_init2
@@ -80,15 +85,21 @@ module ice_comp_nuopc
   character(len=*) , parameter :: orb_variable_year    = 'variable_year'
   character(len=*) , parameter :: orb_fixed_parameters = 'fixed_parameters'
 
-  character(len=*),parameter   :: shr_cal_noleap    = 'NO_LEAP'
-  character(len=*),parameter   :: shr_cal_gregorian = 'GREGORIAN'
-
   type(ESMF_Mesh)              :: ice_mesh
 
   integer                      :: nthrds   ! Number of threads to use in this component
 
   integer                      :: dbug = 0
   logical                      :: profile_memory = .false.
+  logical                      :: mastertask
+  integer                      :: start_ymd          ! Start date (YYYYMMDD)
+  integer                      :: start_tod          ! start time of day (s)
+  integer                      :: curr_ymd           ! Current date (YYYYMMDD)
+  integer                      :: curr_tod           ! Current time of day (s)
+  integer                      :: stop_ymd           ! stop date (YYYYMMDD)
+  integer                      :: stop_tod           ! stop time of day (sec)
+  integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
+  integer                      :: ref_tod            ! reference time of day (s)
   integer     , parameter      :: debug_import = 0 ! internal debug level
   integer     , parameter      :: debug_export = 0 ! internal debug level
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
@@ -203,12 +214,8 @@ contains
     real(kind=dbl_kind)          :: atmiter_conv_driver
     integer (kind=int_kind)      :: natmiter
     integer (kind=int_kind)      :: natmiter_driver
-    character(len=char_len)      :: tfrz_option_driver       ! tfrz_option from driver attributes
-    character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
-    integer(int_kind)            :: ktherm
     integer                      :: localPet
     integer                      :: npes
-    logical                      :: mastertask
     type(ESMF_VM)                :: vm
     integer                      :: lmpicom            ! local communicator
     type(ESMF_Time)              :: currTime           ! Current time
@@ -216,16 +223,7 @@ contains
     type(ESMF_Time)              :: stopTime           ! Stop time
     type(ESMF_Time)              :: refTime            ! Ref time
     type(ESMF_TimeInterval)      :: timeStep           ! Model timestep
-    type(ESMF_Calendar)          :: esmf_calendar      ! esmf calendar
     type(ESMF_CalKind_Flag)      :: esmf_caltype       ! esmf calendar type
-    integer                      :: start_ymd          ! Start date (YYYYMMDD)
-    integer                      :: start_tod          ! start time of day (s)
-    integer                      :: curr_ymd           ! Current date (YYYYMMDD)
-    integer                      :: curr_tod           ! Current time of day (s)
-    integer                      :: stop_ymd           ! stop date (YYYYMMDD)
-    integer                      :: stop_tod           ! stop time of day (sec)
-    integer                      :: ref_ymd            ! Reference date (YYYYMMDD)
-    integer                      :: ref_tod            ! reference time of day (s)
     integer                      :: yy,mm,dd           ! Temporaries for time query
     integer                      :: dtime              ! time step
     integer                      :: shrlogunit         ! original log unit
@@ -235,12 +233,15 @@ contains
     integer                      :: iblk, jblk         ! indices
     integer                      :: ig, jg             ! indices
     integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
+
     character(len=char_len_long) :: diag_filename = 'unset'
     character(len=char_len_long) :: logmsg
     character(len=char_len_long) :: single_column_lnd_domainfile
     real(dbl_kind)               :: scol_lon
     real(dbl_kind)               :: scol_lat
     real(dbl_kind)               :: scol_spval
+    character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
+    character(len=char_len)      :: tfrz_option_driver    ! tfrz_option from cice namelist
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
@@ -339,7 +340,8 @@ contains
     call get_component_instance(gcomp, inst_suffix, inst_index, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    inst_name = "ICE"//trim(inst_suffix)
+!   inst_name = "ICE"//trim(inst_suffix)
+    inst_name = "ICE"
 
     !----------------------------------------------------------------------------
     ! start cice timers
@@ -470,9 +472,9 @@ contains
     call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
-       calendar_type = shr_cal_noleap
+       calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = shr_cal_gregorian
+       calendar_type = ice_calendar_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
@@ -543,13 +545,20 @@ contains
        call NUOPC_CompAttributeGet(gcomp, name='scol_nj', value=cvalue, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        read(cvalue,*) scol_nj
+       call NUOPC_CompAttributeGet(gcomp, name='scol_area', value=cvalue, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) scol_area
 
        call ice_mesh_create_scolumn(scmlon, scmlat, ice_mesh, rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        scol_valid = (scol_mask == 1)
        if (.not. scol_valid) then
-          write(6,*)'DEBUG: i am here'
+          ! Read the cice namelist as part of the call to cice_init1
+          ! Note that if single_column is true and scol_valid is not - will never get here
+          call t_startf ('cice_init1')
+          call cice_init1
+          call t_stopf ('cice_init1')
           ! Advertise fields
           call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -562,13 +571,18 @@ contains
           RETURN
        end if
     end if
-
     ! Read the cice namelist as part of the call to cice_init1
     ! Note that if single_column is true and scol_valid is not - will never get here
-
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
+
+    !-----------------------------------------------------------------
+    ! Advertise fields
+    !-----------------------------------------------------------------
+    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
 
     ! Form of ocean freezing temperature
     ! 'minus1p8' = -1.8 C
@@ -582,9 +596,11 @@ contains
     end if
     call icepack_query_parameters( tfrz_option_out=tfrz_option)
     if (tfrz_option_driver  /= tfrz_option) then
-       write(errmsg,'(a)') trim(subname)//'error: tfrz_option from driver '//trim(tfrz_option_driver)//&
-            ' must be the same as tfrz_option from cice namelist '//trim(tfrz_option)
-       call abort_ice(trim(errmsg))
+       write(errmsg,'(a)') trim(subname)//'WARNING: tfrz_option from driver '//trim(tfrz_option_driver)//&
+            ' is overwriting tfrz_option from cice namelist '//trim(tfrz_option)
+       write(nu_diag,*) trim(errmsg)
+       call icepack_warnings_flush(nu_diag)
+       call icepack_init_parameters(tfrz_option_in=tfrz_option_driver)
     endif
 
     ! Flux convergence tolerance - always use the driver attribute value
@@ -595,7 +611,7 @@ contains
        read(cvalue,*) atmiter_conv_driver
        call icepack_query_parameters( atmiter_conv_out=atmiter_conv)
        if (atmiter_conv_driver /= atmiter_conv) then
-          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'warning: atmiter_ from driver ',&
+          write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'WARNING: atmiter_ from driver ',&
                atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
           write(nu_diag,*) trim(errmsg)
           call icepack_warnings_flush(nu_diag)
@@ -624,6 +640,12 @@ contains
     call t_startf ('cice_init1')
     call cice_init1
     call t_stopf ('cice_init1')
+
+    !-----------------------------------------------------------------
+    ! Advertise fields
+    !-----------------------------------------------------------------
+    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #endif
 
@@ -676,6 +698,43 @@ contains
        end if
     end if
 
+    call t_stopf ('cice_init_total')
+
+  end subroutine InitializeAdvertise
+
+  !===============================================================================
+
+  subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
+
+    ! Arguments
+    type(ESMF_GridComp)  :: gcomp
+    type(ESMF_State)     :: importState
+    type(ESMF_State)     :: exportState
+    type(ESMF_Clock)     :: clock
+    integer, intent(out) :: rc
+
+    ! Local variables
+    integer                                :: n
+    integer                                :: fieldcount
+    type(ESMF_Field)                       :: lfield
+    character(len=char_len_long)           :: cvalue
+    real(dbl_kind)                         :: scol_lon
+    real(dbl_kind)                         :: scol_lat
+    real(dbl_kind)                         :: scol_spval
+    real(dbl_kind), pointer                :: fldptr1d(:)
+    real(dbl_kind), pointer                :: fldptr2d(:,:)
+    integer                                :: rank
+    character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
+    integer(int_kind)            :: ktherm
+
+    character(len=char_len_long)           :: single_column_lnd_domainfile
+    character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
+    character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
+    !--------------------------------
+
+    rc = ESMF_SUCCESS
+    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
@@ -686,29 +745,6 @@ contains
     call t_startf ('cice_init2')
     call cice_init2()
     call t_stopf ('cice_init2')
-
-    !----------------------------------------------------------------------------
-    ! reset shr logging to my log file
-    !----------------------------------------------------------------------------
-
-    call icepack_query_parameters(ktherm_out=ktherm)
-    call icepack_query_parameters(tfrz_option_out=tfrz_option)
-    call icepack_warnings_flush(nu_diag)
-    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-        file=__FILE__, line=__LINE__)
-
-    ! Now write output to nu_diag - this must happen AFTER call to cice_init
-    if (mastertask) then
-       write(nu_diag,'(a,d21.14)') trim(subname)//' cice init nextsw_cday = ',nextsw_cday
-       write(nu_diag,'(a)') trim(subname)//' tfrz_option = '//trim(tfrz_option)
-       if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
-          write(nu_diag,*) trim(subname),' Warning: Using ktherm = 2 and tfrz_option = ', trim(tfrz_option)
-       endif
-       write(nu_diag,'(a    )') trim(subname)//' inst_name   = '//trim(inst_name)
-       write(nu_diag,'(a,i8 )') trim(subname)//' inst_index  = ',inst_index
-       write(nu_diag,'(a    )') trim(subname)//' inst_suffix = ',trim(inst_suffix)
-    endif
-
     !---------------------------------------------------------------------------
     ! use EClock to reset calendar information on initial start
     !---------------------------------------------------------------------------
@@ -759,6 +795,30 @@ contains
     end if
 
     call calendar()     ! update calendar info
+
+    !----------------------------------------------------------------------------
+    ! reset shr logging to my log file
+    !----------------------------------------------------------------------------
+
+    call icepack_query_parameters(ktherm_out=ktherm)
+    call icepack_query_parameters(tfrz_option_out=tfrz_option)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+        file=__FILE__, line=__LINE__)
+
+    ! Now write output to nu_diag - this must happen AFTER call to cice_init
+    if (mastertask) then
+       write(nu_diag,'(a,d21.14)') trim(subname)//' cice init nextsw_cday = ',nextsw_cday
+       write(nu_diag,'(a)') trim(subname)//' tfrz_option = '//trim(tfrz_option)
+       if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
+          write(nu_diag,*) trim(subname),' Warning: Using ktherm = 2 and tfrz_option = ', trim(tfrz_option)
+       endif
+       write(nu_diag,'(a    )') trim(subname)//' inst_name   = '//trim(inst_name)
+       write(nu_diag,'(a,i8 )') trim(subname)//' inst_index  = ',inst_index
+       write(nu_diag,'(a    )') trim(subname)//' inst_suffix = ',trim(inst_suffix)
+    endif
+
+
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
@@ -769,50 +829,6 @@ contains
 
     call ice_prescribed_init(clock, ice_mesh, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    !-----------------------------------------------------------------
-    ! Advertise fields
-    !-----------------------------------------------------------------
-
-    ! NOTE: the advertise phase needs to be called after the ice
-    ! initialization since the number of ice categories is needed for
-    ! ice_fraction_n and mean_sw_pen_to_ocn_ifrac_n
-    call ice_advertise_fields(gcomp, importState, exportState, flds_scalar_name, rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call t_stopf ('cice_init_total')
-
-  end subroutine InitializeAdvertise
-
-  !===============================================================================
-
-  subroutine InitializeRealize(gcomp, importState, exportState, clock, rc)
-
-    ! Arguments
-    type(ESMF_GridComp)  :: gcomp
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-
-    ! Local variables
-    integer                                :: n
-    integer                                :: fieldcount
-    type(ESMF_Field)                       :: lfield
-    character(len=char_len_long)           :: cvalue
-    real(dbl_kind)                         :: scol_lon
-    real(dbl_kind)                         :: scol_lat
-    real(dbl_kind)                         :: scol_spval
-    real(dbl_kind), pointer                :: fldptr1d(:)
-    real(dbl_kind), pointer                :: fldptr2d(:,:)
-    integer                                :: rank
-    character(len=char_len_long)           :: single_column_lnd_domainfile
-    character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
-    character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
-    !--------------------------------
-
-    rc = ESMF_SUCCESS
-    if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
 #ifdef CESMCOUPLED
     ! if single column is not valid - set all export state fields to zero and return
@@ -849,7 +865,7 @@ contains
        ! *** RETURN HERE ***
        ! *******************
        RETURN
-    else
+    else if(single_column) then
        write(nu_diag,'(a,3(f10.5,2x))')' (ice_comp_nuopc) single column mode lon/lat/frac is ',&
             scmlon,scmlat,scol_frac
     end if

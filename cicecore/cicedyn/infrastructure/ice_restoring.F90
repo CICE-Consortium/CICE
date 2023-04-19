@@ -46,7 +46,7 @@
 
 !=======================================================================
 
-!  Allocates and initializes arrays needed for restoring the ice state 
+!  Allocates and initializes arrays needed for restoring the ice state
 !  in cells surrounding the grid.
 
 
@@ -115,7 +115,7 @@
       !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     iglob,jglob,iblock,jblock)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -154,7 +154,7 @@
    !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
    !$OMP                     i,j,n,nt,ibc,npad)
    do iblk = 1, nblocks
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -280,7 +280,7 @@
    enddo
 
    if (my_task == master_task) &
-      write (nu_diag,*) 'ice restoring timescale = ',trestore,' days' 
+      write (nu_diag,*) 'ice restoring timescale = ',trestore,' days'
 
  end subroutine ice_HaloRestore_init
 
@@ -318,7 +318,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tair    , & ! air temperature  (K)
-         Tf          ! freezing temperature (C) 
+         Tf          ! freezing temperature (C)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,nilyr), intent(in) :: &
          salinz  , & ! initial salinity profile
@@ -395,7 +395,7 @@
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
             if (tmask(i,j)) then
-               trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature 
+               trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature
             else
                trcrn(i,j,nt_Tsfc,n) = c0  ! on land gridcells
             endif
@@ -526,7 +526,7 @@
 
                ! surface temperature
                trcrn(i,j,nt_Tsfc,n) = Tsfc ! deg C
-               ! ice enthalpy, salinity 
+               ! ice enthalpy, salinity
                do k = 1, nilyr
                   trcrn(i,j,nt_qice+k-1,n) = qin(k)
                   trcrn(i,j,nt_sice+k-1,n) = salinz(i,j,k)
@@ -569,7 +569,7 @@
      i,j,iblk,nt,n,      &! dummy loop indices
      ilo,ihi,jlo,jhi,    &! beginning and end of physical domain
      ibc,                &! ghost cell column or row
-     ntrcr,              &! 
+     ntrcr,              &!
      npad                 ! padding column/row counter
 
    type (block) :: &
@@ -611,7 +611,7 @@
    !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block, &
    !$OMP                     i,j,n,nt,ibc,npad)
    do iblk = 1, nblocks
-      this_block = get_block(blocks_ice(iblk),iblk)         
+      this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo

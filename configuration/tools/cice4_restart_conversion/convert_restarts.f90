@@ -39,7 +39,8 @@
       logical (kind=log_kind), parameter :: &
          oceanmixed_ice = .true., & ! if true, read/write ocean mixed layer fields
          heat_capacity  = .true., & ! if true, ice has nonzero heat capacity
-                                    ! if false, use zero-layer thermodynamics
+                                    ! heat_capacity = .false. (zero-layer thermodynamics) 
+                                    ! has been deprecated in CICE and Icepack
          diag = .true.              ! write min/max diagnostics for fields
 
       ! file names

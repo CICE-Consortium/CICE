@@ -1,11 +1,10 @@
 ncat = 1
 kcatbound = -1
-ice_ic = 'default'
+ice_ic = 'internal'
 distribution_type = 'sectrobin'
 tr_iage      = .true.
 tr_FY        = .true.
 tr_lvl       = .true.
-tr_pond_cesm = .false.
 tr_pond_topo = .false.
 tr_pond_lvl  = .false.
 tr_aero      = .false.

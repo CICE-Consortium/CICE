@@ -175,7 +175,7 @@ contains
           end do
           write(nu_diag,*) ' '
        endif
-       
+
        ! initialize sdat
        call shr_strdata_init_from_inline(sdat,               &
             my_task             = my_task,                   &
@@ -472,11 +472,11 @@ contains
     ! set non-computed fluxes, ice velocities, ice-ocn stresses to zero
     !--------------------------------------------------------------------
 
-    frzmlt    (:,:,:) = c0
-    uvel      (:,:,:) = c0
-    vvel      (:,:,:) = c0
-    strocnxT  (:,:,:) = c0
-    strocnyT  (:,:,:) = c0
+    frzmlt       (:,:,:) = c0
+    uvel         (:,:,:) = c0
+    vvel         (:,:,:) = c0
+    strocnxT_iavg(:,:,:) = c0
+    strocnyT_iavg(:,:,:) = c0
 
     !-----------------------------------------------------------------
     ! other atm and ocn fluxes

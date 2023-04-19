@@ -10,6 +10,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_communicate, only: my_task, master_task
       use ice_kinds_mod
 #ifdef USE_NETCDF
       use netcdf
@@ -27,7 +28,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       integer (kind=int_kind) :: ncid
 
@@ -44,7 +46,6 @@
 
       use ice_calendar, only: msec, mmonth, mday, myear, &
                              istep0, istep1, npt
-      use ice_communicate, only: my_task, master_task
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -58,7 +59,7 @@
       character(len=*), parameter :: subname = '(init_restart_read)'
 
 #ifdef USE_NETCDF
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -77,7 +78,7 @@
          status = nf90_open(trim(filename), nf90_nowrite, ncid)
          if (status /= nf90_noerr) call abort_ice(subname// &
             'ERROR: reading restart ncfile '//trim(filename))
-      
+
          if (use_restart_time) then
             status1 = nf90_noerr
             status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
@@ -131,12 +132,12 @@
 
       use ice_blocks, only: nghost
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
-      use ice_communicate, only: my_task, master_task
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
                                  n_dic, n_don, n_fed, n_fep, nfsd
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
+      use ice_grid, only: grid_ice
 
       character(len=*), intent(in), optional :: filename_spec
 
@@ -144,7 +145,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, skl_bgc, z_tracers, tr_fsd, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
          tr_bgc_Sil, tr_bgc_DMS, &
@@ -180,7 +181,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -246,7 +247,19 @@
 
          call define_rest_field(ncid,'uvel',dims)
          call define_rest_field(ncid,'vvel',dims)
-         
+
+         if (grid_ice == 'CD') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelE',dims)
+            call define_rest_field(ncid,'uvelN',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
+
+         if (grid_ice == 'C') then
+            call define_rest_field(ncid,'uvelE',dims)
+            call define_rest_field(ncid,'vvelN',dims)
+         endif
+
          if (restart_coszen) call define_rest_field(ncid,'coszen',dims)
 
          call define_rest_field(ncid,'scale_factor',dims)
@@ -274,6 +287,18 @@
          call define_rest_field(ncid,'stress12_4',dims)
 
          call define_rest_field(ncid,'iceumask',dims)
+
+         if (grid_ice == 'CD' .or. grid_ice == 'C') then
+            call define_rest_field(ncid,'stresspT' ,dims)
+            call define_rest_field(ncid,'stressmT' ,dims)
+            call define_rest_field(ncid,'stress12T',dims)
+            call define_rest_field(ncid,'stresspU' ,dims)
+            call define_rest_field(ncid,'stressmU' ,dims)
+            call define_rest_field(ncid,'stress12U',dims)
+            call define_rest_field(ncid,'icenmask',dims)
+            call define_rest_field(ncid,'iceemask',dims)
+         endif
+
 
          if (oceanmixed_ice) then
             call define_rest_field(ncid,'sst',dims)
@@ -334,11 +359,11 @@
             enddo
             endif
             if (tr_bgc_Fe ) then
-            do k=1,n_fed 
+            do k=1,n_fed
                write(nchar,'(i3.3)') k
                call define_rest_field(ncid,'fed'//trim(nchar),dims)
             enddo
-            do k=1,n_fep 
+            do k=1,n_fep
                write(nchar,'(i3.3)') k
                call define_rest_field(ncid,'fep'//trim(nchar),dims)
             enddo
@@ -381,11 +406,6 @@
          if (tr_lvl) then
             call define_rest_field(ncid,'alvl',dims)
             call define_rest_field(ncid,'vlvl',dims)
-         end if
-
-         if (tr_pond_cesm) then
-            call define_rest_field(ncid,'apnd',dims)
-            call define_rest_field(ncid,'hpnd',dims)
          end if
 
          if (tr_pond_topo) then
@@ -447,17 +467,17 @@
             if (tr_bgc_PON) &
             call define_rest_field(ncid,'bgc_PON'  ,dims)
             if (tr_bgc_DON) then
-              do k = 1, n_don  
+              do k = 1, n_don
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_DON'//trim(nchar)    ,dims)
               enddo
             endif
             if (tr_bgc_Fe ) then
-              do k = 1, n_fed  
+              do k = 1, n_fed
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fed'//trim(nchar)    ,dims)
               enddo
-              do k = 1, n_fep  
+              do k = 1, n_fep
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fep'//trim(nchar)    ,dims)
               enddo
@@ -522,7 +542,7 @@
             call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
          enddo
          endif
-          
+
          if (z_tracers) then
             if (tr_zaero) then
              do n = 1, n_zaero
@@ -622,14 +642,14 @@
              enddo
             endif
             if (tr_bgc_Fe ) then
-             do n = 1, n_fed 
+             do n = 1, n_fed
               write(ncharb,'(i3.3)') n
               do k = 1, nblyr+3
                  write(nchar,'(i3.3)') k
                  call define_rest_field(ncid,'bgc_Fed'//trim(ncharb)//trim(nchar),dims)
               enddo
              enddo
-             do n = 1, n_fep 
+             do n = 1, n_fep
               write(ncharb,'(i3.3)') n
               do k = 1, nblyr+3
                  write(nchar,'(i3.3)') k
@@ -741,7 +761,7 @@
 #endif
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.
@@ -783,7 +803,7 @@
 
 #ifdef USE_NETCDF
          status = nf90_inq_varid(ncid,trim(vname),varid)
-         if (ndim3 == ncat) then 
+         if (ndim3 == ncat) then
             if (restart_ext) then
                call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
             else
@@ -815,7 +835,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, idate
-      use ice_communicate, only: my_task, master_task
 
       integer (kind=int_kind) :: status
 
@@ -858,8 +877,37 @@
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
-        
+
       end subroutine define_rest_field
+
+!=======================================================================
+
+! Inquire field existance
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      integer (kind=int_kind) :: status, varid
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .false.
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+         status = nf90_inq_varid(ncid,trim(vname),varid)
+         if (status == nf90_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end function query_field
 
 !=======================================================================
 

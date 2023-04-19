@@ -70,9 +70,10 @@
       use ice_diagnostics, only: init_diags
       use ice_domain, only: init_domain_blocks
       use ice_domain_size, only: ncat, nfsd
-      use ice_dyn_eap, only: init_eap, alloc_dyn_eap
-      use ice_dyn_shared, only: kdyn, init_dyn, alloc_dyn_shared
+      use ice_dyn_eap, only: init_eap
+      use ice_dyn_evp, only: init_evp
       use ice_dyn_vp, only: init_vp
+      use ice_dyn_shared, only: kdyn
       use ice_flux, only: init_coupler_flux, init_history_therm, &
           init_history_dyn, init_flux_atm, init_flux_ocn, alloc_flux
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
@@ -111,7 +112,6 @@
       call alloc_grid           ! allocate grid
       call alloc_arrays_column  ! allocate column arrays
       call alloc_state          ! allocate state
-      call alloc_dyn_shared     ! allocate dyn shared (init_uvel,init_vvel)
       call alloc_flux_bgc       ! allocate flux_bgc
       call alloc_flux           ! allocate flux
       call init_ice_timers      ! initialize all timers
@@ -122,9 +122,9 @@
       call init_calendar        ! initialize some calendar stuff
       call init_hist (dt)       ! initialize output history file
 
-      call init_dyn (dt_dyn)    ! define dynamics parameters, variables
-      if (kdyn == 2) then
-         call alloc_dyn_eap     ! allocate dyn_eap arrays
+      if (kdyn == 1) then
+         call init_evp
+      else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
          call init_vp           ! define vp dynamics parameters, variables
@@ -176,11 +176,11 @@
       if (icepack_warnings_aborted()) call abort_ice(subname, &
           file=__FILE__,line= __LINE__)
 
-      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical 
+      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical
                                                    !property tables
 
-      ! Initialize shortwave components using swdn from previous timestep 
-      ! if restarting. These components will be scaled to current forcing 
+      ! Initialize shortwave components using swdn from previous timestep
+      ! if restarting. These components will be scaled to current forcing
       ! in prep_radiation.
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
@@ -215,7 +215,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-      if (write_ic) call accum_hist(dt) ! write initial conditions 
+      if (write_ic) call accum_hist(dt) ! write initial conditions
 
       end subroutine cice_init
 
@@ -235,11 +235,10 @@
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
-          init_meltponds_cesm,  init_meltponds_lvl, init_meltponds_topo, &
+          init_meltponds_lvl, init_meltponds_topo, &
           init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
-          restart_pond_cesm, read_restart_pond_cesm, &
           restart_pond_lvl, read_restart_pond_lvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_fsd, read_restart_fsd, &
@@ -254,7 +253,7 @@
          i, j        , & ! horizontal indices
          iblk            ! block index
       logical(kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_pond_cesm, tr_pond_lvl, &
+          tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
           tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
           skl_bgc, z_tracers, solve_zsal
       integer(kind=int_kind) :: &
@@ -263,7 +262,7 @@
           nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, &
           nt_iage, nt_FY, nt_aero, nt_fsd
 
-      character(len=*),parameter :: subname = '(init_restart)'
+      character(len=*), parameter :: subname = '(init_restart)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
@@ -273,7 +272,7 @@
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-           tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
            tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
@@ -283,7 +282,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (trim(runtype) == 'continue') then 
+      if (trim(runtype) == 'continue') then
          ! start from core restart file
          call restartfile()           ! given by pointer in ice_in
          call calendar()              ! update time parameters
@@ -294,17 +293,17 @@
          ! call restartfile_v4 (ice_ic)  ! CICE v4.1 binary restart file
          !!! uncomment if EAP restart data exists
          ! if (kdyn == 2) call read_restart_eap
-      endif         
+      endif
 
       ! tracers
-      ! ice age tracer   
-      if (tr_iage) then 
+      ! ice age tracer
+      if (tr_iage) then
          if (trim(runtype) == 'continue') &
               restart_age = .true.
          if (restart_age) then
             call read_restart_age
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_age(trcrn(:,:,nt_iage,:,iblk))
             enddo ! iblk
          endif
@@ -315,7 +314,7 @@
          if (restart_FY) then
             call read_restart_FY
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_FY(trcrn(:,:,nt_FY,:,iblk))
             enddo ! iblk
          endif
@@ -326,22 +325,9 @@
          if (restart_lvl) then
             call read_restart_lvl
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_lvl(iblk,trcrn(:,:,nt_alvl,:,iblk), &
                              trcrn(:,:,nt_vlvl,:,iblk))
-            enddo ! iblk
-         endif
-      endif
-      ! CESM melt ponds
-      if (tr_pond_cesm) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_cesm = .true.
-         if (restart_pond_cesm) then
-            call read_restart_pond_cesm
-         else
-            do iblk = 1, nblocks 
-               call init_meltponds_cesm(trcrn(:,:,nt_apnd,:,iblk), &
-                                        trcrn(:,:,nt_hpnd,:,iblk))
             enddo ! iblk
          endif
       endif
@@ -352,7 +338,7 @@
          if (restart_pond_lvl) then
             call read_restart_pond_lvl
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_meltponds_lvl(trcrn(:,:,nt_apnd,:,iblk), &
                                        trcrn(:,:,nt_hpnd,:,iblk), &
                                        trcrn(:,:,nt_ipnd,:,iblk), &
@@ -367,7 +353,7 @@
          if (restart_pond_topo) then
             call read_restart_pond_topo
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_meltponds_topo(trcrn(:,:,nt_apnd,:,iblk), &
                                         trcrn(:,:,nt_hpnd,:,iblk), &
                                         trcrn(:,:,nt_ipnd,:,iblk))
@@ -388,7 +374,7 @@
          if (restart_aero) then
             call read_restart_aero
          else
-            do iblk = 1, nblocks 
+            do iblk = 1, nblocks
                call init_aerosol(trcrn(:,:,nt_aero:nt_aero+4*n_aero-1,:,iblk))
             enddo ! iblk
          endif ! .not. restart_aero

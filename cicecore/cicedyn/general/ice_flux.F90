@@ -33,29 +33,41 @@
 
       !-----------------------------------------------------------------
       ! Dynamics component
+      ! All variables are assumed to be on the atm or ocn thermodynamic
+      ! grid except as noted
+      !
+      ! scale_fluxes divides several of these by aice "in place", so
+      ! the state of some of these variables is not well defined.  In the
+      ! future, we need to refactor and add "_iavg" versions of the
+      ! fields to clearly differentiate fields that have been divided
+      ! by aice and others that are not.  The challenge is that we need
+      ! to go thru each field carefully to see which version is used.
+      ! For instance, in diagnostics, there are places where these
+      ! fields are multiplied by aice to compute things properly.
+      ! strocn[x,y]T_iavg is the first field defined using _iavg.
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
 
-       ! in from atmos (if .not.calc_strair)  
-         strax   , & ! wind stress components (N/m^2)
-         stray   , & ! 
+       ! in from atmos (if .not.calc_strair)
+         strax   , & ! wind stress components (N/m^2), on grid_atm_dynu
+         stray   , & !                                 on grid_atm_dynv
 
        ! in from ocean
-         uocn    , & ! ocean current, x-direction (m/s)
-         vocn    , & ! ocean current, y-direction (m/s)
-         ss_tltx , & ! sea surface slope, x-direction (m/m)
-         ss_tlty , & ! sea surface slope, y-direction
-         hwater  , & ! water depth for seabed stress calc (landfast ice) 
+         uocn    , & ! ocean current, x-direction (m/s),     on grid_ocn_dynu
+         vocn    , & ! ocean current, y-direction (m/s),     on grid_ocn_dynv
+         ss_tltx , & ! sea surface slope, x-direction (m/m), on grid_ocn_dynu
+         ss_tlty , & ! sea surface slope, y-direction,       on grid_ocn_dynv
+         hwater  , & ! water depth for seabed stress calc (landfast ice)
 
        ! out to atmosphere
-         strairxT, & ! stress on ice by air, x-direction
-         strairyT, & ! stress on ice by air, y-direction
+         strairxT, & ! stress on ice by air, x-direction at T points, computed in icepack
+         strairyT, & ! stress on ice by air, y-direction at T points, computed in icepack
 
        ! out to ocean          T-cell (kg/m s^2)
        ! Note, CICE_IN_NEMO uses strocnx and strocny for coupling
-         strocnxT, & ! ice-ocean stress, x-direction
-         strocnyT    ! ice-ocean stress, y-direction
+         strocnxT_iavg, & ! ice-ocean stress, x-direction at T points, per ice fraction (scaled flux)
+         strocnyT_iavg    ! ice-ocean stress, y-direction at T points, per ice fraction (scaled flux)
 
        ! diagnostic
 
@@ -63,16 +75,36 @@
          sig1    , & ! normalized principal stress component
          sig2    , & ! normalized principal stress component
          sigP    , & ! internal ice pressure (N/m)
-         taubx   , & ! seabed stress (x) (N/m^2)
-         tauby   , & ! seabed stress (y) (N/m^2)
-         strairx , & ! stress on ice by air, x-direction
-         strairy , & ! stress on ice by air, y-direction
-         strocnx , & ! ice-ocean stress, x-direction
-         strocny , & ! ice-ocean stress, y-direction
-         strtltx , & ! stress due to sea surface slope, x-direction
-         strtlty , & ! stress due to sea surface slope, y-direction
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
+         taubxU  , & ! seabed stress (x) (N/m^2)
+         taubyU  , & ! seabed stress (y) (N/m^2)
+         strairxU, & ! stress on ice by air, x-direction at U points
+         strairyU, & ! stress on ice by air, y-direction at U points
+         strocnxU, & ! ice-ocean stress, x-direction at U points, computed in dyn_finish
+         strocnyU, & ! ice-ocean stress, y-direction at U points, computed in dyn_finish
+         strtltxU, & ! stress due to sea surface slope, x-direction
+         strtltyU, & ! stress due to sea surface slope, y-direction
+         strintxU, & ! divergence of internal ice stress, x (N/m^2)
+         strintyU, & ! divergence of internal ice stress, y (N/m^2)
+         taubxN  , & ! seabed stress (x) at N points (N/m^2)
+         taubyN  , & ! seabed stress (y) at N points (N/m^2)
+         strairxN, & ! stress on ice by air, x-direction at N points
+         strairyN, & ! stress on ice by air, y-direction at N points
+         strocnxN, & ! ice-ocean stress, x-direction at N points, computed in dyn_finish
+         strocnyN, & ! ice-ocean stress, y-direction at N points, computed in dyn_finish
+         strtltxN, & ! stress due to sea surface slope, x-direction at N points
+         strtltyN, & ! stress due to sea surface slope, y-direction at N points
+         strintxN, & ! divergence of internal ice stress, x at N points (N/m^2)
+         strintyN, & ! divergence of internal ice stress, y at N points (N/m^2)
+         taubxE  , & ! seabed stress (x) at E points (N/m^2)
+         taubyE  , & ! seabed stress (y) at E points (N/m^2)
+         strairxE, & ! stress on ice by air, x-direction at E points
+         strairyE, & ! stress on ice by air, y-direction at E points
+         strocnxE, & ! ice-ocean stress, x-direction at E points, computed in dyn_finish
+         strocnyE, & ! ice-ocean stress, y-direction at E points, computed in dyn_finish
+         strtltxE, & ! stress due to sea surface slope, x-direction at E points
+         strtltyE, & ! stress due to sea surface slope, y-direction at E points
+         strintxE, & ! divergence of internal ice stress, x at E points (N/m^2)
+         strintyE, & ! divergence of internal ice stress, y at E points (N/m^2)
          daidtd  , & ! ice area tendency due to transport   (1/s)
          dvidtd  , & ! ice volume tendency due to transport (m/s)
          dagedtd , & ! ice age tendency due to transport (s/s)
@@ -81,7 +113,7 @@
          dvirdgdt, & ! rate of ice volume ridged (m/s)
          opening     ! rate of opening due to divergence/shear (1/s)
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
        ! ridging diagnostics in categories
          dardg1ndt, & ! rate of area loss by ridging ice (1/s)
@@ -92,7 +124,7 @@
          ardgn,     & ! fractional area of ridged ice
          vrdgn,     & ! volume of ridged ice
          araftn,    & ! rafting ice area
-         vraftn,    & ! rafting ice volume 
+         vraftn,    & ! rafting ice volume
          aredistn,  & ! redistribution function: fraction of new ridge area
          vredistn     ! redistribution function: fraction of new ridge volume
 
@@ -102,17 +134,20 @@
        ! ice stress tensor in each corner of T cell (kg/s^2)
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
-         stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
-
-      logical (kind=log_kind), &
-         dimension (:,:,:), allocatable, public :: &
-         iceumask   ! ice extent mask (U-cell)
+         stress12_1,stress12_2,stress12_3,stress12_4, & ! sigma12
+       ! ice stress tensor at U and T locations (grid_ice = 'C|CD') (kg/s^2)
+         stresspT, stressmT, stress12T, & ! sigma11+sigma22, sigma11-sigma22, sigma12
+         stresspU, stressmU, stress12U    ! "
 
        ! internal
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         fm       , & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu          ! factor for seabed stress (N/m^2)
+         fmU      , & ! Coriolis param. * mass in U-cell (kg/s)
+         TbU      , & ! factor for seabed stress (N/m^2)
+         fmE      , & ! Coriolis param. * mass in E-cell (kg/s)
+         TbE      , & ! factor for seabed stress (N/m^2)
+         fmN      , & ! Coriolis param. * mass in N-cell (kg/s)
+         TbN          ! factor for seabed stress (N/m^2)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -123,9 +158,9 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          zlvl    , & ! atm level height (momentum) (m)
          zlvs    , & ! atm level height (scalar quantities) (m)
-         uatm    , & ! wind velocity components (m/s)
-         vatm    , &
-         wind    , & ! wind speed (m/s)
+         uatm    , & ! wind velocity components (m/s), on grid_atm_dynu
+         vatm    , & !                                 on grid_atm_dynv
+         wind    , & ! wind speed (m/s)              , on grid_atm_dynu
          potT    , & ! air potential temperature  (K)
          Tair    , & ! air temperature  (K)
          Qa      , & ! specific humidity (kg/kg)
@@ -141,7 +176,7 @@
        ! NOTE: when in CICE_IN_NEMO mode, these are gridbox mean fields,
        ! not per ice area. When in standalone mode, these are per ice area.
 
-      real (kind=dbl_kind), & 
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn_f   , & ! net flux to top surface, excluding fcondtop
          fcondtopn_f, & ! downward cond flux at top surface (W m-2)
@@ -182,7 +217,7 @@
          Tf      , & ! freezing temperature (C)
          qdp     , & ! deep ocean heat flux (W/m^2), negative upward
          hmix    , & ! mixed layer depth (m)
-         daice_da    ! data assimilation concentration increment rate 
+         daice_da    ! data assimilation concentration increment rate
                      ! (concentration s-1)(only used in hadgem drivers)
 
        ! out to atmosphere (if calc_Tsfc)
@@ -228,8 +263,8 @@
          dimension(:,:,:,:), allocatable, public :: &
          albcnt       ! counter for zenith angle
 
-       ! out to ocean 
-       ! (Note CICE_IN_NEMO does not use these for coupling.  
+       ! out to ocean
+       ! (Note CICE_IN_NEMO does not use these for coupling.
        !  It uses fresh_ai,fsalt_ai,fhocn_ai and fswthru_ai)
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fpond   , & ! fresh water flux to ponds (kg/m^2/s)
@@ -265,7 +300,7 @@
          snoicen         ! snow-ice formation in category n (m)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         keffn_top       ! effective thermal conductivity of the top ice layer 
+         keffn_top       ! effective thermal conductivity of the top ice layer
                          ! on categories (W/m^2/K)
 
       ! quantities passed from ocean mixed layer to atmosphere
@@ -308,8 +343,8 @@
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
-         
-      real (kind=dbl_kind), & 
+
+      real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
          fcondtopn,& ! category fcondtop
@@ -324,10 +359,10 @@
       ! As above but these remain grid box mean values i.e. they are not
       ! divided by aice at end of ice_dynamics.  These are used in
       ! CICE_IN_NEMO for coupling and also for generating
-      ! ice diagnostics and history files as these are more accurate. 
+      ! ice diagnostics and history files as these are more accurate.
       ! (The others suffer from problem of incorrect values at grid boxes
       !  that change from an ice free state to an icy state.)
-    
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          fresh_ai, & ! fresh water flux to ocean (kg/m^2/s)
          fsalt_ai, & ! salt flux to ocean (kg/m^2/s)
@@ -341,7 +376,7 @@
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fswthrun_ai  ! per-category fswthru * ai (W/m^2)
- 
+
       logical (kind=log_kind), public :: send_i2x_per_cat = .false.
 
       !-----------------------------------------------------------------
@@ -349,15 +384,17 @@
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         uatmT   , & ! uatm on T grid (m/s)
+         vatmT   , & ! vatm on T grid (m/s)
          rside   , & ! fraction of ice that melts laterally
          fside   , & ! lateral heat flux (W/m^2)
          fsw     , & ! incoming shortwave radiation (W/m^2)
-         coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon 
+         coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
          rdg_shear   ! shear term for ridging (1/s)
- 
+
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
-         salinz    ,&   ! initial salinity  profile (ppt)   
+         salinz    ,&   ! initial salinity  profile (ppt)
          Tmltz          ! initial melting temperature (^oC)
 
 !=======================================================================
@@ -366,37 +403,39 @@
 
 !=======================================================================
 !
-! Allocate space for all variables 
+! Allocate space for all variables
 !
       subroutine alloc_flux
+
+      use ice_grid, only : grid_ice
 
       integer (int_kind) :: ierr
 
       allocate( &
          strax      (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
-         stray      (nx_block,ny_block,max_blocks), & ! 
+         stray      (nx_block,ny_block,max_blocks), & !
          uocn       (nx_block,ny_block,max_blocks), & ! ocean current, x-direction (m/s)
          vocn       (nx_block,ny_block,max_blocks), & ! ocean current, y-direction (m/s)
          ss_tltx    (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
          ss_tlty    (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction
-         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice) 
+         hwater     (nx_block,ny_block,max_blocks), & ! water depth for seabed stress calc (landfast ice)
          strairxT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
          strairyT   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
-         strocnxT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
-         strocnyT   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
+         strocnxT_iavg(nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction, per ice area
+         strocnyT_iavg(nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction, per ice area
          sig1       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sig2       (nx_block,ny_block,max_blocks), & ! normalized principal stress component
          sigP       (nx_block,ny_block,max_blocks), & ! internal ice pressure (N/m)
-         taubx      (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
-         tauby      (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
-         strairx    (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
-         strairy    (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
-         strocnx    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
-         strocny    (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
-         strtltx    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction
-         strtlty    (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction
-         strintx    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
-         strinty    (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
+         taubxU     (nx_block,ny_block,max_blocks), & ! seabed stress (x) (N/m^2)
+         taubyU     (nx_block,ny_block,max_blocks), & ! seabed stress (y) (N/m^2)
+         strairxU   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction
+         strairyU   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction
+         strocnxU   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction
+         strocnyU   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
+         strtltxU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction
+         strtltyU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction
+         strintxU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
+         strintyU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
          daidtd     (nx_block,ny_block,max_blocks), & ! ice area tendency due to transport   (1/s)
          dvidtd     (nx_block,ny_block,max_blocks), & ! ice volume tendency due to transport (m/s)
          dagedtd    (nx_block,ny_block,max_blocks), & ! ice age tendency due to transport (s/s)
@@ -416,9 +455,8 @@
          stress12_2 (nx_block,ny_block,max_blocks), & ! sigma12
          stress12_3 (nx_block,ny_block,max_blocks), & ! sigma12
          stress12_4 (nx_block,ny_block,max_blocks), & ! sigma12
-         iceumask   (nx_block,ny_block,max_blocks), & ! ice extent mask (U-cell)
-         fm         (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         Tbu        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         fmU        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
+         TbU        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
          zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
@@ -442,7 +480,8 @@
          Tf         (nx_block,ny_block,max_blocks), & ! freezing temperature (C)
          qdp        (nx_block,ny_block,max_blocks), & ! deep ocean heat flux (W/m^2), negative upward
          hmix       (nx_block,ny_block,max_blocks), & ! mixed layer depth (m)
-         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)(only used in hadgem drivers)
+         daice_da   (nx_block,ny_block,max_blocks), & ! data assimilation concentration increment rate (concentration s-1)
+                                                      ! (only used in hadgem drivers)
          fsens      (nx_block,ny_block,max_blocks), & ! sensible heat flux (W/m^2)
          flat       (nx_block,ny_block,max_blocks), & ! latent heat flux   (W/m^2)
          fswabs     (nx_block,ny_block,max_blocks), & ! shortwave flux absorbed in ice and ocean (W/m^2)
@@ -524,10 +563,12 @@
          fswthru_ai (nx_block,ny_block,max_blocks), &  ! shortwave penetrating to ocean (W/m^2)
          fresh_da   (nx_block,ny_block,max_blocks), & ! fresh water flux to ocean due to data assim (kg/m^2/s)
          fsalt_da   (nx_block,ny_block,max_blocks), & ! salt flux to ocean due to data assimilation(kg/m^2/s)
+         uatmT      (nx_block,ny_block,max_blocks), & ! uatm on T grid
+         vatmT      (nx_block,ny_block,max_blocks), & ! vatm on T grid
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
          fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
-         coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon 
+         coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
          rdg_shear  (nx_block,ny_block,max_blocks), & ! shear term for ridging (1/s)
          dardg1ndt  (nx_block,ny_block,ncat,max_blocks), & ! rate of area loss by ridging ice (1/s)
@@ -538,7 +579,7 @@
          ardgn      (nx_block,ny_block,ncat,max_blocks), & ! fractional area of ridged ice
          vrdgn      (nx_block,ny_block,ncat,max_blocks), & ! volume of ridged ice
          araftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice area
-         vraftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice volume 
+         vraftn     (nx_block,ny_block,ncat,max_blocks), & ! rafting ice volume
          aredistn   (nx_block,ny_block,ncat,max_blocks), & ! redistribution function: fraction of new ridge area
          vredistn   (nx_block,ny_block,ncat,max_blocks), & ! redistribution function: fraction of new ridge volume
          fsurfn_f   (nx_block,ny_block,ncat,max_blocks), & ! net flux to top surface, excluding fcondtop
@@ -567,8 +608,43 @@
          flatn      (nx_block,ny_block,ncat,max_blocks), & ! category latent heat flux
          albcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for zenith angle
          snwcnt     (nx_block,ny_block,max_blocks,max_nstrm), & ! counter for snow
-         salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)   
+         salinz     (nx_block,ny_block,nilyr+1,max_blocks), & ! initial salinity  profile (ppt)
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
+         stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
+
+      if (grid_ice == "CD" .or. grid_ice == "C") &
+         allocate( &
+         taubxN     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
+         taubyN     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
+         strairxN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at N points
+         strairyN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at N points
+         strocnxN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at N points
+         strocnyN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at N points
+         strtltxN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at N points
+         strtltyN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
+         strintxN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
+         strintyN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
+         fmN        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in N-cell (kg/s)
+         TbN        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         taubxE     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
+         taubyE     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
+         strairxE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
+         strairyE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at E points
+         strocnxE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at E points
+         strocnyE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at E points
+         strtltxE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at E points
+         strtltyE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
+         strintxE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
+         strintyE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
+         fmE        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
+         TbE        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+         stresspT   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+         stressmT   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+         stress12T  (nx_block,ny_block,max_blocks), & ! sigma12
+         stresspU   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+         stressmU   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+         stress12U  (nx_block,ny_block,max_blocks), & ! sigma12
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
@@ -674,7 +750,7 @@
          fcondtopn_f(:,:,:,:) =  c0           ! conductive heat flux (W/m^2)
          flatn_f    (:,:,:,:) = -1.0_dbl_kind ! latent heat flux (W/m^2)
          fsensn_f   (:,:,:,:) =  c0           ! sensible heat flux (W/m^2)
-      endif !   
+      endif !
 
       fiso_atm  (:,:,:,:) = c0           ! isotope deposition rate (kg/m2/s)
       faero_atm (:,:,:,:) = c0           ! aerosol deposition rate (kg/m2/s)
@@ -684,13 +760,13 @@
       ! fluxes received from ocean
       !-----------------------------------------------------------------
 
-      ss_tltx(:,:,:)= c0              ! sea surface tilt (m/m)
-      ss_tlty(:,:,:)= c0
-      uocn  (:,:,:) = c0              ! surface ocean currents (m/s)
-      vocn  (:,:,:) = c0
-      frzmlt(:,:,:) = c0              ! freezing/melting potential (W/m^2)
-      frzmlt_init(:,:,:) = c0         ! freezing/melting potential (W/m^2)
-      sss   (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
+      ss_tltx (:,:,:) = c0              ! sea surface tilt (m/m)
+      ss_tlty (:,:,:) = c0
+      uocn    (:,:,:) = c0              ! surface ocean currents (m/s)
+      vocn    (:,:,:) = c0
+      frzmlt  (:,:,:) = c0              ! freezing/melting potential (W/m^2)
+      frzmlt_init(:,:,:) = c0           ! freezing/melting potential (W/m^2)
+      sss     (:,:,:) = 34.0_dbl_kind   ! sea surface salinity (ppt)
 
       do iblk = 1, size(Tf,3)
       do j = 1, size(Tf,2)
@@ -717,7 +793,7 @@
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
       fswint_ai(:,:,:) = c0
-      flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4   
+      flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
       evaps   (:,:,:) = c0
@@ -734,8 +810,8 @@
       ! fluxes sent to ocean
       !-----------------------------------------------------------------
 
-      strocnxT(:,:,:) = c0    ! ice-ocean stress, x-direction (T-cell)
-      strocnyT(:,:,:) = c0    ! ice-ocean stress, y-direction (T-cell)
+      strocnxT_iavg (:,:,:) = c0 ! ice-ocean stress, x-direction (T-cell)
+      strocnyT_iavg (:,:,:) = c0 ! ice-ocean stress, y-direction (T-cell)
       fresh   (:,:,:) = c0
       fsalt   (:,:,:) = c0
       fpond   (:,:,:) = c0
@@ -765,7 +841,7 @@
       fdon   (:,:,:,:)= c0
       ffep   (:,:,:,:)= c0
       ffed   (:,:,:,:)= c0
-      
+
       allocate(fswthrun_ai(nx_block,ny_block,ncat,max_blocks))
       fswthrun_ai(:,:,:,:) = c0
 
@@ -775,7 +851,7 @@
 
       coszen  (:,:,:) = c0            ! Cosine of the zenith angle
       fsw     (:,:,:) = c0            ! shortwave radiation (W/m^2)
-      scale_factor(:,:,:) = c1        ! shortwave scaling factor 
+      scale_factor(:,:,:) = c1        ! shortwave scaling factor
       wind    (:,:,:) = sqrt(uatm(:,:,:)**2 &
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
@@ -947,8 +1023,8 @@
       snowfrac (:,:,:) = c0
       frazil_diag (:,:,:) = c0
 
-      ! drag coefficients are computed prior to the atmo_boundary call, 
-      ! during the thermodynamics section 
+      ! drag coefficients are computed prior to the atmo_boundary call,
+      ! during the thermodynamics section
       Cdn_ocn(:,:,:) = dragio
       Cdn_atm(:,:,:) = (vonkar/log(zref/iceruf)) &
                      * (vonkar/log(zref/iceruf)) ! atmo drag for RASM
@@ -984,6 +1060,7 @@
       subroutine init_history_dyn
 
       use ice_state, only: aice, vice, trcr, strength
+      use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
           tr_iage
@@ -1001,17 +1078,17 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
-      taubx   (:,:,:) = c0
-      tauby   (:,:,:) = c0
+      taubxU  (:,:,:) = c0
+      taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
-      strocnx (:,:,:) = c0
-      strocny (:,:,:) = c0
-      strairx (:,:,:) = c0
-      strairy (:,:,:) = c0
-      strtltx (:,:,:) = c0
-      strtlty (:,:,:) = c0
-      strintx (:,:,:) = c0
-      strinty (:,:,:) = c0
+      strocnxU(:,:,:) = c0
+      strocnyU(:,:,:) = c0
+      strairxU(:,:,:) = c0
+      strairyU(:,:,:) = c0
+      strtltxU(:,:,:) = c0
+      strtltyU(:,:,:) = c0
+      strintxU(:,:,:) = c0
+      strintyU(:,:,:) = c0
       dardg1dt(:,:,:) = c0
       dardg2dt(:,:,:) = c0
       dvirdgdt(:,:,:) = c0
@@ -1020,7 +1097,7 @@
       dvidtd  (:,:,:) = vice(:,:,:) ! temporary initial volume
       if (tr_iage) &
          dagedtd (:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
-      fm      (:,:,:) = c0
+      fmU     (:,:,:) = c0
       ardgn   (:,:,:,:) = c0
       vrdgn   (:,:,:,:) = c0
       krdgn   (:,:,:,:) = c1
@@ -1035,6 +1112,32 @@
       aredistn (:,:,:,:) = c0
       vredistn (:,:,:,:) = c0
 
+      if (grid_ice == "CD" .or. grid_ice == "C") then
+         taubxE     (:,:,:) = c0
+         taubyE     (:,:,:) = c0
+         strocnxE   (:,:,:) = c0
+         strocnyE   (:,:,:) = c0
+         strairxE   (:,:,:) = c0
+         strairyE   (:,:,:) = c0
+         strtltxE   (:,:,:) = c0
+         strtltyE   (:,:,:) = c0
+         strintxE   (:,:,:) = c0
+         strintyE   (:,:,:) = c0
+         fmE        (:,:,:) = c0
+         TbE        (:,:,:) = c0
+         taubxN     (:,:,:) = c0
+         taubyN     (:,:,:) = c0
+         strocnxN   (:,:,:) = c0
+         strocnyN   (:,:,:) = c0
+         strairxN   (:,:,:) = c0
+         strairyN   (:,:,:) = c0
+         strtltxN   (:,:,:) = c0
+         strtltyN   (:,:,:) = c0
+         strintxN   (:,:,:) = c0
+         strintyN   (:,:,:) = c0
+         fmN        (:,:,:) = c0
+         TbN        (:,:,:) = c0
+      end if
       end subroutine init_history_dyn
 
 !=======================================================================
@@ -1139,8 +1242,8 @@
 
       ! zsalinity fluxes
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
-          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)  
-          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s) 
+          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)
+          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s)
 
       ! isotopes
       real (kind=dbl_kind), dimension(nx_block,ny_block,icepack_max_iso), &
@@ -1198,8 +1301,8 @@
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
             alidf   (i,j) = alidf   (i,j) * ar
-            fzsal   (i,j) = fzsal   (i,j) * ar  
-            fzsal_g (i,j) = fzsal_g (i,j) * ar  
+            fzsal   (i,j) = fzsal   (i,j) * ar
+            fzsal_g (i,j) = fzsal_g (i,j) * ar
             flux_bio (i,j,:) = flux_bio (i,j,:) * ar
             faero_ocn(i,j,:) = faero_ocn(i,j,:) * ar
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
@@ -1232,10 +1335,10 @@
             fswthru_idf (i,j) = c0
             alvdr   (i,j) = c0  ! zero out albedo where ice is absent
             alidr   (i,j) = c0
-            alvdf   (i,j) = c0 
+            alvdf   (i,j) = c0
             alidf   (i,j) = c0
-            fzsal   (i,j) = c0  
-            fzsal_g (i,j) = c0 
+            fzsal   (i,j) = c0
+            fzsal_g (i,j) = c0
             flux_bio (i,j,:) = c0
             faero_ocn(i,j,:) = c0
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0
@@ -1250,8 +1353,8 @@
       enddo                     ! j
 
       ! Scale fluxes for history output
-      if (present(fsurf) .and. present(fcondtop) ) then 
-     
+      if (present(fsurf) .and. present(fcondtop) ) then
+
         do j = 1, ny_block
         do i = 1, nx_block
 
@@ -1269,9 +1372,9 @@
            endif                  ! tmask and aice > 0
         enddo                     ! i
         enddo                     ! j
-      
+
       endif                       ! present(fsurf & fcondtop)
-      
+
       end subroutine scale_fluxes
 
 !=======================================================================

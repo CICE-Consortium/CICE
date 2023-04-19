@@ -1,4 +1,4 @@
-ice_ic = 'default'
+ice_ic = 'internal'
 bfbflag = 'reprosum'
 distribution_type = 'rake'
 processor_shape   = 'slenderX2'
@@ -6,7 +6,6 @@ distribution_wght = 'block'
 tr_iage      = .true.
 tr_FY        = .true.
 tr_lvl       = .true.
-tr_pond_cesm = .false.
 tr_pond_topo = .false.
 tr_pond_lvl  = .true.
 tr_aero      = .true.

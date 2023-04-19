@@ -5,12 +5,13 @@ cat ./results.log | grep -iv "#machinfo" | grep -iv "#envinfo"
 set pends     = `cat ./results.log | grep PEND | wc -l`
 set misses    = `cat ./results.log | grep MISS | wc -l`
 set failures  = `cat ./results.log | grep FAIL | wc -l`
-set failbuild = `cat ./results.log | grep FAIL | grep " build " | wc -l`
-set failrun   = `cat ./results.log | grep FAIL | grep " run " | wc -l`
-set failtest  = `cat ./results.log | grep FAIL | grep " test " | wc -l`
-set failcomp  = `cat ./results.log | grep FAIL | grep " compare " | wc -l`
-set failbfbc  = `cat ./results.log | grep FAIL | grep " bfbcomp " | wc -l`
-set failgen   = `cat ./results.log | grep FAIL | grep " generate " | wc -l`
+set failbuild = `cat ./results.log | grep FAIL | grep " build" | wc -l`
+set failrun   = `cat ./results.log | grep FAIL | grep " run" | wc -l`
+set failtest  = `cat ./results.log | grep FAIL | grep " test" | wc -l`
+set failcomp  = `cat ./results.log | grep FAIL | grep " compare" | wc -l`
+set failclog  = `cat ./results.log | grep FAIL | grep " complog" | wc -l`
+set failbfbc  = `cat ./results.log | grep FAIL | grep " bfbcomp" | wc -l`
+set failgen   = `cat ./results.log | grep FAIL | grep " generate" | wc -l`
 set success   = `cat ./results.log | grep 'PASS\|COPY' | wc -l`
 set comments  = `cat ./results.log | grep "#" | wc -l`
 set alltotal  = `cat ./results.log | wc -l`
@@ -29,8 +30,12 @@ echo "    #failbuild = $failbuild" >> results.log
 echo "    #failrun   = $failrun" >> results.log
 echo "    #failtest  = $failtest" >> results.log
 echo "    #failcomp  = $failcomp" >> results.log
+echo "    #failclog  = $failclog" >> results.log
 echo "    #failbfbc  = $failbfbc" >> results.log
 echo "    #failgen   = $failgen" >> results.log
+
+set stamp = `date '+%y%m%d-%H%M%S'`
+cp results.log results.$stamp.log
 
 echo ""
 echo "Descriptors:"
@@ -49,6 +54,7 @@ echo "$failures of $chkcnt tests FAILED"
 #echo "  $failrun of $failures FAILED run"
 #echo "  $failtest of $failures FAILED test"
 #echo "  $failcomp of $failures FAILED compare"
+#echo "  $failclog of $failures FAILED compare"
 #echo "  $failbfbc of $failures FAILED bfbcomp"
 #echo "  $failgen of $failures FAILED generate"
 exit $failures

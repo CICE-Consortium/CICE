@@ -2,17 +2,17 @@
 !
 ! Output files: netCDF or binary data, Fortran unformatted dumps
 !
-! The following variables are currently hard-wired as snapshots 
+! The following variables are currently hard-wired as snapshots
 !   (instantaneous rather than time-averages):
 !   divu, shear, sig1, sig2, sigP, trsig, mlt_onset, frz_onset, hisnap, aisnap
 !
 ! Options for histfreq: '1','h','d','m','y','x', where x means that
-!   output stream will not be used (recommended for efficiency).  
-! histfreq_n can be any nonnegative integer, where 0 means that the 
+!   output stream will not be used (recommended for efficiency).
+! histfreq_n can be any nonnegative integer, where 0 means that the
 !   corresponding histfreq frequency will not be used.
 ! The flags (f_<field>) can be set to '1','h','d','m','y' or 'x', where
 !   n means the field will not be written.  To output the same field at
-!   more than one frequency, for instance monthy and daily, set 
+!   more than one frequency, for instance monthy and daily, set
 !   f_<field> = 'md'.
 !
 ! authors Tony Craig and Bruce Briegleb, NCAR
@@ -34,13 +34,13 @@
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename
-      
+
       integer (kind=int_kind), public :: history_precision
 
       logical (kind=log_kind), public :: &
          hist_avg  ! if true, write averaged data instead of snapshots
 
-      character (len=char_len), public :: &
+      character (len=char_len_long), public :: &
          history_file  , & ! output file for history
          incond_file       ! output file for snapshot initial conditions
 
@@ -120,9 +120,9 @@
          avail_hist_fields(max_avail_hist_fields)
 
       integer (kind=int_kind), parameter, public :: &
-         nvar = 12              , & ! number of grid fields that can be written
+         nvar_grd = 21          , & ! number of grid fields that can be written
                                     !   excluding grid vertices
-         nvarz = 6                  ! number of category/vertical grid fields written
+         nvar_grdz = 6              ! number of category/vertical grid fields written
 
       integer (kind=int_kind), public :: &
          ncat_hist              , & ! number of thickness categories written <= ncat
@@ -142,7 +142,7 @@
          a4Di(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, ice
          a4Ds(:,:,:,:,:,:), & ! field accumulations/averages, 4D categories,vertical, snow
          a4Df(:,:,:,:,:,:)    ! field accumulations/averages, 4D floe size, thickness categories
-         
+
       real (kind=dbl_kind), allocatable, public :: &
          Tinz4d (:,:,:,:)    , & ! array for Tin
          Tsnz4d (:,:,:,:)    , & ! array for Tsn
@@ -152,51 +152,44 @@
          avgct(max_nstrm)   ! average sample counter
 
       logical (kind=log_kind), public :: &
-         igrd (nvar), &        ! true if grid field is written to output file
-         igrdz(nvarz)          ! true if category/vertical grid field is written
+         igrd (nvar_grd), &    ! true if grid field is written to output file
+         igrdz(nvar_grdz)      ! true if category/vertical grid field is written
 
       character (len=25), public, parameter :: &
-         tcstr = 'area: tarea'          , & ! vcellmeas for T cell quantities
-         ucstr = 'area: uarea'          , & ! vcellmeas for U cell quantities
-         tstr2D  = 'TLON TLAT time'     , & ! vcoord for T cell quantities, 2D
-         ustr2D  = 'ULON ULAT time'     , & ! vcoord for U cell quantities, 2D
-         tstr3Dz = 'TLON TLAT VGRDi time',& ! vcoord for T cell quantities, 3D
-         ustr3Dz = 'ULON ULAT VGRDi time',& ! vcoord for U cell quantities, 3D
-         tstr3Dc = 'TLON TLAT NCAT  time',& ! vcoord for T cell quantities, 3D
-         ustr3Dc = 'ULON ULAT NCAT  time',& ! vcoord for U cell quantities, 3D
-         tstr3Db = 'TLON TLAT VGRDb time',& ! vcoord for T cell quantities, 3D
-         ustr3Db = 'ULON ULAT VGRDb time',& ! vcoord for U cell quantities, 3D
-         tstr3Da = 'TLON TLAT VGRDa time',& ! vcoord for T cell quantities, 3D
-         ustr3Da = 'ULON ULAT VGRDa time',& ! vcoord for U cell quantities, 3D
-         tstr3Df = 'TLON TLAT NFSD  time',& ! vcoord for T cell quantities, 3D
-         ustr3Df = 'ULON ULAT NFSD  time',& ! vcoord for U cell quantities, 3D
-
-!ferret
+         ! T grids
+         tcstr   = 'area: tarea'         , & ! vcellmeas for T cell quantities
+         tstr2D  = 'TLON TLAT time'      , & ! vcoord for T cell, 2D
+         tstr3Dc = 'TLON TLAT NCAT  time', & ! vcoord for T cell, 3D, ncat
+         tstr3Da = 'TLON TLAT VGRDa time', & ! vcoord for T cell, 3D, ice-snow-bio
+         tstr3Db = 'TLON TLAT VGRDb time', & ! vcoord for T cell, 3D, ice-bio
+         tstr3Df = 'TLON TLAT NFSD  time', & ! vcoord for T cell, 3D, fsd
          tstr4Di = 'TLON TLAT VGRDi NCAT', & ! vcoord for T cell, 4D, ice
-         ustr4Di = 'ULON ULAT VGRDi NCAT', & ! vcoord for U cell, 4D, ice
          tstr4Ds = 'TLON TLAT VGRDs NCAT', & ! vcoord for T cell, 4D, snow
-         ustr4Ds = 'ULON ULAT VGRDs NCAT', & ! vcoord for U cell, 4D, snow
          tstr4Df = 'TLON TLAT NFSD  NCAT', & ! vcoord for T cell, 4D, fsd
-         ustr4Df = 'ULON ULAT NFSD  NCAT'    ! vcoord for U cell, 4D, fsd
-!ferret
-!         tstr4Di  = 'TLON TLAT VGRDi NCAT time', & ! ferret can not handle time 
-!         ustr4Di  = 'ULON ULAT VGRDi NCAT time', & ! index on 4D variables.
-!         tstr4Ds  = 'TLON TLAT VGRDs NCAT time', & ! Use 'ferret' lines instead
-!         ustr4Ds  = 'ULON ULAT VGRDs NCAT time', & ! (below also)
-!         tstr4Db  = 'TLON TLAT VGRDb NCAT time', &
-!         ustr4Db  = 'ULON ULAT VGRDb NCAT time', &
-!         tstr4Df  = 'TLON TLAT NFSD  NCAT time', &
-!         ustr4Df  = 'ULON ULAT NFSD  NCAT time', &
+         ! U grids
+         ucstr   = 'area: uarea'         , & ! vcellmeas for U cell quantities
+         ustr2D  = 'ULON ULAT time'      , & ! vcoord for U cell, 2D
+         ! N grids
+         ncstr   = 'area: narea'         , & ! vcellmeas for N cell quantities
+         nstr2D  = 'NLON NLAT time'      , & ! vcoord for N cell, 2D
+         ! E grids
+         ecstr   = 'area: earea'         , & ! vcellmeas for E cell quantities
+         estr2D  = 'ELON ELAT time'          ! vcoord for E cell, 2D
 
       !---------------------------------------------------------------
       ! flags: write to output file if true or histfreq value
       !---------------------------------------------------------------
 
       logical (kind=log_kind), public :: &
-           f_tmask     = .true., f_blkmask    = .true., &
+           f_tmask     = .true., f_umask      = .true., &
+           f_nmask     = .true., f_emask      = .true., &
+           f_blkmask   = .true., &
            f_tarea     = .true., f_uarea      = .true., &
+           f_narea     = .true., f_earea      = .true., &
            f_dxt       = .true., f_dyt        = .true., &
            f_dxu       = .true., f_dyu        = .true., &
+           f_dxn       = .true., f_dyn        = .true., &
+           f_dxe       = .true., f_dye        = .true., &
            f_HTN       = .true., f_HTE        = .true., &
            f_ANGLE     = .true., f_ANGLET     = .true., &
            f_bounds    = .true., f_NCAT       = .true., &
@@ -210,6 +203,11 @@
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
            f_uvel      = 'm', f_vvel       = 'm', &
+           f_icespd    = 'm', f_icedir     = 'm', &
+           f_uvelE     = 'x', f_vvelE      = 'x', &
+           f_icespdE   = 'x', f_icedirE    = 'x', &
+           f_uvelN     = 'x', f_vvelN      = 'x', &
+           f_icespdN   = 'x', f_icedirN    = 'x', &
            f_uatm      = 'm', f_vatm       = 'm', &
            f_atmspd    = 'm', f_atmdir     = 'm', &
            f_fswup     = 'm', &
@@ -250,6 +248,18 @@
            f_strocnx   = 'm', f_strocny    = 'm', &
            f_strintx   = 'm', f_strinty    = 'm', &
            f_taubx     = 'm', f_tauby      = 'm', &
+           f_strairxN  = 'x', f_strairyN   = 'x', &
+           f_strtltxN  = 'x', f_strtltyN   = 'x', &
+           f_strcorxN  = 'x', f_strcoryN   = 'x', &
+           f_strocnxN  = 'x', f_strocnyN   = 'x', &
+           f_strintxN  = 'x', f_strintyN   = 'x', &
+           f_taubxN    = 'x', f_taubyN     = 'x', &
+           f_strairxE  = 'x', f_strairyE   = 'x', &
+           f_strtltxE  = 'x', f_strtltyE   = 'x', &
+           f_strcorxE  = 'x', f_strcoryE   = 'x', &
+           f_strocnxE  = 'x', f_strocnyE   = 'x', &
+           f_strintxE  = 'x', f_strintyE   = 'x', &
+           f_taubxE    = 'x', f_taubyE     = 'x', &
            f_strength  = 'm', &
            f_divu      = 'm', f_shear      = 'm', &
            f_sig1      = 'm', f_sig2       = 'm', &
@@ -325,10 +335,10 @@
            f_keffn_top = 'x', &
            f_Tinz      = 'x', f_Sinz       = 'x', &
            f_Tsnz      = 'x', &
-           f_a11       = 'x', f_a12        = 'x', & 
-           f_e11       = 'x', f_e12        = 'x', & 
+           f_a11       = 'x', f_a12        = 'x', &
+           f_e11       = 'x', f_e12        = 'x', &
            f_e22       = 'x', &
-           f_s11       = 'x', f_s12        = 'x', & 
+           f_s11       = 'x', f_s12        = 'x', &
            f_s22       = 'x', &
            f_yieldstress11  = 'x', &
            f_yieldstress12  = 'x', &
@@ -339,10 +349,15 @@
       !---------------------------------------------------------------
 
       namelist / icefields_nml /     &
-           f_tmask    , f_blkmask  , &
+           f_tmask    , f_umask    , &
+           f_nmask    , f_emask    , &
+           f_blkmask  , &
            f_tarea    , f_uarea    , &
+           f_narea    , f_earea    , &
            f_dxt      , f_dyt      , &
            f_dxu      , f_dyu      , &
+           f_dxn      , f_dyn      , &
+           f_dxe      , f_dye      , &
            f_HTN      , f_HTE      , &
            f_ANGLE    , f_ANGLET   , &
            f_bounds   , f_NCAT     , &
@@ -354,11 +369,17 @@
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
            f_uvel,      f_vvel     , &
+           f_icespd,    f_icedir   , &
+!          For now, C and CD grid quantities are controlled by the generic (originally B-grid) namelist flag
+!          f_uvelE,     f_vvelE    , &
+!          f_icespdE,   f_icedirE  , &
+!          f_uvelN,     f_vvelN    , &
+!          f_icespdN,   f_icedirN  , &
            f_uatm,      f_vatm     , &
            f_atmspd,    f_atmdir   , &
            f_fswup,     &
            f_fswdn,     f_flwdn    , &
-           f_snow,      f_snow_ai  , &     
+           f_snow,      f_snow_ai  , &
            f_rain,      f_rain_ai  , &
            f_sst,       f_sss      , &
            f_uocn,      f_vocn     , &
@@ -383,8 +404,8 @@
            f_snoice,    f_dsnow    , &
            f_meltt,     f_melts    , &
            f_meltb,     f_meltl    , &
-           f_fresh,     f_fresh_ai , &  
-           f_fsalt,     f_fsalt_ai , &  
+           f_fresh,     f_fresh_ai , &
+           f_fsalt,     f_fsalt_ai , &
            f_fbot,      &
            f_fhocn,     f_fhocn_ai , &
            f_fswthru,   f_fswthru_ai,&
@@ -394,6 +415,18 @@
            f_strocnx,   f_strocny  , &
            f_strintx,   f_strinty  , &
            f_taubx,     f_tauby    , &
+!          f_strairxN,  f_strairyN , &
+!          f_strtltxN,  f_strtltyN , &
+!          f_strcorxN,  f_strcoryN , &
+!          f_strocnxN,  f_strocnyN , &
+!          f_strintxN,  f_strintyN , &
+!          f_taubxN,    f_taubyN   , &
+!          f_strairxE,  f_strairyE , &
+!          f_strtltxE,  f_strtltyE , &
+!          f_strcorxE,  f_strcoryE , &
+!          f_strocnxE,  f_strocnyE , &
+!          f_strintxE,  f_strintyE , &
+!          f_taubxE,    f_taubyE   , &
            f_strength,  &
            f_divu,      f_shear    , &
            f_sig1,      f_sig2     , &
@@ -484,17 +517,26 @@
 
       integer (kind=int_kind), parameter, public :: &
            n_tmask      = 1,  &
-           n_blkmask    = 2,  &
-           n_tarea      = 3,  &
-           n_uarea      = 4,  &
-           n_dxt        = 5,  &
-           n_dyt        = 6,  &
-           n_dxu        = 7,  & 
-           n_dyu        = 8,  &
-           n_HTN        = 9,  &
-           n_HTE        = 10, &
-           n_ANGLE      = 11, &
-           n_ANGLET     = 12, &
+           n_umask      = 2,  &
+           n_nmask      = 3,  &
+           n_emask      = 4,  &
+           n_blkmask    = 5,  &
+           n_tarea      = 6,  &
+           n_uarea      = 7,  &
+           n_narea      = 8,  &
+           n_earea      = 9,  &
+           n_dxt        = 10, &
+           n_dyt        = 11, &
+           n_dxu        = 12, &
+           n_dyu        = 13, &
+           n_dxn        = 14, &
+           n_dyn        = 15, &
+           n_dxe        = 16, &
+           n_dye        = 17, &
+           n_HTN        = 18, &
+           n_HTE        = 19, &
+           n_ANGLE      = 20, &
+           n_ANGLET     = 21, &
 
            n_NCAT       = 1, &
            n_VGRDi      = 2, &
@@ -506,7 +548,11 @@
            n_lont_bnds  = 1, &
            n_latt_bnds  = 2, &
            n_lonu_bnds  = 3, &
-           n_latu_bnds  = 4
+           n_latu_bnds  = 4, &
+           n_lonn_bnds  = 5, &
+           n_latn_bnds  = 6, &
+           n_lone_bnds  = 7, &
+           n_late_bnds  = 8
 
       integer (kind=int_kind), dimension(max_nstrm), public :: &
 !          n_example    , &
@@ -514,6 +560,11 @@
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
            n_uvel       , n_vvel       , &
+           n_icespd     , n_icedir     , &
+           n_uvelE      , n_vvelE      , &
+           n_icespdE    , n_icedirE    , &
+           n_uvelN      , n_vvelN      , &
+           n_icespdN    , n_icedirN    , &
            n_uatm       , n_vatm       , &
            n_atmspd     , n_atmdir     , &
            n_sice       , &
@@ -556,6 +607,18 @@
            n_strocnx    , n_strocny    , &
            n_strintx    , n_strinty    , &
            n_taubx      , n_tauby      , &
+           n_strairxN   , n_strairyN   , &
+           n_strtltxN   , n_strtltyN   , &
+           n_strcorxN   , n_strcoryN   , &
+           n_strocnxN   , n_strocnyN   , &
+           n_strintxN   , n_strintyN   , &
+           n_taubxN     , n_taubyN     , &
+           n_strairxE   , n_strairyE   , &
+           n_strtltxE   , n_strtltyE   , &
+           n_strcorxE   , n_strcoryE   , &
+           n_strocnxE   , n_strocnyE   , &
+           n_strintxE   , n_strintyE   , &
+           n_taubxE     , n_taubyE     , &
            n_strength   , &
            n_divu       , n_shear      , &
            n_sig1       , n_sig2       , &
@@ -620,7 +683,7 @@
            n_trsig      , n_icepresent , &
            n_iage       , n_FY         , &
            n_fsurf_ai   , &
-           n_fcondtop_ai, n_fmeltt_ai  , &   
+           n_fcondtop_ai, n_fmeltt_ai  , &
            n_aicen      , n_vicen      , &
            n_fsurfn_ai   , &
            n_fcondtopn_ai, &
@@ -670,7 +733,7 @@
         iyear = myear
         imonth = mmonth
         iday = mday
-        isec = msec - dt
+        isec = int(msec - dt,int_kind)
 
         ! construct filename
         if (write_ic) then
@@ -768,7 +831,7 @@
 
       character (len=*), intent(in) :: &
          vhistfreq      ! history frequency
- 
+
       integer (kind=int_kind), intent(in) :: &
          ns             ! history file stream index
 
@@ -875,7 +938,7 @@
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
-        
+
       integer (kind=int_kind), intent(in) :: iblk
 
       real (kind=dbl_kind), intent(in) :: &
@@ -935,7 +998,7 @@
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
-        
+
       integer (kind=int_kind), intent(in) :: iblk
 
       integer (kind=int_kind), intent(in) :: &
@@ -1000,7 +1063,7 @@
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
                            ! later routines
-        
+
       integer (kind=int_kind), intent(in) :: iblk
 
       integer (kind=int_kind), intent(in) :: &

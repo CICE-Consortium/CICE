@@ -1,7 +1,7 @@
 
       program sumchk
 
-      ! This tests the CICE ice_global_reductions infrastructure by 
+      ! This tests the CICE ice_global_reductions infrastructure by
       ! using CICE_InitMod (from the standalone model) to read/initialize
       ! a CICE grid/configuration.  Then methods in ice_global_reductions
       ! are verified using hardwired inputs with known outputs.
@@ -28,7 +28,7 @@
 
       integer(int_kind) :: i, j, k, l, m, n, iblock, ib, ie, jb, je
       integer(int_kind) :: blockID, numBlocks
-      type (block) :: this_block  
+      type (block) :: this_block
 
       real(dbl_kind)   ,allocatable :: arrayA(:,:,:),arrayB(:,:,:),arrayC(:,:,:)
       integer(int_kind),allocatable :: arrayiA(:,:,:),arrayiB(:,:,:)
@@ -58,9 +58,6 @@
       integer(int_kind),parameter :: ntests3 = 3
       character(len=8)  :: errorflag3(ntests3)
       character(len=32) :: stringflag3(ntests3)
-      integer(int_kind),parameter :: ntests4 = 1
-      character(len=8)  :: errorflag4(ntests4)
-      character(len=32) :: stringflag4(ntests4)
 
       integer(int_kind) :: npes, ierr, ntask
 
@@ -100,7 +97,6 @@
       errorflag1 = passflag
       errorflag2 = passflag
       errorflag3 = passflag
-      errorflag4 = passflag
       npes = get_num_procs()
 
       if (my_task == master_task) then
@@ -601,63 +597,6 @@
       enddo
 
       ! ---------------------------
-      ! Test Vector Reductions
-      ! ---------------------------
-
-      if (my_task == master_task) write(6,*) ' '
-
-      n = 1    ; stringflag4(n) = 'dble sum vector'
-      allocate(vec8(3))
-      allocate(sum8(3))
-
-      minval = -5.
-      maxval =  8.
-
-      vec8(1) = 1.
-
-      ! fill one gridcell with a min and max value
-      ntask = max(npes-1,1)-1
-      if (my_task == ntask) then
-         vec8(1) = minval
-      endif
-      ntask = min(npes,2)-1
-      if (my_task == ntask) then
-         vec8(1) = maxval
-      endif
-      vec8(2) = 2. * vec8(1)
-      vec8(3) = 3. * vec8(1)
-
-      ! compute correct results
-      if (npes == 1) then
-         minval = maxval
-         corval = maxval
-      else
-         corval = (npes - 2) * 1.0 + minval + maxval
-      endif
-
-      do k = 1,ntests4
-         string = stringflag4(k)
-         sum8 = -888e12
-         if (k == 1) then
-            sum8 = global_allreduce_sum(vec8, distrb_info)
-         else
-            call abort_ice(subname//' illegal k vector',file=__FILE__,line=__LINE__)
-         endif
-
-         if (my_task == master_task) then
-            write(6,'(1x,a,3g16.8)') string, sum8(1),sum8(2),sum8(3)
-         endif
-
-         if (sum8(1) /= corval .or. sum8(2) /= 2.*corval .or. sum8(3) /= 3.*corval) then
-           errorflag4(k) = failflag
-           errorflag0 = failflag
-           if (my_task == master_task) then
-              write(6,*) '**** ERROR ', sum8(1),sum8(2),sum8(3),corval
-           endif
-         endif
-      enddo
-
-      ! ---------------------------
 
       if (my_task == master_task) then
          write(6,*) ' '
@@ -669,9 +608,6 @@
          enddo
          do k = 1,ntests3
             write(6,*) errorflag3(k),stringflag3(k)
-         enddo
-         do k = 1,ntests4
-            write(6,*) errorflag4(k),stringflag4(k)
          enddo
          write(6,*) ' '
          write(6,*) 'SUMCHK COMPLETED SUCCESSFULLY'

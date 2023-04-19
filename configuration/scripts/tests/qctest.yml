@@ -1,0 +1,11 @@
+name: qctest
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+# Python dependencies for plotting scripts
+  - numpy
+  - matplotlib-base
+  - cartopy
+  - netcdf4
+

@@ -29,7 +29,6 @@
       public ::  write_restart_age,       read_restart_age, &
                  write_restart_FY,        read_restart_FY, &
                  write_restart_lvl,       read_restart_lvl, &
-                 write_restart_pond_cesm, read_restart_pond_cesm, &
                  write_restart_pond_lvl,  read_restart_pond_lvl, &
                  write_restart_pond_topo, read_restart_pond_topo, &
                  write_restart_snow,      read_restart_snow, &
@@ -39,18 +38,17 @@
                  write_restart_bgc,       read_restart_bgc,  &
                  write_restart_hbrine,    read_restart_hbrine
 
-      logical (kind=log_kind), public :: & 
+      logical (kind=log_kind), public :: &
          restart_age      , & ! if .true., read age tracer restart file
          restart_FY       , & ! if .true., read FY tracer restart file
          restart_lvl      , & ! if .true., read lvl tracer restart file
-         restart_pond_cesm, & ! if .true., read meltponds restart file
          restart_pond_lvl , & ! if .true., read meltponds restart file
          restart_pond_topo, & ! if .true., read meltponds restart file
          restart_snow     , & ! if .true., read snow tracer restart file
          restart_fsd      , & ! if .true., read floe size restart file
          restart_iso      , & ! if .true., read isotope tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
-         restart_zsal     , & ! if .true., read Salinity from restart file 
+         restart_zsal     , & ! if .true., read Salinity from restart file
          restart_hbrine   , & ! if .true., read hbrine from restart file
          restart_bgc          ! if .true., read bgc restart file
 
@@ -261,73 +259,6 @@
 ! Dumps all values needed for restarting
 !
 ! authors Elizabeth C. Hunke, LANL
-!         David A. Bailey, NCAR
-
-      subroutine write_restart_pond_cesm()
-
-      use ice_fileunits, only: nu_dump_pond
-      use ice_state, only: trcrn
-
-      ! local variables
-
-      logical (kind=log_kind) :: diag
-      integer (kind=int_kind) :: nt_apnd, nt_hpnd
-      character(len=*),parameter :: subname='(write_restart_pond_cesm)'
-
-      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      diag = .true.
-
-      call write_restart_field(nu_dump_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
-                               'apnd',ncat,diag)
-      call write_restart_field(nu_dump_pond,0,trcrn(:,:,nt_hpnd,:,:),'ruf8', &
-                               'hpnd',ncat,diag)
-
-      end subroutine write_restart_pond_cesm
-
-!=======================================================================
-
-! Reads all values needed for a meltpond volume restart
-!
-! authors Elizabeth C. Hunke, LANL
-!         David A. Bailey, NCAR
-
-      subroutine read_restart_pond_cesm()
-
-      use ice_fileunits, only: nu_restart_pond 
-      use ice_state, only: trcrn
-
-      ! local variables
-
-      logical (kind=log_kind) :: &
-         diag
-      integer (kind=int_kind) :: nt_apnd, nt_hpnd
-      character(len=*),parameter :: subname='(read_restart_pond_cesm)'
-
-      call icepack_query_tracer_indices(nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      diag = .true.
-
-      if (my_task == master_task) write(nu_diag,*) subname,'min/max cesm ponds'
-
-      call read_restart_field(nu_restart_pond,0,trcrn(:,:,nt_apnd,:,:),'ruf8', &
-                              'apnd',ncat,diag,field_loc_center,field_type_scalar)
-      call read_restart_field(nu_restart_pond,0,trcrn(:,:,nt_hpnd,:,:),'ruf8', &
-                              'hpnd',ncat,diag,field_loc_center,field_type_scalar)
-
-      end subroutine read_restart_pond_cesm
-
-!=======================================================================
-!
-! Dumps all values needed for restarting
-!
-! authors Elizabeth C. Hunke, LANL
 
       subroutine write_restart_pond_lvl()
 
@@ -374,7 +305,7 @@
       subroutine read_restart_pond_lvl()
 
       use ice_arrays_column, only: dhsn, ffracn
-      use ice_fileunits, only: nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
 
@@ -454,7 +385,7 @@
 
       subroutine read_restart_pond_topo()
 
-      use ice_fileunits, only: nu_restart_pond 
+      use ice_fileunits, only: nu_restart_pond
       use ice_state, only: trcrn
 
       ! local variables
@@ -497,7 +428,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_snow)'
 
       call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
@@ -539,7 +470,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_snow)'
 
       call icepack_query_tracer_indices(nt_smice_out=nt_smice, &
@@ -584,7 +515,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -619,7 +550,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_fsd, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_fsd)'
 
       call icepack_query_tracer_indices(nt_fsd_out=nt_fsd)
@@ -655,7 +586,7 @@
 
       logical (kind=log_kind) :: diag
       integer (kind=int_kind) :: nt_isosno, nt_isoice, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(write_restart_iso)'
 
       call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
@@ -697,7 +628,7 @@
       logical (kind=log_kind) :: &
          diag
       integer (kind=int_kind) :: nt_isosno, nt_isoice, k
-      character*3 ck
+      character(len=3) :: ck
       character(len=*),parameter :: subname='(read_restart_iso)'
 
       call icepack_query_tracer_indices(nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
@@ -880,14 +811,14 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
 
          do j = jlo, jhi
-         do i = ilo, ihi  
+         do i = ilo, ihi
             do n = 1, ncat
                if (first_ice_real(i,j,n,iblk) >= p5) then
                    first_ice     (i,j,n,iblk) = .true.
@@ -895,7 +826,7 @@
                    first_ice     (i,j,n,iblk) = .false.
                endif
             enddo ! ncat
-         enddo    ! i 
+         enddo    ! i
          enddo    ! j
       enddo       ! iblk
       !$OMP END PARALLEL DO
@@ -913,6 +844,7 @@
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_fileunits, only: nu_dump_hbrine
+      use ice_grid, only: tmask
       use ice_state, only: trcrn
       use ice_restart,only: write_restart_field
 
@@ -940,16 +872,17 @@
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,n,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
 
-        this_block = get_block(blocks_ice(iblk),iblk)         
+        this_block = get_block(blocks_ice(iblk),iblk)
         ilo = this_block%ilo
         ihi = this_block%ihi
         jlo = this_block%jlo
         jhi = this_block%jhi
 
         do j = jlo, jhi
-        do i = ilo, ihi  
+        do i = ilo, ihi
            do n = 1, ncat
-              if (first_ice     (i,j,n,iblk)) then
+              ! zero out first_ice over land
+              if (tmask(i,j,iblk) .and. first_ice (i,j,n,iblk)) then
                   first_ice_real(i,j,n,iblk) = c1
               else
                   first_ice_real(i,j,n,iblk) = c0
@@ -983,8 +916,9 @@
       use ice_fileunits, only: nu_dump_bgc
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
+      use ice_grid, only: tmask
       use ice_state, only: trcrn
-      use ice_flux, only: sss  
+      use ice_flux, only: sss
       use ice_restart, only:  write_restart_field
 
       ! local variables
@@ -1003,27 +937,27 @@
          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
          nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
 
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &  
-         nt_bgc_N , & ! diatoms, phaeocystis, pico/small   
-         nt_bgc_C , & ! diatoms, phaeocystis, pico/small   
-         nt_bgc_chl   ! diatoms, phaeocystis, pico/small 
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_C , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
 
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &  
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
          nt_bgc_DOC      !  dissolved organic carbon
 
-      integer (kind=int_kind), dimension(icepack_max_don) :: & 
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
          nt_bgc_DON         !  dissolved organic nitrogen
 
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &  
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
          nt_bgc_DIC         !  dissolved inorganic carbon
 
-      integer (kind=int_kind), dimension(icepack_max_fe) :: & 
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
          nt_bgc_Fed,     & !  dissolved iron
          nt_bgc_Fep        !  particulate iron
 
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &  
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
          nt_zaero       !  black carbon and other aerosols
-      
+
       logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
          tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
@@ -1059,21 +993,54 @@
       diag = .true.
 
       !-----------------------------------------------------------------
+      ! Zero out tracers over land
+      !-----------------------------------------------------------------
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (.not. tmask(i,j,iblk)) then
+               if (tr_bgc_N  ) algalN(i,j,:,iblk) = c0
+               if (tr_bgc_C  ) doc   (i,j,:,iblk) = c0
+               if (tr_bgc_C  ) dic   (i,j,:,iblk) = c0
+               if (tr_bgc_Nit) nit   (i,j  ,iblk) = c0
+               if (tr_bgc_Am ) amm   (i,j  ,iblk) = c0
+               if (tr_bgc_Sil) sil   (i,j  ,iblk) = c0
+               if (tr_bgc_hum) hum   (i,j  ,iblk) = c0
+               if (tr_bgc_DMS) dms   (i,j  ,iblk) = c0
+               if (tr_bgc_DMS) dmsp  (i,j  ,iblk) = c0
+               if (tr_bgc_DON) don   (i,j,:,iblk) = c0
+               if (tr_bgc_Fe ) fed   (i,j,:,iblk) = c0
+               if (tr_bgc_Fe ) fep   (i,j,:,iblk) = c0
+               if (solve_zsal) sss   (i,j  ,iblk) = c0
+            endif
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      !-----------------------------------------------------------------
       ! Salinity and extras
       !-----------------------------------------------------------------
-      if (solve_zsal) then 
+      if (solve_zsal) then
 
       do k = 1,nblyr
             write(nchar,'(i3.3)') k
             call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
                    'zSalinity'//trim(nchar),ncat,diag)
       enddo
-    
+
       call write_restart_field(nu_dump_bgc,0,sss,'ruf8','sss',1,diag)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
@@ -1147,7 +1114,7 @@
          if (tr_bgc_PON) &
          call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_PON,:,:), &
                                   'ruf8','bgc_PON',ncat,diag)
-      
+
         if (tr_bgc_DON)  then
            do k = 1, n_don
             write(nchar,'(i3.3)') k
@@ -1156,19 +1123,19 @@
            enddo
          endif
         if (tr_bgc_Fe )  then
-           do k = 1, n_fed 
+           do k = 1, n_fed
             write(nchar,'(i3.3)') k
             call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_Fed (k),:,:), &
                                   'ruf8','bgc_Fed'//trim(nchar),ncat,diag)
            enddo
-           do k = 1, n_fep 
+           do k = 1, n_fep
             write(nchar,'(i3.3)') k
             call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_Fep (k),:,:), &
                                   'ruf8','bgc_Fep'//trim(nchar),ncat,diag)
            enddo
          endif
 
-      else 
+      else
 
       !-----------------------------------------------------------------
       ! Z layer BGC
@@ -1339,7 +1306,7 @@
           write(nchar,'(i3.3)') k
           call write_restart_field(nu_dump_bgc,0,dic(:,:,k,:),'ruf8','dic'//trim(nchar),1,diag)
       enddo  !k
-      endif      
+      endif
       if (tr_bgc_Nit) &
       call write_restart_field(nu_dump_bgc,0,nit,   'ruf8','nit',   1,diag)
       if (tr_bgc_Am) &
@@ -1392,7 +1359,7 @@
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic,&
           n_don, n_zaero, n_fed, n_fep
       use ice_fileunits, only: nu_restart_bgc
-      use ice_flux, only: sss  
+      use ice_flux, only: sss
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: trcrn
@@ -1415,27 +1382,27 @@
          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
          nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
 
-      integer (kind=int_kind), dimension(icepack_max_algae) :: &  
-         nt_bgc_N , & ! diatoms, phaeocystis, pico/small   
-         nt_bgc_C , & ! diatoms, phaeocystis, pico/small   
-         nt_bgc_chl   ! diatoms, phaeocystis, pico/small 
+      integer (kind=int_kind), dimension(icepack_max_algae) :: &
+         nt_bgc_N , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_C , & ! diatoms, phaeocystis, pico/small
+         nt_bgc_chl   ! diatoms, phaeocystis, pico/small
 
-      integer (kind=int_kind), dimension(icepack_max_doc) :: &  
+      integer (kind=int_kind), dimension(icepack_max_doc) :: &
          nt_bgc_DOC      !  dissolved organic carbon
 
-      integer (kind=int_kind), dimension(icepack_max_don) :: & 
+      integer (kind=int_kind), dimension(icepack_max_don) :: &
          nt_bgc_DON         !  dissolved organic nitrogen
 
-      integer (kind=int_kind), dimension(icepack_max_dic) :: &  
+      integer (kind=int_kind), dimension(icepack_max_dic) :: &
          nt_bgc_DIC         !  dissolved inorganic carbon
 
-      integer (kind=int_kind), dimension(icepack_max_fe) :: & 
+      integer (kind=int_kind), dimension(icepack_max_fe) :: &
          nt_bgc_Fed,     & !  dissolved iron
          nt_bgc_Fep        !  particulate iron
 
-      integer (kind=int_kind), dimension(icepack_max_aero) :: &  
+      integer (kind=int_kind), dimension(icepack_max_aero) :: &
          nt_zaero       !  black carbon and other aerosols
-      
+
       logical (kind=log_kind) :: tr_bgc_Nit, tr_bgc_Am, tr_bgc_Sil,&
          tr_bgc_DMS, tr_bgc_PON, tr_bgc_N, tr_bgc_C, &
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
@@ -1473,7 +1440,7 @@
       ! Salinity and extras
       !-----------------------------------------------------------------
 
-      if (restart_zsal) then 
+      if (restart_zsal) then
 
       if (my_task == master_task) write(nu_diag,*) subname,'zSalinity restart'
       do k = 1,nblyr
@@ -1481,21 +1448,21 @@
          call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
               'zSalinity'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
       enddo
- 
+
       if (my_task == master_task) write(nu_diag,*) subname,'sea surface salinity'
       call read_restart_field(nu_restart_bgc,0,sss,'ruf8','sss',1,diag)
       call read_restart_field(nu_restart_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)         
+         this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
 
          do j = jlo, jhi
-         do i = ilo, ihi  
+         do i = ilo, ihi
             if (Rayleigh_real     (i,j,iblk) .GE. c1) then
                 Rayleigh_criteria (i,j,iblk) = .true.
             elseif (Rayleigh_real (i,j,iblk) < c1) then
@@ -1577,13 +1544,13 @@
           enddo
        endif
        if (tr_bgc_Fe) then
-          do k = 1, n_fed 
+          do k = 1, n_fed
               write(nchar,'(i3.3)') k
               call read_restart_field(nu_restart_bgc,0,  &
                  trcrn(:,:,nt_bgc_Fed (k),:,:), &
                  'ruf8','bgc_Fed'//trim(nchar),ncat,diag)
           enddo
-          do k = 1, n_fep 
+          do k = 1, n_fep
               write(nchar,'(i3.3)') k
               call read_restart_field(nu_restart_bgc,0,  &
                  trcrn(:,:,nt_bgc_Fep (k),:,:), &
@@ -1821,7 +1788,7 @@
       enddo  !k
       endif
       endif  ! restart_bgc
-   
+
       end subroutine read_restart_bgc
 
 !=======================================================================

@@ -10,7 +10,7 @@
 ! aicen(i,j,n)         aice(i,j)           ---
 ! vicen(i,j,n)         vice(i,j)           m
 ! vsnon(i,j,n)         vsno(i,j)           m
-! trcrn(i,j,it,n)      trcr(i,j,it)        
+! trcrn(i,j,it,n)      trcr(i,j,it)
 !
 ! Area is dimensionless because aice is the fractional area
 ! (normalized so that the sum over all categories, including open
@@ -54,7 +54,8 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         aice  , & ! concentration of ice
+         aice  , & ! concentration of ice on T grid
+         aiU   , & ! concentration of ice on U grid
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
@@ -107,14 +108,18 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
+         uvel     , & ! x-component of velocity on U grid (m/s)
+         vvel     , & ! y-component of velocity on U grid (m/s)
+         uvelE    , & ! x-component of velocity on E grid (m/s)
+         vvelE    , & ! y-component of velocity on E grid (m/s)
+         uvelN    , & ! x-component of velocity on N grid (m/s)
+         vvelN    , & ! y-component of velocity on N grid (m/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          shear    , & ! strain rate II component (1/s)
          strength     ! ice strength (N/m)
 
       !-----------------------------------------------------------------
-      ! ice state at start of time step, saved for later in the step 
+      ! ice state at start of time step, saved for later in the step
       !-----------------------------------------------------------------
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
@@ -125,7 +130,7 @@
          dimension(:,:,:,:), allocatable, public :: &
          aicen_init  , & ! initial ice concentration, for linear ITD
          vicen_init  , & ! initial ice volume (m), for linear ITD
-         vsnon_init      ! initial snow volume (m), for aerosol 
+         vsnon_init      ! initial snow volume (m), for aerosol
 
       real (kind=dbl_kind), &
          dimension(:,:,:,:), allocatable, public :: &
@@ -137,7 +142,7 @@
 
 !=======================================================================
 !
-! Allocate space for all state variables 
+! Allocate space for all state variables
 !
       subroutine alloc_state
       integer (int_kind) :: ntrcr, ierr
@@ -149,12 +154,17 @@
           file=__FILE__, line=__LINE__)
 
       allocate ( &
-         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
+         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
+         aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
-         uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity (m/s)
-         vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity (m/s)
+         uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
+         vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
+         uvelE     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on E grid (m/s)
+         vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
+         uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)
+         vvelN     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on N grid (m/s)
          divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
          shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
          strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
@@ -178,11 +188,17 @@
          trcr_base(ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_state): Out of memory2')
- 
+
       trcr_depend = 0
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
+      aicen = c0
+      aicen_init = c0
+      vicen = c0
+      vicen_init = c0
+      vsnon = c0
+      vsnon_init = c0
 
       end subroutine alloc_state
 

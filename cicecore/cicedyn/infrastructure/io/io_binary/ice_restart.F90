@@ -17,7 +17,7 @@
       use ice_fileunits, only: nu_dump_lvl, nu_dump_pond, nu_dump_hbrine
       use ice_fileunits, only: nu_dump_iso, nu_dump_snow
       use ice_fileunits, only: nu_dump_bgc, nu_dump_aero, nu_dump_fsd
-      use ice_fileunits, only: nu_restart, nu_restart_eap, nu_restart_FY, nu_restart_age 
+      use ice_fileunits, only: nu_restart, nu_restart_eap, nu_restart_FY, nu_restart_age
       use ice_fileunits, only: nu_restart_lvl, nu_restart_pond, nu_restart_hbrine
       use ice_fileunits, only: nu_restart_bgc, nu_restart_aero, nu_restart_fsd
       use ice_fileunits, only: nu_restart_iso, nu_restart_snow
@@ -30,7 +30,8 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart
+                read_restart_field, write_restart_field, final_restart, &
+                query_field
 
       real(kind=dbl_kind) :: time_forc = -99.   ! historic now local
 
@@ -57,7 +58,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, tr_fsd, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       character(len=char_len_long) :: &
@@ -82,14 +83,14 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (present(ice_ic)) then 
+      if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
@@ -122,7 +123,7 @@
       call broadcast_scalar(time_forc,master_task)
       call broadcast_scalar(myear,master_task)
       call set_date_from_timesecs(timesecs)
-      
+
       istep1 = istep0
 
       ! Supplemental restart files
@@ -223,26 +224,6 @@
                call ice_open(nu_restart_lvl,filename,0)
             endif
             read (nu_restart_lvl) iignore,rignore,rignore
-            write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
-         endif
-      endif
-
-      if (tr_pond_cesm) then
-         if (my_task == master_task) then
-            n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: pond_cesm restart: filename discrepancy')
-            string1 = trim(filename0(1:n-1))
-            string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
-            write(filename,'(a,a,a,a)') &
-               string1(1:lenstr(string1)), &
-               restart_file(1:lenstr(restart_file)),'.pond_cesm', &
-               string2(1:lenstr(string2))
-            if (restart_ext) then
-               call ice_open_ext(nu_restart_pond,filename,0)
-            else
-               call ice_open(nu_restart_pond,filename,0)
-            endif
-            read (nu_restart_pond) iignore,rignore,rignore
             write(nu_diag,*) 'Reading ',filename(1:lenstr(filename))
          endif
       endif
@@ -413,7 +394,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, tr_fsd, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       integer (kind=int_kind) :: &
@@ -429,7 +410,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -445,7 +426,7 @@
               restart_file(1:lenstr(restart_file)),'.', &
               myear,'-',mmonth,'-',mday,'-',msec
       end if
-        
+
       ! write pointer (path/file)
       if (my_task == master_task) then
          open(nu_rst_pointer,file=pointer_file)
@@ -557,26 +538,6 @@
 
          if (my_task == master_task) then
            write(nu_dump_lvl) istep1,timesecs,time_forc
-           write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
-         endif
-
-      endif
-
-      if (tr_pond_cesm) then
-
-         write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-              restart_dir(1:lenstr(restart_dir)), &
-              restart_file(1:lenstr(restart_file)),'.pond_cesm.', &
-              myear,'-',mmonth,'-',mday,'-',msec
-
-         if (restart_ext) then
-            call ice_open_ext(nu_dump_pond,filename,0)
-         else
-            call ice_open(nu_dump_pond,filename,0)
-         endif
-
-         if (my_task == master_task) then
-           write(nu_dump_pond) istep1,timesecs,time_forc
            write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
          endif
 
@@ -788,7 +749,7 @@
          endif
 
       end subroutine read_restart_field
-      
+
 !=======================================================================
 
 ! Writes a single restart field.
@@ -850,7 +811,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       integer (kind=int_kind) :: &
@@ -864,7 +825,7 @@
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
-         tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+         tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine)
       call icepack_warnings_flush(nu_diag)
@@ -879,7 +840,6 @@
          if (tr_iage)      close(nu_dump_age)
          if (tr_FY)        close(nu_dump_FY)
          if (tr_lvl)       close(nu_dump_lvl)
-         if (tr_pond_cesm) close(nu_dump_pond)
          if (tr_pond_lvl)  close(nu_dump_pond)
          if (tr_pond_topo) close(nu_dump_pond)
          if (tr_snow)      close(nu_dump_snow)
@@ -891,6 +851,24 @@
       endif
 
       end subroutine final_restart
+
+!=======================================================================
+
+! Inquire field existance, doesn't work in binary files so set to true and return
+! author T. Craig
+
+      logical function query_field(nu,vname)
+
+      integer (kind=int_kind), intent(in) :: nu     ! unit number
+      character (len=*)      , intent(in) :: vname  ! variable name
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(query_field)'
+
+      query_field = .true.
+
+      end function query_field
 
 !=======================================================================
 

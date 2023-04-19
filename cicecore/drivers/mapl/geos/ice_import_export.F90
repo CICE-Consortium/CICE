@@ -8,7 +8,7 @@ module ice_import_export
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size    , only : nx_global, ny_global, block_size_x, block_size_y, max_blocks, ncat
   use ice_exit           , only : abort_ice
-  use ice_flux           , only : strairxt, strairyt, strocnxt, strocnyt
+  use ice_flux           , only : strairxt, strairyt, strocnxT_iavg, strocnyT_iavg
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
   use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndts_f, dflatndts_f 
@@ -30,7 +30,7 @@ module ice_import_export
   use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, frocean, hm
   use ice_grid           , only : dxu, dyu 
-  use ice_grid           , only : grid_type, t2ugrid_vector
+  use ice_grid           , only : grid_type
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr 
   use ice_fileunits      , only : nu_diag, flush_fileunit
@@ -433,8 +433,8 @@ contains
           do i = ilo, ihi
              i1 = i - nghost 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
-             workx        = strocnxT(i,j,iblk)                            ! N/m^2
-             worky        = strocnyT(i,j,iblk)                            ! N/m^2
+             workx        = strocnxT_iavg(i,j,iblk)                            ! N/m^2
+             worky        = strocnyT_iavg(i,j,iblk)                            ! N/m^2
              tauxo(i1,j1) = real(workx*cos(ANGLET(i,j,iblk)) - &
                                  worky*sin(ANGLET(i,j,iblk)), kind=real_kind)
              tauyo(i1,j1) = real(worky*cos(ANGLET(i,j,iblk)) + &
