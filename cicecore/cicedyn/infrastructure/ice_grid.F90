@@ -2151,9 +2151,9 @@
 
 !=======================================================================
 
-! Calculate dxu and dxt from HTN on the global grid, to preserve
+! Calculate dxU and dxT from HTN on the global grid, to preserve
 ! ghost cell and/or land values that might otherwise be lost. Scatter
-! dxu, dxt and HTN to all processors.
+! dxU, dxT and HTN to all processors.
 !
 ! author: Elizabeth C. Hunke, LANL
 
