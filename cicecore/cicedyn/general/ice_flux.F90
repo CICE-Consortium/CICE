@@ -1168,9 +1168,6 @@
                                flux_bio,           &
                                fsurf,    fcondtop, &
                                Uref,     wind,     &
-                               fswthru_uvrdr, fswthru_uvrdf, &
-                               fswthru_pardr, fswthru_pardf, &
-                               opmask,             &
                                Qref_iso,           &
                                fiso_evap,fiso_ocn)
 
@@ -1218,15 +1215,6 @@
           alidf       ! near-ir, diffuse  (fraction)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
-          fswthru_uvrdr , & ! vis dir sw radiation through ice bot    (W/m**2)
-          fswthru_uvrdf , & ! vis dif sw radiation through ice bot    (W/m**2)
-          fswthru_pardr , & ! nir dir sw radiation through ice bot    (W/m**2)
-          fswthru_pardf     ! nir dif sw radiation through ice bot    (W/m**2)
-
-      logical (kind=log_kind), dimension (nx_block,ny_block), optional, intent(in) :: &
-          opmask     ! land/boundary mask, thickness (T-cell)
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block), optional, intent(inout) :: &
           Uref        ! air speed reference level       (m/s)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,nbtrcr), intent(inout) :: &
@@ -1272,11 +1260,7 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-#ifdef GEOSCOUPLED
-         if ((tmask(i,j) .or. opmask(i,j)) .and. aice(i,j) > c0) then
-#else
          if (tmask(i,j) .and. aice(i,j) > c0) then
-#endif
             ar = c1 / aice(i,j)
             strairxT(i,j) = strairxT(i,j) * ar
             strairyT(i,j) = strairyT(i,j) * ar
@@ -1308,10 +1292,6 @@
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
             if (present(fiso_evap)) fiso_evap(i,j,:) = fiso_evap(i,j,:) * ar
             if (present(fiso_ocn )) fiso_ocn (i,j,:) = fiso_ocn (i,j,:) * ar
-            if (present(fswthru_uvrdr)) fswthru_uvrdr (i,j) = fswthru_uvrdr (i,j) * ar
-            if (present(fswthru_uvrdf)) fswthru_uvrdf (i,j) = fswthru_uvrdf (i,j) * ar
-            if (present(fswthru_pardr)) fswthru_pardr (i,j) = fswthru_pardr (i,j) * ar
-            if (present(fswthru_pardf)) fswthru_pardf (i,j) = fswthru_pardf (i,j) * ar
          else                   ! zero out fluxes
             strairxT(i,j) = c0
             strairyT(i,j) = c0
@@ -1344,10 +1324,6 @@
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0
             if (present(fiso_evap)) fiso_evap(i,j,:) = c0
             if (present(fiso_ocn )) fiso_ocn (i,j,:) = c0
-            if (present(fswthru_uvrdr)) fswthru_uvrdr (i,j) = c0 
-            if (present(fswthru_uvrdf)) fswthru_uvrdf (i,j) = c0 
-            if (present(fswthru_pardr)) fswthru_pardr (i,j) = c0 
-            if (present(fswthru_pardf)) fswthru_pardf (i,j) = c0 
          endif                  ! tmask and aice > 0
       enddo                     ! i
       enddo                     ! j
@@ -1357,12 +1333,7 @@
 
         do j = 1, ny_block
         do i = 1, nx_block
-
-#ifdef GEOSCOUPLED
-           if ((tmask(i,j) .or. opmask(i,j)) .and. aice(i,j) > c0) then
-#else
            if (tmask(i,j) .and. aice(i,j) > c0) then
-#endif
               ar = c1 / aice(i,j)
               fsurf   (i,j) = fsurf   (i,j) * ar
               fcondtop(i,j) = fcondtop(i,j) * ar
