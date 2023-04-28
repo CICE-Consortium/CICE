@@ -64,7 +64,11 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
+#ifdef GEOSCOUPLED
+      use ice_grid, only: grid_ice, tmask, opmask
+#else
       use ice_grid, only: grid_ice, tmask
+#endif
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
                            uvelE, vvelE, uvelN, vvelN
 
@@ -107,7 +111,12 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
+#ifdef GEOSCOUPLED
+            if ((.not. tmask(i,j,iblk)) .and. (.not. opmask(i,j,iblk))) &
+                  trcrn(i,j,:,:,iblk) = c0
+#else
             if (.not. tmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
+#endif
          enddo
          enddo
       enddo
@@ -293,7 +302,11 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
+#ifdef GEOSCOUPLED
+      use ice_grid, only: tmask, opmask, grid_type, grid_ice, grid_average_X2Y
+#else
       use ice_grid, only: tmask, grid_type, grid_ice, grid_average_X2Y
+#endif
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
@@ -608,7 +621,12 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
+#ifdef GEOSCOUPLED
+            if ((.not. tmask(i,j,iblk)) .and. (.not. opmask(i,j,iblk))) &
+                 trcrn(i,j,nt_Tsfc,:,iblk) = c0
+#else
             if (.not. tmask(i,j,iblk)) trcrn(i,j,nt_Tsfc,:,iblk) = c0
+#endif
          enddo
          enddo
       enddo
@@ -685,7 +703,11 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
+#ifdef GEOSCOUPLED
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) &
+#else
          if (tmask(i,j,iblk)) &
+#endif
             call icepack_aggregate(ncat  = ncat,                  &
                                    aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
