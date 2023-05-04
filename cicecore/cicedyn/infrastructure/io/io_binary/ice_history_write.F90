@@ -157,7 +157,7 @@
             write (nu_hdr, 995) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vcomment)
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg         &
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns)     &
                 .or. write_ic                                   &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
@@ -187,7 +187,7 @@
             write (nu_hdr, 994) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -211,7 +211,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -235,7 +235,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -259,7 +259,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -283,7 +283,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -308,7 +308,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -334,7 +334,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -360,7 +360,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg .or. write_ic) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else

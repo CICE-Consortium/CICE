@@ -159,7 +159,7 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = nf90_def_dim(ncid,'d2',2,boundid)
           if (status /= nf90_noerr) call abort_ice(subname// &
              'ERROR: defining dim d2')
@@ -241,7 +241,7 @@
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = nf90_put_att(ncid,varid,'bounds','time_bounds')
           if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: time bounds')
@@ -251,7 +251,7 @@
       ! Define attributes for time bounds if hist_avg is true
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           dimid(1) = boundid
           dimid(2) = timid
           status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
@@ -745,7 +745,7 @@
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = nf90_inq_varid(ncid,'time_bounds',varid)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: getting time_bounds id')
@@ -1279,7 +1279,7 @@
       call ice_write_hist_fill(ncid,varid,hfield%vname,history_precision)
 
       ! Add cell_methods attribute to variables if averaged
-      if (hist_avg .and. .not. write_ic) then
+      if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
@@ -1292,7 +1292,7 @@
       endif
 
       if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-          .or..not. hist_avg                              &
+          .or..not. hist_avg(ns)                          &
           .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &
