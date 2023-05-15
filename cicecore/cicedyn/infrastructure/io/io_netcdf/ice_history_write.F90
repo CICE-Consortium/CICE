@@ -160,9 +160,9 @@
       !-----------------------------------------------------------------
 
         if (hist_avg(ns) .and. .not. write_ic) then
-          status = nf90_def_dim(ncid,'d2',2,boundid)
+          status = nf90_def_dim(ncid,'nbnd',2,boundid)
           if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: defining dim d2')
+             'ERROR: defining dim nbnd')
         endif
 
         status = nf90_def_dim(ncid,'ni',nx_global,imtid)
@@ -213,7 +213,7 @@
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: defining var time')
 
-        status = nf90_put_att(ncid,varid,'long_name','model time')
+        status = nf90_put_att(ncid,varid,'long_name','time')
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ice Error: time long_name')
 
@@ -230,7 +230,7 @@
            if (status /= nf90_noerr) call abort_ice(subname// &
                          'ERROR: time calendar')
         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = nf90_put_att(ncid,varid,'calendar','NoLeap')
+           status = nf90_put_att(ncid,varid,'calendar','noleap')
            if (status /= nf90_noerr) call abort_ice(subname// &
                          'ERROR: time calendar')
         elseif (use_leap_years) then
@@ -258,7 +258,7 @@
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: defining var time_bounds')
           status = nf90_put_att(ncid,varid,'long_name', &
-                                'boundaries for time-averaging interval')
+                                'time interval endpoints')
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds long_name')
           write(cdate,'(i8.8)') idate0
@@ -268,6 +268,22 @@
           status = nf90_put_att(ncid,varid,'units',title)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds units')
+          if (days_per_year == 360) then
+             status = nf90_put_att(ncid,varid,'calendar','360_day')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+             status = nf90_put_att(ncid,varid,'calendar','noleap')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          elseif (use_leap_years) then
+             status = nf90_put_att(ncid,varid,'calendar','Gregorian')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          else
+             call abort_ice(subname//'ERROR: invalid calendar settings')
+          endif
+
         endif
 
       !-----------------------------------------------------------------

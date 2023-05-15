@@ -196,7 +196,7 @@
       !-----------------------------------------------------------------
 
         if (hist_avg(ns) .and. .not. write_ic) then
-          status = pio_def_dim(File,'d2',2,boundid)
+          status = pio_def_dim(File,'nbnd',2,boundid)
         endif
 
         status = pio_def_dim(File,'ni',nx_global,imtid)
@@ -215,7 +215,7 @@
       !-----------------------------------------------------------------
 
         status = pio_def_var(File,'time',pio_double,(/timid/),varid)
-        status = pio_put_att(File,varid,'long_name','model time')
+        status = pio_put_att(File,varid,'long_name','time')
 
         write(cdate,'(i8.8)') idate0
         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
@@ -226,7 +226,7 @@
         if (days_per_year == 360) then
            status = pio_put_att(File,varid,'calendar','360_day')
         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = pio_put_att(File,varid,'calendar','NoLeap')
+           status = pio_put_att(File,varid,'calendar','noleap')
         elseif (use_leap_years) then
            status = pio_put_att(File,varid,'calendar','Gregorian')
         else
@@ -243,7 +243,18 @@
           dimid2(2) = timid
           status = pio_def_var(File,'time_bounds',pio_double,dimid2,varid)
           status = pio_put_att(File,varid,'long_name', &
-                                'boundaries for time-averaging interval')
+                                'time interval endpoints')
+
+          if (days_per_year == 360) then
+             status = pio_put_att(File,varid,'calendar','360_day')
+          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+             status = pio_put_att(File,varid,'calendar','noleap')
+          elseif (use_leap_years) then
+             status = pio_put_att(File,varid,'calendar','Gregorian')
+          else
+             call abort_ice(subname//'ERROR: invalid calendar settings')
+          endif
+
           write(cdate,'(i8.8)') idate0
           write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
                 cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &

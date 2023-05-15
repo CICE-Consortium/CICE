@@ -2311,10 +2311,7 @@
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
-         do n=1,max_nstrm
-            write(nu_diag,1011) ' hist_avg         = ', hist_avg(n)
-            if (.not. hist_avg(n)) write(nu_diag,1022) ' History snapshots: ',n
-         enddo
+         write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision

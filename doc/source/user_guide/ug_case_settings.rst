@@ -177,7 +177,7 @@ setup_nml
    "``dumpfreq_n``", "integer", "write restart frequency with ``dumpfreq``", "1"
    "``dump_last``", "logical", "write restart on last time step of simulation", "``.false.``"
    "``hist_avg``", "logical", "write time-averaged data", "``.true.,.true.,.true.,.true.,.true.``"
-   "``histfreq``", "char array", "write history every ``histfreq_n`` days", "'1','h','d','m','y'"
+   "``histfreq``", "``d``", "write history every ``histfreq_n`` days", "'1','h','d','m','y'"
    "", "``h``", "write history every ``histfreq_n`` hours", ""
    "", "``m``", "write history every ``histfreq_n`` months", ""
    "", "``x``", "unused frequency stream (not written)", ""
