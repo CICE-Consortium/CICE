@@ -63,7 +63,8 @@ chmod +x ${jobfile}
 cat >! ${subfile} << EOFS
 #!/bin/csh -f 
 
-${ICE_MACHINE_SUBMIT} ./${jobfile}
+#${ICE_MACHINE_SUBMIT} ./${jobfile}
+./${jobfile}
 echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case
 
 EOFS

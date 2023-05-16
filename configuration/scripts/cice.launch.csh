@@ -71,6 +71,18 @@ EOFR
 endif
 
 #=======
+else if (${ICE_MACHCOMP} =~ discover*) then
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+#=======
 else if (${ICE_MACHCOMP} =~ narwhal_*hpcx*) then
 cat >> ${jobfile} << EOFR
 mpirun -np ${ntasks} -hostfile \$PBS_NODEFILE \${EXTRA_OMPI_SETTINGS} ./cice >&! \$ICE_RUNLOG_FILE

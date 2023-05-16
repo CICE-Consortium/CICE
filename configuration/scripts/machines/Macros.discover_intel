@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for NCSS discover, intel compiler
+# Makefile macros for NASA NCCS discover, intel compiler
 #==============================================================================
 
 CPP        := fpp
@@ -12,58 +12,31 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-#  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
-  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -link_mpi=dbg
-#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays -link_mpi=dbg
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
 else
   FFLAGS     += -O2
 endif
 
-SCC   := icc 
-SFC   := ifort
-MPICC := mpicc
-MPIFC := mpif90
+SCC := mpiicc
+SFC := mpiifort
+CC := $(SCC)
+FC := $(SFC)
+LD := $(FC)
 
-ifeq ($(ICE_COMMDIR), mpi)
-  FC := $(MPIFC)
-  CC := $(MPICC)
-else
-  FC := $(SFC)
-  CC := $(SCC)
-endif
-LD:= $(FC)
-
-#NETCDF_PATH := $(NETCDF)
-
-PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
-
-#PNETCDF_PATH := $(PNETCDF)
-#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
+NETCDF_INCLUDES := $(shell $$BASEDIR/Linux/bin/nf-config --cflags)
+NETCDF_LIBS := $(shell $$BASEDIR/Linux/bin/nf-config --flibs)
 
 INCLDIR := $(INCLDIR)
-INCLDIR += -I$(NETCDF_PATH)/include/netcdf
+INCLDIR += $(NETCDF_INCLUDES)
 
-LIB_NETCDF := $(NETCDF_PATH)/lib
-#LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
+LIB_NETCDF := $(NETCDF_LIBS)
+#LIB_MPI := $(IMPILIBDIR)
 
-#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
-SLIBS   := -L$(LIB_NETCDF) -lnetcdff -lnetcdf -lmfhdf -ldf -lhdf5_hl -lhdf5 -lm -lsz -ljpeg -lgpfs -lcurl -lssl -lcrypto -ldl -lz 
+SLIBS   := $(LIB_NETCDF)
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp 
    CFLAGS += -qopenmp 
    FFLAGS += -qopenmp 
-endif
-
-ifeq ($(ICE_IOTYPE), pio1)
-   LIB_PIO := $(PIO_LIBDIR)
-   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
-endif
-
-ifeq ($(ICE_IOTYPE), pio2)
-   CPPDEFS := $(CPPDEFS) -DGPTL
-   LIB_PIO := $(PIO_LIBDIR)
-   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc -lgptl
 endif
 
