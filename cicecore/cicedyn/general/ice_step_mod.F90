@@ -565,9 +565,13 @@
                       dflatdt      = dflatndts_f (i,j,:,iblk), &
 #endif
                       yday         = yday,                     &
+#ifdef GEOSCOUPLED
                       prescribed_ice=prescribed_ice,           &
                       my_tsk = my_task, my_i = i, my_j = j,    &
                       my_blk = iblk                            )
+#else
+                      prescribed_ice=prescribed_ice            ) 
+#endif
 
 
       !-----------------------------------------------------------------
