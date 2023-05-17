@@ -322,7 +322,7 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency
       histfreq_base = 'zero' ! output frequency reference date
-      hist_avg = .true.      ! if true, write time-averages (not snapshots)
+      hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
@@ -901,7 +901,7 @@
       enddo
       call broadcast_array(histfreq_n,            master_task)
       call broadcast_scalar(histfreq_base,        master_task)
-      call broadcast_scalar(hist_avg,             master_task)
+      call broadcast_array(hist_avg,              master_task)
       call broadcast_scalar(history_dir,          master_task)
       call broadcast_scalar(history_file,         master_task)
       call broadcast_scalar(history_precision,    master_task)
@@ -2311,8 +2311,7 @@
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
-         write(nu_diag,1011) ' hist_avg         = ', hist_avg
-         if (.not. hist_avg) write(nu_diag,1039) ' History data will be snapshots'
+         write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision

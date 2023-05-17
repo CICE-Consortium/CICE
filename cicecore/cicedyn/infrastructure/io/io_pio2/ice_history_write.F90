@@ -195,8 +195,8 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
-          status = pio_def_dim(File,'d2',2,boundid)
+        if (hist_avg(ns) .and. .not. write_ic) then
+          status = pio_def_dim(File,'nbnd',2,boundid)
         endif
 
         status = pio_def_dim(File,'ni',nx_global,imtid)
@@ -215,7 +215,7 @@
       !-----------------------------------------------------------------
 
         status = pio_def_var(File,'time',pio_double,(/timid/),varid)
-        status = pio_put_att(File,varid,'long_name','model time')
+        status = pio_put_att(File,varid,'long_name','time')
 
         write(cdate,'(i8.8)') idate0
         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
@@ -226,24 +226,35 @@
         if (days_per_year == 360) then
            status = pio_put_att(File,varid,'calendar','360_day')
         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = pio_put_att(File,varid,'calendar','NoLeap')
+           status = pio_put_att(File,varid,'calendar','noleap')
         elseif (use_leap_years) then
            status = pio_put_att(File,varid,'calendar','Gregorian')
         else
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = pio_put_att(File,varid,'bounds','time_bounds')
         endif
 
         ! Define attributes for time_bounds if hist_avg is true
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           dimid2(1) = boundid
           dimid2(2) = timid
           status = pio_def_var(File,'time_bounds',pio_double,dimid2,varid)
           status = pio_put_att(File,varid,'long_name', &
-                                'boundaries for time-averaging interval')
+                                'time interval endpoints')
+
+          if (days_per_year == 360) then
+             status = pio_put_att(File,varid,'calendar','360_day')
+          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+             status = pio_put_att(File,varid,'calendar','noleap')
+          elseif (use_leap_years) then
+             status = pio_put_att(File,varid,'calendar','Gregorian')
+          else
+             call abort_ice(subname//'ERROR: invalid calendar settings')
+          endif
+
           write(cdate,'(i8.8)') idate0
           write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
                 cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
@@ -702,7 +713,7 @@
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = pio_inq_varid(File,'time_bounds',varid)
           time_bounds=(/time_beg(ns),time_end(ns)/)
           bnd_start  = (/1,1/)
@@ -1250,7 +1261,7 @@
       call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
 
       ! Add cell_methods attribute to variables if averaged
-      if (hist_avg .and. .not. write_ic) then
+      if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
@@ -1261,7 +1272,7 @@
       endif
 
       if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-          .or..not. hist_avg                              &
+          .or..not. hist_avg(ns)                          &
           .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &

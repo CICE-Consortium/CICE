@@ -38,7 +38,7 @@
       integer (kind=int_kind), public :: history_precision
 
       logical (kind=log_kind), public :: &
-         hist_avg  ! if true, write averaged data instead of snapshots
+         hist_avg(max_nstrm)  ! if true, write averaged data instead of snapshots
 
       character (len=char_len_long), public :: &
          history_file  , & ! output file for history
@@ -743,7 +743,7 @@
               imonth,'-',iday,'-',isec,'.',trim(suffix)
         else
 
-           if (hist_avg) then
+           if (hist_avg(ns)) then
               if (histfreq(ns) == '1' .or. histfreq(ns) == 'h'.or.histfreq(ns) == 'H') then
                  ! do nothing
               elseif (new_year) then
@@ -763,7 +763,7 @@
 !echmod ! of other groups (including RASM which uses CESMCOUPLED)
 !echmod         if (ns > 1) write(cstream,'(i1.1)') ns-1
 
-           if (hist_avg) then    ! write averaged data
+           if (hist_avg(ns)) then    ! write averaged data
               if (histfreq(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &
