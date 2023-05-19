@@ -376,8 +376,13 @@
       call ice_HaloUpdate (fld3,             halo_info, &
                            field_loc_center, field_type_scalar)
       call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+#ifdef GEOSCOUPLED
+      call ice_HaloUpdate (fld4,             halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+#else
       call ice_HaloUpdate (fld4,             halo_info, &
                            field_loc_center, field_type_vector)
+#endif
       call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
       call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
 
