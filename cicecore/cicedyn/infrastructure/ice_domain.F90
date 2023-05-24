@@ -172,7 +172,7 @@
    if (my_task == master_task) then
       nml_name = 'domain_nml'
       write(nu_diag,*) subname,' Reading ', trim(nml_name)
-      
+
       call get_fileunit(nu_nml)
       open (nu_nml, file=trim(nml_filename), status='old',iostat=nml_error)
       if (nml_error /= 0) then
@@ -186,7 +186,7 @@
          call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
               file=__FILE__, line=__LINE__)
       endif
-      
+
       nml_error =  1
       do while (nml_error > 0)
          read(nu_nml, nml=domain_nml,iostat=nml_error)

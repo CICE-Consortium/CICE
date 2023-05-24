@@ -125,7 +125,7 @@
       use ice_timers, only: timer_stats
       use ice_memusage, only: memory_stats
       use ice_fileunits, only: goto_nml
-      
+
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -169,7 +169,7 @@
 
       character (len=char_len) :: abort_list
       character (len=char_len)      :: nml_name ! namelist name
-      character (len=char_len_long) :: tmpstr2  
+      character (len=char_len_long) :: tmpstr2
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -609,7 +609,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -657,7 +657,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -681,7 +681,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -699,7 +699,7 @@
          ! read dynamics_nml
          nml_name = 'dynamics_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
- 
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
@@ -724,7 +724,7 @@
          ! read shortwave_nml
          nml_name = 'shortwave_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
@@ -749,14 +749,14 @@
          ! read ponds_nml
          nml_name = 'ponds_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -774,14 +774,14 @@
          ! read snow_nml
          nml_name = 'snow_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read  namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -821,7 +821,7 @@
             endif
          end do
 
-         ! done reading namelist. 
+         ! done reading namelist.
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
