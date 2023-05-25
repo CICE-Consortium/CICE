@@ -559,7 +559,7 @@ contains
 
     ! Check CICE mesh
 
-    use ice_constants, only : c1,c0,c2,c360
+    use ice_constants, only : c1,c0,c180,c360
     use ice_grid     , only : tlon, tlat, hm
 
     ! input/output parameters
@@ -637,12 +637,12 @@ contains
              lon(n) = tlon(i,j,iblk)*rad_to_deg
              lat(n) = tlat(i,j,iblk)*rad_to_deg
 
-             tmplon = lon(n)
-             if(tmplon < c0)tmplon = tmplon + c360
-
              ! error check differences between internally generated lons and those read in
-             diff_lon = abs(mod(c2*c360+lonMesh(n),c360) - mod(c2*c360+lon(n),c360))
-             if (diff_lon > eps_imesh ) then
+             diff_lon = abs(mod(lonMesh(n) - lon(n),360.0))
+             if (diff_lon > c180) then
+               diff_lon = diff_lon - c360
+             endif
+             if (abs(diff_lon) > eps_imesh ) then
                 write(6,100)n,lonMesh(n),tmplon, diff_lon
                 !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
