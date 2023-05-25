@@ -583,7 +583,7 @@ contains
     real(dbl_kind)               :: diff_lon
     real(dbl_kind)               :: diff_lat
     real(dbl_kind)               :: rad_to_deg
-    real(dbl_kind)               :: tmplon, eps_imesh
+    real(dbl_kind)               :: eps_imesh
     logical                      :: isPresent, isSet
     logical                      :: mask_error
     integer                      :: mask_internal
@@ -643,7 +643,7 @@ contains
                diff_lon = diff_lon - c360
              endif
              if (abs(diff_lon) > eps_imesh ) then
-                write(6,100)n,lonMesh(n),tmplon, diff_lon
+                write(6,100)n,lonMesh(n),lon(n), diff_lon
                 !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
              diff_lat = abs(latMesh(n) - lat(n))
