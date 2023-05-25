@@ -2347,6 +2347,19 @@
 !=======================================================================
     subroutine JRA55do_gx1_files(yr)
 !
+      !-------------------------------------------------------------------
+      ! Individual NETCDF files for each quantity.
+      ! winds in NORTH and EAST direction (not rotated)
+      ! file variable names are:
+      ! rsds   (shortwave W/m^2), 3 hr average
+      ! rlds   (longwave W/m^2), 3 hr average
+      ! ttlpcp (precipitation kg/m s-1), 3 hr average
+      ! uas    (eastward wind m/s), instantaneous
+      ! vas    (northward wind m/s), instantaneous
+      ! tas    (air temperature K), instantaneous
+      ! huss   (specific humidity kg/kg), instantaneous
+      !-------------------------------------------------------------------
+
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
@@ -2355,31 +2368,31 @@
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/uas_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_uas_gx1_2005.nc'
       call file_year(uwind_file,yr)
 
       vwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/vas_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_vas_gx1_2005.nc'
       call file_year(vwind_file,yr)
 
       tair_file = &
-           trim(atm_data_dir)//'/8XDAILY/tas_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_tas_gx1_2005.nc'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'/8XDAILY/huss_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_huss_gx1_2005.nc'
       call file_year(humid_file,yr)
 
       rain_file = &
-           trim(atm_data_dir)//'/8XDAILY/ttlpcp_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_ttlpcp_gx1_2005.nc'
       call file_year(rain_file,yr)
 
       fsw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rsds_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rsds_gx1_2005.nc'
       call file_year(fsw_file,yr)
 
       flw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rlds_gx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rlds_gx1_2005.nc'
       call file_year(flw_file,yr)
  
       
@@ -2401,6 +2414,20 @@
 
     subroutine JRA55do_tx1_files(yr)
 !
+
+      !-------------------------------------------------------------------
+      ! Individual NETCDF files for each quantity.
+      ! winds in NORTH and EAST direction (not rotated)
+      ! file variable names are:
+      ! rsds   (shortwave W/m^2), 3 hr average
+      ! rlds   (longwave W/m^2), 3 hr average
+      ! ttlpcp (precipitation kg/m s-1), 3 hr average
+      ! uas    (eastward wind m/s), instantaneous
+      ! vas    (northward wind m/s), instantaneous
+      ! tas    (air temperature K), instantaneous
+      ! huss   (specific humidity kg/kg), instantaneous
+      !-------------------------------------------------------------------
+
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
@@ -2409,31 +2436,31 @@
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/uas_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_uas_tx1_2005.nc'
       call file_year(uwind_file,yr)
 
       vwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/vas_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_vas_tx1_2005.nc'
       call file_year(vwind_file,yr)
 
       tair_file = &
-           trim(atm_data_dir)//'/8XDAILY/tas_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_tas_tx1_2005.nc'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'/8XDAILY/huss_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_huss_tx1_2005.nc'
       call file_year(humid_file,yr)
 
       rain_file = &
-           trim(atm_data_dir)//'/8XDAILY/ttlpcp_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_ttlpcp_tx1_2005.nc'
       call file_year(rain_file,yr)
 
       fsw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rsds_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rsds_tx1_2005.nc'
       call file_year(fsw_file,yr)
 
       flw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rlds_tx1_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rlds_tx1_2005.nc'
       call file_year(flw_file,yr)
  
       
@@ -2454,7 +2481,20 @@
 !=======================================================================
 
     subroutine JRA55do_gx3_files(yr)
-!
+      
+      !-------------------------------------------------------------------
+      ! Individual NETCDF files for each quantity.
+      ! winds in NORTH and EAST direction (not rotated)
+      ! file variable names are:
+      ! rsds   (shortwave W/m^2), 3 hr average
+      ! rlds   (longwave W/m^2), 3 hr average
+      ! ttlpcp (precipitation kg/m s-1), 3 hr average
+      ! uas    (eastward wind m/s), instantaneous
+      ! vas    (northward wind m/s), instantaneous
+      ! tas    (air temperature K), instantaneous
+      ! huss   (specific humidity kg/kg), instantaneous
+      !-------------------------------------------------------------------
+
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
@@ -2463,31 +2503,31 @@
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/uas_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_uas_gx3_2005.nc'
       call file_year(uwind_file,yr)
 
       vwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/vas_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_vas_gx3_2005.nc'
       call file_year(vwind_file,yr)
 
       tair_file = &
-           trim(atm_data_dir)//'/8XDAILY/tas_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_tas_gx3_2005.nc'
       call file_year(tair_file,yr)
 
       humid_file = &
-           trim(atm_data_dir)//'/8XDAILY/huss_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_huss_gx3_2005.nc'
       call file_year(humid_file,yr)
 
       rain_file = &
-           trim(atm_data_dir)//'/8XDAILY/ttlpcp_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_ttlpcp_gx3_2005.nc'
       call file_year(rain_file,yr)
 
       fsw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rsds_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rsds_gx3_2005.nc'
       call file_year(fsw_file,yr)
 
       flw_file = &
-           trim(atm_data_dir)//'/8XDAILY/rlds_gx3_2005.nc'
+           trim(atm_data_dir)//'/8XDAILY/JRA55do_rlds_gx3_2005.nc'
       call file_year(flw_file,yr)
  
       
