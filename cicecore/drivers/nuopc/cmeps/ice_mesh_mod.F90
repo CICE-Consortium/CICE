@@ -638,7 +638,7 @@ contains
              lat(n) = tlat(i,j,iblk)*rad_to_deg
 
              ! error check differences between internally generated lons and those read in
-             diff_lon = abs(mod(lonMesh(n) - lon(n),360.0))
+             diff_lon = mod(abs(lonMesh(n) - lon(n)),360.0)
              if (diff_lon > c180) then
                diff_lon = diff_lon - c360
              endif
