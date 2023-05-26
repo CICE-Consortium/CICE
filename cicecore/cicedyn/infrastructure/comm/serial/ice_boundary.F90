@@ -3749,7 +3749,7 @@ contains
 !***********************************************************************
 !  This routine updates ghost cells for an input array using
 !  a second array as needed by the stress fields.
-!  This is just like 2DR8 except no averaging and only on tripole   
+!  This is just like 2DR8 except no averaging and only on tripole
 
  subroutine ice_HaloUpdate_stress(array1, array2, halo, &
                                fieldLoc, fieldKind,     &

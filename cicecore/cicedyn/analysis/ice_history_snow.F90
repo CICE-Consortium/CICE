@@ -77,7 +77,7 @@
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
       real    (kind=dbl_kind) :: rhofresh, secday
-      logical (kind=log_kind) :: tr_snow      
+      logical (kind=log_kind) :: tr_snow
       character(len=char_len_long) :: tmpstr2 ! for namelist check
       character(len=char_len)      :: nml_name ! for namelist check
 

@@ -48,7 +48,7 @@
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
     histfreq_base  = 'zero'
-    hist_avg       = .true.
+    hist_avg       = .true.,.true.,.true.,.true.,.true.
     history_dir    = './history/'
     history_file   = 'iceh'
     history_precision = 4
