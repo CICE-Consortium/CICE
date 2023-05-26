@@ -2502,7 +2502,7 @@
                                    vector2_x , vector2_y) &
                result(dot_product)
 
-      use ice_domain, only: distrb_info
+      use ice_domain, only: distrb_info, ns_boundary_type
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: bfbflag
 
@@ -2552,8 +2552,14 @@
       enddo
       !$OMP END PARALLEL DO
 
-      ! Use local summation result unless bfbflag is active
-      if (bfbflag == 'off') then
+      ! Use faster local summation result for several bfbflag settings.
+      ! The local implementation sums over each block, sums over local
+      ! blocks, and calls global_sum on a scalar and should be just as accurate as
+      ! bfbflag = 'off', 'lsum8', and 'lsum4' without the extra copies and overhead
+      ! in the more general array global_sum.  But use the array global_sum
+      ! if bfbflag is more strict or for tripole grids (requires special masking)
+      if (ns_boundary_type /= 'tripole' .and. ns_boundary_type /= 'tripoleT' .and. &
+         (bfbflag == 'off' .or. bfbflag == 'lsum8' .or. bfbflag == 'lsum4')) then
          dot_product = global_sum(sum(dot), distrb_info)
       else
          dot_product = global_sum(prod, distrb_info, field_loc_NEcorner)
@@ -3120,7 +3126,7 @@
                   j = indxUj(ij, iblk)
 
                   workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_y(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
@@ -3151,7 +3157,6 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: maskhalo_dyn, halo_info
-      use ice_fileunits, only: bfbflag
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
@@ -3343,21 +3348,17 @@
                               workspace_x , workspace_y)
 
             ! Update workspace with boundary values
-            ! NOTE: skipped for efficiency since this is just a preconditioner
-            ! unless bfbflag is active
-            if (bfbflag /= 'off') then
-               call stack_fields(workspace_x, workspace_y, fld2)
-               call ice_timer_start(timer_bound)
-               if (maskhalo_dyn) then
-                  call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                       field_loc_NEcorner, field_type_vector)
-               else
-                  call ice_HaloUpdate (fld2,               halo_info, &
-                                       field_loc_NEcorner, field_type_vector)
-               endif
-               call ice_timer_stop(timer_bound)
-               call unstack_fields(fld2, workspace_x, workspace_y)
+            call stack_fields(workspace_x, workspace_y, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
             endif
+            call ice_timer_stop(timer_bound)
+            call unstack_fields(fld2, workspace_x, workspace_y)
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3528,7 +3529,7 @@
                   j = indxUj(ij, iblk)
 
                   workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_y(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
