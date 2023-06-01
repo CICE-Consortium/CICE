@@ -2258,9 +2258,6 @@
            yr                   ! current forcing year
 
       ! local variables
-      integer (kind=int_kind) :: &
-           i ! used to check for substring
-
       character(len=3) :: &
            grd ! gx3, gx1, tx1
       
