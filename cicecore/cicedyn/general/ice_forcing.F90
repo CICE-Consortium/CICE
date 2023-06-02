@@ -2279,10 +2279,10 @@
       ! check if JRA55 or JRA55do
       if (index(trim(atm_data_type),'JRA55do') > 0) then
          uwind_file = &
-              trim(atm_data_dir)//'/8XDAILY/JRA55do_03hr_forcing_'//grd//'_2005.nc'
+              trim(atm_data_dir)//'/8XDAILY/JRA55do_'//grd//'_03hr_forcing_2005.nc'
       else ! assumes only other option os JRA55
          uwind_file = &
-              trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_'//grd//'_2005.nc'
+              trim(atm_data_dir)//'/8XDAILY/JRA55_'//grd//'_03hr_forcing_2005.nc'
       endif
       
       call file_year(uwind_file,yr)
