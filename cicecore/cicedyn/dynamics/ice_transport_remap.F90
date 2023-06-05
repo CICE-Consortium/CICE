@@ -1838,7 +1838,7 @@
       !     BL   |   BC   |   BR     (bottom left, center, right)
       !          |        |
       !
-      ! and the transport is across the edge between cells TC and TB.
+      ! and the transport is across the edge between cells TC and BC.
       !
       ! Departure points are scaled to a local coordinate system
       !  whose origin is at the midpoint of the edge.
