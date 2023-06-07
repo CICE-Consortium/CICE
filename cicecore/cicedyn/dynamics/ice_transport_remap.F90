@@ -1954,27 +1954,27 @@
       icellsd = 0
       if (trim(edge) == 'north') then
          do j = jb, je
-            do i = ib, ie
-               if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
-                                  .or.                  &
-                     dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
-                  icellsd = icellsd + 1
-                  indxid(icellsd) = i
-                  indxjd(icellsd) = j
-               endif
-            enddo
+         do i = ib, ie
+            if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
+                               .or.                  &
+                  dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
+               icellsd = icellsd + 1
+               indxid(icellsd) = i
+               indxjd(icellsd) = j
+            endif
+         enddo
          enddo
       else       ! east edge
          do j = jb, je
-            do i = ib, ie
-               if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
-                                  .or.                  &
-                     dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
-                  icellsd = icellsd + 1
-                  indxid(icellsd) = i
-                  indxjd(icellsd) = j
-               endif
-            enddo
+         do i = ib, ie
+            if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
+                               .or.                  &
+                  dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
+               icellsd = icellsd + 1
+               indxid(icellsd) = i
+               indxjd(icellsd) = j
+            endif
+         enddo
          enddo
       endif       ! edge = north/east
 
