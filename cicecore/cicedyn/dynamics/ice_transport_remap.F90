@@ -57,6 +57,9 @@
          p5625m = -9._dbl_kind/16._dbl_kind    ,&
          p52083 = 25._dbl_kind/48._dbl_kind
 
+      logical :: &
+         l_fixed_area ! if true, prescribe area flux across each edge
+
       logical (kind=log_kind), parameter :: bugcheck = .false.
 
 !=======================================================================
@@ -253,12 +256,15 @@
 !
 ! author William H. Lipscomb, LANL
 
-      subroutine init_remap
+      subroutine init_remap (grid_ice)
 
       use ice_domain, only: nblocks
       use ice_grid, only: xav, yav, xxav, yyav
 !                          dxT, dyT, xyav, &
 !                          xxxav, xxyav, xyyav, yyyav
+
+      character (len=char_len_long), intent(in) :: &
+         grid_ice ! ice grid, B, C, etc
 
       integer (kind=int_kind) ::     &
         i, j, iblk     ! standard indices
@@ -293,6 +299,29 @@
       enddo
       !$OMP END PARALLEL DO
 
+      !-------------------------------------------------------------------
+      ! Set logical l_fixed_area depending of the grid type.
+      !
+      ! If l_fixed_area is true, the area of each departure region is
+      !  computed in advance (e.g., by taking the divergence of the
+      !  velocity field and passed to locate_triangles.  The departure
+      !  regions are adjusted to obtain the desired area.
+      ! If false, edgearea is computed in locate_triangles and passed out.
+      !
+      ! l_fixed_area = .false. has been the default approach in CICE. It is 
+      ! used like this for the B-grid. However, idealized tests with the 
+      ! C-grid have shown that l_fixed_area = .false. leads to a checkerboard 
+      ! pattern in prognostic fields (e.g. aice). Using l_fixed_area = .true. 
+      ! eliminates the checkerboard pattern in C-grid simulations.
+      ! 
+      !-------------------------------------------------------------------
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         l_fixed_area = .true.
+      else
+         l_fixed_area = .false.
+      endif
+
       end subroutine init_remap
 
 !=======================================================================
@@ -316,7 +345,6 @@
       subroutine horizontal_remap (dt,             ntrace,   &
                                    uvel,           vvel,     &
                                    mm,             tm,       &
-                                   l_fixed_area,             &
                                    tracer_type,    depend,   &
                                    has_dependents,           &
                                    integral_order,           &
@@ -364,8 +392,8 @@
       ! If false, edgearea is computed in locate_triangles and passed out.
       !-------------------------------------------------------------------
 
-      logical, intent(in) ::    &
-         l_fixed_area       ! if true, edgearea_e and edgearea_n are prescribed
+!      logical, intent(in) ::    &
+!         l_fixed_area       ! if true, edgearea_e and edgearea_n are prescribed
                             ! if false, edgearea is computed here and passed out
 
       integer (kind=int_kind), dimension (ntrace), intent(in) :: &
