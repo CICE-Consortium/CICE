@@ -644,12 +644,12 @@ contains
              endif
              if (abs(diff_lon) > eps_imesh ) then
                 write(6,100)n,lonMesh(n),lon(n), diff_lon
-                !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+                call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
              diff_lat = abs(latMesh(n) - lat(n))
              if (diff_lat > eps_imesh) then
                 write(6,101)n,latMesh(n),lat(n), diff_lat
-                !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+                call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
           enddo
        enddo
