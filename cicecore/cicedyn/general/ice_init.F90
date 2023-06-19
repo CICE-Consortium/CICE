@@ -2532,7 +2532,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, TLAT, grid_ice, grid_average_X2Y
+      use ice_grid, only: tmask, umask, ULON, TLAT, grid_ice, grid_average_X2Y
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
@@ -2720,6 +2720,7 @@
                              ilo, ihi,            jlo, jhi,            &
                              iglob,               jglob,               &
                              ice_ic,              tmask(:,:,    iblk), &
+                             umask(:,:,    iblk), &
                              ULON (:,:,    iblk), &
                              TLAT (:,:,    iblk), &
                              Tair (:,:,    iblk), sst  (:,:,    iblk), &
@@ -2742,10 +2743,10 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-         call grid_average_X2Y('S',uvel,'U',uvelN,'N')
-         call grid_average_X2Y('S',vvel,'U',vvelN,'N')
-         call grid_average_X2Y('S',uvel,'U',uvelE,'E')
-         call grid_average_X2Y('S',vvel,'U',vvelE,'E')
+         call grid_average_X2Y('A',uvel,'U',uvelN,'N')
+         call grid_average_X2Y('A',vvel,'U',vvelN,'N')
+         call grid_average_X2Y('A',uvel,'U',uvelE,'E')
+         call grid_average_X2Y('A',vvel,'U',vvelE,'E')
 
          ! Halo update on North, East faces
          call ice_HaloUpdate(uvelN, halo_info, &
@@ -2759,7 +2760,6 @@
                              field_loc_Eface, field_type_scalar)
 
       endif
-
 
       !-----------------------------------------------------------------
       ! compute aggregate ice state and open water area
@@ -2819,8 +2819,9 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 ice_ic,   tmask,    &
-                                ULON, &
-                                TLAT, &
+                                umask, &
+                                ULON,  &
+                                TLAT,  &
                                 Tair,     sst,  &
                                 Tf,       &
                                 salinz,   Tmltz, &
@@ -2845,7 +2846,8 @@
          ice_ic      ! method of ice cover initialization
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tmask      ! true for ice/ocean cells
+         tmask  , & ! true for ice/ocean cells
+         umask      ! for U points
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          ULON   , & ! longitude of velocity pts (radians)
@@ -3293,13 +3295,19 @@
             domain_length = dxrect*cm_to_m*nx_global
             period        = c12*secday               ! 12 days rotational period
             max_vel       = pi*domain_length/period
+
             do j = 1, ny_block
             do i = 1, nx_block
 
-               uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
-                         / real(ny_global - 1, kind=dbl_kind) - max_vel
-               vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
-                         / real(nx_global - 1, kind=dbl_kind) + max_vel
+               if (umask(i,j)) then
+                  uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
+                            / real(ny_global - 1, kind=dbl_kind) - max_vel
+                  vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
+                            / real(nx_global - 1, kind=dbl_kind) + max_vel
+               else
+                  uvel(i,j) = c0
+                  vvel(i,j) = c0
+               endif
             enddo               ! j
             enddo               ! i
          else

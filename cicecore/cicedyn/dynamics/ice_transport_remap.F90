@@ -384,18 +384,6 @@
       character (len=char_len_long), intent(in) :: &
          grid_ice ! ice grid, B, C, etc
 
-      !-------------------------------------------------------------------
-      ! If l_fixed_area is true, the area of each departure region is
-      !  computed in advance (e.g., by taking the divergence of the
-      !  velocity field and passed to locate_triangles.  The departure
-      !  regions are adjusted to obtain the desired area.
-      ! If false, edgearea is computed in locate_triangles and passed out.
-      !-------------------------------------------------------------------
-
-!      logical, intent(in) ::    &
-!         l_fixed_area       ! if true, edgearea_e and edgearea_n are prescribed
-                            ! if false, edgearea is computed here and passed out
-
       integer (kind=int_kind), dimension (ntrace), intent(in) :: &
          tracer_type    , & ! = 1, 2, or 3 (see comments above)
          depend             ! tracer dependencies (see above)
