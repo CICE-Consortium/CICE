@@ -21,7 +21,7 @@
 
       module ice_history_write
 
-      use ice_constants, only: c0, c360, spval, spval_dbl
+      use ice_constants, only: c0, c360, p5, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -136,8 +136,6 @@
       if (history_precision == 8) lprecision = nf90_double
 
       if (my_task == master_task) then
-
-        ltime2 = timesecs/secday
 
         call construct_filename(ncfile(ns),'nc',ns)
 
@@ -750,6 +748,14 @@
       ! write time variable
       !-----------------------------------------------------------------
 
+        if (trim(hist_time_axis) == 'begin') then
+           ltime2 = time_beg(ns)
+        elseif (trim(hist_time_axis) == 'middle') then
+           ltime2 = p5*(time_beg(ns)+time_end(ns))
+        else ! hist_time_axis == 'end' (default)
+           ltime2 = timesecs/secday
+        endif
+       
         status = nf90_inq_varid(ncid,'time',varid)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: getting time varid')

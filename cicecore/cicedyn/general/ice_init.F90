@@ -81,7 +81,7 @@
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
-                             history_precision, history_format
+                             history_precision, history_format, hist_time_axis
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -185,6 +185,7 @@
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
+        hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
@@ -324,6 +325,8 @@
       histfreq_base = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
+      hist_time_axis = 'end' ! History file time axis interval position
+
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
@@ -906,6 +909,7 @@
       call broadcast_scalar(history_file,         master_task)
       call broadcast_scalar(history_precision,    master_task)
       call broadcast_scalar(history_format,       master_task)
+      call broadcast_scalar(hist_time_axis,       master_task)
       call broadcast_scalar(write_ic,             master_task)
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
@@ -2316,6 +2320,7 @@
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
          write(nu_diag,1031) ' history_format   = ', trim(history_format)
+         write(nu_diag,1031) ' hist_time_axis   = ', trim(hist_time_axis)
          if (write_ic) then
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)

@@ -322,6 +322,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "history_file", "history output file prefix", ""
    "history_format", "history file format", ""
    "history_precision", "history output precision: 4 or 8 byte", "4"
+   "hist_time_axis", "history file time axis interval location: begin, middle, end", "end"
    "hm", "land/boundary mask, thickness (T-cell)", ""
    "hmix", "ocean mixed layer depth", "20. m"
    "hour", "hour of the year", ""
