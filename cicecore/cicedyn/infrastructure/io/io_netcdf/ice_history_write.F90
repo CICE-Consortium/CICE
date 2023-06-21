@@ -747,13 +747,12 @@
       !-----------------------------------------------------------------
       ! write time variable
       !-----------------------------------------------------------------
+       
+        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-        if (trim(hist_time_axis) == 'begin') then
-           ltime2 = time_beg(ns)
-        elseif (trim(hist_time_axis) == 'middle') then
-           ltime2 = p5*(time_beg(ns)+time_end(ns))
-        else ! hist_time_axis == 'end' (default)
-           ltime2 = timesecs/secday
+        if (hist_avg(ns)) then
+           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
         endif
        
         status = nf90_inq_varid(ncid,'time',varid)
