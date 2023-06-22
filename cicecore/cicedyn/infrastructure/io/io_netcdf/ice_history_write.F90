@@ -750,6 +750,8 @@
        
         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
+        ! Some coupled models require the time axis "stamp" to be in the middle
+        ! or even beginning of averaging interval.
         if (hist_avg(ns)) then
            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))

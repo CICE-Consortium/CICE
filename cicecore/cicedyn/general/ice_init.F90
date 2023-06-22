@@ -325,7 +325,7 @@
       histfreq_base = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
-      hist_time_axis = 'end' ! History file time axis interval position
+      hist_time_axis = 'end' ! History file time axis averaging interval position
 
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
