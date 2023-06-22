@@ -716,6 +716,12 @@
                          'ERROR: global attribute time_period_freq')
         endif
 
+        if (hist_avg(ns)) then
+           status = nf90_put_att(ncid,nf90_global,'time_axis_position',trim(hist_time_axis))
+           if (status /= nf90_noerr) call abort_ice(subname// &
+                         'ERROR: global attribute time axis position')
+        endif
+
         title = 'CF-1.0'
         status =  &
              nf90_put_att(ncid,nf90_global,'conventions',title)

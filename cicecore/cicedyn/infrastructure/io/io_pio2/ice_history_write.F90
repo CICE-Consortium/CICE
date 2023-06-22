@@ -676,6 +676,9 @@
            status = pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq))
         endif
 
+        if (hist_avg(ns)) &
+           status = pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis))
+
         title = 'CF-1.0'
         status =  &
              pio_put_att(File,pio_global,'conventions',trim(title))
