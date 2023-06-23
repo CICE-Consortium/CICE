@@ -1575,7 +1575,8 @@
       endif
 
       if(trim(hist_time_axis) /= 'begin' .and. trim(hist_time_axis) /= 'middle' .and. trim(hist_time_axis) /= 'end') then
-         write (nu_diag,*) subname//' WARNING: hist_time_axis set to default end '
+         write (nu_diag,*) subname//' ERROR: hist_time_axis value not valid = '//trim(hist_time_axis)
+         abort_list = trim(abort_list)//":29"
       endif
 
       if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
