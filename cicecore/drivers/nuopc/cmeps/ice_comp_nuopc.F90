@@ -105,6 +105,7 @@ module ice_comp_nuopc
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
   character(*), parameter      :: u_FILE_u = &
        __FILE__
+  real(8)                      :: timers, timere
 
 !=======================================================================
 contains
@@ -243,7 +244,10 @@ contains
     character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
     character(len=char_len)      :: tfrz_option_driver    ! tfrz_option from cice namelist
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
+    real(8)                      :: MPI_Wtime(), timeiads
     !--------------------------------
+
+    timeiads = MPI_Wtime()
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -699,6 +703,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
+    if(mastertask) write(stdout,*) 'In ', trim(subname),' time', MPI_Wtime()-timeiads
 
   end subroutine InitializeAdvertise
 
@@ -730,9 +735,11 @@ contains
     character(len=char_len_long)           :: single_column_lnd_domainfile
     character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
     character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
+    real(8)                                :: MPI_Wtime(), timeirls
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    timeirls = MPI_Wtime()
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     !----------------------------------------------------------------------------
@@ -912,6 +919,10 @@ contains
 
     call flush_fileunit(nu_diag)
 
+    timers = 0.
+    timere = 0.
+    if(mastertask) write(stdout,*) 'In ', trim(subname),' time', MPI_Wtime()-timeirls
+
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -954,9 +965,12 @@ contains
     logical                    :: isPresent, isSet
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     character(char_len_long)   :: msgString
+    real(8)                    :: MPI_Wtime
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    timers = MPI_Wtime()
+    if(mastertask) write(stdout,*) 'In CICE, time since last step ', timers - timere
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1177,6 +1191,9 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
+    timere = MPI_Wtime()
+    if(mastertask) write(stdout,*) 'In ', trim(subname),' time ', timere-timers
+
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1318,9 +1335,11 @@ contains
     ! local variables
     character(*), parameter :: F91 = "('(ice_comp_nuopc) ',73('-'))"
     character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
+    real(8)  :: MPI_Wtime, timefs
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    timefs = MPI_Wtime()
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     if (my_task == master_task) then
        write(nu_diag,F91)
@@ -1328,6 +1347,8 @@ contains
        write(nu_diag,F91)
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+
+    if(mastertask) write(stdout,*) 'In ', trim(subname),' time ', MPI_Wtime()-timefs
 
   end subroutine ModelFinalize
 
