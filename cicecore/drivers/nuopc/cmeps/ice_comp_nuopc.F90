@@ -244,7 +244,7 @@ contains
     character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
     character(len=char_len)      :: tfrz_option_driver    ! tfrz_option from cice namelist
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
-    real(8)                      :: MPI_Wtime(), timeiads
+    real(dbl_kind)               :: MPI_Wtime, timeiads
     !--------------------------------
 
     timeiads = MPI_Wtime()
@@ -735,7 +735,7 @@ contains
     character(len=char_len_long)           :: single_column_lnd_domainfile
     character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
     character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
-    real(8)                                :: MPI_Wtime(), timeirls
+    real(dbl_kind)                         :: MPI_Wtime, timeirls
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -965,7 +965,7 @@ contains
     logical                    :: isPresent, isSet
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     character(char_len_long)   :: msgString
-    real(8)                    :: MPI_Wtime
+    real(dbl_kind)             :: MPI_Wtime
     !--------------------------------
 
     rc = ESMF_SUCCESS
@@ -1335,7 +1335,7 @@ contains
     ! local variables
     character(*), parameter :: F91 = "('(ice_comp_nuopc) ',73('-'))"
     character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
-    real(8)  :: MPI_Wtime, timefs
+    real(dbl_kind)  :: MPI_Wtime, timefs
     !--------------------------------
 
     rc = ESMF_SUCCESS
