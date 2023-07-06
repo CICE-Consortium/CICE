@@ -703,7 +703,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if(mastertask) write(stdout,*) 'In ', trim(subname),' time', MPI_Wtime()-timeiads
+    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time', MPI_Wtime()-timeiads
 
   end subroutine InitializeAdvertise
 
@@ -921,7 +921,7 @@ contains
 
     timers = 0.
     timere = 0.
-    if(mastertask) write(stdout,*) 'In ', trim(subname),' time', MPI_Wtime()-timeirls
+    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time', MPI_Wtime()-timeirls
 
   end subroutine InitializeRealize
 
@@ -970,7 +970,7 @@ contains
 
     rc = ESMF_SUCCESS
     timers = MPI_Wtime()
-    if(mastertask) write(stdout,*) 'In CICE, time since last step ', timers - timere
+    if(mastertask) write(nu_diag,*) 'In CICE, time since last step ', timers - timere
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1192,7 +1192,7 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
     timere = MPI_Wtime()
-    if(mastertask) write(stdout,*) 'In ', trim(subname),' time ', timere-timers
+    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time ', timere-timers
 
   end subroutine ModelAdvance
 
@@ -1348,7 +1348,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) write(stdout,*) 'In ', trim(subname),' time ', MPI_Wtime()-timefs
+    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time ', MPI_Wtime()-timefs
 
   end subroutine ModelFinalize
 
