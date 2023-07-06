@@ -105,7 +105,7 @@ module ice_comp_nuopc
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
   character(*), parameter      :: u_FILE_u = &
        __FILE__
-  real(8)                      :: timers, timere
+  real(dbl_kind)               :: timers, timere
 
 !=======================================================================
 contains
