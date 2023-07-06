@@ -38,6 +38,7 @@ module ice_comp_nuopc
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
   use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
+  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, timeiads, timeirls, timeadv, timefs
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
@@ -105,7 +106,6 @@ module ice_comp_nuopc
   character(*), parameter      :: modName =  "(ice_comp_nuopc)"
   character(*), parameter      :: u_FILE_u = &
        __FILE__
-  real(dbl_kind)               :: timers, timere
 
 !=======================================================================
 contains
@@ -244,10 +244,9 @@ contains
     character(len=char_len)      :: tfrz_option    ! tfrz_option from cice namelist
     character(len=char_len)      :: tfrz_option_driver    ! tfrz_option from cice namelist
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
-    real(dbl_kind)               :: MPI_Wtime, timeiads
     !--------------------------------
 
-    timeiads = MPI_Wtime()
+    if (mastertask) call ufs_settimer(timeiads)
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -703,8 +702,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time', MPI_Wtime()-timeiads
-
+    if (mastertask) call ufs_logtimer(nu_diag,'InitializeAdvertise time: ',timeiads)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -735,13 +733,12 @@ contains
     character(len=char_len_long)           :: single_column_lnd_domainfile
     character(len=char_len_long) , pointer :: lfieldnamelist(:) => null()
     character(len=*), parameter            :: subname=trim(modName)//':(InitializeRealize) '
-    real(dbl_kind)                         :: MPI_Wtime, timeirls
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    timeirls = MPI_Wtime()
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    if (mastertask) call ufs_settimer(timeirls)
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
@@ -919,10 +916,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
-    timers = 0.
-    timere = 0.
-    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time', MPI_Wtime()-timeirls
-
+    if (mastertask) call ufs_logtimer(nu_diag,'InitializeRealize time: ',timeirls)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -965,12 +959,11 @@ contains
     logical                    :: isPresent, isSet
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     character(char_len_long)   :: msgString
-    real(dbl_kind)             :: MPI_Wtime
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    timers = MPI_Wtime()
-    if(mastertask) write(nu_diag,*) 'In CICE, time since last step ', timers - timere
+    if (mastertask) call ufs_logtimer(nu_diag,'ModelAdvance time since last step: ',timeadv)
+    if (mastertask) call ufs_settimer(timeadv)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1191,9 +1184,7 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    timere = MPI_Wtime()
-    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time ', timere-timers
-
+    if (mastertask) call ufs_logtimer(nu_diag, 'ModelAdvance time: ', timeadv)
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1335,11 +1326,10 @@ contains
     ! local variables
     character(*), parameter :: F91 = "('(ice_comp_nuopc) ',73('-'))"
     character(len=*),parameter  :: subname=trim(modName)//':(ModelFinalize) '
-    real(dbl_kind)  :: MPI_Wtime, timefs
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    timefs = MPI_Wtime()
+    if (mastertask) call ufs_settimer(timefs)
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     if (my_task == master_task) then
        write(nu_diag,F91)
@@ -1348,7 +1338,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) write(nu_diag,*) 'In ', trim(subname),' time ', MPI_Wtime()-timefs
+    if(mastertask) call ufs_logtimer(nu_diag,'ModelFinalize time: ', timefs)
 
   end subroutine ModelFinalize
 
