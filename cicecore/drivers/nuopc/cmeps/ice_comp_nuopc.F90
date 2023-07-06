@@ -246,7 +246,7 @@ contains
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
-    if (mastertask) call ufs_settimer(timeiads)
+    call ufs_settimer(timeiads)
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -702,7 +702,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if (mastertask) call ufs_logtimer(nu_diag,'InitializeAdvertise time: ',timeiads)
+    if (mastertask) call ufs_logtimer(nu_diag,msec,'InitializeAdvertise time: ',timeiads)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -738,7 +738,7 @@ contains
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-    if (mastertask) call ufs_settimer(timeirls)
+    call ufs_settimer(timeirls)
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
@@ -916,7 +916,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
-    if (mastertask) call ufs_logtimer(nu_diag,'InitializeRealize time: ',timeirls)
+    if (mastertask) call ufs_logtimer(nu_diag,msec,'InitializeRealize time: ',timeirls)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -962,8 +962,8 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if (mastertask) call ufs_logtimer(nu_diag,'ModelAdvance time since last step: ',timeadv)
-    if (mastertask) call ufs_settimer(timeadv)
+    if (mastertask) call ufs_logtimer(nu_diag,msec,'ModelAdvance time since last step: ',timeadv)
+    call ufs_settimer(timeadv)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1184,7 +1184,7 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if (mastertask) call ufs_logtimer(nu_diag, 'ModelAdvance time: ', timeadv)
+    if (mastertask) call ufs_logtimer(nu_diag,msec,'ModelAdvance time: ', timeadv)
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1329,7 +1329,7 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if (mastertask) call ufs_settimer(timefs)
+    call ufs_settimer(timefs)
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     if (my_task == master_task) then
        write(nu_diag,F91)
@@ -1338,7 +1338,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) call ufs_logtimer(nu_diag,'ModelFinalize time: ', timefs)
+    if(mastertask) call ufs_logtimer(nu_diag,msec,'ModelFinalize time: ', timefs)
 
   end subroutine ModelFinalize
 

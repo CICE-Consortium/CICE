@@ -20,13 +20,14 @@ contains
     real(dbl_kind)                :: MPI_Wtime
     timevalue = MPI_Wtime()
   end subroutine ufs_settimer
-  subroutine ufs_logtimer(nunit,string,time0)
+  subroutine ufs_logtimer(nunit,etime,string,time0)
     integer,          intent(in)  :: nunit
+    integer(int_kind), intent(in) :: etime
     character(len=*), intent(in)  :: string
     real(dbl_kind),   intent(in)  :: time0
     real(dbl_kind)                :: MPI_Wtime, timevalue
     timevalue = MPI_Wtime()-time0
-    write(nunit,*)'CICE '//trim(string),timevalue
+    write(nunit,*)etime,' CICE '//trim(string),timevalue
   end subroutine ufs_logtimer
 
   subroutine shr_file_setLogUnit(nunit)
@@ -50,10 +51,11 @@ contains
   subroutine ufs_settimer(timevalue)
     real(dbl_kind), intent(out) :: timevalue
   end subroutine ufs_settimer
-  subroutine ufs_logtimer(nunit,string,time0)
-    character(len=*), intent(in) :: string
-    real(dbl_kind),   intent(in) :: time0
-    integer,          intent(in) :: nunit
+  subroutine ufs_logtimer(nunit,etime,string,time0)
+    character(len=*), intent(in)  :: string
+    integer(int_kind), intent(in) :: etime
+    real(dbl_kind),   intent(in)  :: time0
+    integer,          intent(in)  :: nunit
   end subroutine ufs_logtimer
 #endif
 
