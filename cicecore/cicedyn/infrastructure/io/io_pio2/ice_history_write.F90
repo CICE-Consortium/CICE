@@ -18,7 +18,7 @@
       module ice_history_write
 
       use ice_kinds_mod
-      use ice_constants, only: c0, c360, spval, spval_dbl
+      use ice_constants, only: c0, c360, p5, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -184,8 +184,6 @@
       call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di, precision=history_precision)
       call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds, precision=history_precision)
       call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df, precision=history_precision)
-
-      ltime2 = timesecs/secday
 
       ! option of turning on double precision history files
       lprecision = pio_real
@@ -678,6 +676,9 @@
            status = pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq))
         endif
 
+        if (hist_avg(ns)) &
+           status = pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis))
+
         title = 'CF-1.0'
         status =  &
              pio_put_att(File,pio_global,'conventions',trim(title))
@@ -706,6 +707,15 @@
       ! write time variable
       !-----------------------------------------------------------------
 
+        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+
+        ! Some coupled models require the time axis "stamp" to be in the middle
+        ! or even beginning of averaging interval.
+        if (hist_avg(ns)) then
+           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+        endif
+       
         status = pio_inq_varid(File,'time',varid)
         status = pio_put_var(File,varid,(/1/),ltime2)
 
