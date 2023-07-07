@@ -38,7 +38,8 @@ module ice_comp_nuopc
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
   use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
-  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, timeiads, timeirls, timeadv, timefs
+  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit
+  use cice_wrapper_mod   , only : timeiads, timeirls, timeadv, timefs
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
@@ -89,7 +90,7 @@ module ice_comp_nuopc
   type(ESMF_Mesh)              :: ice_mesh
 
   integer                      :: nthrds   ! Number of threads to use in this component
-
+  integer                      :: nu_timer ! Simple timer log
   integer                      :: dbug = 0
   logical                      :: profile_memory = .false.
   logical                      :: mastertask
@@ -490,6 +491,7 @@ contains
     ! Set the nu_diag_set flag so it's not reset later
 
     call shr_file_setLogUnit (shrlogunit)
+    call ufs_file_setLogUnit('./log.ice.timer', nu_timer)
 
     call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
@@ -702,7 +704,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if (mastertask) call ufs_logtimer(nu_diag,msec,'InitializeAdvertise time: ',timeiads)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',timeiads)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -916,7 +918,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
-    if (mastertask) call ufs_logtimer(nu_diag,msec,'InitializeRealize time: ',timeirls)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',timeirls)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -962,7 +964,7 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if (mastertask) call ufs_logtimer(nu_diag,msec,'ModelAdvance time since last step: ',timeadv)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',timeadv)
     call ufs_settimer(timeadv)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
@@ -1184,7 +1186,7 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if (mastertask) call ufs_logtimer(nu_diag,msec,'ModelAdvance time: ', timeadv)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ', timeadv)
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1338,7 +1340,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) call ufs_logtimer(nu_diag,msec,'ModelFinalize time: ', timefs)
+    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ', timefs)
 
   end subroutine ModelFinalize
 
