@@ -34,7 +34,7 @@ contains
 
   implicit none
 
-  real(dbl_kind)                     :: timeiads = 0.0, timeirls = 0.0, timeadv = 0.0, timefs = 0.0
+  real(dbl_kind) :: wtime = 0.0
 contains
   subroutine ufs_settimer(timevalue)
     real(dbl_kind),    intent(inout) :: timevalue

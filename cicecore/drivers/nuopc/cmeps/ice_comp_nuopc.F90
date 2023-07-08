@@ -38,8 +38,7 @@ module ice_comp_nuopc
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
   use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
-  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit
-  use cice_wrapper_mod   , only : timeiads, timeirls, timeadv, timefs
+  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit, wtime
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
@@ -247,7 +246,7 @@ contains
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
-    call ufs_settimer(timeiads)
+    call ufs_settimer(wtime)
 
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -704,7 +703,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',timeiads)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',wtime)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -740,7 +739,7 @@ contains
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
-    call ufs_settimer(timeirls)
+    call ufs_settimer(wtime)
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
@@ -918,7 +917,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',timeirls)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',wtime)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -964,8 +963,8 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',timeadv)
-    call ufs_settimer(timeadv)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',wtime)
+    call ufs_settimer(wtime)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1186,7 +1185,7 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ', timeadv)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ', wtime)
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1331,7 +1330,7 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    call ufs_settimer(timefs)
+    call ufs_settimer(wtime)
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     if (my_task == master_task) then
        write(nu_diag,F91)
@@ -1340,7 +1339,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ', timefs)
+    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ', wtime)
 
   end subroutine ModelFinalize
 
