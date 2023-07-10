@@ -281,11 +281,14 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1' .and. &
-                                trim(atm_data_type) /= 'JRA55_gx3' .and. &
-                                trim(atm_data_type) /= 'JRA55_tx1' .and. &
-                                trim(atm_data_type) /= 'hycom' .and. &
-                                trim(atm_data_type) /= 'box2001')) then
+      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1'   .and. &
+                                trim(atm_data_type) /= 'JRA55_gx3'   .and. &
+                                trim(atm_data_type) /= 'JRA55_tx1'   .and. &
+                                trim(atm_data_type) /= 'JRA55do_gx1' .and. &
+                                trim(atm_data_type) /= 'JRA55do_gx3' .and. &
+                                trim(atm_data_type) /= 'JRA55do_tx1' .and. &
+                                trim(atm_data_type) /= 'hycom'       .and. &
+                                trim(atm_data_type) /= 'box2001'))   then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
          write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
          call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
@@ -302,12 +305,13 @@
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_files(fyear)
 #endif
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then
-         call JRA55_gx1_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then
-         call JRA55_gx3_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then
-         call JRA55_tx1_files(fyear)
+      elseif ((trim(atm_data_type) == 'JRA55_gx1')   .or. & 
+              (trim(atm_data_type) == 'JRA55_gx3')   .or. &
+              (trim(atm_data_type) == 'JRA55_tx1')   .or. &
+              (trim(atm_data_type) == 'JRA55do_gx1') .or. &
+              (trim(atm_data_type) == 'JRA55do_gx3') .or. &
+              (trim(atm_data_type) == 'JRA55do_tx1')) then
+         call JRA55_files(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_files(fyear)
       elseif (trim(atm_data_type) == 'monthly') then
@@ -648,11 +652,12 @@
       elseif (trim(atm_data_type) == 'LYq') then
          call LY_data
 #endif
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then
-         call JRA55_data
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then
-         call JRA55_data
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then
+      elseif ((trim(atm_data_type) == 'JRA55_gx1')    .or. &
+              (trim(atm_data_type) == 'JRA55_gx3')    .or. &
+              (trim(atm_data_type) == 'JRA55_tx1')    .or. &
+              (trim(atm_data_type) == 'JRA55do_gx1')  .or. &
+              (trim(atm_data_type) == 'JRA55do_gx3')  .or. &
+              (trim(atm_data_type) == 'JRA55do_tx1')) then
          call JRA55_data
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_data
@@ -1593,15 +1598,7 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then ! netcdf
-         i = index(data_file,'.nc') - 5
-         tmpname = data_file
-         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then ! netcdf
-         i = index(data_file,'.nc') - 5
-         tmpname = data_file
-         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then ! netcdf
+      elseif (index(trim(atm_data_type),'JRA55') > 0) then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -2255,67 +2252,49 @@
 #endif
 !=======================================================================
 
-      subroutine JRA55_gx1_files(yr)
+      subroutine JRA55_files(yr)
 !
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
 
-      character(len=*), parameter :: subname = '(JRA55_gx1_files)'
+      ! local variables
+      character(len=3) :: &
+           grd ! gx3, gx1, tx1
+      
+      character(len=*), parameter :: subname = '(JRA55_files)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
+      ! check for grid version using fortran INDEX intrinsic
+      if (index(trim(atm_data_type),'gx1') > 0) then
+         grd = 'gx1'
+      else if (index(trim(atm_data_type),'gx3') > 0) then
+         grd = 'gx3'
+      else if (index(trim(atm_data_type),'tx1') > 0) then
+         grd = 'tx1'
+      else
+         call abort_ice(error_message=subname//' unknown grid type')
+      endif
+      
+      ! check if JRA55 or JRA55do
+      if (index(trim(atm_data_type),'JRA55do') > 0) then
+         uwind_file = &
+              trim(atm_data_dir)//'/8XDAILY/JRA55do_'//grd//'_03hr_forcing_2005.nc'
+      else ! assumes only other option os JRA55
+         uwind_file = &
+              trim(atm_data_dir)//'/8XDAILY/JRA55_'//grd//'_03hr_forcing_2005.nc'
+      endif
+      
       call file_year(uwind_file,yr)
       if (my_task == master_task) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'Atmospheric data files:'
          write (nu_diag,*) trim(uwind_file)
       endif
-      end subroutine JRA55_gx1_files
+
+    end subroutine JRA55_files
 
 !=======================================================================
-
-      subroutine JRA55_tx1_files(yr)
-!
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(JRA55_tx1_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_tx1_2005.nc'
-      call file_year(uwind_file,yr)
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(uwind_file)
-      endif
-      end subroutine JRA55_tx1_files
-
-!=======================================================================
-
-      subroutine JRA55_gx3_files(yr)
-!
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(JRA55_gx3_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
-      call file_year(uwind_file,yr)
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(uwind_file)
-      endif
-      end subroutine JRA55_gx3_files
-
 #ifdef UNDEPRECATE_LYq
 !=======================================================================
 !
