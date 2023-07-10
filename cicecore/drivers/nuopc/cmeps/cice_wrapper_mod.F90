@@ -10,23 +10,22 @@ module cice_wrapper_mod
 contains
   ! Define stub routines that do nothing - they are just here to avoid
   ! having cppdefs in the main program
-  subroutine ufs_file_setLogUnit(filename,nunit)
-    character(len=*), intent(in)  :: filename
-    integer,          intent(out) :: nunit
-  end subroutine ufs_file_setLogUnit
   subroutine ufs_settimer(timevalue)
-    real(dbl_kind),    intent(out)   :: timevalue
+    real(dbl_kind),    intent(out) :: timevalue
   end subroutine ufs_settimer
-  subroutine ufs_logtimer(nunit,esecs,string,time0)
-    integer,           intent(in)    :: nunit
-    integer(int_kind), intent(in)    :: esecs
-    character(len=*),  intent(in)    :: string
-    real(dbl_kind),    intent(in)    :: time0
+  subroutine ufs_logtimer(nunit,elapsedsecs,string,time0)
+    integer,           intent(in)  :: nunit
+    integer(int_kind), intent(in)  :: elapsedsecs
+    character(len=*),  intent(in)  :: string
+    real(dbl_kind),    intent(in)  :: time0
   end subroutine ufs_logtimer
-  subroutine ufs_logfhour(date,esecs,hour)
-    integer(int_kind), intent(in)    :: date
-    integer(int_kind), intent(in)    :: esecs
-    real(dbl_kind),    intent(in)    :: hour
+  subroutine ufs_file_setLogUnit(filename,nunit)
+    character(len=*),  intent(in)  :: filename
+    integer,           intent(out) :: nunit
+  end subroutine ufs_file_setLogUnit
+  subroutine ufs_logfhour(msg,hour)
+    character(len=*),  intent(in)  :: msg
+    real(dbl_kind),    intent(in)  :: hour
   end subroutine ufs_logfhour
 #else
 
@@ -42,33 +41,32 @@ contains
     timevalue = MPI_Wtime()
   end subroutine ufs_settimer
 
-  subroutine ufs_logtimer(nunit,esecs,string,time0)
+  subroutine ufs_logtimer(nunit,elapsedsecs,string,time0)
     integer,           intent(in)    :: nunit
-    integer(int_kind), intent(in)    :: esecs
+    integer(int_kind), intent(in)    :: elapsedsecs
     character(len=*),  intent(in)    :: string
     real(dbl_kind),    intent(in)    :: time0
     real(dbl_kind)                   :: MPI_Wtime, timevalue
     if (time0 > 0.) then
        timevalue = MPI_Wtime()-time0
-       write(nunit,*)esecs,' CICE '//trim(string),timevalue
+       write(nunit,*)elapsedsecs,' CICE '//trim(string),timevalue
     end if
   end subroutine ufs_logtimer
 
   subroutine ufs_file_setLogUnit(filename,nunit)
-    character(len=*), intent(in)  :: filename
-    integer,          intent(out) :: nunit
+    character(len=*),  intent(in)    :: filename
+    integer,           intent(out)   :: nunit
     open (newunit=nunit, file=trim(filename))
   end subroutine ufs_file_setLogUnit
 
-  subroutine ufs_logfhour(date,esecs,hour)
-    integer(int_kind), intent(in)    :: date
-    integer(int_kind), intent(in)    :: esecs
+  subroutine ufs_logfhour(msg,hour)
+    character(len=*),  intent(in)    :: msg
     real(dbl_kind),    intent(in)    :: hour
     character(len=char_len)          :: filename
     integer(int_kind)                :: nunit
     write(filename,'(a,i3.3)')'log.ice.f',int(hour)
     open(newunit=nunit,file=trim(filename))
-    write(nunit,'(a,f8.2,a,2i10)')'completed CICE fhour = ',hour,' complete ',date,esecs
+    write(nunit,'(a,f10.3,a)')'completed CICE fhour = ',hour,' validation time: '//trim(msg)
     close(nunit)
   end subroutine ufs_logfhour
 

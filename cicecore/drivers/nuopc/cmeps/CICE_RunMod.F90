@@ -111,8 +111,8 @@
       use ice_constants, only: c3600
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
-      use ice_calendar, only: idate, msec, timesecs
-      use ice_calendar, only: write_history, nstreams, histfreq
+      use ice_calendar, only: idate, myear, mmonth, mday, msec, timesecs
+      use ice_calendar, only: calendar_sec2hms, write_history, nstreams, histfreq
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
@@ -155,7 +155,8 @@
       character(len=*), parameter :: subname = '(ice_step)'
 
       character (len=char_len) :: plabeld
-      integer (kind=int_kind)  :: ns
+      integer (kind=int_kind)  :: hh,mm,ss,ns
+      character (len=char_len) :: logmsg
 
       if (debug_model) then
          plabeld = 'beginning time step'
@@ -391,7 +392,9 @@
          if (my_task == master_task) then
             do ns = 1,nstreams
                if (write_history(ns) .and. histfreq(ns) .eq. 'h') then
-                  call ufs_logfhour(idate,msec,timesecs/c3600)
+                  call calendar_sec2hms(msec,hh,mm,ss)
+                  write(logmsg,'(6(i4,2x))')myear,mmonth,mday,hh,mm,ss
+                  call ufs_logfhour(trim(logmsg),timesecs/c3600)
                end if
             end do
          end if
