@@ -66,7 +66,9 @@ contains
     integer(int_kind)                :: nunit
     write(filename,'(a,i3.3)')'log.ice.f',int(hour)
     open(newunit=nunit,file=trim(filename))
-    write(nunit,'(a,f10.3,a)')'completed CICE fhour = ',hour,' validation time: '//trim(msg)
+    write(nunit,'(a)')'completed: cice'
+    write(nunit,'(a,f10.3)')'forecast hour:',hour
+    write(nunit,'(a)')'valid time: '//trim(msg)
     close(nunit)
   end subroutine ufs_logfhour
 
