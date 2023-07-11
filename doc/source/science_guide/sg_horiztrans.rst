@@ -11,7 +11,7 @@ thickness category :math:`n`. Equation :eq:`transport-ai` describes
 the conservation of ice area under horizontal transport. It is obtained
 from Equation :eq:`transport-g` by discretizing :math:`g` and neglecting the
 second and third terms on the right-hand side, which are treated
-separately (As described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_).
+separately (As described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_).
 
 There are similar conservation equations for ice volume
 (Equation :eq:`transport-vi`), snow volume (Equation :eq:`transport-vs`), ice
@@ -98,7 +98,7 @@ below.
 
 After the transport calculation, the sum of ice and open water areas within a 
 grid cell may not add up to 1. The mechanical deformation parameterization in 
-`Icepack <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ 
+`Icepack <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_ 
 corrects this issue by ridging the ice and creating open water 
 such that the ice and open water areas again add up to 1.
 
