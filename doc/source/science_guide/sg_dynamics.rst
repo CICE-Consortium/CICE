@@ -284,7 +284,7 @@ Parameters for the FGMRES linear solver and the preconditioner can be controlled
 Surface stress terms
 ********************
 
-The formulation for the wind stress is described in `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. Below, some details about the ice-ocean stress and the seabed stress are given. 
+The formulation for the wind stress is described in `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_. Below, some details about the ice-ocean stress and the seabed stress are given. 
 
 Ice-Ocean stress
 ~~~~~~~~~~~~~~~~
@@ -515,7 +515,7 @@ where
 When the deformation :math:`\Delta` tends toward zero, the viscosities tend toward infinity. To avoid this issue, :math:`\Delta` needs to be limited and is replaced by :math:`\Delta^*` in equation :eq:`zeta`. Two methods for limiting :math:`\Delta` (or for capping the viscosities) are available in the code. If the namelist parameter ``capping_method`` is set to ``max``, :math:`\Delta^*=max(\Delta, \Delta_{min})` :cite:`Hibler79` while with ``capping_method`` set to ``sum``, the smoother formulation  :math:`\Delta^*=(\Delta + \Delta_{min})` of :cite:`Kreyscher00` is used. 
 
 The ice strength :math:`P` is a function of the ice thickness distribution as
-described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
  
 Two other modifications to the standard VP rheology of :cite:`Hibler79` are available.
 First, following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the

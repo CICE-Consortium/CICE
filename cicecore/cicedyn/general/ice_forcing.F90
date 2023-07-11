@@ -298,10 +298,6 @@
       ! default forcing values from init_flux_atm
       if (trim(atm_data_type) == 'ncar') then
          call NCAR_files(fyear)
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-         call LY_files(fyear)
-#endif
       elseif (trim(atm_data_type) == 'JRA55_gx1') then
          call JRA55_gx1_files(fyear)
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
@@ -644,10 +640,6 @@
 
       if (trim(atm_data_type) == 'ncar') then
          call ncar_data
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-         call LY_data
-#endif
       elseif (trim(atm_data_type) == 'JRA55_gx1') then
          call JRA55_data
       elseif (trim(atm_data_type) == 'JRA55_gx3') then
@@ -1726,23 +1718,6 @@
          enddo
          enddo
 
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-
-         ! precip is in mm/s
-
-         zlvl0 = c10
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            ! longwave based on Rosati and Miyakoda, JPO 18, p. 1607 (1988)
-            call longwave_rosati_miyakoda(cldf(i,j), Tsfc(i,j), &
-                                          aice(i,j), sst(i,j),  &
-                                          Qa(i,j),   Tair(i,j), &
-                                          hm(i,j),   flw(i,j))
-         enddo
-         enddo
-#endif
       elseif (trim(atm_data_type) == 'oned') then  ! rectangular grid
 
          ! precip is in kg/m^2/s
@@ -2195,64 +2170,6 @@
 
       end subroutine ncar_data
 
-#ifdef UNDEPRECATE_LYq
-!=======================================================================
-! Large and Yeager forcing (AOMIP style)
-!=======================================================================
-
-      subroutine LY_files (yr)
-
-! Construct filenames based on the LANL naming conventions for CORE
-! (Large and Yeager) data.
-! Edit for other directory structures or filenames.
-! Note: The year number in these filenames does not matter, because
-!       subroutine file_year will insert the correct year.
-
-! author: Elizabeth C. Hunke, LANL
-
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(LY_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      flw_file = &
-           trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
-
-      rain_file = &
-           trim(atm_data_dir)//'/MONTHLY/prec.nmyr.dat'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/u_10.1996.dat'
-      call file_year(uwind_file,yr)
-
-      vwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/v_10.1996.dat'
-      call file_year(vwind_file,yr)
-
-      tair_file = &
-           trim(atm_data_dir)//'/4XDAILY/t_10.1996.dat'
-      call file_year(tair_file,yr)
-
-      humid_file = &
-           trim(atm_data_dir)//'/4XDAILY/q_10.1996.dat'
-      call file_year(humid_file,yr)
-
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Forcing data year = ', fyear
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(flw_file)
-         write (nu_diag,*) trim(rain_file)
-         write (nu_diag,*) trim(uwind_file)
-         write (nu_diag,*) trim(vwind_file)
-         write (nu_diag,*) trim(tair_file)
-         write (nu_diag,*) trim(humid_file)
-      endif                     ! master_task
-
-      end subroutine LY_files
-#endif
 !=======================================================================
 
       subroutine JRA55_gx1_files(yr)
@@ -2316,231 +2233,6 @@
       endif
       end subroutine JRA55_gx3_files
 
-#ifdef UNDEPRECATE_LYq
-!=======================================================================
-!
-! read Large and Yeager atmospheric data
-!        note:  also uses AOMIP protocol, in part
-
-      subroutine LY_data
-
-      use ice_blocks, only: block, get_block
-      use ice_global_reductions, only: global_minval, global_maxval
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
-      use ice_flux, only: fsnow, Tair, uatm, vatm, Qa, fsw
-      use ice_grid, only: hm, tlon, tlat, tmask, umask
-      use ice_state, only: aice
-
-      integer (kind=int_kind) :: &
-          i, j        , &
-          ixm,ixx,ixp , & ! record numbers for neighboring months
-          recnum      , & ! record number
-          maxrec      , & ! maximum record number
-          recslot     , & ! spline slot for current record
-          midmonth    , & ! middle day of month
-          dataloc     , & ! = 1 for data located in middle of time interval
-                          ! = 2 for date located at end of time interval
-          iblk        , & ! block index
-          ilo,ihi,jlo,jhi ! beginning and end of physical domain
-
-      real (kind=dbl_kind) :: &
-          sec6hr          , & ! number of seconds in 6 hours
-          secday          , & ! number of seconds in day
-          Tffresh         , &
-          vmin, vmax
-
-      logical (kind=log_kind) :: readm, read6
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(LY_data)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      call icepack_query_parameters(Tffresh_out=Tffresh)
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-    !-------------------------------------------------------------------
-    ! monthly data
-    !
-    ! Assume that monthly data values are located in the middle of the
-    ! month.
-    !-------------------------------------------------------------------
-
-      midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
-
-      ! Compute record numbers for surrounding months
-      maxrec = 12
-      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
-      ixp  = mod(mmonth,         maxrec) + 1
-      if (mday >= midmonth) ixm = -99  ! other two points will be used
-      if (mday <  midmonth) ixp = -99
-
-      ! Determine whether interpolation will use values 1:2 or 2:3
-      ! recslot = 2 means we use values 1:2, with the current value (2)
-      !  in the second slot
-      ! recslot = 1 means we use values 2:3, with the current value (2)
-      !  in the first slot
-      recslot = 1                             ! latter half of month
-      if (mday < midmonth) recslot = 2        ! first half of month
-
-      ! Find interpolation coefficients
-      call interp_coeff_monthly (recslot)
-
-      ! Read 2 monthly values
-      readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
-
-      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
-             flw_file, cldf_data, field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
-             rain_file, fsnow_data, field_loc_center, field_type_scalar)
-
-      call interpolate_data (cldf_data, cldf)
-      call interpolate_data (fsnow_data, fsnow)  ! units mm/s = kg/m^2/s
-
-    !-------------------------------------------------------------------
-    ! 6-hourly data
-    !
-    ! Assume that the 6-hourly value is located at the end of the
-    !  6-hour period.  This is the convention for NCEP reanalysis data.
-    !  E.g. record 1 gives conditions at 6 am GMT on 1 January.
-    !-------------------------------------------------------------------
-
-      dataloc = 2               ! data located at end of interval
-      sec6hr = secday/c4        ! seconds in 6 hours
-      maxrec = 1460             ! 365*4
-
-      ! current record number
-      recnum = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec6hr)
-
-      ! Compute record numbers for surrounding data (2 on each side)
-
-      ixm = mod(recnum+maxrec-2,maxrec) + 1
-      ixx = mod(recnum-1,       maxrec) + 1
-!     ixp = mod(recnum,         maxrec) + 1
-
-      ! Compute interpolation coefficients
-      ! If data is located at the end of the time interval, then the
-      !  data value for the current record goes in slot 2
-
-      recslot = 2
-      ixp = -99
-      call interp_coeff (recnum, recslot, sec6hr, dataloc)
-
-      ! Read
-      read6 = .false.
-      if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
-
-      if (trim(atm_data_format) == 'bin') then
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         tair_file, Tair_data, &
-                         field_loc_center, field_type_scalar)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         uwind_file, uatm_data, &
-                         field_loc_center, field_type_vector)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         vwind_file, vatm_data, &
-                         field_loc_center, field_type_vector)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         humid_file, Qa_data, &
-                         field_loc_center, field_type_scalar)
-      else
-         call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
-            file=__FILE__, line=__LINE__)
-      endif
-
-      ! Interpolate
-      call interpolate_data (Tair_data, Tair)
-      call interpolate_data (uatm_data, uatm)
-      call interpolate_data (vatm_data, vatm)
-      call interpolate_data (Qa_data, Qa)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-        ! limit summer Tair values where ice is present
-        do j = 1, ny_block
-          do i = 1, nx_block
-            if (aice(i,j,iblk) > p1) Tair(i,j,iblk) = min(Tair(i,j,iblk), Tffresh+p1)
-          enddo
-        enddo
-
-        call Qa_fixLY(nx_block,  ny_block, &
-                                 Tair (:,:,iblk), &
-                                 Qa   (:,:,iblk))
-
-        do j = 1, ny_block
-          do i = 1, nx_block
-            Qa  (i,j,iblk) = Qa  (i,j,iblk) * hm(i,j,iblk)
-            Tair(i,j,iblk) = Tair(i,j,iblk) * hm(i,j,iblk)
-            uatm(i,j,iblk) = uatm(i,j,iblk) * hm(i,j,iblk)
-            vatm(i,j,iblk) = vatm(i,j,iblk) * hm(i,j,iblk)
-          enddo
-        enddo
-
-      ! AOMIP
-        this_block = get_block(blocks_ice(iblk),iblk)
-        ilo = this_block%ilo
-        ihi = this_block%ihi
-        jlo = this_block%jlo
-        jhi = this_block%jhi
-
-        call compute_shortwave(nx_block, ny_block, &
-                               ilo, ihi, jlo, jhi, &
-                               TLON (:,:,iblk), &
-                               TLAT (:,:,iblk), &
-                               hm   (:,:,iblk), &
-                               Qa   (:,:,iblk), &
-                               cldf (:,:,iblk), &
-                               fsw  (:,:,iblk))
-
-      enddo  ! iblk
-      !$OMP END PARALLEL DO
-
-      ! Save record number
-      oldrecnum = recnum
-
-         if (debug_forcing) then
-           if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
-           vmin = global_minval(fsw,distrb_info,tmask)
-
-           vmax = global_maxval(fsw,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'fsw',vmin,vmax
-           vmin = global_minval(cldf,distrb_info,tmask)
-           vmax = global_maxval(cldf,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'cldf',vmin,vmax
-           vmin =global_minval(fsnow,distrb_info,tmask)
-           vmax =global_maxval(fsnow,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'fsnow',vmin,vmax
-           vmin = global_minval(Tair,distrb_info,tmask)
-           vmax = global_maxval(Tair,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'Tair',vmin,vmax
-           vmin = global_minval(uatm,distrb_info,umask)
-           vmax = global_maxval(uatm,distrb_info,umask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'uatm',vmin,vmax
-           vmin = global_minval(vatm,distrb_info,umask)
-           vmax = global_maxval(vatm,distrb_info,umask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'vatm',vmin,vmax
-           vmin = global_minval(Qa,distrb_info,tmask)
-           vmax = global_maxval(Qa,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'Qa',vmin,vmax
-
-        endif                   ! debug_forcing
-
-      end subroutine LY_data
-#endif
 !=======================================================================
 
       subroutine JRA55_data

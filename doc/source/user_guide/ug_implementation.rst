@@ -1037,7 +1037,7 @@ used in coupled models.
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
 or other climate components via external routines that handle the
-variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
 For stand-alone runs,
 routines in **ice\_forcing.F90** read and interpolate data from files,
 and are intended merely to provide guidance for the user to write his or

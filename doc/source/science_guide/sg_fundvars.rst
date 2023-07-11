@@ -17,7 +17,7 @@ In addition to an ice thickness distribution, CICE includes an optional capabili
 Ice floe horizontal size may change through vertical and lateral growth and melting of existing floes, freezing of new ice, wave breaking, and welding of floes in freezing conditions.  The floe size distribution (FSD) is a probability function that characterizes this variability. The scheme is based on the theoretical framework described in :cite:`Horvat15` for a joint floe size and thickness distribution (FSTD), and was implemented by :cite:`Roach18` and :cite:`Roach19`.  The joint floe size distribution is carried as an area-weighted tracer, defined as the fraction of ice belonging to a given thickness category with lateral floe size belong to a given floe size class. This development includes interactions between sea ice and ocean surface waves. Input data on ocean surface wave spectra at a single time is provided for testing, but as with the other CICE datasets, it should not be used for production runs or publications. It is not recommended to use the FSD without ocean surface waves.
 
 Additional information about the ITD and joint FSTD for CICE can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
 
 
 The fundamental equation solved by CICE is :cite:`Thorndike75`:
@@ -87,7 +87,7 @@ Section :ref:`horiz-trans`. Ice is transported in thickness space
 using the remapping scheme of :cite:`Lipscomb01`. The mechanical
 redistribution scheme, based on :cite:`Thorndike75`, :cite:`Rothrock75`,
 :cite:`Hibler80`, :cite:`Flato95`, and :cite:`Lipscomb07` is outlined
-in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. 
+in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_. 
 To solve the horizontal transport and
 ridging equations, we need the ice velocity :math:`{\bf u}`, and to
 compute transport in thickness space, we must know the the ice growth
