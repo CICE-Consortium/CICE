@@ -1,3 +1,0 @@
-atm_data_format = 'nc'
-atm_data_type   = 'JRA55do_tx1'
-atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/tx1/JRA55do'

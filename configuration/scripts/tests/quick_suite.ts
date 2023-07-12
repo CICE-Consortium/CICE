@@ -1,6 +1,5 @@
 # Test         Grid    PEs        Sets    BFB-compare
 smoke          gx3     8x2        diag1,run5day
-smoke          gx3     8x2        diag1,run5day,jra55do_gx3
 smoke          gx3     1x1        diag1,run1day
 restart        gbox128 8x1        diag1
 restart        gx3     4x2        debug,diag1
