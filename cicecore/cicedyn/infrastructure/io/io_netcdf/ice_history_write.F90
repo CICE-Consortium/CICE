@@ -753,7 +753,7 @@
       !-----------------------------------------------------------------
       ! write time variable
       !-----------------------------------------------------------------
-       
+
         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
         ! Some coupled models require the time axis "stamp" to be in the middle
@@ -762,7 +762,7 @@
            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
         endif
-       
+
         status = nf90_inq_varid(ncid,'time',varid)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: getting time varid')

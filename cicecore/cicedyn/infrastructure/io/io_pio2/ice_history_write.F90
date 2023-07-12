@@ -715,7 +715,7 @@
            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
         endif
-       
+
         status = pio_inq_varid(File,'time',varid)
         status = pio_put_var(File,varid,(/1/),ltime2)
 
