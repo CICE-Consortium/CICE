@@ -35,7 +35,7 @@ LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
-PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs
 
 PNETCDF_PATH := $(PNETCDF)
 #PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
@@ -49,10 +49,10 @@ LIB_NETCDF := $(NETCDF)/lib
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
-ifeq ($(ICE_THREADED), true) 
-   LDFLAGS += -qopenmp 
-   CFLAGS += -qopenmp 
-   FFLAGS += -qopenmp 
+ifeq ($(ICE_THREADED), true)
+   LDFLAGS += -qopenmp
+   CFLAGS += -qopenmp
+   FFLAGS += -qopenmp
 endif
 
 #ifeq ($(ICE_IOTYPE), pio1)

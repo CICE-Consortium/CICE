@@ -41,7 +41,7 @@ cat >> ${jobfile} << EOFB
 #PBS -A ${acct}
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${batchtime}
-#PBS -j oe 
+#PBS -j oe
 #PBS -W umask=022
 #PBS -o ${ICE_CASEDIR}
 ###PBS -M username@domain.com

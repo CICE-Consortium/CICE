@@ -2181,7 +2181,7 @@
       ! The files will generally be of the format
       !    $atm_data_type/[JRA55,JRA55do,'']/8XDAILY/[JRA55,JRA55do][_$grid,'']_03hr_forcing[_$grid,'']_$year.nc
       ! The options defined by cnt try several versions of paths/filenames
-      ! As a user, 
+      ! As a user,
       !    atm_data_type should be set to JRA55, JRA55do, JRA55_xxx, or JRA55do_xxx
       !       where xxx can be any set of characters.  The _xxx if included will be ignored.
       !       Historically, these were set to JRA55_gx1 and so forth but the _gx1 is no longer needed
@@ -2189,7 +2189,7 @@
       !       is atm_data_type with _ and everything after _ removed.
       !    atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,'']
       !       The [JRA55,JRA55do] at the end of the atm_data_dir is optional to provide backwards
-      !       compatibility and if not included, will be appended automaticaly using 
+      !       compatibility and if not included, will be appended automaticaly using
       !       the atm_data_type_prefix value.  The grid is typically gx1, gx3, tx1, or similar.
       ! In general, we recommend using the following format
       !    atm_data_type = [JRA55,JRA55do]
