@@ -1934,11 +1934,18 @@
 
       subroutine ncar_files (yr)
 
-! Construct filenames based on the LANL naming conventions for NCAR data.
-! Edit for other directory structures or filenames.
-! Note: The year number in these filenames does not matter, because
-!       subroutine file_year will insert the correct year.
-! Note: atm_data_dir may have NCAR_bulk or not
+      ! Construct filenames based on the LANL naming conventions for NCAR data.
+      ! Edit for other directory structures or filenames.
+      ! Note: The year number in these filenames does not matter, because
+      !       subroutine file_year will insert the correct year.
+      ! Note: atm_data_dir may have NCAR_bulk or not
+      !
+      ! atm_data_type should be 'ncar'
+      ! atm_dat_dir should be ${CICE_DATA_root}/forcing/$grid/[NCAR_bulk,'']
+      !    atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,'']
+      !       NCAR_bulk at the end of the atm_data_dir is optional to provide backwards
+      !       compatibility and if not included, will be appended automaticaly.
+      !       The grid is typically gx1, gx3, tx1, or similar.
 
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
@@ -1953,6 +1960,7 @@
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
+      ! decide whether NCAR_bulk is part of atm_data_dir and set atm_data_dir_extra
       atm_data_dir_extra = '/NCAR_bulk'
       strind = index(trim(atm_data_dir),'NCAR_bulk')
       if (strind > 0) then
@@ -2162,9 +2170,30 @@
       subroutine JRA55_files(yr)
 
       ! find the JRA55 files:
+      ! This subroutine finds the JRA55 atm forcing files based on settings
+      ! in atm_data_type and atm_data_dir.  Because the filenames are not
+      ! entirely consistent, we need a flexible method.
+      !
       ! atm_data_type could be JRA55 or JRA55do with/without _grid appended
       ! atm_data_dir could contain JRA55 or JRA55do or not
       ! actual files could have grid in name in two location or not at all
+      !
+      ! The files will generally be of the format
+      !    $atm_data_type/[JRA55,JRA55do,'']/8XDAILY/[JRA55,JRA55do][_$grid,'']_03hr_forcing[_$grid,'']_$year.nc
+      ! The options defined by cnt try several versions of paths/filenames
+      ! As a user, 
+      !    atm_data_type should be set to JRA55, JRA55do, JRA55_xxx, or JRA55do_xxx
+      !       where xxx can be any set of characters.  The _xxx if included will be ignored.
+      !       Historically, these were set to JRA55_gx1 and so forth but the _gx1 is no longer needed
+      !       but this is still allowed for backwards compatibility.  atm_data_type_prefix
+      !       is atm_data_type with _ and everything after _ removed.
+      !    atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,'']
+      !       The [JRA55,JRA55do] at the end of the atm_data_dir is optional to provide backwards
+      !       compatibility and if not included, will be appended automaticaly using 
+      !       the atm_data_type_prefix value.  The grid is typically gx1, gx3, tx1, or similar.
+      ! In general, we recommend using the following format
+      !    atm_data_type = [JRA55,JRA55do]
+      !    atm_data_dir = ${CICE_DATA_root}/forcing/$grid
 
       integer (kind=int_kind), intent(in) :: &
            yr         ! current forcing year
@@ -2177,7 +2206,7 @@
            atm_data_type_prefix  ! atm_data_type prefix
 
       integer (kind=int_kind) :: &
-           cnt    , & ! search for file
+           cnt    , & ! search for files
            strind     ! string index
 
       logical :: &
@@ -2205,6 +2234,7 @@
          call abort_ice(error_message=subname//' unknown grid type')
       endif
 
+      ! cnt represents the possible file format options and steps thru them until one is found
       exists = .false.
       cnt = 1
       do while (.not.exists .and. cnt <= 6)
