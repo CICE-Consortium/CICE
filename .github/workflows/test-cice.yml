@@ -75,7 +75,6 @@ jobs:
           echo "tcx7"
           echo "tcx8"
           echo "tcx9"
-          exit -9
       - name : install miniconda
         shell: /bin/bash {0}
         run: |
@@ -118,6 +117,11 @@ jobs:
           mpifort --version
           mpicc --version
           make --version
+          echo "tcx5"
+          env
+          echo "tcx6"
+          env | grep -i frameworks
+          exit -9
       - name: check setup case
         run: |
           cd $HOME/cice
