@@ -60,7 +60,15 @@ jobs:
           echo "OS: ${{ matrix.os }}"
           echo "ENVDEF: ${{ matrix.envdef }}"
           echo "MINICOND: ${{ matrix.minicond }}"
+          echo "tcx1"
+          ls -alr /System/Library/Frameworks/Security.framework
+          echo "tcx2"
+          ls -alr /System/Library/Frameworks/Security.framework/Versions
+          echo "tcx3"
+          ls -alr /System/Library/Frameworks/Security.framework/Versions/A
+          echo "tcx4"
           ls -alr /System/Library/Frameworks/Security.framework/Versions/A/Security
+          echo "tcx5"
       - name : install miniconda
         shell: /bin/bash {0}
         run: |
