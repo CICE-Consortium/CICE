@@ -69,6 +69,13 @@ jobs:
           echo "tcx4"
           ls -alr /System/Library/Frameworks/Security.framework/Versions/A/Security
           echo "tcx5"
+          env
+          echo "tcx6"
+          env | grep -i frameworks
+          echo "tcx7"
+          echo "tcx8"
+          echo "tcx9"
+          exit -9
       - name : install miniconda
         shell: /bin/bash {0}
         run: |
