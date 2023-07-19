@@ -121,7 +121,6 @@ jobs:
           env
           echo "tcx6"
           env | grep -i frameworks
-          exit -9
       - name: check setup case
         run: |
           cd $HOME/cice
