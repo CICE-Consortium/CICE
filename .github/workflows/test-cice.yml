@@ -60,6 +60,7 @@ jobs:
           echo "OS: ${{ matrix.os }}"
           echo "ENVDEF: ${{ matrix.envdef }}"
           echo "MINICOND: ${{ matrix.minicond }}"
+          ls -alr /System/Library/Frameworks/Security.framework
       - name : install miniconda
         shell: /bin/bash {0}
         run: |
