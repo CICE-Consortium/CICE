@@ -742,6 +742,8 @@ The following are brief descriptions of some of the current unit tests,
    in the Makefile
  - **optargs** is a unit test that tests passing optional arguments down a calling tree and verifying
    that the optional attribute is preserved correctly.
+ - **opticep** is a cice test that turns off the icepack optional arguments passed into icepack.  This
+   can only be run with a subset of CICE/Icepack cases to verify the optional arguments are working correctly.
  - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
    that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
    the model prior to running a suite of unit validation tests to verify correctness.
