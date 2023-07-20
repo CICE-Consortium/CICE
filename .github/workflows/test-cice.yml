@@ -118,17 +118,17 @@ jobs:
           mpicc --version
           make --version
           echo "tcx1"
-          mpiifort --showme:compile
+          mpifort --showme:compile
           echo "tcx2"
-          mpiifort --showme:link
+          mpifort --showme:link
           echo "tcx3"
-          mpiifort --showme:command
+          mpifort --showme:command
           echo "tcx4"
-          mpiifort --showme:libdirs
+          mpifort --showme:libdirs
           echo "tcx5"
-          mpiifort --showme:libs
+          mpifort --showme:libs
           echo "tcx6"
-          mpiifort --showme:incdirs
+          mpifort --showme:incdirs
           echo "tcx7"
       - name: check setup case
         run: |

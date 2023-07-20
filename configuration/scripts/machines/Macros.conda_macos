@@ -35,6 +35,7 @@ endif
 
 # Linker
 LD:= $(FC)
+LDFLAGS += --no-warn-search-mismatch
 
 # Location of the compiled Fortran modules (NetCDF)
 MODDIR  += -I$(CONDA_PREFIX)/include
