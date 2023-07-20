@@ -117,19 +117,20 @@ jobs:
           mpifort --version
           mpicc --version
           make --version
-          echo "tcx1"
+          echo "mpifort -v:"
+          mpifort -v
+          echo "mpifort --showme:compile:"
           mpifort --showme:compile
-          echo "tcx2"
+          echo "mpifort --showme:link:"
           mpifort --showme:link
-          echo "tcx3"
+          echo "mpifort --showme:command:"
           mpifort --showme:command
-          echo "tcx4"
+          echo "mpifort --showme:libdirs:"
           mpifort --showme:libdirs
-          echo "tcx5"
+          echo "mpifort --showme:libs:"
           mpifort --showme:libs
-          echo "tcx6"
+          echo "mpifort --showme:incdirs:"
           mpifort --showme:incdirs
-          echo "tcx7"
       - name: check setup case
         run: |
           cd $HOME/cice
@@ -138,12 +139,12 @@ jobs:
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0
-#      - name: compile case
-#        run: |
-#          cd $HOME/cice
-#          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1
-#          cd case1
-#          ./cice.build
+      - name: check cice compile
+        run: |
+          cd $HOME/cice
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1 --pes 2x2 -s diag1
+          cd case1
+          ./cice.build
       - name: download input data
         run: |
           cd $HOME/cice-dirs/input
