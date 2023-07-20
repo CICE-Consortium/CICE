@@ -30,6 +30,9 @@ jobs:
         os: [macos-11]
 #        os: [ubuntu-latest]
         include: 
+          - os: macos-11
+            envdef: macos
+            minicond: Miniconda3-latest-MacOSX-x86_64.sh
           - os: macos-latest
             envdef: macos
             minicond: Miniconda3-latest-MacOSX-x86_64.sh
