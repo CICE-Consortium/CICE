@@ -117,10 +117,19 @@ jobs:
           mpifort --version
           mpicc --version
           make --version
+          echo "tcx1"
+          mpiifort --showme:compile
+          echo "tcx2"
+          mpiifort --showme:link
+          echo "tcx3"
+          mpiifort --showme:command
+          echo "tcx4"
+          mpiifort --showme:libdirs
           echo "tcx5"
-          env
+          mpiifort --showme:libs
           echo "tcx6"
-          env | grep -i frameworks
+          mpiifort --showme:incdirs
+          echo "tcx7"
       - name: check setup case
         run: |
           cd $HOME/cice
