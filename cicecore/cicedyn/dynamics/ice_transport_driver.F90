@@ -234,7 +234,7 @@
       endif ! master_task
  1000 format (1x,a,2x,i6,2x,i6,2x,i4,4x,l4)
 
-      if (trim(advection)=='remap') call init_remap (grid_ice) ! grid quantities
+      if (trim(advection)=='remap') call init_remap ! grid quantities
 
       call ice_timer_stop(timer_advect)  ! advection
 
@@ -545,7 +545,7 @@
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
-                                 l_dp_midpt,     grid_ice,       &
+                                 l_dp_midpt,                     &
                                  uvelE  (:,:,:), vvelN  (:,:,:))
       else
           call horizontal_remap (dt,             ntrace,         &
@@ -553,7 +553,7 @@
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
-                                 l_dp_midpt,     grid_ice)
+                                 l_dp_midpt)
       endif
 
       !-------------------------------------------------------------------
