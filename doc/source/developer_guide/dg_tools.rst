@@ -27,10 +27,10 @@ JRA55 forcing datasets
 ------------------------
 
 This section describes how to generate JRA55 forcing data for the CICE model.
-Raw JRA55 files have to be interpolated and processed into input files specifically
+Raw JRA55 or JRA55do files have to be interpolated and processed into input files specifically
 for the CICE model.  A tool exists in **configuration/tools/jra55_datasets**
 to support that process.
-The raw JRA55 data is obtained from the NCAR/UCAR Research Data Archive and
+The raw JRA55 or JRA55do data is obtained from the NCAR/UCAR Research Data Archive and
 the conversion tools are written in python.
 
 Requirements

@@ -100,14 +100,14 @@
                  trim(nml_filename), &
                  file=__FILE__, line=__LINE__)
          endif
-         
+
          ! goto this namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                  file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -121,7 +121,7 @@
                     trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
-         
+
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif

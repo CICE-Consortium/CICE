@@ -21,7 +21,7 @@
 
       module ice_history_write
 
-      use ice_constants, only: c0, c360, spval, spval_dbl
+      use ice_constants, only: c0, c360, p5, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -137,8 +137,6 @@
 
       if (my_task == master_task) then
 
-        ltime2 = timesecs/secday
-
         call construct_filename(ncfile(ns),'nc',ns)
 
         ! add local directory path name to ncfile
@@ -159,10 +157,10 @@
       ! define dimensions
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
-          status = nf90_def_dim(ncid,'d2',2,boundid)
+        if (hist_avg(ns) .and. .not. write_ic) then
+          status = nf90_def_dim(ncid,'nbnd',2,boundid)
           if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: defining dim d2')
+             'ERROR: defining dim nbnd')
         endif
 
         status = nf90_def_dim(ncid,'ni',nx_global,imtid)
@@ -213,7 +211,7 @@
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: defining var time')
 
-        status = nf90_put_att(ncid,varid,'long_name','model time')
+        status = nf90_put_att(ncid,varid,'long_name','time')
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ice Error: time long_name')
 
@@ -230,7 +228,7 @@
            if (status /= nf90_noerr) call abort_ice(subname// &
                          'ERROR: time calendar')
         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = nf90_put_att(ncid,varid,'calendar','NoLeap')
+           status = nf90_put_att(ncid,varid,'calendar','noleap')
            if (status /= nf90_noerr) call abort_ice(subname// &
                          'ERROR: time calendar')
         elseif (use_leap_years) then
@@ -241,7 +239,7 @@
            call abort_ice(subname//'ERROR: invalid calendar settings')
         endif
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = nf90_put_att(ncid,varid,'bounds','time_bounds')
           if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: time bounds')
@@ -251,14 +249,14 @@
       ! Define attributes for time bounds if hist_avg is true
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           dimid(1) = boundid
           dimid(2) = timid
           status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: defining var time_bounds')
           status = nf90_put_att(ncid,varid,'long_name', &
-                                'boundaries for time-averaging interval')
+                                'time interval endpoints')
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds long_name')
           write(cdate,'(i8.8)') idate0
@@ -268,6 +266,22 @@
           status = nf90_put_att(ncid,varid,'units',title)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: time_bounds units')
+          if (days_per_year == 360) then
+             status = nf90_put_att(ncid,varid,'calendar','360_day')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+             status = nf90_put_att(ncid,varid,'calendar','noleap')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          elseif (use_leap_years) then
+             status = nf90_put_att(ncid,varid,'calendar','Gregorian')
+             if (status /= nf90_noerr) call abort_ice(subname// &
+                           'ERROR: time calendar')
+          else
+             call abort_ice(subname//'ERROR: invalid calendar settings')
+          endif
+
         endif
 
       !-----------------------------------------------------------------
@@ -702,6 +716,12 @@
                          'ERROR: global attribute time_period_freq')
         endif
 
+        if (hist_avg(ns)) then
+           status = nf90_put_att(ncid,nf90_global,'time_axis_position',trim(hist_time_axis))
+           if (status /= nf90_noerr) call abort_ice(subname// &
+                         'ERROR: global attribute time axis position')
+        endif
+
         title = 'CF-1.0'
         status =  &
              nf90_put_att(ncid,nf90_global,'conventions',title)
@@ -734,6 +754,15 @@
       ! write time variable
       !-----------------------------------------------------------------
 
+        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+
+        ! Some coupled models require the time axis "stamp" to be in the middle
+        ! or even beginning of averaging interval.
+        if (hist_avg(ns)) then
+           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+        endif
+
         status = nf90_inq_varid(ncid,'time',varid)
         if (status /= nf90_noerr) call abort_ice(subname// &
                       'ERROR: getting time varid')
@@ -745,7 +774,7 @@
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg .and. .not. write_ic) then
+        if (hist_avg(ns) .and. .not. write_ic) then
           status = nf90_inq_varid(ncid,'time_bounds',varid)
           if (status /= nf90_noerr) call abort_ice(subname// &
                         'ERROR: getting time_bounds id')
@@ -1279,7 +1308,7 @@
       call ice_write_hist_fill(ncid,varid,hfield%vname,history_precision)
 
       ! Add cell_methods attribute to variables if averaged
-      if (hist_avg .and. .not. write_ic) then
+      if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
@@ -1292,7 +1321,7 @@
       endif
 
       if ((histfreq(ns) == '1' .and. histfreq_n(ns) == 1) &
-          .or..not. hist_avg                              &
+          .or..not. hist_avg(ns)                          &
           .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &

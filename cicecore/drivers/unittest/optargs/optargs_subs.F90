@@ -4,17 +4,21 @@
       implicit none
       private
 
+      integer, public, parameter :: dp = kind(1.d0)
+
       logical, public :: computeA = .false., &
                          computeB = .false., &
                          computeC = .false., &
-                         computeD = .false.
+                         computeD = .false., &
+                         computeE = .false.
 
       integer, public :: oa_error = -99, &
                          oa_OK    =   0, &
                          oa_A     =   1, &
                          oa_B     =   2, &
                          oa_C     =   4, &
-                         oa_D     =   8
+                         oa_D     =   8, &
+                         oa_E     =  16
 
       public :: oa_layer1, oa_count1
 
@@ -22,16 +26,18 @@
 CONTAINS
 !-----------------------------------
 
-      subroutine oa_count1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      subroutine oa_count1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
-      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
-      real*8 , intent(out)  , optional :: Ao, Do
-      real*8 , intent(inout), optional :: B
-      real*8 , intent(in)              :: Ci1
-      real*8 , intent(out)             :: Co
-      integer, intent(inout)           :: ierr
+      real(dp), intent(in)   , optional :: Ai1, Di1, Di2
+      real(dp), intent(out)  , optional :: Ao, Do
+      real(dp), intent(inout), optional :: B
+      real(dp), intent(in)              :: Ci1
+      real(dp), intent(out)             :: Co
+      real(dp), intent(in)   , optional, dimension(:) :: Ei
+      real(dp), intent(out)  , optional, dimension(:) :: Eo
+      integer , intent(inout)           :: ierr
 
-      call oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      call oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
 !      write(6,*) 'debug oa_count1 ',ierr
 
@@ -39,14 +45,16 @@ CONTAINS
 
 !-----------------------------------
 
-      subroutine oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      subroutine oa_count2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
-      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
-      real*8 , intent(out)  , optional :: Ao, Do
-      real*8 , intent(inout), optional :: B
-      real*8 , intent(in)              :: Ci1
-      real*8 , intent(out)             :: Co
-      integer, intent(inout)           :: ierr
+      real(dp), intent(in)   , optional :: Ai1, Di1, Di2
+      real(dp), intent(out)  , optional :: Ao, Do
+      real(dp), intent(inout), optional :: B
+      real(dp), intent(in)              :: Ci1
+      real(dp), intent(out)             :: Co
+      real(dp), intent(in)   , optional, dimension(:) :: Ei
+      real(dp), intent(out)  , optional, dimension(:) :: Eo
+      integer , intent(inout)           :: ierr
 
       ierr = 3 ! Ci1, Co, ierr have to be passed
       if (present(Ai1)) ierr = ierr + 1
@@ -55,6 +63,8 @@ CONTAINS
       if (present(Di1)) ierr = ierr + 1
       if (present(Di2)) ierr = ierr + 1
       if (present(Do) ) ierr = ierr + 1
+      if (present(Ei) ) ierr = ierr + 1
+      if (present(Eo) ) ierr = ierr + 1
 
 !      write(6,*) 'debug oa_count2 ',ierr
 
@@ -62,14 +72,16 @@ CONTAINS
 
 !-----------------------------------
 
-      subroutine oa_layer1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      subroutine oa_layer1(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
-      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
-      real*8 , intent(out)  , optional :: Ao, Do
-      real*8 , intent(inout), optional :: B
-      real*8 , intent(in)              :: Ci1
-      real*8 , intent(out)             :: Co
-      integer, intent(inout)           :: ierr
+      real(dp), intent(in)   , optional :: Ai1, Di1, Di2
+      real(dp), intent(out)  , optional :: Ao, Do
+      real(dp), intent(inout), optional :: B
+      real(dp), intent(in)              :: Ci1
+      real(dp), intent(out)             :: Co
+      real(dp), intent(in)   , optional, dimension(:) :: Ei
+      real(dp), intent(out)  , optional, dimension(:) :: Eo
+      integer , intent(inout)           :: ierr
 
       ierr = oa_OK
       if (computeA) then
@@ -87,38 +99,55 @@ CONTAINS
             ierr = oa_error
          endif
       endif
+      if (computeE) then
+         if (.not.(present(Ei).and.present(Eo))) then
+            ierr = oa_error
+         endif
+      endif
 
       if (ierr == oa_OK) then
-         call oa_layer2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+         call oa_layer2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
       endif
 
       end subroutine oa_layer1
 
 !-----------------------------------
 
-      subroutine oa_layer2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      subroutine oa_layer2(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
-      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
-      real*8 , intent(out)  , optional :: Ao, Do
-      real*8 , intent(inout), optional :: B
-      real*8 , intent(in)              :: Ci1
-      real*8 , intent(out)             :: Co
-      integer, intent(inout)           :: ierr
+! Note: optional arrays must have an optional attribute, otherwise they seg fault
+! Scalars do not seem to have this problem
 
-      call oa_compute(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      real(dp), intent(in)              :: Ai1, Di1, Di2
+      real(dp), intent(out)             :: Ao, Do
+      real(dp), intent(inout)           :: B
+      real(dp), intent(in)              :: Ci1
+      real(dp), intent(out)             :: Co
+      real(dp), intent(in)   , optional, dimension(:) :: Ei
+      real(dp), intent(out)  , optional, dimension(:) :: Eo
+      integer , intent(inout)           :: ierr
+
+      call oa_compute(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
       end subroutine oa_layer2
 
 !-----------------------------------
 
-      subroutine oa_compute(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,ierr)
+      subroutine oa_compute(Ai1,Ao,B,Ci1,Co,Di1,Di2,Do,Ei,Eo,ierr)
 
-      real*8 , intent(in)   , optional :: Ai1, Di1, Di2
-      real*8 , intent(out)  , optional :: Ao, Do
-      real*8 , intent(inout), optional :: B
-      real*8 , intent(in)              :: Ci1
-      real*8 , intent(out)             :: Co
-      integer, intent(inout)           :: ierr
+! Note: optional arrays must have an optional attribute, otherwise they seg fault
+! Scalars do not seem to have this problem
+
+      real(dp), intent(in)              :: Ai1, Di1, Di2
+      real(dp), intent(out)             :: Ao, Do
+      real(dp), intent(inout)           :: B
+      real(dp), intent(in)              :: Ci1
+      real(dp), intent(out)             :: Co
+      real(dp), intent(in)   , optional, dimension(:) :: Ei
+      real(dp), intent(out)  , optional, dimension(:) :: Eo
+      integer , intent(inout)           :: ierr
+
+      integer :: n
 
       if (computeA) then
          Ao = Ai1 - 1.
@@ -138,6 +167,13 @@ CONTAINS
       if (computeD) then
          Do = Di1 + Di2
          ierr = ierr + oa_D
+      endif
+
+      if (computeE) then
+         ierr = ierr + oa_E
+         do n = 1,size(Eo)
+           Eo(n) = Ei(n) + n
+         enddo
       endif
 
       return
