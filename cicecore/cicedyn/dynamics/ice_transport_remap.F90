@@ -317,7 +317,7 @@
       !-------------------------------------------------------------------
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         l_fixed_area = .false. !jlem temporary
+         l_fixed_area = .true.
       else
          l_fixed_area = .false.
       endif
