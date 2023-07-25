@@ -39,7 +39,7 @@ remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
 
 - The upwind scheme uses velocity points at the East and North face (i.e. :math:`uvelE=u` at the E point and :math:`vvelN=v` at  the N point) of a T gridcell.  As such, the prognostic C grid velocity components (:math:`uvelE` and :math:`vvelN`) can be passed directly to the upwind transport scheme.  If the upwind scheme is used with the B grid, the B grid velocities, :math:`uvelU` and :math:`vvelU` (respectively :math:`u` and :math:`v` at the U point) are interpolated to the E and N points first.  (Note however that the upwind scheme does not transport all potentially available tracers.)
 
-- The remapping scheme uses :math:`uvelU` and :math:`vvelU` if l_fixed_area is false and :math:`uvelE` and :math:`vvelN` if l_fixed_area is true.  l_fixed_area is hardcoded to false by default and further described below.  As such, the B grid velocities (:math:`uvelU` and :math:`vvelU`) are used directly in the remapping scheme, while the C grid velocities (:math:`uvelE` and :math:`vvelN`) are interpolated to U points first.  If l_fixed_area is changed to true, then the reverse is true.  The C grid velocities are used directly and the B grid velocities are interpolated.
+- Remapping is naturally a B-grid transport scheme as the corner (U point) velocity components :math:`uvelU` and :math:`vvelU` are used to calculate departure points. Nevertheless, the remapping scheme can also be used with the C grid by first interpolating :math:`uvelE` and :math:`vvelN` to the U points.
 
 The remapping scheme has several desirable features:
 
