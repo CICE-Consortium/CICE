@@ -2348,7 +2348,7 @@
                area_c  = edgearea(i,j) - area1 - area2 - area3
 
                ! shift midpoint so that the area of remaining triangles = area_c
-               w1 = c2*area_c/areafac_c(i,j)    & ! jlem could be improved...
+               w1 = c2*area_c/areafac_c(i,j)    & ! jlem should this be modified?
                     + (xdr-xcl)*ydl + (xcr-xdl)*ydr
                w2 = (xdr-xdl)**2 + (ydr-ydl)**2
                w1 = w1/w2
@@ -2383,11 +2383,11 @@
                ydm = p5 *  ydr
 
                ! compute area of triangle adjacent to left corner
-               area4 = p5 * (xcl - xic) * ydl * areafac_l(i,j) ! jlem could be improved...
+               area4 = p5 * (xcl - xic) * ydl * areafac_l(i,j) ! jlem should this be modified?
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
-               w1 = c2*area_c/areafac_c(i,j) + (xcr-xic)*ydr ! jlem could be improved...
+               w1 = c2*area_c/areafac_c(i,j) + (xcr-xic)*ydr ! jlem should this be modified?
                w2 = (xdr-xic)**2 + ydr**2
                w1 = w1/w2
                xdm = xdm + ydr*w1
@@ -2411,11 +2411,11 @@
                xdm = p5 * (xicr + xdl)
                ydm = p5 *  ydl
 
-               area4 = p5 * (xic - xcr) * ydr * areafac_r(i,j) ! jlem could be improved...
+               area4 = p5 * (xic - xcr) * ydr * areafac_r(i,j) ! jlem should this be modified?
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
-               w1 = c2*area_c/areafac_c(i,j) + (xic-xcl)*ydl ! jlem could be improved...
+               w1 = c2*area_c/areafac_c(i,j) + (xic-xcl)*ydl ! jlem should this be modified?
                w2 = (xic-xdl)**2 + ydl**2
                w1 = w1/w2
                xdm = xdm - ydl*w1
