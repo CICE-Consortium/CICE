@@ -69,32 +69,27 @@
       character (len=35), public, allocatable :: c_hi_range(:)
 
       ! icepack_snow.F90
-      real (kind=dbl_kind), public, &
-         dimension (:,:,:), allocatable :: &
+      real (kind=dbl_kind), public, dimension (:,:,:), allocatable :: &
          meltsliq     ! snow melt mass (kg/m^2/step-->kg/m^2/day)
 
-      real (kind=dbl_kind), public, &
-         dimension (:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), public, dimension (:,:,:,:), allocatable :: &
          meltsliqn       ! snow melt mass in category n (kg/m^2)
 
       ! icepack_meltpond_lvl.F90
-      real (kind=dbl_kind), public, &
-         dimension (:,:,:,:), allocatable :: &
+      real (kind=dbl_kind), public, dimension (:,:,:,:), allocatable :: &
          dhsn, &      ! depth difference for snow on sea ice and pond ice
          ffracn       ! fraction of fsurfn used to melt ipond
 
       ! icepack_shortwave.F90
       ! category albedos
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          alvdrn      , & ! visible direct albedo           (fraction)
          alidrn      , & ! near-ir direct albedo           (fraction)
          alvdfn      , & ! visible diffuse albedo          (fraction)
          alidfn          ! near-ir diffuse albedo          (fraction)
 
       ! albedo components for history
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          albicen, &   ! bare ice
          albsnon, &   ! snow
          albpndn, &   ! pond
@@ -104,16 +99,13 @@
          snowfracn    ! Category snow fraction used in radiation
 
       ! shortwave components
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          Iswabsn         ! SW radiation absorbed in ice layers (W m-2)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          Sswabsn         ! SW radiation absorbed in snow layers (W m-2)
 
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, &
-         public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fswsfcn     , & ! SW absorbed at ice/snow surface (W m-2)
          fswthrun    , & ! SW through ice to ocean            (W/m^2)
          fswthrun_vdr , & ! vis dir SW through ice to ocean            (W/m^2)
@@ -122,8 +114,7 @@
          fswthrun_idf , & ! nir dif SW through ice to ocean            (W/m^2)
          fswintn         ! SW absorbed in ice interior, below surface (W m-2)
 
-      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, &
-         public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          fswpenln        ! visible SW entering ice layers (W m-2)
 
       ! aerosol optical properties   -> band  |
@@ -197,54 +188,47 @@
       integer (kind=int_kind), dimension(:,:,:,:), allocatable, public :: &
         algal_peak          ! vertical location of algal maximum, 0 if no maximum
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          Zoo        ! N losses accumulated in timestep (ie. zooplankton/bacteria)
                     ! mmol/m^3
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          dhbr_top     , & ! brine top change
          dhbr_bot         ! brine bottom change
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          grow_net       , & ! Specific growth rate (/s) per grid cell
          PP_net         , & ! Total production (mg C/m^2/s) per grid cell
          hbri               ! brine height, area-averaged for comparison with hi (m)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          bphi           , & ! porosity of layers
          bTiz               ! layer temperatures interpolated on bio grid (C)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          darcy_V            ! darcy velocity positive up (m/s)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         zsal_tot    , & ! Total ice salinity in per grid cell (g/m^2)
+!tcxzsal         zsal_tot    , & ! Total ice salinity in per grid cell (g/m^2)
          chl_net     , & ! Total chla (mg chla/m^2) per grid cell
          NO_net          ! Total nitrate per grid cell
 
-      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-         Rayleigh_criteria    ! .true. means Ra_c was reached
+!tcxzsal      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
+!         Rayleigh_criteria    ! .true. means Ra_c was reached
+!
+!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+!         Rayleigh_real        ! .true. = c1, .false. = c0
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         Rayleigh_real        ! .true. = c1, .false. = c0
-
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          sice_rho     ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
-         fzsaln, &    ! category fzsal(kg/m^2/s)
-         fzsaln_g     ! salt flux from gravity drainage only
-
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         fzsal    , & ! Total flux  of salt to ocean at time step for conservation
-         fzsal_g      ! Total gravity drainage flux
+!tcxzsal      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+!         fzsaln, &    ! category fzsal(kg/m^2/s)
+!         fzsaln_g     ! salt flux from gravity drainage only
+!
+!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+!         fzsal    , & ! Total flux  of salt to ocean at time step for conservation
+!         fzsal_g      ! Total gravity drainage flux
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          zfswin       ! Shortwave flux into layers interpolated on bio grid  (W/m^2)
@@ -257,13 +241,11 @@
          upNO     , & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         ! ammonium uptake rate (mmol/m^2/d) times aice
 
-      real (kind=dbl_kind), &
-         dimension(:,:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable, public :: &
          trcrn_sw        ! bgc tracers active in the delta-Eddington shortwave
                          ! calculation on the shortwave grid (swgrid)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          ice_bio_net  , &   ! depth integrated tracer (mmol/m^2)
          snow_bio_net       ! depth integrated snow tracer (mmol/m^2)
 
@@ -354,14 +336,14 @@
          grow_net     (nx_block,ny_block,max_blocks), & ! Specific growth rate (/s) per grid cell
          PP_net       (nx_block,ny_block,max_blocks), & ! Total production (mg C/m^2/s) per grid cell
          hbri         (nx_block,ny_block,max_blocks), & ! brine height, area-averaged for comparison with hi (m)
-         zsal_tot     (nx_block,ny_block,max_blocks), & ! Total ice salinity in per grid cell (g/m^2)
+!tcxzsal         zsal_tot     (nx_block,ny_block,max_blocks), & ! Total ice salinity in per grid cell (g/m^2)
          chl_net      (nx_block,ny_block,max_blocks), & ! Total chla (mg chla/m^2) per grid cell
          NO_net       (nx_block,ny_block,max_blocks), & ! Total nitrate per grid cell
-         Rayleigh_criteria                            &
-                      (nx_block,ny_block,max_blocks), & ! .true. means Ra_c was reached
-         Rayleigh_real(nx_block,ny_block,max_blocks), & ! .true. = c1, .false. = c0
-         fzsal        (nx_block,ny_block,max_blocks), & ! Total flux  of salt to ocean at time step for conservation
-         fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
+!tcxzsal         Rayleigh_criteria                            &
+!                      (nx_block,ny_block,max_blocks), & ! .true. means Ra_c was reached
+!         Rayleigh_real(nx_block,ny_block,max_blocks), & ! .true. = c1, .false. = c0
+!tcxzsal         fzsal        (nx_block,ny_block,max_blocks), & ! Total flux  of salt to ocean at time step for conservation
+!         fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
          upNO         (nx_block,ny_block,max_blocks), & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         (nx_block,ny_block,max_blocks), & ! ammonium uptake rate (mmol/m^2/d) times aice
          meltsliq     (nx_block,ny_block,max_blocks), & ! snow melt mass (kg/m^2)
@@ -391,8 +373,8 @@
          dhbr_bot     (nx_block,ny_block,ncat,max_blocks), & ! brine bottom change
          darcy_V      (nx_block,ny_block,ncat,max_blocks), & ! darcy velocity positive up (m/s)
          sice_rho     (nx_block,ny_block,ncat,max_blocks), & ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
-         fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s)
-         fzsaln_g     (nx_block,ny_block,ncat,max_blocks), & ! salt flux from gravity drainage only
+!tcxzsal         fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s)
+!         fzsaln_g     (nx_block,ny_block,ncat,max_blocks), & ! salt flux from gravity drainage only
          Iswabsn      (nx_block,ny_block,nilyr,ncat,max_blocks), & ! SW radiation absorbed in ice layers (W m-2)
          Sswabsn      (nx_block,ny_block,nslyr,ncat,max_blocks), & ! SW radiation absorbed in snow layers (W m-2)
          fswpenln     (nx_block,ny_block,nilyr+1,ncat,max_blocks), & ! visible SW entering ice layers (W m-2)

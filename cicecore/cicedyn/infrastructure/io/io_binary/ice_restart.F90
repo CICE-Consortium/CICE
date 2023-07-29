@@ -57,8 +57,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, tr_fsd, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
+         tr_fsd, tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       character(len=char_len_long) :: &
@@ -77,8 +76,8 @@
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
-      call icepack_query_parameters( &
-         solve_zsal_out=solve_zsal)
+!tcxzsal      call icepack_query_parameters( &
+!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -308,7 +307,8 @@
          endif
       endif
 
-      if (solve_zsal .or. nbtrcr > 0) then
+!tcxzsal      if (solve_zsal .or. nbtrcr > 0) then
+      if (nbtrcr > 0) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
             if (n == 0) call abort_ice(subname//'ERROR: bgc restart: filename discrepancy')
@@ -393,8 +393,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, tr_fsd, &
-         tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
+         tr_fsd, tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
       integer (kind=int_kind) :: &
@@ -404,8 +403,8 @@
 
       character(len=*), parameter :: subname = '(init_restart_write)'
 
-      call icepack_query_parameters( &
-         solve_zsal_out=solve_zsal)
+!tcxzsal      call icepack_query_parameters( &
+!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -623,7 +622,8 @@
 
       endif
 
-      if (solve_zsal .or. nbtrcr > 0) then
+!tcxzsal      if (solve_zsal .or. nbtrcr > 0) then
+      if (nbtrcr > 0) then
 
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
               restart_dir(1:lenstr(restart_dir)), &
@@ -810,7 +810,6 @@
       use ice_communicate, only: my_task, master_task
 
       logical (kind=log_kind) :: &
-         solve_zsal, &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow
 
@@ -819,8 +818,8 @@
 
       character(len=*), parameter :: subname = '(final_restart)'
 
-      call icepack_query_parameters( &
-         solve_zsal_out=solve_zsal)
+!tcxzsal      call icepack_query_parameters( &
+!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -844,8 +843,8 @@
          if (tr_pond_topo) close(nu_dump_pond)
          if (tr_snow)      close(nu_dump_snow)
          if (tr_brine)     close(nu_dump_hbrine)
-         if (solve_zsal .or. nbtrcr > 0) &
-                           close(nu_dump_bgc)
+!tcxzsal         if (solve_zsal .or. nbtrcr > 0) &
+         if (nbtrcr > 0)   close(nu_dump_bgc)
 
          write(nu_diag,*) 'Restart read/written ',istep1,timesecs
       endif

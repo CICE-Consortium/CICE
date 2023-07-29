@@ -24,7 +24,7 @@
 
       implicit none
       private
-      public :: hbrine_diags, bgc_diags, zsal_diags
+      public :: hbrine_diags, bgc_diags
 
 !=======================================================================
 
@@ -715,7 +715,7 @@
       endif
       if (tr_bgc_N) then
          write(nu_diag,*) '---------------------------------------------------'
-         write(nu_diag,900) 'tot algal growth (1/d) = ',pgrow_net(1),pgrow_net(2)
+         write(nu_diag,901) 'tot algal growth (1/d) = ',pgrow_net(1),pgrow_net(2)
        do kk = 1,n_algae
          write(nu_diag,*) '  algal conc. (mmol N/m^3) or flux (mmol N/m^2/d)'
          write(nu_diag,1020) '  type:', kk
@@ -846,11 +846,13 @@
   802 format (f24.17,2x,f24.17)
   803 format (a25,2x,a25)
   900 format (a25,2x,f24.17,2x,f24.17)
+  901 format (a25,2x,g24.17,2x,g24.17)
  1020 format (a30,2x,i6)    ! integer
 
       end subroutine bgc_diags
 
 !=======================================================================
+#ifdef tcxzsal
 !
 ! Writes diagnostic info (max, min, global sums, etc) to standard out
 !
@@ -894,13 +896,12 @@
 
       logical (kind=log_kind) :: tr_brine
 
-      integer (kind=int_kind) :: nt_fbri, nt_bgc_S, nt_sice
+      integer (kind=int_kind) :: nt_fbri, nt_sice
       character(len=*), parameter :: subname = '(zsal_diags)'
 
       call icepack_query_parameters(rhosi_out=rhosi, rhow_out=rhow, rhos_out=rhos)
       call icepack_query_tracer_flags(tr_brine_out=tr_brine)
-      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_bgc_S_out=nt_bgc_S, &
-           nt_sice_out=nt_sice)
+      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_sice_out=nt_sice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1069,7 +1070,7 @@
   902 format (a25,10x,f6.1,1x,f6.1,9x,f6.1,1x,f6.1)
 
       end subroutine zsal_diags
-
+#endif
 !=======================================================================
 
       end module ice_diagnostics_bgc

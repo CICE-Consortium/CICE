@@ -144,7 +144,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, skl_bgc, z_tracers, tr_fsd, &
+         skl_bgc, z_tracers, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
@@ -176,7 +176,7 @@
 
 #ifdef USE_NETCDF
       call icepack_query_parameters( &
-         solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+         skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -376,7 +376,7 @@
             endif
          endif  !nbtrcr
 
-         if (solve_zsal) call define_rest_field(ncid,'sss',dims)
+!tcxzsal         if (solve_zsal) call define_rest_field(ncid,'sss',dims)
 
          deallocate(dims)
 
@@ -483,8 +483,8 @@
               enddo
             endif
          endif   !skl_bgc
-         if (solve_zsal) &
-            call define_rest_field(ncid,'Rayleigh',dims)
+!tcxzsal         if (solve_zsal) &
+!            call define_rest_field(ncid,'Rayleigh',dims)
 
       !-----------------------------------------------------------------
       ! 4D restart fields, written as layers of 3D
@@ -536,12 +536,12 @@
             enddo
          endif
 
-         if (solve_zsal) then
-         do k = 1, nblyr
-            write(nchar,'(i3.3)') k
-            call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
-         enddo
-         endif
+!tcxzsal         if (solve_zsal) then
+!         do k = 1, nblyr
+!            write(nchar,'(i3.3)') k
+!            call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
+!         enddo
+!         endif
 
          if (z_tracers) then
             if (tr_zaero) then

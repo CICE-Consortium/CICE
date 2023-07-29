@@ -148,7 +148,7 @@
       use ice_grid, only: grid_ice
 
       logical (kind=log_kind) :: &
-          solve_zsal, skl_bgc, z_tracers
+          skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
@@ -196,7 +196,7 @@
           tr_bgc_PON_out=tr_bgc_PON, tr_bgc_DON_out=tr_bgc_DON, &
           tr_zaero_out=tr_zaero,    tr_bgc_Fe_out=tr_bgc_Fe, &
           tr_bgc_hum_out=tr_bgc_hum, tr_fsd_out=tr_fsd)
-      call icepack_query_parameters(solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, &
+      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
           z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -380,7 +380,7 @@
             endif
          endif  !nbtrcr
 
-         if (solve_zsal) call define_rest_field(File,'sss',dims)
+!tcxzsal         if (solve_zsal) call define_rest_field(File,'sss',dims)
 
          deallocate(dims)
 
@@ -487,8 +487,8 @@
               enddo
             endif
          endif   !skl_bgc
-         if (solve_zsal) &
-            call define_rest_field(File,'Rayleigh',dims)
+!tcxzsal         if (solve_zsal) &
+!            call define_rest_field(File,'Rayleigh',dims)
 
       !-----------------------------------------------------------------
       ! 4D restart fields, written as layers of 3D
@@ -540,12 +540,12 @@
             enddo
          endif
 
-         if (solve_zsal) then
-         do k = 1, nblyr
-            write(nchar,'(i3.3)') k
-            call define_rest_field(File,'zSalinity'//trim(nchar),dims)
-         enddo
-         endif
+!tcxzsal         if (solve_zsal) then
+!         do k = 1, nblyr
+!            write(nchar,'(i3.3)') k
+!            call define_rest_field(File,'zSalinity'//trim(nchar),dims)
+!         enddo
+!         endif
          if (z_tracers) then
             if (tr_zaero) then
              do n = 1, n_zaero

@@ -35,7 +35,7 @@
       use icepack_intfc, only: icepack_init_zbgc
       use icepack_intfc, only: icepack_init_thermo
       use icepack_intfc, only: icepack_step_radiation, icepack_init_orbit
-      use icepack_intfc, only: icepack_init_bgc, icepack_init_zsalinity
+      use icepack_intfc, only: icepack_init_bgc
       use icepack_intfc, only: icepack_init_ocean_bio, icepack_load_ocean_bio_array
       use icepack_intfc, only: icepack_init_hbrine
 
@@ -389,7 +389,7 @@
                           albpndn=albpndn(i,j,:,iblk),   apeffn=apeffn(i,j,:,iblk), &
                           snowfracn=snowfracn(i,j,:,iblk),                     &
                           dhsn=dhsn(i,j,:,iblk),         ffracn=ffracn(i,j,:,iblk), &
-!opt                          rsnow=rsnow(:,:), &
+                          rsnow=rsnow(:,:), &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
             endif
@@ -734,16 +734,15 @@
 
       use ice_arrays_column, only: zfswin, trcrn_sw, &
           ocean_bio_all, ice_bio_net, snow_bio_net, &
-          cgrid, igrid, bphi, iDi, bTiz, iki, &
-          Rayleigh_criteria, Rayleigh_real
+          cgrid, igrid, bphi, iDi, bTiz, iki
+!tcxzsal          Rayleigh_criteria, Rayleigh_real
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: sss
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_forcing_bgc, only: init_bgc_data, get_forcing_bgc
-      use ice_restart_column, only: restart_zsal, &
-          read_restart_bgc, restart_bgc
+      use ice_restart_column, only: read_restart_bgc, restart_bgc
       use ice_state, only: trcrn
 
       ! local variables
@@ -757,9 +756,8 @@
       integer (kind=int_kind) :: &
          max_nbtrcr, max_algae, max_don, max_doc, max_dic, max_aero, max_fe
 
-      logical (kind=log_kind) :: &
-         RayleighC    , &
-         solve_zsal
+!tcxzsal      logical (kind=log_kind) :: &
+!         RayleighC
 
       type (block) :: &
          this_block      ! block information for current block
@@ -770,20 +768,18 @@
       real(kind=dbl_kind), dimension(nilyr,ncat) :: &
          sicen
 
-      real(kind=dbl_kind) :: &
-         RayleighR
+!tcxzsal      real(kind=dbl_kind) :: &
+!         RayleighR
 
       integer (kind=int_kind) :: &
-         nbtrcr, ntrcr, ntrcr_o, &
-         nt_sice, nt_bgc_S
+         nbtrcr, ntrcr, ntrcr_o, nt_sice
 
       character(len=*), parameter :: subname='(init_bgc)'
 
       ! Initialize
 
-      call icepack_query_parameters(solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr, ntrcr_out=ntrcr, ntrcr_o_out=ntrcr_o)
-      call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_bgc_S_out=nt_bgc_S)
+      call icepack_query_tracer_indices(nt_sice_out=nt_sice)
       call icepack_query_tracer_sizes(max_nbtrcr_out=max_nbtrcr,         &
            max_algae_out=max_algae, max_don_out=max_don, max_doc_out=max_doc,   &
            max_dic_out=max_dic, max_aero_out=max_aero, max_fe_out=max_fe)
@@ -804,53 +800,53 @@
       zfswin       (:,:,:,:,:) = c0 ! shortwave flux on bio grid
       trcrn_sw     (:,:,:,:,:) = c0 ! tracers active in the shortwave calculation
       trcrn_bgc    (:,:)       = c0
-      RayleighR                = c0
-      RayleighC                = .false.
-
-      !-----------------------------------------------------------------
-      ! zsalinity initialization
-      !-----------------------------------------------------------------
-
-      if (solve_zsal) then  ! default values
-
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,trcrn_bgc)
-         do iblk = 1, nblocks
-
-            this_block = get_block(blocks_ice(iblk),iblk)
-            ilo = this_block%ilo
-            ihi = this_block%ihi
-            jlo = this_block%jlo
-            jhi = this_block%jhi
-
-            do j = jlo, jhi
-            do i = ilo, ihi
-               call icepack_init_zsalinity(nblyr=nblyr, ntrcr_o=ntrcr_o, &
-                            Rayleigh_criteria = RayleighC, &
-                            Rayleigh_real     = RayleighR, &
-                            trcrn_bgc         = trcrn_bgc, &
-                            nt_bgc_S          = nt_bgc_S,  &
-                            ncat              = ncat,      &
-                            sss               = sss(i,j,iblk))
-               if (.not. restart_zsal) then
-                  Rayleigh_real    (i,j,iblk) = RayleighR
-                  Rayleigh_criteria(i,j,iblk) = RayleighC
-                  do n = 1,ncat
-                     do k  = 1, nblyr
-                        trcrn    (i,j,nt_bgc_S+k-1,        n,iblk) = &
-                        trcrn_bgc(    nt_bgc_S+k-1-ntrcr_o,n)
-                     enddo
-                  enddo
-               endif
-            enddo      ! i
-            enddo      ! j
-         enddo         ! iblk
-         !$OMP END PARALLEL DO
-         call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-            file=__FILE__, line=__LINE__)
-      endif ! solve_zsal
-
-      if (.not. solve_zsal) restart_zsal = .false.
+!tcxzsal      RayleighR                = c0
+!      RayleighC                = .false.
+!
+!      !-----------------------------------------------------------------
+!      ! zsalinity initialization
+!      !-----------------------------------------------------------------
+!
+!tcxzsal      if (solve_zsal) then  ! default values
+!
+!         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k,n,ilo,ihi,jlo,jhi,this_block,trcrn_bgc)
+!         do iblk = 1, nblocks
+!
+!            this_block = get_block(blocks_ice(iblk),iblk)
+!            ilo = this_block%ilo
+!            ihi = this_block%ihi
+!            jlo = this_block%jlo
+!            jhi = this_block%jhi
+!
+!            do j = jlo, jhi
+!            do i = ilo, ihi
+!               call icepack_init_zsalinity(nblyr=nblyr, ntrcr_o=ntrcr_o, &
+!                            Rayleigh_criteria = RayleighC, &
+!                            Rayleigh_real     = RayleighR, &
+!                            trcrn_bgc         = trcrn_bgc, &
+!                            nt_bgc_S          = nt_bgc_S,  &
+!                            ncat              = ncat,      &
+!                            sss               = sss(i,j,iblk))
+!               if (.not. restart_zsal) then
+!                  Rayleigh_real    (i,j,iblk) = RayleighR
+!                  Rayleigh_criteria(i,j,iblk) = RayleighC
+!                  do n = 1,ncat
+!                     do k  = 1, nblyr
+!                        trcrn    (i,j,nt_bgc_S+k-1,        n,iblk) = &
+!                        trcrn_bgc(    nt_bgc_S+k-1-ntrcr_o,n)
+!                     enddo
+!                  enddo
+!               endif
+!            enddo      ! i
+!            enddo      ! j
+!         enddo         ! iblk
+!         !$OMP END PARALLEL DO
+!         call icepack_warnings_flush(nu_diag)
+!         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+!            file=__FILE__, line=__LINE__)
+!      endif ! solve_zsal
+!
+!      if (.not. solve_zsal) restart_zsal = .false.
 
       !-----------------------------------------------------------------
       ! biogeochemistry initialization
@@ -966,7 +962,8 @@
       ! read restart to complete BGC initialization
       !-----------------------------------------------------------------
 
-      if (restart_zsal .or. restart_bgc) call read_restart_bgc
+!tcxzsal      if (restart_zsal .or. restart_bgc) call read_restart_bgc
+      if (restart_bgc) call read_restart_bgc
 
       deallocate(trcrn_bgc)
 
@@ -1025,8 +1022,7 @@
 
       use ice_arrays_column, only: restore_bgc, optics_file, optics_file_fieldname
       use ice_broadcast, only: broadcast_scalar
-      use ice_restart_column, only: restart_bgc, restart_zsal, &
-          restart_hbrine
+      use ice_restart_column, only: restart_bgc, restart_hbrine
       use ice_restart_shared, only: restart
 
       character (len=char_len) :: &
@@ -1045,7 +1041,7 @@
 
       logical (kind=log_kind) :: &
          solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-         modal_aero
+         modal_aero, restart_zsal
 
       character (char_len) :: &
          bgc_flux_type
@@ -1474,7 +1470,7 @@
             write(nu_diag,*) subname//' WARNING: restart = false, setting bgc restart flags to false'
          restart_bgc =  .false.
          restart_hbrine =  .false.
-         restart_zsal =  .false.
+!tcxzsal         restart_zsal =  .false.
       endif
 
       if (solve_zsal)  then
@@ -1483,22 +1479,6 @@
          endif
          abort_flag = 101
       endif
-
-#ifdef UNDEPRECATE_ZSAL
-      if (solve_zsal .and. nblyr < 1)  then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname,' ERROR: solve_zsal=T but 0 zsalinity tracers'
-         endif
-         abort_flag = 101
-      endif
-
-      if (solve_zsal .and. ((.not. tr_brine) .or. (ktherm /= 1))) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname,' ERROR: solve_zsal needs tr_brine=T and ktherm=1'
-         endif
-         abort_flag = 102
-      endif
-#endif
 
       if (tr_brine .and. nblyr < 1 ) then
          if (my_task == master_task) then
@@ -1680,12 +1660,12 @@
          write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
          write(nu_diag,1005) ' phi_snow                  = ', phi_snow
          endif
-         write(nu_diag,1010) ' solve_zsal                = ', solve_zsal
-         if (solve_zsal) then
-         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
-         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
-         write(nu_diag,1005) ' l_skS                     = ', l_skS
-         endif
+         write(nu_diag,1010) ' solve_zsal (deprecated)   = ', solve_zsal
+!tcxzsal         if (solve_zsal) then
+!         write(nu_diag,1010) ' restart_zsal              = ', restart_zsal
+!         write(nu_diag,1000) ' grid_oS                   = ', grid_oS
+!         write(nu_diag,1005) ' l_skS                     = ', l_skS
+!         endif
 
          write(nu_diag,1010) ' skl_bgc                   = ', skl_bgc
          write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
@@ -1753,7 +1733,7 @@
       !-----------------------------------------------------------------
 
       call icepack_init_parameters( &
-          ktherm_in=ktherm, shortwave_in=shortwave, solve_zsal_in=solve_zsal, &
+          ktherm_in=ktherm, shortwave_in=shortwave, &
           skl_bgc_in=skl_bgc, z_tracers_in=z_tracers, scale_bgc_in=scale_bgc, &
           dEdd_algae_in=dEdd_algae, &
           solve_zbgc_in=solve_zbgc, &
@@ -1816,7 +1796,7 @@
          nbtrcr,        nbtrcr_sw,     &
          ntrcr_o,       nt_fbri,       &
          nt_bgc_Nit,    nt_bgc_Am,     nt_bgc_Sil,   &
-         nt_bgc_DMS,    nt_bgc_PON,    nt_bgc_S,     &
+         nt_bgc_DMS,    nt_bgc_PON,    &
          nt_bgc_DMSPp,  nt_bgc_DMSPd,  &
          nt_zbgc_frac,  nlt_chl_sw,    &
          nlt_bgc_Nit,   nlt_bgc_Am,    nlt_bgc_Sil, &
@@ -1875,14 +1855,14 @@
           tr_bgc_hum
 
       logical (kind=log_kind) :: &
-          solve_zsal, skl_bgc, z_tracers
+          skl_bgc, z_tracers
 
       character(len=*), parameter :: subname='(count_tracers)'
 
       !-----------------------------------------------------------------
 
       call icepack_query_parameters( &
-          solve_zsal_out=solve_zsal, &
+!tcxzsal          solve_zsal_out=solve_zsal, &
           skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
 
       call icepack_warnings_flush(nu_diag)
@@ -2060,11 +2040,11 @@
           ntrcr = ntrcr + 1
       endif
 
-      nt_bgc_S = 0
-      if (solve_zsal) then       ! .true. only if tr_brine = .true.
-          nt_bgc_S = ntrcr + 1
-          ntrcr = ntrcr + nblyr
-      endif
+!      nt_bgc_S = 0
+!tcxzsal      if (solve_zsal) then       ! .true. only if tr_brine = .true.
+!          nt_bgc_S = ntrcr + 1
+!          ntrcr = ntrcr + nblyr
+!      endif
 
       if (skl_bgc .or. z_tracers) then
 
@@ -2275,7 +2255,7 @@
       if (nt_isoice<= 0) nt_isoice= ntrcr
       if (nt_aero  <= 0) nt_aero  = ntrcr
       if (nt_fbri  <= 0) nt_fbri  = ntrcr
-      if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
+!      if (nt_bgc_S <= 0) nt_bgc_S = ntrcr
 
       if (my_task == master_task) then
          write(nu_diag,*) ' '
@@ -2299,7 +2279,7 @@
          nt_smice_in=nt_smice, nt_smliq_in=nt_smliq, nt_rhos_in=nt_rhos, nt_rsnw_in=nt_rsnw, &
          nt_isosno_in=nt_isosno,     nt_isoice_in=nt_isoice,       nt_fbri_in=nt_fbri,      &
          nt_bgc_Nit_in=nt_bgc_Nit,   nt_bgc_Am_in=nt_bgc_Am,       nt_bgc_Sil_in=nt_bgc_Sil,   &
-         nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,     nt_bgc_S_in=nt_bgc_S,     &
+         nt_bgc_DMS_in=nt_bgc_DMS,   nt_bgc_PON_in=nt_bgc_PON,   &
          nt_bgc_N_in=nt_bgc_N,       nt_bgc_chl_in=nt_bgc_chl,   &
          nt_bgc_DOC_in=nt_bgc_DOC,   nt_bgc_DON_in=nt_bgc_DON,     nt_bgc_DIC_in=nt_bgc_DIC,   &
          nt_zaero_in=nt_zaero,       nt_bgc_DMSPp_in=nt_bgc_DMSPp, nt_bgc_DMSPd_in=nt_bgc_DMSPd, &
@@ -2342,7 +2322,7 @@
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     nt_fbri,       &
          nt_bgc_Nit,    nt_bgc_Am,     nt_bgc_Sil,    &
-         nt_bgc_DMS,    nt_bgc_PON,    nt_bgc_S,      &
+         nt_bgc_DMS,    nt_bgc_PON,                   &
          nt_bgc_DMSPp,  nt_bgc_DMSPd,                 &
          nt_zbgc_frac,  nlt_chl_sw,                   &
          nlt_bgc_Nit,   nlt_bgc_Am,    nlt_bgc_Sil,   &
@@ -2423,7 +2403,7 @@
          tau_rel             ! release timescale    (s), stationary to mobile phase
 
       logical (kind=log_kind) :: &
-         skl_bgc, z_tracers, dEdd_algae, solve_zsal
+         skl_bgc, z_tracers, dEdd_algae
 
       real (kind=dbl_kind), dimension(icepack_max_algae) :: &
          F_abs_chl          ! to scale absorption in Dedd
@@ -2493,12 +2473,12 @@
       !-----------------------------------------------------------------
 
       call icepack_query_parameters( &
-          solve_zsal_out=solve_zsal, &
+!tcxzsal          solve_zsal_out=solve_zsal, &
           skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
           dEdd_algae_out=dEdd_algae, &
           grid_o_out=grid_o, l_sk_out=l_sk, &
           initbio_frac_out=initbio_frac, &
-          grid_oS_out=grid_oS, l_skS_out=l_skS, &
+!tcxzsal          grid_oS_out=grid_oS, l_skS_out=l_skS, &
           phi_snow_out=phi_snow, frazil_scav_out = frazil_scav)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -2524,7 +2504,7 @@
       call icepack_query_tracer_indices( &
           nt_fbri_out=nt_fbri,         &
           nt_bgc_Nit_out=nt_bgc_Nit,   nt_bgc_Am_out=nt_bgc_Am,       nt_bgc_Sil_out=nt_bgc_Sil,   &
-          nt_bgc_DMS_out=nt_bgc_DMS,   nt_bgc_PON_out=nt_bgc_PON,     nt_bgc_S_out=nt_bgc_S,     &
+          nt_bgc_DMS_out=nt_bgc_DMS,   nt_bgc_PON_out=nt_bgc_PON,   &
           nt_bgc_N_out=nt_bgc_N,       nt_bgc_chl_out=nt_bgc_chl,   &
           nt_bgc_DOC_out=nt_bgc_DOC,   nt_bgc_DON_out=nt_bgc_DON,     nt_bgc_DIC_out=nt_bgc_DIC,   &
           nt_zaero_out=nt_zaero,       nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
@@ -2685,7 +2665,7 @@
 !opt         fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, &
 !opt         mu_max_in=mu_max, R_Si2N_in=R_Si2N, R_C2N_DON_in=R_C2N_DON, chlabs_in=chlabs, &
 !opt         alpha2max_low_in=alpha2max_low, beta2max_in=beta2max, grow_Tdep_in=grow_Tdep, &
-!opt         fr_graze_in=fr_graze, mort_pre_in=mort_pre, f_doc_in=f_doc,fsal_in=fsal, &
+!opt         fr_graze_in=fr_graze, mort_pre_in=mort_pre, f_doc_in=f_doc,fsal_in=fsal)
              )
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -2709,17 +2689,17 @@
       ntd = 0                    ! if nt_fbri /= 0 then use fbri dependency
       if (nt_fbri == 0) ntd = -1 ! otherwise make tracers depend on ice volume
 
-      if (solve_zsal) then       ! .true. only if tr_brine = .true.
-          do k = 1,nblyr
-             trcr_depend(nt_bgc_S + k - 1) = 2 + nt_fbri + ntd
-             trcr_base  (nt_bgc_S,1) = c0  ! default: ice area
-             trcr_base  (nt_bgc_S,2) = c1
-             trcr_base  (nt_bgc_S,3) = c0
-             n_trcr_strata(nt_bgc_S) = 1
-             nt_strata(nt_bgc_S,1) = nt_fbri
-             nt_strata(nt_bgc_S,2) = 0
-          enddo
-      endif
+!tcxzsal      if (solve_zsal) then       ! .true. only if tr_brine = .true.
+!          do k = 1,nblyr
+!             trcr_depend(nt_bgc_S + k - 1) = 2 + nt_fbri + ntd
+!             trcr_base  (nt_bgc_S,1) = c0  ! default: ice area
+!             trcr_base  (nt_bgc_S,2) = c1
+!             trcr_base  (nt_bgc_S,3) = c0
+!             n_trcr_strata(nt_bgc_S) = 1
+!             nt_strata(nt_bgc_S,1) = nt_fbri
+!             nt_strata(nt_bgc_S,2) = 0
+!          enddo
+!      endif
 
       bio_index(:)   = 0
       bio_index_o(:) = 0
@@ -2988,8 +2968,8 @@
 
       call icepack_init_zbgc( &
 !opt         zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
-!opt         zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type, &
-             )
+!opt         zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
+          )
       call icepack_init_tracer_indices( &
          bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)

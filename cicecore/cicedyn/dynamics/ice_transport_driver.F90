@@ -89,7 +89,7 @@
          nt_alvl  , nt_vlvl  ,                       &
          nt_apnd  , nt_hpnd  , nt_ipnd   , nt_fsd  , &
          nt_smice , nt_smliq , nt_rhos   , nt_rsnw , &
-         nt_isosno, nt_isoice, nt_bgc_Nit, nt_bgc_S
+         nt_isosno, nt_isoice, nt_bgc_Nit
 
       character(len=*), parameter :: subname = '(init_transport)'
 
@@ -102,8 +102,7 @@
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, nt_rhos_out=nt_rhos, &
-         nt_rsnw_out=nt_rsnw, &
-         nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S, &
+         nt_rsnw_out=nt_rsnw, nt_bgc_Nit_out=nt_bgc_Nit, &
          nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -226,9 +225,9 @@
             if (nt-k==nt_bgc_Nit) &
                write(nu_diag,1000) 'nt_bgc_Nit  ',nt,depend(nt),tracer_type(nt),&
                                                   has_dependents(nt)
-            if (nt-k==nt_bgc_S) &
-               write(nu_diag,1000) 'nt_bgc_S    ',nt,depend(nt),tracer_type(nt),&
-                                                  has_dependents(nt)
+!tcxzsal            if (nt-k==nt_bgc_S) &
+!               write(nu_diag,1000) 'nt_bgc_S    ',nt,depend(nt),tracer_type(nt),&
+!                                                  has_dependents(nt)
          enddo
          write(nu_diag,*) ' '
       endif ! master_task

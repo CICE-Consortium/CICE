@@ -39,9 +39,9 @@
            f_iso          = 'x', &
            f_faero_atm    = 'x', f_faero_ocn    = 'x', &
            f_aero         = 'x', &
-           f_fzsal        = 'm', f_fzsal_ai     = 'm', &
-           f_fzsal_g      = 'm', f_fzsal_g_ai   = 'm', &
-           f_zsal         = 'x', &
+!tcxzsal           f_fzsal        = 'm', f_fzsal_ai     = 'm', &
+!           f_fzsal_g      = 'm', f_fzsal_g_ai   = 'm', &
+!           f_zsal         = 'x', &
            f_fbio         = 'x', f_fbio_ai      = 'x', &
            f_zaero        = 'x', f_bgc_S        = 'x', &
            f_bgc_N        = 'x', f_bgc_C        = 'x', &
@@ -154,8 +154,8 @@
       !---------------------------------------------------------------
 
       integer (kind=int_kind), dimension(max_nstrm), public :: &
-           n_fzsal      , n_fzsal_ai   , &
-           n_fzsal_g    , n_fzsal_g_ai , &
+!tcxzsal           n_fzsal      , n_fzsal_ai   , &
+!           n_fzsal_g    , n_fzsal_g_ai , &
            n_zsal
 
       integer(kind=int_kind), dimension(icepack_max_iso,max_nstrm) :: &
@@ -216,7 +216,6 @@
            n_bgc_Fed_cat1, n_bgc_Fep_cat1
 
       integer(kind=int_kind), dimension(max_nstrm) :: &
-           n_bgc_S       , &
            n_fNit        , n_fNit_ai     , &
            n_fAm         , n_fAm_ai      , &
            n_fSil        , n_fSil_ai     , &
@@ -282,7 +281,7 @@
           tr_bgc_DMS,    tr_bgc_PON,                 &
           tr_bgc_N,      tr_bgc_C,     tr_bgc_chl,   &
           tr_bgc_DON,    tr_bgc_Fe,    tr_bgc_hum,   &
-          skl_bgc, solve_zsal, z_tracers
+          skl_bgc, z_tracers
 
       character(len=char_len)      :: nml_name ! for namelist check
       character(len=char_len_long) :: tmpstr2 ! for namelist check
@@ -290,7 +289,7 @@
       character(len=*), parameter  :: subname = '(init_hist_bgc_2D)'
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-          solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+          z_tracers_out=z_tracers)
       call icepack_query_tracer_flags( &
           tr_iso_out    =tr_iso,     tr_zaero_out  =tr_zaero, &
           tr_aero_out   =tr_aero,    tr_brine_out  =tr_brine, &
@@ -629,24 +628,24 @@
       f_bgc_DMS_cat1    = f_bgc_DMS
       f_bgc_PON_cat1    = f_bgc_PON
 
-      if (solve_zsal) then
-         f_fzsal = f_fsalt
-         f_fzsal_g = f_fsalt
-         f_fzsal_ai = f_fsalt_ai
-         f_fzsal_g_ai = f_fsalt_ai
-         f_zsal = f_sice
-         f_fsalt = 'x'
-         f_fsalt_ai = 'x'
-         f_sice = 'x'
-      else
-         f_fzsal      = 'x'
-         f_fzsal_g    = 'x'
-         f_fzsal_ai   = 'x'
-         f_fzsal_g_ai = 'x'
-         f_zsal       = 'x'
-         f_bgc_S  = 'x'
-         f_iki    = 'x'
-      endif
+!tcxzsal      if (solve_zsal) then
+!         f_fzsal = f_fsalt
+!         f_fzsal_g = f_fsalt
+!         f_fzsal_ai = f_fsalt_ai
+!         f_fzsal_g_ai = f_fsalt_ai
+!         f_zsal = f_sice
+!         f_fsalt = 'x'
+!         f_fsalt_ai = 'x'
+!         f_sice = 'x'
+!      else
+!      f_fzsal      = 'x'
+!      f_fzsal_g    = 'x'
+!      f_fzsal_ai   = 'x'
+!      f_fzsal_g_ai = 'x'
+!      f_zsal       = 'x'
+!      f_bgc_S  = 'x'
+      f_iki    = 'x'
+!tcxzsal      endif
 
       call broadcast_scalar (f_fiso_atm,     master_task)
       call broadcast_scalar (f_fiso_ocn,     master_task)
@@ -656,11 +655,11 @@
       call broadcast_scalar (f_aero,         master_task)
       call broadcast_scalar (f_fbri,         master_task)
       call broadcast_scalar (f_hbri,         master_task)
-      call broadcast_scalar (f_fzsal,        master_task)
-      call broadcast_scalar (f_fzsal_ai,     master_task)
-      call broadcast_scalar (f_fzsal_g,      master_task)
-      call broadcast_scalar (f_fzsal_g_ai,   master_task)
-      call broadcast_scalar (f_zsal,         master_task)
+!tcxzsal      call broadcast_scalar (f_fzsal,        master_task)
+!      call broadcast_scalar (f_fzsal_ai,     master_task)
+!      call broadcast_scalar (f_fzsal_g,      master_task)
+!      call broadcast_scalar (f_fzsal_g_ai,   master_task)
+!      call broadcast_scalar (f_zsal,         master_task)
       call broadcast_scalar (f_fNit,         master_task)
       call broadcast_scalar (f_fNit_ai,      master_task)
       call broadcast_scalar (f_fDOC,         master_task)
@@ -740,7 +739,7 @@
       call broadcast_scalar (f_bphi,         master_task)
       call broadcast_scalar (f_iDi,          master_task)
       call broadcast_scalar (f_iki,          master_task)
-      call broadcast_scalar (f_bgc_S,        master_task)
+!tcxzsal      call broadcast_scalar (f_bgc_S,        master_task)
       call broadcast_scalar (f_zfswin,       master_task)
       call broadcast_scalar (f_PPnet,        master_task)
       call broadcast_scalar (f_algalpeak,    master_task)
@@ -800,7 +799,7 @@
 
       ! 2D variables
 
-     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+     if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
 
      do ns = 1, nstreams
        if (histfreq(ns) /= 'x') then
@@ -839,32 +838,33 @@
          enddo
       endif
 
-      ! zsalinity
-
-      call define_hist_field(n_fzsal,"fzsal","kg/m^2/s",tstr2D, tcstr, &
-          "prognostic salt flux ice to ocn (cpl)",                     &
-          "if positive, ocean gains salt", c1, c0,                     &
-          ns, f_fzsal)
-
-      call define_hist_field(n_fzsal_ai,"fzsal_ai","kg/m^2/s",tstr2D, tcstr, &
-          "prognostic salt flux ice to ocean",                         &
-          "weighted by ice area", c1, c0,                              &
-          ns, f_fzsal_ai)
-
-      call define_hist_field(n_fzsal_g,"fzsal_g","kg/m^2/s",tstr2D, tcstr, &
-          "Gravity drainage salt flux ice to ocn (cpl)",               &
-          "if positive, ocean gains salt", c1, c0,                     &
-          ns, f_fzsal_g)
-
-      call define_hist_field(n_fzsal_g_ai,"fzsal_g_ai","kg/m^2/s",tstr2D, tcstr, &
-          "Gravity drainage salt flux ice to ocean",                   &
-          "weighted by ice area", c1, c0,                              &
-          ns, f_fzsal_g_ai)
-
-      call define_hist_field(n_zsal,"zsal_tot","g/m^2",tstr2D, tcstr,  &
-          "Total Salt content",                                        &
-          "In ice volume*fbri", c1, c0,                                &
-          ns, f_zsal)
+!      ! zsalinity
+!
+!tcxzsal
+!      call define_hist_field(n_fzsal,"fzsal","kg/m^2/s",tstr2D, tcstr, &
+!          "prognostic salt flux ice to ocn (cpl)",                     &
+!          "if positive, ocean gains salt", c1, c0,                     &
+!          ns, f_fzsal)
+!
+!      call define_hist_field(n_fzsal_ai,"fzsal_ai","kg/m^2/s",tstr2D, tcstr, &
+!          "prognostic salt flux ice to ocean",                         &
+!          "weighted by ice area", c1, c0,                              &
+!          ns, f_fzsal_ai)
+!
+!      call define_hist_field(n_fzsal_g,"fzsal_g","kg/m^2/s",tstr2D, tcstr, &
+!          "Gravity drainage salt flux ice to ocn (cpl)",               &
+!          "if positive, ocean gains salt", c1, c0,                     &
+!          ns, f_fzsal_g)
+!
+!      call define_hist_field(n_fzsal_g_ai,"fzsal_g_ai","kg/m^2/s",tstr2D, tcstr, &
+!          "Gravity drainage salt flux ice to ocean",                   &
+!          "weighted by ice area", c1, c0,                              &
+!          ns, f_fzsal_g_ai)
+!
+!      call define_hist_field(n_zsal,"zsal_tot","g/m^2",tstr2D, tcstr,  &
+!          "Total Salt content",                                        &
+!          "In ice volume*fbri", c1, c0,                                &
+!          ns, f_zsal)
 
       ! Aerosols
       if (f_aero(1:1) /= 'x') then
@@ -1851,19 +1851,18 @@
 
       integer (kind=int_kind) :: ns
       real (kind=dbl_kind) :: secday
-      logical (kind=log_kind) :: solve_zsal, z_tracers
+      logical (kind=log_kind) :: z_tracers
       character(len=*), parameter :: subname = '(init_hist_bgc_3Db)'
 
       ! biology vertical grid
 
       call icepack_query_parameters(secday_out=secday)
-      call icepack_query_parameters( &
-          solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+      call icepack_query_parameters(z_tracers_out=z_tracers)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-     if (z_tracers .or. solve_zsal) then
+     if (z_tracers) then
 
       do ns = 1, nstreams
          if (histfreq(ns) /= 'x') then
@@ -1889,10 +1888,10 @@
                 "permeability", "on bio interface grid", 1.0e6_dbl_kind, c0, &
                 ns, f_iki)
 
-         if (f_bgc_S(1:1) /= 'x') &
-            call define_hist_field(n_bgc_S,"bgc_S","ppt",tstr3Db, tcstr, &
-                "bulk salinity", "on bio grid", c1, c0, &
-                ns, f_bgc_S)
+!tcxzsal         if (f_bgc_S(1:1) /= 'x') &
+!            call define_hist_field(n_bgc_S,"bgc_S","ppt",tstr3Db, tcstr, &
+!                "bulk salinity", "on bio grid", c1, c0, &
+!                ns, f_bgc_S)
 
          if (f_zfswin(1:1) /= 'x') &
             call define_hist_field(n_zfswin,"zfswin","W/m^2",tstr3Db, tcstr, &
@@ -1902,7 +1901,7 @@
          endif ! histfreq(ns) /= 'x'
       enddo  ! ns
 
-     endif  ! z_tracers or solve_zsal
+     endif  ! z_tracers
 
       end subroutine init_hist_bgc_3Db
 
@@ -1914,14 +1913,14 @@
 
       use ice_arrays_column, only: ocean_bio, &
           grow_net, PP_net, upNO, upNH, ice_bio_net, snow_bio_net, &
-          hbri, bTiz, bphi, zfswin, iDi, iki, zsal_tot, fzsal, fzsal_g, &
+          hbri, bTiz, bphi, zfswin, iDi, iki, &
           R_C2N, R_chl2N
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice
       use ice_domain_size, only: nblyr
       use ice_flux, only: sss
       use ice_flux_bgc, only: fiso_atm, fiso_ocn, faero_atm, faero_ocn, &
-          flux_bio, flux_bio_ai, fzsal_ai, fzsal_g_ai
+          flux_bio, flux_bio_ai
       use ice_history_shared, only: n2D, a2D, a3Dc, &
           n3Dzcum, n3Dbcum, a3Db, a3Da, &
           ncat_hist, accum_hist_field, nzblyr, nzalyr
@@ -1954,12 +1953,12 @@
          workii
 
       logical (kind=log_kind) :: &
-         skl_bgc, z_tracers, tr_iso, tr_aero, tr_brine, solve_zsal
+         skl_bgc, z_tracers, tr_iso, tr_aero, tr_brine
 
       integer(kind=int_kind) :: &
          nt_isosno,     nt_isoice,  nt_aero,    nt_fbri,      &
          nt_bgc_Nit,    nt_bgc_Am,  nt_bgc_Sil, nt_bgc_DMSPp, &
-         nt_bgc_DMSPd,  nt_bgc_DMS, nt_bgc_PON, nt_bgc_S,     &
+         nt_bgc_DMSPd,  nt_bgc_DMS, nt_bgc_PON,               &
          nt_zbgc_frac,  nlt_chl_sw,                           &
          nlt_bgc_Nit,   nlt_bgc_Am, nlt_bgc_Sil,              &
          nlt_bgc_DMS,   nlt_bgc_PON,                          &
@@ -2000,7 +1999,7 @@
       call icepack_query_tracer_flags(tr_iso_out=tr_iso, &
          tr_aero_out=tr_aero, tr_brine_out=tr_brine)
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-         solve_zsal_out=solve_zsal, z_tracers_out=z_tracers)
+         z_tracers_out=z_tracers)
       call icepack_query_tracer_indices( &
          nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
          nt_aero_out=nt_aero, &
@@ -2012,7 +2011,7 @@
          nt_bgc_Sil_out=nt_bgc_Sil, nt_bgc_DMSPp_out=nt_bgc_DMSPp, &
          nt_bgc_DMSPd_out=nt_bgc_DMSPd, nt_bgc_DMS_out=nt_bgc_DMS, &
          nt_bgc_PON_out=nt_bgc_PON, &
-         nt_bgc_S_out=nt_bgc_S, nt_bgc_Fed_out=nt_bgc_Fed, &
+         nt_bgc_Fed_out=nt_bgc_Fed, &
          nt_bgc_Fep_out=nt_bgc_Fep, nt_zbgc_frac_out=nt_zbgc_frac, &
          nlt_zaero_sw_out=nlt_zaero_sw, nlt_chl_sw_out=nlt_chl_sw, &
          nlt_bgc_Nit_out=nlt_bgc_Nit,   nlt_bgc_Am_out=nlt_bgc_Am,   &
@@ -2042,19 +2041,19 @@
      ! 2d bgc fields
      if (allocated(a2D)) then
 
-     if (tr_iso .or. tr_aero .or. tr_brine .or. solve_zsal .or. skl_bgc) then
+     if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
 
-      ! zsalinity
-      if (f_fzsal  (1:1) /= 'x') &
-         call accum_hist_field(n_fzsal,     iblk, fzsal(:,:,iblk), a2D)
-      if (f_fzsal_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fzsal_ai,  iblk, fzsal_ai(:,:,iblk), a2D)
-      if (f_fzsal_g  (1:1) /= 'x') &
-         call accum_hist_field(n_fzsal_g,   iblk, fzsal_g(:,:,iblk), a2D)
-      if (f_fzsal_g_ai(1:1)/= 'x') &
-         call accum_hist_field(n_fzsal_g_ai,iblk, fzsal_g_ai(:,:,iblk), a2D)
-      if (f_zsal  (1:1) /= 'x') &
-         call accum_hist_field(n_zsal,      iblk, zsal_tot(:,:,iblk), a2D)
+!tcxzsal      ! zsalinity
+!      if (f_fzsal  (1:1) /= 'x') &
+!         call accum_hist_field(n_fzsal,     iblk, fzsal(:,:,iblk), a2D)
+!      if (f_fzsal_ai(1:1)/= 'x') &
+!         call accum_hist_field(n_fzsal_ai,  iblk, fzsal_ai(:,:,iblk), a2D)
+!      if (f_fzsal_g  (1:1) /= 'x') &
+!         call accum_hist_field(n_fzsal_g,   iblk, fzsal_g(:,:,iblk), a2D)
+!      if (f_fzsal_g_ai(1:1)/= 'x') &
+!         call accum_hist_field(n_fzsal_g_ai,iblk, fzsal_g_ai(:,:,iblk), a2D)
+!      if (f_zsal  (1:1) /= 'x') &
+!         call accum_hist_field(n_zsal,      iblk, zsal_tot(:,:,iblk), a2D)
 
       ! isotopes
       if (f_fiso_atm(1:1) /= 'x') then
@@ -2663,7 +2662,7 @@
          call accum_hist_field(n_hbri,     iblk, &
                         hbri(:,:,iblk), a2D)
 
-     endif ! 2d bgc tracers, tr_aero, tr_brine, solve_zsal, skl_bgc
+     endif ! 2d bgc tracers, tr_aero, tr_brine, skl_bgc
      endif ! allocated(a2D)
 
       ! 3D category fields
@@ -2679,7 +2678,7 @@
      endif ! allocated(a3Dc)
 
      if (allocated(a3Db)) then
-     if (z_tracers .or. solve_zsal) then
+     if (z_tracers) then
       ! 3Db category fields
 
       if (f_bTin  (1:1) /= 'x')  then
@@ -2714,20 +2713,20 @@
                                workz(:,:,1:nzblyr), a3Db)
       endif
 
-      if (f_bgc_S   (1:1) /= 'x') then
-         workz(:,:,:) = c0
-            do j = jlo, jhi
-               do i = ilo, ihi
-                  if (aice(i,j,iblk) > c0) then
-                    workz(i,j,1) = trcr(i,j,nt_bgc_S,iblk)
-                    workz(i,j,2:nblyr+1) = trcr(i,j,nt_bgc_S:nt_bgc_S+nblyr-1,iblk)
-                    workz(i,j,nblyr+2) = sss(i,j,iblk)
-                  endif
-                enddo ! i
-            enddo     ! j
-         call accum_hist_field(n_bgc_S-n3Dzcum, iblk, nzblyr, &
-                                  workz(:,:,1:nzblyr), a3Db)
-      endif
+!tcxzsal      if (f_bgc_S   (1:1) /= 'x') then
+!         workz(:,:,:) = c0
+!            do j = jlo, jhi
+!               do i = ilo, ihi
+!                  if (aice(i,j,iblk) > c0) then
+!                    workz(i,j,1) = trcr(i,j,nt_bgc_S,iblk)
+!                    workz(i,j,2:nblyr+1) = trcr(i,j,nt_bgc_S:nt_bgc_S+nblyr-1,iblk)
+!                    workz(i,j,nblyr+2) = sss(i,j,iblk)
+!                  endif
+!                enddo ! i
+!            enddo     ! j
+!         call accum_hist_field(n_bgc_S-n3Dzcum, iblk, nzblyr, &
+!                                  workz(:,:,1:nzblyr), a3Db)
+!      endif
 
       if (f_zfswin   (1:1) /= 'x') then
          workz(:,:,:) = c0
@@ -3492,7 +3491,7 @@
 
       use ice_arrays_column, only: PP_net, grow_net, hbri, &
           ice_bio_net, snow_bio_net, fbio_snoice, fbio_atmice, &
-          fzsal, fzsal_g, zfswin
+          zfswin
       use ice_flux_bgc, only: flux_bio, flux_bio_ai, fnit, fsil, &
           famm, fdmsp, fdms, fhum, fdust, falgalN, fdoc, fdic, &
           fdon, ffep, ffed
@@ -3508,8 +3507,8 @@
       snow_bio_net(:,:,:,:) = c0
       fbio_snoice (:,:,:,:) = c0
       fbio_atmice (:,:,:,:) = c0
-      fzsal         (:,:,:) = c0
-      fzsal_g       (:,:,:) = c0
+!tcxzsal      fzsal         (:,:,:) = c0
+!      fzsal_g       (:,:,:) = c0
       zfswin    (:,:,:,:,:) = c0
       fnit          (:,:,:) = c0
       fsil          (:,:,:) = c0
