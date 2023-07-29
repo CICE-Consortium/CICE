@@ -659,7 +659,6 @@
          file=__FILE__, line=__LINE__)
 
       ! nltrcr is only used as a zbgc flag in icepack (number of zbgc tracers > 0)
-!tcxzsal      if (z_tracers .or. solve_zsal) then
       if (z_tracers) then
          nltrcr = 1
       else
@@ -716,7 +715,6 @@
                       igrid      = igrid,                  &
                       faero_ocn  = faero_ocn (i,j,:,iblk), &
                       first_ice  = first_ice (i,j,:,iblk), &
-!tcxzsal                      fzsal      = fzsal     (i,j,  iblk), &
                       flux_bio   = flux_bio  (i,j,1:nbtrcr,iblk), &
                       ocean_bio  = ocean_bio (i,j,1:nbtrcr,iblk), &
                       frazil_diag= frazil_diag(i,j,iblk),  &
@@ -1135,7 +1133,6 @@
                          aice      = aice     (i,j,  iblk), &
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
-!tcxzsal                         fzsal     = fzsal    (i,j,  iblk), &
                          flux_bio  = flux_bio (i,j,1:nbtrcr,iblk))
 
          endif ! tmask
@@ -1716,7 +1713,6 @@
                               iDi          = iDi         (i,j,:,:,      iblk), &
                               iki          = iki         (i,j,:,:,      iblk), &
                               zfswin       = zfswin      (i,j,:,:,      iblk), &
-!tcxzsal                              zsal_tot     = zsal_tot    (i,j,          iblk), &
                               darcy_V      = darcy_V     (i,j,:,        iblk), &
                               grow_net     = grow_net    (i,j,          iblk), &
                               PP_net       = PP_net      (i,j,          iblk), &
@@ -1735,8 +1731,6 @@
                               snow_bio_net = snow_bio_net(i,j,1:nbtrcr, iblk), &
                               fswthrun     = fswthrun    (i,j,:,        iblk), &
                               sice_rho     = sice_rho    (i,j,:,        iblk), &
-!tcxzsal                              fzsal        = fzsal       (i,j,          iblk), &
-!                              fzsal_g      = fzsal_g     (i,j,          iblk), &
                               meltbn       = meltbn      (i,j,:,        iblk), &
                               melttn       = melttn      (i,j,:,        iblk), &
                               congeln      = congeln     (i,j,:,        iblk), &
@@ -1756,7 +1750,6 @@
                               aice0        = aice0       (i,j,          iblk), &
                               trcrn        = trcrn       (i,j,:,:,      iblk), &
                               vsnon_init   = vsnon_init  (i,j,:,        iblk), &
-!tcxzsal                              Rayleigh_criteria = Rayleigh_criteria(i,j,iblk), &
                               skl_bgc      = skl_bgc)
 
       enddo               ! i

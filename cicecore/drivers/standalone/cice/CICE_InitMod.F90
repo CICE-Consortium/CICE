@@ -450,8 +450,6 @@
       if (trim(runtype) == 'continue') then
          if (tr_brine) &
              restart_hbrine = .true.
-!tcxzsal         if (solve_zsal) &
-!             restart_zsal = .true.
          if (skl_bgc .or. z_tracers) &
              restart_bgc = .true.
       endif
@@ -461,7 +459,6 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-!tcxzsal      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
       if (skl_bgc .or. z_tracers) then ! biogeochemistry
          if (tr_fsd) then
             write (nu_diag,*) 'FSD implementation incomplete for use with BGC'

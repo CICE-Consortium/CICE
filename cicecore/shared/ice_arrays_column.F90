@@ -209,26 +209,11 @@
          darcy_V            ! darcy velocity positive up (m/s)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-!tcxzsal         zsal_tot    , & ! Total ice salinity in per grid cell (g/m^2)
          chl_net     , & ! Total chla (mg chla/m^2) per grid cell
          NO_net          ! Total nitrate per grid cell
 
-!tcxzsal      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-!         Rayleigh_criteria    ! .true. means Ra_c was reached
-!
-!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-!         Rayleigh_real        ! .true. = c1, .false. = c0
-
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          sice_rho     ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
-
-!tcxzsal      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-!         fzsaln, &    ! category fzsal(kg/m^2/s)
-!         fzsaln_g     ! salt flux from gravity drainage only
-!
-!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-!         fzsal    , & ! Total flux  of salt to ocean at time step for conservation
-!         fzsal_g      ! Total gravity drainage flux
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          zfswin       ! Shortwave flux into layers interpolated on bio grid  (W/m^2)
@@ -336,14 +321,8 @@
          grow_net     (nx_block,ny_block,max_blocks), & ! Specific growth rate (/s) per grid cell
          PP_net       (nx_block,ny_block,max_blocks), & ! Total production (mg C/m^2/s) per grid cell
          hbri         (nx_block,ny_block,max_blocks), & ! brine height, area-averaged for comparison with hi (m)
-!tcxzsal         zsal_tot     (nx_block,ny_block,max_blocks), & ! Total ice salinity in per grid cell (g/m^2)
          chl_net      (nx_block,ny_block,max_blocks), & ! Total chla (mg chla/m^2) per grid cell
          NO_net       (nx_block,ny_block,max_blocks), & ! Total nitrate per grid cell
-!tcxzsal         Rayleigh_criteria                            &
-!                      (nx_block,ny_block,max_blocks), & ! .true. means Ra_c was reached
-!         Rayleigh_real(nx_block,ny_block,max_blocks), & ! .true. = c1, .false. = c0
-!tcxzsal         fzsal        (nx_block,ny_block,max_blocks), & ! Total flux  of salt to ocean at time step for conservation
-!         fzsal_g      (nx_block,ny_block,max_blocks), & ! Total gravity drainage flux
          upNO         (nx_block,ny_block,max_blocks), & ! nitrate uptake rate (mmol/m^2/d) times aice
          upNH         (nx_block,ny_block,max_blocks), & ! ammonium uptake rate (mmol/m^2/d) times aice
          meltsliq     (nx_block,ny_block,max_blocks), & ! snow melt mass (kg/m^2)
@@ -373,8 +352,6 @@
          dhbr_bot     (nx_block,ny_block,ncat,max_blocks), & ! brine bottom change
          darcy_V      (nx_block,ny_block,ncat,max_blocks), & ! darcy velocity positive up (m/s)
          sice_rho     (nx_block,ny_block,ncat,max_blocks), & ! avg sea ice density  (kg/m^3)  ! ech: diagnostic only?
-!tcxzsal         fzsaln       (nx_block,ny_block,ncat,max_blocks), & ! category fzsal(kg/m^2/s)
-!         fzsaln_g     (nx_block,ny_block,ncat,max_blocks), & ! salt flux from gravity drainage only
          Iswabsn      (nx_block,ny_block,nilyr,ncat,max_blocks), & ! SW radiation absorbed in ice layers (W m-2)
          Sswabsn      (nx_block,ny_block,nslyr,ncat,max_blocks), & ! SW radiation absorbed in snow layers (W m-2)
          fswpenln     (nx_block,ny_block,nilyr+1,ncat,max_blocks), & ! visible SW entering ice layers (W m-2)

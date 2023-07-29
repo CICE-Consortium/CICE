@@ -376,7 +376,6 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-!tcxzsal            if (solve_zsal) call zsal_diags
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
             if (my_task == master_task) then
@@ -401,7 +400,6 @@
             if (tr_fsd)       call write_restart_fsd
             if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
-!tcxzsal            if (solve_zsal .or. skl_bgc .or. z_tracers) &
             if (skl_bgc .or. z_tracers) &
                               call write_restart_bgc
             if (tr_brine)     call write_restart_hbrine
@@ -587,8 +585,6 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-!tcxzsal            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-!            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -634,7 +630,6 @@
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
-!tcxzsal                            fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio =flux_bio (:,:,1:nbtrcr,iblk),  &
                             Qref_iso =Qref_iso (:,:,:,iblk),         &
                             fiso_evap=fiso_evap(:,:,:,iblk),         &

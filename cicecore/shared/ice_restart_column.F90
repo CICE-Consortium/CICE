@@ -907,7 +907,6 @@
 
       subroutine write_restart_bgc()
 
-!tcxzsal      use ice_arrays_column, only: Rayleigh_criteria, Rayleigh_real
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
@@ -1017,48 +1016,11 @@
                if (tr_bgc_DON) don   (i,j,:,iblk) = c0
                if (tr_bgc_Fe ) fed   (i,j,:,iblk) = c0
                if (tr_bgc_Fe ) fep   (i,j,:,iblk) = c0
-!tcxzsal               if (solve_zsal) sss   (i,j  ,iblk) = c0
             endif
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
-
-      !-----------------------------------------------------------------
-      ! Salinity and extras
-      !-----------------------------------------------------------------
-!tcxzsal      if (solve_zsal) then
-!
-!      do k = 1,nblyr
-!            write(nchar,'(i3.3)') k
-!            call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
-!                   'zSalinity'//trim(nchar),ncat,diag)
-!      enddo
-!
-!      call write_restart_field(nu_dump_bgc,0,sss,'ruf8','sss',1,diag)
-!
-!      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-!      do iblk = 1, nblocks
-!         this_block = get_block(blocks_ice(iblk),iblk)
-!         ilo = this_block%ilo
-!         ihi = this_block%ihi
-!         jlo = this_block%jlo
-!         jhi = this_block%jhi
-!         do j = jlo, jhi
-!         do i = ilo, ihi
-!            if (Rayleigh_criteria(i,j,iblk)) then
-!                Rayleigh_real    (i,j,iblk) = c1
-!            elseif (.NOT. Rayleigh_criteria(i,j,iblk)) then
-!                Rayleigh_real    (i,j,iblk) = c0
-!            endif
-!         enddo
-!         enddo
-!      enddo
-!      !$OMP END PARALLEL DO
-!
-!      call write_restart_field(nu_dump_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
-!
-!      endif ! solve_zsal
 
       !-----------------------------------------------------------------
       ! Skeletal layer BGC
@@ -1351,7 +1313,6 @@
 
       subroutine read_restart_bgc()
 
-!tcxzsal      use ice_arrays_column, only: Rayleigh_real, Rayleigh_criteria
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, blocks_ice
@@ -1434,44 +1395,6 @@
          file=__FILE__, line=__LINE__)
 
       diag = .true.
-
-      !-----------------------------------------------------------------
-      ! Salinity and extras
-      !-----------------------------------------------------------------
-
-!tcxzsal      if (restart_zsal) then
-!
-!      if (my_task == master_task) write(nu_diag,*) subname,'zSalinity restart'
-!      do k = 1,nblyr
-!         write(nchar,'(i3.3)') k
-!         call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
-!              'zSalinity'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
-!      enddo
-!
-!      if (my_task == master_task) write(nu_diag,*) subname,'sea surface salinity'
-!      call read_restart_field(nu_restart_bgc,0,sss,'ruf8','sss',1,diag)
-!      call read_restart_field(nu_restart_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
-!
-!      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-!      do iblk = 1, nblocks
-!         this_block = get_block(blocks_ice(iblk),iblk)
-!         ilo = this_block%ilo
-!         ihi = this_block%ihi
-!         jlo = this_block%jlo
-!         jhi = this_block%jhi
-!
-!         do j = jlo, jhi
-!         do i = ilo, ihi
-!            if (Rayleigh_real     (i,j,iblk) .GE. c1) then
-!                Rayleigh_criteria (i,j,iblk) = .true.
-!            elseif (Rayleigh_real (i,j,iblk) < c1) then
-!                Rayleigh_criteria (i,j,iblk) = .false.
-!            endif
-!         enddo
-!         enddo
-!      enddo ! iblk
-!      !$OMP END PARALLEL DO
-!      endif ! restart_zsal
 
       !-----------------------------------------------------------------
       ! Skeletal Layer BGC

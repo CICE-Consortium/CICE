@@ -39,9 +39,6 @@
            f_iso          = 'x', &
            f_faero_atm    = 'x', f_faero_ocn    = 'x', &
            f_aero         = 'x', &
-!tcxzsal           f_fzsal        = 'm', f_fzsal_ai     = 'm', &
-!           f_fzsal_g      = 'm', f_fzsal_g_ai   = 'm', &
-!           f_zsal         = 'x', &
            f_fbio         = 'x', f_fbio_ai      = 'x', &
            f_zaero        = 'x', f_bgc_S        = 'x', &
            f_bgc_N        = 'x', f_bgc_C        = 'x', &
@@ -154,8 +151,6 @@
       !---------------------------------------------------------------
 
       integer (kind=int_kind), dimension(max_nstrm), public :: &
-!tcxzsal           n_fzsal      , n_fzsal_ai   , &
-!           n_fzsal_g    , n_fzsal_g_ai , &
            n_zsal
 
       integer(kind=int_kind), dimension(icepack_max_iso,max_nstrm) :: &
@@ -628,25 +623,6 @@
       f_bgc_DMS_cat1    = f_bgc_DMS
       f_bgc_PON_cat1    = f_bgc_PON
 
-!tcxzsal      if (solve_zsal) then
-!         f_fzsal = f_fsalt
-!         f_fzsal_g = f_fsalt
-!         f_fzsal_ai = f_fsalt_ai
-!         f_fzsal_g_ai = f_fsalt_ai
-!         f_zsal = f_sice
-!         f_fsalt = 'x'
-!         f_fsalt_ai = 'x'
-!         f_sice = 'x'
-!      else
-!      f_fzsal      = 'x'
-!      f_fzsal_g    = 'x'
-!      f_fzsal_ai   = 'x'
-!      f_fzsal_g_ai = 'x'
-!      f_zsal       = 'x'
-!      f_bgc_S  = 'x'
-      f_iki    = 'x'
-!tcxzsal      endif
-
       call broadcast_scalar (f_fiso_atm,     master_task)
       call broadcast_scalar (f_fiso_ocn,     master_task)
       call broadcast_scalar (f_iso,          master_task)
@@ -655,11 +631,6 @@
       call broadcast_scalar (f_aero,         master_task)
       call broadcast_scalar (f_fbri,         master_task)
       call broadcast_scalar (f_hbri,         master_task)
-!tcxzsal      call broadcast_scalar (f_fzsal,        master_task)
-!      call broadcast_scalar (f_fzsal_ai,     master_task)
-!      call broadcast_scalar (f_fzsal_g,      master_task)
-!      call broadcast_scalar (f_fzsal_g_ai,   master_task)
-!      call broadcast_scalar (f_zsal,         master_task)
       call broadcast_scalar (f_fNit,         master_task)
       call broadcast_scalar (f_fNit_ai,      master_task)
       call broadcast_scalar (f_fDOC,         master_task)
@@ -739,7 +710,6 @@
       call broadcast_scalar (f_bphi,         master_task)
       call broadcast_scalar (f_iDi,          master_task)
       call broadcast_scalar (f_iki,          master_task)
-!tcxzsal      call broadcast_scalar (f_bgc_S,        master_task)
       call broadcast_scalar (f_zfswin,       master_task)
       call broadcast_scalar (f_PPnet,        master_task)
       call broadcast_scalar (f_algalpeak,    master_task)
@@ -837,34 +807,6 @@
                 ns, f_fiso_ocn)
          enddo
       endif
-
-!      ! zsalinity
-!
-!tcxzsal
-!      call define_hist_field(n_fzsal,"fzsal","kg/m^2/s",tstr2D, tcstr, &
-!          "prognostic salt flux ice to ocn (cpl)",                     &
-!          "if positive, ocean gains salt", c1, c0,                     &
-!          ns, f_fzsal)
-!
-!      call define_hist_field(n_fzsal_ai,"fzsal_ai","kg/m^2/s",tstr2D, tcstr, &
-!          "prognostic salt flux ice to ocean",                         &
-!          "weighted by ice area", c1, c0,                              &
-!          ns, f_fzsal_ai)
-!
-!      call define_hist_field(n_fzsal_g,"fzsal_g","kg/m^2/s",tstr2D, tcstr, &
-!          "Gravity drainage salt flux ice to ocn (cpl)",               &
-!          "if positive, ocean gains salt", c1, c0,                     &
-!          ns, f_fzsal_g)
-!
-!      call define_hist_field(n_fzsal_g_ai,"fzsal_g_ai","kg/m^2/s",tstr2D, tcstr, &
-!          "Gravity drainage salt flux ice to ocean",                   &
-!          "weighted by ice area", c1, c0,                              &
-!          ns, f_fzsal_g_ai)
-!
-!      call define_hist_field(n_zsal,"zsal_tot","g/m^2",tstr2D, tcstr,  &
-!          "Total Salt content",                                        &
-!          "In ice volume*fbri", c1, c0,                                &
-!          ns, f_zsal)
 
       ! Aerosols
       if (f_aero(1:1) /= 'x') then
@@ -1888,11 +1830,6 @@
                 "permeability", "on bio interface grid", 1.0e6_dbl_kind, c0, &
                 ns, f_iki)
 
-!tcxzsal         if (f_bgc_S(1:1) /= 'x') &
-!            call define_hist_field(n_bgc_S,"bgc_S","ppt",tstr3Db, tcstr, &
-!                "bulk salinity", "on bio grid", c1, c0, &
-!                ns, f_bgc_S)
-
          if (f_zfswin(1:1) /= 'x') &
             call define_hist_field(n_zfswin,"zfswin","W/m^2",tstr3Db, tcstr, &
                 "internal ice PAR", "on bio interface grid", c1, c0, &
@@ -2042,18 +1979,6 @@
      if (allocated(a2D)) then
 
      if (tr_iso .or. tr_aero .or. tr_brine .or. skl_bgc) then
-
-!tcxzsal      ! zsalinity
-!      if (f_fzsal  (1:1) /= 'x') &
-!         call accum_hist_field(n_fzsal,     iblk, fzsal(:,:,iblk), a2D)
-!      if (f_fzsal_ai(1:1)/= 'x') &
-!         call accum_hist_field(n_fzsal_ai,  iblk, fzsal_ai(:,:,iblk), a2D)
-!      if (f_fzsal_g  (1:1) /= 'x') &
-!         call accum_hist_field(n_fzsal_g,   iblk, fzsal_g(:,:,iblk), a2D)
-!      if (f_fzsal_g_ai(1:1)/= 'x') &
-!         call accum_hist_field(n_fzsal_g_ai,iblk, fzsal_g_ai(:,:,iblk), a2D)
-!      if (f_zsal  (1:1) /= 'x') &
-!         call accum_hist_field(n_zsal,      iblk, zsal_tot(:,:,iblk), a2D)
 
       ! isotopes
       if (f_fiso_atm(1:1) /= 'x') then
@@ -2712,21 +2637,6 @@
          call accum_hist_field(n_bphi-n3Dzcum, iblk, nzblyr, &
                                workz(:,:,1:nzblyr), a3Db)
       endif
-
-!tcxzsal      if (f_bgc_S   (1:1) /= 'x') then
-!         workz(:,:,:) = c0
-!            do j = jlo, jhi
-!               do i = ilo, ihi
-!                  if (aice(i,j,iblk) > c0) then
-!                    workz(i,j,1) = trcr(i,j,nt_bgc_S,iblk)
-!                    workz(i,j,2:nblyr+1) = trcr(i,j,nt_bgc_S:nt_bgc_S+nblyr-1,iblk)
-!                    workz(i,j,nblyr+2) = sss(i,j,iblk)
-!                  endif
-!                enddo ! i
-!            enddo     ! j
-!         call accum_hist_field(n_bgc_S-n3Dzcum, iblk, nzblyr, &
-!                                  workz(:,:,1:nzblyr), a3Db)
-!      endif
 
       if (f_zfswin   (1:1) /= 'x') then
          workz(:,:,:) = c0
@@ -3507,8 +3417,6 @@
       snow_bio_net(:,:,:,:) = c0
       fbio_snoice (:,:,:,:) = c0
       fbio_atmice (:,:,:,:) = c0
-!tcxzsal      fzsal         (:,:,:) = c0
-!      fzsal_g       (:,:,:) = c0
       zfswin    (:,:,:,:,:) = c0
       fnit          (:,:,:) = c0
       fsil          (:,:,:) = c0

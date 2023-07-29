@@ -76,8 +76,6 @@
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
-!tcxzsal      call icepack_query_parameters( &
-!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -307,7 +305,6 @@
          endif
       endif
 
-!tcxzsal      if (solve_zsal .or. nbtrcr > 0) then
       if (nbtrcr > 0) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
@@ -403,8 +400,6 @@
 
       character(len=*), parameter :: subname = '(init_restart_write)'
 
-!tcxzsal      call icepack_query_parameters( &
-!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -622,7 +617,6 @@
 
       endif
 
-!tcxzsal      if (solve_zsal .or. nbtrcr > 0) then
       if (nbtrcr > 0) then
 
          write(filename,'(a,a,a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
@@ -818,8 +812,6 @@
 
       character(len=*), parameter :: subname = '(final_restart)'
 
-!tcxzsal      call icepack_query_parameters( &
-!         solve_zsal_out=solve_zsal)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -843,7 +835,6 @@
          if (tr_pond_topo) close(nu_dump_pond)
          if (tr_snow)      close(nu_dump_snow)
          if (tr_brine)     close(nu_dump_hbrine)
-!tcxzsal         if (solve_zsal .or. nbtrcr > 0) &
          if (nbtrcr > 0)   close(nu_dump_bgc)
 
          write(nu_diag,*) 'Restart read/written ',istep1,timesecs

@@ -376,8 +376,6 @@
             endif
          endif  !nbtrcr
 
-!tcxzsal         if (solve_zsal) call define_rest_field(ncid,'sss',dims)
-
          deallocate(dims)
 
       !-----------------------------------------------------------------
@@ -483,8 +481,6 @@
               enddo
             endif
          endif   !skl_bgc
-!tcxzsal         if (solve_zsal) &
-!            call define_rest_field(ncid,'Rayleigh',dims)
 
       !-----------------------------------------------------------------
       ! 4D restart fields, written as layers of 3D
@@ -535,13 +531,6 @@
                call define_rest_field(ncid,'aeroiceint'//trim(nchar),dims)
             enddo
          endif
-
-!tcxzsal         if (solve_zsal) then
-!         do k = 1, nblyr
-!            write(nchar,'(i3.3)') k
-!            call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
-!         enddo
-!         endif
 
          if (z_tracers) then
             if (tr_zaero) then

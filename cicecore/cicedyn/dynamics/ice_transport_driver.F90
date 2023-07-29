@@ -225,9 +225,6 @@
             if (nt-k==nt_bgc_Nit) &
                write(nu_diag,1000) 'nt_bgc_Nit  ',nt,depend(nt),tracer_type(nt),&
                                                   has_dependents(nt)
-!tcxzsal            if (nt-k==nt_bgc_S) &
-!               write(nu_diag,1000) 'nt_bgc_S    ',nt,depend(nt),tracer_type(nt),&
-!                                                  has_dependents(nt)
          enddo
          write(nu_diag,*) ' '
       endif ! master_task
