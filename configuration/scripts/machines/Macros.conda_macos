@@ -37,7 +37,6 @@ endif
 LD:= $(FC)
 ##LDFLAGS += --no-warn-mismatch
 ##LDFLAGS += --noinhibit-exec
-LDFLAGS += -lc++
 
 # Location of the compiled Fortran modules (NetCDF)
 MODDIR  += -I$(CONDA_PREFIX)/include

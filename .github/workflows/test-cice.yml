@@ -87,6 +87,7 @@ jobs:
       - name: clone
         uses: actions/checkout@v2
         with:
+          lfs: true
           submodules: 'recursive'
       - name: link
         run: |
