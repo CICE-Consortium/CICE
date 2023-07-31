@@ -37,7 +37,7 @@ endif
 LD:= $(FC)
 ##LDFLAGS += --no-warn-mismatch
 ##LDFLAGS += --noinhibit-exec
-LDFLAGS +- -L/usr/local/opt/openssl/lib
+LDFLAGS += -L/usr/local/opt/openssl/lib
 
 # Location of the compiled Fortran modules (NetCDF)
 MODDIR  += -I$(CONDA_PREFIX)/include
