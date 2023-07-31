@@ -6,7 +6,7 @@
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 
 # Flags for the C compiler
-CFLAGS     := -c -O2
+CFLAGS     := -c -O2 -target x86_64-apple-darwin
 
 # Flags for the Fortran compiler
 FREEFLAGS  := -ffree-form
