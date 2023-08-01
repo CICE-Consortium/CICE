@@ -21,9 +21,9 @@
     restart_dir    = './restart/'
     restart_file   = 'iced'
     pointer_file   = './ice.restart_file'
-    dumpfreq       = 'd'
-    dumpfreq_n     = 1
-    dumpfreq_base  = 'init'
+    dumpfreq       = 'd','x','x','x','x'
+    dumpfreq_n     =  1 , 1 , 1 , 1 , 1
+    dumpfreq_base  = 'init','init','init','init','init'
     dump_last      = .false.
     bfbflag        = 'off'
     diagfreq       = 24
@@ -47,7 +47,7 @@
     lonpnt(2)      = -45.
     histfreq       = 'm','x','x','x','x'
     histfreq_n     =  1 , 1 , 1 , 1 , 1
-    histfreq_base  = 'zero'
+    histfreq_base  = 'zero','zero','zero','zero','zero'
     hist_avg       = .true.,.true.,.true.,.true.,.true.
     history_dir    = './history/'
     history_file   = 'iceh'
