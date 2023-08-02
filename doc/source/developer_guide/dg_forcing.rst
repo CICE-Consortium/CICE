@@ -21,12 +21,12 @@ primitive, in part due to historical reasons and in part because standalone runs
 are discouraged for evaluating complex science.  In general, most implementations
 use aspects of the following approach,
 
-- Input files are organized by year.
+- Input files are organized by year.  The underlying implementation provides for some flexibility and extensibility in filenames.  For instance, JRA55 and JRA55do filenames can have syntax like ``[JRA55,JRA55do][_$grid,'']_03hr_forcing[_$grid,'']_$year.nc`` where $grid is optional or may be present at one of two locations within the filename.  This implementation exists to support the current naming conventions within the gx1, gx3, and tx1 JRA55 and JRA55do CICE_DATA directory structure automatically.  See **JRA55_files** in **ice_forcing.F90** for more details.
 - Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
 - The forcing year is computed on the fly and is assumed to be cyclical over the forcing dataset length defined by ``ycycle``.
-- The namelist ``atm_dat_dir`` specifies the directory of the atmosphere input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.
-- The namelist ``ocn_dat_dir`` specifies the directory of the ocean input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
-- The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_gx1_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
+- The namelist ``atm_data_dir`` specifies the path or partial path for the atmosphere input data files and the namelist ``atm_data_type`` defines the atmospheric forcing mode.  ``atm_data_type`` values of ``JRA55``, ``JRA55do``, or ``ncar`` provide some flexibility for directory paths and filenames.  Many details can be gleaned from the CICE_data directory structure and file names as well as from the implementation in **ice_forcing.F90**.  But the main point is that atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,NCAR_bulk,''] where [JRA55,JRA55do,NCAR_bulk] are optional but provided for backwards compatibility.  grid is typically gx1, gx3, tx1, or similar.
+- The namelist ``ocn_data_dir`` specifies the directory of the ocean input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
+- The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
 - The input data time axis is generally NOT read by the forcing subroutine.  The forcing frequency is hardwired into the model and the file record number is computed based on the forcing frequency and model time.  Mixing leap year input data and noleap model calendars (and vice versa) is not handled particularly gracefully.  The CICE model does not read or check against the input data time axis.
 - Data is read on the model grid, no spatial interpolation exists.
 - Data is often time interpolated linearly between two input timestamps to the model time each model timestep.
@@ -79,8 +79,8 @@ input data fields to model forcing fields.
 
 .. _JRA55forcing:
 
-JRA55 Atmosphere Forcing
--------------------------
+JRA55 and JRA55do Atmosphere Forcing
+------------------------------------
 
 The current default atmosphere forcing for gx3, gx1, and tx1 standalone grids for
 Consortium testing is the JRA55 forcing
@@ -135,6 +135,11 @@ Because the input files are on the gregorian time axis, the model can run with t
 March 1, and all data
 after March 1 will be shifted one day.  December 31 in leap years will be skipped when
 running with a CICE calendar with no leap days.
+
+JRA55do forcing is also provided by the Consortium in the same format and scheme.  The JRA55do
+dataset is more focused on forcing for ocean and ice models, but provides a very similar climate
+as the JRA55 forcing.  To switch to JRA55do, set the namelist ``atm_data_type`` to ``JRA55do``
+and populate the input data directory with the JRA55do dataset provided by the Consortium.
 
 
 .. _NCARforcing:

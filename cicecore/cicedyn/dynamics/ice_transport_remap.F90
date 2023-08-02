@@ -42,6 +42,7 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
+      use ice_grid, only : grid_ice
 
       implicit none
       private
@@ -56,6 +57,11 @@
       real (kind=dbl_kind), parameter ::  &
          p5625m = -9._dbl_kind/16._dbl_kind    ,&
          p52083 = 25._dbl_kind/48._dbl_kind
+
+      logical :: &
+         l_fixed_area ! if true, prescribe area flux across each edge
+                      ! if false, area flux is determined internally
+                      ! and is passed out
 
       logical (kind=log_kind), parameter :: bugcheck = .false.
 
@@ -293,6 +299,29 @@
       enddo
       !$OMP END PARALLEL DO
 
+      !-------------------------------------------------------------------
+      ! Set logical l_fixed_area depending of the grid type.
+      !
+      ! If l_fixed_area is true, the area of each departure region is
+      !  computed in advance (e.g., by taking the divergence of the
+      !  velocity field and passed to locate_triangles.  The departure
+      !  regions are adjusted to obtain the desired area.
+      ! If false, edgearea is computed in locate_triangles and passed out.
+      !
+      ! l_fixed_area = .false. has been the default approach in CICE. It is 
+      ! used like this for the B-grid. However, idealized tests with the 
+      ! C-grid have shown that l_fixed_area = .false. leads to a checkerboard 
+      ! pattern in prognostic fields (e.g. aice). Using l_fixed_area = .true. 
+      ! eliminates the checkerboard pattern in C-grid simulations.
+      ! 
+      !-------------------------------------------------------------------
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         l_fixed_area = .false. !jlem temporary
+      else
+         l_fixed_area = .false.
+      endif
+
       end subroutine init_remap
 
 !=======================================================================
@@ -316,11 +345,10 @@
       subroutine horizontal_remap (dt,             ntrace,   &
                                    uvel,           vvel,     &
                                    mm,             tm,       &
-                                   l_fixed_area,             &
                                    tracer_type,    depend,   &
                                    has_dependents,           &
                                    integral_order,           &
-                                   l_dp_midpt,     grid_ice, &
+                                   l_dp_midpt,               &
                                    uvelE,          vvelN)
 
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
@@ -352,21 +380,6 @@
 
       real (kind=dbl_kind), intent(inout), dimension (nx_block,ny_block,ntrace,ncat,max_blocks) :: &
          tm       ! mean tracer values in each grid cell
-
-      character (len=char_len_long), intent(in) :: &
-         grid_ice ! ice grid, B, C, etc
-
-      !-------------------------------------------------------------------
-      ! If l_fixed_area is true, the area of each departure region is
-      !  computed in advance (e.g., by taking the divergence of the
-      !  velocity field and passed to locate_triangles.  The departure
-      !  regions are adjusted to obtain the desired area.
-      ! If false, edgearea is computed in locate_triangles and passed out.
-      !-------------------------------------------------------------------
-
-      logical, intent(in) ::    &
-         l_fixed_area       ! if true, edgearea_e and edgearea_n are prescribed
-                            ! if false, edgearea is computed here and passed out
 
       integer (kind=int_kind), dimension (ntrace), intent(in) :: &
          tracer_type    , & ! = 1, 2, or 3 (see comments above)
@@ -716,8 +729,7 @@
                                dxu   (:,:,iblk),  dyu(:,:,iblk),      &
                                xp    (:,:,:,:),   yp (:,:,:,:),       &
                                iflux,             jflux,              &
-                               triarea,                               &
-                               l_fixed_area,      edgearea_e(:,:))
+                               triarea,           edgearea_e(:,:))
 
          !-------------------------------------------------------------------
          ! Given triangle vertices, compute coordinates of triangle points
@@ -776,8 +788,7 @@
                                dxu   (:,:,iblk),  dyu (:,:,iblk),     &
                                xp    (:,:,:,:),   yp(:,:,:,:),        &
                                iflux,             jflux,              &
-                               triarea,                               &
-                               l_fixed_area,      edgearea_n(:,:))
+                               triarea,           edgearea_n(:,:))
 
          call triangle_coordinates (nx_block,        ny_block,         &
                                     integral_order,  icellsng(:,iblk), &
@@ -1696,8 +1707,7 @@
                                    dxu,          dyu,        &
                                    xp,           yp,         &
                                    iflux,        jflux,      &
-                                   triarea,                  &
-                                   l_fixed_area, edgearea)
+                                   triarea,      edgearea)
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block, & ! block dimensions
@@ -1729,12 +1739,6 @@
       integer (kind=int_kind), dimension (nx_block*ny_block,ngroups), intent(out) :: &
          indxi        , & ! compressed index in i-direction
          indxj            ! compressed index in j-direction
-
-      logical, intent(in) ::   &
-         l_fixed_area     ! if true, the area of each departure region is
-                          !  passed in as edgearea
-                          ! if false, edgearea if determined internally
-                          !  and is passed out
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) ::   &
          edgearea         ! area of departure region for each edge
@@ -1838,7 +1842,7 @@
       !     BL   |   BC   |   BR     (bottom left, center, right)
       !          |        |
       !
-      ! and the transport is across the edge between cells TC and TB.
+      ! and the transport is across the edge between cells TC and BC.
       !
       ! Departure points are scaled to a local coordinate system
       !  whose origin is at the midpoint of the edge.
@@ -1951,45 +1955,32 @@
       ! Compute mask for edges with nonzero departure areas
       !-------------------------------------------------------------------
 
-      if (l_fixed_area) then
-         icellsd = 0
+      icellsd = 0
+      if (trim(edge) == 'north') then
          do j = jb, je
          do i = ib, ie
-            if (edgearea(i,j) /= c0) then
+            if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
+                               .or.                  &
+                  dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
                icellsd = icellsd + 1
                indxid(icellsd) = i
                indxjd(icellsd) = j
             endif
          enddo
          enddo
-      else
-         icellsd = 0
-         if (trim(edge) == 'north') then
-            do j = jb, je
-            do i = ib, ie
-               if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
-                                  .or.                  &
-                     dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
-                  icellsd = icellsd + 1
-                  indxid(icellsd) = i
-                  indxjd(icellsd) = j
-               endif
-            enddo
-            enddo
-         else       ! east edge
-            do j = jb, je
-            do i = ib, ie
-               if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
-                                  .or.                  &
-                     dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
-                  icellsd = icellsd + 1
-                  indxid(icellsd) = i
-                  indxjd(icellsd) = j
-               endif
-            enddo
-            enddo
-         endif       ! edge = north/east
-      endif          ! l_fixed_area
+      else       ! east edge
+         do j = jb, je
+         do i = ib, ie
+            if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
+                               .or.                  &
+                  dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
+               icellsd = icellsd + 1
+               indxid(icellsd) = i
+               indxjd(icellsd) = j
+            endif
+         enddo
+         enddo
+      endif       ! edge = north/east
 
       !-------------------------------------------------------------------
       ! Scale the departure points
