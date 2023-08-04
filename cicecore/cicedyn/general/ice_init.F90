@@ -1586,7 +1586,7 @@
             if (my_task == master_task) then
                write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq(n))
                write(nu_diag,*) subname//' WARNING:   No restarts files will be written for this stream'
-               write(nu_diag,*) subname//' WARNING:   Allowed values : ymdhx1 followed by an optional 1'
+               write(nu_diag,*) subname//' WARNING:   Allowed values : y,m,d,h,x,1 followed by an optional 1'
             endif
             dumpfreq(n) = 'x'
          endif

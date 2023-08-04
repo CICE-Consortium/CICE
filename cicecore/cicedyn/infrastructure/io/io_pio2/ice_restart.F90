@@ -111,7 +111,7 @@
 !     endif
 
       if (my_task == master_task) then
-         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read at istep=',istep1,myear,'-',mmonth,'-',mday,'-',msec
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read at istep=',istep0,myear,'-',mmonth,'-',mday,'-',msec
       endif
 
       call broadcast_scalar(istep0,master_task)

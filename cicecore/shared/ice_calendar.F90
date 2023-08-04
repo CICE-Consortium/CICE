@@ -129,8 +129,8 @@
       character (len=2), public :: &
          npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
          npt0_unit,           & ! original run length unit, 'y', 'm', 'd', 'h', 's', '1'
-         histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1'
-         dumpfreq(max_nstrm)    ! restart frequency, 'y','m','d'
+         histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1','x'
+         dumpfreq(max_nstrm)    ! restart frequency, 'y','m','d', h', '1', 'x' followed by optional 1
 
       character (len=char_len), public :: &
          dumpfreq_base(max_nstrm), & ! restart frequency basetime ('zero', 'init')
