@@ -143,6 +143,13 @@ jobs:
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0
+      - name: run hello world unit test
+        run: |
+          cd $HOME/cice
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --test unittest --pes 2x1 -s helloworld --testid hw01
+          cd *helloworld*hw01
+          ./cice.build
+          ./cice.run
       - name: check cice compile
         run: |
           cd $HOME/cice
