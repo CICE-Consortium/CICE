@@ -150,9 +150,6 @@
       ! field indices
       !---------------------------------------------------------------
 
-      integer (kind=int_kind), dimension(max_nstrm), public :: &
-           n_zsal
-
       integer(kind=int_kind), dimension(icepack_max_iso,max_nstrm) :: &
            n_fiso_atm    , &
            n_fiso_ocn    , &
