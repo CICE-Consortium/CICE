@@ -6,7 +6,7 @@
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
 
 # Flags for the C compiler
-CFLAGS     := -c -O2 -target x86_64-apple-darwin
+CFLAGS     := -c -O2
 
 # Flags for the Fortran compiler
 FREEFLAGS  := -ffree-form
@@ -37,9 +37,6 @@ endif
 
 # Linker
 LD:= $(FC)
-##LDFLAGS += --no-warn-mismatch
-##LDFLAGS += --noinhibit-exec
-##LDFLAGS += -L/usr/local/opt/openssl/lib
 
 # Location of the compiled Fortran modules (NetCDF)
 MODDIR  += -I$(CONDA_PREFIX)/include -I$(CONDA_PREFIX)/lib
