@@ -22,8 +22,10 @@ endif
 # C and Fortran compilers and MPI wrappers
 SCC   := clang
 SFC   := gfortran
-MPICC := mpicc
-MPIFC := mpifort
+#MPICC := mpicc
+#MPIFC := mpifort
+MPICC := clang
+MPIFC := gfortran
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
