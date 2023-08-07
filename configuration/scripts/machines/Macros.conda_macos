@@ -39,10 +39,10 @@ endif
 LD:= $(FC)
 ##LDFLAGS += --no-warn-mismatch
 ##LDFLAGS += --noinhibit-exec
-LDFLAGS += -L/usr/local/opt/openssl/lib
+##LDFLAGS += -L/usr/local/opt/openssl/lib
 
 # Location of the compiled Fortran modules (NetCDF)
-MODDIR  += -I$(CONDA_PREFIX)/include
+MODDIR  += -I$(CONDA_PREFIX)/include -I$(CONDA_PREFIX)/lib
 
 # Location of the system C header files (required on recent macOS to compile makdep)
 SDKPATH = $(shell xcrun --show-sdk-path)
@@ -54,7 +54,7 @@ else
 endif
 
 # Libraries to be passed to the linker
-SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack
+SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)
