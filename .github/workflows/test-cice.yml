@@ -7,7 +7,7 @@ name: GHActions
 on:
   push:
     branches:
-      - master
+      - main
       - 'CICE*'
       - 'ghactions*'
   pull_request:
