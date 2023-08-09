@@ -1791,7 +1791,7 @@
          area1, area2 , & ! temporary triangle areas
          area3, area4 , & !
          area_c       , & ! center polygon area
-         areatp,      , & ! temporary area calculation
+         areatp       , & ! temporary area calculation
          areatplone   , & ! temporary area calculation for lone triangle
          xpm          , & ! mean value of x points
          puny         , & !
@@ -2385,13 +2385,13 @@
                ydm = p5 *  ydr
 
                ! compute area of (lone) triangle adjacent to left corner
-               xpm = p33*(xcl + xdl + xic)
+               xpm = p333*(xcl + xdl + xic)
                areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
                area4 = p5 * (xcl - xic) * ydl * areatplone
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! compute areafac for right triangle ic-cr-dr
-               xpm = p33*(xic + xcr + xdr)
+               xpm = p333*(xic + xcr + xdr)
                areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2420,13 +2420,13 @@
                ydm = p5 *  ydl
 
                ! compute area of (lone) triangle adjacent to right corner
-               xpm = p33*(xic + xcr + xdr)
+               xpm = p333*(xic + xcr + xdr)
                areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
                area4 = p5 * (xic - xcr) * ydr * areatplone
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! compute areafac for left triangle cl-dl-ic
-               xpm = p33*(xcl + xdl + xic)
+               xpm = p333*(xcl + xdl + xic)
                areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2657,7 +2657,7 @@
                                           .and. ydm >= c0) then
 
             ! compute areafac for left triangle cl-dl-ic
-            xpm = p33*(xcl + xdl + xic)
+            xpm = p333*(xcl + xdl + xic)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)                                                       
 
             ! TC1b (group 4)
@@ -2708,7 +2708,7 @@
                                           .and. ydm < c0 ) then  ! less common
 
             ! compute areafac for left triangle cl-dl-ic
-            xpm = p33*(xcl + xdl + xic)
+            xpm = p333*(xcl + xdl + xic)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4)
@@ -2759,7 +2759,7 @@
                                           .and. ydm < c0) then
 
             ! compute areafac for right triangle ic-cr-dr
-            xpm = p33*(xic + xcr + xdr)
+            xpm = p333*(xic + xcr + xdr)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4) lone triangle
@@ -2810,7 +2810,7 @@
                                           .and. ydm >= c0) then  ! less common
 
             ! compute areafac for right triangle ic-cr-dr
-            xpm = p33*(xic + xcr + xdr)
+            xpm = p333*(xic + xcr + xdr)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4) lone triangle
@@ -2861,7 +2861,7 @@
                                           .and. ydm >= c0) then
 
             ! compute areafac for right triangle ic-cr-dr
-            xpm = p33*(xic + xcr + xdr)
+            xpm = p333*(xic + xcr + xdr)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4) lone triangle
@@ -2912,7 +2912,7 @@
                                           .and. ydm < c0) then ! less common
 
             ! compute areafac for right triangle ic-cr-dr
-            xpm = p33*(xic + xcr + xdr)
+            xpm = p333*(xic + xcr + xdr)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4) lone triangle
@@ -2963,7 +2963,7 @@
                                           .and. ydm <  c0) then
 
             ! compute areafac for left triangle cl-dl-ic
-            xpm = p33*(xcl + xdl + xic)
+            xpm = p333*(xcl + xdl + xic)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4)
@@ -3014,7 +3014,7 @@
                                           .and. ydm >= c0) then  ! less common
 
             ! compute areafac for left triangle cl-dl-ic
-            xpm = p33*(xcl + xdl + xic)
+            xpm = p333*(xcl + xdl + xic)
             areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4)
