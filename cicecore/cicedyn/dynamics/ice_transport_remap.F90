@@ -2553,7 +2553,7 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr < c0 .and. ydm < c0) then
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm < c0) then
 
             ! compute areafac for quadrilateral cl-cr-dr-dl
             xpm = p25*(xcl + xcr + xdr + xdl)
@@ -2601,7 +2601,7 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr < c0 .and. ydm >= c0) then  ! rare
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm >= c0) then  ! rare
 
             ! compute areafac for quadrilateral cl-cr-dr-dl
             xpm = p25*(xcl + xcr + xdr + xdl)
