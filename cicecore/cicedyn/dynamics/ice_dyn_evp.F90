@@ -249,7 +249,9 @@
           strain_rates_U, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
-
+#ifdef integrate
+       use ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
+#endif
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -790,6 +792,18 @@
          endif
 
       endif
+#ifdef integrate
+
+       call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3, stressp_4,     &
+                          stressm_1 , stressm_2 , stressm_3, stressm_4,     &
+                          stress12_1, stress12_2, stress12_3,stress12_4,    &
+                          cdn_ocn   , aiu       , uocn     , vocn     ,     &
+                          waterxU   , wateryU   , forcexU  , forceyU  ,     &
+                          umassdti  , fmU       , strintxU , strintyU ,     &
+                          Tbu       , Tbu       , uvel    , vvel      ,     &
+                          icetmask , iceUmask)
+
+#endif
 
       if (evp_algorithm == "shared_mem_1d" ) then
 
@@ -871,6 +885,16 @@
 
                enddo  ! iblk
                !$OMP END PARALLEL DO
+#ifdef integrate
+              call dyn_evp2d_dump(stressp_1, stressp_2 , stressp_3, stressp_4,     &
+                      stressm_1 , stressm_2 , stressm_3, stressm_4,     &
+                      stress12_1, stress12_2, stress12_3,stress12_4,    &
+                      cdn_ocn   , aiu       , uocn     , vocn     ,     &
+                      waterxU   , wateryU   , forcexU  , forceyU  ,     &
+                      umassdti  , fmU       , strintxU , strintyU ,     &
+                      Tbu       , Tbu        , uvel     , vvel     ,     &
+                      icetmask  , iceUmask)
+#endif
 
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
