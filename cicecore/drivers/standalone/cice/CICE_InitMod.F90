@@ -91,7 +91,16 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-
+! additional variables needed for integration.
+#if integrate
+      use ice_blocks, only: nx_block, ny_block
+      use evp_1d, only : dyn_evp1d_init
+      use ice_domain_size, only: nx_global, ny_global
+      use ice_domain_size, only: max_blocks
+      use ice_blocks, only : nghost
+      use ice_grid, only: tmask, dxT, dyT, tmask, uarear, G_HTE, G_HTN
+      use ice_dyn_shared, only: ndte
+#endif
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec, tr_snow
       character(len=char_len) :: snw_aging_table
@@ -134,6 +143,12 @@
 
       if (kdyn == 1) then
          call init_evp
+#ifdef integrate
+      call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
+                          ndte, &!, deltaminEVP,         &
+                          dyT, dxT, uarear, tmask,   &
+                          G_HTE, G_HTN)
+#endif
       else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then
