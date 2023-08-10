@@ -2375,7 +2375,7 @@
                endif
                yicr = c0
 
-            elseif (xic < c0) then  ! fix ICL = IC
+            elseif (xic < c0 .and. xic > xcl) then  ! fix ICL = IC ! Bill please check this
 
                xicl = xic
                yicl = yic
@@ -2410,7 +2410,7 @@
                endif
                yicr = c0
 
-            elseif (xic >= c0) then  ! fix ICR = IR
+            elseif (xic >= c0 .and. xic < xcr) then  ! fix ICR = IR ! Bill please check this
 
                xicr = xic
                yicr = yic
@@ -3101,7 +3101,7 @@
                                      (xp(i,j,3,ng)-xp(i,j,1,ng)) )   &
                                    * areafact(i,j,ng)
 
-            if (abs(triarea(i,j,ng)) < eps16*areafac_c(i,j)) then ! jf ici
+            if (abs(triarea(i,j,ng)) < eps16*areafac_c(i,j)) then ! Bill please check this
                triarea(i,j,ng) = c0
             else
                icells(ng) = icells(ng) + 1
@@ -3120,7 +3120,7 @@
             do ij = 1, icellsd
                i = indxid(ij)
                j = indxjd(ij)
-               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then ! jf ici
+               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then ! Bill please check this
                   write(nu_diag,*) ''
                   write(nu_diag,*) 'Areas do not add up: m, i, j, edge =',   &
                            my_task, i, j, trim(edge)
