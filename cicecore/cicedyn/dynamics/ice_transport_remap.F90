@@ -2553,7 +2553,7 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm < c0) then
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm <= c0) then ! Bill I also changed ydm < to <=
 
             ! compute areafac for quadrilateral cl-cr-dr-dl
             xpm = p25*(xcl + xcr + xdr + xdl)
@@ -2601,7 +2601,7 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm >= c0) then  ! rare
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm > c0) then  ! rare ! Bill I also changed ydm >= to >
 
             ! compute areafac for quadrilateral cl-cr-dr-dl
             xpm = p25*(xcl + xcr + xdr + xdl)
@@ -2653,8 +2653,8 @@
          ! For these cases, one triangle is given the area factor associated
          !  with the adjacent corner, to avoid rare negative masses on curved grids.
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic >= c0  &
-                                          .and. ydm >= c0) then
+         elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
+                                         .and. ydm >= c0) then
 
             ! compute areafac for left triangle cl-dl-ic
             xpm = p333*(xcl + xdl + xic)
@@ -2704,8 +2704,8 @@
             areafact(i,j,ng) = -areatp
             !areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic >= c0  &
-                                          .and. ydm < c0 ) then  ! less common
+         elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
+                                         .and. ydm < c0 ) then  ! less common
 
             ! compute areafac for left triangle cl-dl-ic
             xpm = p333*(xcl + xdl + xic)
@@ -2755,8 +2755,8 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic < c0   &
-                                          .and. ydm < c0) then
+         elseif (ydl > c0 .and. ydr < c0 .and. xic < c0   &
+                                         .and. ydm < c0) then
 
             ! compute areafac for right triangle ic-cr-dr
             xpm = p333*(xic + xcr + xdr)
@@ -2806,8 +2806,8 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic <  c0  &
-                                          .and. ydm >= c0) then  ! less common
+         elseif (ydl > c0 .and. ydr < c0 .and. xic <  c0  &
+                                         .and. ydm >= c0) then  ! less common
 
             ! compute areafac for right triangle ic-cr-dr
             xpm = p333*(xic + xcr + xdr)
@@ -2857,8 +2857,8 @@
             areafact(i,j,ng) = -areatp
             !areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic <  c0  &
-                                          .and. ydm >= c0) then
+         elseif (ydl < c0 .and. ydr > c0 .and. xic <  c0  &
+                                         .and. ydm >= c0) then
 
             ! compute areafac for right triangle ic-cr-dr
             xpm = p333*(xic + xcr + xdr)
@@ -2908,8 +2908,8 @@
             areafact(i,j,ng) = -areatp
             !areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic < c0  &
-                                          .and. ydm < c0) then ! less common
+         elseif (ydl < c0 .and. ydr > c0 .and. xic < c0  &
+                                         .and. ydm < c0) then ! less common
 
             ! compute areafac for right triangle ic-cr-dr
             xpm = p333*(xic + xcr + xdr)
@@ -2959,8 +2959,8 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic >= c0  &
-                                          .and. ydm <  c0) then
+         elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0  &
+                                         .and. ydm <  c0) then
 
             ! compute areafac for left triangle cl-dl-ic
             xpm = p333*(xcl + xdl + xic)
@@ -3010,8 +3010,8 @@
             areafact(i,j,ng) = areatp
             !areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic >= c0   &
-                                          .and. ydm >= c0) then  ! less common
+         elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0   &
+                                         .and. ydm >= c0) then  ! less common
 
             ! compute areafac for left triangle cl-dl-ic
             xpm = p333*(xcl + xdl + xic)
