@@ -1573,12 +1573,12 @@
 
       do n = 1,max_nstrm
          if(histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
-            write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero:'//trim(histfreq_base(n))
+            write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero: '//trim(histfreq_base(n))
             abort_list = trim(abort_list)//":24"
          endif
 
          if(dumpfreq_base(n) /= 'init' .and. dumpfreq_base(n) /= 'zero') then
-            write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero:'//trim(dumpfreq_base(n))
+            write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero: '//trim(dumpfreq_base(n))
             abort_list = trim(abort_list)//":25"
          endif
 
