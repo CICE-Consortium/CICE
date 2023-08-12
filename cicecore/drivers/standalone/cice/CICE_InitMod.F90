@@ -94,7 +94,7 @@
 ! additional variables needed for integration.
 #if integrate
       use ice_blocks, only: nx_block, ny_block
-      use evp_1d, only : dyn_evp1d_init
+      use ice_dyn_evp1d, only : dyn_evp1d_init
       use ice_domain_size, only: nx_global, ny_global
       use ice_domain_size, only: max_blocks
       use ice_blocks, only : nghost
@@ -145,7 +145,6 @@
          call init_evp
 #ifdef integrate
       call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
-                          ndte, &!, deltaminEVP,         &
                           dyT, dxT, uarear, tmask,   &
                           G_HTE, G_HTN)
 #endif

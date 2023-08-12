@@ -77,6 +77,7 @@ module debug_evp1d
           write(ctmp,'(i4.4)') ts
           binfile = trim(trim(myname)//'.double.ts-'//ctmp//'.bin')
           write (iu06,*) 'Opening file ', trim(binfile)
+          lun=709
           open(lun,file=trim(binfile), form='unformatted', access='stream', action='write', status='replace', iostat=ios)
           if (ios .ne. 0) then
              stop ('Failed open file')
@@ -111,6 +112,7 @@ module debug_evp1d
     write(ctmp,'(i4.4)') ts
     binfile = trim(trim(myname)//'.double.ts-'//ctmp//'.bin')
     write (*,*) 'Opening file ', trim(binfile)
+    lun = 710
     open(lun,file=binfile, form='unformatted', access='stream', action='write', status='replace', iostat=ios)
     if (ios .ne. 0) then
       stop ('Failed open file')

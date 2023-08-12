@@ -250,7 +250,7 @@
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
 #ifdef integrate
-       usa ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
+       use ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
 #endif
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step

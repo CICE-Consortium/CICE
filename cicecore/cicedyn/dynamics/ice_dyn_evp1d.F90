@@ -123,7 +123,7 @@ module ice_dyn_evp1d
     use debug_evp1d, only : dumpall
     use ice_dyn_shared, only : ndte
 ! bench should be renamed to something better e.g evp1d_func
-  use bench, only : stress, stepu
+  use bench_v2b, only : stress, stepu
     implicit none
     real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
@@ -133,8 +133,7 @@ module ice_dyn_evp1d
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
                            L_Tbu       , L_Cb        , L_uvel      , L_vvel
-    logical, dimension (:,:,:), intent(in) :: L_iceUmask
-    integer, dimension (:,:,:), intent(in) :: L_iceTmask
+    logical, dimension (:,:,:), intent(in) :: L_iceUmask, L_iceTmask
     real(kind=dbl_kind), dimension(nx,ny) :: &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
@@ -144,8 +143,7 @@ module ice_dyn_evp1d
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                            G_Tbu       , G_Cb        , G_uvel     , G_vvel
 
-    logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask_log !tar , iceTmask
-    integer(kind=int_kind), dimension (nx,ny)  :: G_iceTmask
+    logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask
     integer(kind=int_kind) :: ksub
     character(10),parameter :: mydebugfile1='before1d'
     character(10),parameter :: mydebugfile2='after1d'
@@ -172,8 +170,7 @@ module ice_dyn_evp1d
                     G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                     G_Tbu       , G_Cb        , G_uvel     , G_vvel     ,     &
                     G_iceTmask,  G_iceUmask)
-    call convert_Tint2log(G_iceTmask,G_iceTmask_log)
-    call set_skipMe(G_iceTmask_log, G_iceUmask,nActive)
+    call set_skipMe(G_iceTmask, G_iceUmask,nActive)
     call convert_2d_1d_dyn(nActive,                                                   &
                            G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,      &
                            G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,      &
@@ -228,8 +225,6 @@ module ice_dyn_evp1d
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
                        G_Tbu       , G_Cb        , G_uvel     , G_vvel)
 
-!call convert_Tint2log(iceTmask,iceTmask_log)
-!call setSkipme(nActive, iceTmask_log, iceUmask)
 ! END FIXME
 ! calculate number of active points. allocate if initial or if array size should increase
 !    call calc_nActiveTU(iceTmask_log,nActive, iceUmask)
@@ -270,8 +265,7 @@ module ice_dyn_evp1d
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
                            L_Tbu       , L_Cb        , L_uvel     , L_vvel
-    logical, dimension (:,:,:), intent(in) :: L_iceUmask
-    integer, dimension (:,:,:), intent(in) :: L_iceTmask
+    logical, dimension (:,:,:), intent(in) :: L_iceUmask, L_iceTmask
     real(kind=dbl_kind), dimension(nx,ny) :: &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
@@ -282,8 +276,7 @@ module ice_dyn_evp1d
                            G_Tbu       , G_Cb        , G_uvel     , G_vvel
     character(10),parameter :: mydebugfile1='after2d'
     ! These are dummy here
-    logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask
-    integer(kind=int_kind), dimension (nx,ny)  :: G_iceTmask
+    logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask
 
     call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                     L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
@@ -678,10 +671,7 @@ module ice_dyn_evp1d
                             L_Tbu       , L_Cb        , L_uvel     , L_vvel
 
      logical(kind=log_kind), dimension(nx_block, ny_block, max_block), intent(in) ::  &
-                            L_iceUmask
-
-     integer(kind=int_kind), dimension(nx_block, ny_block, max_block), intent(in) ::  &
-                           L_iceTmask
+                            L_iceUmask, L_iceTmask
 
      real(kind=dbl_kind), dimension(nx, ny), intent(out) :: &
                             G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
@@ -691,8 +681,7 @@ module ice_dyn_evp1d
                             G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                             G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                             G_Tbu       , G_Cb        , G_uvel     , G_vvel
-     integer(kind=int_kind), dimension(nx, ny), intent(out) :: G_iceTmask
-     logical(kind=log_kind), dimension(nx, ny), intent(out) :: G_iceUmask
+     logical(kind=log_kind), dimension(nx, ny), intent(out) :: G_iceUmask, G_iceTmask
 
 ! copy from distributed I_* to G_*
     call gather_global_ext(G_stressp_1,     L_stressp_1,     master_task, distrb_info)
@@ -1054,8 +1043,8 @@ subroutine convert_1d_2d_dyn(na0, &
       ! calculate additional 1D indices used for finite differences
       do iw = 1, na0
          ! get 2D indices
-         i = indi(iw)
-         j = indj(iw)
+         i = indxti(iw)
+         j = indxtj(iw)
          ! calculate 1D indices
          Iin(iw)  = i     + (j - 1) * nx  ! ( 0,  0) target point
          Iee(iw)  = i - 1 + (j - 1) * nx  ! (-1,  0)

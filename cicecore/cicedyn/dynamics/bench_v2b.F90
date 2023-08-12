@@ -51,7 +51,7 @@
 !       Updated to match requirements from CICE
 !===============================================================================
 
-module bench
+module bench_v2b
 contains
 !DIR$ ATTRIBUTES FORCEINLINE :: stress
 subroutine stress (ee, ne, se, lb, ub,                                         &
@@ -546,4 +546,4 @@ subroutine stepu (lb, ub,                                                      &
 
 end subroutine stepu
 
-end module bench
+end module bench_v2b
