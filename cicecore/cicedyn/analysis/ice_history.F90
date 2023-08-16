@@ -263,7 +263,7 @@
                     trim(tmpstr2), file=__FILE__, line=__LINE__)
             endif
          end do
-         
+
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
@@ -2225,7 +2225,7 @@
       n4Dfcum = n4Dscum + num_avail_hist_fields_4Df ! should equal num_avail_hist_fields_tot
 
       do ns = 1,nstreams
-         if (.not. hist_avg) then  ! write snapshots
+         if (.not. hist_avg(ns)) then  ! write snapshots
            do n = 1,n2D
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
                   a2D(:,:,n,:) = c0

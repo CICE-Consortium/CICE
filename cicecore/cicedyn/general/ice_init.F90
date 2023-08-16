@@ -81,7 +81,7 @@
           runid, runtype, use_restart_time, restart_format, lcdf64
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
-                             history_precision, history_format
+                             history_precision, history_format, hist_time_axis
       use ice_flux, only: update_ocn_f, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -125,7 +125,7 @@
       use ice_timers, only: timer_stats
       use ice_memusage, only: memory_stats
       use ice_fileunits, only: goto_nml
-      
+
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
@@ -169,7 +169,7 @@
 
       character (len=char_len) :: abort_list
       character (len=char_len)      :: nml_name ! namelist name
-      character (len=char_len_long) :: tmpstr2  
+      character (len=char_len_long) :: tmpstr2
 
       character(len=*), parameter :: subname='(input_data)'
 
@@ -185,6 +185,7 @@
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
+        hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
@@ -322,8 +323,10 @@
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency
       histfreq_base = 'zero' ! output frequency reference date
-      hist_avg = .true.      ! if true, write time-averages (not snapshots)
+      hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
+      hist_time_axis = 'end' ! History file time axis averaging interval position
+
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
@@ -609,7 +612,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -657,7 +660,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -681,7 +684,7 @@
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -699,7 +702,7 @@
          ! read dynamics_nml
          nml_name = 'dynamics_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
- 
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
@@ -724,7 +727,7 @@
          ! read shortwave_nml
          nml_name = 'shortwave_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
@@ -749,14 +752,14 @@
          ! read ponds_nml
          nml_name = 'ponds_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -774,14 +777,14 @@
          ! read snow_nml
          nml_name = 'snow_nml'
          write(nu_diag,*) subname,' Reading ', trim(nml_name)
-         
+
          ! goto namelist in file
          call goto_nml(nu_nml,trim(nml_name),nml_error)
          if (nml_error /= 0) then
             call abort_ice(subname//'ERROR: searching for '// trim(nml_name), &
                file=__FILE__, line=__LINE__)
          endif
-         
+
          ! read  namelist
          nml_error =  1
          do while (nml_error > 0)
@@ -821,7 +824,7 @@
             endif
          end do
 
-         ! done reading namelist. 
+         ! done reading namelist.
          close(nu_nml)
          call release_fileunit(nu_nml)
       endif
@@ -901,11 +904,12 @@
       enddo
       call broadcast_array(histfreq_n,            master_task)
       call broadcast_scalar(histfreq_base,        master_task)
-      call broadcast_scalar(hist_avg,             master_task)
+      call broadcast_array(hist_avg,              master_task)
       call broadcast_scalar(history_dir,          master_task)
       call broadcast_scalar(history_file,         master_task)
       call broadcast_scalar(history_precision,    master_task)
       call broadcast_scalar(history_format,       master_task)
+      call broadcast_scalar(hist_time_axis,       master_task)
       call broadcast_scalar(write_ic,             master_task)
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
@@ -1568,6 +1572,11 @@
       if(histfreq_base /= 'init' .and. histfreq_base /= 'zero') then
          write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero'
          abort_list = trim(abort_list)//":24"
+      endif
+
+      if(trim(hist_time_axis) /= 'begin' .and. trim(hist_time_axis) /= 'middle' .and. trim(hist_time_axis) /= 'end') then
+         write (nu_diag,*) subname//' ERROR: hist_time_axis value not valid = '//trim(hist_time_axis)
+         abort_list = trim(abort_list)//":29"
       endif
 
       if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
@@ -2311,12 +2320,12 @@
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
-         write(nu_diag,1011) ' hist_avg         = ', hist_avg
-         if (.not. hist_avg) write(nu_diag,1039) ' History data will be snapshots'
+         write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
          write(nu_diag,1031) ' history_format   = ', trim(history_format)
+         write(nu_diag,1031) ' hist_time_axis   = ', trim(hist_time_axis)
          if (write_ic) then
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
@@ -2533,7 +2542,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: sst, Tf, Tair, salinz, Tmltz
-      use ice_grid, only: tmask, ULON, TLAT, grid_ice, grid_average_X2Y
+      use ice_grid, only: tmask, umask, ULON, TLAT, grid_ice, grid_average_X2Y
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
@@ -2721,6 +2730,7 @@
                              ilo, ihi,            jlo, jhi,            &
                              iglob,               jglob,               &
                              ice_ic,              tmask(:,:,    iblk), &
+                             umask(:,:,    iblk), &
                              ULON (:,:,    iblk), &
                              TLAT (:,:,    iblk), &
                              Tair (:,:,    iblk), sst  (:,:,    iblk), &
@@ -2743,10 +2753,10 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
-         call grid_average_X2Y('S',uvel,'U',uvelN,'N')
-         call grid_average_X2Y('S',vvel,'U',vvelN,'N')
-         call grid_average_X2Y('S',uvel,'U',uvelE,'E')
-         call grid_average_X2Y('S',vvel,'U',vvelE,'E')
+         call grid_average_X2Y('A',uvel,'U',uvelN,'N')
+         call grid_average_X2Y('A',vvel,'U',vvelN,'N')
+         call grid_average_X2Y('A',uvel,'U',uvelE,'E')
+         call grid_average_X2Y('A',vvel,'U',vvelE,'E')
 
          ! Halo update on North, East faces
          call ice_HaloUpdate(uvelN, halo_info, &
@@ -2760,7 +2770,6 @@
                              field_loc_Eface, field_type_scalar)
 
       endif
-
 
       !-----------------------------------------------------------------
       ! compute aggregate ice state and open water area
@@ -2820,8 +2829,9 @@
                                 ilo, ihi, jlo, jhi, &
                                 iglob,    jglob,    &
                                 ice_ic,   tmask,    &
-                                ULON, &
-                                TLAT, &
+                                umask, &
+                                ULON,  &
+                                TLAT,  &
                                 Tair,     sst,  &
                                 Tf,       &
                                 salinz,   Tmltz, &
@@ -2846,7 +2856,8 @@
          ice_ic      ! method of ice cover initialization
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tmask      ! true for ice/ocean cells
+         tmask  , & ! true for ice/ocean cells
+         umask      ! for U points
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          ULON   , & ! longitude of velocity pts (radians)
@@ -3294,13 +3305,19 @@
             domain_length = dxrect*cm_to_m*nx_global
             period        = c12*secday               ! 12 days rotational period
             max_vel       = pi*domain_length/period
+
             do j = 1, ny_block
             do i = 1, nx_block
 
-               uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
-                         / real(ny_global - 1, kind=dbl_kind) - max_vel
-               vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
-                         / real(nx_global - 1, kind=dbl_kind) + max_vel
+               if (umask(i,j)) then
+                  uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
+                            / real(ny_global - 1, kind=dbl_kind) - max_vel
+                  vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &
+                            / real(nx_global - 1, kind=dbl_kind) + max_vel
+               else
+                  uvel(i,j) = c0
+                  vvel(i,j) = c0
+               endif
             enddo               ! j
             enddo               ! i
          else

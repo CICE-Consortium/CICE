@@ -1,0 +1,2 @@
+atm_data_format = 'nc'
+atm_data_type   = 'JRA55do'

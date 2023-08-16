@@ -62,7 +62,7 @@
          fyear_final         ! last year in cycle, computed at init
 
       character (char_len_long) :: &        ! input data file names
-          uwind_file, &
+          uwind_file, &  ! this is also used a generic file containing all fields for JRA55
           vwind_file, &
            wind_file, &
           strax_file, &
@@ -124,7 +124,7 @@
          ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
          atm_data_type, & ! 'default', 'monthly', 'ncar', 'box2001'
                           ! 'hadgem', 'oned', 'calm', 'uniform'
-                          ! 'JRA55_gx1' or 'JRA55_gx3' or 'JRA55_tx1'
+                          ! 'JRA55' or 'JRA55do'
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
@@ -281,13 +281,11 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      if (use_leap_years .and. (trim(atm_data_type) /= 'JRA55_gx1' .and. &
-                                trim(atm_data_type) /= 'JRA55_gx3' .and. &
-                                trim(atm_data_type) /= 'JRA55_tx1' .and. &
-                                trim(atm_data_type) /= 'hycom' .and. &
-                                trim(atm_data_type) /= 'box2001')) then
+      if (use_leap_years .and. (index(trim(atm_data_type),'JRA55') == 0 .and. &
+                                trim(atm_data_type) /= 'hycom'       .and. &
+                                trim(atm_data_type) /= 'box2001'))   then
          write(nu_diag,*) 'use_leap_years option is currently only supported for'
-         write(nu_diag,*) 'JRA55, default , and box2001 atmospheric data'
+         write(nu_diag,*) 'JRA55, JRA55do, default , and box2001 atmospheric data'
          call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
       endif
 
@@ -298,16 +296,8 @@
       ! default forcing values from init_flux_atm
       if (trim(atm_data_type) == 'ncar') then
          call NCAR_files(fyear)
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-         call LY_files(fyear)
-#endif
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then
-         call JRA55_gx1_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then
-         call JRA55_gx3_files(fyear)
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then
-         call JRA55_tx1_files(fyear)
+      elseif (index(trim(atm_data_type),'JRA55') > 0) then
+         call JRA55_files(fyear)
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_files(fyear)
       elseif (trim(atm_data_type) == 'monthly') then
@@ -644,15 +634,7 @@
 
       if (trim(atm_data_type) == 'ncar') then
          call ncar_data
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-         call LY_data
-#endif
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then
-         call JRA55_data
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then
-         call JRA55_data
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then
+      elseif (index(trim(atm_data_type),'JRA55') > 0) then
          call JRA55_data
       elseif (trim(atm_data_type) == 'hadgem') then
          call hadgem_data
@@ -1593,15 +1575,7 @@
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_gx1') then ! netcdf
-         i = index(data_file,'.nc') - 5
-         tmpname = data_file
-         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_gx3') then ! netcdf
-         i = index(data_file,'.nc') - 5
-         tmpname = data_file
-         write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
-      elseif (trim(atm_data_type) == 'JRA55_tx1') then ! netcdf
+      elseif (index(trim(atm_data_type),'JRA55') > 0) then ! netcdf
          i = index(data_file,'.nc') - 5
          tmpname = data_file
          write(data_file,'(a,i4.4,a)') tmpname(1:i), yr, '.nc'
@@ -1726,23 +1700,6 @@
          enddo
          enddo
 
-#ifdef UNDEPRECATE_LYq
-      elseif (trim(atm_data_type) == 'LYq') then
-
-         ! precip is in mm/s
-
-         zlvl0 = c10
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            ! longwave based on Rosati and Miyakoda, JPO 18, p. 1607 (1988)
-            call longwave_rosati_miyakoda(cldf(i,j), Tsfc(i,j), &
-                                          aice(i,j), sst(i,j),  &
-                                          Qa(i,j),   Tair(i,j), &
-                                          hm(i,j),   flw(i,j))
-         enddo
-         enddo
-#endif
       elseif (trim(atm_data_type) == 'oned') then  ! rectangular grid
 
          ! precip is in kg/m^2/s
@@ -1977,62 +1934,75 @@
 
       subroutine ncar_files (yr)
 
-! Construct filenames based on the LANL naming conventions for NCAR data.
-! Edit for other directory structures or filenames.
-! Note: The year number in these filenames does not matter, because
-!       subroutine file_year will insert the correct year.
+      ! Construct filenames based on the LANL naming conventions for NCAR data.
+      ! Edit for other directory structures or filenames.
+      ! Note: The year number in these filenames does not matter, because
+      !       subroutine file_year will insert the correct year.
+      ! Note: atm_data_dir may have NCAR_bulk or not
+      !
+      ! atm_data_type should be 'ncar'
+      ! atm_dat_dir should be ${CICE_DATA_root}/forcing/$grid/[NCAR_bulk,'']
+      !    atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,'']
+      !       NCAR_bulk at the end of the atm_data_dir is optional to provide backwards
+      !       compatibility and if not included, will be appended automaticaly.
+      !       The grid is typically gx1, gx3, tx1, or similar.
 
       integer (kind=int_kind), intent(in) :: &
            yr                   ! current forcing year
+
+      character (char_len_long) :: &
+           atm_data_dir_extra   ! atm_dat_dir extra if needed
+
+      integer (kind=int_kind) :: &
+           strind   ! string index
 
       character(len=*), parameter :: subname = '(ncar_files)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
-      fsw_file = &
-           trim(atm_data_dir)//'/MONTHLY/swdn.1996.dat'
+      ! decide whether NCAR_bulk is part of atm_data_dir and set atm_data_dir_extra
+      atm_data_dir_extra = '/NCAR_bulk'
+      strind = index(trim(atm_data_dir),'NCAR_bulk')
+      if (strind > 0) then
+         atm_data_dir_extra = ''
+      endif
+
+      fsw_file   = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/MONTHLY/swdn.1996.dat'
       call file_year(fsw_file,yr)
 
-      flw_file = &
-           trim(atm_data_dir)//'/MONTHLY/cldf.1996.dat'
+      flw_file   = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/MONTHLY/cldf.1996.dat'
       call file_year(flw_file,yr)
 
-      rain_file = &
-           trim(atm_data_dir)//'/MONTHLY/prec.1996.dat'
+      rain_file  = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/MONTHLY/prec.1996.dat'
       call file_year(rain_file,yr)
 
-      uwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/u_10.1996.dat'
+      uwind_file = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/4XDAILY/u_10.1996.dat'
       call file_year(uwind_file,yr)
 
-      vwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/v_10.1996.dat'
+      vwind_file = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/4XDAILY/v_10.1996.dat'
       call file_year(vwind_file,yr)
 
-      tair_file = &
-           trim(atm_data_dir)//'/4XDAILY/t_10.1996.dat'
+      tair_file  = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/4XDAILY/t_10.1996.dat'
       call file_year(tair_file,yr)
 
-      humid_file = &
-           trim(atm_data_dir)//'/4XDAILY/q_10.1996.dat'
+      humid_file = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/4XDAILY/q_10.1996.dat'
       call file_year(humid_file,yr)
 
-      rhoa_file = &
-           trim(atm_data_dir)//'/4XDAILY/dn10.1996.dat'
+      rhoa_file  = trim(atm_data_dir)//trim(atm_data_dir_extra)//'/4XDAILY/dn10.1996.dat'
       call file_year(rhoa_file,yr)
 
       if (my_task == master_task) then
          write (nu_diag,*) ' '
          write (nu_diag,*) 'Forcing data year =', fyear
          write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(fsw_file)
-         write (nu_diag,*) trim(flw_file)
-         write (nu_diag,*) trim(rain_file)
-         write (nu_diag,*) trim(uwind_file)
-         write (nu_diag,*) trim(vwind_file)
-         write (nu_diag,*) trim(tair_file)
-         write (nu_diag,*) trim(humid_file)
-         write (nu_diag,*) trim(rhoa_file)
+         write (nu_diag,'(3a)') trim(fsw_file)
+         write (nu_diag,'(3a)') trim(flw_file)
+         write (nu_diag,'(3a)') trim(rain_file)
+         write (nu_diag,'(3a)') trim(uwind_file)
+         write (nu_diag,'(3a)') trim(vwind_file)
+         write (nu_diag,'(3a)') trim(tair_file)
+         write (nu_diag,'(3a)') trim(humid_file)
+         write (nu_diag,'(3a)') trim(rhoa_file)
       endif                     ! master_task
 
       end subroutine ncar_files
@@ -2195,352 +2165,117 @@
 
       end subroutine ncar_data
 
-#ifdef UNDEPRECATE_LYq
-!=======================================================================
-! Large and Yeager forcing (AOMIP style)
 !=======================================================================
 
-      subroutine LY_files (yr)
+      subroutine JRA55_files(yr)
 
-! Construct filenames based on the LANL naming conventions for CORE
-! (Large and Yeager) data.
-! Edit for other directory structures or filenames.
-! Note: The year number in these filenames does not matter, because
-!       subroutine file_year will insert the correct year.
-
-! author: Elizabeth C. Hunke, LANL
+      ! find the JRA55 files:
+      ! This subroutine finds the JRA55 atm forcing files based on settings
+      ! in atm_data_type and atm_data_dir.  Because the filenames are not
+      ! entirely consistent, we need a flexible method.
+      !
+      ! atm_data_type could be JRA55 or JRA55do with/without _grid appended
+      ! atm_data_dir could contain JRA55 or JRA55do or not
+      ! actual files could have grid in name in two location or not at all
+      !
+      ! The files will generally be of the format
+      !    $atm_data_type/[JRA55,JRA55do,'']/8XDAILY/[JRA55,JRA55do][_$grid,'']_03hr_forcing[_$grid,'']_$year.nc
+      ! The options defined by cnt try several versions of paths/filenames
+      ! As a user,
+      !    atm_data_type should be set to JRA55, JRA55do, JRA55_xxx, or JRA55do_xxx
+      !       where xxx can be any set of characters.  The _xxx if included will be ignored.
+      !       Historically, these were set to JRA55_gx1 and so forth but the _gx1 is no longer needed
+      !       but this is still allowed for backwards compatibility.  atm_data_type_prefix
+      !       is atm_data_type with _ and everything after _ removed.
+      !    atm_data_dir should be set to ${CICE_DATA_root}/forcing/$grid/[JRA55,JRA55do,'']
+      !       The [JRA55,JRA55do] at the end of the atm_data_dir is optional to provide backwards
+      !       compatibility and if not included, will be appended automaticaly using
+      !       the atm_data_type_prefix value.  The grid is typically gx1, gx3, tx1, or similar.
+      ! In general, we recommend using the following format
+      !    atm_data_type = [JRA55,JRA55do]
+      !    atm_data_dir = ${CICE_DATA_root}/forcing/$grid
 
       integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
+           yr         ! current forcing year
 
-      character(len=*), parameter :: subname = '(LY_files)'
+      ! local variables
+      character(len=16) :: &
+           grd        ! gx3, gx1, tx1
 
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      flw_file = &
-           trim(atm_data_dir)//'/MONTHLY/cldf.omip.dat'
-
-      rain_file = &
-           trim(atm_data_dir)//'/MONTHLY/prec.nmyr.dat'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/u_10.1996.dat'
-      call file_year(uwind_file,yr)
-
-      vwind_file = &
-           trim(atm_data_dir)//'/4XDAILY/v_10.1996.dat'
-      call file_year(vwind_file,yr)
-
-      tair_file = &
-           trim(atm_data_dir)//'/4XDAILY/t_10.1996.dat'
-      call file_year(tair_file,yr)
-
-      humid_file = &
-           trim(atm_data_dir)//'/4XDAILY/q_10.1996.dat'
-      call file_year(humid_file,yr)
-
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Forcing data year = ', fyear
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(flw_file)
-         write (nu_diag,*) trim(rain_file)
-         write (nu_diag,*) trim(uwind_file)
-         write (nu_diag,*) trim(vwind_file)
-         write (nu_diag,*) trim(tair_file)
-         write (nu_diag,*) trim(humid_file)
-      endif                     ! master_task
-
-      end subroutine LY_files
-#endif
-!=======================================================================
-
-      subroutine JRA55_gx1_files(yr)
-!
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(JRA55_gx1_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_2005.nc'
-      call file_year(uwind_file,yr)
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(uwind_file)
-      endif
-      end subroutine JRA55_gx1_files
-
-!=======================================================================
-
-      subroutine JRA55_tx1_files(yr)
-!
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(JRA55_tx1_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_03hr_forcing_tx1_2005.nc'
-      call file_year(uwind_file,yr)
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(uwind_file)
-      endif
-      end subroutine JRA55_tx1_files
-
-!=======================================================================
-
-      subroutine JRA55_gx3_files(yr)
-!
-      integer (kind=int_kind), intent(in) :: &
-           yr                   ! current forcing year
-
-      character(len=*), parameter :: subname = '(JRA55_gx3_files)'
-
-      if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
-
-      uwind_file = &
-           trim(atm_data_dir)//'/8XDAILY/JRA55_gx3_03hr_forcing_2005.nc'
-      call file_year(uwind_file,yr)
-      if (my_task == master_task) then
-         write (nu_diag,*) ' '
-         write (nu_diag,*) 'Atmospheric data files:'
-         write (nu_diag,*) trim(uwind_file)
-      endif
-      end subroutine JRA55_gx3_files
-
-#ifdef UNDEPRECATE_LYq
-!=======================================================================
-!
-! read Large and Yeager atmospheric data
-!        note:  also uses AOMIP protocol, in part
-
-      subroutine LY_data
-
-      use ice_blocks, only: block, get_block
-      use ice_global_reductions, only: global_minval, global_maxval
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
-      use ice_flux, only: fsnow, Tair, uatm, vatm, Qa, fsw
-      use ice_grid, only: hm, tlon, tlat, tmask, umask
-      use ice_state, only: aice
+      character(len=64) :: &
+           atm_data_type_prefix  ! atm_data_type prefix
 
       integer (kind=int_kind) :: &
-          i, j        , &
-          ixm,ixx,ixp , & ! record numbers for neighboring months
-          recnum      , & ! record number
-          maxrec      , & ! maximum record number
-          recslot     , & ! spline slot for current record
-          midmonth    , & ! middle day of month
-          dataloc     , & ! = 1 for data located in middle of time interval
-                          ! = 2 for date located at end of time interval
-          iblk        , & ! block index
-          ilo,ihi,jlo,jhi ! beginning and end of physical domain
+           cnt    , & ! search for files
+           strind     ! string index
 
-      real (kind=dbl_kind) :: &
-          sec6hr          , & ! number of seconds in 6 hours
-          secday          , & ! number of seconds in day
-          Tffresh         , &
-          vmin, vmax
+      logical :: &
+           exists     ! file existance
 
-      logical (kind=log_kind) :: readm, read6
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(LY_data)'
+      character(len=*), parameter :: subname = '(JRA55_files)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
-      call icepack_query_parameters(Tffresh_out=Tffresh)
-      call icepack_query_parameters(secday_out=secday)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-    !-------------------------------------------------------------------
-    ! monthly data
-    !
-    ! Assume that monthly data values are located in the middle of the
-    ! month.
-    !-------------------------------------------------------------------
-
-      midmonth = 15  ! data is given on 15th of every month
-!      midmonth = fix(p5 * real(daymo(mmonth)))  ! exact middle
-
-      ! Compute record numbers for surrounding months
-      maxrec = 12
-      ixm  = mod(mmonth+maxrec-2,maxrec) + 1
-      ixp  = mod(mmonth,         maxrec) + 1
-      if (mday >= midmonth) ixm = -99  ! other two points will be used
-      if (mday <  midmonth) ixp = -99
-
-      ! Determine whether interpolation will use values 1:2 or 2:3
-      ! recslot = 2 means we use values 1:2, with the current value (2)
-      !  in the second slot
-      ! recslot = 1 means we use values 2:3, with the current value (2)
-      !  in the first slot
-      recslot = 1                             ! latter half of month
-      if (mday < midmonth) recslot = 2        ! first half of month
-
-      ! Find interpolation coefficients
-      call interp_coeff_monthly (recslot)
-
-      ! Read 2 monthly values
-      readm = .false.
-      if (istep==1 .or. (mday==midmonth .and. msec==0)) readm = .true.
-
-      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
-             flw_file, cldf_data, field_loc_center, field_type_scalar)
-      call read_clim_data (readm, 0, ixm, mmonth, ixp,  &
-             rain_file, fsnow_data, field_loc_center, field_type_scalar)
-
-      call interpolate_data (cldf_data, cldf)
-      call interpolate_data (fsnow_data, fsnow)  ! units mm/s = kg/m^2/s
-
-    !-------------------------------------------------------------------
-    ! 6-hourly data
-    !
-    ! Assume that the 6-hourly value is located at the end of the
-    !  6-hour period.  This is the convention for NCEP reanalysis data.
-    !  E.g. record 1 gives conditions at 6 am GMT on 1 January.
-    !-------------------------------------------------------------------
-
-      dataloc = 2               ! data located at end of interval
-      sec6hr = secday/c4        ! seconds in 6 hours
-      maxrec = 1460             ! 365*4
-
-      ! current record number
-      recnum = 4*int(yday) - 3 + int(real(msec,kind=dbl_kind)/sec6hr)
-
-      ! Compute record numbers for surrounding data (2 on each side)
-
-      ixm = mod(recnum+maxrec-2,maxrec) + 1
-      ixx = mod(recnum-1,       maxrec) + 1
-!     ixp = mod(recnum,         maxrec) + 1
-
-      ! Compute interpolation coefficients
-      ! If data is located at the end of the time interval, then the
-      !  data value for the current record goes in slot 2
-
-      recslot = 2
-      ixp = -99
-      call interp_coeff (recnum, recslot, sec6hr, dataloc)
-
-      ! Read
-      read6 = .false.
-      if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
-
-      if (trim(atm_data_format) == 'bin') then
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         tair_file, Tair_data, &
-                         field_loc_center, field_type_scalar)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         uwind_file, uatm_data, &
-                         field_loc_center, field_type_vector)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         vwind_file, vatm_data, &
-                         field_loc_center, field_type_vector)
-         call read_data (read6, 0, fyear, ixm, ixx, ixp, maxrec, &
-                         humid_file, Qa_data, &
-                         field_loc_center, field_type_scalar)
-      else
-         call abort_ice (error_message=subname//'nonbinary atm_data_format unavailable', &
-            file=__FILE__, line=__LINE__)
+      ! this could be JRA55[do] or JRA55[do]_grid, drop the _grid if set
+      atm_data_type_prefix = trim(atm_data_type)
+      strind = index(trim(atm_data_type),'_')
+      if (strind > 0) then
+         atm_data_type_prefix = atm_data_type(1:strind-1)
       endif
 
-      ! Interpolate
-      call interpolate_data (Tair_data, Tair)
-      call interpolate_data (uatm_data, uatm)
-      call interpolate_data (vatm_data, vatm)
-      call interpolate_data (Qa_data, Qa)
+      ! check for grid version using fortran INDEX intrinsic
+      if (index(trim(atm_data_dir),'gx1') > 0) then
+         grd = 'gx1'
+      else if (index(trim(atm_data_dir),'gx3') > 0) then
+         grd = 'gx3'
+      else if (index(trim(atm_data_dir),'tx1') > 0) then
+         grd = 'tx1'
+      else
+         call abort_ice(error_message=subname//' unknown grid type')
+      endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-        ! limit summer Tair values where ice is present
-        do j = 1, ny_block
-          do i = 1, nx_block
-            if (aice(i,j,iblk) > p1) Tair(i,j,iblk) = min(Tair(i,j,iblk), Tffresh+p1)
-          enddo
-        enddo
+      ! cnt represents the possible file format options and steps thru them until one is found
+      exists = .false.
+      cnt = 1
+      do while (.not.exists .and. cnt <= 6)
+         if (cnt == 1) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
 
-        call Qa_fixLY(nx_block,  ny_block, &
-                                 Tair (:,:,iblk), &
-                                 Qa   (:,:,iblk))
+         if (cnt == 2) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
 
-        do j = 1, ny_block
-          do i = 1, nx_block
-            Qa  (i,j,iblk) = Qa  (i,j,iblk) * hm(i,j,iblk)
-            Tair(i,j,iblk) = Tair(i,j,iblk) * hm(i,j,iblk)
-            uatm(i,j,iblk) = uatm(i,j,iblk) * hm(i,j,iblk)
-            vatm(i,j,iblk) = vatm(i,j,iblk) * hm(i,j,iblk)
-          enddo
-        enddo
+         if (cnt == 3) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
 
-      ! AOMIP
-        this_block = get_block(blocks_ice(iblk),iblk)
-        ilo = this_block%ilo
-        ihi = this_block%ihi
-        jlo = this_block%jlo
-        jhi = this_block%jhi
+         if (cnt == 4) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
 
-        call compute_shortwave(nx_block, ny_block, &
-                               ilo, ihi, jlo, jhi, &
-                               TLON (:,:,iblk), &
-                               TLAT (:,:,iblk), &
-                               hm   (:,:,iblk), &
-                               Qa   (:,:,iblk), &
-                               cldf (:,:,iblk), &
-                               fsw  (:,:,iblk))
+         if (cnt == 5) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
 
-      enddo  ! iblk
-      !$OMP END PARALLEL DO
+         if (cnt == 6) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
 
-      ! Save record number
-      oldrecnum = recnum
+         call file_year(uwind_file,yr)
+         INQUIRE(FILE=uwind_file,EXIST=exists)
+!         if (my_task == master_task) then
+!            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
+!         endif
+         cnt = cnt + 1
+      enddo
 
-         if (debug_forcing) then
-           if (my_task == master_task) write (nu_diag,*) 'LY_bulk_data'
-           vmin = global_minval(fsw,distrb_info,tmask)
+      if (.not.exists) then
+         call abort_ice(error_message=subname//' could not find forcing file')
+      endif
 
-           vmax = global_maxval(fsw,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'fsw',vmin,vmax
-           vmin = global_minval(cldf,distrb_info,tmask)
-           vmax = global_maxval(cldf,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'cldf',vmin,vmax
-           vmin =global_minval(fsnow,distrb_info,tmask)
-           vmax =global_maxval(fsnow,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'fsnow',vmin,vmax
-           vmin = global_minval(Tair,distrb_info,tmask)
-           vmax = global_maxval(Tair,distrb_info,tmask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'Tair',vmin,vmax
-           vmin = global_minval(uatm,distrb_info,umask)
-           vmax = global_maxval(uatm,distrb_info,umask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'uatm',vmin,vmax
-           vmin = global_minval(vatm,distrb_info,umask)
-           vmax = global_maxval(vatm,distrb_info,umask)
-           if (my_task.eq.master_task) &
-               write (nu_diag,*) 'vatm',vmin,vmax
-           vmin = global_minval(Qa,distrb_info,tmask)
-           vmax = global_maxval(Qa,distrb_info,tmask)
-           if (my_task.eq.master_task)  &
-               write (nu_diag,*) 'Qa',vmin,vmax
+      if (my_task == master_task) then
+         write (nu_diag,'(2a)') ' '
+         write (nu_diag,'(2a)') subname,'Atmospheric data files:'
+         write (nu_diag,'(2a)') subname,trim(uwind_file)
+      endif
 
-        endif                   ! debug_forcing
+    end subroutine JRA55_files
 
-      end subroutine LY_data
-#endif
 !=======================================================================
 
       subroutine JRA55_data
@@ -2611,7 +2346,7 @@
 
       uwind_file_old = uwind_file
       if (uwind_file /= uwind_file_old .and. my_task == master_task) then
-         write(nu_diag,*) subname,' reading forcing file = ',trim(uwind_file)
+         write(nu_diag,'(2a)') subname,' reading forcing file = ',trim(uwind_file)
       endif
 
       call ice_open_nc(uwind_file,ncid)
@@ -2623,7 +2358,7 @@
          if (n1 == 1) then
             recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr)
             if (my_task == master_task .and. (recnum <= 2 .or. recnum >= maxrec-1)) then
-               write(nu_diag,*) subname,' reading forcing file 1st ts = ',trim(uwind_file)
+               write(nu_diag,'(3a)') subname,' reading forcing file 1st ts = ',trim(uwind_file)
             endif
          elseif (n1 == 2) then
             recnum = 8*int(yday) - 7 + int(real(msec,kind=dbl_kind)/sec3hr) + 1
@@ -2633,7 +2368,7 @@
                recnum = 1
                call file_year(uwind_file,lfyear)
                if (my_task == master_task) then
-                  write(nu_diag,*) subname,' reading forcing file 2nd ts = ',trim(uwind_file)
+                  write(nu_diag,'(3a)') subname,' reading forcing file 2nd ts = ',trim(uwind_file)
                endif
                call ice_close_nc(ncid)
                call ice_open_nc(uwind_file,ncid)
