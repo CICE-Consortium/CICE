@@ -115,6 +115,7 @@ module ice_dyn_evp1d
   subroutine dyn_evp1d_run(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                           L_strength,                                               &
                            L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -129,6 +130,7 @@ module ice_dyn_evp1d
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                           L_strength,                                               &
                            L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -138,6 +140,7 @@ module ice_dyn_evp1d
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                            G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                           G_strength,                                               &
                            G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -157,6 +160,7 @@ module ice_dyn_evp1d
    call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                     L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                     L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                    L_strength,                                               &
                     L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                     L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                     L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -165,21 +169,24 @@ module ice_dyn_evp1d
                     G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                     G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                     G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                    G_strength,                                               &
                     G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                     G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                     G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                     G_Tbu       , G_Cb        , G_uvel     , G_vvel     ,     &
                     G_iceTmask,  G_iceUmask)
     call set_skipMe(G_iceTmask, G_iceUmask,nActive)
-    call convert_2d_1d_dyn(nActive,                                                   &
-                           G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,      &
-                           G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,      &
-                           G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4,      &
+    call convert_2d_1d_dyn(nActive,                                                    &
+                           G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,     &
+                           G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,     &
+                           G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4,     &
+                           G_strength,                                                 &
                            G_cdn_ocn   , G_aiu       , G_uocn     ,  G_vocn     ,      &
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
                            G_Tbu       , G_Cb        , G_uvel     , G_vvel)
     do ksub = 1,ndte        ! subcycling
+
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
                    HTE, HTN, HTEm1, HTNm1,                                       &
@@ -211,6 +218,7 @@ module ice_dyn_evp1d
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                            G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                           G_strength,                                               &
                            G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -250,17 +258,19 @@ module ice_dyn_evp1d
  subroutine dyn_evp2d_dump(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                             L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                             L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                            L_strength,                                               &
                             L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                             L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                             L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
                             L_Tbu       , L_Cb        , L_uvel     , L_vvel     ,     &
-                            L_iceTmask  , L_iceUmask)
+                            L_iceTmask  , L_iceUmask, mydebugF)
     use debug_evp1d, only : dumpall
     implicit none
     real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                           L_strength,                                               &
                            L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -270,17 +280,19 @@ module ice_dyn_evp1d
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                            G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                           G_strength,                                               &
                            G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                            G_Tbu       , G_Cb        , G_uvel     , G_vvel
-    character(10),parameter :: mydebugfile1='after2d'
+     character(10), intent(in)  :: mydebugF
     ! These are dummy here
     logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask
 
     call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                     L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                     L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                    L_strength,                                               &
                     L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                     L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                     L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -289,6 +301,7 @@ module ice_dyn_evp1d
                     G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                     G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                     G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                    G_strength,                                               &
                     G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                     G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                     G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -297,7 +310,7 @@ module ice_dyn_evp1d
 
 ! this is called after ts is updated
 ! this is called after ts is updated
-    call dumpall(mydebugfile1, ts-1, nx, ny, iu06,                             &
+    call dumpall(mydebugF, ts-1, nx, ny, iu06,                             &
                     G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
                     G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
                     G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
@@ -522,7 +535,6 @@ module ice_dyn_evp1d
       if (.not. (iceUmask(i,j))) skipUcell(iw)=.true.
    enddo
     write(iu06,*) 'number of Active points', niw
-
 #ifdef dumjegskalnokslettes
     do i=1+nghost,nx
       do j=1+nghost,ny
@@ -643,6 +655,7 @@ module ice_dyn_evp1d
   subroutine gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                         L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                         L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                        L_strength,                                               &
                         L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                         L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                         L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -651,6 +664,7 @@ module ice_dyn_evp1d
                         G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                         G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                         G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                        G_strength,                                               &
                         G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                         G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                         G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -665,6 +679,7 @@ module ice_dyn_evp1d
                             L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                             L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                             L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                            L_strength,                                               &
                             L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                             L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                             L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
@@ -677,6 +692,7 @@ module ice_dyn_evp1d
                             G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                             G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                             G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                            G_strength,                                               &
                             G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                             G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                             G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -698,6 +714,7 @@ module ice_dyn_evp1d
     call gather_global_ext(G_stress12_2,     L_stress12_2,     master_task, distrb_info)
     call gather_global_ext(G_stress12_3,     L_stress12_3,     master_task, distrb_info)
     call gather_global_ext(G_stress12_4,     L_stress12_4,     master_task, distrb_info)
+    call gather_global_ext(G_strength  ,     L_strength  ,     master_task, distrb_info)
 
     call gather_global_ext(G_cdn_ocn   ,     L_cdn_ocn   ,     master_task, distrb_info)
     call gather_global_ext(G_aiu       ,     L_aiu       ,     master_task, distrb_info)
@@ -802,6 +819,7 @@ module ice_dyn_evp1d
               G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4 ,  &
               G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4 ,  &
               G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,  &
+              G_strength,                                             &
               G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn      ,  &
               G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,  &
               G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,  &
@@ -815,6 +833,7 @@ module ice_dyn_evp1d
                             G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                             G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                             G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                            G_strength,                                               &
                             G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                             G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                             G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -840,7 +859,7 @@ module ice_dyn_evp1d
          stress12_2(iw) = G_stress12_2(i, j)
          stress12_3(iw) = G_stress12_3(i, j)
          stress12_4(iw) = G_stress12_4(i, j)
-
+         strength(iw)   = G_strength(i,j)
          cdn_ocn(iw)    = G_cdn_ocn(i, j)
          aiu(iw)        = G_aiu(i, j)
          uocn(iw)       = G_uocn(i, j)
@@ -866,6 +885,7 @@ subroutine convert_1d_2d_dyn(na0, &
               G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
               G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
               G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+              G_strength,                                               &
               G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
               G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
               G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -878,6 +898,7 @@ subroutine convert_1d_2d_dyn(na0, &
                             G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                             G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                             G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                            G_strength,                                               &
                             G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                             G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                             G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
@@ -904,7 +925,7 @@ subroutine convert_1d_2d_dyn(na0, &
          G_stress12_2(i,j) = stress12_2(iw)
          G_stress12_3(i,j) = stress12_3(iw)
          G_stress12_4(i,j) = stress12_4(iw)
-
+         G_strength(i,j)   = strength(iw)
          G_cdn_ocn(i,j)    = cdn_ocn(iw)
          G_aiu(i,j)        = aiu(iw)
          G_uocn(i,j)       = uocn(iw)

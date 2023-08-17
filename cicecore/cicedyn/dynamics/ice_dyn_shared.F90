@@ -2303,15 +2303,14 @@
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
 
       subroutine visc_replpress(strength, DminArea, Delta, &
-                                zetax2, etax2, rep_prs, capping)
+                                zetax2, etax2, rep_prs)
 
       real (kind=dbl_kind), intent(in)::  &
          strength, & !
          DminArea    !
 
       real (kind=dbl_kind), intent(in)::  &
-         Delta   , & !
-         capping     !
+         Delta  
 
       real (kind=dbl_kind), intent(out):: &
          zetax2  , & ! bulk viscosity

@@ -295,8 +295,12 @@
          this_block   ! block information for current block
 
       character(len=*), parameter :: subname = '(evp)'
-
+#ifdef integrate
+    character(10),parameter :: mydebugfile3='before2d'
+    character(10),parameter :: mydebugfile4='after2d'
+#endif
       call ice_timer_start(timer_dynamics) ! dynamics
+
 
       !-----------------------------------------------------------------
       ! Initialize
@@ -797,7 +801,8 @@
        call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3, stressp_4,     &
                           stressm_1 , stressm_2 , stressm_3, stressm_4,     &
                           stress12_1, stress12_2, stress12_3,stress12_4,    &
-                          cdn_ocn   , aiu       , uocn     , vocn     ,     &
+                          strength,                                         &
+                          cdn_ocnU   , aiu       , uocn     , vocn     ,    &
                           waterxU   , wateryU   , forcexU  , forceyU  ,     &
                           umassdti  , fmU       , strintxU , strintyU ,     &
                           Tbu       , Tbu       , uvel    , vvel      ,     &
@@ -813,23 +818,22 @@
          endif
 
          call ice_timer_start(timer_evp_1d)
-         call ice_dyn_evp_1d_copyin(                                      &
+         call ice_dyn_evp_1d_copyin(                                         &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-            iceTmask, iceUmask,                                           &
-            cdn_ocnU,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                  &
+            iceTmask, iceUmask,                                              &
+            cdn_ocnU,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                    &
             umassdti,fmU,uarear,tarear,strintxU,strintyU,uvel_init,vvel_init,&
-            strength,uvel,vvel,dxT,dyT,                                   &
-            stressp_1 ,stressp_2, stressp_3, stressp_4,                   &
-            stressm_1 ,stressm_2, stressm_3, stressm_4,                   &
+            strength,uvel,vvel,dxT,dyT,                                      &
+            stressp_1 ,stressp_2, stressp_3, stressp_4,                      &
+            stressm_1 ,stressm_2, stressm_3, stressm_4,                      &
             stress12_1,stress12_2,stress12_3,stress12_4                   )
          call ice_dyn_evp_1d_kernel()
-         call ice_dyn_evp_1d_copyout(                                     &
+         call ice_dyn_evp_1d_copyout(                                        &
             nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-!strocn            uvel,vvel, strocnxU,strocnyU, strintxU,strintyU,       &
-            uvel,vvel, strintxU,strintyU,                                 &
-            stressp_1, stressp_2, stressp_3, stressp_4,                   &
-            stressm_1, stressm_2, stressm_3, stressm_4,                   &
-            stress12_1,stress12_2,stress12_3,stress12_4,                  &
+            uvel,vvel, strintxU,strintyU,                                    &
+            stressp_1, stressp_2, stressp_3, stressp_4,                      &
+            stressm_1, stressm_2, stressm_3, stressm_4,                      &
+            stress12_1,stress12_2,stress12_3,stress12_4,                     &
             divu,rdg_conv,rdg_shear,shear,taubxU,taubyU                   )
          call ice_timer_stop(timer_evp_1d)
 
@@ -838,7 +842,19 @@
          call ice_timer_start(timer_evp_2d)
 
          if (grid_ice == "B") then
+#ifdef integrate
+            call dyn_evp2d_dump(stressp_1, stressp_2 , stressp_3, stressp_4,     &
+                                stressm_1 , stressm_2 , stressm_3, stressm_4,    &
+                                stress12_1, stress12_2, stress12_3,stress12_4,   &
+                                strength,                                        &
+                                Cdn_ocnU   , aiu       , uocn     , vocn     ,   &
+                                waterxU   , wateryU   , forcexU  , forceyU  ,    &
+                                umassdti  , fmU       , strintxU , strintyU ,    &
+                                Tbu       , Tbu        , uvel     , vvel     ,   &
+                      icetmask  , iceUmask,mydebugfile3)
+#endif
 
+        
             do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
@@ -886,14 +902,15 @@
                enddo  ! iblk
                !$OMP END PARALLEL DO
 #ifdef integrate
-              call dyn_evp2d_dump(stressp_1, stressp_2 , stressp_3, stressp_4,     &
-                      stressm_1 , stressm_2 , stressm_3, stressm_4,     &
-                      stress12_1, stress12_2, stress12_3,stress12_4,    &
-                      cdn_ocn   , aiu       , uocn     , vocn     ,     &
-                      waterxU   , wateryU   , forcexU  , forceyU  ,     &
-                      umassdti  , fmU       , strintxU , strintyU ,     &
-                      Tbu       , Tbu        , uvel     , vvel     ,     &
-                      icetmask  , iceUmask)
+              call dyn_evp2d_dump(stressp_1 , stressp_2 , stressp_3 ,stressp_4 ,&
+                                  stressm_1 , stressm_2 , stressm_3 ,stressm_4 ,&
+                                  stress12_1, stress12_2, stress12_3,stress12_4,&
+                                  strength  ,                                   &
+                                  cdn_ocnU  , aiu       , uocn      , vocn     ,&
+                                  waterxU   , wateryU   , forcexU   , forceyU  ,&
+                                  umassdti  , fmU       , strintxU  , strintyU ,&
+                                  Tbu       , Tbu       , uvel      , vvel     ,&
+                                  icetmask  , iceUmask,mydebugfile4)
 #endif
 
                ! U fields at NE corner
@@ -1461,7 +1478,7 @@
                          stress12_3, stress12_4, &
                          str )
 
-      use ice_dyn_shared, only: strain_rates, visc_replpress, capping
+      use ice_dyn_shared, only: strain_rates, visc_replpress, capping, ktens, epp2i
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1524,7 +1541,7 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
-
+      
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
@@ -1549,21 +1566,22 @@
                             Deltane,    Deltanw,    &
                             Deltase,    Deltasw     )
 
+
          !-----------------------------------------------------------------
          ! viscosities and replacement pressure
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), Deltane, &
-                              zetax2ne, etax2ne, rep_prsne, capping)
+                              zetax2ne, etax2ne, rep_prsne)
 
          call visc_replpress (strength(i,j), DminTarea(i,j), Deltanw, &
-                              zetax2nw, etax2nw, rep_prsnw, capping)
+                              zetax2nw, etax2nw, rep_prsnw)
 
          call visc_replpress (strength(i,j), DminTarea(i,j), Deltasw, &
-                              zetax2sw, etax2sw, rep_prssw, capping)
+                              zetax2sw, etax2sw, rep_prssw)
 
          call visc_replpress (strength(i,j), DminTarea(i,j), Deltase, &
-                              zetax2se, etax2se, rep_prsse, capping)
+                              zetax2se, etax2se, rep_prsse)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1758,7 +1776,7 @@
                              stresspT   , stressmT  , &
                              stress12T)
 
-      use ice_dyn_shared, only: strain_rates_T, capping, &
+      use ice_dyn_shared, only: strain_rates_T, &
                                 visc_replpress, e_factor
 
       integer (kind=int_kind), intent(in) :: &
@@ -1851,7 +1869,7 @@
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                              zetax2T (i,j), etax2T(i,j), rep_prsT, capping)
+                              zetax2T (i,j), etax2T(i,j), rep_prsT)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1894,7 +1912,7 @@
                              stress12U)
 
       use ice_dyn_shared, only: visc_replpress, &
-                                visc_method, deltaminEVP, capping
+                                visc_method, deltaminEVP
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1950,7 +1968,7 @@
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
             call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
-                                 lzetax2U      , letax2U  , lrep_prsU  , capping)
+                                 lzetax2U      , letax2U  , lrep_prsU)
             stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
                              + arlx1i*p5*letax2U*shearU(i,j)) * denom1
          enddo
@@ -1978,7 +1996,7 @@
                              stresspT,   stressmT , &
                              stress12T)
 
-      use ice_dyn_shared, only: strain_rates_T, capping, &
+      use ice_dyn_shared, only: strain_rates_T, &
                                 visc_replpress
 
       integer (kind=int_kind), intent(in) :: &
@@ -2048,7 +2066,7 @@
          !-----------------------------------------------------------------
 
          call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT(i,j), &
-                              zetax2T (i,j), etax2T(i,j), rep_prsT   , capping)
+                              zetax2T (i,j), etax2T(i,j), rep_prsT)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -2087,7 +2105,7 @@
                              stress12U)
 
       use ice_dyn_shared, only: visc_replpress, &
-                                visc_method, deltaminEVP, capping
+                                visc_method, deltaminEVP
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -2145,7 +2163,7 @@
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
             call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
-                                 lzetax2U      , letax2U  , lrep_prsU  , capping)
+                                 lzetax2U      , letax2U  , lrep_prsU )
          endif
 
          !-----------------------------------------------------------------
