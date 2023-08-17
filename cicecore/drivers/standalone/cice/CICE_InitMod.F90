@@ -93,11 +93,16 @@
       use ice_transport_driver, only: init_transport
 ! additional variables needed for integration.
 #if integrate
-      use ice_blocks, only: nx_block, ny_block
+      use ice_blocks, only: nx_block, ny_block, nghost
       use ice_dyn_evp1d, only : dyn_evp1d_init
-      use ice_domain_size, only: nx_global, ny_global
-      use ice_domain_size, only: max_blocks
-      use ice_blocks, only : nghost
+      use ice_domain_size, only: nx_global, ny_global, max_blocks
+      use ice_grid, only: tmask, dxT, dyT, tmask, uarear, G_HTE, G_HTN
+      use ice_dyn_shared, only: ndte
+#else
+      use ice_dyn_shared, only: evp_algorithm
+      use ice_blocks, only: nx_block, ny_block, nghost
+      use ice_dyn_evp1d, only : dyn_evp1d_init
+      use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_grid, only: tmask, dxT, dyT, tmask, uarear, G_HTE, G_HTN
       use ice_dyn_shared, only: ndte
 #endif
@@ -147,6 +152,12 @@
       call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
                           dyT, dxT, uarear, tmask,   &
                           G_HTE, G_HTN)
+#else
+         if (evp_algorithm == "shared_mem_1d" ) then
+            call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
+                               dyT, dxT, uarear, tmask,   &
+                               G_HTE, G_HTN)
+         endif
 #endif
       else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables
