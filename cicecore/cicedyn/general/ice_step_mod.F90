@@ -275,7 +275,7 @@
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, &
-         tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
+         tr_pond_lvl, tr_pond_topo, calc_Tsfc, snwgrain
 
       real (kind=dbl_kind) :: &
          puny               ! a very small number
@@ -296,13 +296,12 @@
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc)
-      call icepack_query_parameters(highfreq_out=highfreq)
+      call icepack_query_parameters(snwgrain_out=snwgrain)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
-         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
-         tr_snow_out=tr_snow)
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices( &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
@@ -357,7 +356,7 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tr_snow) then
+         if (snwgrain) then
             do n = 1, ncat
                do k = 1, nslyr
                   rsnwn (k,n) = trcrn(i,j,nt_rsnw +k-1,n,iblk)
@@ -365,7 +364,7 @@
                   smliqn(k,n) = trcrn(i,j,nt_smliq+k-1,n,iblk)
                enddo
             enddo
-         endif ! tr_snow
+         endif ! snwgrain
 
          if (tr_iso) then ! trcrn(nt_iso*) has units kg/m^3
             do n=1,ncat
@@ -556,7 +555,7 @@
 
          endif
 
-         if (tr_snow) then
+         if (snwgrain) then
             do n = 1, ncat
                do k = 1, nslyr
                   trcrn(i,j,nt_rsnw +k-1,n,iblk) = rsnwn (k,n)
@@ -564,7 +563,7 @@
                   trcrn(i,j,nt_smliq+k-1,n,iblk) = smliqn(k,n)
                enddo
             enddo
-         endif ! tr_snow
+         endif ! snwgrain
 
          if (tr_iso) then
             do n = 1, ncat

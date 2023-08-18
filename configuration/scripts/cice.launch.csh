@@ -119,14 +119,14 @@ EOFR
 endif
 
 #=======
-else if (${ICE_MACHCOMP} =~ badger*) then
+else if (${ICE_MACHCOMP} =~ chicoma*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 else
 cat >> ${jobfile} << EOFR
-mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 

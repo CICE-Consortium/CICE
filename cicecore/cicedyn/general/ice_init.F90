@@ -1356,7 +1356,7 @@
          abort_list = trim(abort_list)//":8"
       endif
 
-      if (snwredist(1:4) /= 'none' .and. .not. tr_snow) then
+      if (snwredist(1:3) == 'ITD' .and. .not. tr_snow) then
          if (my_task == master_task) then
             write (nu_diag,*) 'ERROR: snwredist on but tr_snow=F'
             write (nu_diag,*) 'ERROR: Use tr_snow=T for snow redistribution'
