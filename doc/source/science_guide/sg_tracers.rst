@@ -119,4 +119,4 @@ Users may add any number of additional tracers that are transported conservative
 provided that the dependency ``trcr_depend`` is defined appropriately. 
 See Section :ref:`addtrcr` for guidance on adding tracers.
 
-Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, advanced snow physics, age of the ice, aerosols, water isotopes, brine height, and the sea ice ecosystem.
+Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_ for additional information about tracers that depend on other tracers, the floe size distribution, advanced snow physics, age of the ice, aerosols, water isotopes, brine height, and the sea ice ecosystem.
