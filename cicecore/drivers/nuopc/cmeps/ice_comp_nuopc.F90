@@ -1186,6 +1186,8 @@ contains
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
     if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ', wtime)
+    call ufs_settimer(wtime)
+
   end subroutine ModelAdvance
 
   !===============================================================================
