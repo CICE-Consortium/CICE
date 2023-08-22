@@ -611,7 +611,7 @@
 
       subroutine step_therm2 (dt, iblk)
 
-      use ice_arrays_column, only: hin_max, fzsal, ocean_bio, wave_sig_ht, &
+      use ice_arrays_column, only: hin_max, ocean_bio, wave_sig_ht, &
           wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
@@ -644,15 +644,14 @@
 
       logical (kind=log_kind) :: &
          tr_fsd,          & ! floe size distribution tracers
-         z_tracers,       & ! vertical biogeochemistry
-         solve_zsal         ! zsalinity
+         z_tracers          ! vertical biogeochemistry
 
       type (block) :: &
          this_block         ! block information for current block
 
       character(len=*), parameter :: subname = '(step_therm2)'
 
-      call icepack_query_parameters(z_tracers_out=z_tracers,solve_zsal_out=solve_zsal)
+      call icepack_query_parameters(z_tracers_out=z_tracers)
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr, nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
       call icepack_warnings_flush(nu_diag)
@@ -660,7 +659,7 @@
          file=__FILE__, line=__LINE__)
 
       ! nltrcr is only used as a zbgc flag in icepack (number of zbgc tracers > 0)
-      if (z_tracers .or. solve_zsal) then
+      if (z_tracers) then
          nltrcr = 1
       else
          nltrcr = 0
@@ -716,7 +715,6 @@
                       igrid      = igrid,                  &
                       faero_ocn  = faero_ocn (i,j,:,iblk), &
                       first_ice  = first_ice (i,j,:,iblk), &
-                      fzsal      = fzsal     (i,j,  iblk), &
                       flux_bio   = flux_bio  (i,j,1:nbtrcr,iblk), &
                       ocean_bio  = ocean_bio (i,j,1:nbtrcr,iblk), &
                       frazil_diag= frazil_diag(i,j,iblk),  &
@@ -1038,7 +1036,7 @@
 
       subroutine step_dyn_ridge (dt, ndtd, iblk)
 
-      use ice_arrays_column, only: hin_max, fzsal, first_ice
+      use ice_arrays_column, only: hin_max, first_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
@@ -1135,7 +1133,6 @@
                          aice      = aice     (i,j,  iblk), &
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
-                         fzsal     = fzsal    (i,j,  iblk), &
                          flux_bio  = flux_bio (i,j,1:nbtrcr,iblk))
 
          endif ! tmask
@@ -1614,12 +1611,12 @@
       subroutine biogeochemistry (dt, iblk)
 
       use ice_arrays_column, only: upNO, upNH, iDi, iki, zfswin, &
-                           zsal_tot, darcy_V, grow_net,  &
+                           darcy_V, grow_net,  &
                            PP_net, hbri,dhbr_bot, dhbr_top, Zoo,&
                            fbio_snoice, fbio_atmice, ocean_bio,  &
                            first_ice, fswpenln, bphi, bTiz, ice_bio_net,  &
-                           snow_bio_net, fswthrun, Rayleigh_criteria, &
-                           ocean_bio_all, sice_rho, fzsal, fzsal_g, &
+                           snow_bio_net, fswthrun, &
+                           ocean_bio_all, sice_rho, &
                            bgrid, igrid, icgrid, cgrid
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                                  n_doc, n_dic,  n_don, n_fed, n_fep
@@ -1716,7 +1713,6 @@
                               iDi          = iDi         (i,j,:,:,      iblk), &
                               iki          = iki         (i,j,:,:,      iblk), &
                               zfswin       = zfswin      (i,j,:,:,      iblk), &
-                              zsal_tot     = zsal_tot    (i,j,          iblk), &
                               darcy_V      = darcy_V     (i,j,:,        iblk), &
                               grow_net     = grow_net    (i,j,          iblk), &
                               PP_net       = PP_net      (i,j,          iblk), &
@@ -1735,8 +1731,6 @@
                               snow_bio_net = snow_bio_net(i,j,1:nbtrcr, iblk), &
                               fswthrun     = fswthrun    (i,j,:,        iblk), &
                               sice_rho     = sice_rho    (i,j,:,        iblk), &
-                              fzsal        = fzsal       (i,j,          iblk), &
-                              fzsal_g      = fzsal_g     (i,j,          iblk), &
                               meltbn       = meltbn      (i,j,:,        iblk), &
                               melttn       = melttn      (i,j,:,        iblk), &
                               congeln      = congeln     (i,j,:,        iblk), &
@@ -1756,7 +1750,6 @@
                               aice0        = aice0       (i,j,          iblk), &
                               trcrn        = trcrn       (i,j,:,:,      iblk), &
                               vsnon_init   = vsnon_init  (i,j,:,        iblk), &
-                              Rayleigh_criteria = Rayleigh_criteria(i,j,iblk), &
                               skl_bgc      = skl_bgc)
 
       enddo               ! i
