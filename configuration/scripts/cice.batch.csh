@@ -33,6 +33,21 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
+else if (${ICE_MACHINE} =~ derecho*) then
+cat >> ${jobfile} << EOFB
+#PBS -q ${queue}
+#PBS -l job_priority=regular
+#PBS -N ${ICE_CASENAME}
+#PBS -A ${acct}
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l walltime=${batchtime}
+#PBS -j oe
+#PBS -W umask=022
+#PBS -o ${ICE_CASEDIR}
+###PBS -M username@domain.com
+###PBS -m be
+EOFB
+
 else if (${ICE_MACHINE} =~ gust*) then
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}
@@ -169,7 +184,7 @@ cat >> ${jobfile} <<EOFB
 ###SBATCH --mail-user username@domain.com
 EOFB
 
-else if (${ICE_MACHINE} =~ badger*) then
+else if (${ICE_MACHINE} =~ chicoma*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH -t ${batchtime}
@@ -179,7 +194,9 @@ cat >> ${jobfile} << EOFB
 #SBATCH -o slurm%j.out
 ###SBATCH --mail-type END,FAIL
 ###SBATCH --mail-user=eclare@lanl.gov
-#SBATCH --qos=standby
+##SBATCH --qos=debug
+#SBATCH --qos=standard
+##SBATCH --qos=standby
 EOFB
 
 else if (${ICE_MACHINE} =~ fram*) then

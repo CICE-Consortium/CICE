@@ -16,6 +16,7 @@
 set filearg = 0
 set cicefile = 0
 set notcicefile = "notcicefile"
+set modcicefile = "modcicefile"
 if ( $#argv == 2 ) then
   set cicefile = 1
   set filearg = 1
@@ -23,12 +24,18 @@ if ( $#argv == 2 ) then
   set test_data = $argv[2]
   if ("$argv[1]" == "${notcicefile}") set filearg = 0
   if ("$argv[2]" == "${notcicefile}") set filearg = 0
+  if ("$argv[1]" == "${modcicefile}") set filearg = 0
+  if ("$argv[2]" == "${modcicefile}") set filearg = 0
 else if ( $#argv == 3 ) then
   set cicefile = 0
   set filearg = 1
   set base_data = $argv[1]
   set test_data = $argv[2]
-  if ("$argv[3]" != "${notcicefile}") set filearg = 0
+  if ("$argv[3]" == "${modcicefile}") then
+     set cicefile = 2
+  else if ("$argv[3]" != "${notcicefile}") then
+     set filearg = 0
+  endif
 endif
 
 if (${filearg} == 0) then
@@ -57,6 +64,9 @@ if (${filearg} == 1) then
       if (${cicefile} == 1) then
         cat ${base_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" | grep -iv "init_vert" | grep -iv "ridge_ice"  >&! ${base_out}
         cat ${test_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e istep1: -e = | grep -iv "min, max, sum" | grep -iv "init_vert" | grep -iv "ridge_ice"  >&! ${test_out}
+      else if (${cicefile} == 2) then
+        cat ${base_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e "total " -e "arwt " -e "max " -e "kinetic"  >&! ${base_out}
+        cat ${test_data} | grep -A 99999999 "total ice area  (km^2)" | grep -e "total " -e "arwt " -e "max " -e "kinetic"  >&! ${test_out}
       else
         sed -n '/RunningUnitTest/,$p' ${base_data} >! ${base_out}
         sed -n '/RunningUnitTest/,$p' ${test_data} >! ${test_out}

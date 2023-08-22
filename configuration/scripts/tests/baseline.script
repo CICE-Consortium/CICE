@@ -33,8 +33,13 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     echo "base_file: ${base_file}"
     echo "test_file: ${test_file}"
 
-    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} notcicefile
-    set bfbstatus = $status
+    if (${ICE_TARGET} == "opticep") then
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} modcicefile
+       set bfbstatus = $status
+    else
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} notcicefile
+       set bfbstatus = $status
+    endif
 
   else if (${ICE_BFBTYPE} =~ qcchk*) then
     set test_dir = ${ICE_RUNDIR}
@@ -160,8 +165,13 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     echo "base_file: ${base_file}"
     echo "test_file: ${test_file}"
 
-    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
-    set bfbstatus = $status
+    if (${ICE_TARGET} == "opticep") then
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} modcicefile
+       set bfbstatus = $status
+    else
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+       set bfbstatus = $status
+    endif
 
   else if (${ICE_BFBTYPE} == "logrest") then
     set test_file = `ls -1t ${ICE_RUNDIR}/cice.runlog* | head -1`
@@ -172,8 +182,13 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     echo "base_file: ${base_file}"
     echo "test_file: ${test_file}"
 
-    ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
-    set bfbstatusl = $status
+    if (${ICE_TARGET} == "opticep") then
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file} modcicefile
+       set bfbstatus = $status
+    else
+       ${ICE_CASEDIR}/casescripts/comparelog.csh ${base_file} ${test_file}
+       set bfbstatusl = $status
+    endif
 
     set test_dir = ${ICE_RUNDIR}/restart
     set base_dir = ${ICE_RUNDIR}/../${ICE_BFBCOMP}.${ICE_TESTID}/restart

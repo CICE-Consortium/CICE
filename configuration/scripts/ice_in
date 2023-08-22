@@ -53,6 +53,7 @@
     history_file   = 'iceh'
     history_precision = 4
     history_format = 'default'
+    hist_time_axis = 'end'
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'

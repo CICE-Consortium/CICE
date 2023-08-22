@@ -8,7 +8,7 @@ Testing CICE
 This section documents primarily how to use the CICE scripts to carry 
 out CICE testing.  Exactly what to test is a separate question and
 depends on the kinds of code changes being made.  Prior to merging
-changes to the CICE Consortium master, changes will be reviewed and
+changes to the CICE Consortium main, changes will be reviewed and
 developers will need to provide a summary of the tests carried out.
 
 There is a base suite of tests provided by default with CICE and this
@@ -455,7 +455,7 @@ validation process.  However, a full test suite should be run on the final devel
 version of the code.
 
 To report the test results, as is required for Pull Requests to be accepted into 
-the master the CICE Consortium code see :ref:`testreporting`.
+the main the CICE Consortium code see :ref:`testreporting`.
 
 If using the ``--tdir`` option, that directory must not exist before the script is run.  The tdir directory will be
 created by the script and it will be populated by all tests as well as scripts that support the
@@ -578,7 +578,7 @@ Test Suite Examples
     the subdirectory cice.v01a. With the ``--bcmp`` option, the results will be tested
     against prior baselines to verify bit-for-bit, which is an important step prior 
     to approval of many (not all, see :ref:`validation`) Pull Requests to incorporate code into 
-    the CICE Consortium master code. You can use other regression options as well.
+    the CICE Consortium main branch. You can use other regression options as well.
     (``--bdir`` and ``--bgen``)
 
  10) **Basic test suite, use of default string in regression testing**
@@ -603,7 +603,7 @@ Test Suite Examples
       set mydate = `date -u "+%Y%m%d"`
       git clone https://github.com/myfork/cice cice.$mydate --recursive
       cd cice.$mydate
-      ./cice.setup --suite base_suite --mach conrad --env cray,gnu,intel,pgi --testid $mydate --bcmp default --bgen default --bdir /tmp/work/user/CICE_BASELINES_MASTER
+      ./cice.setup --suite base_suite --mach conrad --env cray,gnu,intel,pgi --testid $mydate --bcmp default --bgen default --bdir /tmp/work/user/CICE_BASELINES_MAIN
 
     When this is invoked, a new set of baselines will be generated and compared to the prior
     results each time without having to change the arguments.
@@ -742,6 +742,8 @@ The following are brief descriptions of some of the current unit tests,
    in the Makefile
  - **optargs** is a unit test that tests passing optional arguments down a calling tree and verifying
    that the optional attribute is preserved correctly.
+ - **opticep** is a cice test that turns off the icepack optional arguments passed into icepack.  This
+   can only be run with a subset of CICE/Icepack cases to verify the optional arguments are working correctly.
  - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
    that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
    the model prior to running a suite of unit validation tests to verify correctness.
@@ -757,7 +759,7 @@ to the official CICE Consortium Test-Results
 `wiki page <https://github.com/CICE-Consortium/Test-Results/wiki>`_.
 You may need write permission on the wiki. If you are interested in using the
 wiki, please contact the Consortium. Note that in order for code to be 
-accepted to the CICE master through a Pull Request it is necessary
+accepted to the CICE main branch through a Pull Request it is necessary
 for the developer to provide proof that their code passes relevant tests.
 This can be accomplished by posting the full results to the wiki, or
 by copying the testing summary to the Pull Request comments. 
@@ -824,7 +826,7 @@ assess test coverage.
 ..Because codecov.io does not support git submodule analysis right now, a customized
 ..repository has to be created to test CICE with Icepack integrated directly.  The repository 
 ..https://github.com/apcraig/Test_CICE_Icepack serves as the current default test repository.
-..In general, to setup the code coverage test in CICE, the current CICE master has
+..In general, to setup the code coverage test in CICE, the current CICE main has
 ..to be copied into the Test_CICE_Icepack repository, then the full test suite
 ..can be run with the gnu compiler with the ``--coverage`` argument.
 

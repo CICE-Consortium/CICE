@@ -132,6 +132,8 @@
                                        time_end(max_nstrm), &
                                        time_bounds(2)
 
+      character (len=char_len), public :: hist_time_axis
+
       real (kind=dbl_kind), allocatable, public :: &
          a2D (:,:,:,:)    , & ! field accumulations/averages, 2D
          a3Dz(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical

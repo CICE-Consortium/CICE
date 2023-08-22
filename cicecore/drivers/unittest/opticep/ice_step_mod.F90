@@ -190,10 +190,10 @@
                         alidr_ai = alidr_ai(i,j,    iblk), alidf_ai = alidf_ai(i,j,    iblk), &
                         fswsfcn  = fswsfcn (i,j,  :,iblk), fswintn  = fswintn (i,j,  :,iblk), &
                         fswthrun = fswthrun(i,j,  :,iblk), &
-                        fswthrun_vdr = fswthrun_vdr(i,j,  :,iblk), &
-                        fswthrun_vdf = fswthrun_vdf(i,j,  :,iblk), &
-                        fswthrun_idr = fswthrun_idr(i,j,  :,iblk), &
-                        fswthrun_idf = fswthrun_idf(i,j,  :,iblk), &
+!opt                        fswthrun_vdr = fswthrun_vdr(i,j,  :,iblk), &
+!opt                        fswthrun_vdf = fswthrun_vdf(i,j,  :,iblk), &
+!opt                        fswthrun_idr = fswthrun_idr(i,j,  :,iblk), &
+!opt                        fswthrun_idf = fswthrun_idf(i,j,  :,iblk), &
                         fswpenln = fswpenln(i,j,:,:,iblk), &
                         Sswabsn  = Sswabsn (i,j,:,:,iblk), Iswabsn  = Iswabsn (i,j,:,:,iblk))
 
@@ -413,25 +413,25 @@
                       ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   &
                       iage         = trcrn       (i,j,nt_iage,:,iblk),                   &
                       FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   &
-                      rsnwn        = rsnwn       (:,:),        &
-                      smicen       = smicen      (:,:),        &
-                      smliqn       = smliqn      (:,:),        &
+!opt                      rsnwn        = rsnwn       (:,:),        &
+!opt                      smicen       = smicen      (:,:),        &
+!opt                      smliqn       = smliqn      (:,:),        &
                       aerosno      = aerosno     (:,:,:),      &
                       aeroice      = aeroice     (:,:,:),      &
-                      isosno       = isosno      (:,:),        &
-                      isoice       = isoice      (:,:),        &
+!opt                      isosno       = isosno      (:,:),        &
+!opt                      isoice       = isoice      (:,:),        &
                       uatm         = uatmT       (i,j,  iblk), &
                       vatm         = vatmT       (i,j,  iblk), &
                       wind         = wind        (i,j,  iblk), &
                       zlvl         = zlvl        (i,j,  iblk), &
-                      zlvs         = zlvs        (i,j,  iblk), &
+!opt                      zlvs         = zlvs        (i,j,  iblk), &
                       Qa           = Qa          (i,j,  iblk), &
-                      Qa_iso       = Qa_iso      (i,j,:,iblk), &
+!opt                      Qa_iso       = Qa_iso      (i,j,:,iblk), &
                       rhoa         = rhoa        (i,j,  iblk), &
                       Tair         = Tair        (i,j,  iblk), &
                       Tref         = Tref        (i,j,  iblk), &
                       Qref         = Qref        (i,j,  iblk), &
-                      Qref_iso     = Qref_iso    (i,j,:,iblk), &
+!opt                      Qref_iso     = Qref_iso    (i,j,:,iblk), &
                       Uref         = Uref        (i,j,  iblk), &
                       Cdn_atm_ratio= Cdn_atm_ratio(i,j, iblk), &
                       Cdn_ocn      = Cdn_ocn     (i,j,  iblk), &
@@ -467,11 +467,11 @@
                       frzmlt       = frzmlt      (i,j,  iblk), &
                       rside        = rside       (i,j,  iblk), &
                       fside        = fside       (i,j,  iblk), &
-                      wlat         = wlat        (i,j,  iblk), &
+!opt                      wlat         = wlat        (i,j,  iblk), &
                       fsnow        = fsnow       (i,j,  iblk), &
                       frain        = frain       (i,j,  iblk), &
                       fpond        = fpond       (i,j,  iblk), &
-                      fsloss       = fsloss      (i,j,  iblk), &
+!opt                      fsloss       = fsloss      (i,j,  iblk), &
                       fsurf        = fsurf       (i,j,  iblk), &
                       fsurfn       = fsurfn      (i,j,:,iblk), &
                       fcondtop     = fcondtop    (i,j,  iblk), &
@@ -481,10 +481,10 @@
                       fswsfcn      = fswsfcn     (i,j,:,iblk), &
                       fswintn      = fswintn     (i,j,:,iblk), &
                       fswthrun     = fswthrun    (i,j,:,iblk), &
-                      fswthrun_vdr = fswthrun_vdr (i,j,:,iblk),&
-                      fswthrun_vdf = fswthrun_vdf (i,j,:,iblk),&
-                      fswthrun_idr = fswthrun_idr (i,j,:,iblk),&
-                      fswthrun_idf = fswthrun_idf (i,j,:,iblk),&
+!opt                      fswthrun_vdr = fswthrun_vdr (i,j,:,iblk),&
+!opt                      fswthrun_vdf = fswthrun_vdf (i,j,:,iblk),&
+!opt                      fswthrun_idr = fswthrun_idr (i,j,:,iblk),&
+!opt                      fswthrun_idf = fswthrun_idf (i,j,:,iblk),&
                       fswabs       = fswabs      (i,j,  iblk), &
                       flwout       = flwout      (i,j,  iblk), &
                       Sswabsn      = Sswabsn     (i,j,:,:,iblk), &
@@ -501,22 +501,22 @@
                       fsalt        = fsalt       (i,j,  iblk), &
                       fhocn        = fhocn       (i,j,  iblk), &
                       fswthru      = fswthru     (i,j,  iblk), &
-                      fswthru_vdr  = fswthru_vdr (i,j,  iblk), &
-                      fswthru_vdf  = fswthru_vdf (i,j,  iblk), &
-                      fswthru_idr  = fswthru_idr (i,j,  iblk), &
-                      fswthru_idf  = fswthru_idf (i,j,  iblk), &
+!opt                      fswthru_vdr  = fswthru_vdr (i,j,  iblk), &
+!opt                      fswthru_vdf  = fswthru_vdf (i,j,  iblk), &
+!opt                      fswthru_idr  = fswthru_idr (i,j,  iblk), &
+!opt                      fswthru_idf  = fswthru_idf (i,j,  iblk), &
                       flatn_f      = flatn_f     (i,j,:,iblk), &
                       fsensn_f     = fsensn_f    (i,j,:,iblk), &
                       fsurfn_f     = fsurfn_f    (i,j,:,iblk), &
                       fcondtopn_f  = fcondtopn_f (i,j,:,iblk), &
                       faero_atm    = faero_atm   (i,j,1:n_aero,iblk), &
                       faero_ocn    = faero_ocn   (i,j,1:n_aero,iblk), &
-                      fiso_atm     = fiso_atm    (i,j,:,iblk), &
-                      fiso_ocn     = fiso_ocn    (i,j,:,iblk), &
-                      fiso_evap    = fiso_evap   (i,j,:,iblk), &
-                      HDO_ocn      = HDO_ocn     (i,j,  iblk), &
-                      H2_16O_ocn   = H2_16O_ocn  (i,j,  iblk), &
-                      H2_18O_ocn   = H2_18O_ocn  (i,j,  iblk), &
+!opt                      fiso_atm     = fiso_atm    (i,j,:,iblk), &
+!opt                      fiso_ocn     = fiso_ocn    (i,j,:,iblk), &
+!opt                      fiso_evap    = fiso_evap   (i,j,:,iblk), &
+!opt                      HDO_ocn      = HDO_ocn     (i,j,  iblk), &
+!opt                      H2_16O_ocn   = H2_16O_ocn  (i,j,  iblk), &
+!opt                      H2_18O_ocn   = H2_18O_ocn  (i,j,  iblk), &
                       dhsn         = dhsn        (i,j,:,iblk), &
                       ffracn       = ffracn      (i,j,:,iblk), &
                       meltt        = meltt       (i,j,  iblk), &
@@ -529,15 +529,17 @@
                       congeln      = congeln     (i,j,:,iblk), &
                       snoice       = snoice      (i,j,  iblk), &
                       snoicen      = snoicen     (i,j,:,iblk), &
-                      dsnow        = dsnow       (i,j,  iblk), &
+!opt                      dsnow        = dsnow       (i,j,  iblk), &
                       dsnown       = dsnown      (i,j,:,iblk), &
-                      meltsliq     = meltsliq    (i,j,  iblk), &
-                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
+!opt                      meltsliq     = meltsliq    (i,j,  iblk), &
+!opt                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
                       lmask_n      = lmask_n     (i,j,  iblk), &
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
-                      yday=yday, prescribed_ice=prescribed_ice)
+                      yday=yday &
+!opt                      prescribed_ice=prescribed_ice, &
+                      )
 
       !-----------------------------------------------------------------
       ! handle per-category i2x fields, no merging
@@ -701,7 +703,7 @@
                       rside      = rside     (i,j,  iblk), &
                       meltl      = meltl     (i,j,  iblk), &
                       fside      = fside     (i,j,  iblk), &
-                      wlat       = wlat      (i,j,  iblk), &
+!opt                      wlat       = wlat      (i,j,  iblk), &
                       frzmlt     = frzmlt    (i,j,  iblk), &
                       frazil     = frazil    (i,j,  iblk), &
                       frain      = frain     (i,j,  iblk), &
@@ -718,24 +720,25 @@
                       fzsal      = fzsal     (i,j,  iblk), &
                       flux_bio   = flux_bio  (i,j,1:nbtrcr,iblk), &
                       ocean_bio  = ocean_bio (i,j,1:nbtrcr,iblk), &
-                      frazil_diag= frazil_diag(i,j,iblk),  &
-                      frz_onset  = frz_onset (i,j,  iblk), &
-                      yday       = yday,                   &
-                      fiso_ocn   = fiso_ocn  (i,j,:,iblk), &
-                      HDO_ocn    = HDO_ocn   (i,j,  iblk), &
-                      H2_16O_ocn = H2_16O_ocn(i,j,  iblk), &
-                      H2_18O_ocn = H2_18O_ocn(i,j,  iblk), &
-                      nfsd       = nfsd,                   &
-                      wave_sig_ht= wave_sig_ht(i,j,iblk),  &
-                      wave_spectrum = wave_spectrum(i,j,:,iblk),  &
-                      wavefreq   = wavefreq(:),            &
-                      dwavefreq  = dwavefreq(:),           &
-                      d_afsd_latg= d_afsd_latg(i,j,:,iblk),&
-                      d_afsd_newi= d_afsd_newi(i,j,:,iblk),&
-                      d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
-                      d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
-                      floe_rad_c = floe_rad_c(:),          &
-                      floe_binwidth = floe_binwidth(:))
+                      frazil_diag= frazil_diag(i,j,iblk)  &
+!opt                      frz_onset  = frz_onset (i,j,  iblk), &
+!opt                      yday       = yday,                   &
+!opt                      fiso_ocn   = fiso_ocn  (i,j,:,iblk), &
+!opt                      HDO_ocn    = HDO_ocn   (i,j,  iblk), &
+!opt                      H2_16O_ocn = H2_16O_ocn(i,j,  iblk), &
+!opt                      H2_18O_ocn = H2_18O_ocn(i,j,  iblk), &
+!opt                      nfsd       = nfsd,                   &
+!opt                      wave_sig_ht= wave_sig_ht(i,j,iblk),  &
+!opt                      wave_spectrum = wave_spectrum(i,j,:,iblk),  &
+!opt                      wavefreq   = wavefreq(:),            &
+!opt                      dwavefreq  = dwavefreq(:),           &
+!opt                      d_afsd_latg= d_afsd_latg(i,j,:,iblk),&
+!opt                      d_afsd_newi= d_afsd_newi(i,j,:,iblk),&
+!opt                      d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
+!opt                      d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
+!opt                      floe_rad_c = floe_rad_c(:),          &
+!opt                      floe_binwidth = floe_binwidth(:)     &
+                      )
          endif ! tmask
 
       enddo                     ! i
@@ -1123,7 +1126,7 @@
                          fresh     = fresh    (i,j,  iblk), &
                          fhocn     = fhocn    (i,j,  iblk), &
                          faero_ocn = faero_ocn(i,j,:,iblk), &
-                         fiso_ocn  = fiso_ocn (i,j,:,iblk), &
+!opt                         fiso_ocn  = fiso_ocn (i,j,:,iblk), &
                          aparticn  = aparticn (i,j,:,iblk), &
                          krdgn     = krdgn    (i,j,:,iblk), &
                          aredistn  = aredistn (i,j,:,iblk), &
@@ -1411,17 +1414,18 @@
                          alidrn   =alidrn   (i,j,:  ,iblk), alidfn  =alidfn  (i,j,:  ,iblk), &
                          fswsfcn  =fswsfcn  (i,j,:  ,iblk), fswintn =fswintn (i,j,:  ,iblk), &
                          fswthrun =fswthrun (i,j,:  ,iblk), &
-                         fswthrun_vdr =fswthrun_vdr (i,j,:  ,iblk), &
-                         fswthrun_vdf =fswthrun_vdf (i,j,:  ,iblk), &
-                         fswthrun_idr =fswthrun_idr (i,j,:  ,iblk), &
-                         fswthrun_idf =fswthrun_idf (i,j,:  ,iblk), &
+!opt                         fswthrun_vdr =fswthrun_vdr (i,j,:  ,iblk), &
+!opt                         fswthrun_vdf =fswthrun_vdf (i,j,:  ,iblk), &
+!opt                         fswthrun_idr =fswthrun_idr (i,j,:  ,iblk), &
+!opt                         fswthrun_idf =fswthrun_idf (i,j,:  ,iblk), &
                          fswpenln=fswpenln(i,j,:,:,iblk), &
                          Sswabsn  =Sswabsn  (i,j,:,:,iblk), Iswabsn =Iswabsn (i,j,:,:,iblk), &
                          albicen  =albicen  (i,j,:  ,iblk), albsnon =albsnon (i,j,:  ,iblk), &
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &
                          snowfracn=snowfracn(i,j,:  ,iblk),                                  &
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
-                         rsnow    =rsnow        (:,:),      l_print_point=l_print_point)
+!opt                         rsnow    =rsnow        (:,:),  &
+                         l_print_point=l_print_point)
          endif
 
          if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then

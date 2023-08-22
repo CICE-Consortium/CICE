@@ -21,7 +21,7 @@
 
       module ice_history_write
 
-      use ice_constants, only: c0, c360, spval, spval_dbl
+      use ice_constants, only: c0, c360, p5, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -136,8 +136,6 @@
       if (history_precision == 8) lprecision = nf90_double
 
       if (my_task == master_task) then
-
-        ltime2 = timesecs/secday
 
         call construct_filename(ncfile(ns),'nc',ns)
 
@@ -718,6 +716,12 @@
                          'ERROR: global attribute time_period_freq')
         endif
 
+        if (hist_avg(ns)) then
+           status = nf90_put_att(ncid,nf90_global,'time_axis_position',trim(hist_time_axis))
+           if (status /= nf90_noerr) call abort_ice(subname// &
+                         'ERROR: global attribute time axis position')
+        endif
+
         title = 'CF-1.0'
         status =  &
              nf90_put_att(ncid,nf90_global,'conventions',title)
@@ -749,6 +753,15 @@
       !-----------------------------------------------------------------
       ! write time variable
       !-----------------------------------------------------------------
+
+        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+
+        ! Some coupled models require the time axis "stamp" to be in the middle
+        ! or even beginning of averaging interval.
+        if (hist_avg(ns)) then
+           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+        endif
 
         status = nf90_inq_varid(ncid,'time',varid)
         if (status /= nf90_noerr) call abort_ice(subname// &

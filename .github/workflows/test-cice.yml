@@ -7,7 +7,7 @@ name: GHActions
 on:
   push:
     branches:
-      - master
+      - main
       - 'CICE*'
       - 'ghactions*'
   pull_request:
@@ -27,8 +27,12 @@ jobs:
       matrix:
 #        os: [macos-latest, ubuntu-latest]
         os: [macos-latest]
+#        os: [macos-13]
 #        os: [ubuntu-latest]
         include: 
+#          - os: macos-13
+#            envdef: macos
+#            minicond: Miniconda3-latest-MacOSX-x86_64.sh
           - os: macos-latest
             envdef: macos
             minicond: Miniconda3-latest-MacOSX-x86_64.sh
@@ -98,10 +102,26 @@ jobs:
           conda env create -f configuration/scripts/machines/environment.yml
       - name: check conda env
         run: |
-          conda activate cice && which mpicc && which mpifort && which make
+          conda activate cice && which clang && which gfortran && which mpicc && which mpifort && which make
+          clang --version
+          gfortran --version
           mpifort --version
           mpicc --version
           make --version
+#          echo "mpifort -v:"
+#          mpifort -v
+#          echo "mpifort --showme:compile:"
+#          mpifort --showme:compile
+#          echo "mpifort --showme:link:"
+#          mpifort --showme:link
+#          echo "mpifort --showme:command:"
+#          mpifort --showme:command
+#          echo "mpifort --showme:libdirs:"
+#          mpifort --showme:libdirs
+#          echo "mpifort --showme:libs:"
+#          mpifort --showme:libs
+#          echo "mpifort --showme:incdirs:"
+#          mpifort --showme:incdirs
       - name: check setup case
         run: |
           cd $HOME/cice
@@ -110,12 +130,19 @@ jobs:
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0
-#      - name: compile case
-#        run: |
-#          cd $HOME/cice
-#          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1
-#          cd case1
-#          ./cice.build
+      - name: run hello world unit test
+        run: |
+          cd $HOME/cice
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --test unittest --pes 2x1 -s helloworld --testid hw01
+          cd *helloworld*hw01
+          ./cice.build
+          ./cice.run
+      - name: check cice compile
+        run: |
+          cd $HOME/cice
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1 --pes 2x2 -s diag1
+          cd case1
+          ./cice.build
       - name: download input data
         run: |
           cd $HOME/cice-dirs/input

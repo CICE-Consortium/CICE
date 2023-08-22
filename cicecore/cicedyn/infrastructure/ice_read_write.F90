@@ -1272,6 +1272,7 @@
       if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
+      work = c0 ! to satisfy intent(out) attribute
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
          file=__FILE__, line=__LINE__)
 #endif

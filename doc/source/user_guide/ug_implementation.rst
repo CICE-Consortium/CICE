@@ -1037,7 +1037,7 @@ used in coupled models.
 MPI is initialized in *init\_communicate* for both coupled and
 stand-alone MPI runs. The ice component communicates with a flux coupler
 or other climate components via external routines that handle the
-variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+variables listed in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
 For stand-alone runs,
 routines in **ice\_forcing.F90** read and interpolate data from files,
 and are intended merely to provide guidance for the user to write his or
@@ -1197,8 +1197,11 @@ with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.  All history streams will be either instantaneous
 or averaged as specified by the ``hist_avg`` namelist setting and the frequency
-will be relative to a reference date specified by ``histfreq_base``.  More
-information about how the frequency is computed is found in :ref:`timemanager`.
+will be relative to a reference date specified by ``histfreq_base``.  Also, some
+Earth Sytem Models require the history file time axis to be centered in the averaging
+interval. The flag ``hist_time_axis`` will allow the user to chose ``begin``, ``middle``,
+or ``end`` for the time stamp. More information about how the frequency is 
+computed is found in :ref:`timemanager`.
 
 For example, in the namelist:
 
