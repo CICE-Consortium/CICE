@@ -63,7 +63,7 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
-      logical (kind=log_kind), parameter :: bugcheck = .false.
+      logical (kind=log_kind), parameter :: bugcheck = .true.
 
 !=======================================================================
 ! Here is some information about how the incremental remapping scheme
@@ -1756,7 +1756,11 @@
          ishift_tr, jshift_tr , & ! i,j indices of TR cell relative to edge
          ishift_br, jshift_br , & ! i,j indices of BR cell relative to edge
          ishift_tc, jshift_tc , & ! i,j indices of TC cell relative to edge
-         ishift_bc, jshift_bc     ! i,j indices of BC cell relative to edge
+         ishift_bc, jshift_bc , & ! i,j indices of BC cell relative to edge
+         ise_tl, jse_tl       , & ! i,j of TL other edge relative to edge
+         ise_bl, jse_bl       , & ! i,j of BL other edge relative to edge
+         ise_tr, jse_tr       , & ! i,j of TR other edge relative to edge
+         ise_br, jse_br           ! i,j of BR other edge relative to edge
 
       integer (kind=int_kind) ::   &
          icellsd          ! number of cells where departure area > 0.
@@ -1767,12 +1771,12 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::   &
          dx, dy       , & ! scaled departure points
-         areafac_l    , & ! area scale factor at left corner
-         areafac_r    , & ! area scale factor at right corner
          areafac_c    , & ! (areafac_l + areafac_r)/2
-         areafacD         ! Difference of areafac_l and areafac_r
+         areafac_ce       ! areafac_c on other edge
 
       real (kind=dbl_kind) ::   &
+         areafac_l    , & ! area scale factor at left corner
+         areafac_r    , & ! area scale factor at right corner
          xcl, ycl     , & ! coordinates of left corner point
                           ! (relative to midpoint of edge)
          xdl, ydl     , & ! left departure point
@@ -1791,9 +1795,6 @@
          area1, area2 , & ! temporary triangle areas
          area3, area4 , & !
          area_c       , & ! center polygon area
-         areatp       , & ! temporary area calculation
-         areatplone   , & ! temporary area calculation for lone triangle
-         xpm          , & ! mean value of x points
          puny         , & !
          w1, w2           ! work variables
 
@@ -1863,10 +1864,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      areafac_l(:,:) = c0
-      areafac_r(:,:) = c0
-      areafac_c(:,:) = c0
-      areafacD(:,:) = c0
+      areafac_c(:,:)  = c0
+      areafac_ce(:,:) = c0
+      
       do ng = 1, ngroups
          do j = 1, ny_block
          do i = 1, nx_block
@@ -1910,14 +1910,34 @@
          ishift_bc =  0
          jshift_bc =  0
 
+         ! index shifts for neighbor east edges
+
+         ise_tl = -1
+         jse_tl =  1
+         ise_bl = -1
+         jse_bl =  0
+         ise_tr =  0
+         jse_tr =  1
+         ise_br =  0
+         jse_br =  0
+
          ! area scale factor
 
          do j = jb, je
          do i = ib, ie
-            areafac_l(i,j) = dxu(i-1,j)*dyu(i-1,j)
-            areafac_r(i,j) = dxu(i  ,j)*dyu(i  ,j)
-            areafac_c(i,j) = p5*(areafac_l(i,j) + areafac_r(i,j))
-            areafacD (i,j) = areafac_r(i,j) - areafac_l(i,j)
+            areafac_l = dxu(i-1,j)*dyu(i-1,j)
+            areafac_r = dxu(i  ,j)*dyu(i  ,j)
+            areafac_c(i,j) = p5*( areafac_l + areafac_r )
+         enddo
+         enddo
+
+         ! area scale factor for other edge (east)
+         
+         do j = jb, je+1
+            do i = ib-1, ie
+            areafac_l = dxu(i,j  )*dyu(i,j  )
+            areafac_r = dxu(i,j-1)*dyu(i,j-1)
+            areafac_ce(i,j) = p5*( areafac_l + areafac_r )
          enddo
          enddo
 
@@ -1945,14 +1965,34 @@
          ishift_bc =  0
          jshift_bc =  0
 
+         ! index shifts for neighbor north edges
+
+         ise_tl =  1
+         jse_tl =  0
+         ise_bl =  0
+         jse_bl =  0
+         ise_tr =  1
+         jse_tr = -1
+         ise_br =  0
+         jse_br = -1
+
          ! area scale factors
 
          do j = jb, je
          do i = ib, ie
-            areafac_l(i,j) = dxu(i,j  )*dyu(i,j  )
-            areafac_r(i,j) = dxu(i,j-1)*dyu(i,j-1)
-            areafac_c(i,j) = p5*(areafac_l(i,j) + areafac_r(i,j))
-            areafacD (i,j) = areafac_r(i,j) - areafac_l(i,j)
+            areafac_l = dxu(i,j  )*dyu(i,j  )
+            areafac_r = dxu(i,j-1)*dyu(i,j-1)
+            areafac_c(i,j) = p5*( areafac_l + areafac_r )
+         enddo
+         enddo
+
+         ! area scale factor for ther edge (north)
+
+         do j = jb-1, je
+         do i = ib, ie+1
+            areafac_l = dxu(i-1,j)*dyu(i-1,j)
+            areafac_r = dxu(i  ,j)*dyu(i  ,j)
+            areafac_ce(i,j) = p5*( areafac_l + areafac_r )
          enddo
          enddo
 
@@ -2077,9 +2117,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
             !areafact(i,j,ng) = -areafac_l(i,j)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl < c0) then
@@ -2095,9 +2133,7 @@
             yp    (i,j,3,ng) = yil
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
             !areafact(i,j,ng) = areafac_l(i,j)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl >= c0) then
@@ -2113,9 +2149,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_tl,j+jse_tl)
             !areafact(i,j,ng) = areafac_l(i,j)
 
             ! BL1 (group 3)
@@ -2129,9 +2163,7 @@
             yp    (i,j,3,ng) = yil
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
             !areafact(i,j,ng) = areafac_l(i,j)
 
          elseif (yil > c0 .and. xdl < xcl .and. ydl < c0) then
@@ -2147,9 +2179,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
             !areafact(i,j,ng) = -areafac_l(i,j)
 
             ! BL2 (group 1)
@@ -2163,9 +2193,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_bl,j+jse_bl)
             !areafact(i,j,ng) = -areafac_l(i,j)
 
          endif                  ! TL and BL triangles
@@ -2188,9 +2216,7 @@
             yp    (i,j,3,ng) = yir
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
             !areafact(i,j,ng) = -areafac_r(i,j)
 
          elseif (yir < c0 .and. xdr >= xcr .and. ydr < c0) then
@@ -2206,9 +2232,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
             !areafact(i,j,ng) = areafac_r(i,j)
 
          elseif (yir < c0 .and. xdr >= xcr  .and. ydr >= c0) then
@@ -2224,9 +2248,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_tr,j+jse_tr)
             !areafact(i,j,ng) = areafac_r(i,j)
 
             ! BR1 (group 3)
@@ -2240,9 +2262,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatp
+            areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
             !areafact(i,j,ng) = areafac_r(i,j)
 
          elseif (yir > c0 .and. xdr >= xcr .and. ydr < c0) then
@@ -2258,9 +2278,7 @@
             yp    (i,j,3,ng) = yir
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
             !areafact(i,j,ng) = -areafac_r(i,j)
 
             ! BR2 (group 2)
@@ -2274,9 +2292,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatp
+            areafact(i,j,ng) = -areafac_ce(i+ise_br,j+jse_br)
             !areafact(i,j,ng) = -areafac_r(i,j)
 
          endif                  ! TR and BR triangles
@@ -2345,12 +2361,8 @@
                ! compute required area of central departure region
                area_c  = edgearea(i,j) - area1 - area2 - area3
 
-               ! compute areafac for quadrilateral cl-cr-dr-dl
-               xpm = p25*(xcl + xcr + xdr + xdl)
-               areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-
                ! shift midpoint so that the area of remaining triangles = area_c
-               w1 = c2*area_c/areatp    &
+               w1 = c2*area_c/areafac_c(i,j)    &
                     + (xdr-xcl)*ydl + (xcr-xdl)*ydr
                w2 = (xdr-xdl)**2 + (ydr-ydl)**2
                w1 = w1/w2
@@ -2375,7 +2387,7 @@
                endif
                yicr = c0
 
-            elseif (xic < c0 .and. xic > xcl) then  ! fix ICL = IC ! Bill please check this
+            elseif (xic < c0 .and. xic > xcl) then  ! fix ICL = IC
 
                xicl = xic
                yicl = yic
@@ -2385,17 +2397,11 @@
                ydm = p5 *  ydr
 
                ! compute area of (lone) triangle adjacent to left corner
-               xpm = p333*(xcl + xdl + xic)
-               areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-               area4 = p5 * (xcl - xic) * ydl * areatplone
+               area4 = p5 * (xcl - xic) * ydl * areafac_c(i,j) ! Bill check this
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
-               ! compute areafac for right triangle ic-cr-dr
-               xpm = p333*(xic + xcr + xdr)
-               areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-
                ! shift midpoint so that area of remaining triangles = area_c
-               w1 = c2*area_c/areatp + (xcr-xic)*ydr
+               w1 = c2*area_c/areafac_c(i,j) + (xcr-xic)*ydr
                w2 = (xdr-xic)**2 + ydr**2
                w1 = w1/w2
                xdm = xdm + ydr*w1
@@ -2410,7 +2416,7 @@
                endif
                yicr = c0
 
-            elseif (xic >= c0 .and. xic < xcr) then  ! fix ICR = IR ! Bill please check this
+            elseif (xic >= c0 .and. xic < xcr) then  ! fix ICR = IR
 
                xicr = xic
                yicr = yic
@@ -2420,17 +2426,11 @@
                ydm = p5 *  ydl
 
                ! compute area of (lone) triangle adjacent to right corner
-               xpm = p333*(xic + xcr + xdr)
-               areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-               area4 = p5 * (xic - xcr) * ydr * areatplone
+               area4 = p5 * (xic - xcr) * ydr * areafac_c(i,j) ! Bill check this
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
-               ! compute areafac for left triangle cl-dl-ic
-               xpm = p333*(xcl + xdl + xic)
-               areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-
                ! shift midpoint so that area of remaining triangles = area_c
-               w1 = c2*area_c/areatp + (xic-xcl)*ydl
+               w1 = c2*area_c/areafac_c(i,j) + (xic-xcl)*ydl
                w2 = (xic-xdl)**2 + ydl**2
                w1 = w1/w2
                xdm = xdm - ydl*w1
@@ -2459,10 +2459,6 @@
 
          if (ydl >= c0 .and. ydr >= c0 .and. ydm >= c0) then
 
-            ! compute areafac for quadrilateral cl-cr-dr-dl
-            xpm = p25*(xcl + xcr + xdr + xdl)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
-
             ! TC1a (group 4)
 
             ng = 4
@@ -2474,9 +2470,8 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
-
+            areafact(i,j,ng) = -areafac_c(i,j)
+ 
             ! TC2a (group 5)
 
             ng = 5
@@ -2488,9 +2483,8 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
-
+            areafact(i,j,ng) = -areafac_c(i,j)
+ 
             ! TC3a (group 6)
 
             ng = 6
@@ -2502,14 +2496,9 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          elseif (ydl >= c0 .and. ydr >= c0 .and. ydm < c0) then  ! rare
-
-            ! compute areafac for quadrilateral cl-cr-dr-dl
-            xpm = p25*(xcl + xcr + xdr + xdl)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4)
 
@@ -2522,8 +2511,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! TC2b (group 5)
 
@@ -2536,8 +2524,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2550,14 +2537,9 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm <= c0) then ! Bill I also changed ydm < to <=
-
-            ! compute areafac for quadrilateral cl-cr-dr-dl
-            xpm = p25*(xcl + xcr + xdr + xdl)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm <= c0) then
 
             ! BC1a (group 4)
 
@@ -2570,8 +2552,7 @@
             yp    (i,j,3,ng) = ycr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC2a (group 5)
 
@@ -2584,8 +2565,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC3a (group 6)
 
@@ -2598,14 +2578,9 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm > c0) then  ! rare ! Bill I also changed ydm >= to >
-
-            ! compute areafac for quadrilateral cl-cr-dr-dl
-            xpm = p25*(xcl + xcr + xdr + xdl)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm > c0) then  ! rare
 
             ! BC1b (group 4)
 
@@ -2618,8 +2593,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC2b (group 5)
 
@@ -2632,8 +2606,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2646,19 +2619,14 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          ! Now consider cases where the two DPs lie in different grid cells
          ! For these cases, one triangle is given the area factor associated
-         !  with the adjacent corner, to avoid rare negative masses on curved grids.
+         ! with the adjacent corner, to avoid rare negative masses on curved grids.
 
          elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
                                          .and. ydm >= c0) then
-
-            ! compute areafac for left triangle cl-dl-ic
-            xpm = p333*(xcl + xdl + xic)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)                                                       
 
             ! TC1b (group 4)
 
@@ -2671,8 +2639,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5) lone triangle
 
@@ -2685,10 +2652,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatplone
-            !areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this and see comments above
 
             ! TC3b (group 6)
 
@@ -2701,15 +2665,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
                                          .and. ydm < c0 ) then  ! less common
-
-            ! compute areafac for left triangle cl-dl-ic
-            xpm = p333*(xcl + xdl + xic)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4)
 
@@ -2722,8 +2681,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5) lone triangle
 
@@ -2736,10 +2694,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatplone
-            !areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
 
             ! BC3b (group 6)
 
@@ -2752,15 +2707,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
          elseif (ydl > c0 .and. ydr < c0 .and. xic < c0   &
                                          .and. ydm < c0) then
-
-            ! compute areafac for right triangle ic-cr-dr
-            xpm = p333*(xic + xcr + xdr)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4) lone triangle
 
@@ -2773,10 +2723,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatplone
-            !areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
 
             ! BC2b (group 5)
 
@@ -2789,8 +2736,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2803,15 +2749,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
          elseif (ydl > c0 .and. ydr < c0 .and. xic <  c0  &
                                          .and. ydm >= c0) then  ! less common
-
-            ! compute areafac for right triangle ic-cr-dr
-            xpm = p333*(xic + xcr + xdr)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! TC1b (group 4) lone triangle
 
@@ -2824,10 +2765,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatplone
-            !areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
 
             ! BC2b (group 5)
 
@@ -2840,8 +2778,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2854,15 +2791,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          elseif (ydl < c0 .and. ydr > c0 .and. xic <  c0  &
                                          .and. ydm >= c0) then
-
-            ! compute areafac for right triangle ic-cr-dr
-            xpm = p333*(xic + xcr + xdr)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4) lone triangle
 
@@ -2875,10 +2807,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatplone
-            !areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
 
             ! TC2b (group 5)
 
@@ -2891,8 +2820,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2905,15 +2833,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          elseif (ydl < c0 .and. ydr > c0 .and. xic < c0  &
                                          .and. ydm < c0) then ! less common
-
-            ! compute areafac for right triangle ic-cr-dr
-            xpm = p333*(xic + xcr + xdr)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4) lone triangle
 
@@ -2926,10 +2849,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = areatplone
-            !areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
 
             ! TC2b (group 5)
 
@@ -2942,8 +2862,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2956,15 +2875,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
          elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0  &
                                          .and. ydm <  c0) then
-
-            ! compute areafac for left triangle cl-dl-ic
-            xpm = p333*(xcl + xdl + xic)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4)
 
@@ -2977,8 +2891,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5) lone triangle
 
@@ -2991,10 +2904,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatplone
-            !areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
 
             ! BC3b (group 6)
 
@@ -3007,15 +2917,10 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
          elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0   &
                                          .and. ydm >= c0) then  ! less common
-
-            ! compute areafac for left triangle cl-dl-ic
-            xpm = p333*(xcl + xdl + xic)
-            areatp = areafacD(i,j)*xpm + areafac_c(i,j)
 
             ! BC1b (group 4)
 
@@ -3028,8 +2933,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areatp
-            !areafact(i,j,ng) = areafac_c(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5) lone triangle
 
@@ -3042,10 +2946,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            xpm= p333*( xp(i,j,1,ng) + xp(i,j,2,ng) + xp(i,j,3,ng) )
-            areatplone = areafacD(i,j)*xpm + areafac_c(i,j)
-            areafact(i,j,ng) = -areatplone
-            !areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
 
             ! TC3b (group 6)
 
@@ -3058,8 +2959,7 @@
             yp    (i,j,3,ng) = ydm
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areatp
-            !areafact(i,j,ng) = -areafac_c(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
          endif                  ! TC and BC triangles
 
@@ -3101,7 +3001,7 @@
                                      (xp(i,j,3,ng)-xp(i,j,1,ng)) )   &
                                    * areafact(i,j,ng)
 
-            if (abs(triarea(i,j,ng)) < eps16*areafac_c(i,j)) then ! Bill please check this
+            if (abs(triarea(i,j,ng)) < eps16*areafac_c(i,j)) then
                triarea(i,j,ng) = c0
             else
                icells(ng) = icells(ng) + 1
@@ -3120,7 +3020,7 @@
             do ij = 1, icellsd
                i = indxid(ij)
                j = indxjd(ij)
-               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then ! Bill please check this
+               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then
                   write(nu_diag,*) ''
                   write(nu_diag,*) 'Areas do not add up: m, i, j, edge =',   &
                            my_task, i, j, trim(edge)
