@@ -7,20 +7,24 @@ module cice_wrapper_mod
   use ice_kinds_mod , only : dbl_kind, int_kind, char_len, char_len_long
 
   implicit none
+
+  real(dbl_kind) :: wtime = 0.0
 contains
   ! Define stub routines that do nothing - they are just here to avoid
   ! having cppdefs in the main program
   subroutine ufs_settimer(timevalue)
-    real(dbl_kind),    intent(out) :: timevalue
+    real(dbl_kind),    intent(inout) :: timevalue
   end subroutine ufs_settimer
-  subroutine ufs_logtimer(nunit,elapsedsecs,string,time0)
+  subroutine ufs_logtimer(nunit,elapsedsecs,string,runtimelog,time0)
     integer,           intent(in)  :: nunit
     integer(int_kind), intent(in)  :: elapsedsecs
     character(len=*),  intent(in)  :: string
+    logical,           intent(in)  :: runtimelog
     real(dbl_kind),    intent(in)  :: time0
   end subroutine ufs_logtimer
-  subroutine ufs_file_setLogUnit(filename,nunit)
+  subroutine ufs_file_setLogUnit(filename,nunit,runtimelog)
     character(len=*),  intent(in)  :: filename
+    logical,           intent(in)  :: runtimelog
     integer,           intent(out) :: nunit
   end subroutine ufs_file_setLogUnit
   subroutine ufs_logfhour(msg,hour)
@@ -41,21 +45,25 @@ contains
     timevalue = MPI_Wtime()
   end subroutine ufs_settimer
 
-  subroutine ufs_logtimer(nunit,elapsedsecs,string,time0)
+  subroutine ufs_logtimer(nunit,elapsedsecs,string,runtimelog,time0)
     integer,           intent(in)    :: nunit
     integer(int_kind), intent(in)    :: elapsedsecs
     character(len=*),  intent(in)    :: string
+    logical,           intent(in)    :: runtimelog
     real(dbl_kind),    intent(in)    :: time0
     real(dbl_kind)                   :: MPI_Wtime, timevalue
+    if (.not. runtimelog) return
     if (time0 > 0.) then
        timevalue = MPI_Wtime()-time0
        write(nunit,*)elapsedsecs,' CICE '//trim(string),timevalue
     end if
   end subroutine ufs_logtimer
 
-  subroutine ufs_file_setLogUnit(filename,nunit)
+  subroutine ufs_file_setLogUnit(filename,nunit,runtimelog)
     character(len=*),  intent(in)    :: filename
+    logical,           intent(in)    :: runtimelog
     integer,           intent(out)   :: nunit
+    if (.not. runtimelog) return
     open (newunit=nunit, file=trim(filename))
   end subroutine ufs_file_setLogUnit
 
