@@ -243,7 +243,7 @@ contains
     logical(kind=log_kind) :: &
          tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, tr_snow, &
-         skl_bgc, z_tracer
+         skl_bgc, z_tracers
     integer(kind=int_kind) :: &
          ntrcr
     integer(kind=int_kind) :: &
