@@ -22,8 +22,10 @@ endif
 # C and Fortran compilers and MPI wrappers
 SCC   := clang
 SFC   := gfortran
-MPICC := mpicc
-MPIFC := mpifort
+#MPICC := mpicc
+#MPIFC := mpifort
+MPICC := clang
+MPIFC := gfortran
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
@@ -37,7 +39,7 @@ endif
 LD:= $(FC)
 
 # Location of the compiled Fortran modules (NetCDF)
-MODDIR  += -I$(CONDA_PREFIX)/include
+MODDIR  += -I$(CONDA_PREFIX)/include -I$(CONDA_PREFIX)/lib
 
 # Location of the system C header files (required on recent macOS to compile makdep)
 SDKPATH = $(shell xcrun --show-sdk-path)
@@ -49,7 +51,7 @@ else
 endif
 
 # Libraries to be passed to the linker
-SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack
+SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)

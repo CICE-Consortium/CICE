@@ -44,10 +44,6 @@
          flux_bio   , & ! all bio fluxes to ocean
          flux_bio_ai    ! all bio fluxes to ocean, averaged over grid cell
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         fzsal_ai, & ! salt flux to ocean from zsalinity (kg/m^2/s)
-         fzsal_g_ai  ! gravity drainage salt flux to ocean (kg/m^2/s)
-
       ! internal
 
       logical (kind=log_kind), public :: &
@@ -121,8 +117,6 @@
       integer (int_kind) :: ierr
 
       allocate( &
-         fzsal_ai    (nx_block,ny_block,max_blocks), & ! salt flux to ocean from zsalinity (kg/m^2/s)
-         fzsal_g_ai  (nx_block,ny_block,max_blocks), & ! gravity drainage salt flux to ocean (kg/m^2/s)
          nit         (nx_block,ny_block,max_blocks), & ! ocean nitrate (mmol/m^3)
          amm         (nx_block,ny_block,max_blocks), & ! ammonia/um (mmol/m^3)
          sil         (nx_block,ny_block,max_blocks), & ! silicate (mmol/m^3)

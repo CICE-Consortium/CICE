@@ -1125,7 +1125,6 @@
                                faero_ocn,          &
                                alvdr,    alidr,    &
                                alvdf,    alidf,    &
-                               fzsal,    fzsal_g,  &
                                flux_bio,           &
                                fsurf,    fcondtop, &
                                Uref,     wind,     &
@@ -1189,11 +1188,6 @@
           fsurf   , & ! surface heat flux               (W/m**2)
           fcondtop    ! top surface conductive flux     (W/m**2)
 
-      ! zsalinity fluxes
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
-          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)
-          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s)
-
       ! isotopes
       real (kind=dbl_kind), dimension(nx_block,ny_block,icepack_max_iso), &
           optional, intent(inout) :: &
@@ -1246,8 +1240,6 @@
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
             alidf   (i,j) = alidf   (i,j) * ar
-            fzsal   (i,j) = fzsal   (i,j) * ar
-            fzsal_g (i,j) = fzsal_g (i,j) * ar
             flux_bio (i,j,:) = flux_bio (i,j,:) * ar
             faero_ocn(i,j,:) = faero_ocn(i,j,:) * ar
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
@@ -1278,8 +1270,6 @@
             alidr   (i,j) = c0
             alvdf   (i,j) = c0
             alidf   (i,j) = c0
-            fzsal   (i,j) = c0
-            fzsal_g (i,j) = c0
             flux_bio (i,j,:) = c0
             faero_ocn(i,j,:) = c0
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0
