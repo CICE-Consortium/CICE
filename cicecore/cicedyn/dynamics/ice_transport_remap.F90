@@ -32,7 +32,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: istep1
       use ice_communicate, only: my_task
-      use ice_constants, only: c0, c1, c2, c12, p25, p333, p4, p5, p6, &
+      use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
           field_loc_center, field_type_scalar, &
           field_loc_NEcorner, field_type_vector
@@ -1986,7 +1986,7 @@
          enddo
          enddo
 
-         ! area scale factor for ther edge (north)
+         ! area scale factor for other edge (north)
 
          do j = jb-1, je
          do i = ib, ie+1
@@ -2118,7 +2118,6 @@
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
             areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
-            !areafact(i,j,ng) = -areafac_l(i,j)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl < c0) then
 
@@ -2134,7 +2133,6 @@
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
             areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
-            !areafact(i,j,ng) = areafac_l(i,j)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl >= c0) then
 
@@ -2150,7 +2148,6 @@
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
             areafact(i,j,ng) = areafac_ce(i+ise_tl,j+jse_tl)
-            !areafact(i,j,ng) = areafac_l(i,j)
 
             ! BL1 (group 3)
 
@@ -2164,7 +2161,6 @@
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
             areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
-            !areafact(i,j,ng) = areafac_l(i,j)
 
          elseif (yil > c0 .and. xdl < xcl .and. ydl < c0) then
 
@@ -2180,7 +2176,6 @@
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
             areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
-            !areafact(i,j,ng) = -areafac_l(i,j)
 
             ! BL2 (group 1)
 
@@ -2194,7 +2189,6 @@
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
             areafact(i,j,ng) = -areafac_ce(i+ise_bl,j+jse_bl)
-            !areafact(i,j,ng) = -areafac_l(i,j)
 
          endif                  ! TL and BL triangles
 
@@ -2217,7 +2211,6 @@
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
             areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
-            !areafact(i,j,ng) = -areafac_r(i,j)
 
          elseif (yir < c0 .and. xdr >= xcr .and. ydr < c0) then
 
@@ -2233,7 +2226,6 @@
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
             areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
-            !areafact(i,j,ng) = areafac_r(i,j)
 
          elseif (yir < c0 .and. xdr >= xcr  .and. ydr >= c0) then
 
@@ -2249,7 +2241,6 @@
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
             areafact(i,j,ng) = areafac_ce(i+ise_tr,j+jse_tr)
-            !areafact(i,j,ng) = areafac_r(i,j)
 
             ! BR1 (group 3)
 
@@ -2263,7 +2254,6 @@
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
             areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
-            !areafact(i,j,ng) = areafac_r(i,j)
 
          elseif (yir > c0 .and. xdr >= xcr .and. ydr < c0) then
 
@@ -2279,7 +2269,6 @@
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
             areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
-            !areafact(i,j,ng) = -areafac_r(i,j)
 
             ! BR2 (group 2)
 
@@ -2293,7 +2282,6 @@
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
             areafact(i,j,ng) = -areafac_ce(i+ise_br,j+jse_br)
-            !areafact(i,j,ng) = -areafac_r(i,j)
 
          endif                  ! TR and BR triangles
 
@@ -2349,9 +2337,7 @@
             !  region so that the sum of all triangle areas is equal to the
             !  prescribed value.
             ! If two triangles are in one grid cell and one is in the other,
-            !  then compute the area of the lone triangle using an area factor
-            !  corresponding to the adjacent corner.  This is necessary to prevent
-            !  negative masses in some rare cases on curved grids.  Then adjust
+            !  then compute the area of the lone triangle. Then adjust
             !  the area of the remaining two-triangle region so that the sum of
             !  all triangle areas has the prescribed value.
             !-----------------------------------------------------------
@@ -2397,7 +2383,7 @@
                ydm = p5 *  ydr
 
                ! compute area of (lone) triangle adjacent to left corner
-               area4 = p5 * (xcl - xic) * ydl * areafac_c(i,j) ! Bill check this
+               area4 = p5 * (xcl - xic) * ydl * areafac_c(i,j)
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2426,7 +2412,7 @@
                ydm = p5 *  ydl
 
                ! compute area of (lone) triangle adjacent to right corner
-               area4 = p5 * (xic - xcr) * ydr * areafac_c(i,j) ! Bill check this
+               area4 = p5 * (xic - xcr) * ydr * areafac_c(i,j)
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2622,8 +2608,6 @@
             areafact(i,j,ng) = -areafac_c(i,j)
 
          ! Now consider cases where the two DPs lie in different grid cells
-         ! For these cases, one triangle is given the area factor associated
-         ! with the adjacent corner, to avoid rare negative masses on curved grids.
 
          elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
                                          .and. ydm >= c0) then
@@ -2652,7 +2636,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this and see comments above
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2694,7 +2678,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2723,7 +2707,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5)
 
@@ -2765,7 +2749,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5)
 
@@ -2807,7 +2791,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5)
 
@@ -2849,7 +2833,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5)
 
@@ -2904,7 +2888,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2946,7 +2930,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_c(i,j) ! Bill check this
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! TC3b (group 6)
 
