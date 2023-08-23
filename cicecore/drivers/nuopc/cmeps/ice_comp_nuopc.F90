@@ -88,11 +88,12 @@ module ice_comp_nuopc
 
   type(ESMF_Mesh)              :: ice_mesh
 
-  integer                      :: nthrds   ! Number of threads to use in this component
-  integer                      :: nu_timer ! Simple timer log
+  integer                      :: nthrds       ! Number of threads to use in this component
+  integer                      :: nu_timer = 6 ! Simple timer log, unused except by UFS
   integer                      :: dbug = 0
   logical                      :: profile_memory = .false.
   logical                      :: mastertask
+  logical                      :: runtimelog = .false.
   integer                      :: start_ymd          ! Start date (YYYYMMDD)
   integer                      :: start_tod          ! start time of day (s)
   integer                      :: curr_ymd           ! Current date (YYYYMMDD)
@@ -308,6 +309,12 @@ contains
     write(logmsg,'(i6)') dbug
     call ESMF_LogWrite('CICE_cap: dbug = '//trim(logmsg), ESMF_LOGMSG_INFO)
 
+    call NUOPC_CompAttributeGet(gcomp, name="RunTimeLog", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) runtimelog=(trim(cvalue)=="true")
+    write(logmsg,*) runtimelog
+    call ESMF_LogWrite('CICE_cap:RunTimeLog = '//trim(logmsg), ESMF_LOGMSG_INFO)
+
     !----------------------------------------------------------------------------
     ! generate local mpi comm
     !----------------------------------------------------------------------------
@@ -490,7 +497,7 @@ contains
     ! Set the nu_diag_set flag so it's not reset later
 
     call shr_file_setLogUnit (shrlogunit)
-    call ufs_file_setLogUnit('./log.ice.timer', nu_timer)
+    call ufs_file_setLogUnit('./log.ice.timer',nu_timer,runtimelog)
 
     call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
@@ -703,7 +710,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',wtime)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',runtimelog,wtime)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -917,7 +924,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',wtime)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',runtimelog,wtime)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -963,7 +970,7 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',wtime)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',runtimelog,wtime)
     call ufs_settimer(wtime)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
@@ -1185,7 +1192,7 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ', wtime)
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ',runtimelog,wtime)
     call ufs_settimer(wtime)
 
   end subroutine ModelAdvance
@@ -1341,7 +1348,7 @@ contains
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
-    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ', wtime)
+    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ',runtimelog,wtime)
 
   end subroutine ModelFinalize
 
