@@ -322,7 +322,7 @@
       histfreq(4) = 'm'      ! output frequency option for different streams
       histfreq(5) = 'y'      ! output frequency option for different streams
       histfreq_n(:) = 1      ! output frequency
-      histfreq_base = 'zero' ! output frequency reference date
+      histfreq_base(:) = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       history_format = 'default' ! history file format
       hist_time_axis = 'end' ! History file time axis averaging interval position
@@ -334,9 +334,11 @@
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
-      dumpfreq='y'           ! restart frequency option
-      dumpfreq_n = 1         ! restart frequency
-      dumpfreq_base = 'init' ! restart frequency reference date
+      dumpfreq(:)='x'           ! restart frequency option
+      dumpfreq_n(:) = 1         ! restart frequency
+      dumpfreq_base(:) = 'init' ! restart frequency reference date
+      dumpfreq(1)='y'           ! restart frequency option
+      dumpfreq_n(1) = 1         ! restart frequency
       dump_last = .false.    ! write restart on last time step
       restart_dir  = './'    ! write to executable dir for default
       restart_file = 'iced'  ! restart file name prefix
@@ -901,10 +903,13 @@
       call broadcast_scalar(diag_file,            master_task)
       do n = 1, max_nstrm
          call broadcast_scalar(histfreq(n),       master_task)
+         call broadcast_scalar(histfreq_base(n),  master_task)
+         call broadcast_scalar(dumpfreq(n),       master_task)
+         call broadcast_scalar(dumpfreq_base(n),  master_task)
       enddo
-      call broadcast_array(histfreq_n,            master_task)
-      call broadcast_scalar(histfreq_base,        master_task)
       call broadcast_array(hist_avg,              master_task)
+      call broadcast_array(histfreq_n,            master_task)
+      call broadcast_array(dumpfreq_n,            master_task)
       call broadcast_scalar(history_dir,          master_task)
       call broadcast_scalar(history_file,         master_task)
       call broadcast_scalar(history_precision,    master_task)
@@ -914,9 +919,6 @@
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
       call broadcast_scalar(incond_file,          master_task)
-      call broadcast_scalar(dumpfreq,             master_task)
-      call broadcast_scalar(dumpfreq_n,           master_task)
-      call broadcast_scalar(dumpfreq_base,        master_task)
       call broadcast_scalar(dump_last,            master_task)
       call broadcast_scalar(restart_file,         master_task)
       call broadcast_scalar(restart,              master_task)
@@ -1569,31 +1571,30 @@
          abort_list = trim(abort_list)//":22"
       endif
 
-      if(histfreq_base /= 'init' .and. histfreq_base /= 'zero') then
-         write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero'
-         abort_list = trim(abort_list)//":24"
-      endif
+      do n = 1,max_nstrm
+         if(histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
+            write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero: '//trim(histfreq_base(n))
+            abort_list = trim(abort_list)//":24"
+         endif
+
+         if(dumpfreq_base(n) /= 'init' .and. dumpfreq_base(n) /= 'zero') then
+            write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero: '//trim(dumpfreq_base(n))
+            abort_list = trim(abort_list)//":25"
+         endif
+
+         if (.not.(scan(dumpfreq(n)(1:1),'ymdhx1YMDHX') == 1 .and. (dumpfreq(n)(2:2) == '1' .or. dumpfreq(n)(2:2) == ' '))) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq(n))
+               write(nu_diag,*) subname//' WARNING:   No restarts files will be written for this stream'
+               write(nu_diag,*) subname//' WARNING:   Allowed values : y,m,d,h,x,1 followed by an optional 1'
+            endif
+            dumpfreq(n) = 'x'
+         endif
+      enddo
 
       if(trim(hist_time_axis) /= 'begin' .and. trim(hist_time_axis) /= 'middle' .and. trim(hist_time_axis) /= 'end') then
          write (nu_diag,*) subname//' ERROR: hist_time_axis value not valid = '//trim(hist_time_axis)
          abort_list = trim(abort_list)//":29"
-      endif
-
-      if(dumpfreq_base /= 'init' .and. dumpfreq_base /= 'zero') then
-         write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero'
-         abort_list = trim(abort_list)//":25"
-      endif
-
-      if (.not.(trim(dumpfreq) == 'y' .or. trim(dumpfreq) == 'Y' .or. &
-                trim(dumpfreq) == 'm' .or. trim(dumpfreq) == 'M' .or. &
-                trim(dumpfreq) == 'd' .or. trim(dumpfreq) == 'D' .or. &
-                trim(dumpfreq) == 'h' .or. trim(dumpfreq) == 'H' .or. &
-                trim(dumpfreq) == '1' )) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: unrecognized dumpfreq=', trim(dumpfreq)
-            write(nu_diag,*) subname//' WARNING:   No restarts files will be written'
-            write(nu_diag,*) subname//' WARNING:   Allowed values : ''y'', ''m'', ''d'', ''h'', ''1'''
-         endif
       endif
 
       ! Implicit solver input validation
@@ -2319,7 +2320,7 @@
          write(nu_diag,1021) ' numax            = ', numax
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
-         write(nu_diag,1031) ' histfreq_base    = ', trim(histfreq_base)
+         write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(:)
          write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
@@ -2330,9 +2331,9 @@
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
          endif
-         write(nu_diag,1031) ' dumpfreq         = ', trim(dumpfreq)
-         write(nu_diag,1021) ' dumpfreq_n       = ', dumpfreq_n
-         write(nu_diag,1031) ' dumpfreq_base    = ', trim(dumpfreq_base)
+         write(nu_diag,1033) ' dumpfreq         = ', dumpfreq(:)
+         write(nu_diag,1023) ' dumpfreq_n       = ', dumpfreq_n(:)
+         write(nu_diag,1033) ' dumpfreq_base    = ', dumpfreq_base(:)
          write(nu_diag,1011) ' dump_last        = ', dump_last
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)

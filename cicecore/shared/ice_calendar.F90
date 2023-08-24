@@ -102,9 +102,9 @@
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
          diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
-         dumpfreq_n   , & ! restart output frequency (10 = once per 10 d,m,y)
          nstreams     , & ! number of history output streams
-         histfreq_n(max_nstrm) ! history output frequency
+         dumpfreq_n(max_nstrm), & ! restart output frequency (10 = once per 10 d,m,y)
+         histfreq_n(max_nstrm)    ! history output frequency
 
       logical (kind=log_kind), public :: &
          new_year       , & ! new year = .true.
@@ -126,16 +126,18 @@
          force_restart_now, & ! force a restart now
          write_history(max_nstrm) ! write history now
 
-      character (len=1), public :: &
+      character (len=2), public :: &
          npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
          npt0_unit,           & ! original run length unit, 'y', 'm', 'd', 'h', 's', '1'
-         histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1'
-         dumpfreq               ! restart frequency, 'y','m','d'
+         histfreq(max_nstrm), & ! history output frequency, 'y','m','d','h','1','x'
+         dumpfreq(max_nstrm)    ! restart frequency, 'y','m','d', h', '1', 'x' followed by optional 1
 
       character (len=char_len), public :: &
-         dumpfreq_base = 'zero', & ! restart frequency basetime ('zero', 'init')
-         histfreq_base = 'init', & ! history frequency basetime ('zero', 'init')
-         calendar_type             ! define calendar type
+         dumpfreq_base(max_nstrm), & ! restart frequency basetime ('zero', 'init')
+         histfreq_base(max_nstrm), & ! history frequency basetime ('zero', 'init')
+         calendar_type               ! define calendar type
+      data dumpfreq_base / 'init', 'init', 'init', 'init', 'init' /
+      data histfreq_base / 'zero', 'zero', 'zero', 'zero', 'zero' /
 
       ! PRIVATE
 
@@ -408,9 +410,9 @@
 
       ! History writing flags
 
-      call compute_relative_elapsed(histfreq_base, elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
-
       do ns = 1, nstreams
+
+         call compute_relative_elapsed(histfreq_base(ns), elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
 
          select case (histfreq(ns))
          case ("y", "Y")
@@ -442,27 +444,40 @@
 
       enddo
 
-      ! Restart writing flag
+      ! Restart writing flag, set dumpfreq to 'x" if stream is written once
 
-      call compute_relative_elapsed(dumpfreq_base, elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+      do ns = 1, max_nstrm
 
-      select case (dumpfreq)
-      case ("y", "Y")
-         if (new_year  .and. mod(elapsed_years, dumpfreq_n)==0) &
-            write_restart = 1
-      case ("m", "M")
-         if (new_month .and. mod(elapsed_months,dumpfreq_n)==0) &
-            write_restart = 1
-      case ("d", "D")
-         if (new_day   .and. mod(elapsed_days, dumpfreq_n)==0) &
-            write_restart = 1
-      case ("h", "H")
-         if (new_hour  .and. mod(elapsed_hours, dumpfreq_n)==0) &
-            write_restart = 1
-      case ("1")
-         if (mod(istep1, dumpfreq_n)==0) &
-            write_restart = 1
-      end select
+         call compute_relative_elapsed(dumpfreq_base(ns), elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+
+         select case (dumpfreq(ns)(1:1))
+         case ("y", "Y")
+            if (new_year  .and. mod(elapsed_years, dumpfreq_n(ns))==0) then
+               write_restart = 1
+               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+            endif
+         case ("m", "M")
+            if (new_month .and. mod(elapsed_months,dumpfreq_n(ns))==0) then
+               write_restart = 1
+               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+            endif
+         case ("d", "D")
+            if (new_day   .and. mod(elapsed_days,  dumpfreq_n(ns))==0) then
+               write_restart = 1
+               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+            endif
+         case ("h", "H")
+            if (new_hour  .and. mod(elapsed_hours, dumpfreq_n(ns))==0) then
+               write_restart = 1
+               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+            endif
+         case ("1")
+            if (mod(istep1, dumpfreq_n(ns))==0) then
+               write_restart = 1
+               if (dumpfreq(ns)(2:2) == '1') dumpfreq(ns) = 'x'
+            endif
+         end select
+      enddo
 
       if (force_restart_now) write_restart = 1
 

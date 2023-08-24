@@ -891,6 +891,8 @@ will be relative to the model initial date specified by ``year_init``,
 in setting output frequencies.  `init` is the default for
 ``dumpfreq_base`` and makes it easy to generate restarts
 5 or 10 model days after startup as we often do in testing.
+Both ``histfreq_base`` and ``dumpfreq_base`` are arrays
+and can be set for each stream separately.
 
 In general, output is always
 written at the start of the year, month, day, or hour without
@@ -1408,7 +1410,8 @@ The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
 ‘iced.’, and the restart dump frequency is given by the namelist
 variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
-specified by ``dumpfreq_base``. The pointer to the filename from
+specified by ``dumpfreq_base``.  Multiple restart frequencies are supported
+in the code with a similar mechanism to history streams.  The pointer to the filename from
 which the restart data is to be read for a continuation run is set in
 ``pointer_file``. The code assumes that auxiliary binary tracer restart
 files will be identified using the same pointer and file name prefix,
