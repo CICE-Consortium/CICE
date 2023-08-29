@@ -356,7 +356,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          tarear, hm,                  &
+                          earea, narea, tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
@@ -727,6 +727,7 @@
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy(:,:,iblk),      &
                                dxu   (:,:,iblk),  dyu(:,:,iblk),      &
+                               earea (:,:,iblk),  narea (:,:,iblk),   &
                                xp    (:,:,:,:),   yp (:,:,:,:),       &
                                iflux,             jflux,              &
                                triarea,           edgearea_e(:,:))
@@ -786,6 +787,7 @@
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy (:,:,iblk),     &
                                dxu   (:,:,iblk),  dyu (:,:,iblk),     &
+                               earea (:,:,iblk),  narea (:,:,iblk),   &
                                xp    (:,:,:,:),   yp(:,:,:,:),        &
                                iflux,             jflux,              &
                                triarea,           edgearea_n(:,:))
@@ -1705,6 +1707,7 @@
                                    indxi,        indxj,      &
                                    dpx,          dpy,        &
                                    dxu,          dyu,        &
+                                   earea,        narea,      &
                                    xp,           yp,         &
                                    iflux,        jflux,      &
                                    triarea,      edgearea)
@@ -1721,7 +1724,9 @@
          dpx          , & ! x coordinates of departure points at cell corners
          dpy          , & ! y coordinates of departure points at cell corners
          dxu          , & ! E-W dimension of U-cell (m)
-         dyu              ! N-S dimension of U-cell (m)
+         dyu          , & ! N-S dimension of U-cell (m)
+         earea        , & ! area of E-cell 
+         narea            ! area of N-cell
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:nvert,ngroups), intent(out) :: &
          xp, yp           ! coordinates of triangle vertices
@@ -1771,12 +1776,10 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::   &
          dx, dy       , & ! scaled departure points
-         areafac_c    , & ! (areafac_l + areafac_r)/2
-         areafac_ce       ! areafac_c on other edge
+         areafac_c    , & ! earea or narea
+         areafac_ce       ! areafac_c on other edge (narea or earea)
 
       real (kind=dbl_kind) ::   &
-         areafac_l    , & ! area scale factor at left corner
-         areafac_r    , & ! area scale factor at right corner
          xcl, ycl     , & ! coordinates of left corner point
                           ! (relative to midpoint of edge)
          xdl, ydl     , & ! left departure point
@@ -1923,21 +1926,17 @@
 
          ! area scale factor
 
-         do j = jb, je
-         do i = ib, ie
-            areafac_l = dxu(i-1,j)*dyu(i-1,j)
-            areafac_r = dxu(i  ,j)*dyu(i  ,j)
-            areafac_c(i,j) = p5*( areafac_l + areafac_r )
+         do j = jlo-1, jhi
+         do i = ilo, ihi
+            areafac_c(i,j) = narea(i,j)
          enddo
          enddo
 
          ! area scale factor for other edge (east)
          
-         do j = jb, je+1
-            do i = ib-1, ie
-            areafac_l = dxu(i,j  )*dyu(i,j  )
-            areafac_r = dxu(i,j-1)*dyu(i,j-1)
-            areafac_ce(i,j) = p5*( areafac_l + areafac_r )
+         do j = jlo-1, jhi+1
+            do i = ilo-1, ihi
+            areafac_ce(i,j) = earea(i,j)
          enddo
          enddo
 
@@ -1978,21 +1977,17 @@
 
          ! area scale factors
 
-         do j = jb, je
-         do i = ib, ie
-            areafac_l = dxu(i,j  )*dyu(i,j  )
-            areafac_r = dxu(i,j-1)*dyu(i,j-1)
-            areafac_c(i,j) = p5*( areafac_l + areafac_r )
+         do j = jlo, jhi
+         do i = ilo-1, ihi
+            areafac_c(i,j) = earea(i,j)
          enddo
          enddo
 
          ! area scale factor for other edge (north)
 
-         do j = jb-1, je
-         do i = ib, ie+1
-            areafac_l = dxu(i-1,j)*dyu(i-1,j)
-            areafac_r = dxu(i  ,j)*dyu(i  ,j)
-            areafac_ce(i,j) = p5*( areafac_l + areafac_r )
+         do j = jlo-1, jhi
+         do i = ilo-1, ihi+1
+            areafac_ce(i,j) = narea(i,j)
          enddo
          enddo
 
