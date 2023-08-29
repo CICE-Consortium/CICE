@@ -1753,7 +1753,7 @@
 
       integer (kind=int_kind) ::   &
          i, j, ij, ic         , & ! horizontal indices
-         ib, ie, jb, je       , & ! limits for loops over edges
+         ib, jb               , & ! limits for loops for bugcheck
          ng, nv               , & ! triangle indices
          ishift   , jshift    , & ! differences between neighbor cells
          ishift_tl, jshift_tl , & ! i,j indices of TL cell relative to edge
@@ -1891,13 +1891,6 @@
 
       if (trim(edge) == 'north') then
 
-         ! loop size
-
-         ib = ilo
-         ie = ihi
-         jb = jlo - nghost            ! lowest j index is a ghost cell
-         je = jhi
-
          ! index shifts for neighbor cells
 
          ishift_tl = -1
@@ -1941,13 +1934,6 @@
          enddo
 
       else                      ! east edge
-
-         ! loop size
-
-         ib = ilo - nghost            ! lowest i index is a ghost cell
-         ie = ihi
-         jb = jlo
-         je = jhi
 
          ! index shifts for neighbor cells
 
@@ -1999,8 +1985,8 @@
 
       icellsd = 0
       if (trim(edge) == 'north') then
-         do j = jb, je
-         do i = ib, ie
+         do j = jlo-1, jhi
+         do i = ilo, ihi
             if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
                                .or.                  &
                   dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
@@ -2011,8 +1997,8 @@
          enddo
          enddo
       else       ! east edge
-         do j = jb, je
-         do i = ib, ie
+         do j = jlo, jhi
+         do i = ilo-1, ihi
             if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
                                .or.                  &
                   dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
@@ -2028,8 +2014,8 @@
       ! Scale the departure points
       !-------------------------------------------------------------------
 
-      do j = 1, je
-      do i = 1, ie
+      do j = 1, jhi
+      do i = 1, ihi
          dx(i,j) = dpx(i,j) / dxu(i,j)
          dy(i,j) = dpy(i,j) / dyu(i,j)
       enddo
@@ -3061,10 +3047,17 @@
       endif
 
       if (bugcheck) then
+         if (trim(edge) == 'north') then
+            ib = ilo
+            jb = jlo-1
+         else ! east edge
+            ib = ilo-1
+            jb = jlo
+         endif
          do ng = 1, ngroups
          do nv = 1, nvert
-            do j = jb, je
-            do i = ib, ie
+            do j = jb, jhi
+            do i = ib, ihi
                if (abs(triarea(i,j,ng)) > puny) then
                   if (abs(xp(i,j,nv,ng)) > p5+puny) then
                      write(nu_diag,*) ''
