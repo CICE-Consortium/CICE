@@ -1,0 +1,70 @@
+#==============================================================================
+# Macros file for DMI cray XT5, intel compiler
+#==============================================================================
+
+INCLDIR := -I. -I/usr/include
+SLIBS   :=
+
+#--- Compiler/preprocessor ---
+FC         := ftn
+CC         := cc -c
+CXX        := cc
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional  # ALLOW fortran double backslash "\\" 
+
+#--- Flags ---
+CFLAGS     := -c -O2
+#FFLAGS     :=  -g -O2
+#FFLAGS     :=  -g -O1 -Ofp0 -Oipa5 
+#--- TEST flags ---
+ifeq ($(ICE_BLDDEBUG), true)
+#   FFLAGS     := -O1 -Ofp0 -K trap=fp -Wall -g
+   FFLAGS     := -O1 -h fp0 -K trap=fp -h bounds -g
+else
+#  FFLAGS     += -O2
+   FFLAGS     := -O2 -h fp0
+endif
+
+#FFLAGS     := -O2 -h fp0
+# Preprocessor flags
+CPPDEFS    := -DLINUX $(ICE_CPPDEFS)
+
+
+# Linker flags
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+
+# Additional flags
+FIXEDFLAGS := -ffixed-line-length-132
+FREEFLAGS  := 
+
+
+
+ifeq ($(DITTO), yes)
+   CPPDEFS :=  $(CPPDEFS) -DREPRODUCIBLE
+endif
+
+
+#--- OpenMP flags ---
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -h omp
+   CFLAGS += -h omp
+   FFLAGS += -h omp
+endif
+
+#--- NetCDF ---
+ifeq ($(IO_TYPE), netcdf)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+ifeq ($(IO_TYPE), netcdf_bin)
+   CPPDEFS :=  $(CPPDEFS) -Dncdf
+endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+ifeq ($(ICE_IOTYPE), pio)
+   PIO_PATH:=/usr/projects/climate/SHARED_CLIMATE/software/conejo/pio/1.7.2/intel-13.0.1/openmpi-1.6.3/netcdf-3.6.3-parallel-netcdf-1.3.1/include
+   INCLDIR += -I$(PIO_PATH)
+   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
+endif
+

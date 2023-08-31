@@ -43,7 +43,11 @@
 !       Converted to free source form (F90)
 !===============================================================================
 ! 2023: Intel
+!       Refactored for SIMD code generation
+!       Refactored to reduce memory footprint
 !       Refactored to support explicit inlining
+!       Refactored the OpenMP parallelization (classic loop inlined w. scoping)
+!       Refactored to support OpenMP GPU offloading
 !       Refactored to allow private subroutines in stress to become pure
 !===============================================================================
 !===============================================================================
@@ -51,14 +55,13 @@
 !       Updated to match requirements from CICE
 !===============================================================================
 
-module bench_v2b
+module bench_v2c
 
-    use ice_dyn_shared, only: Ktens, epp2i,capping, e_factor
+  use ice_dyn_shared, only: e_factor, epp2i, capping
 
-  use ice_constants, only: c0, c1
+  use ice_constants, only: c1
 
 contains
-!DIR$ ATTRIBUTES FORCEINLINE :: stress
 subroutine stress (ee, ne, se, lb, ub,                                         &
                    uvel, vvel, dxT, dyT, skipme, strength,                     &
                    hte, htn, htem1, htnm1,                                     &
@@ -71,7 +74,7 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
   use ice_constants, only: p027, p055, p111, p166, c1p5,        &
                            p222, p25, p333, p5
   use ice_dyn_shared, only: arlx1i, denom1, revp,     &
-                           deltaminEVP
+                           deltaminEVP, visc_replpress
 ! 
   implicit none
   ! arguments ------------------------------------------------------------------
@@ -95,7 +98,7 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
   real    (kind=dbl_kind), dimension(:), intent(inout), contiguous ::            &
            str1,str2,str3,str4,str5,str6,str7,str8
   ! local variables
-  integer (kind=int_kind) :: iw,il,iu
+  integer (kind=int_kind) :: iw
   real    (kind=dbl_kind) ::                          &
     divune, divunw, divuse, divusw            ,       & ! divergence
     tensionne, tensionnw, tensionse, tensionsw,       & ! tension
@@ -122,8 +125,44 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
     tmp_strength, tmp_DminTarea, tmparea,                                      &
     tmp_dxhy, tmp_dyhx
 
-  call domp_get_domain(lb,ub,il,iu)
-  do iw = il, iu
+
+#ifdef _OPENMP_TARGET
+  !$omp target teams distribute parallel do
+#else
+  !$omp parallel do schedule(runtime)                                          &
+  !$omp default(none)                                                          &
+  !$omp private(iw, divune, divunw, divuse, divusw        ,                    &
+  !$omp         tensionne, tensionnw, tensionse, tensionsw,                    &
+  !$omp         shearne, shearnw, shearse, shearsw        ,                    &
+  !$omp         Deltane, Deltanw, Deltase, Deltasw        ,                    &
+  !$omp         zetax2ne, zetax2nw, zetax2se, zetax2sw    ,                    &
+  !$omp         etax2ne, etax2nw, etax2se, etax2sw        ,                    &
+  !$omp         rep_prsne, rep_prsnw, rep_prsse, rep_prssw,                    &
+  !$omp         ssigpn, ssigps, ssigpe, ssigpw            ,                    &
+  !$omp         ssigmn, ssigms, ssigme, ssigmw            ,                    &
+  !$omp         ssig12n, ssig12s, ssig12e, ssig12w, ssigp1,                    &
+  !$omp         ssigp2, ssigm1, ssigm2, ssig121, ssig122  ,                    &
+  !$omp         csigpne, csigpnw, csigpse, csigpsw        ,                    &
+  !$omp         csigmne, csigmnw, csigmse, csigmsw        ,                    &
+  !$omp         csig12ne, csig12nw, csig12se, csig12sw    ,                    &
+  !$omp         str12ew, str12we, str12ns, str12sn        ,                    &
+  !$omp         strp_tmp, strm_tmp                        ,                    &
+  !$omp         tmp_uvel_ee, tmp_vvel_se, tmp_vvel_ee     ,                    &
+  !$omp         tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se     ,                    &
+  !$omp         tmp_uvel_cc, tmp_vvel_cc, tmp_dxT, tmp_dyT,                    &
+  !$omp         tmp_cxp, tmp_cyp, tmp_cxm, tmp_cym        ,                    &
+  !$omp         tmp_strength, tmp_DminTarea, tmparea      ,                    &
+  !$omp         tmp_dxhy, tmp_dyhx)                                            &
+  !$omp  shared(uvel,vvel,dxT,dyT,htn,hte,htnm1,htem1     ,                    &
+  !$omp         str1,str2,str3,str4,str5,str6,str7,str8   ,                    &
+  !$omp         stressp_1,stressp_2,stressp_3,stressp_4   ,                    &
+  !$omp         stressm_1,stressm_2,stressm_3,stressm_4   ,                    &
+  !$omp         stress12_1,stress12_2,stress12_3,stress12_4,                   &
+  !$omp         deltaminEVP, arlx1i, denom1, e_factor,                &
+  !$omp         epp2i, capping,                      &
+  !$omp         skipme,strength,ee,se,ne,lb,ub,revp)
+#endif
+  do iw = lb, ub
     if (skipme(iw)) cycle
     ! divergence  =  e_11 + e_22
     tmp_uvel_cc = uvel(iw)
@@ -309,6 +348,11 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
     str8(iw) =  strp_tmp - strm_tmp + str12sn &
                -tmp_dyhx*(csigpsw + csigmsw) + tmp_dxhy*csig12sw
   enddo
+#ifdef _OPENMP_TARGET
+  !$omp end target teams distribute parallel do
+#else
+  !$omp end parallel do
+#endif
 end subroutine stress
 
 !===============================================================================
@@ -317,7 +361,6 @@ end subroutine stress
 ! author: Elizabeth C. Hunke, LANL
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
-!DIR$ ATTRIBUTES FORCEINLINE :: strain_rates
 pure subroutine strain_rates (tmp_uvel_cc, tmp_vvel_cc,                        &
                          tmp_uvel_ee, tmp_vvel_ee,                             &
                          tmp_uvel_se, tmp_vvel_se,                             &
@@ -396,51 +439,11 @@ pure subroutine strain_rates (tmp_uvel_cc, tmp_vvel_cc,                        &
 
 end subroutine strain_rates
 
-!===============================================================================
-! Computes viscosities and replacement pressure for stress
-! calculations. Note that tensile strength is included here.
-!
-! Hibler, W. D. (1979). A dynamic thermodynamic sea ice model. J. Phys.
-! Oceanogr., 9, 817-846.
-!
-! Konig Beatty, C. and Holland, D. M.  (2010). Modeling landfast ice by
-! adding tensile strength. J. Phys. Oceanogr. 40, 185-198.
-!
-! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
-! by combining tensile strength and a parameterization for grounded ridges.
-! J. Geophys. Res. Oceans, 121, 7354-7368.
-!===============================================================================
-
-!DIR$ ATTRIBUTES FORCEINLINE :: visc_replpress
-pure subroutine visc_replpress(strength, DminArea, Delta,                      &
-                          zetax2, etax2, rep_prs)
-  use ice_kinds_mod
-
-  real (kind=dbl_kind), intent(in)::  strength, DminArea
-  real (kind=dbl_kind), intent(in)::  Delta
-  real (kind=dbl_kind), intent(out)::                                          &
-         zetax2  , & ! bulk viscosity
-         etax2   , & ! shear viscosity
-         rep_prs     ! replacement pressure
-
-  ! local variables
-  real (kind=dbl_kind) :: tmpcalc     ! temporary
-
-  ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-
-  tmpcalc = capping *(strength/max(Delta,DminArea))+ &
-            (c1-capping)*(strength/(Delta + DminArea))
-  zetax2  = (c1+Ktens)*tmpcalc
-  rep_prs = (c1-Ktens)*tmpcalc*Delta
-  etax2   = epp2i*zetax2
-
-end subroutine visc_replpress
 
 !===============================================================================
 ! Calculation of the surface stresses
 ! Integration of the momentum equation to find velocity (u,v)
 ! author: Elizabeth C. Hunke, LANL
-!DIR$ ATTRIBUTES FORCEINLINE :: stepu
 subroutine stepu (lb, ub,                                                      &
                         Cw,                                                    &
                         aiX,                                                   &
@@ -489,7 +492,7 @@ subroutine stepu (lb, ub,                                                      &
   real (kind=dbl_kind), parameter ::                                           &
          rhow =  1026._dbl_kind               
   ! local variables
-  integer (kind=int_kind) :: iw,il,iu
+  integer (kind=int_kind) :: iw
   real (kind=dbl_kind) ::                                                      &
          uold, vold        , & ! old-time uvel, vvel
          vrel              , & ! relative ice-ocean velocity
@@ -502,8 +505,22 @@ subroutine stepu (lb, ub,                                                      &
   !-----------------------------------------------------------------------------
   ! integrate the momentum equation
   !-----------------------------------------------------------------------------
-  call domp_get_domain(lb,ub,il,iu)
-  do iw = il, iu
+#ifdef _OPENMP_TARGET
+  !$omp target teams distribute parallel do
+#else
+  !$omp parallel do schedule(runtime)                                          &
+  !$omp default(none)                                                          &
+  !$omp private(iw, tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,                      &
+  !$omp         tmp_str6_sse,tmp_str7_nw,tmp_str8_sw,                          &
+  !$omp         vrel, uold, vold, taux, tauy, cca, ccb, ab2,                   &
+  !$omp         cc1, cc2)                                                      &
+  !$omp shared(uvel,vvel,str1,str2,str3,str4,str5,str6,str7,str8,              &
+  !$omp        strintx,strinty,Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,    &
+  !$omp        aiX,waterx,watery,forcex,forcey,Umassdti,uocn,vocn,fm,uarear,   &
+!TILL  !$omp           Cw,lb,ub,brlx, revp, u0)
+  !$omp           Cw,lb,ub,brlx, revp)
+#endif
+  do iw = lb, ub
     if (skipme(iw)) cycle
 
     uold = uvel(iw)
@@ -545,7 +562,12 @@ subroutine stepu (lb, ub,                                                      &
     ! calculate seabed stress component for outputs
     ! only needed on last iteration.
   enddo
+#ifdef _OPENMP_TARGET
+  !$omp end target teams distribute parallel do
+#else
+  !$omp end parallel do
+#endif
 
 end subroutine stepu
 
-end module bench_v2b
+end module bench_v2c

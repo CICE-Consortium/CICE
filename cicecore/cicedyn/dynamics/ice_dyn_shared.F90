@@ -2302,7 +2302,7 @@
 ! by combining tensile strength and a parameterization for grounded ridges.
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
 
-      subroutine visc_replpress(strength, DminArea, Delta, &
+    pure subroutine visc_replpress(strength, DminArea, Delta, &
                                 zetax2, etax2, rep_prs)
 
       real (kind=dbl_kind), intent(in)::  &
