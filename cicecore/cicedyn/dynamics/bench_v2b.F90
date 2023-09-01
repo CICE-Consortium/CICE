@@ -92,7 +92,7 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
            stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
            stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
            stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
-  real    (kind=dbl_kind), dimension(:), intent(out), contiguous ::            &
+  real    (kind=dbl_kind), dimension(:), intent(inout), contiguous ::            &
            str1,str2,str3,str4,str5,str6,str7,str8
   ! local variables
   integer (kind=int_kind) :: iw,il,iu
@@ -150,34 +150,34 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
     ! strain rates - NOTE these are actually strain rates * area  (m^2/s)
     !--------------------------------------------------------------------------
     call strain_rates (tmp_uvel_cc, tmp_vvel_cc, &
-                            tmp_uvel_ee, tmp_vvel_ee, &
-                            tmp_uvel_se, tmp_vvel_se, &
-                            tmp_uvel_ne, tmp_vvel_ne, &
-                            tmp_dxT,     tmp_dyT,     &
-                            tmp_cxp,     tmp_cyp,     &
-                            tmp_cxm,     tmp_cym,     &
-                            divune,     divunw,       &
-                            divuse,     divusw,       &
-                            tensionne,  tensionnw,    &
-                            tensionse,  tensionsw,    &
-                            shearne,    shearnw,      &
-                            shearse,    shearsw,      &
-                            Deltane,    Deltanw,      &
-                            Deltase,    Deltasw )
+                       tmp_uvel_ee, tmp_vvel_ee, &
+                       tmp_uvel_se, tmp_vvel_se, &
+                       tmp_uvel_ne, tmp_vvel_ne, &
+                       tmp_dxT,     tmp_dyT,     &
+                       tmp_cxp,     tmp_cyp,     &
+                       tmp_cxm,     tmp_cym,     &
+                       divune,     divunw,       &
+                       divuse,     divusw,       &
+                       tensionne,  tensionnw,    &
+                       tensionse,  tensionsw,    &
+                       shearne,    shearnw,      &
+                       shearse,    shearsw,      &
+                       Deltane,    Deltanw,      &
+                       Deltase,    Deltasw )
     !--------------------------------------------------------------------------
     ! viscosities and replacement pressure
     !--------------------------------------------------------------------------
     call visc_replpress (tmp_strength, tmp_DminTarea, Deltane, &
-                              zetax2ne, etax2ne, rep_prsne)
+                         zetax2ne, etax2ne, rep_prsne)
 
     call visc_replpress (tmp_strength, tmp_DminTarea, Deltanw, &
-                              zetax2nw, etax2nw, rep_prsnw)
+                         zetax2nw, etax2nw, rep_prsnw)
 
     call visc_replpress (tmp_strength, tmp_DminTarea, Deltasw, &
-                              zetax2sw, etax2sw, rep_prssw)
+                         zetax2sw, etax2sw, rep_prssw)
 
     call visc_replpress (tmp_strength, tmp_DminTarea, Deltase, &
-                              zetax2se, etax2se, rep_prsse)
+                         zetax2se, etax2se, rep_prsse)
 
     !--------------------------------------------------------------------------
     ! the stresses                            ! kg/s^2
@@ -185,31 +185,31 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
     !--------------------------------------------------------------------------
     ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
     stressp_1 (iw) = (stressp_1 (iw)*(c1-arlx1i*revp) &
-                     + arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
+                   +  arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
     stressp_2 (iw) = (stressp_2 (iw)*(c1-arlx1i*revp) &
-                    + arlx1i*(zetax2nw*divunw - rep_prsnw)) * denom1
-    stressp_3 (iw) = (stressp_3 (iw)*(c1-arlx1i*revp) &
-                          + arlx1i*(zetax2sw*divusw - rep_prssw)) * denom1
+                   +  arlx1i*(zetax2nw*divunw - rep_prsnw)) * denom1
+    stressp_3 (iw) = (stressp_3 (iw)*(c1-arlx1i*revp)&
+                   +  arlx1i*(zetax2sw*divusw - rep_prssw)) * denom1
     stressp_4 (iw) = (stressp_4 (iw)*(c1-arlx1i*revp) &
-                          + arlx1i*(zetax2se*divuse - rep_prsse)) * denom1
+                   +  arlx1i*(zetax2se*divuse - rep_prsse)) * denom1
 
     stressm_1 (iw) = (stressm_1 (iw)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2ne*tensionne) * denom1
+                   +  arlx1i*etax2ne*tensionne) * denom1
     stressm_2 (iw) = (stressm_2 (iw)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2nw*tensionnw) * denom1
+                   +  arlx1i*etax2nw*tensionnw) * denom1
     stressm_3 (iw) = (stressm_3 (iw)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2sw*tensionsw) * denom1
+                   +  arlx1i*etax2sw*tensionsw) * denom1
     stressm_4 (iw) = (stressm_4 (iw)*(c1-arlx1i*revp) &
-                           + arlx1i*etax2se*tensionse) * denom1
+                   +  arlx1i*etax2se*tensionse) * denom1
 
     stress12_1(iw) = (stress12_1(iw)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2ne*shearne) * denom1
+                   +  arlx1i*p5*etax2ne*shearne) * denom1
     stress12_2(iw) = (stress12_2(iw)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2nw*shearnw) * denom1
+                   +  arlx1i*p5*etax2nw*shearnw) * denom1
     stress12_3(iw) = (stress12_3(iw)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2sw*shearsw) * denom1
+                   +  arlx1i*p5*etax2sw*shearsw) * denom1
     stress12_4(iw) = (stress12_4(iw)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2se*shearse) * denom1
+                   +  arlx1i*p5*etax2se*shearse) * denom1
 
      !--------------------------------------------------------------------------
      ! combinations of the stresses for the momentum equation ! kg/s^2
@@ -361,38 +361,38 @@ pure subroutine strain_rates (tmp_uvel_cc, tmp_vvel_cc,                        &
 
   ! divergence  =  e_11 + e_22
   divune    = cyp*tmp_uvel_cc - dyT*tmp_uvel_ee &
-                + cxp*tmp_vvel_cc - dxT*tmp_vvel_se
+             + cxp*tmp_vvel_cc - dxT*tmp_vvel_se
   divunw    = cym*tmp_uvel_ee + dyT*tmp_uvel_cc &
-                + cxp*tmp_vvel_ee - dxT*tmp_vvel_ne
+             + cxp*tmp_vvel_ee - dxT*tmp_vvel_ne
   divusw    = cym*tmp_uvel_ne + dyT*tmp_uvel_se &
-                + cxm*tmp_vvel_ne + dxT*tmp_vvel_ee
+             + cxm*tmp_vvel_ne + dxT*tmp_vvel_ee
   divuse    = cyp*tmp_uvel_se - dyT*tmp_uvel_ne &
-                + cxm*tmp_vvel_se + dxT*tmp_vvel_cc
+             + cxm*tmp_vvel_se + dxT*tmp_vvel_cc
 
   ! tension strain rate  =  e_11 - e_22
   tensionne = -cym*tmp_uvel_cc - dyT*tmp_uvel_ee &
-                +  cxm*tmp_vvel_cc + dxT*tmp_vvel_se
+              +  cxm*tmp_vvel_cc + dxT*tmp_vvel_se
   tensionnw = -cyp*tmp_uvel_ee + dyT*tmp_uvel_cc&
-                +  cxm*tmp_vvel_ee + dxT*tmp_vvel_ne
+              +  cxm*tmp_vvel_ee + dxT*tmp_vvel_ne
   tensionsw = -cyp*tmp_uvel_ne + dyT*tmp_uvel_se &
-                +  cxp*tmp_vvel_ne - dxT*tmp_vvel_ee
+              +  cxp*tmp_vvel_ne - dxT*tmp_vvel_ee
   tensionse = -cym*tmp_uvel_se - dyT*tmp_uvel_ne &
-                +  cxp*tmp_vvel_se - dxT*tmp_vvel_cc
+              +  cxp*tmp_vvel_se - dxT*tmp_vvel_cc
 
   ! shearing strain rate  =  2*e_12
-  shearne = -cym*tmp_vvel_cc - dyT*tmp_vvel_ee &
+  shearne   = -cym*tmp_vvel_cc - dyT*tmp_vvel_ee &
               -  cxm*tmp_uvel_cc - dxT*tmp_uvel_se
-  shearnw = -cyp*tmp_vvel_ee + dyT*tmp_vvel_cc &
+  shearnw   = -cyp*tmp_vvel_ee + dyT*tmp_vvel_cc &
               -  cxm*tmp_uvel_ee - dxT*tmp_uvel_ne
-  shearsw = -cyp*tmp_vvel_ne + dyT*tmp_vvel_se &
+  shearsw   = -cyp*tmp_vvel_ne + dyT*tmp_vvel_se &
               -  cxp*tmp_uvel_ne + dxT*tmp_uvel_ee
-  shearse = -cym*tmp_vvel_se - dyT*tmp_vvel_ne &
+  shearse   = -cym*tmp_vvel_se - dyT*tmp_vvel_ne &
               -  cxp*tmp_uvel_se + dxT*tmp_uvel_cc
   ! Delta (in the denominator of zeta, eta)
-  Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
-  Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
-  Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
-  Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
+  Deltane   = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
+  Deltanw   = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
+  Deltasw   = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
+  Deltase   = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
 end subroutine strain_rates
 
@@ -409,6 +409,7 @@ end subroutine strain_rates
 ! Lemieux, J. F. et al. (2016). Improving the simulation of landfast ice
 ! by combining tensile strength and a parameterization for grounded ridges.
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
+!===============================================================================
 
 !DIR$ ATTRIBUTES FORCEINLINE :: visc_replpress
 pure subroutine visc_replpress(strength, DminArea, Delta,                      &

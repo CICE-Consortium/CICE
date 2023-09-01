@@ -251,6 +251,8 @@
           dyn_haloUpdate, fld2, fld3, fld4
 #ifdef integrate
        use ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
+#else
+       use ice_dyn_evp1d, only: dyn_evp1d_run
 #endif
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -818,23 +820,16 @@
          endif
 
          call ice_timer_start(timer_evp_1d)
-         call ice_dyn_evp_1d_copyin(                                         &
-            nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-            iceTmask, iceUmask,                                              &
-            cdn_ocnU,aiU,uocnU,vocnU,forcexU,forceyU,TbU,                    &
-            umassdti,fmU,uarear,tarear,strintxU,strintyU,uvel_init,vvel_init,&
-            strength,uvel,vvel,dxT,dyT,                                      &
-            stressp_1 ,stressp_2, stressp_3, stressp_4,                      &
-            stressm_1 ,stressm_2, stressm_3, stressm_4,                      &
-            stress12_1,stress12_2,stress12_3,stress12_4                   )
-         call ice_dyn_evp_1d_kernel()
-         call ice_dyn_evp_1d_copyout(                                        &
-            nx_block,ny_block,nblocks,nx_global+2*nghost,ny_global+2*nghost, &
-            uvel,vvel, strintxU,strintyU,                                    &
-            stressp_1, stressp_2, stressp_3, stressp_4,                      &
-            stressm_1, stressm_2, stressm_3, stressm_4,                      &
-            stress12_1,stress12_2,stress12_3,stress12_4,                     &
-            divu,rdg_conv,rdg_shear,shear,taubxU,taubyU                   )
+
+         call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3, stressp_4,     &
+                            stressm_1 , stressm_2 , stressm_3, stressm_4,     &
+                            stress12_1, stress12_2, stress12_3,stress12_4,    &
+                            strength,                                         &
+                            cdn_ocnU   , aiu       , uocn     , vocn     ,    &
+                            waterxU   , wateryU   , forcexU  , forceyU  ,     &
+                            umassdti  , fmU       , strintxU , strintyU ,     &
+                            Tbu       , Tbu       , uvel    , vvel      ,     &
+                            icetmask , iceUmask)
          call ice_timer_stop(timer_evp_1d)
 
       else ! evp_algorithm == standard_2d (Standard CICE)
@@ -1478,7 +1473,7 @@
                          stress12_3, stress12_4, &
                          str )
 
-      use ice_dyn_shared, only: strain_rates, visc_replpress, capping, ktens, epp2i
+      use ice_dyn_shared, only: strain_rates, visc_replpress
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions

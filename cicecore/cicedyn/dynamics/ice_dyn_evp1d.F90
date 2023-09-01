@@ -126,15 +126,16 @@ module ice_dyn_evp1d
 ! bench should be renamed to something better e.g evp1d_func
   use bench_v2b, only : stress, stepu
     implicit none
-    real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
+    real(kind=dbl_kind), dimension(:,:,:), intent(inout) :: &
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                           L_strintxU  , L_strintyU  , L_uvel      , L_vvel
+    real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
                            L_strength,                                               &
                            L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
-                           L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
-                           L_Tbu       , L_Cb        , L_uvel      , L_vvel
+                           L_umassdti  , L_fmU       , L_Tbu       , L_Cb        
     logical, dimension (:,:,:), intent(in) :: L_iceUmask, L_iceTmask
     real(kind=dbl_kind), dimension(nx,ny) :: &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
@@ -205,6 +206,8 @@ module ice_dyn_evp1d
     !$OMP BARRIER
 
     enddo
+#ifdef integrate
+
     call dumpall(mydebugfile1, ts, nx, ny, iu06,                             &
                        G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
                        G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
@@ -214,6 +217,7 @@ module ice_dyn_evp1d
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
                        G_Tbu       , G_Cb        , G_uvel     , G_vvel)
 
+#endif
     call convert_1d_2d_dyn(nActive, &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
@@ -224,6 +228,7 @@ module ice_dyn_evp1d
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                            G_Tbu       , G_Cb        , G_uvel     , G_vvel)
 
+#ifdef integrate
     call dumpall(mydebugfile2, ts, nx, ny, iu06,                              &
                        G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
                        G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
@@ -232,7 +237,18 @@ module ice_dyn_evp1d
                        G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
                        G_Tbu       , G_Cb        , G_uvel     , G_vvel)
+#else
 
+    call scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
+                     L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
+                     L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                     L_strintxU , L_strintyU ,   L_uvel      ,L_vvel     ,     &
+                     G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
+                     G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
+                     G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                     G_strintxU , G_strintyU ,   G_uvel     , G_vvel     )
+
+#endif
 ! END FIXME
 ! calculate number of active points. allocate if initial or if array size should increase
 !    call calc_nActiveTU(iceTmask_log,nActive, iceUmask)
@@ -739,6 +755,54 @@ module ice_dyn_evp1d
     call gather_global_ext(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info)
     call gather_global_ext(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info)
  end subroutine gather_dyn
+
+
+subroutine scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
+                       L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
+                       L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                       L_strintxU , L_strintyU ,   L_uvel      ,L_vvel     ,     &
+                       G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
+                       G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
+                       G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                       G_strintxU , G_strintyU ,   G_uvel     , G_vvel     )
+
+     use ice_communicate, only : master_task
+     use ice_gather_scatter, only : scatter_global_ext
+     use ice_domain, only : distrb_info
+     implicit none
+     real(kind=dbl_kind), dimension(nx_block, ny_block, max_block), intent(out) :: &
+                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
+                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
+                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
+                            L_strintxU  , L_strintyU  , L_uvel     , L_vvel
+
+     real(kind=dbl_kind), dimension(nx, ny), intent(in) :: &
+                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
+                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
+                            G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+                            G_strintxU  , G_strintyU ,  G_uvel      ,G_vvel
+
+    call scatter_global_ext(L_stressp_1,     G_stressp_1,     master_task, distrb_info)
+    call scatter_global_ext(L_stressp_2,     G_stressp_2,     master_task, distrb_info)
+    call scatter_global_ext(L_stressp_3,     G_stressp_3,     master_task, distrb_info)
+    call scatter_global_ext(L_stressp_4,     G_stressp_4,     master_task, distrb_info)
+
+    call scatter_global_ext(L_stressm_1,     G_stressm_1,     master_task, distrb_info)
+    call scatter_global_ext(L_stressm_2,     G_stressm_2,     master_task, distrb_info)
+    call scatter_global_ext(L_stressm_3,     G_stressm_3,     master_task, distrb_info)
+    call scatter_global_ext(L_stressm_4,     G_stressm_4,     master_task, distrb_info)
+
+    call scatter_global_ext(L_stress12_1,    G_stress12_1,     master_task, distrb_info)
+    call scatter_global_ext(L_stress12_2,    G_stress12_2,     master_task, distrb_info)
+    call scatter_global_ext(L_stress12_3,    G_stress12_3,     master_task, distrb_info)
+    call scatter_global_ext(L_stress12_4,    G_stress12_4,     master_task, distrb_info)
+
+    call scatter_global_ext(L_strintxU  ,    G_strintxU  ,     master_task, distrb_info)
+    call scatter_global_ext(L_strintyU  ,    G_strintyU  ,     master_task, distrb_info)
+    call scatter_global_ext(L_uvel      ,    G_uvel      ,     master_task, distrb_info)
+    call scatter_global_ext(L_vvel      ,    G_vvel      ,     master_task, distrb_info)
+
+end subroutine scatter_dyn
 
   subroutine convert_2d_1d_init(na0, G_HTE, G_HTN, &
       G_uarear,  G_dxT, G_dyT)
