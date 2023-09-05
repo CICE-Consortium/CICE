@@ -248,8 +248,6 @@
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp_1d, timer_evp_2d
-      use ice_dyn_evp_1d, only: ice_dyn_evp_1d_copyin, ice_dyn_evp_1d_kernel, &
-          ice_dyn_evp_1d_copyout
       use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, &
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
           strain_rates_U, &
