@@ -5,6 +5,9 @@
 ! 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 ! 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 ! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+! Modified September 2023, Till Rasmussen DMI
+! This version is only valid for v2. 
+! It assumes that all variables are passed as function arguments
 !===============================================================================
 module numa
   use ice_kinds_mod
@@ -18,15 +21,7 @@ module numa
     module procedure numainit_int
     module procedure numainit_logical
   end interface 
-#ifdef v0
-  public  ::  numainit
-#endif
-#ifdef v1
-  public  ::  numainit, numainit_all
-#endif
-#ifdef v2
   public  ::  numainit, numainit_all, numareinit
-#endif
   private ::  numainit_real, numainit_int, numainit_logical
   contains
   subroutine numainit_real(l,u,a,tmpVa)
@@ -53,94 +48,6 @@ module numa
     call domp_get_domain(l,u,lo,up)
     ll(l:u)=tmpVll(l:u)
   end subroutine numainit_logical
-#ifdef v1
-  subroutine numainit_all(l,u,uu)
-    !- modules -----------------------------------------------------------------
-    use ice_kinds_mod
-    use myomp,         only : domp_get_domain
-    use ice_constants, only : c0, c1
-    use vars,          only : uvel, vvel, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, &
-                              cym, DminTarea, strength, stressp_1, stressp_2,  & 
-                              stressp_3, stressp_4, stressm_1, stressm_2,      & 
-                              stressm_3, stressm_4, stress12_1, stress12_2,    & 
-                              stress12_3, stress12_4, cdn_ocn,                 &
-                              aiX, uocn, vocn, waterx, watery, Tbu,            &
-                              forcex, forcey, umassdti, fm, uarear, strintx,   &
-                              strinty, taubx, tauby, uvel_init, vvel_init,     &
-                              ee,ne,se,nw,sw,sse, skipTcell1d,  skipUcell1d,   &
-                              str1, str2, str3, str4, str5, str6, str7, str8
-    implicit none
-    integer(kind=int_kind),intent(in) :: l,u,uu
-    integer(kind=int_kind) :: lo,up
-    call domp_get_domain(l,u,lo,up)
-    if ((lo > 0) .and. (up >= lo)) then
-    skipTcell1d(lo:up)=.false.
-    skipUcell1d(lo:up)=.false.
-    ee(lo:up)=0
-    ne(lo:up)=0
-    nw(lo:up)=0
-    se(lo:up)=0
-    sse(lo:up)=0
-    sw(lo:up)=0
-    aiX(lo:up)=c0
-    cdn_ocn(lo:up)= c0
-    cxm(lo:up)=c0
-    cxp(lo:up)=c0
-    cym(lo:up)=c0
-    cyp(lo:up)=c0
-    DminTarea(lo:up)=c0
-    dxhy(lo:up)=c0
-    dxt(lo:up)=c0
-    dyhx(lo:up)=c0
-    dyt(lo:up)=c0
-    fm(lo:up)= c0
-    forcex(lo:up)= c0
-    forcey(lo:up)= c0
-    str1(lo:up)=c0
-    str2(lo:up)=c0
-    str3(lo:up)=c0
-    str4(lo:up)=c0
-    str5(lo:up)=c0
-    str6(lo:up)=c0
-    str7(lo:up)=c0
-    str8(lo:up)=c0
-    strength(lo:up)= c0
-    stress12_1(lo:up)=c0
-    stress12_2(lo:up)=c0
-    stress12_3(lo:up)=c0
-    stress12_4(lo:up)=c0
-    stressm_1(lo:up)=c0
-    stressm_2(lo:up)=c0
-    stressm_3(lo:up)=c0
-    stressm_4(lo:up)=c0
-    stressp_1(lo:up)= c0
-    stressp_2(lo:up)=c0
-    stressp_3(lo:up)=c0
-    stressp_4(lo:up)=c0
-    strintx(lo:up)= c0
-    strinty(lo:up)= c0
-    taubx(lo:up)= c0
-    tauby(lo:up)= c0
-    Tbu(lo:up)= c0
-    uarear(lo:up)= c0
-    umassdti(lo:up)= c0
-    uocn(lo:up)= c0
-    uvel_init(lo:up)= c0
-    uvel(lo:up)=c0
-    vocn(lo:up)= c0
-    vvel_init(lo:up)= c0
-    vvel(lo:up)=c0
-    waterx(lo:up)= c0
-    watery(lo:up)= c0
-    endif
-    call domp_get_domain(u+1,uu,lo,up)
-    if ((lo > 0) .and. (up >= lo)) then
-      uvel(lo:up)=c0
-      vvel(lo:up)=c0
-    endif
-  end subroutine numainit_all
-#endif
-#ifdef v2
   subroutine numainit_all(l,u,uu)
     !- modules -----------------------------------------------------------------
     use myomp,         only : domp_get_domain
@@ -160,60 +67,60 @@ module numa
     integer(kind=int_kind) :: lo,up
     call domp_get_domain(l,u,lo,up)
     if ((lo > 0) .and. (up >= lo)) then
-    skipTcell1d(lo:up)=.false.
-    skipUcell1d(lo:up)=.false.
-    ee(lo:up)=0
-    ne(lo:up)=0
-    se(lo:up)=0
-    nw(lo:up)=0
-    sw(lo:up)=0
-    sse(lo:up)=0
-    aiu(lo:up)=c0
-    Cb(lo:up)=c0
-    cdn_ocn(lo:up)=c0
-    dxt(lo:up)=c0
-    dyt(lo:up)=c0
-    fmU(lo:up)=c0
-    forcexU(lo:up)=c0
-    forceyU(lo:up)=c0
-    HTE1d(lo:up)=c0
-    HTE1dm1(lo:up)=c0
-    HTN1d(lo:up)=c0
-    HTN1dm1(lo:up)=c0
-    str1(lo:up)=c0
-    str2(lo:up)=c0
-    str3(lo:up)=c0
-    str4(lo:up)=c0
-    str5(lo:up)=c0
-    str6(lo:up)=c0
-    str7(lo:up)=c0
-    str8(lo:up)=c0
-    strength(lo:up)= c0
-    stress12_1(lo:up)=c0
-    stress12_2(lo:up)=c0
-    stress12_3(lo:up)=c0
-    stress12_4(lo:up)=c0
-    stressm_1(lo:up)=c0
-    stressm_2(lo:up)=c0
-    stressm_3(lo:up)=c0
-    stressm_4(lo:up)=c0
-    stressp_1(lo:up)=c0
-    stressp_2(lo:up)=c0
-    stressp_3(lo:up)=c0
-    stressp_4(lo:up)=c0
-    strintxU(lo:up)= c0
-    strintyU(lo:up)= c0
-    Tbu(lo:up)=c0
-    uarear(lo:up)=c0
-    umassdti(lo:up)=c0
-    uocn(lo:up)=c0
-    uvel_init(lo:up)=c0
-    uvel(lo:up)=c0
-    vocn(lo:up)=c0
-    vvel_init(lo:up)=c0
-    vvel(lo:up)=c0
-    waterxU(lo:up)=c0
-    wateryU(lo:up)=c0
+       skipTcell1d(lo:up)=.false.
+       skipUcell1d(lo:up)=.false.
+       ee(lo:up)=0
+       ne(lo:up)=0
+       se(lo:up)=0
+       nw(lo:up)=0
+       sw(lo:up)=0
+       sse(lo:up)=0
+       aiu(lo:up)=c0
+       Cb(lo:up)=c0
+       cdn_ocn(lo:up)=c0
+       dxt(lo:up)=c0
+       dyt(lo:up)=c0
+       fmU(lo:up)=c0
+       forcexU(lo:up)=c0
+       forceyU(lo:up)=c0
+       HTE1d(lo:up)=c0
+       HTE1dm1(lo:up)=c0
+       HTN1d(lo:up)=c0
+       HTN1dm1(lo:up)=c0
+       str1(lo:up)=c0
+       str2(lo:up)=c0
+       str3(lo:up)=c0
+       str4(lo:up)=c0
+       str5(lo:up)=c0
+       str6(lo:up)=c0
+       str7(lo:up)=c0
+       str8(lo:up)=c0
+       strength(lo:up)= c0
+       stress12_1(lo:up)=c0
+       stress12_2(lo:up)=c0
+       stress12_3(lo:up)=c0
+       stress12_4(lo:up)=c0
+       stressm_1(lo:up)=c0
+       stressm_2(lo:up)=c0
+       stressm_3(lo:up)=c0
+       stressm_4(lo:up)=c0
+       stressp_1(lo:up)=c0
+       stressp_2(lo:up)=c0
+       stressp_3(lo:up)=c0
+       stressp_4(lo:up)=c0
+       strintxU(lo:up)= c0
+       strintyU(lo:up)= c0
+       Tbu(lo:up)=c0
+       uarear(lo:up)=c0
+       umassdti(lo:up)=c0
+       uocn(lo:up)=c0
+       uvel_init(lo:up)=c0
+       uvel(lo:up)=c0
+       vocn(lo:up)=c0
+       vvel_init(lo:up)=c0
+       vvel(lo:up)=c0
+       waterxU(lo:up)=c0
+       wateryU(lo:up)=c0
     endif
     call domp_get_domain(u+1,uu,lo,up)
     if ((lo > 0) .and. (up >= lo)) then
@@ -707,5 +614,4 @@ module numa
 
     deallocate(tmpVll)
   end subroutine numareinit
-#endif
 end module numa

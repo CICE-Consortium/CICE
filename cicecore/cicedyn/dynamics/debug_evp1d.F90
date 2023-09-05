@@ -12,7 +12,7 @@ module debug_evp1d
     module procedure dumpfield_integer
     module procedure dumpfield_logical
   end interface
-  public :: dumpfield, dumpall, dump_init
+  public :: dumpfield, dumpall, dump_init, dumpall3d
   contains
 
   subroutine dump_init(iu06)
@@ -50,7 +50,7 @@ module debug_evp1d
                        G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
                        G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
-                       G_Tbu       , G_Cb        , G_uvel     , G_vvel     )
+                       G_Tbu       , G_uvel     , G_vvel     )
     implicit none
     integer(kind=int_kind), intent(in) :: ts, nx, ny, iu06
     real(kind=dbl_kind), dimension(:,:),intent(in) :: &
@@ -60,7 +60,7 @@ module debug_evp1d
                        G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
                        G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
-                       G_Tbu       , G_Cb        , G_uvel     , G_vvel
+                       G_Tbu       , G_uvel     , G_vvel
 
     character(len=10), intent(in) :: myname
     character(len=200) :: binfile
@@ -89,7 +89,7 @@ module debug_evp1d
                 G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
                 G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
                 G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
-                G_Tbu       , G_Cb        , G_uvel     , G_vvel
+                G_Tbu       , G_uvel     , G_vvel
           if (ios .ne. 0) then
              stop ('Failed write file')
           endif
@@ -147,6 +147,53 @@ module debug_evp1d
     binfile = trim(trim(myname)//'.integer.ts-'//ctmp//'.bin')
     write (*,*) 'Opening file ', trim(binfile)
   end subroutine dumpfield_logical
+
+ subroutine dumpall3d(myname, ts,                               &
+                       G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
+                       G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
+                       G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
+                       G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
+                       G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
+                       G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
+                       G_Tbu       , G_uvel     , G_vvel     )
+    implicit none
+    integer(kind=int_kind), intent(in) :: ts
+    real(kind=dbl_kind), dimension(:,:,:),intent(in) :: &
+                       G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
+                       G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
+                       G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
+                       G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
+                       G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
+                       G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
+                       G_Tbu       , G_uvel     , G_vvel
+
+    character(len=10), intent(in) :: myname
+    character(len=200) :: binfile
+    character(4) :: ctmp
+    integer(kind=int_kind) :: lun, ios
+    write (999,*) 'Time to dump ',ts
+    write (999,*) 'Dumping all field from 2D and 1D world into two 2D files'
+    write(ctmp,'(i4.4)') ts
+    binfile = trim(trim(myname)//'.double.ts-'//ctmp//'.bin')
+    write (999,*) 'Opening file ', trim(binfile)
+    lun=709
+    open(lun,file=trim(binfile), form='unformatted', access='stream', action='write', status='replace', iostat=ios)
+    if (ios .ne. 0) then
+        stop ('Failed open file')
+    endif
+    write(lun,iostat=ios) &
+          G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
+          G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
+          G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
+          G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
+          G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
+          G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
+          G_Tbu       , G_uvel     , G_vvel
+    if (ios .ne. 0) then
+        stop ('Failed write file')
+    endif
+    close(lun)
+  end subroutine dumpall3d
 
 end module debug_evp1d
 

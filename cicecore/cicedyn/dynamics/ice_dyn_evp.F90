@@ -111,6 +111,9 @@
 
       public :: evp, init_evp
 
+#ifdef debugevp1d 
+      integer(kind=int_kind) :: tsdebug
+#endif
 !=======================================================================
 
       contains
@@ -131,7 +134,10 @@
       character(len=*), parameter :: subname = '(alloc_dyn_evp)'
 
       call init_dyn_shared(dt_dyn)
-
+      !! for debug evp 1d
+#ifdef debugevp1d
+      tsdebug=0
+#endif
       allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
                 vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
                 ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
@@ -253,6 +259,7 @@
        use ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
 #else
        use ice_dyn_evp1d, only: dyn_evp1d_run
+       use debug_evp1d, only: dumpall3d
 #endif
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -298,6 +305,11 @@
 
       character(len=*), parameter :: subname = '(evp)'
 #ifdef integrate
+    character(10),parameter :: mydebugfile3='before2d'
+    character(10),parameter :: mydebugfile4='after2d'
+#endif
+
+#ifdef debugevp1d
     character(10),parameter :: mydebugfile3='before2d'
     character(10),parameter :: mydebugfile4='after2d'
 #endif
@@ -800,18 +812,29 @@
       endif
 #ifdef integrate
 
-       call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3, stressp_4,     &
-                          stressm_1 , stressm_2 , stressm_3, stressm_4,     &
-                          stress12_1, stress12_2, stress12_3,stress12_4,    &
-                          strength,                                         &
-                          cdn_ocnU   , aiu       , uocn     , vocn     ,    &
-                          waterxU   , wateryU   , forcexU  , forceyU  ,     &
-                          umassdti  , fmU       , strintxU , strintyU ,     &
-                          Tbu       , Tbu       , uvel    , vvel      ,     &
-                          icetmask , iceUmask)
+       call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3 , stressp_4 , &
+                          stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
+                          stress12_1, stress12_2, stress12_3, stress12_4, &
+                          strength  ,                                     &
+                          cdn_ocnU  , aiu       , uocn     , vocn       , &
+                          waterxU   , wateryU   , forcexU  , forceyU    , &
+                          umassdti  , fmU       , strintxU , strintyU   , &
+                          Tbu       , taubxU    , taubyU   , uvel       , &
+                          vvel      , icetmask  , iceUmask)
 
 #endif
-
+#ifdef debugevp1d
+         tsdebug=tsdebug+1
+         call dumpall3d(mydebugfile3, tsdebug,                        &
+                        stressp_1 , stressp_2 , stressp_3, stressp_4, &
+                        stressm_1 , stressm_2 , stressm_3, stressm_4, &
+                        stress12_1, stress12_2, stress12_3,stress12_4,&
+                        cdn_ocn   , aiu       , uocn     , vocn     , &
+                        waterxU   , wateryU   , forcexU  , forceyU  , &
+                        umassdti  , fmU       , strintxU , strintyU , &
+                        Tbu       ,  uvel     , vvel     )
+#endif
+       
       if (evp_algorithm == "shared_mem_1d" ) then
 
          if (trim(grid_type) == 'tripole') then
@@ -821,16 +844,43 @@
 
          call ice_timer_start(timer_evp_1d)
 
-         call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3, stressp_4,     &
-                            stressm_1 , stressm_2 , stressm_3, stressm_4,     &
-                            stress12_1, stress12_2, stress12_3,stress12_4,    &
-                            strength,                                         &
-                            cdn_ocnU   , aiu       , uocn     , vocn     ,    &
-                            waterxU   , wateryU   , forcexU  , forceyU  ,     &
-                            umassdti  , fmU       , strintxU , strintyU ,     &
-                            Tbu       , Tbu       , uvel    , vvel      ,     &
-                            icetmask , iceUmask)
+         call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3 , stressp_4 , &
+                            stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
+                            stress12_1, stress12_2, stress12_3, stress12_4, &
+                            strength  ,                                     &
+                            cdn_ocnU  , aiu       , uocn     , vocn       , &
+                            waterxU   , wateryU   , forcexU  , forceyU    , &
+                            umassdti  , fmU       , strintxU , strintyU   , &
+                            Tbu       , taubxU    , taubyU   , uvel       , & 
+                            vvel      , icetmask  , iceUmask)
+
          call ice_timer_stop(timer_evp_1d)
+#ifdef debugevp1d         
+         call dumpall3d(mydebugfile4, tsdebug,                        &
+                        stressp_1 , stressp_2 , stressp_3, stressp_4, &
+                        stressm_1 , stressm_2 , stressm_3, stressm_4, &
+                        stress12_1, stress12_2, stress12_3,stress12_4,&
+                        cdn_ocn   , aiu       , uocn     , vocn     , &
+                        waterxU   , wateryU   , forcexU  , forceyU  , &
+                        umassdti  , fmU       , strintxU , strintyU , &
+                        Tbu       , uvel     , vvel     )
+#endif 
+
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+         do iblk = 1, nblocks
+            call deformations (nx_block          , ny_block           , &
+                               icellT      (iblk),                      &
+                               indxTi    (:,iblk), indxTj     (:,iblk), &
+                               uvel    (:,:,iblk), vvel     (:,:,iblk), &
+                               dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                               cxp     (:,:,iblk), cyp      (:,:,iblk), &
+                               cxm     (:,:,iblk), cym      (:,:,iblk), &
+                               tarear  (:,:,iblk),                      &
+                               shear   (:,:,iblk), divu     (:,:,iblk), &
+                               rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+         enddo
+         !$OMP END PARALLEL DO
+
 
       else ! evp_algorithm == standard_2d (Standard CICE)
 
@@ -846,7 +896,7 @@
                                 waterxU   , wateryU   , forcexU  , forceyU  ,    &
                                 umassdti  , fmU       , strintxU , strintyU ,    &
                                 Tbu       , Tbu        , uvel     , vvel     ,   &
-                      icetmask  , iceUmask,mydebugfile3)
+                                icetmask  , iceUmask,mydebugfile3)
 #endif
 
         
@@ -907,7 +957,16 @@
                                   Tbu       , Tbu       , uvel      , vvel     ,&
                                   icetmask  , iceUmask,mydebugfile4)
 #endif
-
+#ifdef debugevp1d
+              call dumpall3d(mydebugfile4, tsdebug,                               &
+                        stressp_1 , stressp_2 , stressp_3, stressp_4, &
+                        stressm_1 , stressm_2 , stressm_3, stressm_4, &
+                        stress12_1, stress12_2, stress12_3,stress12_4,&
+                        cdn_ocn   , aiu       , uocn     , vocn     , &
+                        waterxU   , wateryU   , forcexU  , forceyU  , &
+                        umassdti  , fmU       , strintxU , strintyU , &
+                        Tbu       , uvel     , vvel     )
+#endif
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
                call dyn_haloUpdate (halo_info,          halo_info_mask,    &
