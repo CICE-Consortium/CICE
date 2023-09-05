@@ -105,6 +105,9 @@ module ice_dyn_evp1d
     call calc_2d_indices_init(nActive, G_Tmask)
     call calc_navel(nActive, navel)
     call evp1d_alloc_static_navel(navel)
+!$OMP PARALLEL DEFAULT(shared)
+    call numainit_all(1,na,navel) ! numainit_all
+!$OMP END PARALLEL
     call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
     write(iu06,*) nx, ny, nActive
     ! activate dump
@@ -189,8 +192,9 @@ module ice_dyn_evp1d
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
                            G_Tbu       , G_uvel     , G_vvel)
+!$OMP PARALLEL PRIVATE(ksub)
     do ksub = 1,ndte        ! subcycling
-
+!DIR$ FORCEINLINE
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
                    HTE, HTN, HTEm1, HTNm1,                                       &
@@ -200,7 +204,7 @@ module ice_dyn_evp1d
                    str1, str2, str3, str4, str5, str6, str7, str8)
 
     !$OMP BARRIER
-
+!DIR$ FORCEINLINE
        call stepu (1, nActive, cdn_ocn, aiu, uocn, vocn,                          &
                   waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear,      &
                   strintxU, strintyU, uvel_init, vvel_init, uvel, vvel,        &
@@ -209,6 +213,7 @@ module ice_dyn_evp1d
     !$OMP BARRIER
 
     enddo
+!$OMP END PARALLEL
 #ifdef integrate
 
     call dumpall(mydebugfile1, ts, nx, ny, iu06,                             &
