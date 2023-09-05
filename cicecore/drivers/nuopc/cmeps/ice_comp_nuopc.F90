@@ -609,7 +609,7 @@ contains
     if (tfrz_option_driver  /= tfrz_option) then
        write(errmsg,'(a)') trim(subname)//'WARNING: tfrz_option from driver '//trim(tfrz_option_driver)//&
             ' is overwriting tfrz_option from cice namelist '//trim(tfrz_option)
-       write(nu_diag,*) trim(errmsg)
+       if (mastertask) write(nu_diag,*) trim(errmsg)
        call icepack_warnings_flush(nu_diag)
        call icepack_init_parameters(tfrz_option_in=tfrz_option_driver)
     endif
@@ -624,7 +624,7 @@ contains
        if (atmiter_conv_driver /= atmiter_conv) then
           write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'WARNING: atmiter_ from driver ',&
                atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
-          write(nu_diag,*) trim(errmsg)
+          if(mastertask) write(nu_diag,*) trim(errmsg)
           call icepack_warnings_flush(nu_diag)
           call icepack_init_parameters(atmiter_conv_in=atmiter_conv_driver)
        end if
