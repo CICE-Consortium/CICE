@@ -1,0 +1,66 @@
+#==============================================================================
+# Macros file for NCAR derecho, cray compiler
+#==============================================================================
+
+CPP        := ftn -e P
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
+CFLAGS     := -c -O2
+
+FIXEDFLAGS := -132
+FREEFLAGS  := 
+FFLAGS     := -hbyteswapio
+FFLAGS_NOOPT:= -O0
+LDFLAGS    := -hbyteswapio
+ 
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -hfp0 -g -Rbcdps -Ktrap=fp
+else
+  FFLAGS     += -O2 -hfp0     # -eo
+endif
+
+SCC   := cc 
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+# defined by module
+#NETCDF_PATH := $(NETCDF)
+
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#INCLDIR := $(INCLDIR)
+#INCLDIR += -I$(NETCDF_PATH)/include
+
+LIB_NETCDF := $(NETCDF)/lib
+##LIB_PNETCDF := $(PNETCDF_PATH)/lib
+
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
+else
+   LDFLAGS += -hnoomp
+#   CFLAGS += -hnoomp
+   FFLAGS += -hnoomp
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO)/lib
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   LIB_PIO := $(PIO)/lib
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc
+endif
