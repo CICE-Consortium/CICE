@@ -106,7 +106,7 @@ module ice_dyn_evp1d
     call calc_navel(nActive, navel)
     call evp1d_alloc_static_navel(navel)
 !$OMP PARALLEL DEFAULT(shared)
-    call numainit_all(1,na,navel) ! numainit_all
+    call numainit_all(1,nActive,navel) ! numainit_all
 !$OMP END PARALLEL
     call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
     write(iu06,*) nx, ny, nActive
@@ -1172,5 +1172,85 @@ subroutine convert_1d_2d_dyn(na0, &
 
    end subroutine calc_navel
 
+  subroutine numainit_all(l,u,uu)
+    !- modules -----------------------------------------------------------------
+    use myomp,         only : domp_get_domain
+!    use ice_constants, only : c0, c1
+!    use vars,          only : uvel, vvel, dxT, dyT, strength,                  &
+!                              stressp_1, stressp_2, stressp_3, stressp_4,      &
+!                              stressm_1, stressm_2, stressm_3, stressm_4,      &
+!                              stress12_1, stress12_2, stress12_3, stress12_4,  &
+!                              cdn_ocn, aiu, uocn, vocn, waterxU, wateryU,      &
+!                              forcexU, forceyU, umassdti, fmU, uarear, Tbu,    &
+!                              strintxU, strintyU, uvel_init, vvel_init, Cb,    &
+!                              ee,ne,se,nw,sw,sse, skipTcell1d,  skipUcell1d,   &
+!                              str1, str2, str3, str4, str5, str6, str7, str8,  &
+!                              HTE1d,HTN1d, HTE1dm1,HTN1dm1
+    implicit none
+    integer(kind=int_kind),intent(in) :: l,u,uu
+    integer(kind=int_kind) :: lo,up
+    call domp_get_domain(l,u,lo,up)
+    if ((lo > 0) .and. (up >= lo)) then
+       skipTcell(lo:up)=.false.
+       skipUcell(lo:up)=.false.
+       ee(lo:up)=0
+       ne(lo:up)=0
+       se(lo:up)=0
+       nw(lo:up)=0
+       sw(lo:up)=0
+       sse(lo:up)=0
+       aiu(lo:up)=c0
+       Cb(lo:up)=c0
+       cdn_ocn(lo:up)=c0
+       dxt(lo:up)=c0
+       dyt(lo:up)=c0
+       fmU(lo:up)=c0
+       forcexU(lo:up)=c0
+       forceyU(lo:up)=c0
+       HTE(lo:up)=c0
+       HTEm1(lo:up)=c0
+       HTN(lo:up)=c0
+       HTNm1(lo:up)=c0
+       str1(lo:up)=c0
+       str2(lo:up)=c0
+       str3(lo:up)=c0
+       str4(lo:up)=c0
+       str5(lo:up)=c0
+       str6(lo:up)=c0
+       str7(lo:up)=c0
+       str8(lo:up)=c0
+       strength(lo:up)= c0
+       stress12_1(lo:up)=c0
+       stress12_2(lo:up)=c0
+       stress12_3(lo:up)=c0
+       stress12_4(lo:up)=c0
+       stressm_1(lo:up)=c0
+       stressm_2(lo:up)=c0
+       stressm_3(lo:up)=c0
+       stressm_4(lo:up)=c0
+       stressp_1(lo:up)=c0
+       stressp_2(lo:up)=c0
+       stressp_3(lo:up)=c0
+       stressp_4(lo:up)=c0
+       strintxU(lo:up)= c0
+       strintyU(lo:up)= c0
+       Tbu(lo:up)=c0
+       uarear(lo:up)=c0
+       umassdti(lo:up)=c0
+       uocn(lo:up)=c0
+       uvel_init(lo:up)=c0
+       uvel(lo:up)=c0
+       vocn(lo:up)=c0
+       vvel_init(lo:up)=c0
+       vvel(lo:up)=c0
+       waterxU(lo:up)=c0
+       wateryU(lo:up)=c0
+    endif
+    call domp_get_domain(u+1,uu,lo,up)
+    if ((lo > 0) .and. (up >= lo)) then
+      uvel(lo:up)=c0
+      vvel(lo:up)=c0
+    endif
+  end subroutine numainit_all
 end module ice_dyn_evp1d
 
