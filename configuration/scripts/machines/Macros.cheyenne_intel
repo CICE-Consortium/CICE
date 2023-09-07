@@ -46,7 +46,7 @@ LIB_NETCDF := $(NETCDF_PATH)/lib
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
 LIB_MPI := $(IMPILIBDIR)
 
-#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
 
 ifeq ($(ICE_THREADED), true) 
@@ -61,8 +61,8 @@ ifeq ($(ICE_IOTYPE), pio1)
 endif
 
 ifeq ($(ICE_IOTYPE), pio2)
-   CPPDEFS := $(CPPDEFS) -DGPTL
+   CPPDEFS := $(CPPDEFS)
    LIB_PIO := $(PIO_LIBDIR)
-   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc -lgptl
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc
 endif
 

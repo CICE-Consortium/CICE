@@ -20,7 +20,7 @@ else
 endif
 
 SCC   := icx
-SFC   := ifort
+SFC   := ifx
 MPICC := mpicc
 MPIFC := mpif90
 

@@ -1,25 +1,30 @@
 #==============================================================================
-# Makefile macros for NCAR cheyenne, gnu compiler
+# Makefile macros for NCAR derecho, nvhpc compiler
 #==============================================================================
 
-CPP        := pgcc -Mcpp
+CPP        := nvc -Mcpp
 CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -Kieee
+CFLAGS     := -c -Kieee
 
-FIXEDFLAGS := -Mextend
+FIXEDFLAGS := -Mfixed
 FREEFLAGS  := -Mfree
-FFLAGS     := -Kieee -Mbyteswapio -traceback 
+FFLAGS     := -Kieee -byteswapio -traceback 
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-#  FFLAGS     += -O0 -g -Mbounds -Mchkptr
-  FFLAGS     += -O0 -g -Mchkptr
+#  FFLAGS   += -O0 -g -Ktrap=fp -Mbounds -Mchkptr
+#  FFLAGS   += -O0 -g -Ktrap=fp -Mbounds
+#  FFLAGS   += -O0 -Ktrap=fp -Mbounds -Mchkptr
+  FFLAGS   += -O0 -Ktrap=fp
+  CFLAGS   += -O0
 else
-  FFLAGS     += -O -g
+#  FFLAGS   += -O2 -Mnofma -target=zen3
+  FFLAGS   += -O2
+  CFLAGS   += -O2
 endif
 
-SCC   := pgcc
-SFC   := pgf90
+SCC   := nvc
+SFC   := nvfortran
 MPICC := mpicc
 MPIFC := mpif90
 
@@ -34,16 +39,13 @@ LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
-PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-#PNETCDF_PATH := $(PNETCDF)
-#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
-
-INCLDIR := $(INCLDIR)
+#INCLDIR := $(INCLDIR)
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
+#LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
@@ -55,13 +57,12 @@ ifeq ($(ICE_THREADED), true)
 endif
 
 ifeq ($(ICE_IOTYPE), pio1)
-   LIB_PIO := $(PIO_LIBDIR)
+   LIB_PIO := $(PIO)/lib
    SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
 endif
 
 ifeq ($(ICE_IOTYPE), pio2)
-   CPPDEFS := $(CPPDEFS)
-   LIB_PIO := $(PIO_LIBDIR)
+   LIB_PIO := $(PIO)/lib
    SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc
 endif
 
