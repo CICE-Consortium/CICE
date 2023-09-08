@@ -1762,6 +1762,8 @@
          ishift_br, jshift_br , & ! i,j indices of BR cell relative to edge
          ishift_tc, jshift_tc , & ! i,j indices of TC cell relative to edge
          ishift_bc, jshift_bc , & ! i,j indices of BC cell relative to edge
+         is_l, js_l           , & ! index shifts for TL1 and BL2 for tri area consistency 
+         is_r, js_r           , & ! index shifts for TR1 and BR2 for tri area consistency 
          ise_tl, jse_tl       , & ! i,j of TL other edge relative to edge
          ise_bl, jse_bl       , & ! i,j of BL other edge relative to edge
          ise_tr, jse_tr       , & ! i,j of TR other edge relative to edge
@@ -1906,6 +1908,13 @@
          ishift_bc =  0
          jshift_bc =  0
 
+         ! index shifts for TL1, BL2, TR1 and BR2 for triangle area consistency 
+
+         is_l = -1
+         js_l =  0
+         is_r = +1
+         js_r =  0
+
          ! index shifts for neighbor east edges
 
          ise_tl = -1
@@ -1949,6 +1958,13 @@
          jshift_tc =  0
          ishift_bc =  0
          jshift_bc =  0
+
+         ! index shifts for TL1, BL2, TR1 and BR2 for triangle area consistency 
+
+         is_l =  0
+         js_l = +1
+         is_r =  0
+         js_r = -1
 
          ! index shifts for neighbor north edges
 
@@ -2128,7 +2144,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            areafact(i,j,ng) = areafac_ce(i+ise_tl,j+jse_tl)
+            areafact(i,j,ng) = areafac_c(i+is_l,j+js_l)
 
             ! BL1 (group 3)
 
@@ -2169,7 +2185,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            areafact(i,j,ng) = -areafac_ce(i+ise_bl,j+jse_bl)
+            areafact(i,j,ng) = -areafac_c(i+is_l,j+js_l)
 
          endif                  ! TL and BL triangles
 
@@ -2221,7 +2237,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            areafact(i,j,ng) = areafac_ce(i+ise_tr,j+jse_tr)
+            areafact(i,j,ng) = areafac_c(i+is_r,j+js_r)
 
             ! BR1 (group 3)
 
@@ -2262,7 +2278,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            areafact(i,j,ng) = -areafac_ce(i+ise_br,j+jse_br)
+            areafact(i,j,ng) = -areafac_c(i+is_r,j+js_r)
 
          endif                  ! TR and BR triangles
 
