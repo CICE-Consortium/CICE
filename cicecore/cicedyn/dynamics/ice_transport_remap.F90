@@ -1762,8 +1762,8 @@
          ishift_br, jshift_br , & ! i,j indices of BR cell relative to edge
          ishift_tc, jshift_tc , & ! i,j indices of TC cell relative to edge
          ishift_bc, jshift_bc , & ! i,j indices of BC cell relative to edge
-         is_l, js_l           , & ! index shifts for TL1 and BL2 for tri area consistency 
-         is_r, js_r           , & ! index shifts for TR1 and BR2 for tri area consistency 
+         is_l, js_l           , & ! i,j shifts for TL1, BL2 for area consistency 
+         is_r, js_r           , & ! i,j shifts for TR1, BR2 for area consistency 
          ise_tl, jse_tl       , & ! i,j of TL other edge relative to edge
          ise_bl, jse_bl       , & ! i,j of BL other edge relative to edge
          ise_tr, jse_tr       , & ! i,j of TR other edge relative to edge
@@ -1908,11 +1908,11 @@
          ishift_bc =  0
          jshift_bc =  0
 
-         ! index shifts for TL1, BL2, TR1 and BR2 for triangle area consistency 
+         ! index shifts for TL1, BL2, TR1 and BR2 for area consistency 
 
          is_l = -1
          js_l =  0
-         is_r = +1
+         is_r =  1
          js_r =  0
 
          ! index shifts for neighbor east edges
@@ -1959,10 +1959,10 @@
          ishift_bc =  0
          jshift_bc =  0
 
-         ! index shifts for TL1, BL2, TR1 and BR2 for triangle area consistency 
+         ! index shifts for TL1, BL2, TR1 and BR2 for area consistency 
 
          is_l =  0
-         js_l = +1
+         js_l =  1
          is_r =  0
          js_r = -1
 
