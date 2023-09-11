@@ -1,3 +1,8 @@
+! Module for 1d evp dynamics
+! cpp flag _OPENMP_TARGET is for gpu. Otherwize optimized for cpu
+! @Jacob led efter TILL for at finde spoergsmaal
+! FIXME:  For now it allocates all water point, which in most cases could be avoided.
+! FIXME: In evp_2c stress is called twice if not _OPENMP_TARGET _OPENMP_TARGET. Why and what do lindividual do?  
 !=============================================================================== 
 module ice_dyn_evp1d
   !- modules -------------------------------------------------------------------
@@ -66,6 +71,7 @@ module ice_dyn_evp1d
                             L_dyT, L_dxT, L_uarear, L_tmask,                     &
                             G_HTE, G_HTN)
 ! Note that TMask is ocean/land
+! TILL Is there benefit from running parallelized?
   use debug_evp1d, only : dump_init
     implicit none
 ! name within 
@@ -105,9 +111,7 @@ module ice_dyn_evp1d
     call calc_2d_indices_init(nActive, G_Tmask)
     call calc_navel(nActive, navel)
     call evp1d_alloc_static_navel(navel)
-!$OMP PARALLEL DEFAULT(shared)
-    call numainit_all(1,nActive,navel) ! numainit_all
-!$OMP END PARALLEL
+    call numainit(1,nActive,navel) 
     call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
     write(iu06,*) nx, ny, nActive
     ! activate dump
@@ -127,7 +131,7 @@ module ice_dyn_evp1d
     use debug_evp1d, only : dumpall
     use ice_dyn_shared, only : ndte
 ! bench should be renamed to something better e.g evp1d_func
-  use bench_v2b, only : stress, stepu
+  use bench_v2c, only : stress, stepu
     implicit none
     real(kind=dbl_kind), dimension(:,:,:), intent(inout) :: &
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
@@ -192,9 +196,23 @@ module ice_dyn_evp1d
                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
                            G_Tbu       , G_uvel     , G_vvel)
-!$OMP PARALLEL PRIVATE(ksub)
+! TILL: Last line variables are only in subfuntions. Should they be declared here?
+
+#ifdef _OPENMP_TARGET
+  !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,  &
+  !$omp                        strength, dxT, dyT, HTE,HTN,HTEm1, HTNm1,&
+  !$omp                        forcexU, forceyU, umassdti, fmU, uarear,         &
+  !$omp                        uvel_init, vvel_init, Tbu, Cb,                   &
+  !$omp                        str1, str2, str3, str4, str5, str6, str7, str8,  &
+  !$omp                        cdn_ocn, aiu, uocn, vocn, waterxU, wateryU)      &
+  !$omp             map(tofrom: uvel,vvel, strintxU, strintyU,                  &
+  !$omp                       stressp_1, stressp_2, stressp_3, stressp_4,       &
+  !$omp                       stressm_1, stressm_2, stressm_3, stressm_4,       &
+  !$omp                       stress12_1,stress12_2,stress12_3,stress12_4)
+  !$omp target update to(arlx1i,denom1,capping,deltaminEVP,e_factor,epp2i,brlx)
+#endif
+! TILL: OMP BARRIER NOT IN 2c. Is that Correct?
     do ksub = 1,ndte        ! subcycling
-!DIR$ FORCEINLINE
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
                    HTE, HTN, HTEm1, HTNm1,                                       &
@@ -204,7 +222,6 @@ module ice_dyn_evp1d
                    str1, str2, str3, str4, str5, str6, str7, str8)
 
     !$OMP BARRIER
-!DIR$ FORCEINLINE
        call stepu (1, nActive, cdn_ocn, aiu, uocn, vocn,                          &
                   waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear,      &
                   strintxU, strintyU, uvel_init, vvel_init, uvel, vvel,        &
@@ -213,7 +230,10 @@ module ice_dyn_evp1d
     !$OMP BARRIER
 
     enddo
-!$OMP END PARALLEL
+#ifdef _OPENMP_TARGET
+  !$omp end target data
+#endif
+
 #ifdef integrate
 
     call dumpall(mydebugfile1, ts, nx, ny, iu06,                             &
@@ -353,6 +373,7 @@ module ice_dyn_evp1d
 
 
   !=============================================================================
+! TILL: Is this needed? It could deallocate everything
   subroutine dyn_evp1d_finalize()
     implicit none
     write(*,'(a21)') 'Time to die for evp1d'
@@ -1172,85 +1193,75 @@ subroutine convert_1d_2d_dyn(na0, &
 
    end subroutine calc_navel
 
-  subroutine numainit_all(l,u,uu)
+  subroutine numainit(lo,up,uu)
     !- modules -----------------------------------------------------------------
-    use myomp,         only : domp_get_domain
-!    use ice_constants, only : c0, c1
-!    use vars,          only : uvel, vvel, dxT, dyT, strength,                  &
-!                              stressp_1, stressp_2, stressp_3, stressp_4,      &
-!                              stressm_1, stressm_2, stressm_3, stressm_4,      &
-!                              stress12_1, stress12_2, stress12_3, stress12_4,  &
-!                              cdn_ocn, aiu, uocn, vocn, waterxU, wateryU,      &
-!                              forcexU, forceyU, umassdti, fmU, uarear, Tbu,    &
-!                              strintxU, strintyU, uvel_init, vvel_init, Cb,    &
-!                              ee,ne,se,nw,sw,sse, skipTcell1d,  skipUcell1d,   &
-!                              str1, str2, str3, str4, str5, str6, str7, str8,  &
-!                              HTE1d,HTN1d, HTE1dm1,HTN1dm1
     implicit none
-    integer(kind=int_kind),intent(in) :: l,u,uu
-    integer(kind=int_kind) :: lo,up
-    call domp_get_domain(l,u,lo,up)
-    if ((lo > 0) .and. (up >= lo)) then
-       skipTcell(lo:up)=.false.
-       skipUcell(lo:up)=.false.
-       ee(lo:up)=0
-       ne(lo:up)=0
-       se(lo:up)=0
-       nw(lo:up)=0
-       sw(lo:up)=0
-       sse(lo:up)=0
-       aiu(lo:up)=c0
-       Cb(lo:up)=c0
-       cdn_ocn(lo:up)=c0
-       dxt(lo:up)=c0
-       dyt(lo:up)=c0
-       fmU(lo:up)=c0
-       forcexU(lo:up)=c0
-       forceyU(lo:up)=c0
-       HTE(lo:up)=c0
-       HTEm1(lo:up)=c0
-       HTN(lo:up)=c0
-       HTNm1(lo:up)=c0
-       str1(lo:up)=c0
-       str2(lo:up)=c0
-       str3(lo:up)=c0
-       str4(lo:up)=c0
-       str5(lo:up)=c0
-       str6(lo:up)=c0
-       str7(lo:up)=c0
-       str8(lo:up)=c0
-       strength(lo:up)= c0
-       stress12_1(lo:up)=c0
-       stress12_2(lo:up)=c0
-       stress12_3(lo:up)=c0
-       stress12_4(lo:up)=c0
-       stressm_1(lo:up)=c0
-       stressm_2(lo:up)=c0
-       stressm_3(lo:up)=c0
-       stressm_4(lo:up)=c0
-       stressp_1(lo:up)=c0
-       stressp_2(lo:up)=c0
-       stressp_3(lo:up)=c0
-       stressp_4(lo:up)=c0
-       strintxU(lo:up)= c0
-       strintyU(lo:up)= c0
-       Tbu(lo:up)=c0
-       uarear(lo:up)=c0
-       umassdti(lo:up)=c0
-       uocn(lo:up)=c0
-       uvel_init(lo:up)=c0
-       uvel(lo:up)=c0
-       vocn(lo:up)=c0
-       vvel_init(lo:up)=c0
-       vvel(lo:up)=c0
-       waterxU(lo:up)=c0
-       wateryU(lo:up)=c0
-    endif
-    call domp_get_domain(u+1,uu,lo,up)
-    if ((lo > 0) .and. (up >= lo)) then
-      uvel(lo:up)=c0
-      vvel(lo:up)=c0
-    endif
-  end subroutine numainit_all
+    integer(kind=int_kind),intent(in) :: lo,up,uu
+    integer(kind=int_kind) :: iw
+!$omp parallel do schedule(runtime) private(iw)
+    do iw = lo,up
+       skipTcell(iw)=.false.
+       skipUcell(iw)=.false.
+       ee(iw)=0
+       ne(iw)=0
+       se(iw)=0
+       nw(iw)=0
+       sw(iw)=0
+       sse(iw)=0
+       aiu(iw)=c0
+       Cb(iw)=c0
+       cdn_ocn(iw)=c0
+       dxt(iw)=c0
+       dyt(iw)=c0
+       fmU(iw)=c0
+       forcexU(iw)=c0
+       forceyU(iw)=c0
+       HTE(iw)=c0
+       HTEm1(iw)=c0
+       HTN(iw)=c0
+       HTNm1(iw)=c0
+       strength(iw)= c0
+       stress12_1(iw)=c0
+       stress12_2(iw)=c0
+       stress12_3(iw)=c0
+       stress12_4(iw)=c0
+       stressm_1(iw)=c0
+       stressm_2(iw)=c0
+       stressm_3(iw)=c0
+       stressm_4(iw)=c0
+       stressp_1(iw)=c0
+       stressp_2(iw)=c0
+       stressp_3(iw)=c0
+       stressp_4(iw)=c0
+       strintxU(iw)= c0
+       strintyU(iw)= c0
+       Tbu(iw)=c0
+       uarear(iw)=c0
+       umassdti(iw)=c0
+       uocn(iw)=c0
+       uvel_init(iw)=c0
+       uvel(iw)=c0
+       vocn(iw)=c0
+       vvel_init(iw)=c0
+       vvel(iw)=c0
+       waterxU(iw)=c0
+         wateryU(iw)=c0
+      enddo
+!$omp end parallel do
+!$omp parallel do schedule(runtime) private(iw)
+      do iw = lo,uu
+         uvel(iw)=c0
+         vvel(iw)=c0
+         str1(iw)=c0
+         str2(iw)=c0
+         str3(iw)=c0
+         str4(iw)=c0
+         str5(iw)=c0
+         str6(iw)=c0
+         str7(iw)=c0
+         str8(iw)=c0
+      enddo
+!$omp end parallel do
+  end subroutine numainit
 end module ice_dyn_evp1d
 
