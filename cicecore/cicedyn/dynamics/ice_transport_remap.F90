@@ -2099,6 +2099,13 @@
          !-------------------------------------------------------------------
          ! Locate triangles in TL cell (NW for north edge, NE for east edge)
          ! and BL cell (W for north edge, N for east edge).
+         ! 
+         ! areafact_c or areafac_ce (areafact_c for the other edge) are used
+         ! (with shifted indices) to make sure that a flux area on one edge 
+         ! is consistent with the analogous area on the other edge and to 
+         ! ensure that areas add up when using l_fixed_area = T. See PR #849 
+         ! for details.
+         !
          !-------------------------------------------------------------------
 
          if (yil > c0 .and. xdl < xcl .and. ydl >= c0) then
