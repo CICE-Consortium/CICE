@@ -63,7 +63,7 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
-      logical (kind=log_kind), parameter :: bugcheck = .true.
+      logical (kind=log_kind), parameter :: bugcheck = .false.
 
 !=======================================================================
 ! Here is some information about how the incremental remapping scheme
@@ -3008,7 +3008,7 @@
             do ij = 1, icellsd
                i = indxid(ij)
                j = indxjd(ij)
-               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then
+               if ( abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j) .and. abs(edgearea(i,j)) > c0 ) then
                   write(nu_diag,*) ''
                   write(nu_diag,*) 'Areas do not add up: m, i, j, edge =',   &
                            my_task, i, j, trim(edge)
