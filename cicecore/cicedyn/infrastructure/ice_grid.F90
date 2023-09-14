@@ -82,14 +82,14 @@
          dyE    , & ! height of E-cell through the middle (m)
          HTE    , & ! length of eastern edge of T-cell (m)
          HTN    , & ! length of northern edge of T-cell (m)
-         tarea  , & ! area of T-cell (m^2)
-         uarea  , & ! area of U-cell (m^2)
-         narea  , & ! area of N-cell (m^2)
-         earea  , & ! area of E-cell (m^2)
-         tarear , & ! 1/tarea
-         uarear , & ! 1/uarea
-         narear , & ! 1/narea
-         earear , & ! 1/earea
+         tarea  , & ! area of T-cell (m^2), valid in halo
+         uarea  , & ! area of U-cell (m^2), valid in halo
+         narea  , & ! area of N-cell (m^2), valid in halo
+         earea  , & ! area of E-cell (m^2), valid in halo
+         tarear , & ! 1/tarea, valid in halo
+         uarear , & ! 1/uarea, valid in halo
+         narear , & ! 1/narea, valid in halo
+         earear , & ! 1/earea, valid in halo
          tarean , & ! area of NH T-cells
          tareas , & ! area of SH T-cells
          ULON   , & ! longitude of velocity pts, NE corner of T pts (radians)
@@ -101,7 +101,7 @@
          ELON   , & ! longitude of center of east face of T pts (radians)
          ELAT   , & ! latitude of center of east face of T pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
-         ANGLET , & ! ANGLE converted to T-cells
+         ANGLET , & ! ANGLE converted to T-cells, valid in halo
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac   ! only relevant for lat-lon grids
                              ! gridcell value of [1 - (land fraction)] (T-cell)
@@ -635,11 +635,23 @@
       call ice_HaloUpdate (uarea,              halo_info, &
                            field_loc_NEcorner, field_type_scalar, &
                            fillValue=c1,       tripoleOnly=.true.)
+      call ice_HaloUpdate (narea,              halo_info, &
+                           field_loc_Nface,    field_type_scalar, &
+                           fillValue=c1,       tripoleOnly=.true.)
+      call ice_HaloUpdate (earea,              halo_info, &
+                           field_loc_Eface,    field_type_scalar, &
+                           fillValue=c1,       tripoleOnly=.true.)
       call ice_HaloUpdate (tarear,             halo_info, &
                            field_loc_center,   field_type_scalar, &
                            fillValue=c1,       tripoleOnly=.true.)
       call ice_HaloUpdate (uarear,             halo_info, &
                            field_loc_NEcorner, field_type_scalar, &
+                           fillValue=c1,       tripoleOnly=.true.)
+      call ice_HaloUpdate (narear,             halo_info, &
+                           field_loc_Nface,    field_type_scalar, &
+                           fillValue=c1,       tripoleOnly=.true.)
+      call ice_HaloUpdate (earear,             halo_info, &
+                           field_loc_Eface,    field_type_scalar, &
                            fillValue=c1,       tripoleOnly=.true.)
 
       call ice_timer_stop(timer_bound)
