@@ -1927,17 +1927,18 @@
          jse_br =  0
 
          ! area scale factor
+         ! earea, narea valid on halo
 
-         do j = jlo-1, jhi
-         do i = ilo, ihi
+         do j = 1, ny_block
+         do i = 1, nx_block
             areafac_c(i,j) = narea(i,j)
          enddo
          enddo
 
          ! area scale factor for other edge (east)
          
-         do j = jlo-1, jhi+1
-            do i = ilo-1, ihi
+         do j = 1, ny_block
+         do i = 1, nx_block
             areafac_ce(i,j) = earea(i,j)
          enddo
          enddo
@@ -1978,17 +1979,18 @@
          jse_br = -1
 
          ! area scale factors
+         ! earea, narea valid on halo
 
-         do j = jlo, jhi
-         do i = ilo-1, ihi
+         do j = 1, ny_block
+         do i = 1, nx_block
             areafac_c(i,j) = earea(i,j)
          enddo
          enddo
 
          ! area scale factor for other edge (north)
 
-         do j = jlo-1, jhi
-         do i = ilo-1, ihi+1
+         do j = 1, ny_block
+         do i = 1, nx_block
             areafac_ce(i,j) = narea(i,j)
          enddo
          enddo
