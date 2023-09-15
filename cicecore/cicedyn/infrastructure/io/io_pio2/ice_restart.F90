@@ -111,7 +111,7 @@
 !     endif
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'Restart read at istep=',istep0,myear,mmonth,mday,msec
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read at istep=',istep0,myear,'-',mmonth,'-',mday,'-',msec
       endif
 
       call broadcast_scalar(istep0,master_task)
@@ -880,7 +880,7 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, idate, msec
+      use ice_calendar, only: istep1, myear, mmonth, mday, msec
 
       character(len=*), parameter :: subname = '(final_restart)'
 
@@ -888,8 +888,9 @@
       call PIO_freeDecomp(File,iodesc3d_ncat)
       call pio_closefile(File)
 
-      if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,idate,msec
+      if (my_task == master_task) then
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
+      endif
 
       end subroutine final_restart
 

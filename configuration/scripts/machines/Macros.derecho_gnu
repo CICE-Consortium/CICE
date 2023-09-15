@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for NCAR cheyenne, gnu compiler
+# Makefile macros for NCAR derecho, gnu compiler
 #==============================================================================
 
 CPP        := ftn -E
@@ -8,7 +8,7 @@ CFLAGS     := -c
 
 FIXEDFLAGS := -ffixed-line-length-132
 FREEFLAGS  := -ffree-form
-FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none -fallow-argument-mismatch
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
@@ -46,16 +46,13 @@ LD:= $(FC)
 
 NETCDF_PATH := $(NETCDF)
 
-PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-#PNETCDF_PATH := $(PNETCDF)
-#PNETCDF_PATH := /glade/u/apps/ch/opt/pio/2.2/mpt/2.15f/intel/17.0.1/lib
-
-INCLDIR := $(INCLDIR)
+#INCLDIR := $(INCLDIR)
 
 LIB_NETCDF := $(NETCDF_PATH)/lib
 #LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
+#LIB_MPI := $(IMPILIBDIR)
 
 #SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf
 SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
@@ -67,13 +64,12 @@ ifeq ($(ICE_THREADED), true)
 endif
 
 ifeq ($(ICE_IOTYPE), pio1)
-   LIB_PIO := $(PIO_LIBDIR)
+   LIB_PIO := $(PIO)/lib
    SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
 endif
 
 ifeq ($(ICE_IOTYPE), pio2)
-   CPPDEFS := $(CPPDEFS)
-   LIB_PIO := $(PIO_LIBDIR)
+   LIB_PIO := $(PIO)/lib
    SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc
 endif
 

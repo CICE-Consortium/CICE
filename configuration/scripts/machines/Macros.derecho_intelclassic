@@ -19,7 +19,7 @@ else
   FFLAGS     += -O2
 endif
 
-SCC   := icx
+SCC   := icc
 SFC   := ifort
 MPICC := mpicc
 MPIFC := mpif90

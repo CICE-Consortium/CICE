@@ -823,7 +823,7 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, idate
+      use ice_calendar, only: istep1, myear, mmonth, mday, msec
 
       integer (kind=int_kind) :: status
 
@@ -833,7 +833,7 @@
       status = nf90_close(ncid)
 
       if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,idate
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
 
 #else
       call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
