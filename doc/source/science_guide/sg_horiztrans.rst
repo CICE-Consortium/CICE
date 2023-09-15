@@ -477,9 +477,16 @@ Remote Sensing Center (Norway), who applied an earlier version of the
 CICE remapping scheme to an ocean model. The implementation in CICE
 is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
-but not both of the grid cells that share the edge. Since this option
-has yet to be fully tested in CICE, the current default is
-`l\_fixed\_area` = false.
+but not both of the grid cells that share the edge.
+
+The default value for the B grid is `l\_fixed\_area` = false. However, 
+idealized tests with the C grid have shown that prognostic fields such 
+as sea ice concentration exhibit a checkerboard pattern with 
+`l\_fixed\_area` = false. The logical `l\_fixed\_area` is therefore set 
+to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
+are in this case calculated with the C grid velocity components :math:`uvelE` 
+and :math:`vvelN`.
+
 
 We made one other change in the scheme of :cite:`Dukowicz00` for
 locating triangles. In their paper, departure points are defined by
