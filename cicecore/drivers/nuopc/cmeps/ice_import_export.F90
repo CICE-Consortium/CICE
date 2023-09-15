@@ -171,33 +171,33 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, trim(flds_scalar_name))
 
     ! from ocean
-    call fldlist_add(fldsToIce_num, fldsToIce, 'sea_surface_slope_zonal' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'sea_surface_slope_merid' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'sea_surface_temperature' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 's_surf'                  )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_zonal'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'ocn_current_merid'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'freezing_melting_potential')
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_dhdx' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_dhdy' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_t'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_s'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_u'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'So_v'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Fioo_q'  )
     if (flds_wiso) then
        call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
     end if
 
     ! from atmosphere
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_height_lowest'            )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_zonal_wind_height_lowest' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_merid_wind_height_lowest' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_spec_humid_height_lowest' )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_temp_height_lowest'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'inst_pres_height_lowest'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dir_flx'      )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_ir_dir_flx'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_vis_dif_flx'      )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_sw_ir_dif_flx'       )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_down_lw_flx'              )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_prec_rate'                )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'mean_fprec_rate'               )
-    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'                       ) !cesm
-    call fldlist_add(fldsToIce_num, fldsToIce, 'air_density_height_lowest'     ) !cesm
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_z'       )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_u'       )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_v'       )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_shum'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_tbot'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_pbot'    )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_swvdr' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_swvdf' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_swndr' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_swndf' )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_lwdn'  )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_rain'  )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Faxa_snow'  )
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_ptem'    ) !cesm
+    call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_dens'    ) !cesm
 
     ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
@@ -229,67 +229,67 @@ contains
     call fldlist_add(fldsFrIce_num, fldsFrIce, trim(flds_scalar_name))
 
     ! ice states
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_mask'                    )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction'                )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'sea_ice_surface_temperature' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_ice_volume'             )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_snow_volume'            )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'                     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'                     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh'                    )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'                      )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dir_albedo'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dir_albedo'      )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_vis_dif_albedo'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'inst_ice_ir_dif_albedo'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_imask' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_ifrac' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_t'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_vice'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_vsno'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_tref'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_snowh' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_u10'   )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_avsdr' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_avsdf' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_anidr' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_anidf' )
 
     ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
     if (send_i2x_per_cat) then
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'ice_fraction_n', &
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
     if (flds_wave) then
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_thick'                 )
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_floediam'              )
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_thick'    )
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_floediam' )
     end if
 
     ! ice/atm fluxes computed by ice
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_zonal'          )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'stress_on_air_ice_merid'          )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_laten_heat_flx_atm_into_ice' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sensi_heat_flx_atm_into_ice' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_up_lw_flx_ice'               )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice'      )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_swnet'                       )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_taux'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_tauy'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_lat'       )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_sen'       )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_lwup'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_evap'      )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_swnet'     )
 
     ! ice/ocn fluxes computed by ice
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'net_heat_flx_to_ocn'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn'      )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_vis_dir_flx' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_vis_dif_flx' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dir_flx'  )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ir_dif_flx'  )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_melth'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen'     )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdr' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdf' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idr' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idf' )
 
     if (send_i2x_per_cat) then
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_sw_pen_to_ocn_ifrac_n', &
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_ifrac_n', &
             ungridded_lbound=1, ungridded_ubound=ncat)
     end if
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_fresh_water_to_ocean_rate' )
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'mean_salt_rate'                 )
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_zonal'        )
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'stress_on_ocn_ice_merid'        )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_meltw' )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_salt'  )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_taux'  )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_tauy'  )
 
     ! the following are advertised but might not be connected if they are not present
     ! in the cmeps esmFldsExchange_xxx_mod.F90 that is model specific
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcpho'                     )
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcphi'                     )
-    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_flxdst'                    )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcpho'  )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcphi'  )
+    call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_flxdst' )
 
     if (flds_wiso) then
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_fresh_water_to_ocean_rate_wiso', &
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'mean_evap_rate_atm_into_ice_wiso', &
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_evap_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
             ungridded_lbound=1, ungridded_ubound=3)
@@ -488,69 +488,69 @@ contains
 
     ! import ocean states
 
-    call state_getimport(importState, 'sea_surface_temperature', output=aflds, index=1, rc=rc)
+    call state_getimport(importState, 'So_t', output=aflds, index=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 's_surf', output=aflds, index=2, rc=rc)
+    call state_getimport(importState, 'So_s', output=aflds, index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import atm states
 
-    call state_getimport(importState, 'inst_height_lowest', output=aflds, index=3, rc=rc)
+    call state_getimport(importState, 'Sa_z', output=aflds, index=3, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    if (State_FldChk(importState, 'Sa_ptem') .and. State_fldchk(importState, 'air_density_height_lowest')) then
+    if (State_FldChk(importState, 'Sa_ptem') .and. State_fldchk(importState, 'Sa_dens')) then
        call state_getimport(importState, 'Sa_ptem', output=aflds, index=4, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'air_density_height_lowest', output=aflds, index=5, rc=rc)
+       call state_getimport(importState, 'Sa_dens', output=aflds, index=5, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    else if (State_FldChk(importState, 'inst_pres_height_lowest')) then
-       call state_getimport(importState, 'inst_pres_height_lowest', output=aflds, index=6, rc=rc)
+    else if (State_FldChk(importState, 'Sa_pbot')) then
+       call state_getimport(importState, 'Sa_pbot', output=aflds, index=6, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        call abort_ice(trim(subname)//&
-            ": ERROR either Sa_ptem and air_density_height_lowest OR inst_pres_height_lowest must be in import state")
+            ": ERROR either Sa_ptem and Sa_dens OR Sa_pbot must be in import state")
     end if
 
-    call state_getimport(importState, 'inst_temp_height_lowest', output=aflds, index=7, rc=rc)
+    call state_getimport(importState, 'Sa_tbot', output=aflds, index=7, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'inst_spec_humid_height_lowest', output=aflds, index=8, rc=rc)
+    call state_getimport(importState, 'Sa_shum', output=aflds, index=8, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import ocn/ice fluxes
 
-    call state_getimport(importState, 'freezing_melting_potential', output=aflds, index=9, &
+    call state_getimport(importState, 'Fioo_q', output=aflds, index=9, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! import atm fluxes
 
-    call state_getimport(importState, 'mean_down_sw_vis_dir_flx', output=aflds, index=10, &
+    call state_getimport(importState, 'Faxa_swvdr', output=aflds, index=10, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dir_flx', output=aflds, index=11, &
+    call state_getimport(importState, 'Faxa_swndr', output=aflds, index=11, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_vis_dif_flx', output=aflds, index=12, &
+    call state_getimport(importState, 'Faxa_swvdf', output=aflds, index=12, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_sw_ir_dif_flx', output=aflds, index=13, &
+    call state_getimport(importState, 'Faxa_swndf', output=aflds, index=13, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_down_lw_flx', output=aflds, index=14, &
+    call state_getimport(importState, 'Faxa_lwdn', output=aflds, index=14, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_prec_rate', output=aflds, index=15, &
+    call state_getimport(importState, 'Faxa_rain', output=aflds, index=15, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'mean_fprec_rate', output=aflds, index=16, &
+    call state_getimport(importState, 'Faxa_snow', output=aflds, index=16, &
          areacor=med2mod_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -610,7 +610,7 @@ contains
        end do
     end if
 
-    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'air_density_height_lowest')) then
+    if ( State_fldChk(importState, 'Sa_ptem') .and. State_fldchk(importState,'Sa_dens')) then
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
        do iblk = 1, nblocks
           do j = 1,ny_block
@@ -621,7 +621,7 @@ contains
           end do
        end do
        !$OMP END PARALLEL DO
-    else if (State_fldChk(importState, 'inst_pres_height_lowest')) then
+    else if (State_fldChk(importState, 'Sa_pbot')) then
        !$OMP PARALLEL DO PRIVATE(iblk,i,j)
        do iblk = 1, nblocks
           do j = 1,ny_block
@@ -650,19 +650,19 @@ contains
 
     ! Get velocity fields from ocean and atm and slope fields from ocean
 
-    call state_getimport(importState, 'ocn_current_zonal', output=aflds, index=1, rc=rc)
+    call state_getimport(importState, 'So_u', output=aflds, index=1, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'ocn_current_merid', output=aflds, index=2, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-    call state_getimport(importState, 'inst_zonal_wind_height_lowest', output=aflds, index=3, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'inst_merid_wind_height_lowest', output=aflds, index=4, rc=rc)
+    call state_getimport(importState, 'So_v', output=aflds, index=2, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call state_getimport(importState, 'sea_surface_slope_zonal', output=aflds, index=5, rc=rc)
+    call state_getimport(importState, 'Sa_u', output=aflds, index=3, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call state_getimport(importState, 'sea_surface_slope_merid', output=aflds, index=6, rc=rc)
+    call state_getimport(importState, 'Sa_v', output=aflds, index=4, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call state_getimport(importState, 'So_dhdx', output=aflds, index=5, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    call state_getimport(importState, 'So_dhdy', output=aflds, index=6, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 
@@ -749,11 +749,11 @@ contains
     ! HDO => ungridded_index=3
 
     if (State_FldChk(importState, 'shum_wiso')) then
-       call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=1, ungridded_index=3, rc=rc)
+       call state_getimport(importState, 'Sa_shum_wiso', output=Qa_iso, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=2, ungridded_index=1, rc=rc)
+       call state_getimport(importState, 'Sa_shum_wiso', output=Qa_iso, index=2, ungridded_index=1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'inst_spec_humid_height_lowest_wiso', output=Qa_iso, index=3, ungridded_index=2, rc=rc)
+       call state_getimport(importState, 'Sa_shum_wiso', output=Qa_iso, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! call state_getimport(importState, 'mean_prec_rate_wiso', output=fiso_rain, index=1, ungridded_index=3, &
@@ -766,11 +766,11 @@ contains
        !      areacor=med2mod_areacor, rc=rc)
        ! if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-       call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=1, ungridded_index=3, rc=rc)
+       call state_getimport(importState, 'Faxa_snow_wiso', output=fiso_atm, index=1, ungridded_index=3, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=2, ungridded_index=1, rc=rc)
+       call state_getimport(importState, 'Faxa_snow_wiso', output=fiso_atm, index=2, ungridded_index=1, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getimport(importState, 'mean_fprec_rate_wiso', output=fiso_atm, index=3, ungridded_index=2, rc=rc)
+       call state_getimport(importState, 'Faxa_snow_wiso', output=fiso_atm, index=3, ungridded_index=2, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call state_getimport(importState, 'So_roce_wiso', output=HDO_ocn   , ungridded_index=3, &
@@ -1056,11 +1056,11 @@ contains
     allocate(tempfld(nx_block,ny_block,nblocks))
 
     ! Fractions and mask
-    call state_setexport(exportState, 'ice_fraction', input=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_ifrac', input=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (trim(grid_format) == 'meshnc') then
-       call state_setexport(exportState, 'ice_mask', input=ocn_gridcell_frac, rc=rc)
+       call state_setexport(exportState, 'Si_imask', input=ocn_gridcell_frac, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
        do iblk = 1, nblocks
@@ -1075,7 +1075,7 @@ contains
              end do
           end do
        end do
-       call state_setexport(exportState, 'ice_mask', input=tempfld, rc=rc)
+       call state_setexport(exportState, 'Si_imask', input=tempfld, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
@@ -1084,23 +1084,23 @@ contains
     ! ----
 
     ! surface temperature of ice covered portion (degK)
-    call state_setexport(exportState, 'sea_ice_surface_temperature', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_t', input=Tsrf , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo vis dir
-    call state_setexport(exportState, 'inst_ice_vis_dir_albedo', input=alvdr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_avsdr', input=alvdr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo nir dir
-    call state_setexport(exportState, 'inst_ice_ir_dir_albedo', input=alidr, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_anidr', input=alidr, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo vis dif
-    call state_setexport(exportState, 'inst_ice_vis_dif_albedo', input=alvdf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_avsdf', input=alvdf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! albedo nir dif
-    call state_setexport(exportState, 'inst_ice_ir_dif_albedo', input=alidf, lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_anidf', input=alidf, lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! 10m atm reference wind speed (m/s)
@@ -1116,11 +1116,11 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Snow volume
-    call state_setexport(exportState, 'mean_snow_volume' , input=vsno , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_vsno' , input=vsno , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Ice volume
-    call state_setexport(exportState, 'mean_ice_volume' , input=vice , lmask=tmask, ifrac=ailohi, rc=rc)
+    call state_setexport(exportState, 'Si_vice' , input=vice , lmask=tmask, ifrac=ailohi, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Snow height
@@ -1162,32 +1162,32 @@ contains
     ! ------
 
     ! Zonal air/ice stress
-    call state_setexport(exportState, 'stress_on_air_ice_zonal' , input=tauxa, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_taux' , input=tauxa, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Meridional air/ice stress
-    call state_setexport(exportState, 'stress_on_air_ice_merid' , input=tauya, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_tauy' , input=tauya, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Latent heat flux (atm into ice)
-    call state_setexport(exportState, 'mean_laten_heat_flx_atm_into_ice' , input=flat, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_lat' , input=flat, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Sensible heat flux (atm into ice)
-    call state_setexport(exportState, 'mean_sensi_heat_flx_atm_into_ice' , input=fsens, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_sen' , input=fsens, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! longwave outgoing (upward), average over ice fraction only
-    call state_setexport(exportState, 'mean_up_lw_flx_ice' , input=flwout, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_lwup' , input=flwout, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Evaporative water flux (kg/m^2/s)
-    call state_setexport(exportState, 'mean_evap_rate_atm_into_ice' , input=evap, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_evap' , input=evap, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1201,52 +1201,52 @@ contains
     ! ------
 
     ! flux of shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn' , input=fswthru, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_swpen' , input=fswthru, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dir_flx' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_swpen_vdr' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of vis dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_vis_dif_flx' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_swpen_vdf' , input=fswthru_vdf, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dir shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dir_flx' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_swpen_idr' , input=fswthru_idr, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of ir dif shortwave through ice to ocean
-    call state_setexport(exportState, 'mean_sw_pen_to_ocn_ir_dif_flx' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_swpen_idf' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of heat exchange with ocean
-    call state_setexport(exportState, 'net_heat_flx_to_ocn' , input=fhocn, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_melth' , input=fhocn, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux fresh water to ocean (h2o flux from melting)
-    call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate' , input=fresh, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_meltw' , input=fresh, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! flux of salt to ocean (salt flux from melting)
-    call state_setexport(exportState, 'mean_salt_rate' , input=fsalt, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_salt' , input=fsalt, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! stress n i/o zonal
-    call state_setexport(exportState, 'stress_on_ocn_ice_zonal' , input=tauxo, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_taux' , input=tauxo, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! stress n i/o meridional
-    call state_setexport(exportState, 'stress_on_ocn_ice_merid' , input=tauyo, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Fioi_tauy' , input=tauyo, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1279,18 +1279,18 @@ contains
     ! optional water isotope fluxes to ocean
     ! ------
 
-    if (State_FldChk(exportState, 'mean_fresh_water_to_ocean_rate_wiso')) then
+    if (State_FldChk(exportState, 'Fioi_meltw_wiso')) then
        ! 16O => ungridded_index=1
        ! 18O => ungridded_index=2
        ! HDO => ungridded_index=3
 
-       call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=1, &
+       call state_setexport(exportState, 'Fioi_meltw_wiso' , input=fiso_ocn, index=1, &
             lmask=tmask, ifrac=ailohi, ungridded_index=3, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=2, &
+       call state_setexport(exportState, 'Fioi_meltw_wiso' , input=fiso_ocn, index=2, &
             lmask=tmask, ifrac=ailohi, ungridded_index=1, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_setexport(exportState, 'mean_fresh_water_to_ocean_rate_wiso' , input=fiso_ocn, index=3, &
+       call state_setexport(exportState, 'Fioi_meltw_wiso' , input=fiso_ocn, index=3, &
             lmask=tmask, ifrac=ailohi, ungridded_index=2, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
@@ -1299,15 +1299,15 @@ contains
     ! optional water isotope fluxes to atmospehre
     ! ------
 
-    if (State_FldChk(exportState, 'mean_evap_rate_atm_into_ice_wiso')) then
+    if (State_FldChk(exportState, 'Faii_evap_wiso')) then
        !  Isotope evap to atm
-       call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=1, &
+       call state_setexport(exportState, 'Faii_evap_wiso' , input=fiso_evap, index=1, &
             lmask=tmask, ifrac=ailohi, ungridded_index=3, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=2, &
+       call state_setexport(exportState, 'Faii_evap_wiso' , input=fiso_evap, index=2, &
             lmask=tmask, ifrac=ailohi, ungridded_index=1, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_setexport(exportState, 'mean_evap_rate_atm_into_ice_wiso' , input=fiso_evap, index=3, &
+       call state_setexport(exportState, 'Faii_evap_wiso' , input=fiso_evap, index=3, &
             lmask=tmask, ifrac=ailohi, ungridded_index=2, areacor=mod2med_areacor, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -1328,17 +1328,17 @@ contains
     ! ------
 
     ! ice fraction by category
-    if ( State_FldChk(exportState, 'ice_fraction_n') .and. &
-         State_FldChk(exportState, 'mean_sw_pen_to_ocn_ifrac_n')) then
+    if ( State_FldChk(exportState, 'Si_ifrac_n') .and. &
+         State_FldChk(exportState, 'Fioi_swpen_ifrac_n')) then
        do n = 1,ncat
-          call state_setexport(exportState, 'ice_fraction_n', input=aicen_init, index=n, &
+          call state_setexport(exportState, 'Si_ifrac_n', input=aicen_init, index=n, &
                ungridded_index=n, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
           ! penetrative shortwave by category
           ! Note: no need zero out pass-through fields over land for benefit of x2oacc fields in cpl hist files since
           ! the export state has been zeroed out at the beginning
-          call state_setexport(exportState, 'mean_sw_pen_to_ocn_ifrac_n', input=fswthrun_ai, index=n, &
+          call state_setexport(exportState, 'Fioi_swpen_ifrac_n', input=fswthrun_ai, index=n, &
                lmask=tmask, ifrac=ailohi, ungridded_index=n, areacor=mod2med_areacor, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end do
