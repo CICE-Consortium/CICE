@@ -91,21 +91,12 @@
       use ice_restoring, only: ice_HaloRestore_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
-! additional variables needed for integration.
-#if integrate
-      use ice_blocks, only: nx_block, ny_block, nghost
-      use ice_dyn_evp1d, only : dyn_evp1d_init
-      use ice_domain_size, only: nx_global, ny_global, max_blocks
-      use ice_grid, only: tmask, dxT, dyT, tmask, uarear, G_HTE, G_HTN
-      use ice_dyn_shared, only: ndte
-#else
       use ice_dyn_shared, only: evp_algorithm
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_dyn_evp1d, only : dyn_evp1d_init
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_grid, only: tmask, dxT, dyT, tmask, uarear, G_HTE, G_HTN
       use ice_dyn_shared, only: ndte
-#endif
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
          tr_iso, tr_fsd, wave_spec, tr_snow
       character(len=char_len) :: snw_aging_table
