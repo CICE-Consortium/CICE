@@ -18,19 +18,15 @@ module ice_dyn_evp1d
   !  none so far ...
 
   !- public routines -----------------------------------------------------------
-  public :: dyn_evp1d_init, dyn_evp1d_run, dyn_evp1d_finalize, dyn_evp2d_dump
+  public :: dyn_evp1d_init, dyn_evp1d_run, dyn_evp1d_finalize
 
   !- private routines ----------------------------------------------------------
-  private :: io_new_unit, evp_1d_nml_reader
+  private :: io_new_unit
 
   !- public vars ---------------------------------------------------------------
   !  none so far ...
 
   !- private vars --------------------------------------------------------------
-  logical(kind=log_kind), save :: ldebug, linfo   ! output
-  logical(kind=log_kind), save :: firsttime = .true.  ! is this called for the first time? Should be called from 
-  integer(kind=int_kind), save :: ts  ! time step for debugging
-  integer(kind=int_kind), save :: iu06 ! log file
   ! nx and ny are module variables for arrays after gather (G_*) Dimension according to CICE is nx_global+2*nghost,
   ! ny_global+2*nghost
   ! nactive are number of active points (both t and u). navel is number of active
@@ -69,7 +65,6 @@ module ice_dyn_evp1d
                             L_dyT, L_dxT, L_uarear, L_tmask,                     &
                             G_HTE, G_HTN)
 ! Note that TMask is ocean/land
-  use debug_evp1d, only : dump_init
     implicit none
 
     integer(kind=int_kind), intent(in) :: cnx, cny, cnx_block, cny_block, cmax_block, cnghost
@@ -80,16 +75,8 @@ module ice_dyn_evp1d
     logical(kind=log_kind), dimension(:,:), allocatable :: G_tmask
     integer(kind=int_kind) :: ios, ierr
     character(9), parameter :: logfilename='evp1d.log'
-    iu06 = io_new_unit()
-    open (iu06, file=logfilename,status='replace', iostat=ios)
-    if (ios /= 0) then
-      write  (*,*) 'Unable to open '//trim(logfilename)
-      stop
-    endif
-    write(iu06,'(a19)') 'Initializing evp1d'
     call evp_1d_nml_reader()
 ! save as module vars
-    ts=0
     nx_block=cnx_block
     ny_block=cny_block
     nghost=cnghost
@@ -98,7 +85,6 @@ module ice_dyn_evp1d
     max_block=cmax_block
     allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny),stat=ierr)
     if (ierr/=0) stop 'Error allocating'
-    write(iu06,*) nx, ny, nActive, nghost, nx_block, ny_block, my_task, master_task
     call gather_static(L_uarear,  L_dxT, L_dyT, L_Tmask, &
                        G_uarear,  G_dxT, G_dyT, G_Tmask)
     ! calculate number of water points (T and U). Only needed for the static version
@@ -111,9 +97,6 @@ module ice_dyn_evp1d
        call evp1d_alloc_static_navel(navel)
        call numainit(1,nActive,navel) 
        call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
-       write(iu06,*) nx, ny, nActive
-       ! activate dump
-       call dump_init(iu06)
     endif
   end subroutine dyn_evp1d_init
 
@@ -127,7 +110,6 @@ module ice_dyn_evp1d
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
                            L_Tbu       , L_taubxU    , L_taubyU   ,  L_uvel    ,     &
                            L_vvel      , L_icetmask , L_iceUmask                     )
-    use debug_evp1d, only : dumpall
     use ice_dyn_shared, only : ndte
 ! bench should be renamed to something better e.g evp1d_func
   use bench_v2c, only : stress, stepu
@@ -157,11 +139,6 @@ module ice_dyn_evp1d
 
     logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask
     integer(kind=int_kind) :: ksub
-    character(10),parameter :: mydebugfile1='before1d'
-    character(10),parameter :: mydebugfile2='after1d'
-    if (ldebug) then
-      write(iu06,*) 'Handling time-step, number of Allocated points ', ts, nActive
-    endif
 
 ! From 3d to 2d on master task
    call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
@@ -232,18 +209,6 @@ module ice_dyn_evp1d
   !$omp end target data
 #endif
 
-!#ifdef integrate
-
-    call dumpall(mydebugfile1, ts, nx, ny, iu06,                             &
-                       G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
-                       G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
-                       G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
-                       G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
-                       G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
-                       G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
-                       G_Tbu       , G_uvel     , G_vvel)
-
-!#endif
 ! Map results back to 2d
     call convert_1d_2d_dyn(nActive, &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
@@ -256,17 +221,6 @@ module ice_dyn_evp1d
                            G_Tbu       , G_uvel     , G_vvel      , G_taubxU   ,     &
                            G_taubyU)
 
-!#ifdef integrate
-    call dumpall(mydebugfile2, ts, nx, ny, iu06,                              &
-                       G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
-                       G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
-                       G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
-                       G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
-                       G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
-                       G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
-                       G_Tbu       , G_uvel     , G_vvel)
-!#else
-    ts=ts+1
     endif ! master_task
     call scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                      L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
@@ -278,9 +232,6 @@ module ice_dyn_evp1d
                      G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4 , &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                      G_taubxU    , G_taubyU)
-    !endif
-!#enif
-! END FIXME
 ! calculate number of active points. allocate if initial or if array size should increase
 !    call calc_nActiveTU(iceTmask_log,nActive, iceUmask)
 !    if (nActiveold ==0) then ! first
@@ -288,7 +239,7 @@ module ice_dyn_evp1d
 !         nactiveold=nActive+buf1d ! allocate
 !         call init_unionTU(nx, ny, iceTmask_log,iceUmask)
 !    else if (nactiveold < nActive) then
-!         write(iu06,*) 'Warning nActive is bigger than old allocation. Need to re allocate'
+!         write(nu_diag,*) 'Warning nActive is bigger than old allocation. Need to re allocate'
 !         call evp_1d_dealloc() ! only deallocate if not first time step 
 !         call evp_1d_alloc(nActive, nActive,nx,ny)
 !         nactiveold=nActive+buf1d ! allocate
@@ -297,86 +248,16 @@ module ice_dyn_evp1d
 !#endif
 !    call cp_2dto1d(nActive)   
 ! FIXME THIS IS THE LOGIC FOR RE ALLOCATION IF NEEDED
-!#ifdef integrate
-!    ts=ts+1
-!#endif
 !tar    call add_1d(nx, ny, natmp, iceTmask_log, iceUmask, ts)
   end subroutine dyn_evp1d_run
 
   !============================================================================
- subroutine dyn_evp2d_dump(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
-                            L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
-                            L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
-                            L_strength,                                               &
-                            L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
-                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
-                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
-                            L_Tbu       , L_Cb        , L_uvel     , L_vvel     ,     &
-                            L_iceTmask  , L_iceUmask, mydebugF)
-    use debug_evp1d, only : dumpall
-    implicit none
-    real(kind=dbl_kind), dimension(:,:,:), intent(in) :: &
-                           L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
-                           L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
-                           L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
-                           L_strength,                                               &
-                           L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
-                           L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
-                           L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
-                           L_Tbu       , L_Cb        , L_uvel     , L_vvel
-    logical, dimension (:,:,:), intent(in) :: L_iceUmask, L_iceTmask
-    real(kind=dbl_kind), dimension(nx,ny) :: &
-                           G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
-                           G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
-                           G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
-                           G_strength,                                               &
-                           G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
-                           G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
-                           G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
-                           G_Tbu       , G_uvel     , G_vvel
-     character(10), intent(in)  :: mydebugF
-    ! These are dummy here
-    logical(kind=log_kind), dimension (nx,ny)  :: G_iceUmask, G_iceTmask
-
-    call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
-                    L_stressm_1 , L_stressm_2 , L_stressm_3, L_stressm_4,     &
-                    L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,    &
-                    L_strength,                                               &
-                    L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn     ,     &
-                    L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
-                    L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
-                    L_Tbu       , L_uvel      , L_vvel     ,                  &
-                    L_iceTmask  , L_iceUmask  ,                               &
-                    G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
-                    G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
-                    G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
-                    G_strength,                                               &
-                    G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
-                    G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
-                    G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
-                    G_Tbu       , G_uvel      , G_vvel     ,                  &
-                    G_iceTmask,  G_iceUmask)
-
-! this is called after ts is updated
-! this is called after ts is updated
-    call dumpall(mydebugF, ts-1, nx, ny, iu06,                             &
-                    G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
-                    G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
-                    G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,&
-                    G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     , &
-                    G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
-                    G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
-                    G_Tbu       , G_uvel     , G_vvel)
-
-    end subroutine dyn_evp2d_dump
 
 
   !=============================================================================
   subroutine dyn_evp1d_finalize()
     implicit none
     write(*,'(a21)') 'Close evp 1d log'
-    write(iu06,'(a21)') 'Close evp 1d log'
-    close (iu06)
   end subroutine dyn_evp1d_finalize
 
   !=============================================================================
@@ -388,22 +269,18 @@ module ice_dyn_evp1d
     implicit none
     integer(kind=int_kind) :: nml_err, nmllun
     character(9), parameter :: logfilename='evp1d.log'
-    namelist /evp1d_nml/ ldebug, linfo, buf1d
+    namelist /evp1d_nml/ buf1d
     ! default values
-    ldebug=.true.       ! write all debug information
-    linfo=.true.        ! write only info information
     buf1d=0             ! allow extra buffer for the number of 1d points that
                         ! As long as arrays are static buf1d should be 0.
                         ! may be added during the simulation
     nmllun = io_new_unit()
     open (nmllun, file='evp_1d.nml', status='old',iostat=nml_err)
     if (nml_err .ne. 0) then
-      write(iu06,*) 'Read namelist evp1d_nml from file evp_1d.nml'
+      write(nu_diag,*) 'Read namelist evp1d_nml from file evp_1d.nml'
     endif
     read(nmllun,nml=evp1d_nml,iostat=nml_err)
-    write (iu06,*) 'ldebug   = ',ldebug
-    write (iu06,*) 'linfo    = ',linfo
-    write (iu06,*) 'buf1d    = ',buf1d
+    write (nu_diag,*) 'buf1d    = ',buf1d
   end subroutine evp_1d_nml_reader
 
   !=============================================================================
@@ -428,11 +305,6 @@ module ice_dyn_evp1d
     implicit none
     integer(kind=int_kind), intent(in) :: na0
     integer(kind=int_kind) :: ierr
-
-    if (linfo) then
-      write(iu06,*) 'Handling 1D evp allocations on Active points'
-      write(iu06,*) na0,buf1d,nx,ny
-    endif
 
     allocate(skipTcell(1:na0+buf1d),                                           &
              skipUcell(1:na0+buf1d),                                           &
@@ -497,9 +369,6 @@ module ice_dyn_evp1d
     implicit none
     integer(kind=int_kind), intent(in) :: navel0
     integer(kind=int_kind) :: ierr
-    if (linfo) then
-      write(iu06,*) 'Handling 1D evp allocations'
-    endif
 
     allocate(str1(1:navel0+buf1d), str2(1:navel0+buf1d), str3(1:navel0+buf1d), &
              str4(1:navel0+buf1d), str5(1:navel0+buf1d), str6(1:navel0+buf1d), &
@@ -513,11 +382,6 @@ module ice_dyn_evp1d
           ! FIXME
     implicit none
     integer(kind=int_kind) :: ierr
-    if (ldebug) then
-      write(iu06,*) 'Handling 1D evp de-allocations'
-    endif
-    ! FIXME
-!    if (ierr/=0) stop 'Error allocating in evp_1d_alloc'
   end subroutine evp1d_dealloc
 
   subroutine update_1d(na_new, i, j)
@@ -563,7 +427,7 @@ module ice_dyn_evp1d
     skipTcell=.false.
    niw=0
 ! first count
-   write(iu06,*) 'number of points', na0
+   write(nu_diag,*) 'number of points', na0
    do iw=1, na0
       i = indxti(iw)
       j = indxtj(iw)
@@ -573,7 +437,7 @@ module ice_dyn_evp1d
       if (.not. (iceTmask(i,j))) skipTcell(iw)=.true.
       if (.not. (iceUmask(i,j))) skipUcell(iw)=.true.
    enddo
-    write(iu06,*) 'number of Active points', niw
+    write(nu_diag,*) 'number of Active points', niw
   end subroutine set_skipMe
     subroutine calc_2d_indices_init(na0, Tmask)
 ! All points are active. Need to find neighbors.
@@ -999,20 +863,8 @@ subroutine convert_1d_2d_dyn(na0, &
          G_stress12_2(i,j) = stress12_2(iw)
          G_stress12_3(i,j) = stress12_3(iw)
          G_stress12_4(i,j) = stress12_4(iw)
-!         G_strength(i,j)   = strength(iw)
-!         G_cdn_ocn(i,j)    = cdn_ocn(iw)
-!         G_aiu(i,j)        = aiu(iw)
-!         G_uocn(i,j)       = uocn(iw)
-!         G_vocn(i,j)       = vocn(iw)
-!         G_waterxU(i,j)    = waterxU(iw)
-!         G_wateryU(i,j)    = wateryU(iw)
-!         G_forcexU(i,j)    = forcexU(iw)
-!         G_forceyU(i,j)    = forceyU(iw)
-!         G_umassdti(i,j)   = umassdti(iw)
-!         G_fmU(i,j)        = fmU(iw)
          G_strintxU(i,j)   = strintxU(iw)
          G_strintyU(i,j)   = strintyU (iw)
-!         G_Tbu(i,j)        = Tbu(iw)
          G_taubxU(i,j)     = -uvel(iw)*Cb(iw)
          G_taubyU(i,j)     = -vvel(iw)*Cb(iw)
          G_uvel(i,j)       = uvel(iw)
