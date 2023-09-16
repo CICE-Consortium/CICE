@@ -111,9 +111,6 @@
 
       public :: evp, init_evp
 
-#ifdef debugevp1d 
-      integer(kind=int_kind) :: tsdebug
-#endif
 !=======================================================================
 
       contains
@@ -134,10 +131,7 @@
       character(len=*), parameter :: subname = '(alloc_dyn_evp)'
 
       call init_dyn_shared(dt_dyn)
-      !! for debug evp 1d
-#ifdef debugevp1d
-      tsdebug=0
-#endif
+
       allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
                 vocnU    (nx_block,ny_block,max_blocks), & ! j ocean current (m/s)
                 ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
@@ -253,12 +247,7 @@
           strain_rates_U, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
-#ifdef integrate
-       use ice_dyn_evp1d, only: dyn_evp1d_run, dyn_evp2d_dump
-#else
        use ice_dyn_evp1d, only: dyn_evp1d_run
-       use debug_evp1d, only: dumpall3d
-#endif
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -302,15 +291,7 @@
          this_block   ! block information for current block
 
       character(len=*), parameter :: subname = '(evp)'
-#ifdef integrate
-    character(10),parameter :: mydebugfile3='before2d'
-    character(10),parameter :: mydebugfile4='after2d'
-#endif
 
-#ifdef debugevp1d
-    character(10),parameter :: mydebugfile3='before2d'
-    character(10),parameter :: mydebugfile4='after2d'
-#endif
       call ice_timer_start(timer_dynamics) ! dynamics
 
 
