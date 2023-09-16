@@ -86,10 +86,11 @@ module debug_evp1d
                 G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                 G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                 G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
-                G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
-                G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
-                G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
-                G_Tbu       , G_uvel     , G_vvel
+                G_uvel      , G_vvel    !  , G_strintxU , G_strintyU 
+!                 G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
+!                 G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
+!                 G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
+!                 G_uvel     , G_vvel, G_Tbu
           if (ios .ne. 0) then
              stop ('Failed write file')
           endif

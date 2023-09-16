@@ -57,7 +57,7 @@
 
 module bench_v2c
 
-    use ice_dyn_shared, only: e_factor
+  use ice_dyn_shared, only: e_factor, epp2i, capping
 
   use ice_constants, only: c1
 
@@ -159,14 +159,9 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
   !$omp         stressm_1,stressm_2,stressm_3,stressm_4   ,                    &
   !$omp         stress12_1,stress12_2,stress12_3,stress12_4,                   &
   !$omp         deltaminEVP, arlx1i, denom1, e_factor,                &
-#ifdef needed
-! TILL: Are epp2i and capping needed in this definition?
-! TILL: added revp in order tio compile
   !$omp         epp2i, capping,                      &
-#endif
   !$omp         skipme,strength,ee,se,ne,lb,ub,revp)
 #endif
-! TILL: I would assume that we can skip  e.g. tmp_uvel_cc and insert uvel(iW), uvel(ee(iw)) directly as input
   do iw = lb, ub
     if (skipme(iw)) cycle
     ! divergence  =  e_11 + e_22
@@ -522,9 +517,8 @@ subroutine stepu (lb, ub,                                                      &
   !$omp shared(uvel,vvel,str1,str2,str3,str4,str5,str6,str7,str8,              &
   !$omp        strintx,strinty,Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,    &
   !$omp        aiX,waterx,watery,forcex,forcey,Umassdti,uocn,vocn,fm,uarear,   &
-!!!tar  !$omp        Cw,lb,ub,u0,brlx)
+!TILL  !$omp           Cw,lb,ub,brlx, revp, u0)
   !$omp           Cw,lb,ub,brlx, revp)
-! TILL: added revp in order to compile
 #endif
   do iw = lb, ub
     if (skipme(iw)) cycle

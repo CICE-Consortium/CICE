@@ -1,6 +1,5 @@
 ! Module for 1d evp dynamics
 ! cpp flag _OPENMP_TARGET is for gpu. Otherwize optimized for cpu
-! @Jacob led efter TILL for at finde spoergsmaal
 ! FIXME:  For now it allocates all water point, which in most cases could be avoided.
 ! FIXME: In evp_2c stress is called twice if not _OPENMP_TARGET _OPENMP_TARGET. Why and what do lindividual do?  
 !=============================================================================== 
@@ -8,6 +7,7 @@ module ice_dyn_evp1d
   !- modules -------------------------------------------------------------------
   use ice_kinds_mod
   use ice_constants
+  use ice_communicate, only: my_task, master_task
   !  none so far ...
 
   !- directives ----------------------------------------------------------------
@@ -52,8 +52,6 @@ module ice_dyn_evp1d
   real (kind=dbl_kind),   allocatable, dimension(:) ::                         &
     cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,uarear, &
     strintxU,strintyU,uvel_init,vvel_init,                                     &
-!    cdn_ocn,aiu,uocn,vocn,forcexU,forceyU,umassdti,fmU,uarear,                 &
-!    uvel_init,vvel_init,                                                       &
     strength, uvel, vvel, dxt, dyt,                                            &
     stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,          &
     stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4,      &
@@ -71,10 +69,9 @@ module ice_dyn_evp1d
                             L_dyT, L_dxT, L_uarear, L_tmask,                     &
                             G_HTE, G_HTN)
 ! Note that TMask is ocean/land
-! TILL Is there benefit from running parallelized?
   use debug_evp1d, only : dump_init
     implicit none
-! name within 
+
     integer(kind=int_kind), intent(in) :: cnx, cny, cnx_block, cny_block, cmax_block, cnghost
     real(kind=dbl_kind), dimension(:,:,:), intent(in) :: L_dyT, L_dxT, L_uarear
     logical(kind=log_kind), dimension(:,:,:), intent(in) :: L_tmask
@@ -101,21 +98,23 @@ module ice_dyn_evp1d
     max_block=cmax_block
     allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny),stat=ierr)
     if (ierr/=0) stop 'Error allocating'
-    write(iu06,*) nx, ny, nActive, nghost
+    write(iu06,*) nx, ny, nActive, nghost, nx_block, ny_block, my_task, master_task
     call gather_static(L_uarear,  L_dxT, L_dyT, L_Tmask, &
                        G_uarear,  G_dxT, G_dyT, G_Tmask)
     ! calculate number of water points (T and U). Only needed for the static version
     ! Tmask in ocean/ice
-    call calc_nActiveTU(G_Tmask,nActive)
-    call evp1d_alloc_static_na(nActive)
-    call calc_2d_indices_init(nActive, G_Tmask)
-    call calc_navel(nActive, navel)
-    call evp1d_alloc_static_navel(navel)
-    call numainit(1,nActive,navel) 
-    call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
-    write(iu06,*) nx, ny, nActive
-    ! activate dump
-    call dump_init(iu06)
+    if (my_task == master_task) then
+       call calc_nActiveTU(G_Tmask,nActive)
+       call evp1d_alloc_static_na(nActive)
+       call calc_2d_indices_init(nActive, G_Tmask)
+       call calc_navel(nActive, navel)
+       call evp1d_alloc_static_navel(navel)
+       call numainit(1,nActive,navel) 
+       call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
+       write(iu06,*) nx, ny, nActive
+       ! activate dump
+       call dump_init(iu06)
+    endif
   end subroutine dyn_evp1d_init
 
   !=============================================================================
@@ -160,8 +159,6 @@ module ice_dyn_evp1d
     integer(kind=int_kind) :: ksub
     character(10),parameter :: mydebugfile1='before1d'
     character(10),parameter :: mydebugfile2='after1d'
-! FIXME NEEDED IN OLD CICE version that unittest are build on
-! NOT NEEDED IN CONSTANT VERSION
     if (ldebug) then
       write(iu06,*) 'Handling time-step, number of Allocated points ', ts, nActive
     endif
@@ -185,19 +182,23 @@ module ice_dyn_evp1d
                    G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
                    G_Tbu       , G_uvel      , G_vvel     ,                  &
                    G_iceTmask,  G_iceUmask)
-    call set_skipMe(G_iceTmask, G_iceUmask,nActive)
-! Map from 2d to 1d
-    call convert_2d_1d_dyn(nActive,                                                    &
-                           G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,     &
-                           G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,     &
-                           G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4,     &
-                           G_strength,                                                 &
-                           G_cdn_ocn   , G_aiu       , G_uocn     ,  G_vocn     ,      &
-                           G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
-                           G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
-                           G_Tbu       , G_uvel     , G_vvel)
-! TILL: Last line variables are only in subfuntions. Should they be declared here?
 
+    if (my_task == master_task) then
+       call set_skipMe(G_iceTmask, G_iceUmask,nActive)
+! Map from 2d to 1d
+       call convert_2d_1d_dyn(nActive,                                                    &
+                              G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,     &
+                              G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,     &
+                              G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4,     &
+                              G_strength,                                                 &
+                              G_cdn_ocn   , G_aiu       , G_uocn     ,  G_vocn     ,      &
+                              G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
+                              G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
+                              G_Tbu       , G_uvel     , G_vvel)
+! map from cpu to gpu (to) and back.
+! This could be optimized considering which variables change from time step to time step 
+! and which are constant.
+! in addition initialization of Cb and str1, str2, str3, str4, str5, str6, str7, str8
 #ifdef _OPENMP_TARGET
   !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,  &
   !$omp                        strength, dxT, dyT, HTE,HTN,HTEm1, HTNm1,&
@@ -211,7 +212,6 @@ module ice_dyn_evp1d
   !$omp                       stress12_1,stress12_2,stress12_3,stress12_4)
   !$omp target update to(arlx1i,denom1,capping,deltaminEVP,e_factor,epp2i,brlx)
 #endif
-! TILL: OMP BARRIER NOT IN 2c. Is that Correct?
     do ksub = 1,ndte        ! subcycling
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
@@ -221,20 +221,18 @@ module ice_dyn_evp1d
                    stress12_1, stress12_2, stress12_3, stress12_4,               &
                    str1, str2, str3, str4, str5, str6, str7, str8)
 
-    !$OMP BARRIER
        call stepu (1, nActive, cdn_ocn, aiu, uocn, vocn,                          &
                   waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear,      &
                   strintxU, strintyU, uvel_init, vvel_init, uvel, vvel,        &
                   str1, str2, str3, str4, str5, str6, str7, str8,            &
                    nw, sw, sse, skipUcell, Tbu, Cb)
-    !$OMP BARRIER
 
     enddo
 #ifdef _OPENMP_TARGET
   !$omp end target data
 #endif
 
-#ifdef integrate
+!#ifdef integrate
 
     call dumpall(mydebugfile1, ts, nx, ny, iu06,                             &
                        G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
@@ -245,7 +243,7 @@ module ice_dyn_evp1d
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
                        G_Tbu       , G_uvel     , G_vvel)
 
-#endif
+!#endif
 ! Map results back to 2d
     call convert_1d_2d_dyn(nActive, &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
@@ -258,7 +256,7 @@ module ice_dyn_evp1d
                            G_Tbu       , G_uvel     , G_vvel      , G_taubxU   ,     &
                            G_taubyU)
 
-#ifdef integrate
+!#ifdef integrate
     call dumpall(mydebugfile2, ts, nx, ny, iu06,                              &
                        G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4, &
                        G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4, &
@@ -267,8 +265,9 @@ module ice_dyn_evp1d
                        G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  , &
                        G_umassdti  , G_fmU       , G_strintxU , G_strintyU , &
                        G_Tbu       , G_uvel     , G_vvel)
-#else
-
+!#else
+    ts=ts+1
+    endif ! master_task
     call scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                      L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                      L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
@@ -279,8 +278,8 @@ module ice_dyn_evp1d
                      G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4 , &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                      G_taubxU    , G_taubyU)
-
-#endif
+    !endif
+!#enif
 ! END FIXME
 ! calculate number of active points. allocate if initial or if array size should increase
 !    call calc_nActiveTU(iceTmask_log,nActive, iceUmask)
@@ -298,9 +297,9 @@ module ice_dyn_evp1d
 !#endif
 !    call cp_2dto1d(nActive)   
 ! FIXME THIS IS THE LOGIC FOR RE ALLOCATION IF NEEDED
-#ifdef integrate
-    ts=ts+1
-#endif
+!#ifdef integrate
+!    ts=ts+1
+!#endif
 !tar    call add_1d(nx, ny, natmp, iceTmask_log, iceUmask, ts)
   end subroutine dyn_evp1d_run
 
@@ -373,11 +372,10 @@ module ice_dyn_evp1d
 
 
   !=============================================================================
-! TILL: Is this needed? It could deallocate everything
   subroutine dyn_evp1d_finalize()
     implicit none
-    write(*,'(a21)') 'Time to die for evp1d'
-    write(iu06,'(a21)') 'Time to die for evp1d'
+    write(*,'(a21)') 'Close evp 1d log'
+    write(iu06,'(a21)') 'Close evp 1d log'
     close (iu06)
   end subroutine dyn_evp1d_finalize
 
@@ -529,19 +527,6 @@ module ice_dyn_evp1d
     ! FIXME 
   end subroutine update_1d
 
-  subroutine convert_Tint2log(Tmaskint,Tmasklog)
-    implicit none
-    logical(kind=log_kind), intent(out) :: Tmasklog(nx,ny)
-    integer(kind=int_kind), intent(in)  :: Tmaskint(nx,ny)
-    integer(kind=int_kind)              :: i,j
-    Tmasklog (:,:) = .false.
-    do i=1,nx
-      do j=1,ny
-        if (Tmaskint(i,j)>0) Tmasklog(i,j)=.true.
-      enddo
-    enddo
-  end subroutine
-
   subroutine calc_nActiveTU(Tmask,na0, Umask)
 ! Calculate number of active points with a given mask.
     implicit none
@@ -578,34 +563,17 @@ module ice_dyn_evp1d
     skipTcell=.false.
    niw=0
 ! first count
+   write(iu06,*) 'number of points', na0
    do iw=1, na0
       i = indxti(iw)
       j = indxtj(iw)
-      if ( iceTmask(i,j) .or. iceUmask(i,j)) niw=niw+1
+      if ( iceTmask(i,j) .or. iceUmask(i,j)) then
+         niw=niw+1
+      endif
       if (.not. (iceTmask(i,j))) skipTcell(iw)=.true.
       if (.not. (iceUmask(i,j))) skipUcell(iw)=.true.
    enddo
     write(iu06,*) 'number of Active points', niw
-#ifdef dumjegskalnokslettes
-    do i=1+nghost,nx
-      do j=1+nghost,ny
-        if ( iceTmask(i,j) .or. iceUmask(i,j)) niw=niw+1
-
-      enddo
-    enddo
-    write(iu06,*) 'number of Active points', niw
-
-    do i=1+nghost,nx
-      do j=1+nghost,ny
-        if (.not. (iceTmask(i,j))) skipTcell(iw)=.true.
-      enddo
-    enddo
-    do i=1+nghost,nx-nghost
-      do j=1+nghost,ny-nghost
-        if (.not. iceUmask(i,j)) skipUcell(iw)=.true.
-      enddo
-    enddo
-#endif
   end subroutine set_skipMe
     subroutine calc_2d_indices_init(na0, Tmask)
 ! All points are active. Need to find neighbors.
@@ -692,9 +660,9 @@ module ice_dyn_evp1d
      real(kind=dbl_kind), dimension(nx_block, ny_block, max_block), intent(in) :: &
          L_uarear,  L_dxT, L_dyT
      logical(kind=log_kind), dimension(nx_block, ny_block, max_block), intent(in) :: L_Tmask
-     real(kind=dbl_kind), dimension(:, :), intent(inout) :: &
+     real(kind=dbl_kind), dimension(:, :), intent(out) :: &
          G_uarear,G_dxT,G_dyT
-     logical(kind=int_kind), dimension(nx, ny), intent(out) :: G_Tmask
+     logical(kind=log_kind), dimension(:, :), intent(out) :: G_Tmask
 
 ! copy from distributed I_* to G_*
      call gather_global_ext(G_uarear,     L_uarear,     master_task, distrb_info    )
@@ -751,21 +719,21 @@ module ice_dyn_evp1d
      logical(kind=log_kind), dimension(nx, ny), intent(out) :: G_iceUmask, G_iceTmask
 
 ! copy from distributed I_* to G_*
-    call gather_global_ext(G_stressp_1,     L_stressp_1,     master_task, distrb_info)
-    call gather_global_ext(G_stressp_2,     L_stressp_2,     master_task, distrb_info)
-    call gather_global_ext(G_stressp_3,     L_stressp_3,     master_task, distrb_info)
-    call gather_global_ext(G_stressp_4,     L_stressp_4,     master_task, distrb_info)
+    call gather_global_ext(G_stressp_1,     L_stressp_1,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressp_2,     L_stressp_2,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressp_3,     L_stressp_3,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressp_4,     L_stressp_4,     master_task, distrb_info,c0)
 
-    call gather_global_ext(G_stressm_1,     L_stressm_1,     master_task, distrb_info)
-    call gather_global_ext(G_stressm_2,     L_stressm_2,     master_task, distrb_info)
-    call gather_global_ext(G_stressm_3,     L_stressm_3,     master_task, distrb_info)
-    call gather_global_ext(G_stressm_4,     L_stressm_4,     master_task, distrb_info)
+    call gather_global_ext(G_stressm_1,     L_stressm_1,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressm_2,     L_stressm_2,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressm_3,     L_stressm_3,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stressm_4,     L_stressm_4,     master_task, distrb_info,c0)
 
-    call gather_global_ext(G_stress12_1,     L_stress12_1,     master_task, distrb_info)
-    call gather_global_ext(G_stress12_2,     L_stress12_2,     master_task, distrb_info)
-    call gather_global_ext(G_stress12_3,     L_stress12_3,     master_task, distrb_info)
-    call gather_global_ext(G_stress12_4,     L_stress12_4,     master_task, distrb_info)
-    call gather_global_ext(G_strength  ,     L_strength  ,     master_task, distrb_info)
+    call gather_global_ext(G_stress12_1,     L_stress12_1,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stress12_2,     L_stress12_2,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stress12_3,     L_stress12_3,     master_task, distrb_info,c0)
+    call gather_global_ext(G_stress12_4,     L_stress12_4,     master_task, distrb_info,c0)
+    call gather_global_ext(G_strength  ,     L_strength  ,     master_task, distrb_info,c0)
 
     call gather_global_ext(G_cdn_ocn   ,     L_cdn_ocn   ,     master_task, distrb_info)
     call gather_global_ext(G_aiu       ,     L_aiu       ,     master_task, distrb_info)
@@ -784,8 +752,8 @@ module ice_dyn_evp1d
 
 
     call gather_global_ext(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info)
-    call gather_global_ext(G_uvel      ,     L_uvel      ,     master_task, distrb_info)
-    call gather_global_ext(G_vvel      ,     L_vvel      ,     master_task, distrb_info)
+    call gather_global_ext(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0)
+    call gather_global_ext(G_vvel      ,     L_vvel      ,     master_task, distrb_info,c0)
     call gather_global_ext(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info)
     call gather_global_ext(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info)
  end subroutine gather_dyn
@@ -944,7 +912,7 @@ end subroutine scatter_dyn
                             G_Tbu       , G_uvel     , G_vvel
       integer(kind=int_kind) ::  lo, up, iw, i, j
 
-     lo=1
+      lo=1
       up=na0
       do iw = lo, up
          ! get 2D indices
@@ -1018,7 +986,7 @@ subroutine convert_1d_2d_dyn(na0, &
          ! get 2D indices
          i = indxti(iw)
          j = indxtj(iw)
-         ! map
+         ! map to 2d
          G_stressp_1 (i,j)  = stressp_1(iw)
          G_stressp_2 (i,j)  = stressp_2(iw)
          G_stressp_3 (i,j)  = stressp_3(iw)
@@ -1031,25 +999,24 @@ subroutine convert_1d_2d_dyn(na0, &
          G_stress12_2(i,j) = stress12_2(iw)
          G_stress12_3(i,j) = stress12_3(iw)
          G_stress12_4(i,j) = stress12_4(iw)
-         G_strength(i,j)   = strength(iw)
-         G_cdn_ocn(i,j)    = cdn_ocn(iw)
-         G_aiu(i,j)        = aiu(iw)
-         G_uocn(i,j)       = uocn(iw)
-         G_vocn(i,j)       = vocn(iw)
-         G_waterxU(i,j)    = waterxU(iw)
-         G_wateryU(i,j)    = wateryU(iw)
-         G_forcexU(i,j)    = forcexU(iw)
-         G_forceyU(i,j)    = forceyU(iw)
-         G_umassdti(i,j)   = umassdti(iw)
-         G_fmU(i,j)        = fmU(iw)
+!         G_strength(i,j)   = strength(iw)
+!         G_cdn_ocn(i,j)    = cdn_ocn(iw)
+!         G_aiu(i,j)        = aiu(iw)
+!         G_uocn(i,j)       = uocn(iw)
+!         G_vocn(i,j)       = vocn(iw)
+!         G_waterxU(i,j)    = waterxU(iw)
+!         G_wateryU(i,j)    = wateryU(iw)
+!         G_forcexU(i,j)    = forcexU(iw)
+!         G_forceyU(i,j)    = forceyU(iw)
+!         G_umassdti(i,j)   = umassdti(iw)
+!         G_fmU(i,j)        = fmU(iw)
          G_strintxU(i,j)   = strintxU(iw)
          G_strintyU(i,j)   = strintyU (iw)
-         G_Tbu(i,j)        = Tbu(iw)
+!         G_Tbu(i,j)        = Tbu(iw)
          G_taubxU(i,j)     = -uvel(iw)*Cb(iw)
          G_taubyU(i,j)     = -vvel(iw)*Cb(iw)
          G_uvel(i,j)       = uvel(iw)
          G_vvel(i,j)       = vvel(iw)
-
      end do
    end subroutine convert_1d_2d_dyn
 
@@ -1245,8 +1212,8 @@ subroutine convert_1d_2d_dyn(na0, &
        vvel_init(iw)=c0
        vvel(iw)=c0
        waterxU(iw)=c0
-         wateryU(iw)=c0
-      enddo
+       wateryU(iw)=c0
+    enddo
 !$omp end parallel do
 !$omp parallel do schedule(runtime) private(iw)
       do iw = lo,uu
