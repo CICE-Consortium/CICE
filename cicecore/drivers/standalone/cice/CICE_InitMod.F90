@@ -148,17 +148,11 @@
 
       if (kdyn == 1) then
          call init_evp
-#ifdef integrate
-      call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
-                          dyT, dxT, uarear, tmask,   &
-                          G_HTE, G_HTN)
-#else
          if (evp_algorithm == "shared_mem_1d" ) then
             call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
                                dyT, dxT, uarear, tmask,   &
                                G_HTE, G_HTN)
          endif
-#endif
       else if (kdyn == 2) then
          call init_eap          ! define eap dynamics parameters, variables
       else if (kdyn == 3) then

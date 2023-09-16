@@ -1828,9 +1828,6 @@
                else
                   tmpstr2 = ' : unknown value'
                endif
-#ifdef integrate
-               pgl_global_ext = .true.
-#endif
 
                write(nu_diag,1031) ' evp_algorithm    = ', trim(evp_algorithm),trim(tmpstr2)
                write(nu_diag,1020) ' ndtd             = ', ndtd, ' : number of dynamics/advection/ridging/steps per thermo timestep'
