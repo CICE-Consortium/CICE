@@ -668,13 +668,13 @@ contains
     n=0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
        do j = jlo, jhi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
           do i = ilo, ihi
-             ilo = this_block%ilo
-             ihi = this_block%ihi
-             n = n+1
+             n = n + 1
              mask_internal = nint(hm(i,j,iblk),kind=dbl_kind)
              mask_file = model_mask(n)
              if (mask_internal /= mask_file) then
