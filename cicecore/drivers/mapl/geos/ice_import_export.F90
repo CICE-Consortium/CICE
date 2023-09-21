@@ -29,8 +29,8 @@ module ice_import_export
   use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
   use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, frocean, hm
-  use ice_grid           , only : dxu, dyu 
-  use ice_grid           , only : grid_type
+  use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask 
+  use ice_grid           , only : grid_type, grid_ice
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr 
   use ice_fileunits      , only : nu_diag, flush_fileunit
@@ -310,7 +310,7 @@ contains
 
   end subroutine ice_import_radiation
 
-  subroutine ice_import_dyna( taux, tauy, slv, uob, vob, rc )
+  subroutine ice_import_dyna( taux, tauy, slv, uob, vob, uoc, voc, rc )
 
     ! input/output variables
     real(kind=real_kind) ,     intent(in) :: taux(:,:)
@@ -318,6 +318,8 @@ contains
     real(kind=real_kind) ,     intent(in) :: slv(:,:)
     real(kind=real_kind) ,     intent(in) :: uob(:,:)
     real(kind=real_kind) ,     intent(in) :: vob(:,:)
+    real(kind=real_kind) ,     intent(in) :: uoc(:,:)
+    real(kind=real_kind) ,     intent(in) :: voc(:,:)
     integer              ,     intent(out):: rc
 
     ! local variables
@@ -358,13 +360,29 @@ contains
                    strairyT(i,j,iblk) = c0 
                    ssh(i,j,iblk)      = c0 
                 endif
-                if(umask(i,j,iblk)) then
-                   uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind) 
-                   vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind) 
+                if(grid_ice == 'B') then
+                   if(umask(i,j,iblk)) then
+                     uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind)
+                     vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind)
+                   else
+                     uocn(i,j,iblk) = c0
+                     vocn(i,j,iblk) = c0
+                   endif
+                elseif(grid_ice == 'C') then
+                   if(emask(i,j,iblk)) then
+                     uocn(i,j,iblk) = real(uoc(i1,j1), kind=dbl_kind)
+                   else
+                     uocn(i,j,iblk) = c0
+                   endif
+                   if(nmask(i,j,iblk)) then
+                     vocn(i,j,iblk) = real(voc(i1,j1), kind=dbl_kind)
+                   else
+                     vocn(i,j,iblk) = c0
+                   endif
                 else
-                   uocn(i,j,iblk) = c0 
-                   vocn(i,j,iblk) = c0 
-                endif  
+                   call abort_ice(error_message='unknown grid_ice', &
+                       file=u_FILE_u, line=__LINE__)
+                endif
           enddo
        enddo
     enddo
@@ -383,16 +401,34 @@ contains
        jhi = this_block%jhi
        do j = jlo, jhi
        do i = ilo, ihi
-           if(umask(i,j,iblk)) then
+           if(grid_ice == 'B') then
+             if(umask(i,j,iblk)) then
                 ss_tltx(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)-ssh(i,j+1,iblk)  &
                                        +ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
                                        /dxu(i,j,iblk)
                 ss_tlty(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)+ssh(i,j+1,iblk)  &
                                        -ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
                                        /dyu(i,j,iblk)
-           else
+             else
                 ss_tltx(i,j,iblk) = c0
                 ss_tlty(i,j,iblk) = c0
+             endif
+           elseif(grid_ice == 'C') then
+             if(emask(i,j,iblk)) then
+                ss_tltx(i,j,iblk) = (ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
+                                     /dxE(i,j,iblk)
+             else
+                ss_tltx(i,j,iblk) = c0
+             endif
+             if(nmask(i,j,iblk)) then
+                ss_tlty(i,j,iblk) = (ssh(i,j+1,iblk) - ssh(i,j  ,iblk)) &
+                                     /dyN(i,j,iblk)
+             else
+                ss_tlty(i,j,iblk) = c0
+             endif
+           else
+             call abort_ice(error_message='unknown grid_ice', &
+                     file=u_FILE_u, line=__LINE__)
            endif
        enddo
        enddo
