@@ -282,6 +282,8 @@ grid_nml
    "``kmt_file``", "string", "name of land mask file to be read", "``unknown_kmt_file``"
    "``kmt_type``", "boxislands", "ocean/land mask set internally, complex test geometory", "file"
    "", "channel", "ocean/land mask set internally as zonal channel", ""
+   "", "channel_oneeast", "ocean/land mask set internally as single gridcell east-west zonal channel", ""
+   "", "channel_onenorth", "ocean/land mask set internally as single gridcell north-south zonal channel", ""
    "", "default", "ocean/land mask set internally, land in upper left and lower right of domain, ", ""
    "", "file", "ocean/land mask setup read from file, see kmt_file", ""
    "", "wall", "ocean/land mask set at right edge of domain", ""

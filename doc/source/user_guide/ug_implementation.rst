@@ -379,7 +379,7 @@ Several predefined rectangular grids are available in CICE with
 where 12, 80, 128, and 180 are the number of gridcells in each direction.
 Several predefined options also exist, set with **cice.setup --set**, to
 establish varied idealized configurations of box tests including ``box2001``, 
-``boxadv``, ``boxchan``, ``boxnodyn``, ``boxrestore``, ``boxslotcyl``, and
+``boxadv``, ``boxchan``, ``boxchan1e``, ``boxchan1n``, ``boxnodyn``, ``boxrestore``, ``boxslotcyl``, and
 ``boxopen``, ``boxclosed``, and ``boxforcee``.  See **cice.setup --help** for a current 
 list of supported settings.
 
