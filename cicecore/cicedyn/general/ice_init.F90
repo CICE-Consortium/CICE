@@ -2446,6 +2446,8 @@
 
       if (kmt_type  /=  'file'    .and. &
           kmt_type  /=  'channel' .and. &
+          kmt_type  /=  'channel_oneeast' .and. &
+          kmt_type  /=  'channel_onenorth' .and. &
           kmt_type  /=  'wall'    .and. &
           kmt_type  /=  'default' .and. &
           kmt_type  /=  'boxislands') then
@@ -3135,7 +3137,7 @@
             enddo
             enddo
 
-         elseif (trim(ice_data_type) == 'channel') then
+         elseif (ice_data_type(1:7) == 'channel') then
             ! channel ice in center of domain in i direction
             icells = 0
             do j = jlo, jhi
