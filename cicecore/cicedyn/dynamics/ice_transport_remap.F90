@@ -2012,8 +2012,7 @@
                icellsd = icellsd + 1
                indxid(icellsd) = i
                indxjd(icellsd) = j
-            else ! temp comment: dont need if (l_fixed_area) because edgearea=0 when F
-                 ! temp comment: do we need cond  if ( umask(i-1,j) = F and umask(i,j) =F and abs(edgearea(i,j)) > c0 )
+            else
                if ( abs(edgearea(i,j)) > c0 ) then ! 1 grid-cell wide channel: dpx,y = 0, edgearea /= 0
                   icellsd = icellsd + 1
                   indxid(icellsd) = i
@@ -2031,8 +2030,7 @@
                icellsd = icellsd + 1
                indxid(icellsd) = i
                indxjd(icellsd) = j
-            else ! temp comment: dont need if (l_fixed_area) because edgearea=0 when F
-                 ! temp comment: do we need cond  if ( umask(i-1,j) = F and umask(i,j) =F and abs(edgearea(i,j)) > c0 )
+            else
                if ( abs(edgearea(i,j)) > c0 ) then ! 1 grid-cell wide channel: dpx,y = 0, edgearea /= 0
                   icellsd = icellsd + 1
                   indxid(icellsd) = i
