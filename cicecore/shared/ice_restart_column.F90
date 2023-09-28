@@ -48,7 +48,6 @@
          restart_fsd      , & ! if .true., read floe size restart file
          restart_iso      , & ! if .true., read isotope tracer restart file
          restart_aero     , & ! if .true., read aerosol tracer restart file
-         restart_zsal     , & ! if .true., read Salinity from restart file
          restart_hbrine   , & ! if .true., read hbrine from restart file
          restart_bgc          ! if .true., read bgc restart file
 
@@ -908,7 +907,6 @@
 
       subroutine write_restart_bgc()
 
-      use ice_arrays_column, only: Rayleigh_criteria, Rayleigh_real
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
@@ -932,7 +930,7 @@
 
       character (len=3) :: nchar, ncharb
 
-      integer (kind=int_kind) :: nt_bgc_S, nt_bgc_Am, &
+      integer (kind=int_kind) :: nt_bgc_Am, &
          nt_bgc_DMS, nt_bgc_DMSPd, &
          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
          nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
@@ -963,14 +961,14 @@
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
          tr_bgc_hum
 
-      logical (kind=log_kind) :: skl_bgc, solve_zsal
+      logical (kind=log_kind) :: skl_bgc
 
       type (block) :: &
          this_block      ! block information for current block
 
       character(len=*),parameter :: subname='(write_restart_bgc)'
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc)
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
@@ -978,7 +976,7 @@
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
           tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)
-      call icepack_query_tracer_indices(nt_bgc_S_out=nt_bgc_S, nt_bgc_Am_out=nt_bgc_Am, &
+      call icepack_query_tracer_indices(nt_bgc_Am_out=nt_bgc_Am, &
           nt_bgc_DMS_out=nt_bgc_DMS, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
           nt_bgc_C_out=nt_bgc_C, nt_bgc_chl_out=nt_bgc_chl, &
           nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_Nit_out=nt_bgc_Nit, &
@@ -1018,48 +1016,11 @@
                if (tr_bgc_DON) don   (i,j,:,iblk) = c0
                if (tr_bgc_Fe ) fed   (i,j,:,iblk) = c0
                if (tr_bgc_Fe ) fep   (i,j,:,iblk) = c0
-               if (solve_zsal) sss   (i,j  ,iblk) = c0
             endif
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
-
-      !-----------------------------------------------------------------
-      ! Salinity and extras
-      !-----------------------------------------------------------------
-      if (solve_zsal) then
-
-      do k = 1,nblyr
-            write(nchar,'(i3.3)') k
-            call write_restart_field(nu_dump_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
-                   'zSalinity'//trim(nchar),ncat,diag)
-      enddo
-
-      call write_restart_field(nu_dump_bgc,0,sss,'ruf8','sss',1,diag)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (Rayleigh_criteria(i,j,iblk)) then
-                Rayleigh_real    (i,j,iblk) = c1
-            elseif (.NOT. Rayleigh_criteria(i,j,iblk)) then
-                Rayleigh_real    (i,j,iblk) = c0
-            endif
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      call write_restart_field(nu_dump_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
-
-      endif ! solve_zsal
 
       !-----------------------------------------------------------------
       ! Skeletal layer BGC
@@ -1352,7 +1313,6 @@
 
       subroutine read_restart_bgc()
 
-      use ice_arrays_column, only: Rayleigh_real, Rayleigh_criteria
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks, blocks_ice
@@ -1377,7 +1337,7 @@
 
       logical (kind=log_kind) :: diag
 
-      integer (kind=int_kind) :: nt_bgc_S, nt_bgc_Am, &
+      integer (kind=int_kind) :: nt_bgc_Am, &
          nt_bgc_DMS, nt_bgc_DMSPd, &
          nt_bgc_DMSPp, nt_bgc_Nit, nt_bgc_Sil, &
          nt_bgc_PON, nt_zbgc_frac, nt_bgc_hum, nbtrcr
@@ -1408,13 +1368,13 @@
          tr_bgc_DON, tr_bgc_Fe,  tr_zaero , tr_bgc_chl, &
          tr_bgc_hum
 
-      logical (kind=log_kind) :: skl_bgc, solve_zsal
+      logical (kind=log_kind) :: skl_bgc
 
       character (len=3) :: nchar, ncharb
 
       character(len=*),parameter :: subname='(read_restart_bgc)'
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, solve_zsal_out=solve_zsal)
+      call icepack_query_parameters(skl_bgc_out=skl_bgc)
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags(tr_bgc_Nit_out=tr_bgc_Nit, &
           tr_bgc_Am_out=tr_bgc_Am, tr_bgc_Sil_out=tr_bgc_Sil, &
@@ -1422,7 +1382,7 @@
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, &
           tr_bgc_DON_out=tr_bgc_DON, tr_bgc_Fe_out=tr_bgc_Fe,  tr_zaero_out=tr_zaero, &
           tr_bgc_chl_out=tr_bgc_chl, tr_bgc_hum_out=tr_bgc_hum)
-      call icepack_query_tracer_indices(nt_bgc_S_out=nt_bgc_S, nt_bgc_Am_out=nt_bgc_Am, &
+      call icepack_query_tracer_indices(nt_bgc_Am_out=nt_bgc_Am, &
           nt_bgc_DMS_out=nt_bgc_DMS, nt_bgc_DMSPd_out=nt_bgc_DMSPd, &
           nt_bgc_C_out=nt_bgc_C, nt_bgc_chl_out=nt_bgc_chl, &
           nt_bgc_DMSPp_out=nt_bgc_DMSPp, nt_bgc_Nit_out=nt_bgc_Nit, &
@@ -1435,44 +1395,6 @@
          file=__FILE__, line=__LINE__)
 
       diag = .true.
-
-      !-----------------------------------------------------------------
-      ! Salinity and extras
-      !-----------------------------------------------------------------
-
-      if (restart_zsal) then
-
-      if (my_task == master_task) write(nu_diag,*) subname,'zSalinity restart'
-      do k = 1,nblyr
-         write(nchar,'(i3.3)') k
-         call read_restart_field(nu_restart_bgc,0,trcrn(:,:,nt_bgc_S+k-1,:,:),'ruf8', &
-              'zSalinity'//trim(nchar),ncat,diag,field_loc_center,field_type_scalar)
-      enddo
-
-      if (my_task == master_task) write(nu_diag,*) subname,'sea surface salinity'
-      call read_restart_field(nu_restart_bgc,0,sss,'ruf8','sss',1,diag)
-      call read_restart_field(nu_restart_bgc,0,Rayleigh_real,'ruf8','Rayleigh',1,diag)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (Rayleigh_real     (i,j,iblk) .GE. c1) then
-                Rayleigh_criteria (i,j,iblk) = .true.
-            elseif (Rayleigh_real (i,j,iblk) < c1) then
-                Rayleigh_criteria (i,j,iblk) = .false.
-            endif
-         enddo
-         enddo
-      enddo ! iblk
-      !$OMP END PARALLEL DO
-      endif ! restart_zsal
 
       !-----------------------------------------------------------------
       ! Skeletal Layer BGC
