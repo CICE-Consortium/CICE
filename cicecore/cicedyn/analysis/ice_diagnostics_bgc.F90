@@ -24,7 +24,7 @@
 
       implicit none
       private
-      public :: hbrine_diags, bgc_diags, zsal_diags
+      public :: hbrine_diags, bgc_diags
 
 !=======================================================================
 
@@ -715,7 +715,7 @@
       endif
       if (tr_bgc_N) then
          write(nu_diag,*) '---------------------------------------------------'
-         write(nu_diag,900) 'tot algal growth (1/d) = ',pgrow_net(1),pgrow_net(2)
+         write(nu_diag,901) 'tot algal growth (1/d) = ',pgrow_net(1),pgrow_net(2)
        do kk = 1,n_algae
          write(nu_diag,*) '  algal conc. (mmol N/m^3) or flux (mmol N/m^2/d)'
          write(nu_diag,1020) '  type:', kk
@@ -846,229 +846,10 @@
   802 format (f24.17,2x,f24.17)
   803 format (a25,2x,a25)
   900 format (a25,2x,f24.17,2x,f24.17)
+  901 format (a25,2x,g24.17,2x,g24.17)
  1020 format (a30,2x,i6)    ! integer
 
       end subroutine bgc_diags
-
-!=======================================================================
-!
-! Writes diagnostic info (max, min, global sums, etc) to standard out
-!
-! authors: Elizabeth C. Hunke, LANL
-!          Bruce P. Briegleb, NCAR
-!          Cecilia M. Bitz, UW
-!          Nicole Jeffery, LANL
-
-      subroutine zsal_diags
-
-      use ice_arrays_column, only: fzsal, fzsal_g, sice_rho, bTiz, &
-          iDi, bphi, dhbr_top, dhbr_bot, darcy_V
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, &
-          pbloc
-      use ice_domain_size, only: nblyr, ncat, nilyr
-      use ice_state, only: aicen, aice, vice, trcr, trcrn, vicen, vsno
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, k, n, nn, iblk
-
-      ! fields at diagnostic points
-      real (kind=dbl_kind), dimension(npnt) :: &
-         phinS, phinS1,&
-         phbrn,pdh_top1,pdh_bot1, psice_rho, pfzsal, &
-         pfzsal_g, pdarcy_V1
-
-      ! vertical  fields of category 1 at diagnostic points for bgc layer model
-      real (kind=dbl_kind), dimension(npnt,nblyr+2) :: &
-         pphin, pphin1
-      real (kind=dbl_kind), dimension(npnt,nblyr) :: &
-         pSin, pSice, pSin1
-
-      real (kind=dbl_kind), dimension(npnt,nblyr+1) :: &
-         pbTiz, piDin
-
-      real (kind=dbl_kind) :: &
-         rhosi, rhow, rhos
-
-      logical (kind=log_kind) :: tr_brine
-
-      integer (kind=int_kind) :: nt_fbri, nt_bgc_S, nt_sice
-      character(len=*), parameter :: subname = '(zsal_diags)'
-
-      call icepack_query_parameters(rhosi_out=rhosi, rhow_out=rhow, rhos_out=rhos)
-      call icepack_query_tracer_flags(tr_brine_out=tr_brine)
-      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_bgc_S_out=nt_bgc_S, &
-           nt_sice_out=nt_sice)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      !-----------------------------------------------------------------
-      ! salinity and microstructure  of the ice
-      !-----------------------------------------------------------------
-
-      if (print_points) then
-
-      !-----------------------------------------------------------------
-      ! state of the ice and associated fluxes for 2 defined points
-      ! NOTE these are computed for the last timestep only (not avg)
-      !-----------------------------------------------------------------
-
-         do n = 1, npnt
-            if (my_task == pmloc(n)) then
-               i = piloc(n)
-               j = pjloc(n)
-               iblk = pbloc(n)
-
-               pfzsal(n) = fzsal(i,j,iblk)
-               pfzsal_g(n) = fzsal_g(i,j,iblk)
-               phinS(n) = c0
-               phinS1(n) = c0
-               phbrn(n) = c0
-               psice_rho(n) = c0
-               pdh_top1(n) = c0
-               pdh_bot1(n) = c0
-               pdarcy_V1(n) = c0
-               do nn = 1,ncat
-                  psice_rho(n) = psice_rho(n) + sice_rho(i,j,nn,iblk)*aicen(i,j,nn,iblk)
-               enddo
-               if (aice(i,j,iblk) > c0) &
-                  psice_rho(n) = psice_rho(n)/aice(i,j,iblk)
-               if (tr_brine .and. aice(i,j,iblk) > c0) then
-                  phinS(n) = trcr(i,j,nt_fbri,iblk)*vice(i,j,iblk)/aice(i,j,iblk)
-                  phbrn(n) = (c1 - rhosi/rhow)*vice(i,j,iblk)/aice(i,j,iblk) &
-                                 - rhos/rhow  *vsno(i,j,iblk)/aice(i,j,iblk)
-               endif
-               if (tr_brine .and. aicen(i,j,1,iblk)> c0) then
-                  phinS1(n) = trcrn(i,j,nt_fbri,1,iblk) &
-                            * vicen(i,j,1,iblk)/aicen(i,j,1,iblk)
-                  pdh_top1(n) = dhbr_top(i,j,1,iblk)
-                  pdh_bot1(n) = dhbr_bot(i,j,1,iblk)
-                  pdarcy_V1(n) = darcy_V(i,j,1,iblk)
-               endif
-               do k = 1, nblyr+1
-                  pbTiz(n,k) = c0
-                  piDin(n,k) = c0
-                  do nn = 1,ncat
-                     pbTiz(n,k) = pbTiz(n,k) + bTiz(i,j,k,nn,iblk)*vicen(i,j,nn,iblk)
-                     piDin(n,k) = piDin(n,k) +  iDi(i,j,k,nn,iblk)*vicen(i,j,nn,iblk)
-                  enddo
-                  if (vice(i,j,iblk) > c0) then
-                     pbTiz(n,k) = pbTiz(n,k)/vice(i,j,iblk)
-                     piDin(n,k) = piDin(n,k)/vice(i,j,iblk)
-                  endif
-               enddo                 ! k
-               do k = 1, nblyr+2
-                  pphin(n,k) = c0
-                  pphin1(n,k) = c0
-                  if (aicen(i,j,1,iblk) > c0) pphin1(n,k) = bphi(i,j,k,1,iblk)
-                  do nn = 1,ncat
-                     pphin(n,k) = pphin(n,k) + bphi(i,j,k,nn,iblk)*vicen(i,j,nn,iblk)
-                  enddo
-                  if (vice(i,j,iblk) > c0) then
-                     pphin(n,k) = pphin(n,k)/vice(i,j,iblk)
-                  endif
-               enddo
-               do k = 1,nblyr
-                  pSin(n,k) = c0
-                  pSin1(n,k) = c0
-                  pSin(n,k)= trcr(i,j,nt_bgc_S+k-1,iblk)
-                  if (aicen(i,j,1,iblk) > c0) pSin1(n,k) = trcrn(i,j,nt_bgc_S+k-1,1,iblk)
-               enddo
-               do k = 1,nilyr
-                  pSice(n,k) = trcr(i,j,nt_sice+k-1,iblk)
-               enddo
-            endif                 ! my_task = pmloc
-
-            call broadcast_scalar(phinS    (n),   pmloc(n))
-            call broadcast_scalar(phinS1   (n),   pmloc(n))
-            call broadcast_scalar(phbrn    (n),   pmloc(n))
-            call broadcast_scalar(pdh_top1 (n),   pmloc(n))
-            call broadcast_scalar(pdh_bot1 (n),   pmloc(n))
-            call broadcast_scalar(psice_rho(n),   pmloc(n))
-            call broadcast_scalar(pfzsal_g (n),   pmloc(n))
-            call broadcast_scalar(pdarcy_V1(n),   pmloc(n))
-            call broadcast_scalar(pfzsal   (n),   pmloc(n))
-            call broadcast_array (pbTiz    (n,:), pmloc(n))
-            call broadcast_array (piDin    (n,:), pmloc(n))
-            call broadcast_array (pphin    (n,:), pmloc(n))
-            call broadcast_array (pphin1   (n,:), pmloc(n))
-            call broadcast_array (pSin     (n,:), pmloc(n))
-            call broadcast_array (pSin1    (n,:), pmloc(n))
-            call broadcast_array (pSice    (n,:), pmloc(n))
-         enddo                  ! npnt
-      endif                     ! print_points
-
-      !-----------------------------------------------------------------
-      ! start spewing
-      !-----------------------------------------------------------------
-
-      if (my_task == master_task) then
-
-      call flush_fileunit(nu_diag)
-
-      !-----------------------------------------------------------------
-      ! diagnostics for Arctic and Antarctic points
-      !-----------------------------------------------------------------
-
-      if (print_points) then
-
-        write(nu_diag,*) '                         '
-        write(nu_diag,902) '      Brine height       '
-        write(nu_diag,900) 'hbrin                   = ',phinS(1),phinS(2)
-        write(nu_diag,900) 'hbrin cat 1             = ',phinS1(1),phinS1(2)
-        write(nu_diag,900) 'Freeboard               = ',phbrn(1),phbrn(2)
-        write(nu_diag,900) 'dhbrin cat 1 top        = ',pdh_top1(1),pdh_top1(2)
-        write(nu_diag,900) 'dhbrin cat 1 bottom     = ',pdh_bot1(1),pdh_bot1(2)
-        write(nu_diag,*) '                         '
-        write(nu_diag,902) '     zSalinity         '
-        write(nu_diag,900) 'Avg density (kg/m^3)   = ',psice_rho(1),psice_rho(2)
-        write(nu_diag,900) 'Salt flux (kg/m^2/s)   = ',pfzsal(1),pfzsal(2)
-        write(nu_diag,900) 'Grav. Drain. Salt flux = ',pfzsal_g(1),pfzsal_g(2)
-        write(nu_diag,900) 'Darcy V cat 1 (m/s)    = ',pdarcy_V1(1),pdarcy_V1(2)
-        write(nu_diag,*) '                         '
-        write(nu_diag,*) ' Top down bgc Layer Model'
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'bTiz(1) ice temp',' bTiz(2) ice temp  '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pbTiz(n,k),n = 1,2), k = 1,nblyr+1)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'iDi(1) diffusivity  ','iDi(2) diffusivity  '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((piDin(n,k),n=1,2), k = 1,nblyr+1)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'bphi(1) porosity   ','bphi(2) porosity  '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pphin(n,k),n=1,2), k = 1,nblyr+1)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'phi1(1) porosity   ','phi1(2) porosity  '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pphin1(n,k),n=1,2), k = 1,nblyr+1)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'zsal(1) cat 1 ','zsal(2) cat 1 '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pSin1(n,k),n=1,2), k = 1,nblyr)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'zsal(1) Avg S ','zsal(2) Avg S '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pSin(n,k),n=1,2), k = 1,nblyr)
-        write(nu_diag,*) '                         '
-        write(nu_diag,803) 'Sice(1) Ice S ','Sice(2) Ice S '
-        write(nu_diag,*) '---------------------------------------------------'
-        write(nu_diag,802) ((pSice(n,k),n=1,2), k = 1,nilyr)
-        write(nu_diag,*) '                         '
-
-      endif                     ! print_points
-      endif                     ! my_task = master_task
-
-  802 format (f24.17,2x,f24.17)
-  803 format (a25,2x,a25)
-  900 format (a25,2x,f24.17,2x,f24.17)
-  902 format (a25,10x,f6.1,1x,f6.1,9x,f6.1,1x,f6.1)
-
-      end subroutine zsal_diags
 
 !=======================================================================
 

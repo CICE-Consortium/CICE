@@ -317,7 +317,7 @@
       !-------------------------------------------------------------------
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         l_fixed_area = .false. !jlem temporary
+         l_fixed_area = .true.
       else
          l_fixed_area = .false.
       endif
@@ -356,7 +356,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          tarear, hm,                  &
+                          earea, narea, tarear, hm,                  &
                           xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
@@ -727,6 +727,7 @@
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy(:,:,iblk),      &
                                dxu   (:,:,iblk),  dyu(:,:,iblk),      &
+                               earea (:,:,iblk),  narea (:,:,iblk),   &
                                xp    (:,:,:,:),   yp (:,:,:,:),       &
                                iflux,             jflux,              &
                                triarea,           edgearea_e(:,:))
@@ -786,6 +787,7 @@
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy (:,:,iblk),     &
                                dxu   (:,:,iblk),  dyu (:,:,iblk),     &
+                               earea (:,:,iblk),  narea (:,:,iblk),   &
                                xp    (:,:,:,:),   yp(:,:,:,:),        &
                                iflux,             jflux,              &
                                triarea,           edgearea_n(:,:))
@@ -1705,6 +1707,7 @@
                                    indxi,        indxj,      &
                                    dpx,          dpy,        &
                                    dxu,          dyu,        &
+                                   earea,        narea,      &
                                    xp,           yp,         &
                                    iflux,        jflux,      &
                                    triarea,      edgearea)
@@ -1721,7 +1724,9 @@
          dpx          , & ! x coordinates of departure points at cell corners
          dpy          , & ! y coordinates of departure points at cell corners
          dxu          , & ! E-W dimension of U-cell (m)
-         dyu              ! N-S dimension of U-cell (m)
+         dyu          , & ! N-S dimension of U-cell (m)
+         earea        , & ! area of E-cell 
+         narea            ! area of N-cell
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,0:nvert,ngroups), intent(out) :: &
          xp, yp           ! coordinates of triangle vertices
@@ -1748,7 +1753,7 @@
 
       integer (kind=int_kind) ::   &
          i, j, ij, ic         , & ! horizontal indices
-         ib, ie, jb, je       , & ! limits for loops over edges
+         ib, jb               , & ! limits for loops for bugcheck
          ng, nv               , & ! triangle indices
          ishift   , jshift    , & ! differences between neighbor cells
          ishift_tl, jshift_tl , & ! i,j indices of TL cell relative to edge
@@ -1756,7 +1761,13 @@
          ishift_tr, jshift_tr , & ! i,j indices of TR cell relative to edge
          ishift_br, jshift_br , & ! i,j indices of BR cell relative to edge
          ishift_tc, jshift_tc , & ! i,j indices of TC cell relative to edge
-         ishift_bc, jshift_bc     ! i,j indices of BC cell relative to edge
+         ishift_bc, jshift_bc , & ! i,j indices of BC cell relative to edge
+         is_l, js_l           , & ! i,j shifts for TL1, BL2 for area consistency 
+         is_r, js_r           , & ! i,j shifts for TR1, BR2 for area consistency 
+         ise_tl, jse_tl       , & ! i,j of TL other edge relative to edge
+         ise_bl, jse_bl       , & ! i,j of BL other edge relative to edge
+         ise_tr, jse_tr       , & ! i,j of TR other edge relative to edge
+         ise_br, jse_br           ! i,j of BR other edge relative to edge
 
       integer (kind=int_kind) ::   &
          icellsd          ! number of cells where departure area > 0.
@@ -1767,9 +1778,8 @@
 
       real (kind=dbl_kind), dimension(nx_block,ny_block) ::   &
          dx, dy       , & ! scaled departure points
-         areafac_c    , & ! area scale factor at center of edge
-         areafac_l    , & ! area scale factor at left corner
-         areafac_r        ! area scale factor at right corner
+         areafac_c    , & ! earea or narea
+         areafac_ce       ! areafac_c on other edge (narea or earea)
 
       real (kind=dbl_kind) ::   &
          xcl, ycl     , & ! coordinates of left corner point
@@ -1859,9 +1869,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      areafac_c(:,:) = c0
-      areafac_l(:,:) = c0
-      areafac_r(:,:) = c0
+      areafac_c(:,:)  = c0
+      areafac_ce(:,:) = c0
+      
       do ng = 1, ngroups
          do j = 1, ny_block
          do i = 1, nx_block
@@ -1883,13 +1893,6 @@
 
       if (trim(edge) == 'north') then
 
-         ! loop size
-
-         ib = ilo
-         ie = ihi
-         jb = jlo - nghost            ! lowest j index is a ghost cell
-         je = jhi
-
          ! index shifts for neighbor cells
 
          ishift_tl = -1
@@ -1905,24 +1908,42 @@
          ishift_bc =  0
          jshift_bc =  0
 
-         ! area scale factor
+         ! index shifts for TL1, BL2, TR1 and BR2 for area consistency 
 
-         do j = jb, je
-         do i = ib, ie
-            areafac_l(i,j) = dxu(i-1,j)*dyu(i-1,j)
-            areafac_r(i,j) = dxu(i  ,j)*dyu(i  ,j)
-            areafac_c(i,j) = p5*(areafac_l(i,j) + areafac_r(i,j))
+         is_l = -1
+         js_l =  0
+         is_r =  1
+         js_r =  0
+
+         ! index shifts for neighbor east edges
+
+         ise_tl = -1
+         jse_tl =  1
+         ise_bl = -1
+         jse_bl =  0
+         ise_tr =  0
+         jse_tr =  1
+         ise_br =  0
+         jse_br =  0
+
+         ! area scale factor
+         ! earea, narea valid on halo
+
+         do j = 1, ny_block
+         do i = 1, nx_block
+            areafac_c(i,j) = narea(i,j)
+         enddo
+         enddo
+
+         ! area scale factor for other edge (east)
+         
+         do j = 1, ny_block
+         do i = 1, nx_block
+            areafac_ce(i,j) = earea(i,j)
          enddo
          enddo
 
       else                      ! east edge
-
-         ! loop size
-
-         ib = ilo - nghost            ! lowest i index is a ghost cell
-         ie = ihi
-         jb = jlo
-         je = jhi
 
          ! index shifts for neighbor cells
 
@@ -1939,13 +1960,38 @@
          ishift_bc =  0
          jshift_bc =  0
 
-         ! area scale factors
+         ! index shifts for TL1, BL2, TR1 and BR2 for area consistency 
 
-         do j = jb, je
-         do i = ib, ie
-            areafac_l(i,j) = dxu(i,j  )*dyu(i,j  )
-            areafac_r(i,j) = dxu(i,j-1)*dyu(i,j-1)
-            areafac_c(i,j) = p5 * (areafac_l(i,j) + areafac_r(i,j))
+         is_l =  0
+         js_l =  1
+         is_r =  0
+         js_r = -1
+
+         ! index shifts for neighbor north edges
+
+         ise_tl =  1
+         jse_tl =  0
+         ise_bl =  0
+         jse_bl =  0
+         ise_tr =  1
+         jse_tr = -1
+         ise_br =  0
+         jse_br = -1
+
+         ! area scale factors
+         ! earea, narea valid on halo
+
+         do j = 1, ny_block
+         do i = 1, nx_block
+            areafac_c(i,j) = earea(i,j)
+         enddo
+         enddo
+
+         ! area scale factor for other edge (north)
+
+         do j = 1, ny_block
+         do i = 1, nx_block
+            areafac_ce(i,j) = narea(i,j)
          enddo
          enddo
 
@@ -1957,8 +2003,8 @@
 
       icellsd = 0
       if (trim(edge) == 'north') then
-         do j = jb, je
-         do i = ib, ie
+         do j = jlo-1, jhi
+         do i = ilo, ihi
             if (dpx(i-1,j)/=c0 .or. dpy(i-1,j)/=c0   &
                                .or.                  &
                   dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
@@ -1969,8 +2015,8 @@
          enddo
          enddo
       else       ! east edge
-         do j = jb, je
-         do i = ib, ie
+         do j = jlo, jhi
+         do i = ilo-1, ihi
             if (dpx(i,j-1)/=c0 .or. dpy(i,j-1)/=c0   &
                                .or.                  &
                   dpx(i,j)/=c0 .or.   dpy(i,j)/=c0) then
@@ -1986,8 +2032,8 @@
       ! Scale the departure points
       !-------------------------------------------------------------------
 
-      do j = 1, je
-      do i = 1, ie
+      do j = 1, jhi
+      do i = 1, ihi
          dx(i,j) = dpx(i,j) / dxu(i,j)
          dy(i,j) = dpy(i,j) / dyu(i,j)
       enddo
@@ -2055,6 +2101,13 @@
          !-------------------------------------------------------------------
          ! Locate triangles in TL cell (NW for north edge, NE for east edge)
          ! and BL cell (W for north edge, N for east edge).
+         ! 
+         ! areafact_c or areafac_ce (areafact_c for the other edge) are used
+         ! (with shifted indices) to make sure that a flux area on one edge 
+         ! is consistent with the analogous area on the other edge and to 
+         ! ensure that areas add up when using l_fixed_area = T. See PR #849 
+         ! for details.
+         !
          !-------------------------------------------------------------------
 
          if (yil > c0 .and. xdl < xcl .and. ydl >= c0) then
@@ -2070,7 +2123,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl < c0) then
 
@@ -2085,7 +2138,7 @@
             yp    (i,j,3,ng) = yil
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
 
          elseif (yil < c0 .and. xdl < xcl .and. ydl >= c0) then
 
@@ -2100,7 +2153,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_c(i+is_l,j+js_l)
 
             ! BL1 (group 3)
 
@@ -2113,7 +2166,7 @@
             yp    (i,j,3,ng) = yil
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_ce(i+ise_bl,j+jse_bl)
 
          elseif (yil > c0 .and. xdl < xcl .and. ydl < c0) then
 
@@ -2128,7 +2181,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_tl
             jflux   (i,j,ng) = j + jshift_tl
-            areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_ce(i+ise_tl,j+jse_tl)
 
             ! BL2 (group 1)
 
@@ -2141,7 +2194,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_bl
             jflux   (i,j,ng) = j + jshift_bl
-            areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_c(i+is_l,j+js_l)
 
          endif                  ! TL and BL triangles
 
@@ -2163,7 +2216,7 @@
             yp    (i,j,3,ng) = yir
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
 
          elseif (yir < c0 .and. xdr >= xcr .and. ydr < c0) then
 
@@ -2178,7 +2231,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
 
          elseif (yir < c0 .and. xdr >= xcr  .and. ydr >= c0) then
 
@@ -2193,7 +2246,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_c(i+is_r,j+js_r)
 
             ! BR1 (group 3)
 
@@ -2206,7 +2259,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_ce(i+ise_br,j+jse_br)
 
          elseif (yir > c0 .and. xdr >= xcr .and. ydr < c0) then
 
@@ -2221,7 +2274,7 @@
             yp    (i,j,3,ng) = yir
             iflux   (i,j,ng) = i + ishift_tr
             jflux   (i,j,ng) = j + jshift_tr
-            areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_ce(i+ise_tr,j+jse_tr)
 
             ! BR2 (group 2)
 
@@ -2234,7 +2287,7 @@
             yp    (i,j,3,ng) = yic
             iflux   (i,j,ng) = i + ishift_br
             jflux   (i,j,ng) = j + jshift_br
-            areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_c(i+is_r,j+js_r)
 
          endif                  ! TR and BR triangles
 
@@ -2290,9 +2343,7 @@
             !  region so that the sum of all triangle areas is equal to the
             !  prescribed value.
             ! If two triangles are in one grid cell and one is in the other,
-            !  then compute the area of the lone triangle using an area factor
-            !  corresponding to the adjacent corner.  This is necessary to prevent
-            !  negative masses in some rare cases on curved grids.  Then adjust
+            !  then compute the area of the lone triangle. Then adjust
             !  the area of the remaining two-triangle region so that the sum of
             !  all triangle areas has the prescribed value.
             !-----------------------------------------------------------
@@ -2328,7 +2379,7 @@
                endif
                yicr = c0
 
-            elseif (xic < c0) then  ! fix ICL = IC
+            elseif (xic < c0 .and. xic > xcl) then  ! fix ICL = IC
 
                xicl = xic
                yicl = yic
@@ -2337,8 +2388,8 @@
                xdm = p5 * (xdr + xicl)
                ydm = p5 *  ydr
 
-               ! compute area of triangle adjacent to left corner
-               area4 = p5 * (xcl - xic) * ydl * areafac_l(i,j)
+               ! compute area of (lone) triangle adjacent to left corner
+               area4 = p5 * (xcl - xic) * ydl * areafac_c(i,j)
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2357,7 +2408,7 @@
                endif
                yicr = c0
 
-            elseif (xic >= c0) then  ! fix ICR = IR
+            elseif (xic >= c0 .and. xic < xcr) then  ! fix ICR = IR
 
                xicr = xic
                yicr = yic
@@ -2366,7 +2417,8 @@
                xdm = p5 * (xicr + xdl)
                ydm = p5 *  ydl
 
-               area4 = p5 * (xic - xcr) * ydr * areafac_r(i,j)
+               ! compute area of (lone) triangle adjacent to right corner
+               area4 = p5 * (xic - xcr) * ydr * areafac_c(i,j)
                area_c  = edgearea(i,j) - area1 - area2 - area3 - area4
 
                ! shift midpoint so that area of remaining triangles = area_c
@@ -2411,7 +2463,7 @@
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
-
+ 
             ! TC2a (group 5)
 
             ng = 5
@@ -2424,7 +2476,7 @@
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
-
+ 
             ! TC3a (group 6)
 
             ng = 6
@@ -2479,7 +2531,7 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr < c0 .and. ydm < c0) then
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm <= c0) then
 
             ! BC1a (group 4)
 
@@ -2520,7 +2572,7 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr < c0 .and. ydm >= c0) then  ! rare
+         elseif (ydl <= c0 .and. ydr <= c0 .and. ydm > c0) then  ! rare
 
             ! BC1b (group 4)
 
@@ -2562,11 +2614,9 @@
             areafact(i,j,ng) = -areafac_c(i,j)
 
          ! Now consider cases where the two DPs lie in different grid cells
-         ! For these cases, one triangle is given the area factor associated
-         !  with the adjacent corner, to avoid rare negative masses on curved grids.
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic >= c0  &
-                                          .and. ydm >= c0) then
+         elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
+                                         .and. ydm >= c0) then
 
             ! TC1b (group 4)
 
@@ -2581,7 +2631,7 @@
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
 
-            ! BC2b (group 5)
+            ! BC2b (group 5) lone triangle
 
             ng = 5
             xp    (i,j,1,ng) = xcr
@@ -2592,7 +2642,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2607,8 +2657,8 @@
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic >= c0  &
-                                          .and. ydm < c0 ) then  ! less common
+         elseif (ydl > c0 .and. ydr < c0 .and. xic >= c0  &
+                                         .and. ydm < c0 ) then  ! less common
 
             ! TC1b (group 4)
 
@@ -2623,7 +2673,7 @@
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
 
-            ! BC2b (group 5)
+            ! BC2b (group 5) lone triangle
 
             ng = 5
             xp    (i,j,1,ng) = xcr
@@ -2634,7 +2684,7 @@
             yp    (i,j,3,ng) = ydr
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_r(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2649,10 +2699,10 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic < c0   &
-                                          .and. ydm < c0) then
+         elseif (ydl > c0 .and. ydr < c0 .and. xic < c0   &
+                                         .and. ydm < c0) then
 
-            ! TC1b (group 4)
+            ! TC1b (group 4) lone triangle
 
             ng = 4
             xp    (i,j,1,ng) = xcl
@@ -2663,7 +2713,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5)
 
@@ -2691,10 +2741,10 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl >= c0 .and. ydr < c0 .and. xic <  c0  &
-                                          .and. ydm >= c0) then  ! less common
+         elseif (ydl > c0 .and. ydr < c0 .and. xic <  c0  &
+                                         .and. ydm >= c0) then  ! less common
 
-            ! TC1b (group 4)
+            ! TC1b (group 4) lone triangle
 
             ng = 4
             xp    (i,j,1,ng) = xcl
@@ -2705,7 +2755,7 @@
             yp    (i,j,3,ng) = ydl
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_l(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC2b (group 5)
 
@@ -2733,10 +2783,10 @@
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic <  c0  &
-                                          .and. ydm >= c0) then
+         elseif (ydl < c0 .and. ydr > c0 .and. xic <  c0  &
+                                         .and. ydm >= c0) then
 
-            ! BC1b (group 4)
+            ! BC1b (group 4) lone triangle
 
             ng = 4
             xp    (i,j,1,ng) = xcl
@@ -2747,7 +2797,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5)
 
@@ -2775,10 +2825,10 @@
             jflux   (i,j,ng) = j + jshift_tc
             areafact(i,j,ng) = -areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic < c0  &
-                                          .and. ydm < c0) then ! less common
+         elseif (ydl < c0 .and. ydr > c0 .and. xic < c0  &
+                                         .and. ydm < c0) then ! less common
 
-            ! BC1b (group 4)
+            ! BC1b (group 4) lone triangle
 
             ng = 4
             xp    (i,j,1,ng) = xcl
@@ -2789,7 +2839,7 @@
             yp    (i,j,3,ng) = yicl
             iflux   (i,j,ng) = i + ishift_bc
             jflux   (i,j,ng) = j + jshift_bc
-            areafact(i,j,ng) = areafac_l(i,j)
+            areafact(i,j,ng) = areafac_c(i,j)
 
             ! TC2b (group 5)
 
@@ -2817,8 +2867,8 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic >= c0  &
-                                          .and. ydm <  c0) then
+         elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0  &
+                                         .and. ydm <  c0) then
 
             ! BC1b (group 4)
 
@@ -2833,7 +2883,7 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-            ! TC2b (group 5)
+            ! TC2b (group 5) lone triangle
 
             ng = 5
             xp    (i,j,1,ng) = xcr
@@ -2844,7 +2894,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! BC3b (group 6)
 
@@ -2859,8 +2909,8 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-         elseif (ydl < c0 .and. ydr >= c0 .and. xic >= c0   &
-                                          .and. ydm >= c0) then  ! less common
+         elseif (ydl < c0 .and. ydr > c0 .and. xic >= c0   &
+                                         .and. ydm >= c0) then  ! less common
 
             ! BC1b (group 4)
 
@@ -2875,7 +2925,7 @@
             jflux   (i,j,ng) = j + jshift_bc
             areafact(i,j,ng) = areafac_c(i,j)
 
-            ! TC2b (group 5)
+            ! TC2b (group 5) lone triangle
 
             ng = 5
             xp    (i,j,1,ng) = xcr
@@ -2886,7 +2936,7 @@
             yp    (i,j,3,ng) = yicr
             iflux   (i,j,ng) = i + ishift_tc
             jflux   (i,j,ng) = j + jshift_tc
-            areafact(i,j,ng) = -areafac_r(i,j)
+            areafact(i,j,ng) = -areafac_c(i,j)
 
             ! TC3b (group 6)
 
@@ -2960,7 +3010,7 @@
             do ij = 1, icellsd
                i = indxid(ij)
                j = indxjd(ij)
-               if (abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j)) then
+               if ( abs(areasum(i,j) - edgearea(i,j)) > eps13*areafac_c(i,j) .and. abs(edgearea(i,j)) > c0 ) then
                   write(nu_diag,*) ''
                   write(nu_diag,*) 'Areas do not add up: m, i, j, edge =',   &
                            my_task, i, j, trim(edge)
@@ -3022,10 +3072,17 @@
       endif
 
       if (bugcheck) then
+         if (trim(edge) == 'north') then
+            ib = ilo
+            jb = jlo-1
+         else ! east edge
+            ib = ilo-1
+            jb = jlo
+         endif
          do ng = 1, ngroups
          do nv = 1, nvert
-            do j = jb, je
-            do i = ib, ie
+            do j = jb, jhi
+            do i = ib, ihi
                if (abs(triarea(i,j,ng)) > puny) then
                   if (abs(xp(i,j,nv,ng)) > p5+puny) then
                      write(nu_diag,*) ''
