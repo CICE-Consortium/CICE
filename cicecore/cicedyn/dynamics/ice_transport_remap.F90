@@ -1998,7 +1998,8 @@
       endif
 
       !-------------------------------------------------------------------
-      ! Compute mask for edges with nonzero departure areas
+      ! Compute mask for edges with nonzero departure areas and for
+      ! one grid-cell wide channels
       !-------------------------------------------------------------------
 
       icellsd = 0
@@ -2011,6 +2012,12 @@
                icellsd = icellsd + 1
                indxid(icellsd) = i
                indxjd(icellsd) = j
+            else
+               if ( abs(edgearea(i,j)) > c0 ) then ! 1 grid-cell wide channel: dpx,y = 0, edgearea /= 0
+                  icellsd = icellsd + 1
+                  indxid(icellsd) = i
+                  indxjd(icellsd) = j
+               endif
             endif
          enddo
          enddo
@@ -2023,6 +2030,12 @@
                icellsd = icellsd + 1
                indxid(icellsd) = i
                indxjd(icellsd) = j
+            else
+               if ( abs(edgearea(i,j)) > c0 ) then ! 1 grid-cell wide channel: dpx,y = 0, edgearea /= 0
+                  icellsd = icellsd + 1
+                  indxid(icellsd) = i
+                  indxjd(icellsd) = j
+               endif
             endif
          enddo
          enddo

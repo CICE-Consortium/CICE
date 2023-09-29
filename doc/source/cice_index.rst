@@ -384,7 +384,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "kice", "thermal conductivity of fresh ice (:cite:`Bitz99`)", "2.03 W/m/deg"
    "kitd", "type of itd conversions (0 = delta function, 1 = linear remap)", "1"
    "kmt_file", "input file for land mask info", ""
-   "kmt_type", "file, default or boxislands", "file"
+   "kmt_type", "file, default, channel, wall, or boxislands", "file"
    "krdg_partic", "ridging participation function", "1"
    "krdg_redist", "ridging redistribution function", "1"
    "krgdn", "mean ridge thickness per thickness of ridging ice", ""
