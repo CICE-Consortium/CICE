@@ -1,2 +1,3 @@
 atm_data_format = 'nc'
 atm_data_type   = 'JRA55'
+jra55_date      = '20230919'

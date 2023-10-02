@@ -125,6 +125,7 @@
          atm_data_type, & ! 'default', 'monthly', 'ncar', 'box2001'
                           ! 'hadgem', 'oned', 'calm', 'uniform'
                           ! 'JRA55' or 'JRA55do'
+         jra55_date,    & ! date of JRA55 forcing. YYYYMMDD.
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
@@ -2237,30 +2238,42 @@
       ! cnt represents the possible file format options and steps thru them until one is found
       exists = .false.
       cnt = 1
-      do while (.not.exists .and. cnt <= 6)
+      do while (.not.exists .and. cnt <= 8)
+
+         ! search for jra55 file with creation date (jra55date) in filename first
          if (cnt == 1) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(jra55_date)//'_'// &
+                                    trim(grd)//'_03hr_forcing_2005.nc'
 
-         if (cnt == 2) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
+         if (cnt == 2) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(jra55_date)//'_'// &
+                                    trim(grd)//                                              '_03hr_forcing_2005.nc'
 
+         ! now search for files without jra55date in filename.
          if (cnt == 3) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
-
-         if (cnt == 4) uwind_file = trim(atm_data_dir)//                                  &
                                     '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
 
-         if (cnt == 5) uwind_file = trim(atm_data_dir)//                                  &
+         if (cnt == 4) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
                                     '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
+
+         if (cnt == 5) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
 
          if (cnt == 6) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
+
+         if (cnt == 7) uwind_file = trim(atm_data_dir)//                                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
+
+         if (cnt == 8) uwind_file = trim(atm_data_dir)//                                  &
                                     '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
+
 
          call file_year(uwind_file,yr)
          INQUIRE(FILE=uwind_file,EXIST=exists)
-!         if (my_task == master_task) then
-!            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
-!         endif
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
+         endif
          cnt = cnt + 1
       enddo
 
