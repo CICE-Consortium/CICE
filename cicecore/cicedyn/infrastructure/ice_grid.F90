@@ -1489,6 +1489,22 @@
             enddo
             enddo
 
+         elseif (trim(kmt_type) == 'channel_oneeast') then
+
+            do j = ny_global/2,ny_global/2    ! one channel wide
+            do i = 1,nx_global       ! open sides
+               work_g1(i,j) = c1     ! NOTE nx_global > 5
+            enddo
+            enddo
+
+         elseif (trim(kmt_type) == 'channel_onenorth') then
+
+            do j = 1,ny_global       ! open sides
+            do i = nx_global/2,nx_global/2    ! one channel wide
+               work_g1(i,j) = c1     ! NOTE nx_global > 5
+            enddo
+            enddo
+
          elseif (trim(kmt_type) == 'wall') then
 
             do j = 1,ny_global       ! open except
