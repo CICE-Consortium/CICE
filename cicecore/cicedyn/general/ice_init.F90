@@ -88,7 +88,7 @@
       use ice_forcing, only: &
           ycycle,          fyear_init,    debug_forcing, &
           atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
-          atm_data_format, ocn_data_format, jra55_date, &
+          atm_data_format, ocn_data_format, atm_data_date, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir, wave_spec_file,  &
           oceanmixed_file, restore_ocn, trestore, &
@@ -273,7 +273,7 @@
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
-        oceanmixed_file, jra55_date
+        oceanmixed_file, atm_data_date
 
       !-----------------------------------------------------------------
       ! default values
@@ -498,7 +498,7 @@
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
       atm_data_dir    = ' '
-      jra55_date      = '20230919'! date jra55 forcing file was generated. 
+      atm_data_date   = 'undefined' ! date atm_data_file was generated. 
       rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
       calc_strair     = .true.    ! calculate wind stress
       formdrag        = .false.   ! calculate form drag
@@ -1060,7 +1060,7 @@
       call broadcast_scalar(atm_data_format,      master_task)
       call broadcast_scalar(atm_data_type,        master_task)
       call broadcast_scalar(atm_data_dir,         master_task)
-      call broadcast_scalar(jra55_date,           master_task)
+      call broadcast_scalar(atm_data_date,           master_task)
       call broadcast_scalar(rotate_wind,          master_task)
       call broadcast_scalar(calc_strair,          master_task)
       call broadcast_scalar(calc_Tsfc,            master_task)
@@ -2362,9 +2362,8 @@
          write(nu_diag,1021) ' fyear_init       = ', fyear_init
          write(nu_diag,1021) ' ycycle           = ', ycycle
          write(nu_diag,1031) ' atm_data_type    = ', trim(atm_data_type)
-         if (index(trim(atm_data_type),'JRA55') /= 0) then
-            write(nu_diag,1031) ' jra55_date       = ', trim(jra55_date)
-         endif
+         write(nu_diag,1031) ' atm_data_date    = ', trim(atm_data_date)
+         
          if (trim(atm_data_type) /= 'default') then
             write(nu_diag,1031) ' atm_data_dir     = ', trim(atm_data_dir)
             write(nu_diag,1031) ' precip_units     = ', trim(precip_units)

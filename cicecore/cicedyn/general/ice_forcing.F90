@@ -125,7 +125,7 @@
          atm_data_type, & ! 'default', 'monthly', 'ncar', 'box2001'
                           ! 'hadgem', 'oned', 'calm', 'uniform'
                           ! 'JRA55' or 'JRA55do'
-         jra55_date,    & ! date of JRA55 forcing. YYYYMMDD.
+         atm_data_date, & ! date of atm_forcing file creation
          bgc_data_type, & ! 'default', 'clim'
          ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
                           ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
@@ -2242,11 +2242,11 @@
 
          ! search for jra55 file with creation date (jra55date) in filename first
          if (cnt == 1) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(jra55_date)//'_'// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(atm_data_date)//'_'// &
                                     trim(grd)//'_03hr_forcing_2005.nc'
 
          if (cnt == 2) uwind_file = trim(atm_data_dir)//                                  &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(jra55_date)//'_'// &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(atm_data_date)//'_'// &
                                     trim(grd)//                                              '_03hr_forcing_2005.nc'
 
          ! now search for files without jra55date in filename.
