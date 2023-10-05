@@ -182,8 +182,7 @@
             alidr_init(i,j,iblk) = alidr_ai(i,j,iblk)
             alidf_init(i,j,iblk) = alidf_ai(i,j,iblk)
 
-            call icepack_prep_radiation (ncat=ncat, nilyr=nilyr, nslyr=nslyr,                 &
-                        scale_factor=scale_factor(i,j,iblk),                                  &
+            call icepack_prep_radiation (scale_factor=scale_factor(i,j,iblk),                 &
                         aice     = aice    (i,j,    iblk), aicen    = aicen   (i,j,  :,iblk), &
                         swvdr    = swvdr   (i,j,    iblk), swvdf    = swvdf   (i,j,    iblk), &
                         swidr    = swidr   (i,j,    iblk), swidf    = swidf   (i,j,    iblk), &
@@ -759,6 +758,7 @@
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
                            bound_state, trcr_base, nt_strata, n_trcr_strata
+      use ice_flux,  only: Tf 
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound, timer_updstate
 
       real (kind=dbl_kind), intent(in) :: &
@@ -825,7 +825,8 @@
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
-                                   nt_strata     = nt_strata(:,:))
+                                   nt_strata     = nt_strata(:,:),   &
+                                   Tf            = Tf(i,j,iblk))
 
          if (present(offset)) then
 
@@ -1042,7 +1043,7 @@
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
           dvirdgdt, opening, fpond, fresh, fhocn, &
           aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt, &
-          dvirdgndt, araftn, vraftn, fsalt
+          dvirdgndt, araftn, vraftn, fsalt, Tf
       use ice_flux_bgc, only: flux_bio, faero_ocn, fiso_ocn
       use ice_grid, only: tmask
       use ice_state, only: trcrn, vsnon, aicen, vicen, &
@@ -1133,7 +1134,8 @@
                          aice      = aice     (i,j,  iblk), &
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
-                         flux_bio  = flux_bio (i,j,1:nbtrcr,iblk))
+                         flux_bio  = flux_bio (i,j,1:nbtrcr,iblk), &
+                         Tf        = Tf(i,j,iblk))
 
          endif ! tmask
 
@@ -1272,8 +1274,7 @@
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           albicen, albsnon, albpndn, &
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
-          kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
-          gaer_bc_tab, bcenh, swgrid, igrid
+          swgrid, igrid
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
@@ -1380,9 +1381,7 @@
 
          if (tmask(i,j,iblk)) then
 
-            call icepack_step_radiation (dt=dt,   ncat=ncat,                  &
-                         nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
-                         dEdd_algae=dEdd_algae,                               &
+            call icepack_step_radiation (dt=dt,                               &
                          swgrid=swgrid(:),        igrid=igrid(:),             &
                          fbri=fbri(:),                                        &
                          aicen=aicen(i,j,        :,iblk),                     &
@@ -1402,11 +1401,6 @@
                          days_per_year=days_per_year,                         &
                          nextsw_cday=nextsw_cday, yday=yday,                  &
                          sec=msec,                                             &
-                         kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
-                         waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
-                         gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
-                         bcenh=bcenh(:,:,:),                                  &
-                         modal_aero=modal_aero,                               &
                          swvdr    =swvdr    (i,j    ,iblk), swvdf   =swvdf   (i,j    ,iblk), &
                          swidr    =swidr    (i,j    ,iblk), swidf   =swidf   (i,j    ,iblk), &
                          coszen   =coszen   (i,j    ,iblk), fsnow   =fsnow   (i,j    ,iblk), &

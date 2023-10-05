@@ -125,12 +125,14 @@
     ktherm            = 2
     conduct           = 'bubbly'
     ksno              = 0.3d0
+    hi_min            = 0.01d0
     a_rapid_mode      =  0.5e-3
     Rac_rapid_mode    =    10.0
     aspect_rapid_mode =     1.0
     dSdt_slow_mode    = -5.0e-8
     phi_c_slow_mode   =    0.05
     phi_i_mushy       =    0.85
+    Tliquidus_max     = -0.1d0
     hfrazilmin        = 0.05d0
     floediam          = 300.0d0
 /
@@ -187,6 +189,7 @@
 
 &shortwave_nml
     shortwave       = 'dEdd'
+    snw_ssp_table   = 'test'
     albedo_type     = 'ccsm3'
     albicev         = 0.78
     albicei         = 0.36
@@ -309,8 +312,6 @@
     restart_hbrine  = .false.
     tr_zaero        = .false.
     modal_aero      = .false.
-    optics_file     = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/snicar_optics_5bnd_snow_and_aerosols.nc'
-    optics_file_fieldname = 'modalBCabsorptionParameter5band'
     skl_bgc         = .false.
     z_tracers       = .false.
     dEdd_algae      = .false.

@@ -13,7 +13,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
           nblyr, nfsd, nfreq
-      use icepack_intfc, only: icepack_nspint
+      use icepack_intfc, only: icepack_nspint_3bd
       use icepack_intfc, only: icepack_query_tracer_sizes, icepack_query_parameters, &
           icepack_query_tracer_flags, &
           icepack_warnings_flush, icepack_warnings_aborted, icepack_query_tracer_sizes
@@ -116,22 +116,6 @@
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
          fswpenln        ! visible SW entering ice layers (W m-2)
-
-      ! aerosol optical properties   -> band  |
-      !                                       v aerosol
-      ! for combined dust category, use category 4 properties
-      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
-         kaer_tab, & ! aerosol mass extinction cross section (m2/kg)
-         waer_tab, & ! aerosol single scatter albedo (fraction)
-         gaer_tab    ! aerosol asymmetry parameter (cos(theta))
-
-      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
-         kaer_bc_tab, & ! BC mass extinction cross section (m2/kg)
-         waer_bc_tab, & ! BC single scatter albedo (fraction)
-         gaer_bc_tab    ! BC aerosol asymmetry parameter (cos(theta))
-
-      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
-          bcenh           ! BC absorption enhancement factor
 
       ! biogeochemistry components
 
@@ -243,10 +227,6 @@
 
       character(char_len_long), public :: &
          bgc_data_dir   ! directory for biogeochemistry data
-
-      character(char_len_long), public :: &
-         optics_file, &        ! modal aero optics file
-         optics_file_fieldname ! modal aero optics file fieldname
 
       real (kind=dbl_kind), dimension(:), allocatable, public :: &
          R_C2N_DON      ! carbon to nitrogen mole ratio of DON pool
@@ -385,17 +365,6 @@
          swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory3')
-
-      allocate(          &
-         kaer_tab(icepack_nspint,max_aero), & ! aerosol mass extinction cross section (m2/kg)
-         waer_tab(icepack_nspint,max_aero), & ! aerosol single scatter albedo (fraction)
-         gaer_tab(icepack_nspint,max_aero), & ! aerosol asymmetry parameter (cos(theta))
-         kaer_bc_tab(icepack_nspint,nmodal1), & ! BC mass extinction cross section (m2/kg)
-         waer_bc_tab(icepack_nspint,nmodal1), & ! BC single scatter albedo (fraction)
-         gaer_bc_tab(icepack_nspint,nmodal1), & ! BC aerosol asymmetry parameter (cos(theta))
-         bcenh(icepack_nspint,nmodal1,nmodal2), & ! BC absorption enhancement factor
-         stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory4')
 
       ! floe size distribution
       allocate(                                                   &

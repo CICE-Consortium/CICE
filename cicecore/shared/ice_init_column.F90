@@ -184,7 +184,6 @@
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
-          kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, gaer_bc_tab, bcenh, &
           swgrid, igrid
       use ice_blocks, only: block, get_block
       use ice_calendar, only: dt, calendar_type, &
@@ -320,7 +319,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            if (trim(shortwave) == 'dEdd') then ! delta Eddington
+            if (shortwave(1:4) == 'dEdd') then ! delta Eddington
 
 #ifndef CESMCOUPLED
                ! initialize orbital parameters
@@ -345,9 +344,7 @@
             enddo
 
             if (tmask(i,j,iblk)) then
-               call icepack_step_radiation (dt=dt, ncat=ncat,                  &
-                          nblyr=nblyr, nilyr=nilyr, nslyr=nslyr,               &
-                          dEdd_algae=dEdd_algae,                               &
+               call icepack_step_radiation (dt=dt,                             &
                           swgrid=swgrid(:), igrid=igrid(:),                    &
                           fbri=fbri(:),                                        &
                           aicen=aicen(i,j,:,iblk),                             &
@@ -367,11 +364,6 @@
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &
                           sec=msec,                                             &
-                          kaer_tab=kaer_tab, kaer_bc_tab=kaer_bc_tab(:,:),     &
-                          waer_tab=waer_tab, waer_bc_tab=waer_bc_tab(:,:),     &
-                          gaer_tab=gaer_tab, gaer_bc_tab=gaer_bc_tab(:,:),     &
-                          bcenh=bcenh(:,:,:),                                  &
-                          modal_aero=modal_aero,                               &
                           swvdr=swvdr(i,j,iblk),         swvdf=swvdf(i,j,iblk),&
                           swidr=swidr(i,j,iblk),         swidf=swidf(i,j,iblk),&
                           coszen=coszen(i,j,iblk),       fsnow=fsnow(i,j,iblk),&
@@ -965,7 +957,7 @@
 
       subroutine input_zbgc
 
-      use ice_arrays_column, only: restore_bgc, optics_file, optics_file_fieldname
+      use ice_arrays_column, only: restore_bgc
       use ice_broadcast, only: broadcast_scalar
       use ice_restart_column, only: restart_bgc, restart_hbrine
       use ice_restart_shared, only: restart
@@ -1007,7 +999,7 @@
         restore_bgc, restart_bgc, scale_bgc, solve_zsal, restart_zsal, &
         tr_bgc_Nit, tr_bgc_C, tr_bgc_chl, tr_bgc_Am, tr_bgc_Sil, &
         tr_bgc_DMS, tr_bgc_PON, tr_bgc_hum, tr_bgc_DON, tr_bgc_Fe, &
-        grid_o, grid_o_t, l_sk, grid_oS, optics_file, optics_file_fieldname, &
+        grid_o, grid_o_t, l_sk, grid_oS, &
         l_skS, phi_snow,  initbio_frac, frazil_scav, &
         ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
         ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
@@ -1064,8 +1056,6 @@
       tr_brine        = .false.  ! brine height differs from ice height
       tr_zaero        = .false.  ! z aerosol tracers
       modal_aero      = .false.  ! use modal aerosol treatment of aerosols
-      optics_file     = 'unknown_optics_file' ! modal aerosol optics file
-      optics_file_fieldname = 'unknown_optics_fieldname' ! modal aerosol optics file fieldname
       restore_bgc     = .false.  ! restore bgc if true
       solve_zsal      = .false.  ! update salinity tracer profile from solve_S_dt
       restart_bgc     = .false.  ! biogeochemistry restart
@@ -1283,8 +1273,6 @@
       call broadcast_scalar(tr_zaero,           master_task)
       call broadcast_scalar(dEdd_algae,         master_task)
       call broadcast_scalar(modal_aero,         master_task)
-      call broadcast_scalar(optics_file,        master_task)
-      call broadcast_scalar(optics_file_fieldname, master_task)
       call broadcast_scalar(grid_o,             master_task)
       call broadcast_scalar(grid_o_t,           master_task)
       call broadcast_scalar(l_sk,               master_task)
@@ -1464,9 +1452,9 @@
          abort_flag = 107
       endif
 
-      if (dEdd_algae .AND. trim(shortwave) /= 'dEdd') then
+      if (dEdd_algae .AND. shortwave(1:4) /= 'dEdd') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd'
+            write(nu_diag,*) subname,' ERROR: dEdd_algae = T but shortwave /= dEdd or dEdd_snicar_ad'
          endif
          abort_flag = 108
       endif
@@ -1485,9 +1473,9 @@
          abort_flag = 110
       endif
 
-      if (modal_aero .AND. trim(shortwave) /= 'dEdd') then
+      if (modal_aero .AND. shortwave(1:4) /= 'dEdd') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd'
+            write(nu_diag,*) subname,' ERROR: modal_aero = T but shortwave /= dEdd or dEdd_snicar_ad'
          endif
          abort_flag = 111
       endif
@@ -1643,8 +1631,6 @@
          write(nu_diag,1010) ' solve_zbgc                = ', solve_zbgc
          write(nu_diag,1010) ' tr_zaero                  = ', tr_zaero
          write(nu_diag,1020) ' number of aerosols        = ', n_zaero
-         write(nu_diag,1031) ' optics_file               = ', trim(optics_file)
-         write(nu_diag,1031) ' optics_file_fieldname     = ', trim(optics_file_fieldname)
          ! bio parameters
          write(nu_diag,1000) ' grid_o                    = ', grid_o
          write(nu_diag,1000) ' grid_o_t                  = ', grid_o_t

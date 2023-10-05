@@ -713,6 +713,7 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata, uvelE, vvelN
+      use ice_flux, only: Tf
       use ice_grid, only: HTE, HTN, tarea, tmask, grid_ice
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
@@ -838,7 +839,7 @@
                              ntrcr,               narr,                 &
                              trcr_depend(:),      trcr_base(:,:),       &
                              n_trcr_strata(:),    nt_strata(:,:),       &
-                             tmask(:,:,    iblk),                       &
+                             tmask(:,:,    iblk), Tf    (:,:,iblk),     &
                              aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk))
@@ -1643,7 +1644,7 @@
                                 trcr_base,               &
                                 n_trcr_strata,           &
                                 nt_strata,               &
-                                tmask,                   &
+                                tmask,         Tf,       &
                                 aicen,         trcrn,    &
                                 vicen,         vsnon,    &
                                 aice0,         works)
@@ -1670,6 +1671,7 @@
          tmask (nx_block,ny_block)
 
       real (kind=dbl_kind), intent (in) :: &
+         Tf    (nx_block,ny_block), &
          works (nx_block,ny_block,narr)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
@@ -1746,7 +1748,8 @@
                                          trcr_base     = trcr_base(:,:),   &
                                          n_trcr_strata = n_trcr_strata(:), &
                                          nt_strata     = nt_strata(:,:),   &
-                                         trcrn         = trcrn(i,j,:,n))
+                                         trcrn         = trcrn(i,j,:,n),   &
+                                         Tf            = Tf(i,j))
 
             ! tcraig, don't let land points get non-zero Tsfc
             if (.not.tmask(i,j)) then

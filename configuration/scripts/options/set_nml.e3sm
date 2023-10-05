@@ -1,0 +1,13 @@
+ice_ic = 'default'
+nslyr = 5
+highfreq = .true.
+natmiter = 10
+oceanmixed_ice = .false.
+kcatbound = 0
+tr_FY = .true.
+tr_snow = .true.
+use_smliq_pnd = .true.
+snwgrain = .true.
+snwredist = 'ITDrdg'
+rsnw_fall = 54.526
+rsnw_tmax = 2800.0

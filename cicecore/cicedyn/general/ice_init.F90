@@ -14,7 +14,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
+      use ice_constants, only: c0, c1, c2, c3, c5, c12, p01, p2, p3, p5, p75, p166, &
           cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
@@ -141,12 +141,12 @@
 #endif
 
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
-        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
+        ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, hi_min, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
         a_rapid_mode, Rac_rapid_mode, aspect_rapid_mode, dSdt_slow_mode, &
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
         sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn, &
-        rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
+        rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, Tliquidus_max, &
         windmin, drhosdwind, snwlvlfac
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
@@ -154,7 +154,7 @@
 
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
         tfrz_option, saltflux_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
-        capping_method
+        capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
         sw_redist, calc_dragio, use_smliq_pnd, snwgrain
@@ -165,7 +165,7 @@
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
       integer (kind=int_kind) :: rplvl, rptopo
-      real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity
+      real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity, Tocnfrz
 
       character (len=char_len) :: abort_list
       character (len=char_len)      :: nml_name ! namelist name
@@ -222,7 +222,7 @@
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
-        floediam,       hfrazilmin
+        floediam,       hfrazilmin,      Tliquidus_max,   hi_min
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -242,7 +242,7 @@
         Cf,             Pstar,          Cstar,          Ktens
 
       namelist /shortwave_nml/ &
-        shortwave,      albedo_type,                                    &
+        shortwave,      albedo_type,     snw_ssp_table,                 &
         albicev,        albicei,         albsnowv,      albsnowi,       &
         ahmax,          R_ice,           R_pnd,         R_snw,          &
         sw_redist,      sw_frac,         sw_dtemp,                      &
@@ -281,7 +281,7 @@
 
       abort_list = ""
 
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(puny_out=puny,Tocnfrz_out=Tocnfrz)
 ! nu_diag not yet defined
 !      call icepack_warnings_flush(nu_diag)
 !      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
@@ -434,6 +434,7 @@
       advection  = 'remap'     ! incremental remapping transport scheme
       conserv_check = .false.  ! tracer conservation check
       shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
+      snw_ssp_table = 'test'   ! 'test' or 'snicar' dEdd_snicar_ad table data
       albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
       ktherm = 1               ! -1 = OFF, 1 = BL99, 2 = mushy thermo
       conduct = 'bubbly'       ! 'MU71' or 'bubbly' (Pringle et al 2007)
@@ -444,6 +445,7 @@
       calc_Tsfc = .true.       ! calculate surface temperature
       update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
+      hi_min = p01             ! minimum ice thickness allowed (m)
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
       calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
@@ -577,6 +579,7 @@
       dSdt_slow_mode    = -1.5e-7_dbl_kind ! slow mode drainage strength (m s-1 K-1)
       phi_c_slow_mode   =    0.05_dbl_kind ! critical liquid fraction porosity cutoff
       phi_i_mushy       =    0.85_dbl_kind ! liquid fraction of congelation ice
+      Tliquidus_max     =    0.00_dbl_kind ! maximum liquidus temperature of mush (C)
 
       floediam          =   300.0_dbl_kind ! min thickness of new frazil ice (m)
       hfrazilmin        =    0.05_dbl_kind ! effective floe diameter (m)
@@ -987,6 +990,7 @@
       call broadcast_scalar(advection,            master_task)
       call broadcast_scalar(conserv_check,        master_task)
       call broadcast_scalar(shortwave,            master_task)
+      call broadcast_scalar(snw_ssp_table,        master_task)
       call broadcast_scalar(albedo_type,          master_task)
       call broadcast_scalar(ktherm,               master_task)
       call broadcast_scalar(coriolis,             master_task)
@@ -1069,6 +1073,7 @@
       call broadcast_scalar(update_ocn_f,         master_task)
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
+      call broadcast_scalar(hi_min,               master_task)
       call broadcast_scalar(iceruf,               master_task)
       call broadcast_scalar(iceruf_ocn,           master_task)
       call broadcast_scalar(calc_dragio,          master_task)
@@ -1143,6 +1148,7 @@
       call broadcast_scalar(dSdt_slow_mode,       master_task)
       call broadcast_scalar(phi_c_slow_mode,      master_task)
       call broadcast_scalar(phi_i_mushy,          master_task)
+      call broadcast_scalar(Tliquidus_max,        master_task)
       call broadcast_scalar(sw_redist,            master_task)
       call broadcast_scalar(sw_frac,              master_task)
       call broadcast_scalar(sw_dtemp,             master_task)
@@ -1269,7 +1275,7 @@
                write(nu_diag,*) subname//' ERROR: invalid seabed stress method'
                write(nu_diag,*) subname//' ERROR: seabed_stress_method should be LKD or probabilistic'
             endif
-            abort_list = trim(abort_list)//":34"
+            abort_list = trim(abort_list)//":48"
          endif
       endif
 
@@ -1350,10 +1356,10 @@
          abort_list = trim(abort_list)//":7"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
+      if (shortwave(1:4) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_pond=T, calc_tsfc=T, invalid shortwave'
-            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
+            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
          abort_list = trim(abort_list)//":8"
       endif
@@ -1466,19 +1472,20 @@
          abort_list = trim(abort_list)//":36"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. tr_aero) then
+      if (shortwave(1:4) /= 'dEdd' .and. tr_aero) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: tr_aero=T, invalid shortwave'
-            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd'
+            write(nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
          abort_list = trim(abort_list)//":10"
       endif
 
-      if (trim(shortwave) /= 'dEdd' .and. snwgrain) then
+      if (shortwave(1:4) /= 'dEdd' .and. snwgrain) then
          if (my_task == master_task) then
-            write (nu_diag,*) 'WARNING: snow grain radius activated but'
-            write (nu_diag,*) 'WARNING: dEdd shortwave is not.'
+            write (nu_diag,*) subname//' ERROR: snow grain radius is activated'
+            write (nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
+         abort_list = trim(abort_list)//":29"
       endif
 
       if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
@@ -1505,13 +1512,13 @@
 
 ! tcraig, is it really OK for users to run inconsistently?
 ! ech: yes, for testing sensitivities.  It's not recommended for science runs
-      if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
+      if (ktherm == 1 .and. trim(tfrz_option(1:11)) /= 'linear_salt') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = linear_salt'
          endif
       endif
-      if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
+      if (ktherm == 2 .and. trim(tfrz_option(1:5)) /= 'mushy') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 2 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
@@ -1764,7 +1771,7 @@
          write(nu_diag,1020) ' nilyr            = ', nilyr, ' : number of ice layers (equal thickness)'
          write(nu_diag,1020) ' nslyr            = ', nslyr, ' : number of snow layers (equal thickness)'
          write(nu_diag,1020) ' nblyr            = ', nblyr, ' : number of bio layers (equal thickness)'
-         if (trim(shortwave) == 'dEdd') &
+         if (shortwave(1:4) == 'dEdd') &
          write(nu_diag,*) 'dEdd interior and sfc scattering layers are used in both ice, snow (unequal)'
          write(nu_diag,1020) ' ncat             = ', ncat,  ' : number of ice categories'
          if (kcatbound == 0) then
@@ -2000,6 +2007,7 @@
                write(nu_diag,1009) ' dSdt_slow_mode   = ', dSdt_slow_mode,' : drainage strength parameter'
                write(nu_diag,1002) ' phi_c_slow_mode  = ', phi_c_slow_mode,' : critical liquid fraction'
                write(nu_diag,1002) ' phi_i_mushy      = ', phi_i_mushy,' : solid fraction at lower boundary'
+               write(nu_diag,1002) ' Tliquidus_max    = ', Tliquidus_max,' : max mush liquidus temperature'
             endif
             write(nu_diag,1002) ' hfrazilmin       = ', hfrazilmin,' : minimum new frazil ice thickness'
 
@@ -2008,19 +2016,24 @@
             write(nu_diag,*) '--------------------------------'
             if (trim(shortwave) == 'dEdd') then
                tmpstr2 = ' : delta-Eddington multiple-scattering method'
+            elseif (trim(shortwave) == 'dEdd_snicar_ad') then
+               tmpstr2 = ' : delta-Eddington multiple-scattering method with SNICAR AD'
             elseif (trim(shortwave) == 'ccsm3') then
                tmpstr2 = ' : NCAR CCSM3 distribution method'
             else
                tmpstr2 = ' : unknown value'
             endif
             write(nu_diag,1030) ' shortwave        = ', trim(shortwave),trim(tmpstr2)
-            if (trim(shortwave) == 'dEdd') then
+            if (shortwave(1:4) == 'dEdd') then
                write(nu_diag,1002) ' R_ice            = ', R_ice,' : tuning parameter for sea ice albedo'
                write(nu_diag,1002) ' R_pnd            = ', R_pnd,' : tuning parameter for ponded sea ice albedo'
                write(nu_diag,1002) ' R_snw            = ', R_snw,' : tuning parameter for snow broadband albedo'
                write(nu_diag,1002) ' dT_mlt           = ', dT_mlt,' : change in temperature per change in snow grain radius'
                write(nu_diag,1002) ' rsnw_mlt         = ', rsnw_mlt,' : maximum melting snow grain radius'
                write(nu_diag,1002) ' kalg             = ', kalg,' : absorption coefficient for algae'
+             if (trim(shortwave) == 'dEdd_snicar_ad') then
+               write(nu_diag,1030) ' snw_ssp_table    = ', trim(snw_ssp_table)
+             endif
             else
                if (trim(albedo_type) == 'ccsm3') then
                   tmpstr2 = ' : NCAR CCSM3 albedos'
@@ -2091,16 +2104,21 @@
          if (trim(saltflux_option) == 'constant') then
             write(nu_diag,1002) ' ice_ref_salinity = ',ice_ref_salinity
          endif
-         if (trim(tfrz_option) == 'minus1p8') then
-            tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
-         elseif (trim(tfrz_option) == 'linear_salt') then
+         if (trim(tfrz_option(1:8)) == 'constant') then
+            tmpstr2 = ' : constant ocean freezing temperature (Tocnfrz)'
+         elseif (trim(tfrz_option(1:8)) == 'minus1p8') then
+            tmpstr2 = ' : constant ocean freezing temperature (-1.8C) (to be deprecated)'
+         elseif (trim(tfrz_option(1:11)) == 'linear_salt') then
             tmpstr2 = ' : linear function of salinity (use with ktherm=1)'
-         elseif (trim(tfrz_option) == 'mushy') then
+         elseif (trim(tfrz_option(1:5)) == 'mushy') then
             tmpstr2 = ' : Assur (1958) as in mushy-layer thermo (ktherm=2)'
          else
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1030) ' tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
+         if (trim(tfrz_option(1:8)) == 'constant') then
+            write(nu_diag,1002) ' Tocnfrz          = ', Tocnfrz
+         endif
          if (update_ocn_f) then
             tmpstr2 = ' : frazil water/salt fluxes included in ocean fluxes'
          else
@@ -2122,6 +2140,7 @@
          endif
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
+         write(nu_diag,1000) ' hi_min           = ', hi_min,' : minimum ice thickness allowed (m)'
          if (calc_dragio) then
             tmpstr2 = ' : dragio computed from iceruf_ocn'
          else
@@ -2191,7 +2210,7 @@
             write(nu_diag,*) 'Using default dEdd melt pond scheme for testing only'
          endif
 
-         if (trim(shortwave) == 'dEdd') then
+         if (shortwave(1:4) == 'dEdd') then
             write(nu_diag,1002) ' hs0              = ', hs0,' : snow depth of transition to bare sea ice'
          endif
 
@@ -2481,7 +2500,7 @@
 
       call icepack_init_parameters(ustar_min_in=ustar_min, albicev_in=albicev, albicei_in=albicei, &
          albsnowv_in=albsnowv, albsnowi_in=albsnowi, natmiter_in=natmiter, atmiter_conv_in=atmiter_conv, &
-         emissivity_in=emissivity, &
+         emissivity_in=emissivity, snw_ssp_table_in=snw_ssp_table, hi_min_in=hi_min, &
          ahmax_in=ahmax, shortwave_in=shortwave, albedo_type_in=albedo_type, R_ice_in=R_ice, R_pnd_in=R_pnd, &
          R_snw_in=R_snw, dT_mlt_in=dT_mlt, rsnw_mlt_in=rsnw_mlt, &
          kstrength_in=kstrength, krdg_partic_in=krdg_partic, krdg_redist_in=krdg_redist, mu_rdg_in=mu_rdg, &
@@ -2490,7 +2509,7 @@
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
-         floediam_in=floediam, hfrazilmin_in=hfrazilmin, &
+         floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
          wave_spec_type_in = wave_spec_type, &
@@ -2805,7 +2824,8 @@
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
-                                   nt_strata     = nt_strata(:,:))
+                                   nt_strata     = nt_strata(:,:),   &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
 
