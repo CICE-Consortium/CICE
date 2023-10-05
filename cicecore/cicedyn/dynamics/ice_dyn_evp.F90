@@ -52,7 +52,6 @@
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
-
       implicit none
       private
 ! all c or cd
@@ -124,7 +123,6 @@
       use ice_grid, only: grid_ice
       use ice_calendar, only: dt_dyn
       use ice_dyn_shared, only: init_dyn_shared
-
 !allocate c and cd grid var. Follow structucre of eap
       integer (int_kind) :: ierr
 
@@ -193,7 +191,6 @@
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
 
       endif
-
       end subroutine init_evp
 
 #ifdef CICE_IN_NEMO
@@ -248,6 +245,7 @@
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
        use ice_dyn_evp1d, only: dyn_evp1d_run
+
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
 
@@ -258,7 +256,6 @@
          iblk           , & ! block index
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          i, j, ij           ! local indices
-
       integer (kind=int_kind), dimension(max_blocks) :: &
          icellT   , & ! no. of cells where iceTmask = .true.
          icellN   , & ! no. of cells where iceNmask = .true.
@@ -789,8 +786,11 @@
          endif
 
       endif
-       
+
+      call ice_timer_start(timer_evp_2d)
+
       if (grid_ice == "B") then
+
 
           if (evp_algorithm == "shared_mem_1d" ) then
 
@@ -798,8 +798,6 @@
                  call abort_ice(trim(subname)//' &
                  & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
              endif
-
-             call ice_timer_start(timer_evp_1d)
 
              call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3 , stressp_4 , &
                                stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
@@ -811,14 +809,8 @@
                                Tbu       , taubxU    , taubyU   , uvel       , & 
                                vvel      , icetmask  , iceUmask)
 
-             call ice_timer_stop(timer_evp_1d)
-
           else ! evp_algorithm == standard_2d (Standard CICE)
-
-             call ice_timer_start(timer_evp_2d)
-
                 do ksub = 1,ndte        ! subcycling
-
                    !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
                    do iblk = 1, nblocks
 
@@ -841,7 +833,7 @@
                                   stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
                                   stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                                   stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                                  strtmp    (:,:,:) )
+                                  strtmp    (:,:,:))
 
                   !-----------------------------------------------------------------
                   ! momentum equation
@@ -889,7 +881,6 @@
                                    rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
           enddo
           !$OMP END PARALLEL DO
-
 
       elseif (grid_ice == "C") then
 
@@ -1268,8 +1259,7 @@
          !$OMP END PARALLEL DO
       endif   ! grid_ice
 
-         call ice_timer_stop(timer_evp_2d)
-
+      call ice_timer_stop(timer_evp_2d)
       if (maskhalo_dyn) then
          call ice_HaloDestroy(halo_info_mask)
       endif
@@ -1490,10 +1480,11 @@
       !-----------------------------------------------------------------
 
       str(:,:,:) = c0
-      
+
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+
 
          !-----------------------------------------------------------------
          ! strain rates
@@ -1538,7 +1529,6 @@
          !-----------------------------------------------------------------
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-
          stressp_1 (i,j) = (stressp_1 (i,j)*(c1-arlx1i*revp) &
                            + arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
          stressp_2 (i,j) = (stressp_2 (i,j)*(c1-arlx1i*revp) &

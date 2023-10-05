@@ -125,7 +125,6 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
     tmp_strength, tmp_DminTarea, tmparea,                                      &
     tmp_dxhy, tmp_dyhx
 
-
 #ifdef _OPENMP_TARGET
   !$omp target teams distribute parallel do
 #else
@@ -158,10 +157,11 @@ subroutine stress (ee, ne, se, lb, ub,                                         &
   !$omp         stressp_1,stressp_2,stressp_3,stressp_4   ,                    &
   !$omp         stressm_1,stressm_2,stressm_3,stressm_4   ,                    &
   !$omp         stress12_1,stress12_2,stress12_3,stress12_4,                   &
-  !$omp         deltaminEVP, arlx1i, denom1, e_factor,                &
-  !$omp         epp2i, capping,                      &
+  !$omp         deltaminEVP, arlx1i, denom1, e_factor,                         &
+  !$omp         epp2i, capping,                                                &
   !$omp         skipme,strength,ee,se,ne,lb,ub,revp)
 #endif
+
   do iw = lb, ub
     if (skipme(iw)) cycle
     ! divergence  =  e_11 + e_22
@@ -562,12 +562,12 @@ subroutine stepu (lb, ub,                                                      &
     ! calculate seabed stress component for outputs
     ! only needed on last iteration.
   enddo
+
 #ifdef _OPENMP_TARGET
   !$omp end target teams distribute parallel do
 #else
   !$omp end parallel do
 #endif
-
 end subroutine stepu
 
 end module bench_v2c

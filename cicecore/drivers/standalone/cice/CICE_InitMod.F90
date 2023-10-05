@@ -140,7 +140,7 @@
       if (kdyn == 1) then
          call init_evp
          if (evp_algorithm == "shared_mem_1d" ) then
-            call dyn_evp1d_init(nx_global+2*nghost, ny_global+2*nghost, nx_block, ny_block, max_blocks, nghost, &
+            call dyn_evp1d_init(nx_global, ny_global, nx_block, ny_block, max_blocks, nghost, &
                                dyT, dxT, uarear, tmask,   &
                                G_HTE, G_HTN)
          endif
@@ -149,11 +149,9 @@
       else if (kdyn == 3) then
          call init_vp           ! define vp dynamics parameters, variables
       endif
-
       call init_coupler_flux    ! initialize fluxes exchanged with coupler
 
       call init_thermo_vertical ! initialize vertical thermodynamics
-
       call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
          call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output

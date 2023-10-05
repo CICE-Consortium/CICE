@@ -8,6 +8,7 @@ module ice_dyn_evp1d
   use ice_kinds_mod
   use ice_constants
   use ice_communicate, only: my_task, master_task
+  use ice_fileunits, only: nu_diag
   !  none so far ...
 
   !- directives ----------------------------------------------------------------
@@ -40,7 +41,7 @@ module ice_dyn_evp1d
     HTE,HTN, HTEm1,HTNm1
   integer(kind=int_kind), allocatable, dimension(:) :: ee,ne,se,nw,sw,sse ! arrays for neighbour points
   integer(kind=int_kind), allocatable, dimension(:) ::                         &
-    indxti, indxtj, indxtij, indxui, indxuj
+    indxti, indxtj, indxTij
 ! icepack - ocean density
 
     real(kind=dbl_kind), parameter :: rhow      = 1026.0_dbl_kind ! density of seawater (kg/m^3)
@@ -53,6 +54,14 @@ module ice_dyn_evp1d
     stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4,      &
     str1, str2, str3, str4, str5, str6, str7, str8, Tbu, Cb
 
+! halo updates
+  integer (kind=int_kind),   allocatable, dimension(:) :: halo_parent_outer_east , halo_parent_outer_west , &
+                                                          halo_parent_outer_north, halo_parent_outer_south, &
+                                                          halo_inner_east        , halo_inner_west        , &
+                                                          halo_inner_north       , halo_inner_south          
+ ! number of halo points (same for inner and outer)
+ integer (kind=int_kind)  :: nInner_halo_east, nInner_halo_west, nInner_halo_north, nInner_halo_south
+  
   contains
 
   !=============================================================================
@@ -61,13 +70,13 @@ module ice_dyn_evp1d
   !=============================================================================
   ! This follows CICE naming
   ! In addition all water points are assumed to be active and allocated thereafter.
-  subroutine dyn_evp1d_init(cnx, cny, cnx_block, cny_block, cmax_block, cnghost, &
+  subroutine dyn_evp1d_init(nx_global, ny_global, cnx_block, cny_block, cmax_block, cnghost, &
                             L_dyT, L_dxT, L_uarear, L_tmask,                     &
                             G_HTE, G_HTN)
 ! Note that TMask is ocean/land
     implicit none
 
-    integer(kind=int_kind), intent(in) :: cnx, cny, cnx_block, cny_block, cmax_block, cnghost
+    integer(kind=int_kind), intent(in) :: nx_global, ny_global, cnx_block, cny_block, cmax_block, cnghost
     real(kind=dbl_kind), dimension(:,:,:), intent(in) :: L_dyT, L_dxT, L_uarear
     logical(kind=log_kind), dimension(:,:,:), intent(in) :: L_tmask
     real(kind=dbl_kind), dimension(:,:)  , intent(in) :: G_HTE,G_HTN
@@ -77,11 +86,12 @@ module ice_dyn_evp1d
     character(9), parameter :: logfilename='evp1d.log'
     call evp_1d_nml_reader()
 ! save as module vars
+    call flush(nu_diag)
     nx_block=cnx_block
     ny_block=cny_block
     nghost=cnghost
-    nx=cnx+2*nghost
-    ny=cny+2*nghost
+    nx=nx_global+2*nghost
+    ny=ny_global+2*nghost
     max_block=cmax_block
     allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny),stat=ierr)
     if (ierr/=0) stop 'Error allocating'
@@ -95,8 +105,9 @@ module ice_dyn_evp1d
        call calc_2d_indices_init(nActive, G_Tmask)
        call calc_navel(nActive, navel)
        call evp1d_alloc_static_navel(navel)
-       call numainit(1,nActive,navel) 
+       call numainit(1,nActive,navel)
        call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
+       call evp1d_alloc_static_halo()
     endif
   end subroutine dyn_evp1d_init
 
@@ -109,7 +120,7 @@ module ice_dyn_evp1d
                            L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU  ,     &
                            L_umassdti  , L_fmU       , L_strintxU , L_strintyU ,     &
                            L_Tbu       , L_taubxU    , L_taubyU   ,  L_uvel    ,     &
-                           L_vvel      , L_icetmask , L_iceUmask                     )
+                           L_vvel      , L_icetmask , L_iceUmask                 )
     use ice_dyn_shared, only : ndte
 ! bench should be renamed to something better e.g evp1d_func
   use bench_v2c, only : stress, stepu
@@ -172,6 +183,9 @@ module ice_dyn_evp1d
                               G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
                               G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
                               G_Tbu       , G_uvel     , G_vvel)
+
+       call calc_halo_parent(Nactive,navel)
+
 ! map from cpu to gpu (to) and back.
 ! This could be optimized considering which variables change from time step to time step 
 ! and which are constant.
@@ -190,6 +204,14 @@ module ice_dyn_evp1d
   !$omp target update to(arlx1i,denom1,capping,deltaminEVP,e_factor,epp2i,brlx)
 #endif
     do ksub = 1,ndte        ! subcycling
+       str1(:)=c0
+       str2(:)=c0
+       str3(:)=c0
+       str4(:)=c0
+       str5(:)=c0
+       str6(:)=c0
+       str7(:)=c0
+       str8(:)=c0
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
                    HTE, HTN, HTEm1, HTNm1,                                       &
@@ -203,14 +225,13 @@ module ice_dyn_evp1d
                   strintxU, strintyU, uvel_init, vvel_init, uvel, vvel,        &
                   str1, str2, str3, str4, str5, str6, str7, str8,            &
                    nw, sw, sse, skipUcell, Tbu, Cb)
-
+       call evp1d_halo_update()
     enddo
 #ifdef _OPENMP_TARGET
   !$omp end target data
 #endif
-
 ! Map results back to 2d
-    call convert_1d_2d_dyn(nActive, &
+    call convert_1d_2d_dyn(nActive, navel, &
                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
                            G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
@@ -370,13 +391,30 @@ module ice_dyn_evp1d
     integer(kind=int_kind), intent(in) :: navel0
     integer(kind=int_kind) :: ierr
 
-    allocate(str1(1:navel0+buf1d), str2(1:navel0+buf1d), str3(1:navel0+buf1d), &
-             str4(1:navel0+buf1d), str5(1:navel0+buf1d), str6(1:navel0+buf1d), &
-             str7(1:navel0+buf1d), str8(1:navel0+buf1d),                       &
-             indxtij(1:navel0+buf1d),uvel(1:navel0+buf1d), vvel(1:navel0+buf1d),                       &
+    allocate(str1(1:navel0+buf1d), str2(1:navel0+buf1d), str3(1:navel0+buf1d),  &
+             str4(1:navel0+buf1d), str5(1:navel0+buf1d), str6(1:navel0+buf1d),  &
+             str7(1:navel0+buf1d), str8(1:navel0+buf1d),                        &
+             indxTij(1:navel0+buf1d),uvel(1:navel0+buf1d), vvel(1:navel0+buf1d),&
              stat=ierr)
     if (ierr/=0) stop 'Error allocating navel'
   end subroutine evp1d_alloc_static_navel
+
+  subroutine evp1d_alloc_static_halo()
+  implicit none
+  integer(kind=int_kind) :: ierr
+! allocation of arrays to use for halo
+! These are the size of one of the dimensions of the global grid but they could be 
+! reduced in size as only the number of active U points are used.
+! Points to send data from are in the "inner" vectors. Data in outer points are named "outer"
+  allocate(halo_inner_east (ny), halo_inner_west (ny), &
+           halo_inner_north(nx), halo_inner_south(nx), stat=ierr)
+  if (ierr/=0) stop 'Error allocating halo inner'
+
+  allocate(halo_parent_outer_east (ny), halo_parent_outer_west (ny), &
+           halo_parent_outer_north(nx), halo_parent_outer_south(nx), stat=ierr)
+  if (ierr/=0) stop 'Error allocating halo outer'
+
+  end subroutine evp1d_alloc_static_halo
 
   subroutine evp1d_dealloc()
           ! FIXME
@@ -400,16 +438,16 @@ module ice_dyn_evp1d
     integer(kind=int_kind)              :: i,j
     na0=0
     if (present(Umask)) then
-       do i=1,nx
-         do j=1,ny
+       do i=1+nghost,nx
+         do j=1+nghost,ny
            if ((Tmask(i,j)) .or. (Umask(i,j))) then
              na0=na0+1
            endif
          enddo
        enddo
     else
-       do i=1,nx
-         do j=1,ny
+       do i=1+nghost,nx
+         do j=1+nghost,ny
            if (Tmask(i,j)) then
              na0=na0+1
            endif
@@ -436,6 +474,8 @@ module ice_dyn_evp1d
       endif
       if (.not. (iceTmask(i,j))) skipTcell(iw)=.true.
       if (.not. (iceUmask(i,j))) skipUcell(iw)=.true.
+      if (i == nx)  skipUcell(iw)=.true.
+      if (j == ny)  skipUcell(iw)=.true.
    enddo
     write(nu_diag,*) 'number of Active points', niw
   end subroutine set_skipMe
@@ -454,7 +494,6 @@ module ice_dyn_evp1d
       integer(kind=int_kind) :: i, j, Nmaskt
 
       character(len=*), parameter :: subname = '(calc_2d_indices)'
-
       indxti(:) = 0
       indxtj(:) = 0
       Nmaskt = 0
@@ -468,7 +507,6 @@ module ice_dyn_evp1d
             end if
          end do
       end do
-
    end subroutine calc_2d_indices_init
 
   subroutine union(x, y, xdim, ydim, xy, nxy)
@@ -707,6 +745,7 @@ end subroutine scatter_dyn
          Isw(iw)  = i + 1 + (j - 0) * nx  ! (+1,+1)
          Isse(iw) = i     + (j - 0) * nx  ! ( 0,+1)
       end do
+
       ! find number of points needed for finite difference calculations
       call union(Iin,   Iee,  na0, na0, util1,i    )
       call union(util1, Ine,  i,  na0, util2, j    )
@@ -716,13 +755,13 @@ end subroutine scatter_dyn
       call union(util1, Isse, i,  na0, util2, navel)
       ! index vector with sorted target points
       do iw = 1, na0
-         indxtij(iw) = Iin(iw)
+         indxTij(iw) = Iin(iw)
       end do
       ! sorted additional points
       call setdiff(util2, Iin, navel, na0, util1, j)
       do iw = na0 + 1, navel
       ! FIXME = util2? or maybe just na0+1
-         indxtij(iw) = util1(iw - na0)
+         indxTij(iw) = util1(iw - na0)
       end do
       ! indices for additional points needed for uvel and vvel
       call findXinY(Iee,  indxTij, na0, navel, ee)
@@ -736,7 +775,7 @@ end subroutine scatter_dyn
 !tar      call domp_get_domain(1, na0, lo, up)
       lo=1
       up=na0
-      do iw = lo, up
+      do iw = 1, na0
          ! get 2D indices
          i = indxti(iw)
          j = indxtj(iw)
@@ -778,7 +817,7 @@ end subroutine scatter_dyn
 
       lo=1
       up=na0
-      do iw = lo, up
+      do iw = 1, na0
          ! get 2D indices
          i = indxti(iw)
          j = indxtj(iw)
@@ -812,12 +851,19 @@ end subroutine scatter_dyn
          Cb(iw)         = c0 !G_Cb(i, j)
          uvel(iw)       = G_uvel(i,j)
          vvel(iw)       = G_vvel(i,j)
+         uvel_init(iw)       = G_uvel(i,j)
+         vvel_init(iw)       = G_vvel(i,j)
      end do
-         uvel(na0+1:navel)=c0
-         vvel(na0+1:navel)=c0
+! Halos can potentially have values of u and v
+     do iw=na0+1,navel
+         j = int((indxTij(iw) - 1) / (nx)) + 1
+         i =      indxTij(iw) - (j - 1) * nx
+         uvel(iw)=G_uvel(i,j)
+         vvel(iw)=G_vvel(i,j)
+     end do
    end subroutine convert_2d_1d_dyn
 
-subroutine convert_1d_2d_dyn(na0, &
+subroutine convert_1d_2d_dyn(na0, navel0, &
               G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,  &
               G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,  &
               G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4, &
@@ -830,7 +876,7 @@ subroutine convert_1d_2d_dyn(na0, &
 
       implicit none
 
-      integer(kind=int_kind), intent(in) ::  na0
+      integer(kind=int_kind), intent(in) ::  na0, navel0
       real(kind=dbl_kind), dimension(:, :), intent(inout) :: &
                             G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,  &
                             G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,  &
@@ -870,6 +916,13 @@ subroutine convert_1d_2d_dyn(na0, &
          G_uvel(i,j)       = uvel(iw)
          G_vvel(i,j)       = vvel(iw)
      end do
+     
+     do iw=na0+1,navel0
+        j = int((indxTij(iw) - 1) / (nx)) + 1
+        i = indxTij(iw) - (j - 1) * nx
+        G_uvel(i,j)       = uvel(iw)
+        G_vvel(i,j)       = vvel(iw)
+     end do       
    end subroutine convert_1d_2d_dyn
 
    !=======================================================================
@@ -1009,7 +1062,7 @@ subroutine convert_1d_2d_dyn(na0, &
       call union(util1, Inw,  i,  na0, util2, j    )
       call union(util2, Isw,  j,  na0, util1, i    )
       call union(util1, Isse, i,  na0, util2, navel0)
-
+       
    end subroutine calc_navel
 
   subroutine numainit(lo,up,uu)
@@ -1068,19 +1121,187 @@ subroutine convert_1d_2d_dyn(na0, &
     enddo
 !$omp end parallel do
 !$omp parallel do schedule(runtime) private(iw)
-      do iw = lo,uu
-         uvel(iw)=c0
-         vvel(iw)=c0
-         str1(iw)=c0
-         str2(iw)=c0
-         str3(iw)=c0
-         str4(iw)=c0
-         str5(iw)=c0
-         str6(iw)=c0
-         str7(iw)=c0
-         str8(iw)=c0
-      enddo
+    do iw = lo,uu
+       uvel(iw)=c0
+       vvel(iw)=c0
+       str1(iw)=c0
+       str2(iw)=c0
+       str3(iw)=c0
+       str4(iw)=c0
+       str5(iw)=c0
+       str6(iw)=c0
+       str7(iw)=c0
+       str8(iw)=c0
+    enddo
 !$omp end parallel do
   end subroutine numainit
+
+   subroutine evp1d_halo_update()
+
+   !- modules -----------------------------------------------------------------
+     implicit none
+     integer(kind=int_kind) :: iw,i,j
+
+     character(len=*), parameter :: subname = '(evp1d_halo_update)'
+
+!TILL    !$omp parallel do schedule(runtime) private(iw)
+! Eastern halo (nx)
+     do iw = 1, ninner_halo_east
+         j = int((indxTij(halo_inner_east(iw)) - 1) / (nx)) + 1
+         i =      indxTij(halo_inner_east(iw)) - (j - 1) * nx
+         j = int((indxTij(halo_parent_outer_west(iw)) - 1) / (nx)) + 1
+         i =      indxTij(halo_parent_outer_west(iw)) - (j - 1) * nx
+     enddo
+     do iw = 1, ninner_halo_west
+         j = int((indxTij(halo_inner_west(iw)) - 1) / (nx)) + 1
+         i =      indxTij(halo_inner_west(iw)) - (j - 1) * nx
+         j = int((indxTij(halo_parent_outer_east(iw)) - 1) / (nx)) + 1
+         i =      indxTij(halo_parent_outer_east(iw)) - (j - 1) * nx
+     enddo
+     do iw = 1, ninner_halo_east
+        uvel(halo_parent_outer_west(iw)) = uvel(halo_inner_east(iw))
+        vvel(halo_parent_outer_west(iw)) = vvel(halo_inner_east(iw))
+     end do
+! western halo
+     do iw = 1, ninner_halo_west
+        uvel(halo_parent_outer_east(iw)) = uvel(halo_inner_west(iw))
+        vvel(halo_parent_outer_east(iw)) = vvel(halo_inner_west(iw))
+     end do
+   end subroutine evp1d_halo_update
+!=======================================================================
+
+   subroutine calc_halo_parent(na0,navel0)
+! Till Rasmussen, DMI 2023
+!splits the global domain in east and west boundary and find the inner (within) the domain and the outer (outside the domain)
+! Implementation for circular boundaries. This means that mathes between the opposite directions must be found
+! E.g. inner_west and outer_east
+      use ice_domain, only: ew_boundary_type, ns_boundary_type
+      use ice_exit, only: abort_ice
+      implicit none
+
+      integer(kind=int_kind), intent(in) :: na0, navel0
+      ! local variables
+
+! Indexes, Directions are east, weast, north and south
+! This is done to reduce the search windows.
+! FIXME install North and South
+! Iw runs from 1 to navel and the one to keep in the end
+! Iw_inner_{direction} contains the indexes for 
+      integer(kind=int_kind) :: iw, iw_inner_east, iw_inner_west, iw_outer_east, iw_outer_west, ifind
+      integer(kind=int_kind) :: i, j !  2d index.
+      integer(kind=int_kind), dimension(ny) :: halo_outer_east, halo_outer_west, & 
+                                               ind_inner_west, ind_inner_east
+
+      character(len=*), parameter :: subname = '(calc_halo_parent)'
+
+      !-----------------------------------------------------------------
+      ! Indices for halo update:
+      !     0: no halo point
+      !    >0: index for halo point parent, related to indij vector
+      !
+      ! TODO: Implement for nghost > 1
+      ! TODO: Implement for tripole grids
+      !-----------------------------------------------------------------
+      halo_inner_west(:) = 0
+      halo_inner_east(:) = 0
+      halo_outer_west(:) = 0
+      halo_outer_east(:) = 0
+      ind_inner_west(:)  = 0
+      ind_inner_east(:)  = 0
+      iw_inner_east=0
+      iw_inner_west=0
+      iw_outer_east=0
+      iw_outer_west=0
+!TILL SHOULD CHANGE TO 1D
+      do iw = 1, na0
+         j = int((indxTij(iw) - 1) / (nx)) + 1
+         i = indxTij(iw) - (j - 1) * nx
+         ! get 2D indices
+!         i = indxTi(iw)
+!         j = indxTj(iw)
+! INNER EAST
+         if ((.not. skipUcell(iw)) .and. (i==nx-nghost)) then
+             iw_inner_east=iw_inner_east+1
+             select case (trim(ew_boundary_type))
+               case ('cyclic')
+                    ifind = 1
+               case ('open')
+                    ifind = nx
+               case ('closed')
+                    ifind = 0
+             case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown north-south boundary type')
+            end select
+            ind_inner_east(iw_inner_east) = ifind     + (j - 1) * nx
+            halo_inner_east(iw_inner_east) = iw
+         endif
+! Inner West
+         if ((.not. skipUcell(iw)) .and. (i==2)) then
+             iw_inner_west=iw_inner_west+1
+             select case (trim(ew_boundary_type))
+               case ('cyclic')
+                    ifind = nx
+               case ('open')
+                    ifind = 1
+               case ('closed')
+                    ifind = 0
+               case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown north-south boundary type')
+             end select
+             ind_inner_west(iw_inner_west) = ifind     + (j - 1) * nx
+             halo_inner_west(iw_inner_west) = iw!ifind     + (j - 1) * nx
+         endif
+! outer halo WEST
+          if (i == 1) then
+             iw_outer_west=iw_outer_west+1
+             halo_outer_west(iw_outer_west)= iw
+          endif
+! Outer halo East
+          if (i == nx ) then
+             iw_outer_east=iw_outer_east+1
+             halo_outer_east(iw_outer_east)=iw
+          endif
+      end do
+! outer halo also needs points that are not active
+      do iw = na0+1, navel0
+         j = int((indxTij(iw) - 1) / (nx)) + 1
+         i = indxTij(iw) - (j - 1) * nx
+! outer halo west
+          if (i == 1) then
+             iw_outer_west=iw_outer_west+1
+             halo_outer_west(iw_outer_west)= iw
+          endif
+! outer halo east
+          if (i == nx ) then
+             iw_outer_east=iw_outer_east+1
+             halo_outer_east(iw_outer_east)=iw
+          endif
+      end do
+! Search is now reduced to a search between two reduced vectors for each boundary
+! This runs through each boundary and matches
+! number of active points for halo east and west (count of active u cells within the domain.
+      nInner_halo_east=iw_inner_east
+      nInner_halo_west=iw_inner_west
+      halo_parent_outer_east(:)=0
+      halo_parent_outer_west(:)=0
+! reduce outer array to only contain the ones to copy.
+      do i=1,iw_inner_west
+          do j=1,iw_outer_east
+             if (ind_inner_west(i) == indxTij(halo_outer_east(j))) then
+                halo_parent_outer_east(i)=halo_outer_east(j)
+             endif
+          end do
+      end do
+
+      do i=1,iw_inner_east
+          do j=1,iw_outer_west
+             if (ind_inner_east(i) == indxTij(halo_outer_west(j))) then
+                halo_parent_outer_west(i)=halo_outer_west(j)
+             endif
+          end do
+      end do
+   end subroutine calc_halo_parent
 end module ice_dyn_evp1d
 
