@@ -498,7 +498,7 @@
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
       atm_data_dir    = ' '
-      atm_data_date   = 'undefined' ! date atm_data_file was generated. 
+      atm_data_date   = '_undef'  ! date atm_data_file was generated. 
       rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
       calc_strair     = .true.    ! calculate wind stress
       formdrag        = .false.   ! calculate form drag
@@ -1060,7 +1060,7 @@
       call broadcast_scalar(atm_data_format,      master_task)
       call broadcast_scalar(atm_data_type,        master_task)
       call broadcast_scalar(atm_data_dir,         master_task)
-      call broadcast_scalar(atm_data_date,           master_task)
+      call broadcast_scalar(atm_data_date,        master_task)
       call broadcast_scalar(rotate_wind,          master_task)
       call broadcast_scalar(calc_strair,          master_task)
       call broadcast_scalar(calc_Tsfc,            master_task)
