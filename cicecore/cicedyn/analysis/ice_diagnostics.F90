@@ -123,7 +123,7 @@
       use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
           fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
           fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, &
-          update_ocn_f, Tair, Qa, fsw, fcondtop, meltt, meltb, meltl, snoice, &
+          update_ocn_f, cpl_frazil, Tair, Qa, fsw, fcondtop, meltt, meltb, meltl, snoice, &
           dsnow, congel, sst, sss, Tf, fhocn, &
           swvdr, swvdf, swidr, swidf, &
           alvdr_init, alvdf_init, alidr_init, alidf_init
@@ -722,8 +722,9 @@
          ! frazil ice growth !! should not be multiplied by aice
          ! m/step->kg/m^2/s
          work1(:,:,:) = frazil(:,:,:)*rhoi/dt
-         if (ktherm == 2 .and. .not.update_ocn_f) &
+         if (.not. update_ocn_f .and. ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
             work1(:,:,:) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
+         endif
          frzn = c0
          frzs = c0
          frzn = global_sum(work1, distrb_info, &

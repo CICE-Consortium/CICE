@@ -2134,11 +2134,10 @@
           fcondtop, fcondbot, fsurfn, fcondtopn, flatn, fsensn, albcnt, snwcnt, &
           stressp_1, stressm_1, stress12_1, &
           stresspT, stressmT, stress12T, &
-          stressp_2, &
-          stressp_3, &
-          stressp_4, sig1, sig2, sigP, &
+          stressp_2, stressp_3, stressp_4, sig1, sig2, sigP, &
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
-          snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, update_ocn_f
+          snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, update_ocn_f, &
+          cpl_frazil
       use ice_arrays_column, only: snowfracn, Cdn_atm
       use ice_history_shared ! almost everything
       use ice_history_write, only: ice_write_hist
@@ -3238,11 +3237,11 @@
               if (aice(i,j,iblk) > puny) then
 !                Add in frazil flux
                  if (.not. update_ocn_f) then
-                 if ( ktherm == 2) then
-                    dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
-                 else
-                    dfresh = -rhoi*frazil(i,j,iblk)/dt
-                 endif
+                    if ( ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
+                       dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
+                    else
+                       dfresh = -rhoi*frazil(i,j,iblk)/dt
+                    endif
                  endif
                  if (saltflux_option == 'prognostic') then
                     sicen = c0
@@ -3267,13 +3266,12 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
 !                Add in frazil flux
-!                Add in frazil flux
                  if (.not. update_ocn_f) then
-                 if ( ktherm == 2) then
-                    dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
-                 else
-                    dfresh = -rhoi*frazil(i,j,iblk)/dt
-                 endif
+                    if ( ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
+                       dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
+                    else
+                       dfresh = -rhoi*frazil(i,j,iblk)/dt
+                    endif
                  endif
                  worka(i,j) = aice(i,j,iblk)*(fresh(i,j,iblk)+dfresh)
               endif

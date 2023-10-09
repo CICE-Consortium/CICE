@@ -1012,6 +1012,14 @@ setenv ICE_QUEUE    ${queue}
 setenv ICE_COVERAGE ${coverageflag}
 EOF1
 
+    # for tests and suites set SNICARHC default is false to speed up build
+    # will be set to true if SNICARHC is needed
+    if (${docase} == 0) then
+       cat >> ${fsmods} << EOF1
+setenv ICE_SNICARHC false
+EOF1
+    endif
+
     if (${sets} != "") then
       set setsx = `echo ${sets} | sed 's/,/ /g'`
       set setsxorig = "$setsx"
