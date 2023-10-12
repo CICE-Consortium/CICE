@@ -791,7 +791,6 @@
 
       if (grid_ice == "B") then
 
-
           if (evp_algorithm == "shared_mem_1d" ) then
 
              if (trim(grid_type) == 'tripole') then
@@ -799,14 +798,14 @@
                  & Kernel not tested on tripole grid. Set evp_algorithm=standard_2d')
              endif
 
-             call dyn_evp1d_run(stressp_1 , stressp_2 , stressp_3 , stressp_4 , &
+             call dyn_evp1d_run(stressp_1 , stressp_2, stressp_3 , stressp_4 , &
                                stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
                                stress12_1, stress12_2, stress12_3, stress12_4, &
                                strength  ,                                     &
-                               cdn_ocnU  , aiu       , uocn     , vocn       , &
-                               waterxU   , wateryU   , forcexU  , forceyU    , &
-                               umassdti  , fmU       , strintxU , strintyU   , &
-                               Tbu       , taubxU    , taubyU   , uvel       , & 
+                               cdn_ocnU  , aiu       , uocnU     , vocnU     , &
+                               waterxU   , wateryU   , forcexU   , forceyU   , &
+                               umassdti  , fmU       , strintxU  , strintyU  , &
+                               Tbu       , taubxU    , taubyU    , uvel      , & 
                                vvel      , icetmask  , iceUmask)
 
           else ! evp_algorithm == standard_2d (Standard CICE)
@@ -838,6 +837,7 @@
                   !-----------------------------------------------------------------
                   ! momentum equation
                   !-----------------------------------------------------------------
+
                      call stepu (nx_block           , ny_block          , &
                                  icellU       (iblk), Cdn_ocnU(:,:,iblk), &
                                  indxUi     (:,iblk), indxUj    (:,iblk), &

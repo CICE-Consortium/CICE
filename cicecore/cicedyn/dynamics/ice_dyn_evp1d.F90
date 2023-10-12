@@ -60,7 +60,7 @@ module ice_dyn_evp1d
                                                           halo_inner_east        , halo_inner_west        , &
                                                           halo_inner_north       , halo_inner_south          
  ! number of halo points (same for inner and outer)
- integer (kind=int_kind)  :: nInner_halo_east, nInner_halo_west, nInner_halo_north, nInner_halo_south
+ integer (kind=int_kind)  :: iw_inner_east, iw_inner_west, iw_inner_north, iw_inner_south
   
   contains
 
@@ -851,8 +851,8 @@ end subroutine scatter_dyn
          Cb(iw)         = c0 !G_Cb(i, j)
          uvel(iw)       = G_uvel(i,j)
          vvel(iw)       = G_vvel(i,j)
-         uvel_init(iw)       = G_uvel(i,j)
-         vvel_init(iw)       = G_vvel(i,j)
+         uvel_init(iw)  = G_uvel(i,j)
+         vvel_init(iw)  = G_vvel(i,j)
      end do
 ! Halos can potentially have values of u and v
      do iw=na0+1,navel
@@ -1140,33 +1140,30 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
 
    !- modules -----------------------------------------------------------------
      implicit none
-     integer(kind=int_kind) :: iw,i,j
+     integer(kind=int_kind) :: iw
 
      character(len=*), parameter :: subname = '(evp1d_halo_update)'
 
 !TILL    !$omp parallel do schedule(runtime) private(iw)
-! Eastern halo (nx)
-     do iw = 1, ninner_halo_east
-         j = int((indxTij(halo_inner_east(iw)) - 1) / (nx)) + 1
-         i =      indxTij(halo_inner_east(iw)) - (j - 1) * nx
-         j = int((indxTij(halo_parent_outer_west(iw)) - 1) / (nx)) + 1
-         i =      indxTij(halo_parent_outer_west(iw)) - (j - 1) * nx
-     enddo
-     do iw = 1, ninner_halo_west
-         j = int((indxTij(halo_inner_west(iw)) - 1) / (nx)) + 1
-         i =      indxTij(halo_inner_west(iw)) - (j - 1) * nx
-         j = int((indxTij(halo_parent_outer_east(iw)) - 1) / (nx)) + 1
-         i =      indxTij(halo_parent_outer_east(iw)) - (j - 1) * nx
-     enddo
-     do iw = 1, ninner_halo_east
-        uvel(halo_parent_outer_west(iw)) = uvel(halo_inner_east(iw))
-        vvel(halo_parent_outer_west(iw)) = vvel(halo_inner_east(iw))
+     do iw = 1, iw_inner_east
+        uvel(halo_parent_outer_east(iw)) = uvel(halo_inner_east(iw))
+        vvel(halo_parent_outer_east(iw)) = vvel(halo_inner_east(iw))
      end do
 ! western halo
-     do iw = 1, ninner_halo_west
-        uvel(halo_parent_outer_east(iw)) = uvel(halo_inner_west(iw))
-        vvel(halo_parent_outer_east(iw)) = vvel(halo_inner_west(iw))
+     do iw = 1, iw_inner_west
+        uvel(halo_parent_outer_west(iw)) = uvel(halo_inner_west(iw))
+        vvel(halo_parent_outer_west(iw)) = vvel(halo_inner_west(iw))
      end do
+     do iw = 1, iw_inner_south
+        uvel(halo_parent_outer_south(iw)) = uvel(halo_inner_south(iw))
+        vvel(halo_parent_outer_south(iw)) = vvel(halo_inner_south(iw))
+     end do
+! western halo
+     do iw = 1, iw_inner_north
+        uvel(halo_parent_outer_north(iw)) = uvel(halo_inner_north(iw))
+        vvel(halo_parent_outer_north(iw)) = vvel(halo_inner_north(iw))
+     end do
+
    end subroutine evp1d_halo_update
 !=======================================================================
 
@@ -1187,10 +1184,13 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
 ! FIXME install North and South
 ! Iw runs from 1 to navel and the one to keep in the end
 ! Iw_inner_{direction} contains the indexes for 
-      integer(kind=int_kind) :: iw, iw_inner_east, iw_inner_west, iw_outer_east, iw_outer_west, ifind
-      integer(kind=int_kind) :: i, j !  2d index.
-      integer(kind=int_kind), dimension(ny) :: halo_outer_east, halo_outer_west, & 
-                                               ind_inner_west, ind_inner_east
+      integer(kind=int_kind) :: iw, iw_outer_east, iw_outer_west, iw_outer_south, iw_outer_north
+      integer(kind=int_kind) :: i, j, ifind, jfind !  2d index. ifind and jfind are points on the boundary
+      integer(kind=int_kind), dimension(ny) :: halo_outer_east, halo_outer_west, &
+                                               ind_inner_west, ind_inner_east   
+
+      integer(kind=int_kind), dimension(nx) :: halo_outer_south, halo_outer_north, &
+                                               ind_inner_south, ind_inner_north
 
       character(len=*), parameter :: subname = '(calc_halo_parent)'
 
@@ -1204,14 +1204,33 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
       !-----------------------------------------------------------------
       halo_inner_west(:) = 0
       halo_inner_east(:) = 0
+      halo_inner_south(:) = 0
+      halo_inner_north(:) = 0
+
       halo_outer_west(:) = 0
       halo_outer_east(:) = 0
+      halo_outer_south(:) = 0
+      halo_outer_north(:) = 0
+
       ind_inner_west(:)  = 0
       ind_inner_east(:)  = 0
+      ind_inner_south(:)  = 0
+      ind_inner_north(:)  = 0
+
+      halo_parent_outer_east(:)=0
+      halo_parent_outer_west(:)=0
+      halo_parent_outer_north(:)=0
+      halo_parent_outer_south(:)=0
+! Index inner boundary
+      iw_inner_north=0
+      iw_inner_south=0
       iw_inner_east=0
       iw_inner_west=0
+! Index outer boundary
       iw_outer_east=0
       iw_outer_west=0
+      iw_outer_north=0
+      iw_outer_south=0
 !TILL SHOULD CHANGE TO 1D
       do iw = 1, na0
          j = int((indxTij(iw) - 1) / (nx)) + 1
@@ -1219,6 +1238,10 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
          ! get 2D indices
 !         i = indxTi(iw)
 !         j = indxTj(iw)
+! All four boundaries find points internally that are within the domain and next to the boundary
+! This can in principle be moved to previos loops that connects i and j to 1d index.
+! ifind is i value on the halo to find.
+! Some parts assume nghost = 1
 ! INNER EAST
          if ((.not. skipUcell(iw)) .and. (i==nx-nghost)) then
              iw_inner_east=iw_inner_east+1
@@ -1231,13 +1254,13 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
                     ifind = 0
              case default
                  call abort_ice( &
-                  subname//' ERROR: unknown north-south boundary type')
+                  subname//' ERROR: unknown east-west boundary type')
             end select
             ind_inner_east(iw_inner_east) = ifind     + (j - 1) * nx
             halo_inner_east(iw_inner_east) = iw
          endif
 ! Inner West
-         if ((.not. skipUcell(iw)) .and. (i==2)) then
+         if ((.not. skipUcell(iw)) .and. (i==1+nghost)) then
              iw_inner_west=iw_inner_west+1
              select case (trim(ew_boundary_type))
                case ('cyclic')
@@ -1248,20 +1271,65 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
                     ifind = 0
                case default
                  call abort_ice( &
-                  subname//' ERROR: unknown north-south boundary type')
+                  subname//' ERROR: unknown east-west boundary type')
              end select
              ind_inner_west(iw_inner_west) = ifind     + (j - 1) * nx
-             halo_inner_west(iw_inner_west) = iw!ifind     + (j - 1) * nx
+             halo_inner_west(iw_inner_west) = iw
          endif
-! outer halo WEST
+! Inner south
+         if ((.not. skipUcell(iw)) .and. (j==1+nghost)) then
+             iw_inner_south=iw_inner_south+1
+             select case (trim(ns_boundary_type))
+               case ('cyclic')
+                    jfind = ny
+               case ('open')
+                    jfind = 1
+               case ('closed')
+                    jfind = 0
+               case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown north-south boundary type')
+             end select
+             ind_inner_south(iw_inner_south) = i     + (jfind - 1) * nx
+             halo_inner_south(iw_inner_south) = iw
+         endif
+!Inner north
+         if ((.not. skipUcell(iw)) .and. (j==ny-nghost)) then
+             iw_inner_north=iw_inner_north+1
+             select case (trim(ns_boundary_type))
+               case ('cyclic')
+                    jfind = 1
+               case ('open')
+                    jfind = ny
+               case ('closed')
+                    ifind = 0
+               case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown north-south boundary type')
+             end select
+             ind_inner_north(iw_inner_north) = i     + (jfind - 1) * nx
+             halo_inner_north(iw_inner_north) = iw
+         endif
+
+! Finds all halos points on western halo WEST
           if (i == 1) then
              iw_outer_west=iw_outer_west+1
              halo_outer_west(iw_outer_west)= iw
           endif
-! Outer halo East
+! Simiilar on East
           if (i == nx ) then
              iw_outer_east=iw_outer_east+1
              halo_outer_east(iw_outer_east)=iw
+          endif
+! Finds all halos points on western halo WEST
+          if (j == 1) then
+             iw_outer_south=iw_outer_south+1
+             halo_outer_south(iw_outer_south)= iw
+          endif
+! Simiilar on East
+          if (j == ny ) then
+             iw_outer_north=iw_outer_north+1
+             halo_outer_north(iw_outer_north)=iw
           endif
       end do
 ! outer halo also needs points that are not active
@@ -1278,30 +1346,111 @@ subroutine convert_1d_2d_dyn(na0, navel0, &
              iw_outer_east=iw_outer_east+1
              halo_outer_east(iw_outer_east)=iw
           endif
+! outer halo south
+          if (j == 1) then
+             iw_outer_south=iw_outer_south+1
+             halo_outer_south(iw_outer_south)= iw
+          endif
+! outer halo north
+          if (j == ny ) then
+             iw_outer_north=iw_outer_north+1
+             halo_outer_north(iw_outer_north)=iw
+          endif
       end do
 ! Search is now reduced to a search between two reduced vectors for each boundary
 ! This runs through each boundary and matches
 ! number of active points for halo east and west (count of active u cells within the domain.
-      nInner_halo_east=iw_inner_east
-      nInner_halo_west=iw_inner_west
-      halo_parent_outer_east(:)=0
-      halo_parent_outer_west(:)=0
-! reduce outer array to only contain the ones to copy.
-      do i=1,iw_inner_west
-          do j=1,iw_outer_east
-             if (ind_inner_west(i) == indxTij(halo_outer_east(j))) then
-                halo_parent_outer_east(i)=halo_outer_east(j)
-             endif
-          end do
-      end do
+! reduce outer array to only match inner arrays
+! East West
+      select case (trim(ew_boundary_type))
+             case ('cyclic')
+                do i=1,iw_inner_west
+                  do j=1,iw_outer_east
+                     if (ind_inner_west(i) == indxTij(halo_outer_east(j))) then
+                         halo_parent_outer_west(i)=halo_outer_east(j)
+                     endif
+                  end do
+                end do
 
-      do i=1,iw_inner_east
-          do j=1,iw_outer_west
-             if (ind_inner_east(i) == indxTij(halo_outer_west(j))) then
-                halo_parent_outer_west(i)=halo_outer_west(j)
-             endif
-          end do
-      end do
+                do i=1,iw_inner_east
+                   do j=1,iw_outer_west
+                      if (ind_inner_east(i) == indxTij(halo_outer_west(j))) then
+                          halo_parent_outer_east(i)=halo_outer_west(j)
+                      endif
+                   end do
+                end do
+             case ('open')
+                iw_inner_west=0
+                iw_inner_east=0
+                iw_outer_west=0
+                iw_outer_east=0
+                do i=1,iw_inner_west
+                   do j=1,iw_outer_west
+                      if (ind_inner_west(i) == indxTij(halo_outer_west(j))) then
+!                          halo_parent_outer_west(i)=halo_outer_west(j)
+                      endif
+                   end do
+                end do
+                
+                do i=1,iw_inner_east
+                   do j=1,iw_outer_east
+                      if (ind_inner_east(i) == indxTij(halo_outer_east(j))) then
+!                          halo_parent_outer_west(i)=halo_outer_east(j)
+                      endif
+                   end do
+                end do
+
+             case ('closed')
+             case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown east-west boundary type')
+     end select
+! North South
+     select case (trim(ns_boundary_type))
+             case ('cyclic')
+                do i=1,iw_inner_south
+                  do j=1,iw_outer_north
+                     if (ind_inner_south(i) == indxTij(halo_outer_north(j))) then
+                         halo_parent_outer_south(i)=halo_outer_north(j)
+                     endif
+                  end do
+                end do
+
+                do i=1,iw_inner_north
+                   do j=1,iw_outer_south
+                      if (ind_inner_north(i) == indxTij(halo_outer_south(j))) then
+                          halo_parent_outer_north(i)=halo_outer_south(j)
+                      endif
+                   end do
+                end do
+             case ('open')
+                iw_inner_south = 0
+                iw_outer_south = 0
+                iw_inner_north = 0
+                iw_outer_north = 0
+                do i=1,iw_inner_south
+                   do j=1,iw_outer_south
+                      if (ind_inner_south(i) == indxTij(halo_outer_south(j))) then
+!                          halo_parent_outer_south(i)=halo_outer_south(j)
+                      endif
+                   end do
+                end do
+
+                do i=1,iw_inner_north
+                   do j=1,iw_outer_north
+                      if (ind_inner_north(i) == indxTij(halo_outer_north(j))) then
+!                          halo_parent_outer_north(i)=halo_outer_north(j)
+                      endif
+                   end do
+                end do
+
+             case ('closed')
+             case default
+                 call abort_ice( &
+                  subname//' ERROR: unknown north-south boundary type')
+     end select
+
+
    end subroutine calc_halo_parent
 end module ice_dyn_evp1d
 
