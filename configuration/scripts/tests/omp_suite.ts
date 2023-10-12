@@ -78,8 +78,6 @@ smoke        gbox128  14x2        boxrestore,reprosum,run10day,gridcd
 smoke        gbox80    4x5        box2001,reprosum,run10day,gridcd
 smoke        gbox80   11x3        boxslotcyl,reprosum,run10day,gridcd
 
-sleep 180
-
 #gridB
 
 smoke          gx3     4x2        diag1,reprosum,run10day,cmplogrest              smoke_gx3_8x4_diag1_reprosum_run10day
