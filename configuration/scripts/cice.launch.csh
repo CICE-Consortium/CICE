@@ -95,10 +95,11 @@ aprun -q -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLO
 EOFR
 
 #=======
-else if (${ICE_MACHCOMP} =~ cori*) then
+else if (${ICE_MACHCOMP} =~ cori* || ${ICE_MACHCOMP} =~ perlmutter*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
-./cice >&! \$ICE_RUNLOG_FILE
+#./cice >&! \$ICE_RUNLOG_FILE
+srun --cpu-bind=cores ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 else
 cat >> ${jobfile} << EOFR
