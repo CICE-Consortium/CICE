@@ -146,9 +146,9 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
           @ cnt = $cnt + 1
           echo "Waiting for $job to complete $cnt"
           sleep 60   # Sleep for 1 minute, so as not to overwhelm the queue manager
-          if ($cnt > 100) then
+          if ($cnt > 30) then
             echo "No longer waiting for $job to complete"
-            set qstatjob = 0 # Abandon check after 100 sleep 60 checks
+            set qstatjob = 0 # Abandon check after cnt sleep 60 checks
           endif
         endif
 #        echo $qstatjob

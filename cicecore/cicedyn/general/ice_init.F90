@@ -1510,15 +1510,14 @@
          abort_list = trim(abort_list)//":13"
       endif
 
-! tcraig, is it really OK for users to run inconsistently?
-! ech: yes, for testing sensitivities.  It's not recommended for science runs
-      if (ktherm == 1 .and. trim(tfrz_option(1:11)) /= 'linear_salt') then
+! ech: allow inconsistency for testing sensitivities.  It's not recommended for science runs
+      if (ktherm == 1 .and. trim(tfrz_option) /= 'linear_salt') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 1 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = linear_salt'
          endif
       endif
-      if (ktherm == 2 .and. trim(tfrz_option(1:5)) /= 'mushy') then
+      if (ktherm == 2 .and. trim(tfrz_option) /= 'mushy') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 2 and tfrz_option = ',trim(tfrz_option)
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
@@ -1530,7 +1529,6 @@
             write(nu_diag,*) subname//' WARNING:   For consistency, set saltflux_option = constant'
          endif
       endif
-!tcraig
       if (ktherm == 1 .and. .not.sw_redist) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: ktherm = 1 and sw_redist = ',sw_redist
@@ -2104,19 +2102,19 @@
          if (trim(saltflux_option) == 'constant') then
             write(nu_diag,1002) ' ice_ref_salinity = ',ice_ref_salinity
          endif
-         if (trim(tfrz_option(1:8)) == 'constant') then
+         if (trim(tfrz_option) == 'constant') then
             tmpstr2 = ' : constant ocean freezing temperature (Tocnfrz)'
-         elseif (trim(tfrz_option(1:8)) == 'minus1p8') then
+         elseif (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ' : constant ocean freezing temperature (-1.8C) (to be deprecated)'
-         elseif (trim(tfrz_option(1:11)) == 'linear_salt') then
+         elseif (trim(tfrz_option) == 'linear_salt') then
             tmpstr2 = ' : linear function of salinity (use with ktherm=1)'
-         elseif (trim(tfrz_option(1:5)) == 'mushy') then
+         elseif (trim(tfrz_option) == 'mushy') then
             tmpstr2 = ' : Assur (1958) as in mushy-layer thermo (ktherm=2)'
          else
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1030) ' tfrz_option      = ', trim(tfrz_option),trim(tmpstr2)
-         if (trim(tfrz_option(1:8)) == 'constant') then
+         if (trim(tfrz_option) == 'constant') then
             write(nu_diag,1002) ' Tocnfrz          = ', Tocnfrz
          endif
          if (update_ocn_f) then
