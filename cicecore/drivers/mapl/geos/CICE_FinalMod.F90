@@ -20,7 +20,7 @@
 
       implicit none
       private
-      public :: CICE_Finalize
+      public :: CICE_Finalize, ice_checkpoint 
 
 !=======================================================================
 
@@ -62,7 +62,7 @@
 !=======================================================================
 
 !=======================================================================
-      subroutine ice_checkpoint
+      subroutine ice_checkpoint(time_stamp)
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
@@ -83,6 +83,10 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_readwrite
       use ice_communicate, only: MPI_COMM_ICE
+
+
+      character(len=*), intent(in), optional :: &
+         time_stamp
 
       integer (kind=int_kind) :: &
          iblk        , & ! block index
@@ -114,7 +118,11 @@
 
       call ice_timer_start(timer_readwrite)  ! reading/writing
 
-      filename = trim(restart_dir) // trim(restart_file) 
+      if(present(time_stamp)) then
+         filename = trim(restart_dir) // trim(restart_file) // '.' // trim(time_stamp)
+      else
+         filename = trim(restart_dir) // trim(restart_file)
+      endif
 
       call dumpfile(filename_spec=trim(filename))   ! core variables for restarting
       if (tr_iage)      call write_restart_age
