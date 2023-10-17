@@ -115,6 +115,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "cosw", "cosine of the turning angle in water", "1."
    "coszen", "cosine of the zenith angle", ""
    "Cp", "proportionality constant for potential energy", "kg/m\ :math:`^2`/s\ :math:`^2`"
+   "cpl_frazil", ":math:`\bullet` type of frazil ice coupling", ""
    "cp_air", "specific heat of air", "1005.0 J/kg/K"
    "cp_ice", "specific heat of fresh ice", "2106. J/kg/K"
    "cp_ocn", "specific heat of sea water", "4218. J/kg/K"
