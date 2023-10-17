@@ -5,11 +5,12 @@
 Index of primary variables and parameters 
 ==========================================
 
-This index defines many of the symbols used frequently in the CICE model
-code.  Namelist variables are partly included here but also documented
-elsewhere, see Section :ref:`tabnamelist`. All
-quantities in the code are expressed in MKS units (temperatures may take
+This index defines many (but not all) of the symbols used frequently in the CICE model
+code.  All quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
+
+Namelist variables are partly included here, but they are fully documented in 
+section :ref:`tabnamelist`. 
 
 .. csv-table:: *Alphabetical Index*
    :header: " ", " ", " "

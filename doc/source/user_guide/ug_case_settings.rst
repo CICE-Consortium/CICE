@@ -2,8 +2,8 @@
 
 .. _case_settings:
 
-Case Settings
-=====================
+Model Namelist, CPPs, and Other Settings
+==========================================
 
 There are two important files that define the case, **cice.settings** and 
 **ice_in**.  **cice.settings** is a list of env variables that define many
@@ -130,7 +130,7 @@ can be modified as needed.
 .. _tabnamelist:
 
 
-Table of namelist options
+Tables of Namelist Inputs
 -------------------------------
 
 CICE reads a namelist input file, **ice_in**, consisting of several namelist groups.  The tables below
