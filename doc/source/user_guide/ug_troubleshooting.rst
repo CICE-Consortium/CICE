@@ -13,9 +13,6 @@ Directory Structure
 ---------------------
 
 In November, 2022, the cicedynB directory was renamed to cicedyn.
-A soft link was temporarily added to preserve the ability to use
-cicedynB as a path when compiling CICE in other build systems.  This
-soft link will be removed in the future.
 
 .. _setup:
 
