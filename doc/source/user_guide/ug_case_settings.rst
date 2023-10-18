@@ -2,7 +2,7 @@
 
 .. _case_settings:
 
-Model Namelist, CPPs, and Other Settings
+Case Settings, Model Namelist, and CPPs
 ==========================================
 
 There are two important files that define the case, **cice.settings** and 
@@ -130,7 +130,7 @@ can be modified as needed.
 .. _tabnamelist:
 
 
-Tables of Namelist Inputs
+Tables of Namelist Options
 -------------------------------
 
 CICE reads a namelist input file, **ice_in**, consisting of several namelist groups.  The tables below
