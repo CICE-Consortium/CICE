@@ -82,7 +82,7 @@
       use ice_history_shared, only: hist_avg, history_dir, history_file, &
                              incond_dir, incond_file, version_name, &
                              history_precision, history_format, hist_time_axis
-      use ice_flux, only: update_ocn_f, l_mpond_fresh
+      use ice_flux, only: update_ocn_f, cpl_frazil, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
       use ice_forcing, only: &
@@ -265,7 +265,7 @@
         highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
-        saltflux_option,ice_ref_salinity,                               &
+        saltflux_option,ice_ref_salinity,cpl_frazil,                    &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
@@ -444,6 +444,7 @@
       ktransport = 1           ! -1 = off, 1 = on
       calc_Tsfc = .true.       ! calculate surface temperature
       update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
+      cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
       hi_min = p01             ! minimum ice thickness allowed (m)
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
@@ -1071,6 +1072,7 @@
       call broadcast_scalar(natmiter,             master_task)
       call broadcast_scalar(atmiter_conv,         master_task)
       call broadcast_scalar(update_ocn_f,         master_task)
+      call broadcast_scalar(cpl_frazil,           master_task)
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
       call broadcast_scalar(hi_min,               master_task)
@@ -2123,6 +2125,7 @@
             tmpstr2 = ' : frazil water/salt fluxes not included in ocean fluxes'
          endif
          write(nu_diag,1010) ' update_ocn_f     = ', update_ocn_f,trim(tmpstr2)
+         write(nu_diag,1030) ' cpl_frazil       = ', trim(cpl_frazil)
          if (l_mpond_fresh .and. tr_pond_topo) then
             tmpstr2 = ' : retain (topo) pond water until ponds drain'
          else
@@ -2510,8 +2513,8 @@
          floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &
-         wave_spec_type_in = wave_spec_type, &
-         wave_spec_in=wave_spec, nfreq_in=nfreq, &
+         wave_spec_type_in = wave_spec_type, wave_spec_in=wave_spec, nfreq_in=nfreq, &
+         update_ocn_f_in=update_ocn_f, cpl_frazil_in=cpl_frazil, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
          saltflux_option_in=saltflux_option, ice_ref_salinity_in=ice_ref_salinity, &
          Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &

@@ -241,8 +241,7 @@
          alvdf_init, & ! visible, diffuse  (fraction)
          alidf_init    ! near-ir, diffuse  (fraction)
 
-      real (kind=dbl_kind), &
-         dimension(:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          albcnt       ! counter for zenith angle
 
        ! out to ocean
@@ -269,6 +268,9 @@
          update_ocn_f, & ! if true, update fresh water and salt fluxes
          l_mpond_fresh   ! if true, include freshwater feedback from meltponds
                          ! when running in ice-ocean or coupled configuration
+
+      character (char_len), public :: &
+         cpl_frazil      ! type of coupling for frazil ice, 'fresh_ice_correction','internal','external'
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          meltsn      , & ! snow melt in category n (m)
