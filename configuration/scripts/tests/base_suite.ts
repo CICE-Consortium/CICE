@@ -11,7 +11,7 @@ smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
 smoke          gx3     1x8        diag1,run5day,evp1d
 restart        gx1    40x4        droundrobin,medium
-restart        tx1    40x4        dsectrobin,medium,jra55
+restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
 restart        gx3     4x4        none
 restart        gx3    10x4        maskhalo
