@@ -563,7 +563,7 @@
          ! use processor_shape = 'square-pop' and distribution_wght = 'block'
          ! to make CICE and POP decompositions/distributions identical.
 
-#ifdef CICE_IN_NEMO
+#if defined(CICE_IN_NEMO) || defined(GEOSCOUPLED)
          ! Keep all blocks even the ones only containing land points
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
