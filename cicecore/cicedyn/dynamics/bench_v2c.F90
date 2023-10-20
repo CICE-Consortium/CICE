@@ -452,7 +452,6 @@ subroutine stepu (lb, ub,                                                      &
                         forcex,     forcey,                                    &
                         umassdti,   fm,                                        &
                         uarear,                                                &
-                        strintx,    strinty,                                   &
                         uvel_init,  vvel_init,                                 &
                         uvel,       vvel,                                      &
                         str1,str2,str3,str4,                                   &
@@ -486,7 +485,7 @@ subroutine stepu (lb, ub,                                                      &
   real (kind=dbl_kind),dimension(:), intent(in),    contiguous ::              &
      str1,str2,str3,str4,str5,str6,str7,str8
   real (kind=dbl_kind),dimension(:), intent(inout), contiguous ::              &
-     uvel, vvel, strintx, strinty
+     uvel, vvel
   ! basal stress coefficient
   real (kind=dbl_kind),dimension(:), intent(out), contiguous :: Cb
   real (kind=dbl_kind), parameter ::                                           &
@@ -497,8 +496,8 @@ subroutine stepu (lb, ub,                                                      &
          uold, vold        , & ! old-time uvel, vvel
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
-         taux, tauy          ! part of ocean stress term
-
+         taux, tauy,         & ! part of ocean stress term
+         strintx, strinty      ! internal strength, changed to scalar and calculated after
   real (kind=dbl_kind) :: tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,                &
                           tmp_str6_sse,tmp_str7_nw,tmp_str8_sw
 
@@ -513,11 +512,10 @@ subroutine stepu (lb, ub,                                                      &
   !$omp private(iw, tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,                      &
   !$omp         tmp_str6_sse,tmp_str7_nw,tmp_str8_sw,                          &
   !$omp         vrel, uold, vold, taux, tauy, cca, ccb, ab2,                   &
-  !$omp         cc1, cc2)                                                      &
+  !$omp         cc1, cc2,strintx, strinty)                                     &
   !$omp shared(uvel,vvel,str1,str2,str3,str4,str5,str6,str7,str8,              &
-  !$omp        strintx,strinty,Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,    &
+  !$omp        Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,                    &
   !$omp        aiX,waterx,watery,forcex,forcey,Umassdti,uocn,vocn,fm,uarear,   &
-!TILL  !$omp           Cw,lb,ub,brlx, revp, u0)
   !$omp           Cw,lb,ub,brlx, revp)
 #endif
   do iw = lb, ub
@@ -548,14 +546,14 @@ subroutine stepu (lb, ub,                                                      &
     tmp_str8_sw = str8(sw(iw))
 
     ! divergence of the internal stress tensor
-    strintx(iw) = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+    strintx = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
 
-    strinty(iw) = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+    strinty = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
 
     ! finally, the velocity components
-    cc1 = strintx(iw) + forcex(iw) + taux &
+    cc1 = strintx + forcex(iw) + taux &
           + umassdti(iw)*(brlx*uold + revp*uvel_init(iw))
-    cc2 = strinty(iw) + forcey(iw) + tauy &
+    cc2 = strinty + forcey(iw) + tauy &
           + umassdti(iw)*(brlx*vold + revp*vvel_init(iw))
     uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
     vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
@@ -570,4 +568,64 @@ subroutine stepu (lb, ub,                                                      &
 #endif
 end subroutine stepu
 
+! calculates strintx and strinty if needed
+subroutine calc_diag2d (lb     , ub     , &
+                        uarear , skipme , &
+                        str1   , str2   , &
+                        str3   , str4   , &
+                        str5   , str6   , &
+                        str7   , str8   , &
+                        nw     , sw     , &
+                        sse    ,          &
+                        strintx, strinty) 
+  use ice_kinds_mod
+  use myomp, only : domp_get_domain
+
+  real (kind=dbl_kind),dimension(:), intent(in),    contiguous ::              &
+     str1,str2,str3,str4,str5,str6,str7,str8
+  real (kind=dbl_kind),dimension(:), intent(inout), contiguous ::              &
+     strintx, strinty
+
+  integer(kind=int_kind), intent(in)                           :: lb,ub
+  integer(kind=int_kind), intent(in) , dimension(:), contiguous :: nw,sw,sse
+  logical(kind=log_kind), intent(in) , dimension(:), contiguous :: skipme
+  real   (kind=dbl_kind), intent(in) , dimension(:), contiguous :: uarear
+! local variables
+  integer (kind=int_kind) :: iw
+  real (kind=dbl_kind) :: tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,                &
+                          tmp_str6_sse,tmp_str7_nw,tmp_str8_sw
+
+#ifdef _OPENMP_TARGET
+  !$omp target teams distribute parallel do
+#else
+  !$omp parallel do schedule(runtime)                                   &
+  !$omp default(none)                                                   &
+  !$omp private(iw, tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,               &
+  !$omp         tmp_str6_sse,tmp_str7_nw,tmp_str8_sw)                  &
+  !$omp shared(strintx,strinty,str1,str2,str3,str4,str5,str6,str7,str8, &
+  !$omp        nw,sw,sse,skipme, uarear, lb,ub)
+#endif
+
+  do iw = lb, ub
+    if (skipme(iw)) cycle
+
+    tmp_str2_nw = str2(nw(iw))
+    tmp_str3_sse = str3(sse(iw))
+    tmp_str4_sw = str4(sw(iw))
+    tmp_str6_sse = str6(sse(iw))
+    tmp_str7_nw = str7(nw(iw))
+    tmp_str8_sw = str8(sw(iw))
+
+    ! divergence of the internal stress tensor
+    strintx(iw) = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+    strinty(iw) = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+  enddo
+
+#ifdef _OPENMP_TARGET
+  !$omp end target teams distribute parallel do
+#else
+  !$omp end parallel do
+#endif
+
+end subroutine calc_diag2d
 end module bench_v2c

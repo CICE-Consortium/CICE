@@ -123,7 +123,7 @@ module ice_dyn_evp1d
                            L_vvel      , L_icetmask , L_iceUmask                 )
     use ice_dyn_shared, only : ndte
 ! bench should be renamed to something better e.g evp1d_func
-  use bench_v2c, only : stress, stepu
+  use bench_v2c, only : stress, stepu, calc_diag2d
     implicit none
     real(kind=dbl_kind), dimension(:,:,:), intent(inout) :: &
                            L_stressp_1 , L_stressp_2 , L_stressp_3, L_stressp_4,     &
@@ -181,7 +181,7 @@ module ice_dyn_evp1d
                               G_strength,                                                 &
                               G_cdn_ocn   , G_aiu       , G_uocn     ,  G_vocn     ,      &
                               G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
-                              G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,      &
+                              G_umassdti  , G_fmU       ,                                 &
                               G_Tbu       , G_uvel     , G_vvel)
 
        call calc_halo_parent(Nactive,navel)
@@ -197,21 +197,23 @@ module ice_dyn_evp1d
   !$omp                        uvel_init, vvel_init, Tbu, Cb,                   &
   !$omp                        str1, str2, str3, str4, str5, str6, str7, str8,  &
   !$omp                        cdn_ocn, aiu, uocn, vocn, waterxU, wateryU)      &
-  !$omp             map(tofrom: uvel,vvel, strintxU, strintyU,                  &
+  !$omp             map(tofrom: uvel,vvel,                                      &
   !$omp                       stressp_1, stressp_2, stressp_3, stressp_4,       &
   !$omp                       stressm_1, stressm_2, stressm_3, stressm_4,       &
   !$omp                       stress12_1,stress12_2,stress12_3,stress12_4)
   !$omp target update to(arlx1i,denom1,capping,deltaminEVP,e_factor,epp2i,brlx)
 #endif
+! initialization of str? in order to avoid influence from old time steps
+       str1(1:navel)=c0
+       str2(1:navel)=c0
+       str3(1:navel)=c0
+       str4(1:navel)=c0
+       str5(1:navel)=c0
+       str6(1:navel)=c0
+       str7(1:navel)=c0
+       str8(1:navel)=c0
+
     do ksub = 1,ndte        ! subcycling
-       str1(:)=c0
-       str2(:)=c0
-       str3(:)=c0
-       str4(:)=c0
-       str5(:)=c0
-       str6(:)=c0
-       str7(:)=c0
-       str8(:)=c0
        call stress (ee, ne, se, 1, nActive,                                      &
                    uvel, vvel, dxT, dyT, skipTcell, strength,                    &
                    HTE, HTN, HTEm1, HTNm1,                                       &
@@ -220,13 +222,24 @@ module ice_dyn_evp1d
                    stress12_1, stress12_2, stress12_3, stress12_4,               &
                    str1, str2, str3, str4, str5, str6, str7, str8)
 
-       call stepu (1, nActive, cdn_ocn, aiu, uocn, vocn,                          &
-                  waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear,      &
-                  strintxU, strintyU, uvel_init, vvel_init, uvel, vvel,        &
-                  str1, str2, str3, str4, str5, str6, str7, str8,            &
+       call stepu (1, nActive, cdn_ocn, aiu, uocn, vocn,                         &
+                  waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear,     &
+                  uvel_init, vvel_init, uvel, vvel,                              &
+                  str1, str2, str3, str4, str5, str6, str7, str8,                &
                    nw, sw, sse, skipUcell, Tbu, Cb)
        call evp1d_halo_update()
     enddo
+! This can be skipped if diagnostics of strintx and strinty is not needed
+! They will either both be calculated or not. 
+    call calc_diag2d(1      , nActive  , & 
+                     uarear , skipUcell, &
+                     str1   , str2     , &
+                     str3   , str4     , &
+                     str5   , str6     , &
+                     str7   , str8     , &
+                     nw     , sw       , &
+                     sse    ,            &
+                     strintxU, strintyU)            
 #ifdef _OPENMP_TARGET
   !$omp end target data
 #endif
@@ -794,25 +807,24 @@ end subroutine scatter_dyn
               G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4 ,  &
               G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4 ,  &
               G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,  &
-              G_strength,                                             &
-              G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn      ,  &
-              G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,  &
-              G_umassdti  , G_fmU       , G_strintxU , G_strintyU  ,  &
-              G_Tbu       , G_uvel     , G_vvel      )
+              G_strength  , G_cdn_ocn   , G_aiu       , G_uocn      ,  &
+              G_vocn      , G_waterxU   , G_wateryU   , G_forcexU  ,  &
+              G_forceyU   , G_umassdti  , G_fmU       ,  G_Tbu     ,  &
+              G_uvel      , G_vvel      )
 
 
       implicit none
 
       integer(kind=int_kind), intent(in) ::  na0
       real(kind=dbl_kind), dimension(:, :), intent(in) :: &
-                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4,     &
-                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4,     &
+                            G_stressp_1 , G_stressp_2 , G_stressp_3, G_stressp_4 ,    &
+                            G_stressm_1 , G_stressm_2 , G_stressm_3, G_stressm_4 ,    &
                             G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,    &
-                            G_strength,                                               &
-                            G_cdn_ocn   , G_aiu       , G_uocn     , G_vocn     ,     &
-                            G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU  ,     &
-                            G_umassdti  , G_fmU       , G_strintxU , G_strintyU ,     &
-                            G_Tbu       , G_uvel     , G_vvel
+                            G_strength  , G_cdn_ocn   , G_aiu       , G_uocn     ,    &
+                            G_vocn      , G_waterxU   , G_wateryU   , G_forcexU  ,    &
+                            G_forceyU   , G_umassdti  , G_fmU       , G_Tbu      ,    &
+                            G_uvel     , G_vvel
+
       integer(kind=int_kind) ::  lo, up, iw, i, j
 
       lo=1
@@ -845,8 +857,8 @@ end subroutine scatter_dyn
          forceyU(iw)    = G_forceyU(i, j)
          umassdti(iw)   = G_umassdti(i, j)
          fmU(iw)        = G_fmU(i, j)
-         strintxU(iw)   = G_strintxU(i, j)
-         strintyU(iw)   = G_strintyU (i, j)
+         strintxU(iw)   = C0
+         strintyU(iw)   = C0
          Tbu(iw)        = G_Tbu(i, j)
          Cb(iw)         = c0 !G_Cb(i, j)
          uvel(iw)       = G_uvel(i,j)
