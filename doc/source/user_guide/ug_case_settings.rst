@@ -601,7 +601,7 @@ forcing_nml
    "", "``constant``", "constant-based boundary layer", ""
    "", "``mixed``", "stability-based boundary layer for wind stress, constant-based for sensible+latent heat fluxes", ""
    "``atmiter_conv``", "real", "convergence criteria for ustar", "0.0"
-   "``atm_data_dir``", "string", "path or partial path to atmosphericforcing data directory", ""
+   "``atm_data_dir``", "string", "path or partial path to atmospheric forcing data directory", ""
    "``atm_data_format``", "``bin``", "read direct access binary atmo forcing file format", "``bin``"
    "", "``nc``", "read netcdf atmo forcing files", ""
    "``atm_data_type``", "``box2001``", "forcing data for :cite:`Hunke01` box problem", "``default``"
