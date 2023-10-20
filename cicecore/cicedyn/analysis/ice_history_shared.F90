@@ -81,6 +81,8 @@
           real (kind=dbl_kind) :: conb    ! additive conversion factor
           character (len=1) :: vhistfreq  ! frequency of history output
           integer (kind=int_kind) :: vhistfreq_n ! number of vhistfreq intervals
+          logical (kind=log_kind) :: avg_ice_present ! only average where ice is present
+          logical (kind=log_kind) :: mask_ice_free_points ! mask ice-free points
       end type
 
       integer (kind=int_kind), parameter, public :: &
@@ -811,7 +813,7 @@
 
       subroutine define_hist_field(id, vname, vunit, vcoord, vcellmeas, &
                                    vdesc, vcomment, cona, conb, &
-                                   ns, vhistfreq)
+                                   ns, vhistfreq, avg_ice_present, mask_ice_free_points)
 
       use ice_calendar, only: histfreq, histfreq_n
 
@@ -837,13 +839,27 @@
       integer (kind=int_kind), intent(in) :: &
          ns             ! history file stream index
 
+      logical (kind=log_kind), optional, intent(in) :: &
+         avg_ice_present       , & ! compute average only when ice is present
+         mask_ice_free_points      ! mask ice-free points
+
       integer (kind=int_kind) :: &
          ns1        , & ! variable stream loop index
          lenf           ! length of namelist string
 
       character (len=40) :: stmp
 
+      logical (kind=log_kind) :: &
+         l_avg_ice_present       , & ! compute average only when ice is present
+         l_mask_ice_free_points      ! mask ice-free points
+
       character(len=*), parameter :: subname = '(define_hist_field)'
+
+      l_avg_ice_present = .false.
+      l_mask_ice_free_points = .false.
+
+      if(present(avg_ice_present)) l_avg_ice_present = avg_ice_present
+      if(present(mask_ice_free_points)) l_mask_ice_free_points = mask_ice_free_points
 
       if (histfreq(ns) == 'x') then
          call abort_ice(subname//'ERROR: define_hist_fields has histfreq x')
@@ -921,6 +937,8 @@
             avail_hist_fields(id(ns))%conb = conb
             avail_hist_fields(id(ns))%vhistfreq = vhistfreq(ns1:ns1)
             avail_hist_fields(id(ns))%vhistfreq_n = histfreq_n(ns)
+            avail_hist_fields(id(ns))%avg_ice_present = l_avg_ice_present
+            avail_hist_fields(id(ns))%mask_ice_free_points = l_mask_ice_free_points
 
          endif
       enddo
