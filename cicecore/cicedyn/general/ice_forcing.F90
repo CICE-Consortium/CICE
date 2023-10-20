@@ -2268,9 +2268,9 @@
          call file_year(uwind_file,yr)
          INQUIRE(FILE=uwind_file,EXIST=exists)
 
-         if (debug_forcing .and. (my_task == master_task)) then
-            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
-         endif
+         !if (debug_forcing .and. (my_task == master_task)) then
+         !   write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
+         !endif
 
          cnt = cnt + 1
       enddo
