@@ -3658,10 +3658,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sithick(ns),iblk) = &
-                          a2D(i,j,n_sithick(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sithick(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3669,10 +3669,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siage(ns),iblk) = &
-                          a2D(i,j,n_siage(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siage(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3680,10 +3680,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sisnthick(ns),iblk) = &
-                          a2D(i,j,n_sisnthick(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sisnthick(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3691,10 +3691,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sitemptop(ns),iblk) = &
-                          a2D(i,j,n_sitemptop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sitemptop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3702,10 +3702,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sitempsnic(ns),iblk) = &
-                          a2D(i,j,n_sitempsnic(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sitempsnic(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3713,10 +3713,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sitempbot(ns),iblk) = &
-                          a2D(i,j,n_sitempbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sitempbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3724,10 +3724,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siu(ns),iblk) = &
-                          a2D(i,j,n_siu(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siu(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3735,10 +3735,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siv(ns),iblk) = &
-                          a2D(i,j,n_siv(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siv(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3746,10 +3746,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sistrxdtop(ns),iblk) = &
-                          a2D(i,j,n_sistrxdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sistrxdtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3757,10 +3757,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sistrydtop(ns),iblk) = &
-                          a2D(i,j,n_sistrydtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sistrydtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3768,10 +3768,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sistrxubot(ns),iblk) = &
-                          a2D(i,j,n_sistrxubot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sistrxubot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3779,10 +3779,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sistryubot(ns),iblk) = &
-                          a2D(i,j,n_sistryubot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sistryubot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3790,10 +3790,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sicompstren(ns),iblk) = &
-                          a2D(i,j,n_sicompstren(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sicompstren(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3801,10 +3801,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sispeed(ns),iblk) = &
-                          a2D(i,j,n_sispeed(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sispeed(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3812,11 +3812,11 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sialb(ns),iblk) = &
-                          a2D(i,j,n_sialb(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sialb(ns),iblk) = spval_dbl
-                    if (albcnt(i,j,iblk,ns) <= puny) a2D(i,j,n_sialb(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
+                    if (albcnt(i,j,iblk,ns) <= puny) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3824,10 +3824,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflswdtop(ns),iblk) = &
-                          a2D(i,j,n_siflswdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflswdtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3835,10 +3835,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflswutop(ns),iblk) = &
-                          a2D(i,j,n_siflswutop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflswutop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3846,10 +3846,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflswdbot(ns),iblk) = &
-                          a2D(i,j,n_siflswdbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflswdbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3857,10 +3857,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sifllwdtop(ns),iblk) = &
-                          a2D(i,j,n_sifllwdtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sifllwdtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3868,10 +3868,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sifllwutop(ns),iblk) = &
-                          a2D(i,j,n_sifllwutop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sifllwutop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3879,10 +3879,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflsenstop(ns),iblk) = &
-                          a2D(i,j,n_siflsenstop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflsenstop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3890,10 +3890,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflsensupbot(ns),iblk) = &
-                          a2D(i,j,n_siflsensupbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflsensupbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3901,10 +3901,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sifllatstop(ns),iblk) = &
-                          a2D(i,j,n_sifllatstop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sifllatstop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3912,10 +3912,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sipr(ns),iblk) = &
-                          a2D(i,j,n_sipr(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sipr(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3923,10 +3923,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sifb(ns),iblk) = &
-                          a2D(i,j,n_sifb(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sifb(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3934,10 +3934,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflcondtop(ns),iblk) = &
-                          a2D(i,j,n_siflcondtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflcondtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3945,10 +3945,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflcondbot(ns),iblk) = &
-                          a2D(i,j,n_siflcondbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflcondbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3956,10 +3956,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflsaltbot(ns),iblk) = &
-                          a2D(i,j,n_siflsaltbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflsaltbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3967,10 +3967,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflfwbot(ns),iblk) = &
-                          a2D(i,j,n_siflfwbot(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflfwbot(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3978,10 +3978,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siflfwdrain(ns),iblk) = &
-                          a2D(i,j,n_siflfwdrain(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siflfwdrain(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3989,10 +3989,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sidragtop(ns),iblk) = &
-                          a2D(i,j,n_sidragtop(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sidragtop(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4000,10 +4000,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_sirdgthick(ns),iblk) = &
-                          a2D(i,j,n_sirdgthick(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_sirdgthick(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4011,10 +4011,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforcetiltx(ns),iblk) = &
-                          a2D(i,j,n_siforcetiltx(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforcetiltx(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4022,10 +4022,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforcetilty(ns),iblk) = &
-                          a2D(i,j,n_siforcetilty(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforcetilty(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4033,10 +4033,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforcecoriolx(ns),iblk) = &
-                          a2D(i,j,n_siforcecoriolx(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforcecoriolx(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4044,10 +4044,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforcecorioly(ns),iblk) = &
-                          a2D(i,j,n_siforcecorioly(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforcecorioly(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4055,10 +4055,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforceintstrx(ns),iblk) = &
-                          a2D(i,j,n_siforceintstrx(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstrx(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4066,10 +4066,10 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n_siforceintstry(ns),iblk) = &
-                          a2D(i,j,n_siforceintstry(ns),iblk)*avgct(ns)*ravgip(i,j)
+                          a2D(i,j,n,iblk) = &
+                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
                     endif
-                    if (ravgip(i,j) == c0) a2D(i,j,n_siforceintstry(ns),iblk) = spval_dbl
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -4188,8 +4188,8 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a3Dc(i,j,k,n_siitdthick(ns)-n2D,iblk) = &
-                          a3Dc(i,j,k,n_siitdthick(ns)-n2D,iblk)*avgct(ns)*ravgipn(i,j,k)
+                          a3Dc(i,j,k,n,iblk) = &
+                          a3Dc(i,j,k,n,iblk)*avgct(ns)*ravgipn(i,j,k)
                     endif
                  enddo             ! i
                  enddo             ! j
@@ -4200,8 +4200,8 @@
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a3Dc(i,j,k,n_siitdsnthick(ns)-n2D,iblk) = &
-                          a3Dc(i,j,k,n_siitdsnthick(ns)-n2D,iblk)*avgct(ns)*ravgipn(i,j,k)
+                          a3Dc(i,j,k,n,iblk) = &
+                          a3Dc(i,j,k,n,iblk)*avgct(ns)*ravgipn(i,j,k)
                     endif
                  enddo             ! i
                  enddo             ! j
