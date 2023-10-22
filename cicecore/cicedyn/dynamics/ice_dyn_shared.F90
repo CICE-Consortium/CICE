@@ -740,7 +740,7 @@
                         uvel,       vvel,     &
                         TbU)
 
-     integer (kind=int_kind), intent(in) :: &
+      integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellU                ! total count when iceUmask is true
 
@@ -802,7 +802,7 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-         
+
       do ij =1, icellU
          i = indxUi(ij)
          j = indxUj(ij)
@@ -836,6 +836,7 @@
              + Umassdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
          cc2 = strinty(i,j) + forcey(i,j) + tauy &
              + Umassdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
