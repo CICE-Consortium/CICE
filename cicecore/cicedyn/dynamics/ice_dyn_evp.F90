@@ -763,12 +763,14 @@
                                                  icellE    (iblk),                 &
                                                  indxEi  (:,iblk), indxEj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,:,iblk), TbE (:,:,iblk))
+                                                 hwater(:,:,iblk), TbE (:,:,iblk), &
+                                                 grid_location='E')
                   call seabed_stress_factor_LKD (nx_block        , ny_block,       &
                                                  icellN    (iblk),                 &
                                                  indxNi  (:,iblk), indxNj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,:,iblk), TbN (:,:,iblk))
+                                                 hwater(:,:,iblk), TbN (:,:,iblk), &
+                                                 grid_location='N')
                enddo
                !$OMP END PARALLEL DO
 
