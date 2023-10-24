@@ -1294,10 +1294,10 @@
       endif
 
       if (grid_ice == 'C' .or. grid_ice == 'CD') then
-         if (kdyn > 1) then
+         if (kdyn > 1 .or. (kdyn == 1 .and. evp_algorithm /= 'standard_2d')) then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn<=1 (evp or off)'
-               write(nu_diag,*) subname//' ERROR: kdyn and grid_ice inconsistency'
+              write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn=1 and evp_algorithm=standard_2d'
+              write(nu_diag,*) subname//' ERROR: kdyn and/or evp_algorithm and grid_ice inconsistency'
             endif
             abort_list = trim(abort_list)//":46"
          endif
@@ -1308,6 +1308,15 @@
             endif
             abort_list = trim(abort_list)//":44"
          endif
+      endif
+
+      if (evp_algorithm == 'shared_mem_1d' .and. &
+          grid_type     == 'tripole') then
+          if (my_task == master_task) then
+              write(nu_diag,*) subname//' ERROR: evp_algorithm=shared_mem_1d is not testet for gridtype=tripole'
+              write(nu_diag,*) subname//' ERROR: change evp_algorithm to standard_2d'
+          endif
+          abort_list = trim(abort_list)//":49"
       endif
 
       capping = -9.99e30

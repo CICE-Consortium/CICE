@@ -647,11 +647,12 @@
       endif  ! nghost
 
       ! tcraig, this OMP loop sometimes fails with cce/14.0.3, compiler bug??
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
-      !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
-      !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
-      !$OMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop) &
-      !$OMP SCHEDULE(runtime)
+      ! TILL I can trigger the same with ifort (IFORT) 18.0.0 20170811
+!TILL      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
+!TILL      !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
+!TILL      !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
+!TILL      !$OMP                     mtflxe,mtflxn,triarea,istop,jstop,l_stop) &
+!TILL      !$OMP SCHEDULE(runtime)
       do iblk = 1, nblocks
 
          l_stop = .false.
@@ -865,7 +866,7 @@
          enddo                  ! n
 
       enddo                     ! iblk
-      !$OMP END PARALLEL DO
+!TILL      !$OMP END PARALLEL DO
 
       end subroutine horizontal_remap
 

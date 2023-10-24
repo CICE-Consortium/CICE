@@ -15,11 +15,13 @@
       module CICE_RunMod
 
       use ice_kinds_mod
+      use ice_communicate, only: my_task, master_task
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
+      use ice_memusage, only: ice_memusage_print
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_max_iso, icepack_max_aero
       use icepack_intfc, only: icepack_query_parameters
@@ -43,7 +45,7 @@
 
       subroutine CICE_Run(stop_now_cpl)
 
-      use ice_calendar, only: istep, istep1, dt, stop_now, advance_timestep
+      use ice_calendar, only: dt, stop_now, advance_timestep
       use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
           get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
@@ -74,9 +76,9 @@
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
-      !--------------------------------------------------------------------
-      ! timestep loop
-      !--------------------------------------------------------------------
+   !--------------------------------------------------------------------
+   ! timestep loop
+   !--------------------------------------------------------------------
 #ifndef CICE_DMI
       timeLoop: do
 #endif
@@ -147,7 +149,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
-      use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
+      use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
@@ -181,7 +183,7 @@
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
           tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
-          calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
+          calc_Tsfc, skl_bgc, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
 
@@ -195,8 +197,7 @@
       endif
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
-           wave_spec_out=wave_spec)
+           z_tracers_out=z_tracers, ktherm_out=ktherm, wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
@@ -226,10 +227,9 @@
 
          call step_prep
 
-         !$OMP PARALLEL DO PRIVATE(iblk)
-         do iblk = 1, nblocks
-
-            if (ktherm >= 0) then
+         if (ktherm >= 0) then
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
 
       !-----------------------------------------------------------------
       ! scale radiation fields
@@ -267,10 +267,9 @@
                   call debug_ice (iblk, plabeld)
                endif
 
-            endif ! ktherm > 0
-
-         enddo ! iblk
-         !$OMP END PARALLEL DO
+            enddo
+            !$OMP END PARALLEL DO
+         endif ! ktherm > 0
 
          ! clean up, update tendency diagnostics
          offset = dt
@@ -300,7 +299,7 @@
             endif
 
             ! ridging
-            !$OMP PARALLEL DO PRIVATE(iblk)
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                if (kridge > 0) call step_dyn_ridge (dt_dyn, ndtd, iblk)
             enddo
@@ -334,9 +333,11 @@
       !-----------------------------------------------------------------
 
          if (tr_snow) then         ! advanced snow physics
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                call step_snow (dt, iblk)
             enddo
+            !$OMP END PARALLEL DO
             call update_state (dt) ! clean up
          endif
 
@@ -384,9 +385,11 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
+            if (my_task == master_task) then
+               call ice_memusage_print(nu_diag,subname)
+            endif
          endif
          call ice_timer_stop(timer_diags)   ! diagnostics
 
@@ -406,13 +409,12 @@
             if (tr_fsd)       call write_restart_fsd
             if (tr_iso)       call write_restart_iso
             if (tr_aero)      call write_restart_aero
-            if (solve_zsal .or. skl_bgc .or. z_tracers) &
+            if (skl_bgc .or. z_tracers) &
                               call write_restart_bgc
             if (tr_brine)     call write_restart_hbrine
             if (kdyn == 2)    call write_restart_eap
             call final_restart
          endif
-
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
@@ -426,7 +428,7 @@
       subroutine coupling_prep (iblk)
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+          albicen, albsnon, albpndn, apeffn, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
@@ -441,7 +443,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+          flux_bio, flux_bio_ai
       use ice_grid, only: tmask
       use ice_state, only: aicen, aice
 #ifdef CICE_IN_NEMO
@@ -592,8 +594,6 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -639,8 +639,7 @@
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
-                            fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
-                            flux_bio (:,:,1:nbtrcr,iblk),            &
+                            flux_bio =flux_bio (:,:,1:nbtrcr,iblk),  &
                             Qref_iso =Qref_iso (:,:,:,iblk),         &
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk))
