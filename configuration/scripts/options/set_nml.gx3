@@ -12,6 +12,7 @@ bathymetry_file = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/global_gx3.bathy.nc'
 fyear_init      = 2005
 atm_data_format = 'nc'
 atm_data_type   = 'JRA55'
+atm_data_version = ''
 atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3'
 precip_units    = 'mks'
 ocn_data_format = 'bin'

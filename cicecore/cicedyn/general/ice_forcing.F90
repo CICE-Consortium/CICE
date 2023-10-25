@@ -120,18 +120,19 @@
           wave_spectrum_data ! field values at 2 temporal data points
 
       character(char_len), public :: &
-         atm_data_format, & ! 'bin'=binary or 'nc'=netcdf
-         ocn_data_format, & ! 'bin'=binary or 'nc'=netcdf
-         atm_data_type, & ! 'default', 'monthly', 'ncar', 'box2001'
-                          ! 'hadgem', 'oned', 'calm', 'uniform'
-                          ! 'JRA55' or 'JRA55do'
-         bgc_data_type, & ! 'default', 'clim'
-         ocn_data_type, & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
-                          ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
-         ice_data_type, & ! 'latsst', 'box2001', 'boxslotcyl', etc
-         ice_data_conc, & ! 'p5','p8','p9','c1','parabolic', 'box2001', etc
-         ice_data_dist, & ! 'box2001','gauss', 'uniform', etc
-         precip_units     ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
+         atm_data_format   , & ! 'bin'=binary or 'nc'=netcdf
+         ocn_data_format   , & ! 'bin'=binary or 'nc'=netcdf
+         atm_data_type     , & ! 'default', 'monthly', 'ncar', 'box2001'
+                               ! 'hadgem', 'oned', 'calm', 'uniform'
+                               ! 'JRA55' or 'JRA55do'
+         atm_data_version  , & ! date of atm_forcing file creation
+         bgc_data_type     , & ! 'default', 'clim'
+         ocn_data_type     , & ! 'default', 'clim', 'ncar', 'oned', 'calm', 'box2001'
+                               ! 'hadgem_sst' or 'hadgem_sst_uvocn', 'uniform'
+         ice_data_type     , & ! 'latsst', 'box2001', 'boxslotcyl', etc
+         ice_data_conc     , & ! 'p5','p8','p9','c1','parabolic', 'box2001', etc
+         ice_data_dist     , & ! 'box2001','gauss', 'uniform', etc
+         precip_units          ! 'mm_per_month', 'mm_per_sec', 'mks','m_per_sec'
 
       logical (kind=log_kind), public :: &
          rotate_wind      ! rotate wind/stress to computational grid from true north directed
@@ -2238,29 +2239,39 @@
       exists = .false.
       cnt = 1
       do while (.not.exists .and. cnt <= 6)
-         if (cnt == 1) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
 
-         if (cnt == 2) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
+         if (cnt == 1) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)//     &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)// &
+                                    '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
+
+         if (cnt == 2) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)//                  &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)// &
+                                    trim(atm_data_version)//'_2005.nc'
 
          if (cnt == 3) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//             &
+                                    '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
+         
+         if (cnt == 4) uwind_file = trim(atm_data_dir)//                                      &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)// &
+                                    '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
 
-         if (cnt == 4) uwind_file = trim(atm_data_dir)//                                  &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)//'_03hr_forcing_2005.nc'
-
-         if (cnt == 5) uwind_file = trim(atm_data_dir)//                                  &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)//'_2005.nc'
+         if (cnt == 5) uwind_file = trim(atm_data_dir)//                                                   &
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//'_03hr_forcing_'//trim(grd)// &
+                                    trim(atm_data_version)//'_2005.nc'
 
          if (cnt == 6) uwind_file = trim(atm_data_dir)//                                  &
-                                    '/8XDAILY/'//trim(atm_data_type_prefix)//                '_03hr_forcing_2005.nc'
+                                    '/8XDAILY/'//trim(atm_data_type_prefix)//             &
+                                    '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
+
 
          call file_year(uwind_file,yr)
          INQUIRE(FILE=uwind_file,EXIST=exists)
-!         if (my_task == master_task) then
-!            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
-!         endif
+
+         if (debug_forcing .and. (my_task == master_task)) then
+            write(nu_diag,*) subname,cnt,exists,trim(uwind_file)
+         endif
+
          cnt = cnt + 1
       enddo
 

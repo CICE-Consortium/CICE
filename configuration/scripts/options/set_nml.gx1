@@ -15,6 +15,7 @@ maskhalo_bound = .true.
 fyear_init      = 2005
 atm_data_format = 'nc'
 atm_data_type   = 'JRA55'
+atm_data_version = ''
 atm_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1'
 precip_units    = 'mks'
 ocn_data_dir    = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx1/CESM/MONTHLY'

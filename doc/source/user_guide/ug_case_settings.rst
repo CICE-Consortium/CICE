@@ -621,6 +621,7 @@ forcing_nml
    "", "``monthly``", "monthly forcing data", ""
    "", "``ncar``", "NCAR bulk forcing data", ""
    "", "``oned``", "column forcing data", ""
+   "``atm_data_version``","string", "date of atm data forcing file creation", "``_undef``"
    "``bgc_data_dir``", "string", "path to oceanic forcing data directory", "'unknown_bgc_data_dir'"
    "``bgc_data_type``", "``clim``", "bgc climatological data", "``default``"
    "", "``default``", "constant values defined in the code", ""

@@ -271,6 +271,7 @@
     precip_units    = 'mm_per_month'
     default_season  = 'winter'
     atm_data_type   = 'ncar'
+    atm_data_version = '_undef'
     ocn_data_type   = 'default'
     bgc_data_type   = 'default'
     fe_data_type    = 'default'

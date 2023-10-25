@@ -1,2 +1,4 @@
 atm_data_format = 'nc'
 atm_data_type   = 'JRA55'
+atm_data_version = ''
+
