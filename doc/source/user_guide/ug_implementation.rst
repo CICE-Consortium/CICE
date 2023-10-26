@@ -1192,8 +1192,8 @@ The history modules allow output at different frequencies. Five output
 frequencies (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously during a run.
 The same variable can be output at different frequencies (say daily and
 monthly) via its namelist flag, `f\_` :math:`\left<{var}\right>`, which
-is now a character string corresponding to ``histfreq`` or ‘x’ for none.
-(Grid variable flags are still logicals, since they are written to all
+is a character string corresponding to ``histfreq`` or ‘x’ for none.
+(Grid variable flags are logicals, since they are written to all
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
