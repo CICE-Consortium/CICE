@@ -1197,9 +1197,9 @@ is a character string corresponding to ``histfreq`` or ‘x’ for none.
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
-discerned from the filenames.  All history streams will be either instantaneous
-or averaged as specified by the ``hist_avg`` namelist setting and the frequency
-will be relative to a reference date specified by ``histfreq_base``.  Also, some
+discerned from the filenames.  Each history stream will be either instantaneous
+or averaged as specified by the corresponding entry in the ``hist_avg`` namelist array, and the frequency
+will be relative to a reference date specified by the corresponding entry in ``histfreq_base``.  Also, some
 Earth Sytem Models require the history file time axis to be centered in the averaging
 interval. The flag ``hist_time_axis`` will allow the user to chose ``begin``, ``middle``,
 or ``end`` for the time stamp. More information about how the frequency is 
@@ -1211,8 +1211,8 @@ For example, in the namelist:
 
   histfreq   = '1', 'h', 'd', 'm', 'y'
   histfreq_n =  1 ,  6 ,  0 ,  1 ,  1
-  histfreq_base = 'zero'
-  hist_avg = .true.,.true.,.true.,.true.,.true.
+  histfreq_base = 'zero','zero','zero','zero','zero'
+  hist_avg      = .true.,.true.,.true.,.true.,.true.
   f_hi = '1'
   f_hs = 'h'
   f_Tsfc = 'd'
