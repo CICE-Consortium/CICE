@@ -1199,11 +1199,13 @@ with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
 discerned from the filenames.  Each history stream will be either instantaneous
 or averaged as specified by the corresponding entry in the ``hist_avg`` namelist array, and the frequency
-will be relative to a reference date specified by the corresponding entry in ``histfreq_base``.  Also, some
+will be relative to a reference date specified by the corresponding entry in ``histfreq_base``.
+More information about how the frequency is
+computed is found in :ref:`timemanager`.
+Also, some
 Earth Sytem Models require the history file time axis to be centered in the averaging
 interval. The flag ``hist_time_axis`` will allow the user to chose ``begin``, ``middle``,
-or ``end`` for the time stamp. More information about how the frequency is 
-computed is found in :ref:`timemanager`.
+or ``end`` for the time stamp.
 
 For example, in the namelist:
 
