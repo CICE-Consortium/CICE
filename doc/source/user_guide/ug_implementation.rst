@@ -1209,8 +1209,8 @@ For example, in the namelist:
 
 ::
 
-  histfreq = '1', 'h', 'd', 'm', 'y'
-  histfreq_n = 1, 6, 0, 1, 1
+  histfreq   = '1', 'h', 'd', 'm', 'y'
+  histfreq_n =  1 ,  6 ,  0 ,  1 ,  1
   histfreq_base = 'zero'
   hist_avg = .true.,.true.,.true.,.true.,.true.
   f_hi = '1'
