@@ -1289,7 +1289,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          TbU           ! seabed stress factor at 'grid_location' (N/m^2)
 
-      character(len=*), optional, intent(inout) :: &
+      character(len=*), optional, intent(in) :: &
          grid_location ! grid location (U, E, N), U assumed if not present
 
       real (kind=dbl_kind) :: &
