@@ -2251,7 +2251,7 @@
          if (cnt == 3) uwind_file = trim(atm_data_dir)//'/'//trim(atm_data_type_prefix)// &
                                     '/8XDAILY/'//trim(atm_data_type_prefix)//             &
                                     '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
-         
+
          if (cnt == 4) uwind_file = trim(atm_data_dir)//                                      &
                                     '/8XDAILY/'//trim(atm_data_type_prefix)//'_'//trim(grd)// &
                                     '_03hr_forcing'//trim(atm_data_version)//'_2005.nc'
