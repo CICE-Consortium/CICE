@@ -4,6 +4,7 @@ smoke          gx3     1x1        debug,diag1,run2day
 smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
 restart        gx3     8x2        debug
+restart        gx3     8x2        debug,gx3nc
 smoke          gx3     8x2        diag24,run1year,medium
 smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
@@ -14,6 +15,7 @@ restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
 restart        gx3     4x4        none
+restart        gx3     4x4        gx3nc
 restart        gx3    10x4        maskhalo
 restart        gx3     6x2        alt01
 restart        gx3     8x2        alt02

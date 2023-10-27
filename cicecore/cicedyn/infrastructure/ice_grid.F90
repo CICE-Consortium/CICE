@@ -675,36 +675,37 @@
       if (trim(grid_type) == 'cpom_grid') then
          ANGLET(:,:,:) = ANGLE(:,:,:)
       else if (.not. (l_readCenter)) then
-          ANGLET = c0
+         ANGLET = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP                     angle_0,angle_w,angle_s,angle_sw)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+         !$OMP                     angle_0,angle_w,angle_s,angle_sw)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk),iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            angle_0  = ANGLE(i  ,j  ,iblk) !   w----0
-            angle_w  = ANGLE(i-1,j  ,iblk) !   |    |
-            angle_s  = ANGLE(i,  j-1,iblk) !   |    |
-            angle_sw = ANGLE(i-1,j-1,iblk) !   sw---s
-            ANGLET(i,j,iblk) = atan2(p25*(sin(angle_0)+ &
-                                          sin(angle_w)+ &
-                                          sin(angle_s)+ &
-                                          sin(angle_sw)),&
-                                     p25*(cos(angle_0)+ &
-                                          cos(angle_w)+ &
-                                          cos(angle_s)+ &
-                                          cos(angle_sw)))
+            do j = jlo, jhi
+            do i = ilo, ihi
+               angle_0  = ANGLE(i  ,j  ,iblk) !   w----0
+               angle_w  = ANGLE(i-1,j  ,iblk) !   |    |
+               angle_s  = ANGLE(i,  j-1,iblk) !   |    |
+               angle_sw = ANGLE(i-1,j-1,iblk) !   sw---s
+               ANGLET(i,j,iblk) = atan2(p25*(sin(angle_0)+ &
+                                             sin(angle_w)+ &
+                                             sin(angle_s)+ &
+                                             sin(angle_sw)),&
+                                        p25*(cos(angle_0)+ &
+                                             cos(angle_w)+ &
+                                             cos(angle_s)+ &
+                                             cos(angle_sw)))
+            enddo
+            enddo
          enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+         !$OMP END PARALLEL DO
       endif ! cpom_grid
+
       if (trim(grid_type) == 'regional' .and. &
           (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
@@ -734,8 +735,10 @@
 
       call makemask          ! velocity mask, hemisphere masks
       if (.not. (l_readCenter)) then
-         call Tlatlon           ! get lat, lon on the T grid
+         call Tlatlon        ! get lat, lon on the T grid
       endif
+      call NElatlon          ! get lat, lon on the N, E grid
+
       !-----------------------------------------------------------------
       ! bathymetry
       !-----------------------------------------------------------------
@@ -1961,8 +1964,8 @@
          close (nu_kmt)
       endif
 
-      write(nu_diag,*) "min/max HTN: ", minval(HTN), maxval(HTN)
-      write(nu_diag,*) "min/max HTE: ", minval(HTE), maxval(HTE)
+      write(nu_diag,*) subname," min/max HTN: ", minval(HTN), maxval(HTN)
+      write(nu_diag,*) subname," min/max HTE: ", minval(HTE), maxval(HTE)
 
       end subroutine cpomgrid
 
@@ -2363,6 +2366,10 @@
 
       character(len=*), parameter :: subname = '(Tlatlon)'
 
+      if (my_task==master_task) then
+         write(nu_diag,*) subname,' called'
+      endif
+
       call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -2370,10 +2377,6 @@
 
       TLAT(:,:,:) = c0
       TLON(:,:,:) = c0
-      NLAT(:,:,:) = c0
-      NLON(:,:,:) = c0
-      ELAT(:,:,:) = c0
-      ELON(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
@@ -2426,14 +2429,86 @@
             ! TLAT in radians North
             TLAT(i,j,iblk) = asin(tz)
 
-! these two loops should be merged to save cos/sin calculations,
-! but atan2 is not bit-for-bit. This suggests the result for atan2 depends on
-! the prior atan2 call ??? not sure what's going on.
-#if (1 == 1)
          enddo                  ! i
          enddo                  ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+
+      if (trim(grid_type) == 'regional') then
+         ! for W boundary extrapolate from interior
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk),iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+
+            i = ilo
+            if (this_block%i_glob(i) == 1) then
+               do j = jlo, jhi
+                  TLON(i,j,iblk) = c2*TLON(i+1,j,iblk) - &
+                                      TLON(i+2,j,iblk)
+                  TLAT(i,j,iblk) = c2*TLAT(i+1,j,iblk) - &
+                                      TLAT(i+2,j,iblk)
+               enddo
+            endif
+         enddo
+         !$OMP END PARALLEL DO
+      endif   ! regional
+
+      call ice_timer_start(timer_bound)
+      call ice_HaloUpdate (TLON,             halo_info, &
+                           field_loc_center, field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloUpdate (TLAT,             halo_info, &
+                           field_loc_center, field_type_scalar, &
+                           fillValue=c1)
+      call ice_HaloExtrapolate(TLON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloExtrapolate(TLAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      end subroutine Tlatlon
+
+!=======================================================================
+
+! Initializes latitude and longitude on N, E grid
+!
+! author: T. Craig from Tlatlon
+
+      subroutine NElatlon
+
+      use ice_constants, only: c0, c1, c1p5, c2, c4, p5, &
+          field_loc_center, field_loc_Nface, field_loc_Eface, &
+          field_type_scalar
+
+      integer (kind=int_kind) :: &
+           i, j, iblk       , & ! horizontal indices
+           ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+
+      real (kind=dbl_kind) :: &
+           z1,x1,y1,z2,x2,y2,z3,x3,y3,z4,x4,y4,tx,ty,tz,da, &
+           rad_to_deg
+
+      type (block) :: &
+           this_block           ! block information for current block
+
+      character(len=*), parameter :: subname = '(NElatlon)'
+
+      if (my_task==master_task) then
+         write(nu_diag,*) subname,' called'
+      endif
+
+      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      NLAT(:,:,:) = c0
+      NLON(:,:,:) = c0
+      ELAT(:,:,:) = c0
+      ELON(:,:,:) = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
@@ -2467,7 +2542,7 @@
             x4 = cos(ULON(i,j,iblk))*z4
             y4 = sin(ULON(i,j,iblk))*z4
             z4 = sin(ULAT(i,j,iblk))
-#endif
+
             ! ---------
             ! NLON/NLAT 2 pt computation (pts 3, 4)
             ! ---------
@@ -2522,10 +2597,6 @@
             i = ilo
             if (this_block%i_glob(i) == 1) then
                do j = jlo, jhi
-                  TLON(i,j,iblk) = c2*TLON(i+1,j,iblk) - &
-                                      TLON(i+2,j,iblk)
-                  TLAT(i,j,iblk) = c2*TLAT(i+1,j,iblk) - &
-                                      TLAT(i+2,j,iblk)
                   NLON(i,j,iblk) = c1p5*TLON(i+1,j,iblk) - &
                                      p5*TLON(i+2,j,iblk)
                   NLAT(i,j,iblk) = c1p5*TLAT(i+1,j,iblk) - &
@@ -2537,12 +2608,6 @@
       endif   ! regional
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (TLON,             halo_info, &
-                           field_loc_center, field_type_scalar, &
-                           fillValue=c1)
-      call ice_HaloUpdate (TLAT,             halo_info, &
-                           field_loc_center, field_type_scalar, &
-                           fillValue=c1)
       call ice_HaloUpdate (NLON,             halo_info, &
                            field_loc_Nface,  field_type_scalar, &
                            fillValue=c1)
@@ -2555,10 +2620,6 @@
       call ice_HaloUpdate (ELAT,             halo_info, &
                            field_loc_Eface,  field_type_scalar, &
                            fillValue=c1)
-      call ice_HaloExtrapolate(TLON, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
-      call ice_HaloExtrapolate(TLAT, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
       call ice_HaloExtrapolate(NLON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       call ice_HaloExtrapolate(NLAT, distrb_info, &
@@ -2581,12 +2642,10 @@
 
       if (my_task==master_task) then
          write(nu_diag,*) ' '
-!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
-         write(nu_diag,*) 'min/max ULON:', y1*rad_to_deg, y2*rad_to_deg
-         write(nu_diag,*) 'min/max ULAT:', y3*rad_to_deg, y4*rad_to_deg
-!         endif
-         write(nu_diag,*) 'min/max TLON:', x1*rad_to_deg, x2*rad_to_deg
-         write(nu_diag,*) 'min/max TLAT:', x3*rad_to_deg, x4*rad_to_deg
+         write(nu_diag,*) subname,' min/max ULON:', y1*rad_to_deg, y2*rad_to_deg
+         write(nu_diag,*) subname,' min/max ULAT:', y3*rad_to_deg, y4*rad_to_deg
+         write(nu_diag,*) subname,' min/max TLON:', x1*rad_to_deg, x2*rad_to_deg
+         write(nu_diag,*) subname,' min/max TLAT:', x3*rad_to_deg, x4*rad_to_deg
       endif                     ! my_task
 
       x1 = global_minval(NLON, distrb_info, nmask)
@@ -2601,15 +2660,13 @@
 
       if (my_task==master_task) then
          write(nu_diag,*) ' '
-!         if (nx_block > 5+2*nghost .and. ny_block > 5+2*nghost) then
-         write(nu_diag,*) 'min/max NLON:', x1*rad_to_deg, x2*rad_to_deg
-         write(nu_diag,*) 'min/max NLAT:', x3*rad_to_deg, x4*rad_to_deg
-         write(nu_diag,*) 'min/max ELON:', y1*rad_to_deg, y2*rad_to_deg
-         write(nu_diag,*) 'min/max ELAT:', y3*rad_to_deg, y4*rad_to_deg
-!         endif
+         write(nu_diag,*) subname,' min/max NLON:', x1*rad_to_deg, x2*rad_to_deg
+         write(nu_diag,*) subname,' min/max NLAT:', x3*rad_to_deg, x4*rad_to_deg
+         write(nu_diag,*) subname,' min/max ELON:', y1*rad_to_deg, y2*rad_to_deg
+         write(nu_diag,*) subname,' min/max ELAT:', y3*rad_to_deg, y4*rad_to_deg
       endif                     ! my_task
 
-      end subroutine Tlatlon
+      end subroutine NElatlon
 
 !=======================================================================
 
@@ -4677,7 +4734,7 @@
       fieldname='Bathymetry'
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'reading ',TRIM(fieldname)
+         write(nu_diag,*) subname,' reading ',TRIM(fieldname)
          call icepack_warnings_flush(nu_diag)
       endif
       call ice_read_nc(fid_init,1,fieldname,bathymetry,diag, &
@@ -4687,7 +4744,7 @@
       call ice_close_nc(fid_init)
 
       if (my_task == master_task) then
-         write(nu_diag,*) 'closing file ',TRIM(bathymetry_file)
+         write(nu_diag,*) subname,' closing file ',TRIM(bathymetry_file)
          call icepack_warnings_flush(nu_diag)
       endif
 
