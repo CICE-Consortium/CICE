@@ -1451,19 +1451,7 @@
 
       character(len=*), parameter :: subname = '(seabed_stress_factor_prob)'
 
-      call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-      call icepack_query_parameters(gravit_out=gravit)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-      call icepack_query_parameters(pi_out=pi)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi,gravit_out=gravit,pi_out=pi,puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)

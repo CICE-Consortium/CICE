@@ -61,6 +61,10 @@ module ice_dyn_core1d
   use ice_dyn_shared, only: e_factor, epp2i, capping
   use ice_constants, only: c1
 
+  implicit none
+  private
+
+  public :: stress_1d, stepu_1d, calc_diag_1d
   contains
 
   ! arguments ------------------------------------------------------------------

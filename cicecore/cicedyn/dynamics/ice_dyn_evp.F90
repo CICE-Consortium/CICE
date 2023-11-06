@@ -248,7 +248,7 @@
           uvelE, vvelE, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
-          ice_timer_start, ice_timer_stop, timer_evp_2d
+          ice_timer_start, ice_timer_stop, timer_evp
       use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, &
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
           strain_rates_U, &
@@ -797,7 +797,7 @@
 
       endif
 
-      call ice_timer_start(timer_evp_2d)
+      call ice_timer_start(timer_evp)
 
       if (grid_ice == "B") then
 
@@ -1266,7 +1266,7 @@
          !$OMP END PARALLEL DO
       endif   ! grid_ice
 
-      call ice_timer_stop(timer_evp_2d)
+      call ice_timer_stop(timer_evp)
 
       if (maskhalo_dyn) then
          call ice_HaloDestroy(halo_info_mask)

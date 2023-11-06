@@ -65,8 +65,8 @@
       timer_bundbound,        &! boundary updates bundling
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
-      timer_evp_1d,           &! timer only loop
-      timer_evp_2d,           &! timer including conversion 1d/2d
+      timer_evp1dcore,        &! timer only loop
+      timer_evp,              &! timer including conversion 1d/2d
       timer_updstate           ! update state
 !      timer_updstate,         &! update state
 !      timer_tmp1,             &! for temporary timings
@@ -177,34 +177,34 @@
       nullify(all_timers(n)%block_accum_time)
    end do
 
-   call get_ice_timer(timer_total,    'Total',    nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_step,     'TimeLoop', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_dynamics, 'Dynamics', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_advect,   'Advection',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_column,   'Column',   nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_thermo,   'Thermo',   nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_sw,       'Shortwave',nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_total     , 'Total'     ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_step      , 'TimeLoop'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_dynamics  , 'Dynamics'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_advect    , 'Advection' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_column    , 'Column'    ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_thermo    , 'Thermo'    ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_sw        , 'Shortwave' ,nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_ponds,    'Meltponds',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_ridge,    'Ridging',  nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_ridge     , 'Ridging'   ,nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_catconv,  'Cat Conv', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_fsd,      'FloeSize', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_couple,   'Coupling', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_readwrite,'ReadWrite',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_diags,    'Diags    ',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_hist,     'History  ',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_bound,    'Bound',    nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_bundbound,'Bundbound',nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_bgc,      'BGC',      nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_forcing,  'Forcing',  nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_fsd       , 'FloeSize'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_couple    , 'Coupling'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_readwrite , 'ReadWrite' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_diags     , 'Diags    ' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_hist      , 'History  ' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_bound     , 'Bound'     ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_bundbound , 'Bundbound' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_bgc       , 'BGC'       ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_forcing   , 'Forcing'   ,nblocks,distrb_info%nprocs)
 #if (defined CESMCOUPLED)
-   call get_ice_timer(timer_cplrecv,  'Cpl-recv', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_rcvsnd,   'Rcv->Snd', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_cplsend,  'Cpl-Send', nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_sndrcv,   'Snd->Rcv', nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_cplrecv   , 'Cpl-recv'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_rcvsnd    , 'Rcv->Snd'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_cplsend   , 'Cpl-Send'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_sndrcv    , 'Snd->Rcv'  ,nblocks,distrb_info%nprocs)
 #endif
-   call get_ice_timer(timer_evp_1d,   '1d-evp',   nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_evp_2d,   '2d-evp',   nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_updstate, 'UpdState', nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_evp1dcore , 'evp1dcore' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_evp       , 'evp'       ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_updstate  , 'UpdState'  ,nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_tmp1,     'tmp1',     nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_tmp2,     'tmp2',     nblocks,distrb_info%nprocs)
 !   call get_ice_timer(timer_tmp3,     'tmp3',     nblocks,distrb_info%nprocs)

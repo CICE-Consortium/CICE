@@ -135,7 +135,7 @@ module ice_dyn_evp1d
 
     use ice_dyn_shared, only : ndte
     use ice_dyn_core1d, only : stress_1d, stepu_1d, calc_diag_1d
-    use ice_timers    , only : ice_timer_start, ice_timer_stop, timer_evp_1d
+    use ice_timers    , only : ice_timer_start, ice_timer_stop, timer_evp1dcore
 
     use icepack_intfc , only : icepack_query_parameters, icepack_warnings_flush, &
       icepack_warnings_aborted
@@ -220,7 +220,7 @@ module ice_dyn_evp1d
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
-       call ice_timer_start(timer_evp_1d)
+       call ice_timer_start(timer_evp1dcore)
 #ifdef _OPENMP_TARGET
        !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,&
        !$omp                 strength, dxT, dyT, HTE,HTN,HTEm1, HTNm1,         &
@@ -272,7 +272,7 @@ module ice_dyn_evp1d
                          sse     ,            &
                          strintxU, strintyU)            
 
-       call ice_timer_stop(timer_evp_1d)
+       call ice_timer_stop(timer_evp1dcore)
 
 #ifdef _OPENMP_TARGET
        !$omp end target data

@@ -1313,7 +1313,7 @@
       if (evp_algorithm == 'shared_mem_1d' .and. &
           grid_type     == 'tripole') then
           if (my_task == master_task) then
-              write(nu_diag,*) subname//' ERROR: evp_algorithm=shared_mem_1d is not testet for gridtype=tripole'
+              write(nu_diag,*) subname//' ERROR: evp_algorithm=shared_mem_1d is not tested for gridtype=tripole'
               write(nu_diag,*) subname//' ERROR: change evp_algorithm to standard_2d'
           endif
           abort_list = trim(abort_list)//":49"
