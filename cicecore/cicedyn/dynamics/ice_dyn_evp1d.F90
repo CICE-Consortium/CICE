@@ -987,7 +987,8 @@ module ice_dyn_evp1d
 
      implicit none
 
-     integer(kind=int_kind), intent(in) :: x(1:lvecx), y(1:lvecy), lvecx,lvecy
+     integer(kind=int_kind), intent(in) :: lvecx,lvecy
+     integer(kind=int_kind), intent(in) :: x(1:lvecx), y(1:lvecy)
      integer(kind=int_kind), intent(out) :: xy(1:lvecx + lvecy)
      integer(kind=int_kind), intent(out) :: nxy
 
