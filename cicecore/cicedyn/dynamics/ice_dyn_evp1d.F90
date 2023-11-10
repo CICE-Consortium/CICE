@@ -122,7 +122,7 @@ module ice_dyn_evp1d
       call evp1d_alloc_static_halo()
     endif
 
-   deallocate(G_dyT,G_dxT,G_uarear,G_tmask,G_HTN,G_HTE,stat=ierr)
+   deallocate(G_dyT,G_dxT,G_uarear,G_tmask,stat=ierr)
 
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
