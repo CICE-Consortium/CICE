@@ -24,8 +24,7 @@
 
       use ice_kinds_mod
       use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate, &
-          primary_grid_lengths_global_ext
+      use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
       use ice_communicate, only: my_task, master_task
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain_size, only: nx_global, ny_global, max_blocks
@@ -301,11 +300,13 @@
       endif
 
       if (pgl_global_ext) then
-         allocate( &
-            G_HTE(nx_global+2*nghost, ny_global+2*nghost), & ! length of eastern edge of T-cell (global ext.)
-            G_HTN(nx_global+2*nghost, ny_global+2*nghost), & ! length of northern edge of T-cell (global ext.)
-            stat=ierr)
-         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+         if (my_task == master_task) then
+            allocate( &
+               G_HTE(nx_global+2*nghost, ny_global+2*nghost), & ! length of eastern edge of T-cell (global ext.)
+               G_HTN(nx_global+2*nghost, ny_global+2*nghost), & ! length of northern edge of T-cell (global ext.)
+               stat=ierr)
+            if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory')
+         endif
       endif
 
       end subroutine alloc_grid
@@ -2015,10 +2016,13 @@
             work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxU
          enddo
          enddo
-      endif
-      if (pgl_global_ext) then
-         call primary_grid_lengths_global_ext( &
-            G_HTN, work_g, ew_boundary_type, ns_boundary_type)
+         if (pgl_global_ext) then
+            do j = 1, ny_global
+               do i = 1,nx_global
+                  G_HTN(i+nghost,j+nghost) = work_g(i,j)
+               enddo
+            enddo
+         endif
       endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
@@ -2123,10 +2127,13 @@
                work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyU
             enddo
          endif
-      endif
-      if (pgl_global_ext) then
-         call primary_grid_lengths_global_ext( &
-            G_HTE, work_g, ew_boundary_type, ns_boundary_type)
+         if (pgl_global_ext) then
+            do j = 1, ny_global
+               do i = 1, nx_global
+                  G_HTE(i+nghost,j+nghost) = work_g(i,j)
+               enddo
+            enddo
+         endif
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)

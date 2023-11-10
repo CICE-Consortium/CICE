@@ -82,7 +82,7 @@ module ice_dyn_evp1d
       L_tmask
 
     ! variables for Global arrays (domain size)
-    real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: G_HTE,G_HTN
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout), allocatable, optional  :: G_HTE,G_HTN
     real(kind=dbl_kind)   , dimension(:,:)  , allocatable :: G_dyT, G_dxT, G_uarear
     logical(kind=log_kind), dimension(:,:)  , allocatable :: G_tmask
 
@@ -110,6 +110,8 @@ module ice_dyn_evp1d
     ! calculate number of water points (T and U). Only needed for the static version
     ! Tmask in ocean/ice
     if (my_task == master_task) then
+      call halo_HTE_HTN(G_HTE)
+      call halo_HTE_HTN(G_HTN)
       call calc_nActiveTU(G_Tmask,nActive)
       call evp1d_alloc_static_na(nActive)
       call calc_2d_indices_init(nActive, G_Tmask)
@@ -118,6 +120,22 @@ module ice_dyn_evp1d
       call numainit(1,nActive,navel)
       call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
       call evp1d_alloc_static_halo()
+    endif
+
+   deallocate(G_dyT,G_dxT,G_uarear,G_tmask,G_HTN,G_HTE,stat=ierr)
+
+    if (ierr/=0) then
+       call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
+    endif
+
+   if (present(G_HTN)) deallocate(G_HTN,stat=ierr)
+    if (ierr/=0) then
+       call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
+    endif
+
+   if (present(G_HTN)) deallocate(G_HTN,stat=ierr)
+    if (ierr/=0) then
+       call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
     endif
 
   end subroutine dyn_evp1d_init
@@ -1400,7 +1418,6 @@ module ice_dyn_evp1d
            end do
         end do
      endif
-     ! North South
      if (trim(ns_boundary_type) == 'cyclic') then
         do i=1,n_inner_south
            do j=1,n_outer_north
@@ -1420,6 +1437,42 @@ module ice_dyn_evp1d
      endif
 
   end subroutine calc_halo_parent
+
+  subroutine halo_HTE_HTN(ARRAY)
+
+  !  This subroutine adds ghost cells to HTE and HTN
+
+  use ice_domain, only: ew_boundary_type, ns_boundary_type
+
+  real (kind=dbl_kind), dimension(:,:), intent(inout) :: &
+     ARRAY
+
+  character(len=*), parameter :: &
+     subname = '(halo_HTE_HTN)'
+
+     if (ns_boundary_type =='cyclic') then
+        array(:,1)  = array(:,ny-1)
+        array(:,ny) = array(:,2)
+     elseif (ns_boundary_type == 'open') then
+        array(:,1)  = array(:,2)
+        array(:,ny) = array(:,ny-1)
+     else
+        array(:,1)  = c0
+        array(:,ny) = c0
+     endif
+
+     if (ew_boundary_type =='cyclic') then
+        array(1,:)  = array(nx-1,:)
+        array(nx,:) = array(2,:)
+     elseif (ew_boundary_type == 'open') then
+        array(1,:)  = array(2,:)
+        array(nx,:) = array(nx-1,:)
+     else
+        array(1,:)  = c0
+        array(nx,:) = c0
+     endif
+
+  end subroutine halo_HTE_HTN
 
 end module ice_dyn_evp1d
 

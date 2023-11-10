@@ -874,6 +874,10 @@
 #else
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
+      ! If 1d evp dynamics then set variable in order to avoid circular dependencies with dyn_shared
+      if ((kdyn == 1) .and. (evp_algorithm == 'shared_mem_1d')) then
+         pgl_global_ext = .true.
+      endif
 
       !-----------------------------------------------------------------
       ! broadcast namelist settings
@@ -1840,7 +1844,6 @@
                   tmpstr2 = ' : standard 2d EVP solver'
                elseif (evp_algorithm == 'shared_mem_1d') then
                   tmpstr2 = ' : vectorized 1d EVP solver'
-                  pgl_global_ext = .true.
                else
                   tmpstr2 = ' : unknown value'
                endif
