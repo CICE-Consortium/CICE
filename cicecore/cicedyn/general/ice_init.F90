@@ -2939,7 +2939,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio, Tffresh
+         Tsfc, asum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio, Tffresh
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -3075,7 +3075,7 @@
                        ! Note: the resulting average ice thickness
                        ! tends to be less than hbar due to the
                        ! nonlinear distribution of ice thicknesses
-            sum = c0
+            asum = c0
             do n = 1, ncat
                if (n < ncat) then
                   hinit(n) = p5*(hin_max(n-1) + hin_max(n)) ! m
@@ -3084,10 +3084,10 @@
                endif
                ! parabola, max at h=hbar, zero at h=0, 2*hbar
                ainit(n) = max(c0, (c2*hbar*hinit(n) - hinit(n)**2))
-               sum = sum + ainit(n)
+               asum = asum + ainit(n)
             enddo
             do n = 1, ncat
-               ainit(n) = ainit(n) / (sum + puny/ncat) ! normalize
+               ainit(n) = ainit(n) / (asum + puny/ncat) ! normalize
             enddo
 
          else
