@@ -194,7 +194,7 @@ module ice_dyn_evp1d
                     L_strength,                                             &
                     L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                     L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                    L_umassdti  , L_fmU       , L_strintxU  , L_strintyU  , &
+                    L_umassdti  , L_fmU       ,                             & 
                     L_Tbu       , L_uvel      , L_vvel      ,               &
                     L_icetmask  , L_iceUmask  ,                             &
                     G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
@@ -203,7 +203,7 @@ module ice_dyn_evp1d
                     G_strength  ,                                           &
                     G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
                     G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                    G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  , &
+                    G_umassdti  , G_fmU       ,                             &
                     G_Tbu       , G_uvel      , G_vvel      ,               &
                     G_iceTmask,  G_iceUmask)
 
@@ -636,7 +636,7 @@ module ice_dyn_evp1d
                         L_strength  ,                                           &
                         L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                         L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                        L_umassdti  , L_fmU       , L_strintxU  , L_strintyU  , &
+                        L_umassdti  , L_fmU       ,                             &
                         L_Tbu       , L_uvel      , L_vvel      ,               &
                         L_icetmask  , L_iceUmask  ,                             &
                         G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
@@ -645,7 +645,7 @@ module ice_dyn_evp1d
                         G_strength,                                             &
                         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
                         G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                        G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  , &
+                        G_umassdti  , G_fmU       ,                             &
                         G_Tbu       , G_uvel      , G_vvel      ,               &
                         G_iceTmask,  G_iceUmask)
 
@@ -661,7 +661,7 @@ module ice_dyn_evp1d
         L_strength,                                                                   &
         L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn      ,                        &
         L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU   ,                        &
-        L_umassdti  , L_fmU       , L_strintxU , L_strintyU  ,                        &
+        L_umassdti  , L_fmU       ,                                                   &
         L_Tbu       , L_uvel      , L_vvel
 
      logical(kind=log_kind), dimension(nx_block, ny_block, max_block), intent(in)  :: &
@@ -674,7 +674,7 @@ module ice_dyn_evp1d
         G_strength,                                                                   &
         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn     ,                        &
         G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU  ,                        &
-        G_umassdti  , G_fmU       , G_strintxU  , G_strintyU ,                        &
+        G_umassdti  , G_fmU       ,                                                   &
         G_Tbu       , G_uvel      , G_vvel
 
      logical(kind=log_kind), dimension(nx, ny), intent(out) :: G_iceUmask, G_iceTmask
@@ -709,8 +709,6 @@ module ice_dyn_evp1d
 
      call gather_global_ext(G_umassdti  ,     L_umassdti  ,     master_task, distrb_info)
      call gather_global_ext(G_fmU       ,     L_fmU       ,     master_task, distrb_info)
-     call gather_global_ext(G_strintxU  ,     L_strintxU  ,     master_task, distrb_info)
-     call gather_global_ext(G_strintyU  ,     L_strintyU  ,     master_task, distrb_info)
 
      call gather_global_ext(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info)
      call gather_global_ext(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0)
