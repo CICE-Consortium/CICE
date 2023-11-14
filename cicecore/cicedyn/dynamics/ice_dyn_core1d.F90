@@ -82,7 +82,7 @@ module ice_dyn_core1d
 
     use ice_dyn_shared, only: arlx1i, denom1, revp,         &
                               deltaminEVP, visc_replpress
-    ! 
+    !
     implicit none
     ! arguments ------------------------------------------------------------------
     integer (kind=int_kind), intent(in)                           :: lb,ub
@@ -274,7 +274,7 @@ module ice_dyn_core1d
       ssigpw  = stressp_2(iw) + stressp_3(iw)
       ssigp1  =(stressp_1(iw) + stressp_3(iw))*p055
       ssigp2  =(stressp_2(iw) + stressp_4(iw))*p055
- 
+
       ssigmn  = stressm_1(iw) + stressm_2(iw)
       ssigms  = stressm_3(iw) + stressm_4(iw)
       ssigme  = stressm_1(iw) + stressm_4(iw)
@@ -396,7 +396,7 @@ module ice_dyn_core1d
 
     real (kind=dbl_kind), intent(in) ::                    &
        tmp_uvel_ee, tmp_vvel_ee, tmp_uvel_se, tmp_vvel_se, &
-       tmp_uvel_cc, tmp_vvel_cc, tmp_uvel_ne, tmp_vvel_ne 
+       tmp_uvel_cc, tmp_vvel_cc, tmp_uvel_ne, tmp_vvel_ne
 
     real (kind=dbl_kind), intent(in) :: &
        dxT      ,                       & ! width of T-cell through the middle (m)
@@ -405,7 +405,7 @@ module ice_dyn_core1d
        cxp      ,                       & ! 1.5*HTN - 0.5*HTS
        cym      ,                       & ! 0.5*HTE - 1.5*HTW
        cxm                                ! 0.5*HTN - 1.5*HTS
- 
+
     real (kind=dbl_kind), intent(out)::            & ! at each corner :
        divune, divunw, divuse, divusw            , & ! divergence
        tensionne, tensionnw, tensionse, tensionsw, & ! tension
@@ -479,7 +479,7 @@ module ice_dyn_core1d
                        uarear   ,            &
                        uvel_init, vvel_init, &
                        uvel     , vvel     , &
-                       str1     , str2     , &    
+                       str1     , str2     , &
                        str3     , str4     , &
                        str5     , str6     , &
                        str7     , str8     , &
@@ -569,7 +569,7 @@ module ice_dyn_core1d
       ! revp = 0 for classic evp, 1 for revised evp
       cca = (brlx + revp)*umassdti(iw) + vrel * cosw + Cb(iw) ! kg/m^2 s
       ccb = fm(iw) + sign(c1,fm(iw)) * vrel * sinw ! kg/m^2 s
-  
+
       ab2 = cca**2 + ccb**2
 
       tmp_str2_nw = str2(nw(iw))
@@ -578,7 +578,7 @@ module ice_dyn_core1d
       tmp_str6_sse = str6(sse(iw))
       tmp_str7_nw = str7(nw(iw))
       tmp_str8_sw = str8(sw(iw))
-  
+
       ! divergence of the internal stress tensor
       strintx = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
       strinty = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
@@ -590,7 +590,7 @@ module ice_dyn_core1d
             + umassdti(iw)*(brlx*vold + revp*vvel_init(iw))
       uvel(iw) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
       vvel(iw) = (cca*cc2 - ccb*cc1) / ab2
- 
+
       ! calculate seabed stress component for outputs
       ! only needed on last iteration.
     enddo

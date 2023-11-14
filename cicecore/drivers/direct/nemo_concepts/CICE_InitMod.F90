@@ -215,7 +215,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-      call dealloc_grid         ! deallocate temporary grid arrays                                                                                              
+      call dealloc_grid         ! deallocate temporary grid arrays
       end subroutine cice_init
 
 !=======================================================================

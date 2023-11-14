@@ -27,12 +27,12 @@ module ice_dyn_evp1d
   !- private routines ----------------------------------------------------------
 
   !- private vars --------------------------------------------------------------
-  ! nx and ny are module variables for arrays after gather (G_*) Dimension according to CICE is 
+  ! nx and ny are module variables for arrays after gather (G_*) Dimension according to CICE is
   ! nx_global+2*nghost, ny_global+2*nghost
   ! nactive are number of active points (both t and u). navel is number of active
   integer(kind=int_kind), save :: nx, ny, nActive, navel, nallocated
 
-  ! indexes 
+  ! indexes
   integer(kind=int_kind), allocatable, dimension(:,:) :: iwidx
   logical(kind=log_kind), allocatable, dimension(:)   :: skipTcell,skipUcell
   real   (kind=dbl_kind), allocatable, dimension(:)   :: HTE,HTN, HTEm1,HTNm1
@@ -53,16 +53,16 @@ module ice_dyn_evp1d
     halo_parent_outer_east , halo_parent_outer_west ,                          &
     halo_parent_outer_north, halo_parent_outer_south,                          &
     halo_inner_east        , halo_inner_west        ,                          &
-    halo_inner_north       , halo_inner_south           
+    halo_inner_north       , halo_inner_south
 
   ! number of halo points (same for inner and outer)
   integer(kind=int_kind)                              ::                       &
     n_inner_east, n_inner_west, n_inner_north, n_inner_south
-  
+
 !=============================================================================
   contains
 !=============================================================================
-! module public subroutines 
+! module public subroutines
 ! In addition all water points are assumed to be active and allocated thereafter.
 !=============================================================================
 
@@ -145,7 +145,7 @@ module ice_dyn_evp1d
       L_strength  ,                                            &
       L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn   ,      &
       L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU,      &
-      L_umassdti  , L_fmU       , L_Tbu               
+      L_umassdti  , L_fmU       , L_Tbu
     logical(kind=log_kind), dimension(:,:,:), intent(in) ::    &
       L_iceUmask  , L_iceTmask
 
@@ -178,7 +178,7 @@ module ice_dyn_evp1d
                     L_strength,                                             &
                     L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                     L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                    L_umassdti  , L_fmU       ,                             & 
+                    L_umassdti  , L_fmU       ,                             &
                     L_Tbu       , L_uvel      , L_vvel      ,               &
                     L_icetmask  , L_iceUmask  ,                             &
                     G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
@@ -207,7 +207,7 @@ module ice_dyn_evp1d
        call calc_halo_parent(Nactive,navel)
 
        ! map from cpu to gpu (to) and back.
-       ! This could be optimized considering which variables change from time step to time step 
+       ! This could be optimized considering which variables change from time step to time step
        ! and which are constant.
        ! in addition initialization of Cb and str1, str2, str3, str4, str5, str6, str7, str8
        call icepack_query_parameters(rhow_out=rhow)
@@ -256,8 +256,8 @@ module ice_dyn_evp1d
           call evp1d_halo_update()
        enddo
        ! This can be skipped if diagnostics of strintx and strinty is not needed
-       ! They will either both be calculated or not. 
-       call calc_diag_1d(1       , nActive  , & 
+       ! They will either both be calculated or not.
+       call calc_diag_1d(1       , nActive  , &
                          uarear  , skipUcell, &
                          str1    , str2     , &
                          str3    , str4     , &
@@ -265,7 +265,7 @@ module ice_dyn_evp1d
                          str7    , str8     , &
                          nw      , sw       , &
                          sse     ,            &
-                         strintxU, strintyU)            
+                         strintxU, strintyU)
 
        call ice_timer_stop(timer_evp1dcore)
 
@@ -290,7 +290,7 @@ module ice_dyn_evp1d
                      L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                      L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
                      L_strintxU  , L_strintyU  ,  L_uvel     , L_vvel      , &
-                     L_taubxU    , L_taubyU    ,                             & 
+                     L_taubxU    , L_taubyU    ,                             &
                      G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
                      G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
                      G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
@@ -304,12 +304,12 @@ module ice_dyn_evp1d
     !     call init_unionTU(nx, ny, iceTmask_log,iceUmask)
     ! else if (nactiveold < nActive) then
     !     write(nu_diag,*) 'Warning nActive is bigger than old allocation. Need to re allocate'
-    !     call evp_1d_dealloc() ! only deallocate if not first time step 
+    !     call evp_1d_dealloc() ! only deallocate if not first time step
     !     call evp_1d_alloc(nActive, nActive,nx,ny)
     !     nactiveold=nActive+buf1d ! allocate
     !     call init_unionTU(nx, ny, iceTmask_log,iceUmask)
     ! endif
-    ! call cp_2dto1d(nActive)   
+    ! call cp_2dto1d(nActive)
     ! FIXME THIS IS THE LOGIC FOR RE ALLOCATION IF NEEDED
     ! call add_1d(nx, ny, natmp, iceTmask_log, iceUmask, ts)
 
@@ -402,7 +402,7 @@ module ice_dyn_evp1d
              Tbu      (1:na0), Cb       (1:na0), &
              uvel_init(1:na0), vvel_init(1:na0), &
              stat=ierr)
-  
+
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
@@ -411,7 +411,7 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine evp1d_alloc_static_navel(navel0) 
+  subroutine evp1d_alloc_static_navel(navel0)
     implicit none
 
     integer(kind=int_kind), intent(in) :: navel0
@@ -439,7 +439,7 @@ module ice_dyn_evp1d
     character(len=*), parameter :: subname = '(evp1d_alloc_static_halo)'
 
     ! allocation of arrays to use for halo
-    ! These are the size of one of the dimensions of the global grid but they could be 
+    ! These are the size of one of the dimensions of the global grid but they could be
     ! reduced in size as only the number of active U points are used.
     ! Points to send data from are in the "inner" vectors. Data in outer points are named "outer"
 
@@ -663,7 +663,7 @@ module ice_dyn_evp1d
      use ice_domain, only : distrb_info
      implicit none
 
-     ! nx_block, ny_block, max_blocks 
+     ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
         L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
@@ -696,7 +696,7 @@ module ice_dyn_evp1d
      call gather_global_ext(G_stressp_2 ,     L_stressp_2,     master_task, distrb_info,c0)
      call gather_global_ext(G_stressp_3 ,     L_stressp_3,     master_task, distrb_info,c0)
      call gather_global_ext(G_stressp_4 ,     L_stressp_4,     master_task, distrb_info,c0)
- 
+
      call gather_global_ext(G_stressm_1 ,     L_stressm_1,     master_task, distrb_info,c0)
      call gather_global_ext(G_stressm_2 ,     L_stressm_2,     master_task, distrb_info,c0)
      call gather_global_ext(G_stressm_3 ,     L_stressm_3,     master_task, distrb_info,c0)
@@ -747,7 +747,7 @@ module ice_dyn_evp1d
      use ice_domain, only : distrb_info
      implicit none
 
-     ! nx_block, ny_block, max_blocks 
+     ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
         L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
@@ -764,7 +764,7 @@ module ice_dyn_evp1d
         G_taubxU    , G_taubyU
 
      character(len=*), parameter :: subname = '(scatter_dyn)'
-    
+
      call scatter_global_ext(L_stressp_1,  G_stressp_1,  master_task, distrb_info)
      call scatter_global_ext(L_stressp_2,  G_stressp_2,  master_task, distrb_info)
      call scatter_global_ext(L_stressp_3,  G_stressp_3,  master_task, distrb_info)
@@ -930,7 +930,7 @@ module ice_dyn_evp1d
         strintxU(iw)   = C0
         strintyU(iw)   = C0
         Tbu(iw)        = G_Tbu(i, j)
-        Cb(iw)         = c0 
+        Cb(iw)         = c0
         uvel(iw)       = G_uvel(i,j)
         vvel(iw)       = G_vvel(i,j)
         uvel_init(iw)  = G_uvel(i,j)
@@ -1004,13 +1004,13 @@ module ice_dyn_evp1d
         G_uvel(i,j)       = uvel(iw)
         G_vvel(i,j)       = vvel(iw)
      end do
-     
+
      do iw=na0+1,navel0
         j = int((indxTij(iw) - 1) / (nx)) + 1
         i = indxTij(iw) - (j - 1) * nx
         G_uvel(i,j)       = uvel(iw)
         G_vvel(i,j)       = vvel(iw)
-     end do       
+     end do
 
   end subroutine convert_1d_2d_dyn
 
@@ -1156,7 +1156,7 @@ module ice_dyn_evp1d
      call union(util1, Inw , i  , na0, util2, j     )
      call union(util2, Isw , j  , na0, util1, i     )
      call union(util1, Isse, i  , na0, util2, navel0)
-       
+
   end subroutine calc_navel
 
 !=======================================================================
@@ -1284,7 +1284,7 @@ module ice_dyn_evp1d
      ! Indexes, Directions are east, weast, north and south
      ! This is done to reduce the search windows.
      ! Iw runs from 1 to navel and the one to keep in the end
-     ! Iw_inner_{direction} contains the indexes for 
+     ! Iw_inner_{direction} contains the indexes for
 
      integer(kind=int_kind) :: &
         iw, n_outer_east, n_outer_west, n_outer_south, n_outer_north
@@ -1292,8 +1292,8 @@ module ice_dyn_evp1d
      integer(kind=int_kind) :: i, j, ifind, jfind !  2d index. ifind and jfind are points on the boundary
 
      integer(kind=int_kind), dimension(ny) :: &
-        halo_outer_east, halo_outer_west,      & 
-        ind_inner_west , ind_inner_east   
+        halo_outer_east, halo_outer_west,      &
+        ind_inner_west , ind_inner_east
 
      integer(kind=int_kind), dimension(nx) :: &
         halo_outer_south, halo_outer_north,    &

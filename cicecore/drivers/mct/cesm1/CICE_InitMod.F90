@@ -241,7 +241,7 @@
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
 
-      call dealloc_grid         ! deallocate temporary grid arrays                                                                                              
+      call dealloc_grid         ! deallocate temporary grid arrays
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
       endif
