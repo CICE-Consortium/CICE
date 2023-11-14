@@ -5,14 +5,17 @@
 ! FIXME: For now it allocates all water point, which in most cases could be avoided.
 !===============================================================================
 ! Created by Till Rasmussen (DMI), Mads Hvid Ribergaard (DMI), and Jacob W. Poulsen, Intel
+
 module ice_dyn_evp1d
+
   !- modules -------------------------------------------------------------------
   use ice_kinds_mod
+  use ice_blocks, only: nx_block, ny_block, nghost
   use ice_constants
   use ice_communicate, only: my_task, master_task
+  use ice_domain_size, only: max_blocks, nx_global, ny_global
   use ice_fileunits, only: nu_diag
   use ice_exit, only: abort_ice
-  !  none so far ...
 
   !- directives ----------------------------------------------------------------
   implicit none
@@ -24,13 +27,10 @@ module ice_dyn_evp1d
   !- private routines ----------------------------------------------------------
 
   !- private vars --------------------------------------------------------------
-  ! nx and ny are module variables for arrays after gather (G_*) Dimension according to CICE is nx_global+2*nghost,
-  ! ny_global+2*nghost
+  ! nx and ny are module variables for arrays after gather (G_*) Dimension according to CICE is 
+  ! nx_global+2*nghost, ny_global+2*nghost
   ! nactive are number of active points (both t and u). navel is number of active
   integer(kind=int_kind), save :: nx, ny, nActive, navel, nallocated
-
-  ! cice variables imported
-  integer(kind=int_kind), save :: nghost, nx_block, ny_block, max_block
 
   ! indexes 
   integer(kind=int_kind), allocatable, dimension(:,:) :: iwidx
@@ -59,81 +59,62 @@ module ice_dyn_evp1d
   integer(kind=int_kind)                              ::                       &
     n_inner_east, n_inner_west, n_inner_north, n_inner_south
   
+!=============================================================================
   contains
+!=============================================================================
+! module public subroutines 
+! In addition all water points are assumed to be active and allocated thereafter.
+!=============================================================================
 
-  !=============================================================================
-  ! module public subroutines 
+  subroutine dyn_evp1d_init
 
-  !=============================================================================
-  ! This follows CICE naming
-  ! In addition all water points are assumed to be active and allocated thereafter.
-  subroutine dyn_evp1d_init(nx_global, ny_global, cnx_block, cny_block,        &
-                            cmax_block, cnghost ,                              &
-                            L_dyT, L_dxT, L_uarear, L_tmask, G_HTE, G_HTN)
+    use ice_grid, only: dyT, dxT, uarear, tmask, G_HTE, G_HTN
 
-    ! Note that TMask is ocean/land
     implicit none
 
-    integer(kind=int_kind), intent(in)  ::                            &
-      nx_global, ny_global, cnx_block, cny_block, cmax_block, cnghost
-    real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::          &
-      L_dyT, L_dxT, L_uarear
-    logical(kind=log_kind), dimension(:,:,:), intent(in)  ::          &
-      L_tmask
+    ! local variables
 
-    ! variables for Global arrays (domain size)
-    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout), allocatable, optional  :: G_HTE,G_HTN
-    real(kind=dbl_kind)   , dimension(:,:)  , allocatable :: G_dyT, G_dxT, G_uarear
-    logical(kind=log_kind), dimension(:,:)  , allocatable :: G_tmask
+    real(kind=dbl_kind)   , allocatable, dimension(:,:) :: G_dyT, G_dxT, G_uarear
+    logical(kind=log_kind), allocatable, dimension(:,:) :: G_tmask
+
+    integer(kind=int_kind) :: ios, ierr
 
     character(len=*), parameter :: subname = '(dyn_evp1d_init)'
-    integer(kind=int_kind)                                :: ios, ierr
-
-    nx_block=cnx_block
-    ny_block=cny_block
-    nghost=cnghost
-    max_block=cmax_block
 
     nx=nx_global+2*nghost
     ny=ny_global+2*nghost
 
     allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny),stat=ierr)
-
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
     ! gather from blks to global
-    call gather_static(L_uarear,  L_dxT, L_dyT, L_Tmask, &
-                       G_uarear,  G_dxT, G_dyT, G_Tmask)
+    call gather_static(  uarear,    dxT,   dyT,   tmask, &
+                       G_uarear,  G_dxT, G_dyT, G_tmask)
 
     ! calculate number of water points (T and U). Only needed for the static version
-    ! Tmask in ocean/ice
+    ! tmask in ocean/ice
     if (my_task == master_task) then
-      call halo_HTE_HTN(G_HTE)
-      call halo_HTE_HTN(G_HTN)
-      call calc_nActiveTU(G_Tmask,nActive)
+      call calc_nActiveTU(G_tmask,nActive)
       call evp1d_alloc_static_na(nActive)
-      call calc_2d_indices_init(nActive, G_Tmask)
+      call calc_2d_indices_init(nActive, G_tmask)
       call calc_navel(nActive, navel)
       call evp1d_alloc_static_navel(navel)
       call numainit(1,nActive,navel)
       call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
       call evp1d_alloc_static_halo()
-      deallocate(G_HTN,G_HTE,stat=ierr)
-      if (ierr/=0) then
-         call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
-      endif
     endif
 
-      deallocate(G_dyT,G_dxT,G_uarear,G_tmask,stat=ierr)
+    deallocate(G_dyT,G_dxT,G_uarear,G_tmask,stat=ierr)
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
     endif
 
   end subroutine dyn_evp1d_init
 
-  !=============================================================================
+!=============================================================================
+
   subroutine dyn_evp1d_run(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                            L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                            L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
@@ -153,21 +134,24 @@ module ice_dyn_evp1d
 
     implicit none
 
+    ! nx_block, ny_block, max_blocks
     real(kind=dbl_kind)   , dimension(:,:,:), intent(inout) :: &
       L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 ,  &
       L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 ,  &
       L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4,  &
       L_strintxU  , L_strintyU  , L_uvel      , L_vvel      ,  &
       L_taubxU    , L_taubyU
-
     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) ::    &
       L_strength  ,                                            &
       L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn   ,      &
       L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU,      &
       L_umassdti  , L_fmU       , L_Tbu               
+    logical(kind=log_kind), dimension(:,:,:), intent(in) ::    &
+      L_iceUmask  , L_iceTmask
 
-    logical(kind=log_kind), dimension (:,:,:), intent(in) :: L_iceUmask, L_iceTmask
+    ! local variables
 
+    ! nx, ny
     real(kind=dbl_kind),    dimension(nx,ny) ::                &
       G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 ,  &
       G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 ,  &
@@ -178,8 +162,8 @@ module ice_dyn_evp1d
       G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  ,  &
       G_Tbu       , G_uvel     , G_vvel       , G_taubxU    ,  &
       G_taubyU                  ! G_taubxU and G_taubyU are post processed from Cb
-
-    logical(kind=log_kind), dimension (nx,ny) :: G_iceUmask, G_iceTmask
+    logical(kind=log_kind), dimension (nx,ny) ::                 &
+      G_iceUmask  , G_iceTmask
 
     character(len=*), parameter :: subname = '(dyn_evp1d_run)'
 
@@ -328,9 +312,11 @@ module ice_dyn_evp1d
     ! call cp_2dto1d(nActive)   
     ! FIXME THIS IS THE LOGIC FOR RE ALLOCATION IF NEEDED
     ! call add_1d(nx, ny, natmp, iceTmask_log, iceUmask, ts)
+
   end subroutine dyn_evp1d_run
 
-  !=============================================================================
+!=============================================================================
+
   subroutine dyn_evp1d_finalize()
     implicit none
 
@@ -342,7 +328,8 @@ module ice_dyn_evp1d
 
   end subroutine dyn_evp1d_finalize
 
-  !=============================================================================
+!=============================================================================
+
   subroutine evp1d_alloc_static_na(na0)
     implicit none
 
@@ -420,9 +407,10 @@ module ice_dyn_evp1d
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
-   end subroutine evp1d_alloc_static_na
+  end subroutine evp1d_alloc_static_na
 
-  !=============================================================================
+!=============================================================================
+
   subroutine evp1d_alloc_static_navel(navel0) 
     implicit none
 
@@ -442,7 +430,8 @@ module ice_dyn_evp1d
 
   end subroutine evp1d_alloc_static_navel
 
-  !=============================================================================
+!=============================================================================
+
   subroutine evp1d_alloc_static_halo()
 
     implicit none
@@ -472,8 +461,10 @@ module ice_dyn_evp1d
 
   end subroutine evp1d_alloc_static_halo
 
-  !=============================================================================
+!=============================================================================
+
   subroutine calc_nActiveTU(Tmask,na0, Umask)
+
     ! Calculate number of active points with a given mask.
 
     implicit none
@@ -486,24 +477,26 @@ module ice_dyn_evp1d
     na0=0
     if (present(Umask)) then
        do i=1+nghost,nx
-         do j=1+nghost,ny
-           if ((Tmask(i,j)) .or. (Umask(i,j))) then
+       do j=1+nghost,ny
+          if ((Tmask(i,j)) .or. (Umask(i,j))) then
              na0=na0+1
-           endif
-         enddo
+          endif
+       enddo
        enddo
     else
        do i=1+nghost,nx
-         do j=1+nghost,ny
-           if (Tmask(i,j)) then
+       do j=1+nghost,ny
+          if (Tmask(i,j)) then
              na0=na0+1
-           endif
-         enddo
+          endif
+       enddo
        enddo
     endif
+
   end subroutine calc_nActiveTU
 
-  !=============================================================================
+!=============================================================================
+
   subroutine set_skipMe(iceTmask, iceUmask,na0)
 
     implicit none
@@ -529,9 +522,11 @@ module ice_dyn_evp1d
       if (j == ny)  skipUcell(iw)=.true.
     enddo
     !    write(nu_diag,*) 'number of points and Active points', na0, niw
+
   end subroutine set_skipMe
 
-  !=============================================================================
+!=============================================================================
+
   subroutine calc_2d_indices_init(na0, Tmask)
     ! All points are active. Need to find neighbors.
     ! This should include de selection of u points.
@@ -539,7 +534,9 @@ module ice_dyn_evp1d
     implicit none
 
     integer(kind=int_kind), intent(in) :: na0
-    logical(kind=log_kind), dimension(nx, ny), intent(in) :: Tmask
+    ! nx, ny
+    logical(kind=log_kind), dimension(:,:), intent(in) :: Tmask
+
     ! local variables
 
     integer(kind=int_kind) :: i, j, Nmaskt
@@ -550,17 +547,19 @@ module ice_dyn_evp1d
     Nmaskt = 0
     ! NOTE: T mask includes northern and eastern ghost cells
     do j = 1 + nghost, ny
-       do i = 1 + nghost, nx
-          if (Tmask(i,j)) then
-             Nmaskt = Nmaskt + 1
-             indxti(Nmaskt) = i
-             indxtj(Nmaskt) = j
-          end if
-       end do
+    do i = 1 + nghost, nx
+       if (Tmask(i,j)) then
+          Nmaskt = Nmaskt + 1
+          indxti(Nmaskt) = i
+          indxtj(Nmaskt) = j
+       end if
     end do
+    end do
+
   end subroutine calc_2d_indices_init
 
-  !=============================================================================
+!=============================================================================
+
   subroutine union(x, y, xdim, ydim, xy, nxy)
 
     ! Find union (xy) of two sorted integer vectors (x and y), i.e.
@@ -570,7 +569,9 @@ module ice_dyn_evp1d
     integer(kind=int_kind), intent(in)  :: x(1:xdim), y(1:ydim)
     integer(kind=int_kind), intent(out) :: xy(1:xdim + ydim)
     integer(kind=int_kind), intent(out) :: nxy
+
     ! local variables
+
     integer(kind=int_kind) :: i, j, k
     character(len=*), parameter :: subname = '(union)'
 
@@ -604,22 +605,28 @@ module ice_dyn_evp1d
       k = k + 1
     enddo
     nxy = k - 1
+
   end subroutine union
 
-  !=============================================================================
-  subroutine gather_static(L_uarear, L_dxT, L_dyT,L_Tmask, G_uarear,G_dxT,G_dyT, G_Tmask)
+!=============================================================================
+
+  subroutine gather_static(L_uarear, L_dxT, L_dyT, L_Tmask, &
+                           G_uarear, G_dxT, G_dyT, G_Tmask)
+
      ! In standalone  distrb_info is an integer. Not needed anyway
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : gather_global_ext
      use ice_domain, only : distrb_info
      implicit none
 
-     real(kind=dbl_kind)   , dimension(nx_block, ny_block, max_block), intent(in) :: &
-        L_uarear,  L_dxT, L_dyT
+     ! nx_block, ny_block, max_blocks
+     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) :: L_uarear, L_dxT, L_dyT
+     logical(kind=log_kind), dimension(:,:,:), intent(in) :: L_Tmask
 
-     logical(kind=log_kind), dimension(nx_block, ny_block, max_block), intent(in) :: L_Tmask
-     real(kind=dbl_kind)   , dimension(:, :), intent(out) :: G_uarear,G_dxT,G_dyT
-     logical(kind=log_kind), dimension(:, :), intent(out) :: G_Tmask
+     ! nx, ny
+     real(kind=dbl_kind)   , dimension(:,:), intent(out) :: G_uarear, G_dxT, G_dyT
+     logical(kind=log_kind), dimension(:,:), intent(out) :: G_Tmask
+
      character(len=*), parameter :: subname = '(gather_static)'
 
      ! copy from distributed I_* to G_*
@@ -627,9 +634,11 @@ module ice_dyn_evp1d
      call gather_global_ext(G_dxT   , L_dxT   , master_task, distrb_info)
      call gather_global_ext(G_dyT   , L_dyT   , master_task, distrb_info)
      call gather_global_ext(G_Tmask , L_Tmask , master_task, distrb_info)
+
   end subroutine gather_static
 
-  !=============================================================================
+!=============================================================================
+
   subroutine gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                         L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4 , &
@@ -654,30 +663,32 @@ module ice_dyn_evp1d
      use ice_domain, only : distrb_info
      implicit none
 
-     real(kind=dbl_kind)   , dimension(nx_block, ny_block, max_block), intent(in)  :: &
-        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4,                        &
-        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4,                        &
-        L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4,                        &
-        L_strength,                                                                   &
-        L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn      ,                        &
-        L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU   ,                        &
-        L_umassdti  , L_fmU       ,                                                   &
+     ! nx_block, ny_block, max_blocks 
+     real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
+        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+        L_strength  ,                                           &
+        L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
+        L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
+        L_umassdti  , L_fmU       ,                             &
         L_Tbu       , L_uvel      , L_vvel
+     logical(kind=log_kind), dimension(:,:,:), intent(in)  ::   &
+        L_iceUmask  , L_iceTmask
 
-     logical(kind=log_kind), dimension(nx_block, ny_block, max_block), intent(in)  :: &
-        L_iceUmask, L_iceTmask
-
-     real(kind=dbl_kind)   , dimension(nx, ny)                       , intent(out) :: &
-        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4,                        &
-        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4,                        &
-        G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4,                        &
-        G_strength,                                                                   &
-        G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn     ,                        &
-        G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU  ,                        &
-        G_umassdti  , G_fmU       ,                                                   &
+     ! nx, ny
+     real(kind=dbl_kind)   , dimension(:,:), intent(out) ::     &
+        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
+        G_strength,                                             &
+        G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
+        G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
+        G_umassdti  , G_fmU       ,                             &
         G_Tbu       , G_uvel      , G_vvel
+     logical(kind=log_kind), dimension(:,:), intent(out) ::     &
+        G_iceUmask  , G_iceTmask
 
-     logical(kind=log_kind), dimension(nx, ny), intent(out) :: G_iceUmask, G_iceTmask
      character(len=*), parameter :: subname = '(gather_dyn)'
 
      ! copy from distributed I_* to G_*
@@ -718,7 +729,8 @@ module ice_dyn_evp1d
 
   end subroutine gather_dyn
 
-  !=============================================================================
+!=============================================================================
+
   subroutine scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                          L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                          L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
@@ -735,19 +747,22 @@ module ice_dyn_evp1d
      use ice_domain, only : distrb_info
      implicit none
 
-     real(kind=dbl_kind), dimension(nx_block, ny_block, max_block), intent(out) :: &
-        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 ,                    &
-        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 ,                    &
-        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4,                    &
-        L_strintxU  , L_strintyU  , L_uvel      , L_vvel      ,                    &
+     ! nx_block, ny_block, max_blocks 
+     real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+        L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
         L_taubxU    , L_taubyU
 
-     real(kind=dbl_kind), dimension(nx, ny), intent(in) ::      &
+     ! nx, ny
+     real(kind=dbl_kind), dimension(:,:), intent(in) ::         &
         G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
         G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
         G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
         G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
         G_taubxU    , G_taubyU
+
      character(len=*), parameter :: subname = '(scatter_dyn)'
     
      call scatter_global_ext(L_stressp_1,  G_stressp_1,  master_task, distrb_info)
@@ -774,13 +789,15 @@ module ice_dyn_evp1d
 
   end subroutine scatter_dyn
 
-  !=============================================================================
+!=============================================================================
+
   subroutine convert_2d_1d_init(na0, G_HTE, G_HTN, G_uarear,  G_dxT, G_dyT)
 
      implicit none
 
      integer(kind=int_kind), intent(in) ::  na0
      real (kind=dbl_kind), dimension(:, :), intent(in) :: G_HTE, G_HTN, G_uarear, G_dxT, G_dyT
+
      ! local variables
 
      integer(kind=int_kind) :: iw, lo, up, j, i
@@ -849,9 +866,11 @@ module ice_dyn_evp1d
         HTEm1(iw)      = G_HTE(i - 1, j)
         HTNm1(iw)      = G_HTN(i, j - 1)
      end do
+
   end subroutine convert_2d_1d_init
 
-  !=============================================================================
+!=============================================================================
+
   subroutine convert_2d_1d_dyn(na0         ,                                           &
                                G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
                                G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
@@ -864,6 +883,8 @@ module ice_dyn_evp1d
      implicit none
 
      integer(kind=int_kind), intent(in) ::  na0
+
+     ! nx, ny
      real(kind=dbl_kind), dimension(:, :), intent(in) :: &
         G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4, &
         G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4, &
@@ -923,9 +944,11 @@ module ice_dyn_evp1d
         uvel(iw)=G_uvel(i,j)
         vvel(iw)=G_vvel(i,j)
      end do
+
   end subroutine convert_2d_1d_dyn
 
-  !=============================================================================
+!=============================================================================
+
   subroutine convert_1d_2d_dyn(na0         , navel0      ,                             &
                                G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
                                G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
@@ -940,6 +963,7 @@ module ice_dyn_evp1d
      implicit none
 
      integer(kind=int_kind), intent(in) ::  na0, navel0
+     ! nx, ny
      real(kind=dbl_kind), dimension(:, :), intent(inout) ::     &
         G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
         G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
@@ -987,9 +1011,11 @@ module ice_dyn_evp1d
         G_uvel(i,j)       = uvel(iw)
         G_vvel(i,j)       = vvel(iw)
      end do       
+
   end subroutine convert_1d_2d_dyn
 
-  !=======================================================================
+!=======================================================================
+
   subroutine setdiff(x, y,  lvecx, lvecy,xy, nxy)
      ! Find element (xy) of two sorted integer vectors (x and y) that
      ! are in x, but not in y, or in y, but not in x
@@ -1037,9 +1063,11 @@ module ice_dyn_evp1d
         k = k + 1
      end do
      nxy = k - 1
+
   end subroutine setdiff
 
-  !=======================================================================
+!=======================================================================
+
   subroutine findXinY(x, y, lvecx, lvecy, indx)
      ! Find indx vector so that x(1:na) = y(indx(1:na))
      !
@@ -1085,7 +1113,8 @@ module ice_dyn_evp1d
 
   end subroutine findXinY
 
-  !=======================================================================
+!=======================================================================
+
   subroutine calc_navel(na0, navel0)
      ! Calculate number of active points, including halo points
 
@@ -1130,7 +1159,8 @@ module ice_dyn_evp1d
        
   end subroutine calc_navel
 
-  !=======================================================================
+!=======================================================================
+
   subroutine numainit(lo,up,uu)
 
      implicit none
@@ -1202,9 +1232,11 @@ module ice_dyn_evp1d
         str8(iw)=c0
      enddo
      !$omp end parallel do
+
   end subroutine numainit
 
-  !=======================================================================
+!=======================================================================
+
   subroutine evp1d_halo_update()
 
      implicit none
@@ -1234,7 +1266,8 @@ module ice_dyn_evp1d
 
   end subroutine evp1d_halo_update
 
-  !=======================================================================
+!=======================================================================
+
   subroutine calc_halo_parent(na0,navel0)
      ! splits the global domain in east and west boundary and find the inner (within) the domain and the outer (outside the domain)
      ! Implementation for circular boundaries. This means that mathes between the opposite directions must be found
@@ -1429,41 +1462,7 @@ module ice_dyn_evp1d
 
   end subroutine calc_halo_parent
 
-  subroutine halo_HTE_HTN(ARRAY)
-
-  !  This subroutine adds ghost cells to HTE and HTN
-
-  use ice_domain, only: ew_boundary_type, ns_boundary_type
-
-  real (kind=dbl_kind), dimension(:,:), intent(inout) :: &
-     ARRAY
-
-  character(len=*), parameter :: &
-     subname = '(halo_HTE_HTN)'
-
-     if (ns_boundary_type =='cyclic') then
-        array(:,1)  = array(:,ny-1)
-        array(:,ny) = array(:,2)
-     elseif (ns_boundary_type == 'open') then
-        array(:,1)  = array(:,2)
-        array(:,ny) = array(:,ny-1)
-     else
-        array(:,1)  = c0
-        array(:,ny) = c0
-     endif
-
-     if (ew_boundary_type =='cyclic') then
-        array(1,:)  = array(nx-1,:)
-        array(nx,:) = array(2,:)
-     elseif (ew_boundary_type == 'open') then
-        array(1,:)  = array(2,:)
-        array(nx,:) = array(nx-1,:)
-     else
-        array(1,:)  = c0
-        array(nx,:) = c0
-     endif
-
-  end subroutine halo_HTE_HTN
+!=======================================================================
 
 end module ice_dyn_evp1d
 

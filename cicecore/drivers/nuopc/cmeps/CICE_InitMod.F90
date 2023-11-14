@@ -32,7 +32,7 @@ contains
 
     use ice_init          , only: input_data
     use ice_init_column   , only: input_zbgc, count_tracers
-    use ice_grid          , only: init_grid1, alloc_grid
+    use ice_grid          , only: init_grid1, alloc_grid, dealloc_grid
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
@@ -200,6 +200,8 @@ contains
 
     call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
     call init_flux_ocn        ! initialize ocean fluxes sent to coupler
+
+    call dealloc_grid         ! deallocate temporary grid arrays                                                                                              
 
   end subroutine cice_init2
 

@@ -105,7 +105,7 @@
                           grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, &
                           grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, dxscale, dyscale, scale_dxdy, &
-                          lonrefrect, latrefrect, pgl_global_ext
+                          lonrefrect, latrefrect, save_ghte_ghtn
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 evp_algorithm, visc_method,     &
                                 seabed_stress, seabed_stress_method,  &
@@ -375,7 +375,7 @@
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       evp_algorithm = 'standard_2d'  ! EVP kernel (standard_2d=standard cice evp; shared_mem_1d=1d shared memory and no mpi
       elasticDamp = 0.36_dbl_kind    ! coefficient for calculating the parameter E
-      pgl_global_ext = .false.       ! if true, init primary grid lengths (global ext.)
+      save_ghte_ghtn = .false.       ! if true, save global hte and htn (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.   ! if true, use revised procedure for evp dynamics
@@ -874,10 +874,6 @@
 #else
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
-      ! If 1d evp dynamics then set variable in order to avoid circular dependencies with dyn_shared
-      if ((kdyn == 1) .and. (evp_algorithm == 'shared_mem_1d')) then
-         pgl_global_ext = .true.
-      endif
 
       !-----------------------------------------------------------------
       ! broadcast namelist settings
@@ -966,7 +962,6 @@
       call broadcast_scalar(ndte,                 master_task)
       call broadcast_scalar(evp_algorithm,        master_task)
       call broadcast_scalar(elasticDamp,          master_task)
-      call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
       call broadcast_scalar(revised_evp,          master_task)
@@ -1258,6 +1253,10 @@
             write(nu_diag,*) subname//' ERROR:   Please review user guide'
          endif
          abort_list = trim(abort_list)//":5"
+      endif
+
+      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d') then
+         save_ghte_ghtn = .true.
       endif
 
       if (kdyn == 2 .and. revised_evp) then
