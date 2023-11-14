@@ -79,7 +79,7 @@
 
       !call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-      !call advance_timestep()  ! advance timestep and update calendar data
+      call advance_timestep()  ! advance timestep and update calendar data
 
       !if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
@@ -1092,7 +1092,7 @@
 
       call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-      call advance_timestep()  ! advance timestep and update calendar data
+      !call advance_timestep()  ! advance timestep and update calendar data
 
       !if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
