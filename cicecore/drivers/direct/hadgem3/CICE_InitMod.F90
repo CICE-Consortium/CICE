@@ -80,7 +80,7 @@
           get_forcing_atmo, get_forcing_ocn, alloc_forcing, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_data, faero_default, alloc_forcing_bgc
-      use ice_grid, only: init_grid1, init_grid2, alloc_grid
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
@@ -213,6 +213,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
+      call dealloc_grid         ! deallocate temporary grid arrays
       if (write_ic) call accum_hist(dt) ! write initial conditions
 
       end subroutine cice_init

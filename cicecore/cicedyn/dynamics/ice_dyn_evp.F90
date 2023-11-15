@@ -134,9 +134,7 @@
       call init_dyn_shared(dt_dyn)
 
       if (evp_algorithm == "shared_mem_1d" ) then
-         call dyn_evp1d_init(nx_global , ny_global, nx_block, ny_block, &
-                             max_blocks, nghost   , dyT     , dxT     , &
-                             uarear    , tmask    , G_HTE   , G_HTN)
+         call dyn_evp1d_init
       endif
 
       allocate( uocnU    (nx_block,ny_block,max_blocks), & ! i ocean current (m/s)
@@ -203,6 +201,7 @@
 
       end subroutine init_evp
 
+!=======================================================================
 #ifdef CICE_IN_NEMO
 ! Wind stress is set during this routine from the values supplied
 ! via NEMO (unless calc_strair is true).  These values are supplied
@@ -254,7 +253,7 @@
           strain_rates_U, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
-       use ice_dyn_evp1d, only: dyn_evp1d_run
+      use ice_dyn_evp1d, only: dyn_evp1d_run
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -801,20 +800,20 @@
 
       if (grid_ice == "B") then
 
-          if (evp_algorithm == "shared_mem_1d" ) then
+         if (evp_algorithm == "shared_mem_1d" ) then
 
-             call dyn_evp1d_run(stressp_1 , stressp_2, stressp_3  , stressp_4 , &
-                                stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
-                                stress12_1, stress12_2, stress12_3, stress12_4, &
-                                strength  ,                                     &
-                                cdn_ocnU  , aiu       , uocnU     , vocnU     , &
-                                waterxU   , wateryU   , forcexU   , forceyU   , &
-                                umassdti  , fmU       , strintxU  , strintyU  , &
-                                Tbu       , taubxU    , taubyU    , uvel      , &
-                                vvel      , icetmask  , iceUmask)
+            call dyn_evp1d_run(stressp_1 , stressp_2, stressp_3  , stressp_4 , &
+                               stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
+                               stress12_1, stress12_2, stress12_3, stress12_4, &
+                               strength  ,                                     &
+                               cdn_ocnU  , aiu       , uocnU     , vocnU     , &
+                               waterxU   , wateryU   , forcexU   , forceyU   , &
+                               umassdti  , fmU       , strintxU  , strintyU  , &
+                               Tbu       , taubxU    , taubyU    , uvel      , &
+                               vvel      , icetmask  , iceUmask)
 
-          else ! evp_algorithm == standard_2d (Standard CICE)
-             do ksub = 1,ndte        ! subcycling
+         else ! evp_algorithm == standard_2d (Standard CICE)
+            do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
                do iblk = 1, nblocks
@@ -868,26 +867,26 @@
                                     uvel, vvel)
 
             enddo  ! sub cycling
-          endif ! evp algorithm
+         endif ! evp algorithm
 
-          !-----------------------------------------------------------------
-          ! save quantities for mechanical redistribution
-          !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! save quantities for mechanical redistribution
+         !-----------------------------------------------------------------
 
-          !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
-          do iblk = 1, nblocks
-                call deformations (nx_block          , ny_block           , &
-                                   icellT      (iblk),                      &
-                                   indxTi    (:,iblk), indxTj     (:,iblk), &
-                                   uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                                   dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                   cxp     (:,:,iblk), cyp      (:,:,iblk), &
-                                   cxm     (:,:,iblk), cym      (:,:,iblk), &
-                                   tarear  (:,:,iblk),                      &
-                                   shear   (:,:,iblk), divu     (:,:,iblk), &
-                                   rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
-          enddo
-          !$OMP END PARALLEL DO
+         !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+         do iblk = 1, nblocks
+            call deformations (nx_block          , ny_block           , &
+                               icellT      (iblk),                      &
+                               indxTi    (:,iblk), indxTj     (:,iblk), &
+                               uvel    (:,:,iblk), vvel     (:,:,iblk), &
+                               dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                               cxp     (:,:,iblk), cyp      (:,:,iblk), &
+                               cxm     (:,:,iblk), cym      (:,:,iblk), &
+                               tarear  (:,:,iblk),                      &
+                               shear   (:,:,iblk), divu     (:,:,iblk), &
+                               rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+         enddo
+         !$OMP END PARALLEL DO
 
       elseif (grid_ice == "C") then
 
@@ -1079,8 +1078,8 @@
 
          do ksub = 1,ndte        ! subcycling
 
-           !$OMP PARALLEL DO PRIVATE(iblk)
-           do iblk = 1, nblocks
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
                call stressCD_T (nx_block            , ny_block            , &
                                                       icellT        (iblk), &
                                 indxTi      (:,iblk), indxTj      (:,iblk), &
@@ -1094,27 +1093,27 @@
                                 stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                 stress12T (:,:,iblk) )
 
-           enddo
-           !$OMP END PARALLEL DO
+            enddo
+            !$OMP END PARALLEL DO
 
-           ! calls ice_haloUpdate, controls bundles and masks
-           call dyn_haloUpdate (halo_info,        halo_info_mask,    &
-                                field_loc_center, field_type_scalar, &
-                                zetax2T, etax2T)
+            ! calls ice_haloUpdate, controls bundles and masks
+            call dyn_haloUpdate (halo_info,        halo_info_mask,    &
+                                 field_loc_center, field_type_scalar, &
+                                 zetax2T, etax2T)
 
-           if (visc_method == 'avg_strength') then
+            if (visc_method == 'avg_strength') then
                call grid_average_X2Y('S', strength, 'T', strengthU, 'U')
-           elseif (visc_method == 'avg_zeta') then
+            elseif (visc_method == 'avg_zeta') then
                call grid_average_X2Y('S', zetax2T , 'T', zetax2U  , 'U')
                call grid_average_X2Y('S', etax2T  , 'T', etax2U   , 'U')
-           endif
+            endif
 
-           !$OMP PARALLEL DO PRIVATE(iblk)
-           do iblk = 1, nblocks
-           !-----------------------------------------------------------------
-           ! strain rates at U point
-           ! NOTE these are actually strain rates * area  (m^2/s)
-           !-----------------------------------------------------------------
+            !$OMP PARALLEL DO PRIVATE(iblk)
+            do iblk = 1, nblocks
+            !-----------------------------------------------------------------
+            ! strain rates at U point
+            ! NOTE these are actually strain rates * area  (m^2/s)
+            !-----------------------------------------------------------------
                call strain_rates_U (nx_block           , ny_block           , &
                                                          icellU       (iblk), &
                                     indxUi     (:,iblk), indxUj     (:,iblk), &
