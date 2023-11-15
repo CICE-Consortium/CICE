@@ -35,17 +35,21 @@ module ice_dyn_evp1d
   ! indexes
   integer(kind=int_kind), allocatable, dimension(:,:) :: iwidx
   logical(kind=log_kind), allocatable, dimension(:)   :: skipTcell,skipUcell
-  real   (kind=dbl_kind), allocatable, dimension(:)   :: HTE,HTN, HTEm1,HTNm1
   integer(kind=int_kind), allocatable, dimension(:)   :: ee,ne,se,nw,sw,sse ! arrays for neighbour points
   integer(kind=int_kind), allocatable, dimension(:)   :: indxti, indxtj, indxTij
 
   ! 1D arrays to allocate
-  real(kind=dbl_kind)   , allocatable, dimension(:)   ::                          &
-    cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,uarear_1d, &
-    strintxU,strintyU,uvel_init,vvel_init,                                        &
-    strength, uvel, vvel, dxT_1d, dyT_1d,                                         &
-    stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,             &
-    stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4,         &
+
+  ! Grid
+  real   (kind=dbl_kind), allocatable, dimension(:)   :: &
+     HTE_1d,HTN_1d, HTEm1_1d,HTNm1_1d, dxT_1d, dyT_1d, uarear_1d
+
+  ! time varying
+  real(kind=dbl_kind)   , allocatable, dimension(:)   ::                  &
+    cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,   &
+    strintxU,strintyU,uvel_init,vvel_init, strength, uvel, vvel,          &
+    stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,     &
+    stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, &
     str1, str2, str3, str4, str5, str6, str7, str8, Tbu, Cb
 
   ! halo updates for circular domains
@@ -217,9 +221,9 @@ module ice_dyn_evp1d
        call ice_timer_start(timer_evp1dcore)
 #ifdef _OPENMP_TARGET
        !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,&
-       !$omp                 strength, dxT_1d, dyT_1d, HTE,HTN,HTEm1, HTNm1,   &
-       !$omp                 forcexU, forceyU, umassdti, fmU, uarear_1d,       &
-       !$omp                 uvel_init, vvel_init, Tbu, Cb,                    &
+       !$omp                 strength, dxT_1d, dyT_1d, HTE_1d,HTN_1d,HTEm1_1d, &
+       !$omp                 HTNm1_1d,forcexU, forceyU, umassdti, fmU,         &
+       !$omp                 uarear_1d,uvel_init, vvel_init, Tbu, Cb,          &
        !$omp                 str1, str2, str3, str4, str5, str6, str7, str8,   &
        !$omp                 cdn_ocn, aiu, uocn, vocn, waterxU, wateryU, rhow  &
        !$omp             map(tofrom: uvel,vvel,                                &
@@ -241,7 +245,7 @@ module ice_dyn_evp1d
        do ksub = 1,ndte        ! subcycling
           call stress_1d (ee, ne, se, 1, nActive,                                    &
                           uvel, vvel, dxT_1d, dyT_1d, skipTcell, strength,           &
-                          HTE, HTN, HTEm1, HTNm1,                                    &
+                          HTE_1d, HTN_1d, HTEm1_1d, HTNm1_1d,                        &
                           stressp_1,  stressp_2,  stressp_3,  stressp_4,             &
                           stressm_1,  stressm_2,  stressm_3,  stressm_4,             &
                           stress12_1, stress12_2, stress12_3, stress12_4,            &
@@ -366,10 +370,10 @@ module ice_dyn_evp1d
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
-    allocate( HTE       (1:na0), &
-              HTN       (1:na0), &
-              HTEm1     (1:na0), &
-              HTNm1     (1:na0), &
+    allocate( HTE_1d    (1:na0), &
+              HTN_1d    (1:na0), &
+              HTEm1_1d  (1:na0), &
+              HTNm1_1d  (1:na0), &
               dxT_1d    (1:na0), &
               dyT_1d    (1:na0), &
               strength  (1:na0), &
@@ -856,10 +860,10 @@ module ice_dyn_evp1d
         uarear_1d(iw)  = G_uarear(i, j)
         dxT_1d(iw)     = G_dxT(i, j)
         dyT_1d(iw)     = G_dyT(i, j)
-        HTE(iw)        = G_HTE(i, j)
-        HTN(iw)        = G_HTN(i, j)
-        HTEm1(iw)      = G_HTE(i - 1, j)
-        HTNm1(iw)      = G_HTN(i, j - 1)
+        HTE_1d(iw)     = G_HTE(i, j)
+        HTN_1d(iw)     = G_HTN(i, j)
+        HTEm1_1d(iw)   = G_HTE(i - 1, j)
+        HTNm1_1d(iw)   = G_HTN(i, j - 1)
      end do
 
   end subroutine convert_2d_1d_init
@@ -1181,10 +1185,10 @@ module ice_dyn_evp1d
         fmU(iw)=c0
         forcexU(iw)=c0
         forceyU(iw)=c0
-        HTE(iw)=c0
-        HTEm1(iw)=c0
-        HTN(iw)=c0
-        HTNm1(iw)=c0
+        HTE_1d(iw)=c0
+        HTEm1_1d(iw)=c0
+        HTN_1d(iw)=c0
+        HTNm1_1d(iw)=c0
         strength(iw)= c0
         stress12_1(iw)=c0
         stress12_2(iw)=c0
