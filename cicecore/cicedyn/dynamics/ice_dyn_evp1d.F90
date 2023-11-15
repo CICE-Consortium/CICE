@@ -40,12 +40,12 @@ module ice_dyn_evp1d
   integer(kind=int_kind), allocatable, dimension(:)   :: indxti, indxtj, indxTij
 
   ! 1D arrays to allocate
-  real(kind=dbl_kind)   , allocatable, dimension(:)   ::                       &
-    cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,uarear, &
-    strintxU,strintyU,uvel_init,vvel_init,                                     &
-    strength, uvel, vvel, dxt, dyt,                                            &
-    stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,          &
-    stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4,      &
+  real(kind=dbl_kind)   , allocatable, dimension(:)   ::                          &
+    cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,uarear_1d, &
+    strintxU,strintyU,uvel_init,vvel_init,                                        &
+    strength, uvel, vvel, dxT_1d, dyT_1d,                                         &
+    stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,             &
+    stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4,         &
     str1, str2, str3, str4, str5, str6, str7, str8, Tbu, Cb
 
   ! halo updates for circular domains
@@ -68,7 +68,7 @@ module ice_dyn_evp1d
 
   subroutine dyn_evp1d_init
 
-    use ice_grid, only: dyT, dxT, uarear, tmask, G_HTE, G_HTN
+    use ice_grid, only: G_HTE, G_HTN
 
     implicit none
 
@@ -90,8 +90,7 @@ module ice_dyn_evp1d
     endif
 
     ! gather from blks to global
-    call gather_static(  uarear,    dxT,   dyT,   tmask, &
-                       G_uarear,  G_dxT, G_dyT, G_tmask)
+    call gather_static(G_uarear,  G_dxT, G_dyT, G_tmask)
 
     ! calculate number of water points (T and U). Only needed for the static version
     ! tmask in ocean/ice
@@ -218,8 +217,8 @@ module ice_dyn_evp1d
        call ice_timer_start(timer_evp1dcore)
 #ifdef _OPENMP_TARGET
        !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,&
-       !$omp                 strength, dxT, dyT, HTE,HTN,HTEm1, HTNm1,         &
-       !$omp                 forcexU, forceyU, umassdti, fmU, uarear,          &
+       !$omp                 strength, dxT_1d, dyT_1d, HTE,HTN,HTEm1, HTNm1,   &
+       !$omp                 forcexU, forceyU, umassdti, fmU, uarear_1d,       &
        !$omp                 uvel_init, vvel_init, Tbu, Cb,                    &
        !$omp                 str1, str2, str3, str4, str5, str6, str7, str8,   &
        !$omp                 cdn_ocn, aiu, uocn, vocn, waterxU, wateryU, rhow  &
@@ -241,30 +240,30 @@ module ice_dyn_evp1d
 
        do ksub = 1,ndte        ! subcycling
           call stress_1d (ee, ne, se, 1, nActive,                                    &
-                          uvel, vvel, dxT, dyT, skipTcell, strength,                 &
+                          uvel, vvel, dxT_1d, dyT_1d, skipTcell, strength,           &
                           HTE, HTN, HTEm1, HTNm1,                                    &
                           stressp_1,  stressp_2,  stressp_3,  stressp_4,             &
                           stressm_1,  stressm_2,  stressm_3,  stressm_4,             &
                           stress12_1, stress12_2, stress12_3, stress12_4,            &
                           str1, str2, str3, str4, str5, str6, str7, str8)
 
-          call stepu_1d  (1, nActive, cdn_ocn, aiu, uocn, vocn,                      &
-                          waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear, &
-                          uvel_init, vvel_init, uvel, vvel,                          &
-                          str1, str2, str3, str4, str5, str6, str7, str8,            &
+          call stepu_1d  (1, nActive, cdn_ocn, aiu, uocn, vocn,                         &
+                          waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear_1d, &
+                          uvel_init, vvel_init, uvel, vvel,                             &
+                          str1, str2, str3, str4, str5, str6, str7, str8,               &
                           nw, sw, sse, skipUcell, Tbu, Cb, rhow)
           call evp1d_halo_update()
        enddo
        ! This can be skipped if diagnostics of strintx and strinty is not needed
        ! They will either both be calculated or not.
-       call calc_diag_1d(1       , nActive  , &
-                         uarear  , skipUcell, &
-                         str1    , str2     , &
-                         str3    , str4     , &
-                         str5    , str6     , &
-                         str7    , str8     , &
-                         nw      , sw       , &
-                         sse     ,            &
+       call calc_diag_1d(1        , nActive  , &
+                         uarear_1d, skipUcell, &
+                         str1     , str2     , &
+                         str3     , str4     , &
+                         str5     , str6     , &
+                         str7     , str8     , &
+                         nw       , sw       , &
+                         sse      ,            &
                          strintxU, strintyU)
 
        call ice_timer_stop(timer_evp1dcore)
@@ -371,8 +370,8 @@ module ice_dyn_evp1d
               HTN       (1:na0), &
               HTEm1     (1:na0), &
               HTNm1     (1:na0), &
-              dxt       (1:na0), &
-              dyt       (1:na0), &
+              dxT_1d    (1:na0), &
+              dyT_1d    (1:na0), &
               strength  (1:na0), &
               stressp_1 (1:na0), &
               stressp_2 (1:na0), &
@@ -397,7 +396,7 @@ module ice_dyn_evp1d
              waterxU  (1:na0), wateryU  (1:na0), &
              forcexU  (1:na0), forceyU  (1:na0), &
              umassdti (1:na0), fmU      (1:na0), &
-             uarear   (1:na0),                   &
+             uarear_1d(1:na0),                   &
              strintxU (1:na0), strintyU (1:na0), &
              Tbu      (1:na0), Cb       (1:na0), &
              uvel_init(1:na0), vvel_init(1:na0), &
@@ -610,18 +609,14 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine gather_static(L_uarear, L_dxT, L_dyT, L_Tmask, &
-                           G_uarear, G_dxT, G_dyT, G_Tmask)
+  subroutine gather_static(G_uarear, G_dxT, G_dyT, G_Tmask)
 
      ! In standalone  distrb_info is an integer. Not needed anyway
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : gather_global_ext
      use ice_domain, only : distrb_info
+     use ice_grid, only: dyT, dxT, uarear, tmask
      implicit none
-
-     ! nx_block, ny_block, max_blocks
-     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) :: L_uarear, L_dxT, L_dyT
-     logical(kind=log_kind), dimension(:,:,:), intent(in) :: L_Tmask
 
      ! nx, ny
      real(kind=dbl_kind)   , dimension(:,:), intent(out) :: G_uarear, G_dxT, G_dyT
@@ -630,10 +625,10 @@ module ice_dyn_evp1d
      character(len=*), parameter :: subname = '(gather_static)'
 
      ! copy from distributed I_* to G_*
-     call gather_global_ext(G_uarear, L_uarear, master_task, distrb_info)
-     call gather_global_ext(G_dxT   , L_dxT   , master_task, distrb_info)
-     call gather_global_ext(G_dyT   , L_dyT   , master_task, distrb_info)
-     call gather_global_ext(G_Tmask , L_Tmask , master_task, distrb_info)
+     call gather_global_ext(G_uarear, uarear, master_task, distrb_info)
+     call gather_global_ext(G_dxT   , dxT   , master_task, distrb_info)
+     call gather_global_ext(G_dyT   , dyT   , master_task, distrb_info)
+     call gather_global_ext(G_Tmask , Tmask , master_task, distrb_info)
 
   end subroutine gather_static
 
@@ -858,9 +853,9 @@ module ice_dyn_evp1d
         i = indxti(iw)
         j = indxtj(iw)
         ! map
-        uarear(iw)     = G_uarear(i, j)
-        dxT(iw)        = G_dxT(i, j)
-        dyT(iw)        = G_dyT(i, j)
+        uarear_1d(iw)  = G_uarear(i, j)
+        dxT_1d(iw)     = G_dxT(i, j)
+        dyT_1d(iw)     = G_dyT(i, j)
         HTE(iw)        = G_HTE(i, j)
         HTN(iw)        = G_HTN(i, j)
         HTEm1(iw)      = G_HTE(i - 1, j)
@@ -1181,8 +1176,8 @@ module ice_dyn_evp1d
         aiu(iw)=c0
         Cb(iw)=c0
         cdn_ocn(iw)=c0
-        dxt(iw)=c0
-        dyt(iw)=c0
+        dxT_1d(iw)=c0
+        dyT_1d(iw)=c0
         fmU(iw)=c0
         forcexU(iw)=c0
         forceyU(iw)=c0
@@ -1206,7 +1201,7 @@ module ice_dyn_evp1d
         strintxU(iw)= c0
         strintyU(iw)= c0
         Tbu(iw)=c0
-        uarear(iw)=c0
+        uarear_1d(iw)=c0
         umassdti(iw)=c0
         uocn(iw)=c0
         uvel_init(iw)=c0
