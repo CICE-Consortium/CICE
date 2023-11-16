@@ -113,8 +113,7 @@
              ice_HaloUpdate, &
              ice_HaloUpdate_stress, &
              ice_HaloExtrapolate, &
-             ice_HaloDestroy, &
-             primary_grid_lengths_global_ext
+             ice_HaloDestroy
 
    interface ice_HaloUpdate  ! generic interface
       module procedure ice_HaloUpdate2DR8, &
@@ -7164,134 +7163,8 @@ contains
       call abort_ice(subname,' ERROR: deallocating')
       return
    endif
+
 end subroutine ice_HaloDestroy
-
-!***********************************************************************
-
- subroutine primary_grid_lengths_global_ext( &
-   ARRAY_O, ARRAY_I, ew_boundary_type, ns_boundary_type)
-
-!  This subroutine adds ghost cells to global primary grid lengths array
-!  ARRAY_I and outputs result to array ARRAY_O
-
-   use ice_constants, only: c0
-   use ice_domain_size, only: nx_global, ny_global
-
-   real (kind=dbl_kind), dimension(:,:), intent(in) :: &
-      ARRAY_I
-
-   character (*), intent(in) :: &
-      ew_boundary_type, ns_boundary_type
-
-   real (kind=dbl_kind), dimension(:,:), intent(out) :: &
-      ARRAY_O
-
-!-----------------------------------------------------------------------
-!
-!  local variables
-!
-!-----------------------------------------------------------------------
-
-   integer (kind=int_kind) :: &
-      ii, io, ji, jo
-
-   character(len=*), parameter :: &
-      subname = '(primary_grid_lengths_global_ext)'
-
-!-----------------------------------------------------------------------
-!
-!  add ghost cells to global primary grid lengths array
-!
-!-----------------------------------------------------------------------
-
-   if (trim(ns_boundary_type) == 'tripole' .or. &
-       trim(ns_boundary_type) == 'tripoleT') then
-      call abort_ice(subname//' ERROR: '//ns_boundary_type &
-         //' boundary type not implemented for configuration')
-   endif
-
-   do jo = 1,ny_global+2*nghost
-      ji = -nghost + jo
-
-      !*** Southern ghost cells
-
-      if (ji < 1) then
-         select case (trim(ns_boundary_type))
-         case ('cyclic')
-            ji = ji + ny_global
-         case ('open')
-            ji = nghost - jo + 1
-         case ('closed')
-            ji = 0
-         case default
-            call abort_ice( &
-               subname//' ERROR: unknown north-south boundary type')
-         end select
-      endif
-
-      !*** Northern ghost cells
-
-      if (ji > ny_global) then
-         select case (trim(ns_boundary_type))
-         case ('cyclic')
-            ji = ji - ny_global
-         case ('open')
-            ji = 2 * ny_global - ji + 1
-         case ('closed')
-            ji = 0
-         case default
-            call abort_ice( &
-               subname//' ERROR: unknown north-south boundary type')
-         end select
-      endif
-
-      do io = 1,nx_global+2*nghost
-         ii = -nghost + io
-
-         !*** Western ghost cells
-
-         if (ii < 1) then
-            select case (trim(ew_boundary_type))
-            case ('cyclic')
-               ii = ii + nx_global
-            case ('open')
-               ii = nghost - io + 1
-            case ('closed')
-               ii = 0
-            case default
-               call abort_ice( &
-                  subname//' ERROR: unknown east-west boundary type')
-            end select
-         endif
-
-         !*** Eastern ghost cells
-
-         if (ii > nx_global) then
-            select case (trim(ew_boundary_type))
-            case ('cyclic')
-               ii = ii - nx_global
-            case ('open')
-               ii = 2 * nx_global - ii + 1
-            case ('closed')
-               ii = 0
-            case default
-               call abort_ice( &
-                  subname//' ERROR: unknown east-west boundary type')
-            end select
-         endif
-
-         if (ii == 0 .or. ji == 0) then
-            ARRAY_O(io, jo) = c0
-         else
-            ARRAY_O(io, jo) = ARRAY_I(ii, ji)
-         endif
-
-      enddo
-   enddo
-
-!-----------------------------------------------------------------------
-
- end subroutine primary_grid_lengths_global_ext
 
 !***********************************************************************
 

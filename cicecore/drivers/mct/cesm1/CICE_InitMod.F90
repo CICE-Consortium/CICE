@@ -82,7 +82,7 @@
           get_forcing_atmo, get_forcing_ocn, get_wave_spec, init_snowtable
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
           faero_default, alloc_forcing_bgc, fiso_default
-      use ice_grid, only: init_grid1, init_grid2, alloc_grid
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
@@ -241,6 +241,7 @@
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
 
+      call dealloc_grid         ! deallocate temporary grid arrays
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
       endif

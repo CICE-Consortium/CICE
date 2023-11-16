@@ -1221,20 +1221,16 @@
 
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltane        , zetax2   (i,j,1), &
-                              etax2   (i,j,1), rep_prs  (i,j,1), &
-                              capping)
+                              etax2   (i,j,1), rep_prs  (i,j,1))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltanw        , zetax2   (i,j,2), &
-                              etax2   (i,j,2), rep_prs  (i,j,2), &
-                              capping)
+                              etax2   (i,j,2), rep_prs  (i,j,2))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltasw        , zetax2   (i,j,3), &
-                              etax2   (i,j,3), rep_prs  (i,j,3), &
-                              capping)
+                              etax2   (i,j,3), rep_prs  (i,j,3))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltase        , zetax2   (i,j,4), &
-                              etax2   (i,j,4), rep_prs  (i,j,4), &
-                              capping)
+                              etax2   (i,j,4), rep_prs  (i,j,4))
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2

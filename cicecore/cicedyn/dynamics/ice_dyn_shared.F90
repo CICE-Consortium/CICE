@@ -1451,10 +1451,10 @@
 
       character(len=*), parameter :: subname = '(seabed_stress_factor_prob)'
 
-      call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi)
-      call icepack_query_parameters(gravit_out=gravit)
-      call icepack_query_parameters(pi_out=pi)
-      call icepack_query_parameters(puny_out=puny)
+      call icepack_query_parameters(rhow_out=rhow, rhoi_out=rhoi,gravit_out=gravit,pi_out=pi,puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       Tbt=c0
 
@@ -2302,16 +2302,15 @@
 ! by combining tensile strength and a parameterization for grounded ridges.
 ! J. Geophys. Res. Oceans, 121, 7354-7368.
 
-      subroutine visc_replpress(strength, DminArea, Delta, &
-                                zetax2, etax2, rep_prs, capping)
+    subroutine visc_replpress(strength, DminArea, Delta, &
+                                zetax2, etax2, rep_prs)
 
       real (kind=dbl_kind), intent(in)::  &
          strength, & !
          DminArea    !
 
       real (kind=dbl_kind), intent(in)::  &
-         Delta   , & !
-         capping     !
+         Delta
 
       real (kind=dbl_kind), intent(out):: &
          zetax2  , & ! bulk viscosity

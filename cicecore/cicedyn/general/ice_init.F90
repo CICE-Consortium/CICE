@@ -105,7 +105,7 @@
                           grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, &
                           grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
                           dxrect, dyrect, dxscale, dyscale, scale_dxdy, &
-                          lonrefrect, latrefrect, pgl_global_ext
+                          lonrefrect, latrefrect, save_ghte_ghtn
       use ice_dyn_shared, only: ndte, kdyn, revised_evp, yield_curve, &
                                 evp_algorithm, visc_method,     &
                                 seabed_stress, seabed_stress_method,  &
@@ -375,7 +375,7 @@
       ndte = 120         ! subcycles per dynamics timestep:  ndte=dt_dyn/dte
       evp_algorithm = 'standard_2d'  ! EVP kernel (standard_2d=standard cice evp; shared_mem_1d=1d shared memory and no mpi
       elasticDamp = 0.36_dbl_kind    ! coefficient for calculating the parameter E
-      pgl_global_ext = .false.       ! if true, init primary grid lengths (global ext.)
+      save_ghte_ghtn = .false.       ! if true, save global hte and htn (global ext.)
       brlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       arlx   = 300.0_dbl_kind ! revised_evp values. Otherwise overwritten in ice_dyn_shared
       revised_evp = .false.   ! if true, use revised procedure for evp dynamics
@@ -963,7 +963,6 @@
       call broadcast_scalar(ndte,                 master_task)
       call broadcast_scalar(evp_algorithm,        master_task)
       call broadcast_scalar(elasticDamp,          master_task)
-      call broadcast_scalar(pgl_global_ext,       master_task)
       call broadcast_scalar(brlx,                 master_task)
       call broadcast_scalar(arlx,                 master_task)
       call broadcast_scalar(revised_evp,          master_task)
@@ -1258,6 +1257,10 @@
          abort_list = trim(abort_list)//":5"
       endif
 
+      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d') then
+         save_ghte_ghtn = .true.
+      endif
+
       if (kdyn == 2 .and. revised_evp) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: revised_evp = T with EAP dynamics'
@@ -1296,10 +1299,10 @@
       endif
 
       if (grid_ice == 'C' .or. grid_ice == 'CD') then
-         if (kdyn > 1) then
+         if (kdyn > 1 .or. (kdyn == 1 .and. evp_algorithm /= 'standard_2d')) then
             if (my_task == master_task) then
-               write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn<=1 (evp or off)'
-               write(nu_diag,*) subname//' ERROR: kdyn and grid_ice inconsistency'
+              write(nu_diag,*) subname//' ERROR: grid_ice = C | CD only supported with kdyn=1 and evp_algorithm=standard_2d'
+              write(nu_diag,*) subname//' ERROR: kdyn and/or evp_algorithm and grid_ice inconsistency'
             endif
             abort_list = trim(abort_list)//":46"
          endif
@@ -1310,6 +1313,15 @@
             endif
             abort_list = trim(abort_list)//":44"
          endif
+      endif
+
+      if (evp_algorithm == 'shared_mem_1d' .and. &
+          grid_type     == 'tripole') then
+          if (my_task == master_task) then
+              write(nu_diag,*) subname//' ERROR: evp_algorithm=shared_mem_1d is not tested for gridtype=tripole'
+              write(nu_diag,*) subname//' ERROR: change evp_algorithm to standard_2d'
+          endif
+          abort_list = trim(abort_list)//":49"
       endif
 
       capping = -9.99e30
@@ -1833,7 +1845,6 @@
                   tmpstr2 = ' : standard 2d EVP solver'
                elseif (evp_algorithm == 'shared_mem_1d') then
                   tmpstr2 = ' : vectorized 1d EVP solver'
-                  pgl_global_ext = .true.
                else
                   tmpstr2 = ' : unknown value'
                endif
