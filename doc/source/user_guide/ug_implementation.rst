@@ -192,7 +192,9 @@ recommend that the user choose the local domains so that the global
 domain is evenly divided, if this is not possible then the furthest east
 and/or north blocks will contain nonphysical points (“padding”). These
 points are excluded from the computation domain and have little effect
-on model performance.
+on model performance.  nghost is a hardcoded parameter in **ice_blocks.F90**.
+While the halo code has been implement to support arbitrary sized halos,
+nghost is set to 1 and has not been formally tested on larger halos.
 
 .. _fig-grid:
 

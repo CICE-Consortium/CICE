@@ -1593,6 +1593,8 @@
          write(nu_diag,1005) ' phi_snow                  = ', phi_snow
          endif
          write(nu_diag,1010) ' solve_zsal (deprecated)   = ', solve_zsal
+         write(nu_diag,*   ) '     WARNING: zsalinity has been deprecated.  Namelists and interfaces'
+         write(nu_diag,*   ) '              will be removed in a future version'
 
          write(nu_diag,1010) ' skl_bgc                   = ', skl_bgc
          write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
