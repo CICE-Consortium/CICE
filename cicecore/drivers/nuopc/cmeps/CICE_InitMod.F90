@@ -32,7 +32,7 @@ contains
 
     use ice_init          , only: input_data
     use ice_init_column   , only: input_zbgc, count_tracers
-    use ice_grid          , only: init_grid1, alloc_grid, dealloc_grid
+    use ice_grid          , only: init_grid1, alloc_grid
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
@@ -86,6 +86,7 @@ contains
     use ice_forcing          , only: init_snowtable
     use ice_forcing_bgc      , only: get_forcing_bgc, get_atm_bgc
     use ice_forcing_bgc      , only: faero_default, alloc_forcing_bgc, fiso_default
+    use ice_grid             , only: dealloc_grid
     use ice_history          , only: init_hist, accum_hist
     use ice_restart_shared   , only: restart, runtype
     use ice_init             , only: input_data, init_state
