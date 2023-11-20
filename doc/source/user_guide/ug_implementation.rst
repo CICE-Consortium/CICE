@@ -1156,8 +1156,11 @@ io package.  The namelist variable ``history_format`` further refines the
 format approach or style for some io packages.
 
 Model output data can be written as instantaneous or average data as specified
-by the ``hist_avg`` namelist array and is customizable by stream.  The data is 
-written at the period(s) given by ``histfreq`` and
+by the ``hist_avg`` namelist array and is customizable by stream. Characters
+can be added to the "h" character to distinguish the streams. This can be changed
+by modifying ``hist_str`` to something other than "x".
+
+The data written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
 The files are written to binary or netCDF files prepended by ``history_file``
 in **ice_in**. These settings for history files are set in the 
