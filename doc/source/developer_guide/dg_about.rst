@@ -28,7 +28,7 @@ There is extensive Information for Developers documentation available.  See http
 
 
 Coding Standard
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Overall, CICE code should be implemented as follows,
 
@@ -65,10 +65,11 @@ Overall, CICE code should be implemented as follows,
 
        use icepack_intfc, only: icepack_init_parameters
 
-  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack, the Icepack warnings package should be called to flush Icepack output to the CICE log file and abort on an Icepack error
+  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack, **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and **icepack_warnings_aborted** should be check to abort on an Icepack error as follows,
 
     .. code-block:: fortran
 
+       call icepack_physics()
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
