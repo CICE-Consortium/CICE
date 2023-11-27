@@ -325,7 +325,7 @@ section :ref:`tabnamelist`.
    "history_format", "history file format", ""
    "history_precision", "history output precision: 4 or 8 byte", "4"
    "hist_time_axis", "history file time axis interval location: begin, middle, end", "end"
-   "hist_str", "extension to h character in filename. x means no extension", "x,x,x,x,x"
+   "hist_suffix", "extension to h character in filename. x means no extension", "x,x,x,x,x"
    "hm", "land/boundary mask, thickness (T-cell)", ""
    "hmix", "ocean mixed layer depth", "20. m"
    "hour", "hour of the year", ""
