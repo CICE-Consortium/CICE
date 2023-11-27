@@ -1157,8 +1157,8 @@ format approach or style for some io packages.
 
 Model output data can be written as instantaneous or average data as specified
 by the ``hist_avg`` namelist array and is customizable by stream. Characters
-can be added to the "h" character to distinguish the streams. This can be changed
-by modifying ``hist_str`` to something other than "x".
+can be added to the ``history_filename`` to distinguish the streams. This can be changed
+by modifying ``hist_suffix`` to something other than "x".
 
 The data written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
@@ -1200,7 +1200,7 @@ is a character string corresponding to ``histfreq`` or ‘x’ for none.
 files, no matter what the frequency is.) If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
 no file will be written at that frequency. The output period can be
-discerned from the filenames.  Each history stream will be either instantaneous
+discerned from the filenames or the ``hist_suffix`` can be used.  Each history stream will be either instantaneous
 or averaged as specified by the corresponding entry in the ``hist_avg`` namelist array, and the frequency
 will be relative to a reference date specified by the corresponding entry in ``histfreq_base``.
 More information about how the frequency is
