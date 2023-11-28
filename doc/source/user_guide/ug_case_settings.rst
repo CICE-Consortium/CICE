@@ -198,6 +198,7 @@ setup_nml
    "``history_format``", "``default``", "read/write history files in default format", "``default``"
    "", "``pio_pnetcdf``", "read/write restart files with pnetcdf in pio", ""
    "``history_precision``", "integer", "history file precision: 4 or 8 byte", "4"
+   "``hist_suffix``", "character array", "appended to history_file when not x", "``x,x,x,x,x``"
    "``hist_time_axis``","character","history file time axis interval location: begin, middle, end","end"
    "``ice_ic``", "``default``", "equal to internal", "``default``"
    "", "``internal``", "initial conditions set based on ice\_data\_type,conc,dist inputs", ""

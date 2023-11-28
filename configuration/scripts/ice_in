@@ -49,6 +49,7 @@
     histfreq_n     =  1 , 1 , 1 , 1 , 1
     histfreq_base  = 'zero','zero','zero','zero','zero'
     hist_avg       = .true.,.true.,.true.,.true.,.true.
+    hist_suffix    = 'x','x','x','x','x'
     history_dir    = './history/'
     history_file   = 'iceh'
     history_precision = 4

@@ -57,6 +57,9 @@
       character (len=char_len), public :: &
          history_format
 
+      character (len=char_len), public :: &
+         hist_suffix(max_nstrm)  ! appended to 'h' in filename when not 'x'
+
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
       !     Here or in ice_history_[process].F90:
@@ -763,9 +766,7 @@
            endif
 
            cstream = ''
-!echmod ! this was implemented for CESM but it breaks post-processing software
-!echmod ! of other groups (including RASM which uses CESMCOUPLED)
-!echmod         if (ns > 1) write(cstream,'(i1.1)') ns-1
+           if (hist_suffix(ns) /= 'x') cstream = hist_suffix(ns)
 
            if (hist_avg(ns)) then    ! write averaged data
               if (histfreq(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep

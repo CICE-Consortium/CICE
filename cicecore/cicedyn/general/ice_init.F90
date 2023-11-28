@@ -79,7 +79,7 @@
       use ice_restart_shared, only: &
           restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lcdf64
-      use ice_history_shared, only: hist_avg, history_dir, history_file, &
+      use ice_history_shared, only: hist_avg, history_dir, history_file, hist_suffix, &
                              incond_dir, incond_file, version_name, &
                              history_precision, history_format, hist_time_axis
       use ice_flux, only: update_ocn_f, cpl_frazil, l_mpond_fresh
@@ -188,6 +188,7 @@
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
+        hist_suffix,                                                       &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         histfreq_base,  dumpfreq_base,  timer_stats,     memory_stats,  &
         conserv_check,  debug_model,    debug_model_step,               &
@@ -324,6 +325,7 @@
       histfreq_n(:) = 1      ! output frequency
       histfreq_base(:) = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
+      hist_suffix(:) = 'x'   ! appended to 'history_file' in filename when not 'x'
       history_format = 'default' ! history file format
       hist_time_axis = 'end' ! History file time axis averaging interval position
 
@@ -911,6 +913,7 @@
          call broadcast_scalar(histfreq_base(n),  master_task)
          call broadcast_scalar(dumpfreq(n),       master_task)
          call broadcast_scalar(dumpfreq_base(n),  master_task)
+         call broadcast_scalar(hist_suffix(n),       master_task)
       enddo
       call broadcast_array(hist_avg,              master_task)
       call broadcast_array(histfreq_n,            master_task)
@@ -2355,6 +2358,7 @@
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(:)
          write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
+         write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
