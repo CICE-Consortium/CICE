@@ -25,3 +25,53 @@ There is extensive Information for Developers documentation available.  See http
   - Software development practices guide
   - git Workflow Guide - including extensive information about the Pull Request process and requirements
   - Documentation Workflow Guide
+
+
+Coding Standard
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Overall, CICE code should be implemented as follows,
+
+  * Adhere to the current coding and naming conventions
+
+  * Write readable code.  Use meaningful variable names; indent 2 or 3 spaces for loops and conditionals; vertically align similar elements where it makes sense, and provide concise comments throughout the code.
+
+  * Declare common parameters in a shared module.  Do not hardwire the same parameter in the code in multiple places.
+
+  * Maintain bit-for-bit output for the default configuration (to the extent possible).  Use namelist options to add new features.
+
+  * Maintain global conservation of heat, water, salt
+
+  * Use of C preprocessor (CPP) directives should be minimized and only used for build dependent modifications such as use of netcdf (or other "optional" libraries) or for various Fortran features that may not be supported by some compilers. Use namelist to support run-time code options. CPPs should be all caps.
+
+  * All modules should have the following set at the top
+
+    .. code-block:: fortran
+
+       implicit none
+       private
+
+    Any public module interfaces or data should be explicitly specified
+
+  * All subroutines and functions should define the subname character parameter statement to match the interface name like
+
+    .. code-block:: fortran
+
+       character(len=*),parameter :: subname='(advance_timestep)'
+
+  * Public Icepack interfaces should be accessed thru the icepack_intfc module like
+
+    .. code-block:: fortran
+
+       use icepack_intfc, only: icepack_init_parameters
+
+  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack, **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and **icepack_warnings_aborted** should be check to abort on an Icepack error as follows,
+
+    .. code-block:: fortran
+
+       call icepack_physics()
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+
+  * Use of new Fortran features or external libraries need to be balanced against usability and the desire to compile on as many machines and compilers as possible.  Developers are encouraged to contact the Consortium as early as possible to discuss requirements and implementation in this case.
+
