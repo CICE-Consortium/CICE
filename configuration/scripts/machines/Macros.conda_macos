@@ -51,7 +51,7 @@ else
 endif
 
 # Libraries to be passed to the linker
-SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
+SLIBS   := -L$(CONDA_PREFIX)/lib -lpiof -lnetcdf -lnetcdff -llapack -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)
