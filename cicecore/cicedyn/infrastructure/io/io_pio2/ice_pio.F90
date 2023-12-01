@@ -94,11 +94,11 @@
    !--- initialize type of io
    !pio_iotype = PIO_IOTYPE_PNETCDF
    !pio_iotype = PIO_IOTYPE_NETCDF4C
-   !pio_iotype = PIO_IOTYPE_NETCDF4P
-   pio_iotype = PIO_IOTYPE_NETCDF
-   if (present(iotype)) then
-      pio_iotype = iotype
-   endif
+   pio_iotype = PIO_IOTYPE_NETCDF4P
+   !pio_iotype = PIO_IOTYPE_NETCDF
+   !if (present(iotype)) then
+   !   pio_iotype = iotype
+   !endif
 
    !--- initialize ice_pio_subsystem
    nprocs = get_num_procs()
@@ -146,7 +146,7 @@
          if (present(clobber)) lclobber=clobber
 
          lcdf64 = .false.
-         if (present(cdf64)) lcdf64=cdf64
+         !if (present(cdf64)) lcdf64=cdf64
 
          if (File%fh<0) then
             ! filename not open
@@ -154,7 +154,7 @@
             if (exists) then
                if (lclobber) then
                   nmode = pio_clobber
-                  if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+                  !if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)
@@ -168,7 +168,7 @@
                endif
             else
                nmode = pio_noclobber
-               if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+               !if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)

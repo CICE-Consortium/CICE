@@ -223,8 +223,8 @@
 
 !     if (restart_format(1:3) == 'pio') then
 
-         iotype = PIO_IOTYPE_NETCDF
-         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
+         iotype = PIO_IOTYPE_NETCDF4P
+         !if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='write',filename=trim(filename), File=File, &
               clobber=.true., cdf64=lcdf64, iotype=iotype)
