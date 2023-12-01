@@ -676,7 +676,7 @@
          if (tmask(i,j,iblk)) then
 
          ! significant wave height for FSD
-         if (tr_fsd) &
+         if (tr_fsd .and. wave_spectrum(i,j,1,iblk) < 1.0+10_dbl_kind) &
          wave_sig_ht(i,j,iblk) = c4*SQRT(SUM(wave_spectrum(i,j,:,iblk)*dwavefreq(:)))
 
          call icepack_step_therm2(dt=dt, ncat=ncat, &
