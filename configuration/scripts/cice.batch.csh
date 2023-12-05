@@ -53,7 +53,7 @@ if (${queue} =~ *sr) then #sapphire rapids
   @ memuse = ( $ncores * 481 / 100 )
 else if (${queue} =~ *bw) then #broadwell
   @ memuse = ( $ncores * 457 / 100 )
-else if (${queue} =~ *sl) then #broadwell
+else if (${queue} =~ *sl) then 
   @ memuse = ( $ncores * 6 )
 else #normal queues
   @ memuse = ( $ncores * 395 / 100 )
@@ -63,7 +63,9 @@ cat >> ${jobfile} << EOFB
 #PBS -P ${ICE_MACHINE_PROJ}
 #PBS -N ${ICE_CASENAME}
 #PBS -l storage=gdata/${ICE_MACHINE_PROJ}+scratch/${ICE_MACHINE_PROJ}+gdata/ik11
-#PBS -l ncpus=${ncores}:mem=${memuse}gb:walltime=${batchtime}
+#PBS -l ncpus=${ncores}
+#PBS -l mem=${memuse}gb
+#PBS -l walltime=${batchtime}
 #PBS -j oe 
 #PBS -W umask=022
 #PBS -o ${ICE_CASEDIR}
