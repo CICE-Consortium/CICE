@@ -49,16 +49,24 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ gadi*) then
+if (${queue} =~ *sr) then #sapphire rapids
+  @ memuse = ( $ncores * 481 / 100 )
+else if (${queue} =~ *bw) then #broadwell
+  @ memuse = ( $ncores * 457 / 100 )
+else if (${queue} =~ *sl) then #broadwell
+  @ memuse = ( $ncores * 6 )
+else #normal queues
+  @ memuse = ( $ncores * 395 / 100 )
+endif
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}
 #PBS -P ${ICE_MACHINE_PROJ}
-#PBS -l storage=gdata/ICE_MACHINE_PROJECT+scratch/ICE_MACHINE_PROJECT+gdata/ik11
 #PBS -N ${ICE_CASENAME}
-#PBS -l ncpus=${ncores}
-#PBS -l walltime=${batchtime}
+#PBS -l storage=gdata/${ICE_MACHINE_PROJ}+scratch/${ICE_MACHINE_PROJ}+gdata/ik11
+#PBS -l ncpus=${ncores}:mem=${memuse}gb:walltime=${batchtime}
+#PBS -j oe 
 #PBS -W umask=022
 #PBS -o ${ICE_CASEDIR}
-#PBS -e ${ICE_CASEDIR}
 EOFB
 
 else if (${ICE_MACHINE} =~ gust*) then

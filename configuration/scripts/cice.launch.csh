@@ -54,7 +54,7 @@ cat >> ${jobfile} << EOFR
 EOFR
 else
 cat >> ${jobfile} << EOFR
-mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+mpiexec -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE #check this re:threading??
 EOFR
 endif
 

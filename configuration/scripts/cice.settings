@@ -1,13 +1,13 @@
 #!/bin/csh -f
 
 setenv ICE_CASENAME   undefined
-setenv ICE_SANDBOX    undefined
-setenv ICE_MACHINE    undefined
-setenv ICE_ENVNAME    undefined
+setenv ICE_SANDBOX    /scratch/${PROJECT}/${USER}/cice-dirs
+setenv ICE_MACHINE    gadi
+setenv ICE_ENVNAME    intel
 setenv ICE_MACHCOMP   undefined
 setenv ICE_SCRIPTS    undefined
-setenv ICE_CASEDIR    undefined
-setenv ICE_RUNDIR     /glade/scratch/tcraig/CICE_RUNS/${ICE_CASENAME}
+setenv ICE_CASEDIR    /scratch/${PROJECT}/${USER}/cice-dirs/cases/${ICE_CASENAME}
+setenv ICE_RUNDIR     /scratch/${PROJECT}/${USER}/cice-dirs/output/${ICE_CASENAME}
 setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history
@@ -35,6 +35,7 @@ setenv ICE_RUNLENGTH  -1
 setenv ICE_MEMUSE     -1
 setenv ICE_ACCOUNT    undefined
 setenv ICE_QUEUE      undefined
+setenv ICE_BLDDEBUG true
 
 #======================================================
 
