@@ -48,6 +48,19 @@ cat >> ${jobfile} << EOFB
 ###PBS -m be
 EOFB
 
+else if (${ICE_MACHINE} =~ gadi*) then
+cat >> ${jobfile} << EOFB
+#PBS -q ${queue}
+#PBS -P ${ICE_MACHINE_PROJ}
+#PBS -l storage=gdata/ICE_MACHINE_PROJECT+scratch/ICE_MACHINE_PROJECT+gdata/ik11
+#PBS -N ${ICE_CASENAME}
+#PBS -l ncpus=${ncores}
+#PBS -l walltime=${batchtime}
+#PBS -W umask=022
+#PBS -o ${ICE_CASEDIR}
+#PBS -e ${ICE_CASEDIR}
+EOFB
+
 else if (${ICE_MACHINE} =~ gust*) then
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}
