@@ -6,7 +6,7 @@ name: GHActions
 
 on:
   push
-  pull_request:
+  pull_request
   release:
     types:
       - created
