@@ -31,19 +31,23 @@ else
 endif
 LD:= $(FC)
 
-NETCDF_PATH := $(NETCDF)
-
 PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
 
-#PNETCDF_PATH := $(PNETCDF)
+SLIBS := $(SLIBS)
 INCLDIR := $(INCLDIR)
 
-LIB_NETCDF := $(NETCDF_PATH)/lib
-#LIB_PNETCDF := $(PNETCDF_PATH)/lib
-LIB_MPI := $(IMPILIBDIR)
+ifndef SPACK_NETCDF_FORTRAN_ROOT  
+   SLIBS += -L$(NETCDF)/lib -lnetcdf -lnetcdff
+else
+   SLIBS += -L$(SPACK_NETCDF_C_ROOT)/lib64 -lnetcdf
+   SLIBS += -L$(SPACK_NETCDF_FORTRAN_ROOT)/lib  -lnetcdff
+   INCLDIR += -I $(SPACK_NETCDF_C_ROOT)/include
+   INCLDIR += -I $(SPACK_NETCDF_FORTRAN_ROOT)/include
+endif
 
-#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf
-SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+#LIB_MPI := $(IMPILIBDIR)
+#LIB_PNETCDF := $(PNETCDF)/lib
+#SLIBS   += L$(LIB_PNETCDF) -lpnetcdf
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp 
@@ -53,26 +57,18 @@ endif
 
 ifeq ($(ICE_IOTYPE), pio1)
    LIB_PIO := $(PIO_LIBDIR)
-   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+   SLIBS   += -L$(LIB_PIO) -lpio
 endif
 
 ifeq ($(ICE_IOTYPE), pio2)
-   CPPDEFS := $(CPPDEFS)
-   LIBRARY_PATH := /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/netcdf-c-4.9.2-qtuky2a/lib64
-   SLIBS   :=  -L$(LIBRARY_PATH) -lnetcdf
-
-   LIBRARY_PATH := /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/netcdf-fortran-4.6.0-zfqomcv/lib
-   SLIBS := $(SLIBS) -L$(LIBRARY_PATH) -lnetcdff
-
-   LIBRARY_PATH := /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/parallelio-2.5.10-hyj75i7/lib
-   SLIBS := $(SLIBS) -L$(LIBRARY_PATH) -lpioc -lpiof  
-
-   LIBRARY_PATH := /apps/openmpi/4.1.5/lib/
-   SLIBS := $(SLIBS) -L$(LIBRARY_PATH) -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh
-
-   INCLDIR := -I /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/parallelio-2.5.10-hyj75i7/include
-   INCLDIR += -I /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/netcdf-c-4.9.2-qtuky2a/include
-   INCLDIR += -I /g/data/ik11/spack/0.20.1/opt/linux-rocky8-cascadelake/intel-2021.6.0/netcdf-fortran-4.6.0-zfqomcv/include
+  ifndef SPACK_PARALLELIO_ROOT
+    SLIBS += -L$(PARALLELIO_ROOT)/lib -lpioc -lpiof
+  else
+   SLIBS += -L$(SPACK_PARALLELIO_ROOT)/lib -lpioc -lpiof  
+   INCLDIR += -I $(SPACK_PARALLELIO_ROOT)/include
+  endif
+   
+  SLIBS += $(SLIBS) -L$(OMPI_BASE)/lib -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh 
    
 endif
 
