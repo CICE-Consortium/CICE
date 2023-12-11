@@ -5,7 +5,7 @@ name: GHActions
 # To Do: get it working with bash and ubuntu
 
 on:
-  push:
+  push
   pull_request:
   release:
     types:
