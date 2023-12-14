@@ -25,6 +25,7 @@
      module procedure ice_pio_initdecomp_3d_inner
   end interface
 
+  public ice_pio_check
   public ice_pio_init
   public ice_pio_initdecomp
 
@@ -39,6 +40,19 @@
   contains
 
 !===============================================================================
+
+   ! check status code returned from pio function, and abort on error
+  subroutine ice_pio_check(status, msg)
+      integer, intent (in) :: status
+      integer :: strerror_status
+      character (len=*), intent (in) :: msg
+      character (len=:), allocatable :: err_str
+
+      if(status /= PIO_NOERR) then
+         strerror_status = pio_strerror(status, err_str)
+         call abort_ice('ice: ParallelIO error '//trim(err_str)//' '//trim(msg))
+      end if
+   end subroutine ice_pio_check
 
 !    Initialize the io subsystem
 !    2009-Feb-17 - J. Edwards - initial version
@@ -75,7 +89,6 @@
    logical :: exists
    logical :: lclobber
    logical :: lcdf64
-   integer :: status
    integer :: nmode
    character(len=*), parameter :: subname = '(ice_pio_init)'
    logical, save :: first_call = .true.
@@ -83,6 +96,8 @@
 #ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+
+   pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR) 
 #else
 
 #ifdef GPTL
@@ -118,6 +133,9 @@
 
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
                  rearranger, ice_pio_subsystem, base=basetask)
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR) 
+
    !--- initialize rearranger options
    !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
    !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
@@ -155,13 +173,19 @@
                if (lclobber) then
                   nmode = pio_clobber
                   !if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-                  status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check(&
+                     pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode), &
+                     subname//'ERROR: Failed to create file '//trim(filename) &
+                  )
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)
                   end if
                else
                   nmode = pio_write
-                  status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check( &
+                     pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode), &
+                     subname//'ERROR: Failed to open file '//trim(filename) &
+                  )
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' open file ',trim(filename)
                   end if
@@ -169,20 +193,25 @@
             else
                nmode = pio_noclobber
                !if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
-               status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+               call ice_pio_check( &
+                  pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode) ,&
+                  subname//'ERROR: Failed to create file '//trim(filename) &
+               )
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)
                end if
             endif
-         else
-            ! filename is already open, just return
+         ! else: filename is already open, just return
          endif
       end if
 
       if (trim(mode) == 'read') then
          inquire(file=trim(filename),exist=exists)
          if (exists) then
-            status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
+            call ice_pio_check( &
+                  pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite),&
+                  subname//'ERROR: Failed to open file '//trim(filename) &
+               )
          else
             if(my_task==master_task) then
                write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
