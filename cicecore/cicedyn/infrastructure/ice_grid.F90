@@ -167,13 +167,6 @@
 !         xyyav, & ! mean T-cell value of xyy
 !         yyyav    ! mean T-cell value of yyy
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
-         mne, & ! matrices used for coordinate transformations in remapping
-         mnw, & ! ne = northeast corner, nw = northwest, etc.
-         mse, &
-         msw
-
       ! masks
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
@@ -288,10 +281,6 @@
          latn_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for N point
          lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
-         mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
-         mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
-         mse  (2,2,nx_block,ny_block,max_blocks), &
-         msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory1')
 
