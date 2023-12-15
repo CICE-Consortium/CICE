@@ -63,6 +63,25 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
+!      REMOVE? I
+      ! geometric quantities used for remapping transport
+!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+!         xav  , & ! mean T-cell value of x
+!         yav  , & ! mean T-cell value of y
+!         xxav , & ! mean T-cell value of xx
+!         xyav , & ! mean T-cell value of xy
+!         yyav , & ! mean T-cell value of yy
+!         yyav     ! mean T-cell value of yy
+!         xxxav, & ! mean T-cell value of xxx
+!         xxyav, & ! mean T-cell value of xxy
+!         xyyav, & ! mean T-cell value of xyy
+!         yyyav    ! mean T-cell value of yyy
+
+      real    (kind=dbl_kind), parameter :: xav=c0
+      real    (kind=dbl_kind), parameter :: yav=c0
+      real    (kind=dbl_kind), parameter :: xxav=c1/c12
+      real    (kind=dbl_kind), parameter :: yyav=c1/c12
+
       logical (kind=log_kind), parameter :: bugcheck = .false.
 
 !=======================================================================
@@ -261,13 +280,13 @@
 
       subroutine init_remap
 
-      use ice_domain, only: nblocks
-      use ice_grid, only: xav, yav, xxav, yyav
+!      use ice_domain, only: nblocks
+!      use ice_grid, only: xav, yav, xxav, yyav
 !                          dxT, dyT, xyav, &
 !                          xxxav, xxyav, xyyav, yyyav
 
-      integer (kind=int_kind) ::     &
-        i, j, iblk     ! standard indices
+!      integer (kind=int_kind) ::     &
+!        i, j, iblk     ! standard indices
 
       character(len=*), parameter :: subname = '(init_remap)'
 
@@ -278,26 +297,26 @@
       !       of x or y = 0.
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            xav(i,j,iblk) = c0
-            yav(i,j,iblk) = c0
+!      do iblk = 1, nblocks
+!         do j = 1, ny_block
+!         do i = 1, nx_block
+!            xav(i,j,iblk) = c0
+!            yav(i,j,iblk) = c0
 !!!            These formulas would be used on a rectangular grid
 !!!            with dimensions (dxT, dyT):
 !!!            xxav(i,j,iblk) = dxT(i,j,iblk)**2 / c12
 !!!            yyav(i,j,iblk) = dyT(i,j,iblk)**2 / c12
-            xxav(i,j,iblk) = c1/c12
-            yyav(i,j,iblk) = c1/c12
+!            xxav(i,j,iblk) = c1/c12
+!            yyav(i,j,iblk) = c1/c12
 !            xyav(i,j,iblk) = c0
 !            xxxav(i,j,iblk) = c0
 !            xxyav(i,j,iblk) = c0
 !            xyyav(i,j,iblk) = c0
 !            yyyav(i,j,iblk) = c0
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+!         enddo
+!         enddo
+!      enddo
+!      !$OMP END PARALLEL DO
 
       !-------------------------------------------------------------------
       ! Set logical l_fixed_area depending of the grid type.
@@ -356,8 +375,8 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          earea, narea, tarear, hm,                  &
-                          xav, yav, xxav, yyav
+                          earea, narea, tarear, hm!,                  &
+!                          xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -519,9 +538,10 @@
                                tracer_type,       depend,            &
                                has_dependents,    icellsnc(0,iblk),  &
                                indxinc(:,0),      indxjnc(:,0),      &
-                               hm     (:,:,iblk), xav   (:,:,iblk),  &
-                               yav    (:,:,iblk), xxav  (:,:,iblk),  &
-                               yyav   (:,:,iblk),                    &
+                               hm     (:,:,iblk),                    &
+!                              xav   (:,:,iblk),  &         
+!                               yav    (:,:,iblk), xxav  (:,:,iblk),  &
+!                               yyav   (:,:,iblk),                    &
 !                               xyav   (:,:,iblk),                    &
 !                               xxxav  (:,:,iblk), xxyav (:,:,iblk),  &
 !                               xyyav  (:,:,iblk), yyyav (:,:,iblk),  &
@@ -539,9 +559,10 @@
                                   tracer_type,         depend,              &
                                   has_dependents,      icellsnc (n,iblk),   &
                                   indxinc  (:,n),      indxjnc(:,n),        &
-                                  hm       (:,:,iblk), xav    (:,:,iblk),   &
-                                  yav      (:,:,iblk), xxav   (:,:,iblk),   &
-                                  yyav     (:,:,iblk),                      &
+                                  hm       (:,:,iblk),                      &
+!                                  xav    (:,:,iblk),   &
+!                                  yav      (:,:,iblk), xxav   (:,:,iblk),   &
+!                                  yyav     (:,:,iblk),                      &
 !                                  xyav     (:,:,iblk),                      &
 !                                  xxxav    (:,:,iblk), xxyav  (:,:,iblk),   &
 !                                  xyyav    (:,:,iblk), yyyav  (:,:,iblk),   &
@@ -1052,9 +1073,10 @@
                                    tracer_type,    depend,     &
                                    has_dependents, icells,     &
                                    indxi,          indxj,      &
-                                   hm,             xav,        &
-                                   yav,            xxav,       &
-                                   yyav,       &
+                                   hm,                         &
+!                                   xav,        &
+!                                   yav,            xxav,       &
+!                                   yyav,       &
 !                                   xyav,      &
 !                                   xxxav,          xxyav,      &
 !                                   xyyav,          yyyav,      &
@@ -1084,9 +1106,9 @@
          indxj
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
-         hm                , & ! land/boundary mask, thickness (T-cell)
-         xav,  yav         , & ! mean T-cell values of x, y
-         xxav, yyav            ! mean T-cell values of xx, yy
+         hm                !, & ! land/boundary mask, thickness (T-cell)
+!         xav,  yav         , & ! mean T-cell values of x, y
+!         xxav, yyav            ! mean T-cell values of xx, yy
 !         xyav,             , & ! mean T-cell values of xy
 !         xxxav,xxyav,xyyav,yyyav ! mean T-cell values of xxx, xxy, xyy, yyy
 
@@ -1205,7 +1227,7 @@
                              ilo, ihi, jlo, jhi,   &
                              nghost,               &
                              mm,       hm,         &
-                             xav,      yav,        &
+!                             xav,      yav,        &
                              mx,       my)
 
       do ij = 1,icells   ! ice is present
@@ -1231,11 +1253,12 @@
 
             ! center of mass (mxav,myav) for each cell
             ! echmod: xyav = 0
-            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
-                       + mc(i,j)*xav (i,j)) / mm(i,j)
-            myav(i,j) = (my(i,j)*yyav(i,j)    &
-                       + mc(i,j)*yav(i,j)) / mm(i,j)
-
+            mxav(i,j) = (mx(i,j)*xxav         & !(i,j)    &
+!                       + mc(i,j)*xav (i,j)) / mm(i,j)
+                       + mc(i,j)*xav ) / mm(i,j)
+            myav(i,j) = (my(i,j)*yyav         &!(i,j)    &
+!                       + mc(i,j)*yav(i,j)) / mm(i,j)
+                        + mc(i,j)*yav) / mm(i,j)
 !            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
 !                       + my(i,j)*xyav(i,j)    &
 !                       + mc(i,j)*xav (i,j)) / mm(i,j)
@@ -1287,9 +1310,11 @@
 !                        w6 = my(i,j)*ty(i,j,nt)
                         w7 = c1 / (mm(i,j)*tm(i,j,nt))
                         ! echmod: grid arrays = 0
-                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
+!                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
+                         mtxav(i,j,nt) = (w1*xav + w2*xxav)   &
                                        * w7
-                        mtyav(i,j,nt) = (w1*yav(i,j)   + w3*yyav(i,j)) &
+                        mtyav(i,j,nt) = (w1*yav   + w3*yyav &
+!                        mtyav(i,j,nt) = (w1*yav   + w3*yyav) &
                                        * w7
 
 !                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j)   &
