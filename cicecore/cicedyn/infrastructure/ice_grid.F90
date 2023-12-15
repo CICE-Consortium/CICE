@@ -154,19 +154,6 @@
          lone_bounds, & ! longitude of gridbox corners for E point
          late_bounds    ! latitude of gridbox corners for E point
 
-      ! geometric quantities used for remapping transport
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         xav  , & ! mean T-cell value of x
-         yav  , & ! mean T-cell value of y
-         xxav , & ! mean T-cell value of xx
-!         xyav , & ! mean T-cell value of xy
-!         yyav , & ! mean T-cell value of yy
-         yyav     ! mean T-cell value of yy
-!         xxxav, & ! mean T-cell value of xxx
-!         xxyav, & ! mean T-cell value of xxy
-!         xyyav, & ! mean T-cell value of xyy
-!         yyyav    ! mean T-cell value of yyy
-
       ! masks
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
@@ -255,10 +242,6 @@
          cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
          dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
          dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
-         xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
-         yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
-         xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
-         yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
          uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
