@@ -63,7 +63,31 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
+!      REMOVE? I
+      ! geometric quantities used for remapping transport
+!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+!         xav  , & ! mean T-cell value of x
+!         yav  , & ! mean T-cell value of y
+!         xxav , & ! mean T-cell value of xx
+!         xyav , & ! mean T-cell value of xy
+!         yyav , & ! mean T-cell value of yy
+!         yyav     ! mean T-cell value of yy
+!         xxxav, & ! mean T-cell value of xxx
+!         xxyav, & ! mean T-cell value of xxy
+!         xyyav, & ! mean T-cell value of xyy
+!         yyyav    ! mean T-cell value of yyy
+
+      real    (kind=dbl_kind), parameter :: xav=c0
+      real    (kind=dbl_kind), parameter :: yav=c0
+      real    (kind=dbl_kind), parameter :: xxav=c1/c12
+      real    (kind=dbl_kind), parameter :: yyav=c1/c12
+
       logical (kind=log_kind), parameter :: bugcheck = .false.
+
+      interface limited_gradient
+         module procedure limited_gradient_cn_dbl,   &
+                          limited_gradient_cn_scalar
+      end interface
 
 !=======================================================================
 ! Here is some information about how the incremental remapping scheme
@@ -261,13 +285,13 @@
 
       subroutine init_remap
 
-      use ice_domain, only: nblocks
-      use ice_grid, only: xav, yav, xxav, yyav
+!      use ice_domain, only: nblocks
+!      use ice_grid, only: xav, yav, xxav, yyav
 !                          dxT, dyT, xyav, &
 !                          xxxav, xxyav, xyyav, yyyav
 
-      integer (kind=int_kind) ::     &
-        i, j, iblk     ! standard indices
+!      integer (kind=int_kind) ::     &
+!        i, j, iblk     ! standard indices
 
       character(len=*), parameter :: subname = '(init_remap)'
 
@@ -277,27 +301,27 @@
       ! Note: On a rectangular grid, the integral of any odd function
       !       of x or y = 0.
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            xav(i,j,iblk) = c0
-            yav(i,j,iblk) = c0
+!      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
+!      do iblk = 1, nblocks
+!         do j = 1, ny_block
+!         do i = 1, nx_block
+!            xav(i,j,iblk) = c0
+!            yav(i,j,iblk) = c0
 !!!            These formulas would be used on a rectangular grid
 !!!            with dimensions (dxT, dyT):
 !!!            xxav(i,j,iblk) = dxT(i,j,iblk)**2 / c12
 !!!            yyav(i,j,iblk) = dyT(i,j,iblk)**2 / c12
-            xxav(i,j,iblk) = c1/c12
-            yyav(i,j,iblk) = c1/c12
+!            xxav(i,j,iblk) = c1/c12
+!            yyav(i,j,iblk) = c1/c12
 !            xyav(i,j,iblk) = c0
 !            xxxav(i,j,iblk) = c0
 !            xxyav(i,j,iblk) = c0
 !            xyyav(i,j,iblk) = c0
 !            yyyav(i,j,iblk) = c0
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+!         enddo
+!         enddo
+!      enddo
+!      !$OMP END PARALLEL DO
 
       !-------------------------------------------------------------------
       ! Set logical l_fixed_area depending of the grid type.
@@ -356,8 +380,8 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          earea, narea, tarear, hm,                  &
-                          xav, yav, xxav, yyav
+                          earea, narea, tarear, hm!,                  &
+!                          xav, yav, xxav, yyav
 !                          xyav, xxxav, xxyav, xyyav, yyyav
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -519,9 +543,10 @@
                                tracer_type,       depend,            &
                                has_dependents,    icellsnc(0,iblk),  &
                                indxinc(:,0),      indxjnc(:,0),      &
-                               hm     (:,:,iblk), xav   (:,:,iblk),  &
-                               yav    (:,:,iblk), xxav  (:,:,iblk),  &
-                               yyav   (:,:,iblk),                    &
+                               hm     (:,:,iblk),                    &
+!                              xav   (:,:,iblk),  &         
+!                               yav    (:,:,iblk), xxav  (:,:,iblk),  &
+!                               yyav   (:,:,iblk),                    &
 !                               xyav   (:,:,iblk),                    &
 !                               xxxav  (:,:,iblk), xxyav (:,:,iblk),  &
 !                               xyyav  (:,:,iblk), yyyav (:,:,iblk),  &
@@ -539,9 +564,10 @@
                                   tracer_type,         depend,              &
                                   has_dependents,      icellsnc (n,iblk),   &
                                   indxinc  (:,n),      indxjnc(:,n),        &
-                                  hm       (:,:,iblk), xav    (:,:,iblk),   &
-                                  yav      (:,:,iblk), xxav   (:,:,iblk),   &
-                                  yyav     (:,:,iblk),                      &
+                                  hm       (:,:,iblk),                      &
+!                                  xav    (:,:,iblk),   &
+!                                  yav      (:,:,iblk), xxav   (:,:,iblk),   &
+!                                  yyav     (:,:,iblk),                      &
 !                                  xyav     (:,:,iblk),                      &
 !                                  xxxav    (:,:,iblk), xxyav  (:,:,iblk),   &
 !                                  xyyav    (:,:,iblk), yyyav  (:,:,iblk),   &
@@ -1052,9 +1078,10 @@
                                    tracer_type,    depend,     &
                                    has_dependents, icells,     &
                                    indxi,          indxj,      &
-                                   hm,             xav,        &
-                                   yav,            xxav,       &
-                                   yyav,       &
+                                   hm,                         &
+!                                   xav,        &
+!                                   yav,            xxav,       &
+!                                   yyav,       &
 !                                   xyav,      &
 !                                   xxxav,          xxyav,      &
 !                                   xyyav,          yyyav,      &
@@ -1084,9 +1111,9 @@
          indxj
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
-         hm                , & ! land/boundary mask, thickness (T-cell)
-         xav,  yav         , & ! mean T-cell values of x, y
-         xxav, yyav            ! mean T-cell values of xx, yy
+         hm                !, & ! land/boundary mask, thickness (T-cell)
+!         xav,  yav         , & ! mean T-cell values of x, y
+!         xxav, yyav            ! mean T-cell values of xx, yy
 !         xyav,             , & ! mean T-cell values of xy
 !         xxxav,xxyav,xyyav,yyyav ! mean T-cell values of xxx, xxy, xyy, yyy
 
@@ -1205,7 +1232,7 @@
                              ilo, ihi, jlo, jhi,   &
                              nghost,               &
                              mm,       hm,         &
-                             xav,      yav,        &
+!                             xav,      yav,        &
                              mx,       my)
 
       do ij = 1,icells   ! ice is present
@@ -1231,11 +1258,12 @@
 
             ! center of mass (mxav,myav) for each cell
             ! echmod: xyav = 0
-            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
-                       + mc(i,j)*xav (i,j)) / mm(i,j)
-            myav(i,j) = (my(i,j)*yyav(i,j)    &
-                       + mc(i,j)*yav(i,j)) / mm(i,j)
-
+            mxav(i,j) = (mx(i,j)*xxav         & !(i,j)    &
+!                       + mc(i,j)*xav (i,j)) / mm(i,j)
+                       + mc(i,j)*xav ) / mm(i,j)
+            myav(i,j) = (my(i,j)*yyav         &!(i,j)    &
+!                       + mc(i,j)*yav(i,j)) / mm(i,j)
+                        + mc(i,j)*yav) / mm(i,j)
 !            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
 !                       + my(i,j)*xyav(i,j)    &
 !                       + mc(i,j)*xav (i,j)) / mm(i,j)
@@ -1287,9 +1315,11 @@
 !                        w6 = my(i,j)*ty(i,j,nt)
                         w7 = c1 / (mm(i,j)*tm(i,j,nt))
                         ! echmod: grid arrays = 0
-                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
+!                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
+                        mtxav(i,j,nt) = (w1*xav + w2*xxav)   &
                                        * w7
-                        mtyav(i,j,nt) = (w1*yav(i,j)   + w3*yyav(i,j)) &
+                        mtyav(i,j,nt) = (w1*yav   + w3*yyav) &
+!                        mtyav(i,j,nt) = (w1*yav(i,j)   + w3*yyav(i,j)) &
                                        * w7
 
 !                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j)   &
@@ -1365,12 +1395,12 @@
 ! authors William H. Lipscomb, LANL
 !         John R. Baumgardner, LANL
 
-      subroutine limited_gradient (nx_block, ny_block,   &
-                                   ilo, ihi, jlo, jhi,   &
-                                   nghost,               &
-                                   phi,      phimask,    &
-                                   cnx,      cny,        &
-                                   gx,       gy)
+      subroutine limited_gradient_cn_dbl (nx_block, ny_block,   &
+                                          ilo, ihi, jlo, jhi,   &
+                                          nghost,               &
+                                          phi,      phimask,    &
+                                          cnx,      cny,        &
+                                          gx,       gy)
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block, & ! block dimensions
@@ -1379,11 +1409,13 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
          phi      , & ! input tracer field (mean values in each grid cell)
-         cnx      , & ! x-coordinate of phi relative to geometric center of cell
-         cny      , & ! y-coordinate of phi relative to geometric center of cell
          phimask      ! phimask(i,j) = 1 if phi(i,j) has physical meaning, = 0 otherwise.
                       ! For instance, aice has no physical meaning in land cells,
                       ! and hice no physical meaning where aice = 0.
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
+         cnx      , & ! x-coordinate of phi relative to geometric center of cell
+         cny          ! y-coordinate of phi relative to geometric center of cell½
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) ::   &
          gx       , & ! limited x-direction gradient
@@ -1410,7 +1442,7 @@
          puny        , & !
          gxtmp, gytmp    ! temporary term for x- and y- limited gradient
 
-      character(len=*), parameter :: subname = '(limited_gradient)'
+      character(len=*), parameter :: subname = '(limited_gradient_cn_dbl)'
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
@@ -1508,7 +1540,160 @@
 
       enddo                     ! ij
 
-      end subroutine limited_gradient
+      end subroutine limited_gradient_cn_dbl
+
+!=======================================================================
+! Part 2 of the interface that allow cnx and cny to either matrices or scalars
+! Based on limited_gradient_cn_dbl
+! Updated by Till Rasmussen, DMI
+
+      subroutine limited_gradient_cn_scalar (nx_block, ny_block,   &
+                                            ilo, ihi, jlo, jhi,   &
+                                            nghost,               &
+                                            phi,      phimask,    &
+                                            cnx,      cny,        &
+                                            gx,       gy)
+
+      integer (kind=int_kind), intent(in) ::   &
+         nx_block, ny_block, & ! block dimensions
+         ilo,ihi,jlo,jhi   , & ! beginning and end of physical domain
+         nghost                ! number of ghost cells
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
+         phi      , & ! input tracer field (mean values in each grid cell)
+         phimask      ! phimask(i,j) = 1 if phi(i,j) has physical meaning, = 0 otherwise.
+                      ! For instance, aice has no physical meaning in land cells,
+                      ! and hice no physical meaning where aice = 0.
+
+      real (kind=dbl_kind), intent (in) ::   &
+         cnx      , & ! x-coordinate of phi relative to geometric center of cell
+         cny          ! y-coordinate of phi relative to geometric center of cell
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) ::   &
+         gx       , & ! limited x-direction gradient
+         gy           ! limited y-direction gradient
+
+      ! local variables
+
+      integer (kind=int_kind) ::   &
+         i, j, ij , & ! standard indices
+         icells       ! number of cells to limit
+
+      integer (kind=int_kind), dimension(nx_block*ny_block) ::   &
+         indxi, indxj ! combined i/j horizontal indices
+
+      real (kind=dbl_kind) ::   &
+         phi_nw, phi_n, phi_ne , & ! values of phi in 8 neighbor cells
+         phi_w,         phi_e  , &
+         phi_sw, phi_s, phi_se , &
+         qmn, qmx              , & ! min and max value of phi within grid cell
+         pmn, pmx              , & ! min and max value of phi among neighbor cells
+         w1, w2, w3, w4            ! work variables
+
+      real (kind=dbl_kind) ::   &
+         puny        , & !
+         gxtmp, gytmp    ! temporary term for x- and y- limited gradient
+
+      character(len=*), parameter :: subname = '(limited_gradient_cn_scalar)'
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      gx(:,:) = c0
+      gy(:,:) = c0
+
+      ! For nghost = 1, loop over physical cells and update ghost cells later
+      ! For nghost = 2, loop over a layer of ghost cells and skip the update
+
+      icells = 0
+      do j = jlo-nghost+1, jhi+nghost-1
+      do i = ilo-nghost+1, ihi+nghost-1
+         if (phimask(i,j) > puny) then
+            icells = icells + 1
+            indxi(icells) = i
+            indxj(icells) = j
+         endif                  ! phimask > puny
+      enddo
+      enddo
+
+      do ij = 1, icells
+         i = indxi(ij)
+         j = indxj(ij)
+
+         ! Store values of phi in the 8 neighbor cells.
+         ! Note: phimask = 1. or 0.  If phimask = 1., use the true value;
+         !  if phimask = 0., use the home cell value so that non-physical
+         !  values of phi do not contribute to the gradient.
+         phi_nw = phimask(i-1,j+1) * phi(i-1,j+1)  &
+            + (c1-phimask(i-1,j+1))* phi(i  ,j  )
+         phi_n  = phimask(i  ,j+1) * phi(i  ,j+1)  &
+            + (c1-phimask(i  ,j+1))* phi(i  ,j  )
+         phi_ne = phimask(i+1,j+1) * phi(i+1,j+1)  &
+            + (c1-phimask(i+1,j+1))* phi(i  ,j  )
+         phi_w  = phimask(i-1,j  ) * phi(i-1,j  )  &
+            + (c1-phimask(i-1,j  ))* phi(i  ,j  )
+         phi_e  = phimask(i+1,j  ) * phi(i+1,j  )  &
+            + (c1-phimask(i+1,j  ))* phi(i  ,j  )
+         phi_sw = phimask(i-1,j-1) * phi(i-1,j-1)  &
+            + (c1-phimask(i-1,j-1))* phi(i  ,j  )
+         phi_s  = phimask(i  ,j-1) * phi(i  ,j-1)  &
+            + (c1-phimask(i  ,j-1))* phi(i  ,j  )
+         phi_se = phimask(i+1,j-1) * phi(i+1,j-1)  &
+            + (c1-phimask(i+1,j-1))* phi(i  ,j  )
+
+         ! unlimited gradient components
+         ! (factors of two cancel out)
+
+         gxtmp = (phi_e - phi_w) * p5
+         gytmp = (phi_n - phi_s) * p5
+
+         ! minimum and maximum among the nine local cells
+         pmn = min (phi_nw, phi_n,  phi_ne, phi_w, phi(i,j),   &
+                    phi_e,  phi_sw, phi_s,  phi_se)
+         pmx = max (phi_nw, phi_n,  phi_ne, phi_w, phi(i,j),   &
+                    phi_e,  phi_sw, phi_s,  phi_se)
+
+         pmn = pmn - phi(i,j)
+         pmx = pmx - phi(i,j)
+
+         ! minimum and maximum deviation of phi within the cell
+         ! minimum and maximum deviation of phi within the cell
+         w1  =  (p5 - cnx) * gxtmp   &
+              + (p5 - cny) * gytmp
+         w2  =  (p5 - cnx) * gxtmp   &
+              - (p5 + cny) * gytmp
+         w3  = -(p5 + cnx) * gxtmp   &
+              - (p5 + cny) * gytmp
+         w4  =  (p5 - cny) * gytmp   &
+              - (p5 + cnx) * gxtmp
+
+         qmn = min (w1, w2, w3, w4)
+         qmx = max (w1, w2, w3, w4)
+
+         ! the limiting coefficient
+         if ( abs(qmn) > abs(pmn) ) then ! 'abs(qmn) > puny' not sufficient
+            w1 = max(c0, pmn/qmn)
+         else
+            w1 = c1
+         endif
+
+         if ( abs(qmx) > abs(pmx) ) then
+            w2 = max(c0, pmx/qmx)
+         else
+            w2 = c1
+         endif
+
+         w1 = min(w1, w2)
+
+         ! Limit the gradient components
+         gx(i,j) = w1 * gxtmp
+         gy(i,j) = w1 * gytmp
+
+      enddo                     ! ij
+
+      end subroutine limited_gradient_cn_scalar
 
 !=======================================================================
 !
