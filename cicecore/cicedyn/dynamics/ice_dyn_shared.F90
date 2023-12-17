@@ -11,7 +11,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, get_num_procs
-      use ice_constants, only: c0, c1, c2, c3, c4, c6
+      use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5
       use ice_constants, only: omega, spval_dbl, p01, p001, p5
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
@@ -119,6 +119,14 @@
       real (kind=dbl_kind), allocatable, public :: &
          DminTarea(:,:,:)    ! deltamin * tarea (m^2/s)
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j)
+         cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
+         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j)
+         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1)
+         dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
+         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1))
+
       ! ice isotropic tensile strength parameter
       real (kind=dbl_kind), public :: &
          Ktens               ! T=Ktens*P (tensile strength: see Konig and Holland, 2010)
@@ -192,6 +200,18 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
+      if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
+         allocate( &
+            cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
+            cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
+            cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
+            cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+            dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
+            dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//': Out of memory')
+      endif
+
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate( &
             uvelE_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
@@ -214,8 +234,9 @@
 
       subroutine init_dyn_shared (dt)
 
-      use ice_blocks, only: nx_block, ny_block
-      use ice_domain, only: nblocks, halo_dynbundle
+      use ice_blocks, only: block, get_block
+      use ice_boundary, only: ice_halo, ice_haloUpdate
+      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info
       use ice_domain_size, only: max_blocks
       use ice_flux, only: &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -224,7 +245,8 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
-      use ice_grid, only: ULAT, NLAT, ELAT, tarea
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea, HTE, HTN
+      use ice_constants, only: field_loc_center, field_type_vector
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -232,9 +254,13 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j  , &  ! indices
-         nprocs, &  ! number of processors
-         iblk       ! block index
+         i, j  ,             & ! indices
+         ilo, ihi, jlo, jhi, & !min and max index for interior of blocks
+         nprocs,             & ! number of processors
+         iblk                  ! block index
+
+      type (block) :: &
+         this_block   ! block information for current block
 
       character(len=*), parameter :: subname = '(init_dyn_shared)'
 
@@ -332,6 +358,40 @@
       enddo                     ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
+
+     if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
+            dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
+         enddo
+         enddo
+
+         do j = jlo, jhi+1
+         do i = ilo, ihi+1
+            cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
+            cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
+            ! match order of operations in cyp, cxp for tripole grids
+            cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
+            cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
+         enddo
+         enddo
+      enddo
+         call ice_HaloUpdate (dxhy,               halo_info, &
+                           field_loc_center,   field_type_vector, &
+                           fillValue=c1)
+         call ice_HaloUpdate (dyhx,               halo_info, &
+                           field_loc_center,   field_type_vector, &
+                           fillValue=c1)
+
+     endif
 
   end subroutine init_dyn_shared
 

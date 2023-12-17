@@ -43,16 +43,17 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
-      use ice_domain, only: nblocks, distrb_info
+      use ice_domain, only: nblocks, distrb_info, halo_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-          seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
+          seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4, &
+          dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
       use ice_global_reductions, only: global_sum
-      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
+      use ice_grid, only: dxT, dyT, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
@@ -120,19 +121,9 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
-      use ice_domain, only: blocks_ice, halo_info
+      use ice_domain, only: blocks_ice
       use ice_calendar, only: dt_dyn
       use ice_dyn_shared, only: init_dyn_shared
-!      use ice_grid, only: tarea
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      type (block) :: &
-         this_block           ! block information for current block
 
       call init_dyn_shared(dt_dyn)
 
@@ -167,7 +158,8 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
-      use ice_dyn_shared, only: deformations, iceTmask, iceUmask
+      use ice_dyn_shared, only: deformations, iceTmask, iceUmask, &
+          cxp, cyp, cxm, cym
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -176,7 +168,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxT, dyT, &
           tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
@@ -686,9 +678,8 @@
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   fmU, TbU
-      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-           uarear
-      use ice_dyn_shared, only: DminTarea
+      use ice_grid, only: dxT, dyT, uarear
+      use ice_dyn_shared, only: DminTarea, dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
