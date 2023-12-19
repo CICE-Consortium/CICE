@@ -6,10 +6,6 @@ name: GHActions
 
 on:
   push:
-    branches:
-      - main
-      - 'CICE*'
-      - 'ghactions*'
   pull_request:
   release:
     types:
@@ -160,6 +156,11 @@ jobs:
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --suite travis_suite --testid ${{ matrix.os }}
+      - name: get logs
+        uses: actions/download-artifact@v3
+        with:
+          name: logs
+          path: $HOME/cice/testsuite.${{ matrix.os }}/*/logs/cice.runlog.*
       - name: write output
         run: |
           cd $HOME/cice
