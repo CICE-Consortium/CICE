@@ -43,13 +43,12 @@
           field_type_scalar, field_type_vector
       use ice_constants, only: c0, p027, p055, p111, p166, &
           p222, p25, p333, p5, c1
-      use ice_domain, only: nblocks, distrb_info, halo_info
+      use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
-          seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4, &
-          dxhy, dyhx, cxp, cyp, cxm, cym
+          seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
       use ice_global_reductions, only: global_sum
@@ -2744,6 +2743,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_dyn_shared, only: dxhy, dyhx, cxp, cyp, cxm, cym
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
@@ -3145,6 +3145,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_dyn_shared, only: dyhx, dxhy, cxp, cyp, cxm, cym
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)

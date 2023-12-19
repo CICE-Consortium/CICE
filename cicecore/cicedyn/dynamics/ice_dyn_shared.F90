@@ -200,12 +200,17 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
-      if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
+!      if (evp_algorithm == "standard_2d") then
          allocate( &
             cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
             cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
             cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
             cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+            stat=ierr)
+         if (ierr/=0) call abort_ice(subname//': Out of memory')
+
+      if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
+         allocate( &
             dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
             dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
             stat=ierr)
@@ -360,38 +365,45 @@
       !$OMP END PARALLEL DO
 
      if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
+       do iblk = 1, nblocks
+          this_block = get_block(blocks_ice(iblk),iblk)
+          ilo = this_block%ilo
+          ihi = this_block%ihi
+          jlo = this_block%jlo
+          jhi = this_block%jhi
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
-            dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
-         enddo
-         enddo
-
-         do j = jlo, jhi+1
-         do i = ilo, ihi+1
-            cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
-            cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
-            ! match order of operations in cyp, cxp for tripole grids
-            cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
-            cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
-         enddo
-         enddo
-      enddo
-         call ice_HaloUpdate (dxhy,               halo_info, &
-                           field_loc_center,   field_type_vector, &
-                           fillValue=c1)
-         call ice_HaloUpdate (dyhx,               halo_info, &
-                           field_loc_center,   field_type_vector, &
-                           fillValue=c1)
+          do j = jlo, jhi
+          do i = ilo, ihi
+             dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
+             dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
+          enddo
+          enddo
+       enddo
+       call ice_HaloUpdate (dxhy,               halo_info, &
+                            field_loc_center,   field_type_vector, &
+                            fillValue=c1)
+       call ice_HaloUpdate (dyhx,               halo_info, &
+                            field_loc_center,   field_type_vector, &
+                            fillValue=c1)
 
      endif
+
+     do iblk = 1, nblocks
+        this_block = get_block(blocks_ice(iblk),iblk)
+        ilo = this_block%ilo
+        ihi = this_block%ihi
+        jlo = this_block%jlo
+        jhi = this_block%jhi
+        do j = jlo, jhi+1
+        do i = ilo, ihi+1
+           cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
+           cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
+            ! match order of operations in cyp, cxp for tripole grids
+           cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
+           cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
+       enddo
+       enddo
+     enddo
 
   end subroutine init_dyn_shared
 
