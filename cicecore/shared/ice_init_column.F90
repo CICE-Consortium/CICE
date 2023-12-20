@@ -2218,7 +2218,7 @@
       if (my_task == master_task) then
          call icepack_write_tracer_flags(nu_diag)
          call icepack_write_tracer_sizes(nu_diag)
-         call icepack_write_tracer_indices(nu_diag)
+!tcx         call icepack_write_tracer_indices(nu_diag)
       endif
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//' Icepack Abort3', &
