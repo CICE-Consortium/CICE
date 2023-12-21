@@ -12,7 +12,7 @@ restart        gx3     4x2        debug,diag1
 restart2       gx1     16x2       debug,diag1
 restart        tx1     40x2       diag1
 smoke          gbox12  1x1x12x12x1  boxchan
-smoke          gbox80  4x2        boxchan1e
+smoke          gbox80  4x2        boxchan1e,debug
 smoke          gbox80  8x1        boxchan1n
 smoke          gbox80  1x1        box2001
 smoke          gbox80  2x2        boxwallblock
@@ -35,7 +35,7 @@ restart        gx3     4x2        debug,diag1,gridcd
 restart2       gx1     16x2       debug,diag1,gridcd
 restart        tx1     40x2       diag1,gridcd
 smoke          gbox12  1x1x12x12x1  boxchan,gridcd
-smoke          gbox80  4x2        boxchan1e,gridcd
+smoke          gbox80  4x2        boxchan1e,debug,gridcd
 smoke          gbox80  8x1        boxchan1n,gridcd
 smoke          gbox80  1x1        box2001,gridcd
 smoke          gbox80  2x2        boxwallblock,gridcd
@@ -58,7 +58,7 @@ restart        gx3     4x2        debug,diag1,gridc
 restart2       gx1     16x2       debug,diag1,gridc
 restart        tx1     40x2       diag1,gridc
 smoke          gbox12  1x1x12x12x1  boxchan,gridc
-smoke          gbox80  4x2        boxchan1e,gridc
+smoke          gbox80  4x2        boxchan1e,debug,gridc
 smoke          gbox80  8x1        boxchan1n,gridc
 smoke          gbox80  1x1        box2001,gridc
 smoke          gbox80  2x2        boxwallblock,gridc

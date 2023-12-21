@@ -40,6 +40,15 @@
              global_maxval,   &
              global_minval
 
+   real (kind=dbl_kind), parameter :: &
+      bigdbl  = 1.0e36_dbl_kind
+
+   real (kind=real_kind), parameter :: &
+      bigreal = 1.0e36_real_kind
+
+   real (kind=int_kind), parameter :: &
+      bigint  = 9999999
+
 !-----------------------------------------------------------------------
 !
 !  generic interfaces for module procedures
@@ -1246,8 +1255,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0.0_dbl_kind)
-   globalMaxval = -HUGE(0.0_dbl_kind)
+   localMaxval  = -bigdbl
+   globalMaxval = -bigdbl
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1264,7 +1273,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0.0_dbl_kind)
+      blockMaxval = -bigdbl
 
       if (present(lMask)) then
          do j=jb,je
@@ -1353,8 +1362,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0.0_real_kind)
-   globalMaxval = -HUGE(0.0_real_kind)
+   localMaxval  = -bigreal
+   globalMaxval = -bigreal
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1371,7 +1380,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0.0_real_kind)
+      blockMaxval = -bigreal
 
       if (present(lMask)) then
          do j=jb,je
@@ -1460,8 +1469,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0_int_kind)
-   globalMaxval = -HUGE(0_int_kind)
+   localMaxval  = -bigint
+   globalMaxval = -bigint
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1478,7 +1487,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0_int_kind)
+      blockMaxval = -bigint
 
       if (present(lMask)) then
          do j=jb,je
@@ -1791,8 +1800,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0.0_dbl_kind)
-   globalMinval = HUGE(0.0_dbl_kind)
+   localMinval  = bigdbl
+   globalMinval = bigdbl
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1809,7 +1818,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0.0_dbl_kind)
+      blockMinval = bigdbl
 
       if (present(lMask)) then
          do j=jb,je
@@ -1898,8 +1907,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0.0_real_kind)
-   globalMinval = HUGE(0.0_real_kind)
+   localMinval  = bigreal
+   globalMinval = bigreal
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1916,7 +1925,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0.0_real_kind)
+      blockMinval = bigreal
 
       if (present(lMask)) then
          do j=jb,je
@@ -2005,8 +2014,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0_int_kind)
-   globalMinval = HUGE(0_int_kind)
+   localMinval  = bigint
+   globalMinval = bigint
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -2023,7 +2032,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0_int_kind)
+      blockMinval = bigint
 
       if (present(lMask)) then
          do j=jb,je
