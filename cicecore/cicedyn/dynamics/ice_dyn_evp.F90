@@ -244,7 +244,7 @@
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
-          uvelE, vvelE, divu, shear, &
+          uvelE, vvelE, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop, timer_evp
@@ -346,6 +346,7 @@
             rdg_shear(i,j,iblk) = c0
             divu (i,j,iblk) = c0
             shear(i,j,iblk) = c0
+            vort (i,j,iblk) = c0
          enddo
          enddo
 
@@ -882,9 +883,10 @@
                                indxTi    (:,iblk), indxTj     (:,iblk), &
                                uvel    (:,:,iblk), vvel     (:,:,iblk), &
                                dxT     (:,:,iblk), dyT      (:,:,iblk), &
+                               dxU     (:,:,iblk), dyU      (:,:,iblk), &
                                cxp     (:,:,iblk), cyp      (:,:,iblk), &
                                cxm     (:,:,iblk), cym      (:,:,iblk), &
-                               tarear  (:,:,iblk),                      &
+                               tarear  (:,:,iblk), vort     (:,:,iblk), &
                                shear   (:,:,iblk), divu     (:,:,iblk), &
                                rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
          enddo
@@ -1070,7 +1072,7 @@
                                   dxN     (:,:,iblk), dyE      (:,:,iblk), &
                                   dxT     (:,:,iblk), dyT      (:,:,iblk), &
                                   tarear  (:,:,iblk), uarea    (:,:,iblk), &
-                                  shearU    (:,:,iblk),                    &
+                                  shearU  (:,:,iblk), vort     (:,:,iblk), &
                                   shear   (:,:,iblk), divu     (:,:,iblk), &
                                   rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
          enddo
@@ -1260,7 +1262,7 @@
                                    uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
                                    dxN     (:,:,iblk), dyE      (:,:,iblk), &
                                    dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                   tarear  (:,:,iblk),                      &
+                                   tarear  (:,:,iblk), vort     (:,:,iblk), &
                                    shear   (:,:,iblk), divu     (:,:,iblk), &
                                    rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
          enddo
