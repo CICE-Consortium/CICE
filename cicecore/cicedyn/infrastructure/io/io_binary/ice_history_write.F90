@@ -160,6 +160,7 @@
             if (histfreq(ns) == '1' .or. .not. hist_avg(ns)     &
                 .or. write_ic                                   &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
+                .or. n==n_vort(ns)                              &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
                 .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
