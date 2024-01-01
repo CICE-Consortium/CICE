@@ -1260,12 +1260,6 @@
             dyN   (i,j,iblk) = 1.e36_dbl_kind
             dxE   (i,j,iblk) = 1.e36_dbl_kind
             dyE   (i,j,iblk) = 1.e36_dbl_kind
-!TILL            dxhy  (i,j,iblk) = 1.e36_dbl_kind
-!TILL            dyhx  (i,j,iblk) = 1.e36_dbl_kind
-!TILL            cyp   (i,j,iblk) = 1.e36_dbl_kind
-!TILL            cxp   (i,j,iblk) = 1.e36_dbl_kind
-!TILL            cym   (i,j,iblk) = 1.e36_dbl_kind
-!TILL            cxm   (i,j,iblk) = 1.e36_dbl_kind
          enddo
          enddo
       enddo

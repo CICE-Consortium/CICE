@@ -212,13 +212,12 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
 
-         allocate( &
-            ratiodxN (nx_block,ny_block,max_blocks), &
-            ratiodyE (nx_block,ny_block,max_blocks), &
-            ratiodxNr(nx_block,ny_block,max_blocks), &
-            ratiodyEr(nx_block,ny_block,max_blocks), &
-            stat=ierr)
-         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory ratio')
+         allocate( ratiodxN (nx_block,ny_block,max_blocks), &
+                   ratiodyE (nx_block,ny_block,max_blocks), &
+                   ratiodxNr(nx_block,ny_block,max_blocks), &
+                   ratiodyEr(nx_block,ny_block,max_blocks), &
+                   stat=ierr)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory ratio')
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks

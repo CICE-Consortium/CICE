@@ -63,8 +63,7 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
-!      REMOVE? I
-      ! geometric quantities used for remapping transport
+! geometric quantities used for remapping transport
 !      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
 !         xav  , & ! mean T-cell value of x
 !         yav  , & ! mean T-cell value of y
@@ -85,7 +84,7 @@
       logical (kind=log_kind), parameter :: bugcheck = .false.
 
       interface limited_gradient
-         module procedure limited_gradient_cn_dbl,   &
+         module procedure limited_gradient_cn_2d,   &
                           limited_gradient_cn_scalar
       end interface
 
@@ -1385,22 +1384,24 @@
       end subroutine construct_fields
 
 !=======================================================================
-!
 ! Compute a limited gradient of the scalar field phi in scaled coordinates.
 ! "Limited" means that we do not create new extrema in phi.  For
 ! instance, field values at the cell corners can neither exceed the
 ! maximum of phi(i,j) in the cell and its eight neighbors, nor fall
 ! below the minimum.
 !
+! Part 1 of the interface limited_gradient that allows cnx and cny to be 2d arrays.
+! This is identical to the original limited_gradient subroutine
 ! authors William H. Lipscomb, LANL
 !         John R. Baumgardner, LANL
+! Updated to interface by Till Rasmussen, DMI
 
-      subroutine limited_gradient_cn_dbl (nx_block, ny_block,   &
-                                          ilo, ihi, jlo, jhi,   &
-                                          nghost,               &
-                                          phi,      phimask,    &
-                                          cnx,      cny,        &
-                                          gx,       gy)
+      subroutine limited_gradient_cn_2d (nx_block, ny_block,   &
+                                         ilo, ihi, jlo, jhi,   &
+                                         nghost,               &
+                                         phi,      phimask,    &
+                                         cnx,      cny,        &
+                                         gx,       gy)
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block, & ! block dimensions
@@ -1442,7 +1443,7 @@
          puny        , & !
          gxtmp, gytmp    ! temporary term for x- and y- limited gradient
 
-      character(len=*), parameter :: subname = '(limited_gradient_cn_dbl)'
+      character(len=*), parameter :: subname = '(limited_gradient_cn_2d)'
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
@@ -1540,19 +1541,25 @@
 
       enddo                     ! ij
 
-      end subroutine limited_gradient_cn_dbl
+      end subroutine limited_gradient_cn_2d
 
 !=======================================================================
-! Part 2 of the interface that allow cnx and cny to either matrices or scalars
-! Based on limited_gradient_cn_dbl
+! Compute a limited gradient of the scalar field phi in scaled coordinates.
+! "Limited" means that we do not create new extrema in phi.  For
+! instance, field values at the cell corners can neither exceed the
+! maximum of phi(i,j) in the cell and its eight neighbors, nor fall
+! below the minimum.
+!
+! Part 2 of the interface limited_gradient that allows cnx and cny to be scalars
+! Based on limited_gradient_cn_2d (previously limited_gradient)
 ! Updated by Till Rasmussen, DMI
 
       subroutine limited_gradient_cn_scalar (nx_block, ny_block,   &
-                                            ilo, ihi, jlo, jhi,   &
-                                            nghost,               &
-                                            phi,      phimask,    &
-                                            cnx,      cny,        &
-                                            gx,       gy)
+                                             ilo, ihi, jlo, jhi,   &
+                                             nghost,               &
+                                             phi,      phimask,    &
+                                             cnx,      cny,        &
+                                             gx,       gy)
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block, & ! block dimensions
