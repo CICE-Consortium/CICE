@@ -63,30 +63,7 @@
                       ! if false, area flux is determined internally
                       ! and is passed out
 
-! geometric quantities used for remapping transport
-!      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-!         xav  , & ! mean T-cell value of x
-!         yav  , & ! mean T-cell value of y
-!         xxav , & ! mean T-cell value of xx
-!         xyav , & ! mean T-cell value of xy
-!         yyav , & ! mean T-cell value of yy
-!         yyav     ! mean T-cell value of yy
-!         xxxav, & ! mean T-cell value of xxx
-!         xxyav, & ! mean T-cell value of xxy
-!         xyyav, & ! mean T-cell value of xyy
-!         yyyav    ! mean T-cell value of yyy
-
-      real    (kind=dbl_kind), parameter :: xav=c0
-      real    (kind=dbl_kind), parameter :: yav=c0
-      real    (kind=dbl_kind), parameter :: xxav=c1/c12
-      real    (kind=dbl_kind), parameter :: yyav=c1/c12
-
       logical (kind=log_kind), parameter :: bugcheck = .false.
-
-      interface limited_gradient
-         module procedure limited_gradient_cn_2d,   &
-                          limited_gradient_cn_scalar
-      end interface
 
 !=======================================================================
 ! Here is some information about how the incremental remapping scheme
@@ -1140,8 +1117,13 @@
          ij                    ! combined i/j horizontal index
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) ::    &
+         xav               , & ! mean T-cell values of x
+         yav               , & ! mean T-cell values of y
          mxav              , & ! x coordinate of center of mass
          myav                  ! y coordinate of center of mass
+
+      real (kind=dbl_kind), parameter :: xxav=c1/c12 ! mean T-cell values of xx
+      real (kind=dbl_kind), parameter :: yyav=c1/c12 ! mean T-cell values of yy
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace) ::  &
          mtxav             , & ! x coordinate of center of mass*tracer
@@ -1203,9 +1185,11 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         mc(i,j)  = c0
-         mx(i,j)  = c0
-         my(i,j)  = c0
+         xav(i,j)  = c0
+         yav(i,j)  = c0
+         mc(i,j)   = c0
+         mx(i,j)   = c0
+         my(i,j)   = c0
          mxav(i,j) = c0
          myav(i,j) = c0
       enddo
@@ -1257,12 +1241,13 @@
 
             ! center of mass (mxav,myav) for each cell
             ! echmod: xyav = 0
-            mxav(i,j) = (mx(i,j)*xxav         & !(i,j)    &
+!            mxav(i,j) = (mx(i,j)*xxav         & !(i,j)    &
 !                       + mc(i,j)*xav (i,j)) / mm(i,j)
-                       + mc(i,j)*xav ) / mm(i,j)
-            myav(i,j) = (my(i,j)*yyav         &!(i,j)    &
+!                       + mc(i,j)*xav ) / mm(i,j)
+            mxav(i,j) = mx(i,j)*xxav / mm(i,j) 
+!            myav(i,j) = (my(i,j)*yyav         &!(i,j)    &
 !                       + mc(i,j)*yav(i,j)) / mm(i,j)
-                        + mc(i,j)*yav) / mm(i,j)
+             myav(i,j) = my(i,j)*yyav / mm(i,j)
 !            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
 !                       + my(i,j)*xyav(i,j)    &
 !                       + mc(i,j)*xav (i,j)) / mm(i,j)
@@ -1303,7 +1288,7 @@
                      if (tmask(i,j,nt) > puny) then
 
                         ! center of area*tracer
-                        w1 = mc(i,j)*tc(i,j,nt)
+!                        w1 = mc(i,j)*tc(i,j,nt)
                         w2 = mc(i,j)*tx(i,j,nt)   &
                            + mx(i,j)*tc(i,j,nt)
                         w3 = mc(i,j)*ty(i,j,nt)   &
@@ -1315,12 +1300,13 @@
                         w7 = c1 / (mm(i,j)*tm(i,j,nt))
                         ! echmod: grid arrays = 0
 !                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
-                        mtxav(i,j,nt) = (w1*xav + w2*xxav)   &
-                                       * w7
-                        mtyav(i,j,nt) = (w1*yav   + w3*yyav) &
+!                        mtxav(i,j,nt) = (w1*xav + w2*xxav)   &
+!                                       * w7
+                         mtxav(i,j,nt) = w2*xxav *w7
+!                        mtyav(i,j,nt) = (w1*yav   + w3*yyav) &
 !                        mtyav(i,j,nt) = (w1*yav(i,j)   + w3*yyav(i,j)) &
-                                       * w7
-
+!                                       * w7
+                         mtyav(i,j,nt) = w3*yyav * w7
 !                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j)   &
 !                                       + w3*xyav (i,j) + w4*xxxav(i,j)   &
 !                                       + w5*xxyav(i,j) + w6*xyyav(i,j))  &
@@ -1390,18 +1376,15 @@
 ! maximum of phi(i,j) in the cell and its eight neighbors, nor fall
 ! below the minimum.
 !
-! Part 1 of the interface limited_gradient that allows cnx and cny to be 2d arrays.
-! This is identical to the original limited_gradient subroutine
 ! authors William H. Lipscomb, LANL
 !         John R. Baumgardner, LANL
-! Updated to interface by Till Rasmussen, DMI
 
-      subroutine limited_gradient_cn_2d (nx_block, ny_block,   &
-                                         ilo, ihi, jlo, jhi,   &
-                                         nghost,               &
-                                         phi,      phimask,    &
-                                         cnx,      cny,        &
-                                         gx,       gy)
+      subroutine limited_gradient (nx_block, ny_block,   &
+                                   ilo, ihi, jlo, jhi,   &
+                                   nghost,               &
+                                   phi,      phimask,    &
+                                   cnx,      cny,        &
+                                   gx,       gy)
 
       integer (kind=int_kind), intent(in) ::   &
          nx_block, ny_block, & ! block dimensions
@@ -1443,7 +1426,7 @@
          puny        , & !
          gxtmp, gytmp    ! temporary term for x- and y- limited gradient
 
-      character(len=*), parameter :: subname = '(limited_gradient_cn_2d)'
+      character(len=*), parameter :: subname = '(limited_gradient)'
 
       call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
@@ -1541,166 +1524,7 @@
 
       enddo                     ! ij
 
-      end subroutine limited_gradient_cn_2d
-
-!=======================================================================
-! Compute a limited gradient of the scalar field phi in scaled coordinates.
-! "Limited" means that we do not create new extrema in phi.  For
-! instance, field values at the cell corners can neither exceed the
-! maximum of phi(i,j) in the cell and its eight neighbors, nor fall
-! below the minimum.
-!
-! Part 2 of the interface limited_gradient that allows cnx and cny to be scalars
-! Based on limited_gradient_cn_2d (previously limited_gradient)
-! Updated by Till Rasmussen, DMI
-
-      subroutine limited_gradient_cn_scalar (nx_block, ny_block,   &
-                                             ilo, ihi, jlo, jhi,   &
-                                             nghost,               &
-                                             phi,      phimask,    &
-                                             cnx,      cny,        &
-                                             gx,       gy)
-
-      integer (kind=int_kind), intent(in) ::   &
-         nx_block, ny_block, & ! block dimensions
-         ilo,ihi,jlo,jhi   , & ! beginning and end of physical domain
-         nghost                ! number of ghost cells
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
-         phi      , & ! input tracer field (mean values in each grid cell)
-         phimask      ! phimask(i,j) = 1 if phi(i,j) has physical meaning, = 0 otherwise.
-                      ! For instance, aice has no physical meaning in land cells,
-                      ! and hice no physical meaning where aice = 0.
-
-      real (kind=dbl_kind), intent (in) ::   &
-         cnx      , & ! x-coordinate of phi relative to geometric center of cell
-         cny          ! y-coordinate of phi relative to geometric center of cell
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) ::   &
-         gx       , & ! limited x-direction gradient
-         gy           ! limited y-direction gradient
-
-      ! local variables
-
-      integer (kind=int_kind) ::   &
-         i, j, ij , & ! standard indices
-         icells       ! number of cells to limit
-
-      integer (kind=int_kind), dimension(nx_block*ny_block) ::   &
-         indxi, indxj ! combined i/j horizontal indices
-
-      real (kind=dbl_kind) ::   &
-         phi_nw, phi_n, phi_ne , & ! values of phi in 8 neighbor cells
-         phi_w,         phi_e  , &
-         phi_sw, phi_s, phi_se , &
-         qmn, qmx              , & ! min and max value of phi within grid cell
-         pmn, pmx              , & ! min and max value of phi among neighbor cells
-         w1, w2, w3, w4            ! work variables
-
-      real (kind=dbl_kind) ::   &
-         puny        , & !
-         gxtmp, gytmp    ! temporary term for x- and y- limited gradient
-
-      character(len=*), parameter :: subname = '(limited_gradient_cn_scalar)'
-
-      call icepack_query_parameters(puny_out=puny)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      gx(:,:) = c0
-      gy(:,:) = c0
-
-      ! For nghost = 1, loop over physical cells and update ghost cells later
-      ! For nghost = 2, loop over a layer of ghost cells and skip the update
-
-      icells = 0
-      do j = jlo-nghost+1, jhi+nghost-1
-      do i = ilo-nghost+1, ihi+nghost-1
-         if (phimask(i,j) > puny) then
-            icells = icells + 1
-            indxi(icells) = i
-            indxj(icells) = j
-         endif                  ! phimask > puny
-      enddo
-      enddo
-
-      do ij = 1, icells
-         i = indxi(ij)
-         j = indxj(ij)
-
-         ! Store values of phi in the 8 neighbor cells.
-         ! Note: phimask = 1. or 0.  If phimask = 1., use the true value;
-         !  if phimask = 0., use the home cell value so that non-physical
-         !  values of phi do not contribute to the gradient.
-         phi_nw = phimask(i-1,j+1) * phi(i-1,j+1)  &
-            + (c1-phimask(i-1,j+1))* phi(i  ,j  )
-         phi_n  = phimask(i  ,j+1) * phi(i  ,j+1)  &
-            + (c1-phimask(i  ,j+1))* phi(i  ,j  )
-         phi_ne = phimask(i+1,j+1) * phi(i+1,j+1)  &
-            + (c1-phimask(i+1,j+1))* phi(i  ,j  )
-         phi_w  = phimask(i-1,j  ) * phi(i-1,j  )  &
-            + (c1-phimask(i-1,j  ))* phi(i  ,j  )
-         phi_e  = phimask(i+1,j  ) * phi(i+1,j  )  &
-            + (c1-phimask(i+1,j  ))* phi(i  ,j  )
-         phi_sw = phimask(i-1,j-1) * phi(i-1,j-1)  &
-            + (c1-phimask(i-1,j-1))* phi(i  ,j  )
-         phi_s  = phimask(i  ,j-1) * phi(i  ,j-1)  &
-            + (c1-phimask(i  ,j-1))* phi(i  ,j  )
-         phi_se = phimask(i+1,j-1) * phi(i+1,j-1)  &
-            + (c1-phimask(i+1,j-1))* phi(i  ,j  )
-
-         ! unlimited gradient components
-         ! (factors of two cancel out)
-
-         gxtmp = (phi_e - phi_w) * p5
-         gytmp = (phi_n - phi_s) * p5
-
-         ! minimum and maximum among the nine local cells
-         pmn = min (phi_nw, phi_n,  phi_ne, phi_w, phi(i,j),   &
-                    phi_e,  phi_sw, phi_s,  phi_se)
-         pmx = max (phi_nw, phi_n,  phi_ne, phi_w, phi(i,j),   &
-                    phi_e,  phi_sw, phi_s,  phi_se)
-
-         pmn = pmn - phi(i,j)
-         pmx = pmx - phi(i,j)
-
-         ! minimum and maximum deviation of phi within the cell
-         ! minimum and maximum deviation of phi within the cell
-         w1  =  (p5 - cnx) * gxtmp   &
-              + (p5 - cny) * gytmp
-         w2  =  (p5 - cnx) * gxtmp   &
-              - (p5 + cny) * gytmp
-         w3  = -(p5 + cnx) * gxtmp   &
-              - (p5 + cny) * gytmp
-         w4  =  (p5 - cny) * gytmp   &
-              - (p5 + cnx) * gxtmp
-
-         qmn = min (w1, w2, w3, w4)
-         qmx = max (w1, w2, w3, w4)
-
-         ! the limiting coefficient
-         if ( abs(qmn) > abs(pmn) ) then ! 'abs(qmn) > puny' not sufficient
-            w1 = max(c0, pmn/qmn)
-         else
-            w1 = c1
-         endif
-
-         if ( abs(qmx) > abs(pmx) ) then
-            w2 = max(c0, pmx/qmx)
-         else
-            w2 = c1
-         endif
-
-         w1 = min(w1, w2)
-
-         ! Limit the gradient components
-         gx(i,j) = w1 * gxtmp
-         gy(i,j) = w1 * gytmp
-
-      enddo                     ! ij
-
-      end subroutine limited_gradient_cn_scalar
+      end subroutine limited_gradient
 
 !=======================================================================
 !
