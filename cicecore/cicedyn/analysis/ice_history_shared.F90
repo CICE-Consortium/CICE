@@ -302,6 +302,7 @@
            f_sidmasslat = 'x', &
            f_sndmasssnf = 'x', &
            f_sndmassmelt = 'x', &
+           f_sndmassdyn = 'x', &
            f_siflswdtop = 'x', &
            f_siflswutop = 'x', &
            f_siflswdbot = 'x', &
@@ -469,6 +470,7 @@
            f_sidmasslat, &
            f_sndmasssnf, &
            f_sndmassmelt, &
+           f_sndmassdyn, &
            f_siflswdtop, &
            f_siflswutop, &
            f_siflswdbot, &
@@ -659,6 +661,7 @@
            n_sidmasslat,  &
            n_sndmasssnf,  &
            n_sndmassmelt,  &
+           n_sndmassdyn,  &
            n_siflswdtop,  &
            n_siflswutop,  &
            n_siflswdbot,  &
