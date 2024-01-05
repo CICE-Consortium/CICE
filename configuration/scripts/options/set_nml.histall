@@ -106,6 +106,7 @@
     f_strength     = 'md'
     f_divu         = 'md'
     f_shear        = 'md'
+    f_vort         = 'md'			
     f_sig1         = 'md' 
     f_sig2         = 'md' 
     f_sigP         = 'md' 
