@@ -745,6 +745,7 @@ section :ref:`tabnamelist`.
    "visc_method", "method for calculating viscosities (‘avg_strength’ or ‘avg_zeta’)", "avg_zeta"
    "vocn", "ocean current in the y-direction", "m/s"
    "vonkar", "von Karman constant", "0.4"
+   "vort", "vorticity", "1/s"
    "vraftn", "volume of rafted ice", "m"
    "vrdgn", "volume of ridged ice", "m"
    "vredistrn", "redistribution function: fraction of new ridge volume", ""

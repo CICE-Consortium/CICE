@@ -167,10 +167,10 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxT, dyT, &
+      use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
           tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
@@ -521,9 +521,10 @@
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
                             dxT       (:,:,iblk), dyT       (:,:,iblk), &
+                            dxU       (:,:,iblk), dyU       (:,:,iblk), &
                             cxp       (:,:,iblk), cyp       (:,:,iblk), &
                             cxm       (:,:,iblk), cym       (:,:,iblk), &
-                            tarear    (:,:,iblk),                       &
+                            tarear    (:,:,iblk), vort      (:,:,iblk), &
                             shear     (:,:,iblk), divu      (:,:,iblk), &
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo

@@ -116,6 +116,7 @@
          vvelN    , & ! y-component of velocity on N grid (m/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          shear    , & ! strain rate II component (1/s)
+         vort     , & ! vorticity (1/s)
          strength     ! ice strength (N/m)
 
       !-----------------------------------------------------------------
@@ -163,6 +164,7 @@
          vvelN     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on N grid (m/s)
          divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
          shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
+         vort      (nx_block,ny_block,max_blocks) , & ! vorticity (1/s)
          strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
          aice_init (nx_block,ny_block,max_blocks) , & ! initial concentration of ice, for diagnostics
          aicen     (nx_block,ny_block,ncat,max_blocks) , & ! concentration of ice

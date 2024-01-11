@@ -1286,6 +1286,7 @@
           .or. write_ic                                   &
           .or.TRIM(hfield%vname(1:4))=='divu' &
           .or.TRIM(hfield%vname(1:5))=='shear' &
+          .or.TRIM(hfield%vname(1:4))=='vort' &
           .or.TRIM(hfield%vname(1:4))=='sig1' &
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &

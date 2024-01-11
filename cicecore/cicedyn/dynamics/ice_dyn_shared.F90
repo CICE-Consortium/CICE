@@ -1711,9 +1711,10 @@
                                indxTi,     indxTj,     &
                                uvel,       vvel,       &
                                dxT,        dyT,        &
+                               dxU,        dyU,        &
                                cxp,        cyp,        &
                                cxm,        cym,        &
-                               tarear,                 &
+                               tarear,     vort,       &
                                shear,      divu,       &
                                rdg_conv,   rdg_shear )
 
@@ -1732,6 +1733,8 @@
          vvel     , & ! y-component of velocity (m/s)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
+         dxU      , & ! width of U-cell through the middle (m)
+         dyU      , & ! height of U-cell through the middle (m)
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
@@ -1739,6 +1742,7 @@
          tarear       ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         vort     , & ! vorticity (1/s)   
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)
@@ -1755,6 +1759,9 @@
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
         tmp                                           ! useful combination
+
+      real (kind=dbl_kind) :: &                       ! at edges for vorticity calc :
+         dvdxn, dvdxs, dudye, dudyw                   ! dvdx and dudy terms on edges
 
       character(len=*), parameter :: subname = '(deformations)'
 
@@ -1794,6 +1801,13 @@
                       (tensionne + tensionnw + tensionse + tensionsw)**2 + &
                       (shearne   + shearnw   + shearse   + shearsw  )**2)
 
+         ! vorticity
+         dvdxn = dyU(i,j)*vvel(i,j) - dyU(i-1,j)*vvel(i-1,j)
+         dvdxs = dyU(i,j-1)*vvel(i,j-1) - dyU(i-1,j-1)*vvel(i-1,j-1)
+         dudye = dxU(i,j)*uvel(i,j) - dxU(i,j-1)*uvel(i,j-1)
+         dudyw = dxU(i-1,j)*uvel(i-1,j) - dxU(i-1,j-1)*uvel(i-1,j-1)
+         vort(i,j) = p5*tarear(i,j)*(dvdxn + dvdxs - dudye - dudyw)
+
       enddo                     ! ij
 
       end subroutine deformations
@@ -1811,7 +1825,7 @@
                                    uvelN,      vvelN,      &
                                    dxN,        dyE,        &
                                    dxT,        dyT,        &
-                                   tarear,                 &
+                                   tarear,     vort,       &
                                    shear,      divu,       &
                                    rdg_conv,   rdg_shear )
 
@@ -1837,6 +1851,7 @@
          tarear       ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)
@@ -1888,6 +1903,9 @@
          ! diagnostic only
          ! shear = sqrt(tension**2 + shearing**2)
          shear(i,j) = tarear(i,j)*sqrt( tensionT(i,j)**2 + shearT(i,j)**2 )
+         ! vorticity
+         vort (i,j) = tarear(i,j)*( ( dyE(i,j)*vvelE(i,j) - dyE(i-1,j)*vvelE(i-1,j) ) &
+                                  - ( dxN(i,j)*uvelN(i,j) - dxN(i,j-1)*uvelN(i,j-1)) )
 
       enddo                     ! ij
 
@@ -1908,7 +1926,7 @@
                                 dxN,        dyE,        &
                                 dxT,        dyT,        &
                                 tarear,     uarea,      &
-                                shearU,                 &
+                                shearU,     vort,       &
                                 shear,      divu,       &
                                 rdg_conv,   rdg_shear )
 
@@ -1936,6 +1954,7 @@
          shearU       ! shearU
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)
@@ -1999,6 +2018,9 @@
          ! diagnostic only...maybe we dont want to use shearTsqr here????
          ! shear = sqrt(tension**2 + shearing**2)
          shear(i,j) = tarear(i,j)*sqrt( tensionT(i,j)**2 + shearT(i,j)**2 )
+         ! vorticity
+         vort (i,j) = tarear(i,j)*( ( dyE(i,j)*vvelE(i,j) - dyE(i-1,j)*vvelE(i-1,j) ) &
+                                  - ( dxN(i,j)*uvelN(i,j) - dxN(i,j-1)*uvelN(i,j-1)) )
 
       enddo                     ! ij
 

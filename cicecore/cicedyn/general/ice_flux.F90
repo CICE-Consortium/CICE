@@ -1022,7 +1022,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, trcr, strength, divu, shear
+      use ice_state, only: aice, vice, trcr, strength, divu, shear, vort
       use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
@@ -1043,6 +1043,7 @@
       sig2    (:,:,:) = c0
       divu    (:,:,:) = c0
       shear   (:,:,:) = c0
+      vort    (:,:,:) = c0
       taubxU  (:,:,:) = c0
       taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
