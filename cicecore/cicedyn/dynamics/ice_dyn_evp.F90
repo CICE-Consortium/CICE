@@ -84,6 +84,12 @@
          emass    (:,:,:) , & ! total mass of ice and snow (E grid)
          emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         ratiodxN    , & ! - dxN(i+1,j)   / dxN(i,j)
+         ratiodyE    , & ! - dyE(i  ,j+1) / dyE(i,j)
+         ratiodxNr   , & !   1 / ratiodxN
+         ratiodyEr       !   1 / ratiodyE
+
       real (kind=dbl_kind), allocatable :: &
          strengthU(:,:,:) , & ! strength averaged to U points
          divergU  (:,:,:) , & ! div array on U points, differentiate from divu
@@ -119,9 +125,10 @@
 ! Elastic-viscous-plastic dynamics driver
 !
       subroutine init_evp
-      use ice_blocks, only: nx_block, ny_block, nghost
-      use ice_domain_size, only: max_blocks, nx_global, ny_global
-      use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN
+      use ice_blocks, only: get_block, nx_block, ny_block, nghost, block
+      use ice_domain_size, only: max_blocks
+      use ice_domain, only: nblocks, blocks_ice
+      use ice_grid, only: grid_ice, dyT, dxT, uarear, tmask, G_HTE, G_HTN, dxN, dyE
       use ice_calendar, only: dt_dyn
       use ice_dyn_shared, only: init_dyn_shared, evp_algorithm
       use ice_dyn_evp1d, only: dyn_evp1d_init
@@ -130,6 +137,14 @@
       integer (int_kind) :: ierr
 
       character(len=*), parameter :: subname = '(init_evp)'
+
+     type (block) :: &
+         this_block   ! block information for current block
+
+      integer (kind=int_kind) :: &
+         i, j, iblk            , & ! block index
+         ilo,ihi,jlo,jhi           ! beginning and end of physical domain
+
 
       call init_dyn_shared(dt_dyn)
 
@@ -197,6 +212,32 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
 
+         allocate( ratiodxN (nx_block,ny_block,max_blocks), &
+                   ratiodyE (nx_block,ny_block,max_blocks), &
+                   ratiodxNr(nx_block,ny_block,max_blocks), &
+                   ratiodyEr(nx_block,ny_block,max_blocks), &
+                   stat=ierr)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory ratio')
+
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk),iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+
+            do j = jlo, jhi
+            do i = ilo, ihi
+               ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
+               ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
+               ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
+               ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
+            enddo
+            enddo
+         enddo                     ! iblk
+         !$OMP END PARALLEL DO
+
       endif
 
       end subroutine init_evp
@@ -219,7 +260,7 @@
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
-      use ice_domain_size, only: max_blocks, ncat, nx_global, ny_global
+      use ice_domain_size, only: max_blocks, ncat
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -238,8 +279,6 @@
           stresspU, stressmU, stress12U
       use ice_grid, only: tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
-          ratiodxN, ratiodxNr, ratiodyE, ratiodyEr, &
-          dxhy, dyhx, cxp, cyp, cxm, cym, &
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_type, grid_ice, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
@@ -250,7 +289,7 @@
           ice_timer_start, ice_timer_stop, timer_evp
       use ice_dyn_shared, only: evp_algorithm, stack_fields, unstack_fields, &
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
-          strain_rates_U, &
+          strain_rates_U, dxhy, dyhx, cxp, cyp, cxm, cym, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
           dyn_haloUpdate, fld2, fld3, fld4
       use ice_dyn_evp1d, only: dyn_evp1d_run

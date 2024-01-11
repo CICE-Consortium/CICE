@@ -25,6 +25,7 @@
 !           can be specified (following an idea of Mats Bentsen)
 ! 2010: ECH removed unnecessary grid arrays and optional arguments from
 !       horizontal_remap
+! 2023: TAR, DMI Remove commented code and unnecessary arrays
 
       module ice_transport_remap
 
@@ -253,51 +254,14 @@
 !
 ! Grid quantities used by the remapping transport scheme
 !
-! Note:  the arrays xyav, xxxav, etc are not needed for rectangular grids
-! but may be needed in the future for other nonuniform grids.  They have
-! been commented out here to save memory and flops.
+! Note: Arrays needed for nonuniform grids has been deleted.
+!       They can be found in version 6.5 and earlier
 !
 ! author William H. Lipscomb, LANL
 
       subroutine init_remap
 
-      use ice_domain, only: nblocks
-      use ice_grid, only: xav, yav, xxav, yyav
-!                          dxT, dyT, xyav, &
-!                          xxxav, xxyav, xyyav, yyyav
-
-      integer (kind=int_kind) ::     &
-        i, j, iblk     ! standard indices
-
       character(len=*), parameter :: subname = '(init_remap)'
-
-      ! Compute grid cell average geometric quantities on the scaled
-      ! rectangular grid with dx = 1, dy = 1.
-      !
-      ! Note: On a rectangular grid, the integral of any odd function
-      !       of x or y = 0.
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            xav(i,j,iblk) = c0
-            yav(i,j,iblk) = c0
-!!!            These formulas would be used on a rectangular grid
-!!!            with dimensions (dxT, dyT):
-!!!            xxav(i,j,iblk) = dxT(i,j,iblk)**2 / c12
-!!!            yyav(i,j,iblk) = dyT(i,j,iblk)**2 / c12
-            xxav(i,j,iblk) = c1/c12
-            yyav(i,j,iblk) = c1/c12
-!            xyav(i,j,iblk) = c0
-!            xxxav(i,j,iblk) = c0
-!            xxyav(i,j,iblk) = c0
-!            xyyav(i,j,iblk) = c0
-!            yyyav(i,j,iblk) = c0
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
 
       !-------------------------------------------------------------------
       ! Set logical l_fixed_area depending of the grid type.
@@ -356,9 +320,7 @@
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_remap
       use ice_blocks, only: block, get_block, nghost
       use ice_grid, only: HTE, HTN, dxu, dyu,       &
-                          earea, narea, tarear, hm,                  &
-                          xav, yav, xxav, yyav
-!                          xyav, xxxav, xxyav, xyyav, yyyav
+                          earea, narea, tarear, hm
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       real (kind=dbl_kind), intent(in) ::     &
@@ -519,12 +481,7 @@
                                tracer_type,       depend,            &
                                has_dependents,    icellsnc(0,iblk),  &
                                indxinc(:,0),      indxjnc(:,0),      &
-                               hm     (:,:,iblk), xav   (:,:,iblk),  &
-                               yav    (:,:,iblk), xxav  (:,:,iblk),  &
-                               yyav   (:,:,iblk),                    &
-!                               xyav   (:,:,iblk),                    &
-!                               xxxav  (:,:,iblk), xxyav (:,:,iblk),  &
-!                               xyyav  (:,:,iblk), yyyav (:,:,iblk),  &
+                               hm     (:,:,iblk),                    &
                                mm   (:,:,0,iblk), mc  (:,:,0,iblk),  &
                                mx   (:,:,0,iblk), my  (:,:,0,iblk),  &
                                mmask(:,:,0) )
@@ -539,12 +496,7 @@
                                   tracer_type,         depend,              &
                                   has_dependents,      icellsnc (n,iblk),   &
                                   indxinc  (:,n),      indxjnc(:,n),        &
-                                  hm       (:,:,iblk), xav    (:,:,iblk),   &
-                                  yav      (:,:,iblk), xxav   (:,:,iblk),   &
-                                  yyav     (:,:,iblk),                      &
-!                                  xyav     (:,:,iblk),                      &
-!                                  xxxav    (:,:,iblk), xxyav  (:,:,iblk),   &
-!                                  xyyav    (:,:,iblk), yyyav  (:,:,iblk),   &
+                                  hm       (:,:,iblk),                      &
                                   mm     (:,:,n,iblk),  mc  (:,:,n,iblk),    &
                                   mx     (:,:,n,iblk),  my  (:,:,n,iblk),    &
                                   mmask  (:,:,n),                            &
@@ -1052,12 +1004,7 @@
                                    tracer_type,    depend,     &
                                    has_dependents, icells,     &
                                    indxi,          indxj,      &
-                                   hm,             xav,        &
-                                   yav,            xxav,       &
-                                   yyav,       &
-!                                   xyav,      &
-!                                   xxxav,          xxyav,      &
-!                                   xyyav,          yyyav,      &
+                                   hm,                         &
                                    mm,             mc,         &
                                    mx,             my,         &
                                    mmask,                      &
@@ -1084,11 +1031,7 @@
          indxj
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
-         hm                , & ! land/boundary mask, thickness (T-cell)
-         xav,  yav         , & ! mean T-cell values of x, y
-         xxav, yyav            ! mean T-cell values of xx, yy
-!         xyav,             , & ! mean T-cell values of xy
-!         xxxav,xxyav,xyyav,yyyav ! mean T-cell values of xxx, xxy, xyy, yyy
+         hm                    ! land/boundary mask, thickness (T-cell)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
          mm                , & ! mean value of mass field
@@ -1114,8 +1057,13 @@
          ij                    ! combined i/j horizontal index
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) ::    &
+         xav               , & ! mean T-cell values of x
+         yav               , & ! mean T-cell values of y
          mxav              , & ! x coordinate of center of mass
          myav                  ! y coordinate of center of mass
+
+      real (kind=dbl_kind), parameter :: xxav=c1/c12 ! mean T-cell values of xx
+      real (kind=dbl_kind), parameter :: yyav=c1/c12 ! mean T-cell values of yy
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ntrace) ::  &
          mtxav             , & ! x coordinate of center of mass*tracer
@@ -1123,7 +1071,7 @@
 
       real (kind=dbl_kind) ::   &
          puny, &
-         w1, w2, w3, w7        ! work variables
+         w2, w3, w7        ! work variables
 
       character(len=*), parameter :: subname = '(construct_fields)'
 
@@ -1177,9 +1125,11 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         mc(i,j)  = c0
-         mx(i,j)  = c0
-         my(i,j)  = c0
+         xav(i,j)  = c0
+         yav(i,j)  = c0
+         mc(i,j)   = c0
+         mx(i,j)   = c0
+         my(i,j)   = c0
          mxav(i,j) = c0
          myav(i,j) = c0
       enddo
@@ -1213,11 +1163,7 @@
          j = indxj(ij)
 
          ! mass field at geometric center
-         ! echmod: xav = yav = 0
          mc(i,j) = mm(i,j)
-
-!         mc(i,j) = mm(i,j) - xav(i,j)*mx(i,j)   &
-!                           - yav(i,j)*my(i,j)
 
       enddo                     ! ij
 
@@ -1230,18 +1176,10 @@
             j = indxj(ij)
 
             ! center of mass (mxav,myav) for each cell
-            ! echmod: xyav = 0
-            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
-                       + mc(i,j)*xav (i,j)) / mm(i,j)
-            myav(i,j) = (my(i,j)*yyav(i,j)    &
-                       + mc(i,j)*yav(i,j)) / mm(i,j)
 
-!            mxav(i,j) = (mx(i,j)*xxav(i,j)    &
-!                       + my(i,j)*xyav(i,j)    &
-!                       + mc(i,j)*xav (i,j)) / mm(i,j)
-!            myav(i,j) = (mx(i,j)*xyav(i,j)    &
-!                       + my(i,j)*yyav(i,j)    &
-!                       + mc(i,j)*yav(i,j)) / mm(i,j)
+            mxav(i,j) = mx(i,j)*xxav / mm(i,j) 
+            myav(i,j) = my(i,j)*yyav / mm(i,j)
+
          enddo
 
          do nt = 1, ntrace
@@ -1276,30 +1214,14 @@
                      if (tmask(i,j,nt) > puny) then
 
                         ! center of area*tracer
-                        w1 = mc(i,j)*tc(i,j,nt)
                         w2 = mc(i,j)*tx(i,j,nt)   &
                            + mx(i,j)*tc(i,j,nt)
                         w3 = mc(i,j)*ty(i,j,nt)   &
                            + my(i,j)*tc(i,j,nt)
-!                        w4 = mx(i,j)*tx(i,j,nt)
-!                        w5 = mx(i,j)*ty(i,j,nt)   &
-!                           + my(i,j)*tx(i,j,nt)
-!                        w6 = my(i,j)*ty(i,j,nt)
                         w7 = c1 / (mm(i,j)*tm(i,j,nt))
                         ! echmod: grid arrays = 0
-                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j))   &
-                                       * w7
-                        mtyav(i,j,nt) = (w1*yav(i,j)   + w3*yyav(i,j)) &
-                                       * w7
-
-!                        mtxav(i,j,nt) = (w1*xav (i,j)  + w2*xxav (i,j)   &
-!                                       + w3*xyav (i,j) + w4*xxxav(i,j)   &
-!                                       + w5*xxyav(i,j) + w6*xyyav(i,j))  &
-!                                       * w7
-!                        mtyav(i,j,nt) = (w1*yav(i,j)   + w2*xyav (i,j)   &
-!                                       + w3*yyav(i,j)  + w4*xxyav(i,j)   &
-!                                       + w5*xyyav(i,j) + w6*yyyav(i,j))  &
-!                                       * w7
+                        mtxav(i,j,nt) = w2*xxav *w7
+                        mtyav(i,j,nt) = w3*yyav * w7
                      endif         ! tmask
 
                   enddo            ! ij
@@ -1342,8 +1264,6 @@
                   j = indxj(ij)
 
                   tc(i,j,nt) = tm(i,j,nt)
-!                  tx(i,j,nt) = c0   ! already initialized to 0.
-!                  ty(i,j,nt) = c0
                enddo               ! ij
 
             endif                  ! tracer_type
@@ -1355,7 +1275,6 @@
       end subroutine construct_fields
 
 !=======================================================================
-!
 ! Compute a limited gradient of the scalar field phi in scaled coordinates.
 ! "Limited" means that we do not create new extrema in phi.  For
 ! instance, field values at the cell corners can neither exceed the
@@ -1379,11 +1298,13 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
          phi      , & ! input tracer field (mean values in each grid cell)
-         cnx      , & ! x-coordinate of phi relative to geometric center of cell
-         cny      , & ! y-coordinate of phi relative to geometric center of cell
          phimask      ! phimask(i,j) = 1 if phi(i,j) has physical meaning, = 0 otherwise.
                       ! For instance, aice has no physical meaning in land cells,
                       ! and hice no physical meaning where aice = 0.
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent (in) ::   &
+         cnx      , & ! x-coordinate of phi relative to geometric center of cell
+         cny          ! y-coordinate of phi relative to geometric center of cell½
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) ::   &
          gx       , & ! limited x-direction gradient
@@ -3102,10 +3023,6 @@
                      write(nu_diag,*) ''
                      write(nu_diag,*) 'WARNING: xp =', xp(i,j,nv,ng)
                      write(nu_diag,*) 'm, i, j, ng, nv =', my_task, i, j, ng, nv
-!                     write(nu_diag,*) 'yil,xdl,xcl,ydl=',yil,xdl,xcl,ydl
-!                     write(nu_diag,*) 'yir,xdr,xcr,ydr=',yir,xdr,xcr,ydr
-!                     write(nu_diag,*) 'ydm=',ydm
-!                      stop
                   endif
                   if (abs(yp(i,j,nv,ng)) > p5+puny) then
                      write(nu_diag,*) ''

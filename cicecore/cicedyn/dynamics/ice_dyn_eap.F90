@@ -109,7 +109,7 @@
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
           stack_fields, unstack_fields, iceTmask, iceUmask, &
-          fld2, fld3, fld4
+          fld2, fld3, fld4, dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -118,7 +118,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, dxhy, dyhx, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
           tarear, uarear, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
