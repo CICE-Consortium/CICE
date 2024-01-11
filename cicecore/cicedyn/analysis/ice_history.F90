@@ -1314,17 +1314,17 @@
 
          call define_hist_field(n_divu,"divu","%/day",tstr2D, tcstr, &
              "strain rate (divergence)",                           &
-             "none", secday*c100, c0,                              &
+             "divu is instantaneous, on T grid", secday*c100, c0,                              &
              ns1, f_divu)
 
          call define_hist_field(n_shear,"shear","%/day",tstr2D, tcstr, &
              "strain rate (shear)",                                  &
-             "none", secday*c100, c0,                                &
+             "shear is instantaneous, on T grid", secday*c100, c0,                                &
              ns1, f_shear)
 
          call define_hist_field(n_vort,"vort","%/day",tstr2D, tcstr, &
              "strain rate (vorticity)",                                  &
-             "none", secday*c100, c0,                                &
+             "vort is instantaneous, on T grid", secday*c100, c0,                                &
              ns1, f_vort)
 
          select case (grid_ice)
