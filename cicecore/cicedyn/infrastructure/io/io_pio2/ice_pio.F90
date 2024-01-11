@@ -27,7 +27,8 @@
 
   public ice_pio_init
   public ice_pio_initdecomp
-
+  public ice_pio_check
+  
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem
 #else
@@ -66,23 +67,16 @@
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
-   integer :: nprocs
-   integer :: istride
-   integer :: basetask
-   integer :: numiotasks
-   integer :: rearranger
-   integer :: pio_iotype
-   logical :: exists
-   logical :: lclobber
-   logical :: lcdf64
-   integer :: status
-   integer :: nmode
+   integer :: nprocs , istride, basetask, numiotasks, rearranger, pio_iotype, status, nmode
+   logical :: lclobber, lcdf64, exists
    character(len=*), parameter :: subname = '(ice_pio_init)'
    logical, save :: first_call = .true.
 
 #ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+
+   pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR) 
 #else
 
 #ifdef GPTL
@@ -94,8 +88,8 @@
    !--- initialize type of io
    !pio_iotype = PIO_IOTYPE_PNETCDF
    !pio_iotype = PIO_IOTYPE_NETCDF4C
-   !pio_iotype = PIO_IOTYPE_NETCDF4P
-   pio_iotype = PIO_IOTYPE_NETCDF
+   pio_iotype = PIO_IOTYPE_NETCDF4P
+   !pio_iotype = PIO_IOTYPE_NETCDF
    if (present(iotype)) then
       pio_iotype = iotype
    endif
@@ -118,6 +112,9 @@
 
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
                  rearranger, ice_pio_subsystem, base=basetask)
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_BCAST_ERROR) 
+
    !--- initialize rearranger options
    !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
    !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
@@ -156,12 +153,14 @@
                   nmode = pio_clobber
                   if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check(status, subname//' ERROR: Failed to create file '//trim(filename))
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)
                   end if
                else
                   nmode = pio_write
                   status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check( status,  subname//' ERROR: Failed to open file '//trim(filename) )
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' open file ',trim(filename)
                   end if
@@ -170,19 +169,23 @@
                nmode = pio_noclobber
                if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+               call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename) )
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)
                end if
             endif
-         else
-            ! filename is already open, just return
+         ! else: filename is already open, just return
          endif
       end if
 
       if (trim(mode) == 'read') then
          inquire(file=trim(filename),exist=exists)
          if (exists) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' opening file for reading'
+            endif
             status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
+            call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename))
          else
             if(my_task==master_task) then
                write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
@@ -192,6 +195,8 @@
       end if
 
    end if
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_INTERNAL_ERROR) 
 
    end subroutine ice_pio_init
 
@@ -464,6 +469,24 @@
       deallocate(dof4d)
 
    end subroutine ice_pio_initdecomp_4d
+
+
+!================================================================================
+
+   ! PIO Error handling
+   ! Author: Anton Steketee, ACCESS-NRI
+
+   subroutine ice_pio_check(status, abort_msg)
+      integer, intent (in) :: status
+      integer :: strerror_status
+      character (len=*), intent (in) :: abort_msg
+      character(len=pio_max_name) :: err_msg
+
+      if(status /= PIO_NOERR) then
+         strerror_status = pio_strerror(status, err_msg)
+         call abort_ice('ParallelIO error: '//err_msg, abort_msg)
+      end if
+   end subroutine ice_pio_check
 
 !================================================================================
 

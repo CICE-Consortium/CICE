@@ -1,6 +1,6 @@
 !=======================================================================
 !
-! Writes history in netCDF format
+! Writes history in netCDF format using NCAR ParallelIO library
 !
 ! authors Tony Craig and Bruce Briegleb, NCAR
 !         Elizabeth C. Hunke and William H. Lipscomb, LANL
@@ -167,7 +167,6 @@
       call broadcast_scalar(filename, master_task)
 
       ! create file
-
       iotype = PIO_IOTYPE_NETCDF
       if (history_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
@@ -192,72 +191,106 @@
       !-----------------------------------------------------------------
       ! define dimensions
       !-----------------------------------------------------------------
+      call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          status = pio_def_dim(File,'nbnd',2,boundid)
-        endif
+      if (hist_avg(ns) .and. .not. write_ic) then
+         call ice_pio_check(pio_def_dim(File,'nbnd',2,boundid), &
+           subname//' ERROR: defining dim nbnd with len 2')
+       endif
 
-        status = pio_def_dim(File,'ni',nx_global,imtid)
-        status = pio_def_dim(File,'nj',ny_global,jmtid)
-        status = pio_def_dim(File,'nc',ncat_hist,cmtid)
-        status = pio_def_dim(File,'nkice',nzilyr,kmtidi)
-        status = pio_def_dim(File,'nksnow',nzslyr,kmtids)
-        status = pio_def_dim(File,'nkbio',nzblyr,kmtidb)
-        status = pio_def_dim(File,'nkaer',nzalyr,kmtida)
-        status = pio_def_dim(File,'time',PIO_UNLIMITED,timid)
-        status = pio_def_dim(File,'nvertices',nverts,nvertexid)
-        status = pio_def_dim(File,'nf',nfsd_hist,fmtid)
+       call ice_pio_check(pio_def_dim(File,'ni',nx_global,imtid), &
+           subname//' ERROR: defining dim ni')
+
+       call ice_pio_check(pio_def_dim(File,'nj',ny_global,jmtid), &
+           subname//' ERROR: defining dim nj')
+
+       call ice_pio_check(pio_def_dim(File,'nc',ncat_hist,cmtid), &
+           subname//' ERROR: defining dim nc')
+
+       call ice_pio_check(pio_def_dim(File,'nkice',nzilyr,kmtidi), &
+           subname//' ERROR: defining dim nkice')
+
+       call ice_pio_check(pio_def_dim(File,'nksnow',nzslyr,kmtids), &
+           subname//' ERROR: defining dim nksnow')
+
+       call ice_pio_check(pio_def_dim(File,'nkbio',nzblyr,kmtidb), &
+           subname//' ERROR: defining dim nkbio')
+
+       call ice_pio_check(pio_def_dim(File,'nkaer',nzalyr,kmtida), &
+           subname//' ERROR: defining dim nkaer')
+
+       call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
+           subname//' ERROR: defining dim time')
+     
+       call ice_pio_check(pio_def_dim(File,'nvertices',nverts,nvertexid), &
+           subname//' ERROR: defining dim nverticies')
+
+       call ice_pio_check(pio_def_dim(File,'nf',nfsd_hist,fmtid), &
+           subname//' ERROR: defining dim nf')
 
       !-----------------------------------------------------------------
       ! define coordinate variables:  time, time_bounds
       !-----------------------------------------------------------------
 
-        status = pio_def_var(File,'time',pio_double,(/timid/),varid)
-        status = pio_put_att(File,varid,'long_name','time')
+        call ice_pio_check(pio_def_var(File,'time',pio_double,(/timid/),varid), &
+             subname//' ERROR: defining var time')
+        call ice_pio_check(pio_put_att(File,varid,'long_name','time'), &
+            subname//' ERROR: defining attribute "long_name" as "time"')
 
         write(cdate,'(i8.8)') idate0
         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
               hh_init,':',mm_init,':',ss_init
-        status = pio_put_att(File,varid,'units',trim(title))
+        call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
+            subname//' ERROR: defining attribute "units" as '//trim(title))
 
         if (days_per_year == 360) then
-           status = pio_put_att(File,varid,'calendar','360_day')
+           call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
+               subname//' ERROR: defining calendar')
         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = pio_put_att(File,varid,'calendar','noleap')
+           call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
+               subname//' ERROR: defining calendar')
         elseif (use_leap_years) then
-           status = pio_put_att(File,varid,'calendar','Gregorian')
+           call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
+               subname//' ERROR: defining calendar')
         else
-           call abort_ice(subname//'ERROR: invalid calendar settings')
+           call abort_ice(subname//' ERROR: invalid calendar settings')
         endif
 
         if (hist_avg(ns) .and. .not. write_ic) then
-          status = pio_put_att(File,varid,'bounds','time_bounds')
+          call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
+               subname//' ERROR: defining attribute "bounds" as "time_bounds"')
         endif
 
         ! Define attributes for time_bounds if hist_avg is true
         if (hist_avg(ns) .and. .not. write_ic) then
           dimid2(1) = boundid
           dimid2(2) = timid
-          status = pio_def_var(File,'time_bounds',pio_double,dimid2,varid)
-          status = pio_put_att(File,varid,'long_name', &
-                                'time interval endpoints')
+          call ice_pio_check(pio_def_var(File,'time_bounds',pio_double,dimid2,varid), &
+               subname//' ERROR: defining var time_bounds')
+          call ice_pio_check(pio_put_att(File,varid,'long_name', 'time interval endpoints'), &
+               subname//' ERROR: defining attribute "long_name" as "time interval endpoints"')
 
           if (days_per_year == 360) then
-             status = pio_put_att(File,varid,'calendar','360_day')
+             call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
+                  subname//' ERROR: defining calendar for time_bounds')
           elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-             status = pio_put_att(File,varid,'calendar','noleap')
+             call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
+                  subname//' ERROR: defining calendar for time_bounds')
           elseif (use_leap_years) then
-             status = pio_put_att(File,varid,'calendar','Gregorian')
+             call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
+                  subname//' ERROR: defining calendar for time_bounds')
           else
-             call abort_ice(subname//'ERROR: invalid calendar settings')
+             call abort_ice(subname//' ERROR: invalid calendar settings')
           endif
 
           write(cdate,'(i8.8)') idate0
           write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
                 cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
                 hh_init,':',mm_init,':',ss_init
-          status = pio_put_att(File,varid,'units',trim(title))
+          call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
+               subname//' ERROR: defining attribute "units" as '//trim(title))
+               
         endif
 
       !-----------------------------------------------------------------
@@ -406,17 +439,22 @@
         dimid2(2) = jmtid
 
         do i = 1, ncoord
-          status = pio_def_var(File, trim(var_coord(i)%short_name), lprecision, &
-                                dimid2, varid)
-          status = pio_put_att(File,varid,'long_name',trim(var_coord(i)%long_name))
-          status = pio_put_att(File, varid, 'units', trim(var_coord(i)%units))
+          call ice_pio_check(pio_def_var(File, trim(var_coord(i)%short_name), lprecision, &
+                                dimid2, varid), &
+                                subname//' ERROR: defining var'//trim(var_coord(i)%short_name))
+          call ice_pio_check(pio_put_att(File,varid,'long_name',trim(var_coord(i)%long_name)), &
+               subname//' ERROR: defining attribute "long_name" as '//trim(var_coord(i)%long_name))
+          call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_coord(i)%units)), &
+               subname//' ERROR: defining attribute "units" as '//trim(var_coord(i)%units))
           call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
           if (var_coord(i)%short_name == 'ULAT') then
-             status = pio_put_att(File,varid,'comment', &
-                  trim('Latitude of NE corner of T grid cell'))
+             call ice_pio_check(pio_put_att(File,varid,'comment', &
+                  trim('Latitude of NE corner of T grid cell')), &
+                  subname//' ERROR: defining attribute "comment"')
           endif
           if (f_bounds) then
-              status = pio_put_att(File, varid, 'bounds', trim(coord_bounds(i)))
+              call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
+                  subname//' ERROR: defining attribute "bounds" as '//trim(coord_bounds(i)))
           endif
         enddo
 
@@ -430,20 +468,27 @@
 
         do i = 1, nvar_grdz
            if (igrdz(i)) then
-              status = pio_def_var(File, trim(var_grdz(i)%short_name), lprecision, &
-                                   (/dimidex(i)/), varid)
-              status = pio_put_att(File, varid, 'long_name', var_grdz(i)%long_name)
-              status = pio_put_att(File, varid, 'units'    , var_grdz(i)%units)
+              call ice_pio_check(pio_def_var(File, trim(var_grdz(i)%short_name), lprecision, &
+                                   (/dimidex(i)/), varid), &
+                                   subname//' ERROR: defining var'//trim(var_grdz(i)%short_name))
+              call ice_pio_check(pio_put_att(File, varid, 'long_name', var_grdz(i)%long_name), &
+                  subname//' ERROR: defining attribute "long_name" as '//trim(var_grdz(i)%long_name))
+              call ice_pio_check(pio_put_att(File, varid, 'units'    , var_grdz(i)%units), &
+                  subname//' ERROR: defining attribute "units" as '//trim(var_grdz(i)%units))
            endif
         enddo
 
         do i = 1, nvar_grd
           if (igrd(i)) then
-             status = pio_def_var(File, trim(var_grd(i)%req%short_name), &
-                                   lprecision, dimid2, varid)
-             status = pio_put_att(File,varid, 'long_name', trim(var_grd(i)%req%long_name))
-             status = pio_put_att(File, varid, 'units', trim(var_grd(i)%req%units))
-             status = pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates))
+             call ice_pio_check(pio_def_var(File, trim(var_grd(i)%req%short_name), &
+                                   lprecision, dimid2, varid), &
+                                   subname//' ERROR: defining var'//trim(var_grd(i)%req%short_name))
+             call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_grd(i)%req%long_name)), &
+                  subname//' ERROR: defining attribute "long_name" as '//trim(var_grd(i)%req%long_name))
+             call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_grd(i)%req%units)), &
+                  subname//' ERROR: defining attribute "units" as '//trim(var_grd(i)%req%units))
+             call ice_pio_check(pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates)), &
+                  subname//' ERROR: defining attribute "coordinates" as '//trim(var_grd(i)%coordinates))
              call ice_write_hist_fill(File,varid,var_grd(i)%req%short_name,history_precision)
           endif
         enddo
@@ -454,12 +499,13 @@
         dimid_nverts(3) = jmtid
         do i = 1, nvar_verts
           if (f_bounds) then
-             status = pio_def_var(File, trim(var_nverts(i)%short_name), &
-                                   lprecision,dimid_nverts, varid)
-             status = &
-             pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name))
-             status = &
-             pio_put_att(File, varid, 'units', trim(var_nverts(i)%units))
+             call ice_pio_check(pio_def_var(File, trim(var_nverts(i)%short_name), &
+                                   lprecision,dimid_nverts, varid), &
+                                   subname//' ERROR: defining var'//trim(var_nverts(i)%short_name))
+             call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name)), &
+                  subname//' ERROR: defining attribute "long_name" as '//trim(var_nverts(i)%long_name))
+             call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_nverts(i)%units)), &
+                  subname//' ERROR: defining attribute "units" as '//trim(var_nverts(i)%units))
              call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
           endif
         enddo
@@ -478,8 +524,9 @@
 
         do n=1,num_avail_hist_fields_2D
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimid3, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimid3, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_2D
@@ -495,8 +542,9 @@
 
         do n = n2D + 1, n3Dccum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimidz, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dc
@@ -512,8 +560,9 @@
 
         do n = n3Dccum + 1, n3Dzcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimidz, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Dz
@@ -529,8 +578,9 @@
 
         do n = n3Dzcum + 1, n3Dbcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimidz, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Db
@@ -546,8 +596,9 @@
 
         do n = n3Dbcum + 1, n3Dacum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimidz, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Da
@@ -563,8 +614,9 @@
 
         do n = n3Dacum + 1, n3Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                         lprecision, dimidz, varid), &
+                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_3Df
@@ -586,8 +638,9 @@
 
         do n = n3Dfcum + 1, n4Dicum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                             lprecision, dimidcz, varid), &
+                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Di
@@ -604,8 +657,9 @@
 
         do n = n4Dicum + 1, n4Dscum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                             lprecision, dimidcz, varid), &
+                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Ds
@@ -623,8 +677,9 @@
 
         do n = n4Dscum + 1, n4Dfcum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid)
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
+                             lprecision, dimidcz, varid), &
+                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
           endif
         enddo  ! num_avail_hist_fields_4Df
@@ -635,29 +690,36 @@
       ! ... the user should change these to something useful ...
       !-----------------------------------------------------------------
 #ifdef CESMCOUPLED
-        status = pio_put_att(File,pio_global,'title',runid)
+        call ice_pio_check(pio_put_att(File,pio_global,'title',runid), &
+            subname//' ERROR: defining attribute "title" as '//runid)
 #else
         title  = 'sea ice model output for CICE'
-        status = pio_put_att(File,pio_global,'title',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'title',trim(title)), &
+            subname//' ERROR: defining attribute "title" as '//trim(title))
 #endif
         title = 'Diagnostic and Prognostic Variables'
-        status = pio_put_att(File,pio_global,'contents',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'contents',trim(title)), &
+            subname//' ERROR: defining attribute "contents" as '//trim(title))
 
         write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
-        status = pio_put_att(File,pio_global,'source',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'source',trim(title)), &
+            subname//' ERROR: defining attribute "source" as '//trim(title))
 
         if (use_leap_years) then
           write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
         else
           write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
         endif
-        status = pio_put_att(File,pio_global,'comment',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'comment',trim(title)), &
+            subname//' ERROR: defining attribute "comment" as '//trim(title))
 
         write(title,'(a,i8.8)') 'File written on model date ',idate
-        status = pio_put_att(File,pio_global,'comment2',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'comment2',trim(title)), &
+            subname//' ERROR: defining attribute '//trim(title))
 
         write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
-        status = pio_put_att(File,pio_global,'comment3',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'comment3',trim(title)), &
+            subname//' ERROR: defining attribute '//trim(title))
 
         select case (histfreq(ns))
          case ("y", "Y")
@@ -673,15 +735,17 @@
         end select
 
         if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
-           status = pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq))
+           call ice_pio_check(pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq)), &
+               subname//' ERROR: defining attribute "time_period_freq" as '//trim(time_period_freq))
         endif
 
         if (hist_avg(ns)) &
-           status = pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis))
+           call ice_pio_check(pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis)), &
+               subname//' ERROR: defining attribute "time_axis_position" as '//trim(hist_time_axis))
 
         title = 'CF-1.0'
-        status =  &
-             pio_put_att(File,pio_global,'conventions',trim(title))
+        call ice_pio_check(pio_put_att(File,pio_global,'conventions',trim(title)), &
+               subname//' ERROR: defining attribute "conventions" as '//trim(title))
 
         call date_and_time(date=current_date, time=current_time)
         write(start_time,1000) current_date(1:4), current_date(5:6), &
@@ -689,19 +753,23 @@
                                current_time(3:4)
 1000    format('This dataset was created on ', &
                 a,'-',a,'-',a,' at ',a,':',a)
-        status = pio_put_att(File,pio_global,'history',trim(start_time))
+        call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
+               subname//' ERROR: defining attribute "history" as '//trim(start_time))
 
         if (history_format == 'pio_pnetcdf') then
-           status = pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf')
+           call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf'), &
+                  subname//' ERROR: defining attribute "io_flavor"' )
         else
-           status = pio_put_att(File,pio_global,'io_flavor','io_pio netcdf')
+           call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio netcdf'), &
+                  subname//' ERROR: defining attribute "io_flavor"' )
         endif
 
       !-----------------------------------------------------------------
       ! end define mode
       !-----------------------------------------------------------------
 
-        status = pio_enddef(File)
+        call ice_pio_check(pio_enddef(File), &
+            subname//' ERROR: ending pio definitions')
 
       !-----------------------------------------------------------------
       ! write time variable
@@ -716,20 +784,24 @@
            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
         endif
 
-        status = pio_inq_varid(File,'time',varid)
-        status = pio_put_var(File,varid,(/1/),ltime2)
+        call ice_pio_check(pio_inq_varid(File,'time',varid), &
+            subname//' ERROR: getting var "time"')
+        call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
+            subname//' ERROR: setting var "time"')
 
       !-----------------------------------------------------------------
       ! write time_bounds info
       !-----------------------------------------------------------------
 
         if (hist_avg(ns) .and. .not. write_ic) then
-          status = pio_inq_varid(File,'time_bounds',varid)
+          call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
+               subname//' ERROR: getting "time_bounds"' )
           time_bounds=(/time_beg(ns),time_end(ns)/)
           bnd_start  = (/1,1/)
           bnd_length = (/2,1/)
-          status = pio_put_var(File,varid,ival=time_bounds, &
-                   start=bnd_start(:),count=bnd_length(:))
+          call ice_pio_check(pio_put_var(File,varid,ival=time_bounds, &
+                   start=bnd_start(:),count=bnd_length(:)), &
+                   subname//' ERROR: setting "time_bounds"' )
         endif
 
       !-----------------------------------------------------------------
@@ -740,7 +812,8 @@
         allocate(workr2(nx_block,ny_block,nblocks))
 
         do i = 1,ncoord
-          status = pio_inq_varid(File, var_coord(i)%short_name, varid)
+          call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
+               subname//' ERROR: getting '//var_coord(i)%short_name )
           SELECT CASE (var_coord(i)%short_name)
             CASE ('TLON')
               ! Convert T grid longitude from -180 -> 180 to 0 to 360
@@ -768,26 +841,35 @@
              call pio_write_darray(File, varid, iodesc2d, &
                   workr2, status, fillval=spval)
           endif
+
+          call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
         enddo
 
         ! Extra dimensions (NCAT, NFSD, VGRD*)
 
         do i = 1, nvar_grdz
           if (igrdz(i)) then
-            status = pio_inq_varid(File, var_grdz(i)%short_name, varid)
+            call ice_pio_check(pio_inq_varid(File, var_grdz(i)%short_name, varid), &
+               subname//' ERROR: getting '//var_grdz(i)%short_name )
             SELECT CASE (var_grdz(i)%short_name)
               CASE ('NCAT')
-                status = pio_put_var(File, varid, hin_max(1:ncat_hist))
+                call ice_pio_check(pio_put_var(File, varid, hin_max(1:ncat_hist)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
               CASE ('NFSD')
-                status = pio_put_var(File, varid, floe_rad_c(1:nfsd_hist))
+                call ice_pio_check(pio_put_var(File, varid, floe_rad_c(1:nfsd_hist)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
               CASE ('VGRDi')
-                status = pio_put_var(File, varid, (/(k, k=1,nzilyr)/))
+                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzilyr)/)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
               CASE ('VGRDs')
-                status = pio_put_var(File, varid, (/(k, k=1,nzslyr)/))
+                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzslyr)/)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
               CASE ('VGRDb')
-                status = pio_put_var(File, varid, (/(k, k=1,nzblyr)/))
+                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzblyr)/)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
               CASE ('VGRDa')
-                status = pio_put_var(File, varid, (/(k, k=1,nzalyr)/))
+                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzalyr)/)), &
+                  subname//' ERROR: setting '//var_grdz(i)%short_name )
              END SELECT
            endif
         enddo
@@ -842,7 +924,8 @@
             CASE ('ANGLET')
                workd2 = ANGLET(:,:,1:nblocks)
             END SELECT
-            status = pio_inq_varid(File, var_grd(i)%req%short_name, varid)
+            call ice_pio_check(pio_inq_varid(File, var_grd(i)%req%short_name, varid), &
+               subname//' ERROR: getting '//var_grd(i)%req%short_name )
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d, &
                     workd2, status, fillval=spval_dbl)
@@ -851,6 +934,8 @@
                call pio_write_darray(File, varid, iodesc2d, &
                     workr2, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo
 
@@ -898,7 +983,8 @@
            enddo
         END SELECT
 
-          status = pio_inq_varid(File, var_nverts(i)%short_name, varid)
+          call ice_pio_check(pio_inq_varid(File, var_nverts(i)%short_name, varid), &
+            subname//' ERROR: getting '//var_nverts(i)%short_name )
           if (history_precision == 8) then
              call pio_write_darray(File, varid, iodesc3dv, &
                                    workd3v, status, fillval=spval_dbl)
@@ -907,6 +993,8 @@
              call pio_write_darray(File, varid, iodesc3dv, &
                                    workr3v, status, fillval=spval)
           endif
+
+          call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
       enddo
       deallocate(workd3v)
       deallocate(workr3v)
@@ -920,15 +1008,16 @@
       ! 2D
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR getting varid for '//avail_hist_fields(n)%vname)
             workd2(:,:,:) = a2D(:,:,n,1:nblocks)
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d,&
                                      workd2, status, fillval=spval_dbl)
@@ -937,6 +1026,8 @@
                call pio_write_darray(File, varid, iodesc2d,&
                                      workr2, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_2D
 
@@ -949,19 +1040,20 @@
       do n = n2D + 1, n3Dccum
          nn = n - n2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
                workd3(:,:,j,i) = a3Dc(:,:,i,nn,j)
             enddo
             enddo
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc3dc,&
                                      workd3, status, fillval=spval_dbl)
@@ -970,6 +1062,8 @@
                call pio_write_darray(File, varid, iodesc3dc,&
                                      workr3, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_3Dc
       deallocate(workd3)
@@ -981,19 +1075,20 @@
       do n = n3Dccum+1, n3Dzcum
          nn = n - n3Dccum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzilyr
                workd3(:,:,j,i) = a3Dz(:,:,i,nn,j)
             enddo
             enddo
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc3di,&
                                      workd3, status, fillval=spval_dbl)
@@ -1002,6 +1097,8 @@
                call pio_write_darray(File, varid, iodesc3di,&
                                      workr3, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_3Dz
       deallocate(workd3)
@@ -1013,19 +1110,20 @@
       do n = n3Dzcum+1, n3Dbcum
          nn = n - n3Dzcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzblyr
                workd3(:,:,j,i) = a3Db(:,:,i,nn,j)
             enddo
             enddo
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc3db,&
                                      workd3, status, fillval=spval_dbl)
@@ -1034,6 +1132,8 @@
                call pio_write_darray(File, varid, iodesc3db,&
                                      workr3, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1045,19 +1145,20 @@
       do n = n3Dbcum+1, n3Dacum
          nn = n - n3Dbcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nzalyr
                workd3(:,:,j,i) = a3Da(:,:,i,nn,j)
             enddo
             enddo
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc3da,&
                                      workd3, status, fillval=spval_dbl)
@@ -1066,6 +1167,8 @@
                call pio_write_darray(File, varid, iodesc3da,&
                                      workr3, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1077,19 +1180,20 @@
       do n = n3Dacum+1, n3Dfcum
          nn = n - n3Dacum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, nfsd_hist
                workd3(:,:,j,i) = a3Df(:,:,i,nn,j)
             enddo
             enddo
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc3df,&
                                      workd3, status, fillval=spval_dbl)
@@ -1098,6 +1202,8 @@
                call pio_write_darray(File, varid, iodesc3df,&
                                      workr3, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_3Df
       deallocate(workd3)
@@ -1109,8 +1215,7 @@
       do n = n3Dfcum+1, n4Dicum
          nn = n - n3Dfcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
@@ -1119,11 +1224,13 @@
             enddo ! k
             enddo ! i
             enddo ! j
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc4di,&
                                      workd4, status, fillval=spval_dbl)
@@ -1132,6 +1239,7 @@
                call pio_write_darray(File, varid, iodesc4di,&
                                      workr4, status, fillval=spval)
             endif
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_4Di
       deallocate(workd4)
@@ -1143,8 +1251,7 @@
       do n = n4Dicum+1, n4Dscum
          nn = n - n4Dicum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
@@ -1153,11 +1260,13 @@
             enddo ! k
             enddo ! i
             enddo ! j
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc4ds,&
                                      workd4, status, fillval=spval_dbl)
@@ -1166,6 +1275,8 @@
                call pio_write_darray(File, varid, iodesc4ds,&
                                      workr4, status, fillval=spval)
             endif
+
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
          endif
       enddo ! num_avail_hist_fields_4Ds
       deallocate(workd4)
@@ -1177,8 +1288,7 @@
       do n = n4Dscum+1, n4Dfcum
          nn = n - n4Dscum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-            if (status /= pio_noerr) call abort_ice(subname// &
+            call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
             do j = 1, nblocks
             do i = 1, ncat_hist
@@ -1187,11 +1297,13 @@
             enddo ! k
             enddo ! i
             enddo ! j
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
 #else
             call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
 #endif
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc4df,&
                                      workd4, status, fillval=spval_dbl)
@@ -1200,6 +1312,8 @@
                call pio_write_darray(File, varid, iodesc4df,&
                                      workr4, status, fillval=spval)
             endif
+            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname)! maybe we don't actually want to abort here?
+         
          endif
       enddo ! num_avail_hist_fields_4Df
       deallocate(workd4)
@@ -1207,10 +1321,11 @@
 
 !     similarly for num_avail_hist_fields_4Db (define workd4b, iodesc4db)
 
-
+      
       !-----------------------------------------------------------------
       ! clean-up PIO descriptors
       !-----------------------------------------------------------------
+      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       call pio_freedecomp(File,iodesc2d)
       call pio_freedecomp(File,iodesc3dv)
@@ -1256,16 +1371,21 @@
       integer (kind=int_kind) :: status
       character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
 
-      status = pio_put_att(File,varid,'units',         trim(hfield%vunit))
+      call ice_pio_check(pio_put_att(File,varid,'units', trim(hfield%vunit)), &
+         'ERROR: defining "units" as '//trim(hfield%vunit))
 
-      status = pio_put_att(File,varid, 'long_name',    trim(hfield%vdesc))
+      call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(hfield%vdesc)), &
+         'ERROR: defining "long_name" as '//trim(hfield%vdesc))
 
-      status = pio_put_att(File,varid,'coordinates',   trim(hfield%vcoord))
+      call ice_pio_check(pio_put_att(File,varid,'coordinates', trim(hfield%vcoord)), &
+         'ERROR: defining "coordinates" as '//trim(hfield%vdesc))
 
-      status = pio_put_att(File,varid,'cell_measures', trim(hfield%vcellmeas))
+      call ice_pio_check(pio_put_att(File,varid,'cell_measures',trim(hfield%vcellmeas)), &
+         'ERROR: defining "cell_measures" as '//trim(hfield%vcoord))
 
       if (hfield%vcomment /= "none") then
-         status = pio_put_att(File,varid,'comment',    trim(hfield%vcomment))
+         call ice_pio_check(pio_put_att(File,varid,'comment', trim(hfield%vcomment)), &
+            'ERROR: defining "comment" as '//trim(hfield%vcomment))
       endif
 
       call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
@@ -1277,7 +1397,8 @@
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            status = pio_put_att(File,varid,'cell_methods','time: mean')
+            call ice_pio_check(pio_put_att(File,varid,'cell_methods','time: mean'), &
+               'ERROR: defining "cell_methods"')
          endif
       endif
 
@@ -1297,9 +1418,11 @@
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &
           .or.TRIM(hfield%vname(1:6))=='aisnap') then
-         status = pio_put_att(File,varid,'time_rep','instantaneous')
+         call ice_pio_check(pio_put_att(File,varid,'time_rep','instantaneous'), &
+            'ERROR: defining "time_rep"')
       else
-         status = pio_put_att(File,varid,'time_rep','averaged')
+         call ice_pio_check(pio_put_att(File,varid,'time_rep','averaged'), &
+            'ERROR: defining "time_rep"')
       endif
 
       end subroutine ice_write_hist_attrs
@@ -1308,14 +1431,14 @@
 
       subroutine ice_write_hist_fill(File,varid,vname,precision)
 
-      use ice_kinds_mod
-      use ice_pio
-      use pio
+      ! use ice_kinds_mod, only: int_kind
+      use ice_pio, only: ice_pio_check
+      use pio, only: pio_put_att, file_desc_t, var_desc_t
 
       type(file_desc_t)      , intent(inout) :: File
       type(var_desc_t)       , intent(in) :: varid
-      character(len=*),        intent(in) :: vname  ! var name
-      integer (kind=int_kind), intent(in) :: precision   ! precision
+      character(len=*),        intent(in) :: vname 
+      integer (kind=int_kind), intent(in) :: precision 
 
       ! local variables
 
@@ -1323,11 +1446,15 @@
       character(len=*), parameter :: subname = '(ice_write_hist_fill)'
 
       if (precision == 8) then
-         status = pio_put_att(File, varid, 'missing_value', spval_dbl)
-         status = pio_put_att(File, varid,'_FillValue',spval_dbl)
+         call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval_dbl), &
+            'ERROR: defining "missing_value"')
+         call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval_dbl), &
+            'ERROR: defining "_FillValue"')
       else
-         status = pio_put_att(File, varid, 'missing_value', spval)
-         status = pio_put_att(File, varid,'_FillValue',spval)
+         call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval), &
+            'ERROR: defining "missing_value"')
+         call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval), &
+            'ERROR: defining "_FillValue"')
       endif
 
       end subroutine ice_write_hist_fill

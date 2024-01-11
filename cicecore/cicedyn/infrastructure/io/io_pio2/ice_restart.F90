@@ -55,9 +55,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status, status1
-
-      integer (kind=int_kind) :: iotype
+      integer (kind=int_kind) :: status, iotype
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -78,37 +76,42 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-!     if (restart_format(1:3) == 'pio') then
+      !     if (restart_format(1:3) == 'pio') then
          iotype = PIO_IOTYPE_NETCDF
          if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
 
+         call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
          call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
 
          if (use_restart_time) then
-            status1 = PIO_noerr
-            status = pio_get_att(File, pio_global, 'istep1', istep0)
-!            status = pio_get_att(File, pio_global, 'time', time)
-!            status = pio_get_att(File, pio_global, 'time_forc', time_forc)
-            call pio_seterrorhandling(File, PIO_BCAST_ERROR)
-            status = pio_get_att(File, pio_global, 'myear', myear)
-            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'nyr', myear)
-            if (status /= PIO_noerr) status1 = status
-            status = pio_get_att(File, pio_global, 'mmonth', mmonth)
-            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'month', mmonth)
-            if (status /= PIO_noerr) status1 = status
-            status = pio_get_att(File, pio_global, 'mday', mday)
-            if (status /= PIO_noerr) status1 = status
-            status = pio_get_att(File, pio_global, 'msec', msec)
-            if (status /= PIO_noerr) status = pio_get_att(File, pio_global, 'sec', msec)
-            if (status /= PIO_noerr) status1 = status
-            if (status1 /= PIO_noerr) &
-               call abort_ice(subname//"ERROR: reading restart time ")
-            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+            call ice_pio_check(pio_get_att(File, pio_global, 'istep1', istep0), &
+               subname//" ERROR: reading restart time ")
+!            call ice_pio_check(pio_get_att(File, pio_global, 'time', time), &
+               ! subname//" ERROR: reading restart time ")
+!            call ice_pio_check(pio_get_att(File, pio_global, 'time_forc', time_forc), &
+               ! subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'myear', myear), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'nyr', myear), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'mmonth', mmonth), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'month', mmonth), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'mday', mday), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'msec', msec), &
+               subname//" ERROR: reading restart time ")
+            call ice_pio_check(pio_get_att(File, pio_global, 'sec', msec), &
+               subname//" ERROR: reading restart time ")
          endif ! use namelist values if use_restart_time = F
 !     endif
+
+      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (my_task == master_task) then
          write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read at istep=',istep0,myear,'-',mmonth,'-',mday,'-',msec
@@ -221,25 +224,37 @@
          close(nu_rst_pointer)
       endif
 
+      call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
 !     if (restart_format(1:3) == 'pio') then
 
-         iotype = PIO_IOTYPE_NETCDF
-         if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
+         iotype = PIO_IOTYPE_NETCDF4P
+         !if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
          File%fh=-1
          call ice_pio_init(mode='write',filename=trim(filename), File=File, &
               clobber=.true., cdf64=lcdf64, iotype=iotype)
 
-         status = pio_put_att(File,pio_global,'istep1',istep1)
-!         status = pio_put_att(File,pio_global,'time',time)
-!         status = pio_put_att(File,pio_global,'time_forc',time_forc)
-         status = pio_put_att(File,pio_global,'myear',myear)
-         status = pio_put_att(File,pio_global,'mmonth',mmonth)
-         status = pio_put_att(File,pio_global,'mday',mday)
-         status = pio_put_att(File,pio_global,'msec',msec)
+         call ice_pio_check(pio_put_att(File,pio_global,'istep1',istep1), &
+            subname//' ERROR writing restart time')
+!        call ice_pio_check(pio_put_att(File,pio_global,'time',time), &
+            ! subname//' ERROR writing restart time')
+!        call ice_pio_check(pio_put_att(File,pio_global,'time_forc',time_forc), &
+            ! subname//' ERROR writing restart time')
+         call ice_pio_check(pio_put_att(File,pio_global,'myear',myear), &
+            subname//' ERROR writing restart time')
+         call ice_pio_check(pio_put_att(File,pio_global,'mmonth',mmonth), &
+            subname//' ERROR writing restart time')
+         call ice_pio_check(pio_put_att(File,pio_global,'mday',mday), &
+            subname//' ERROR writing restart time')
+         call ice_pio_check(pio_put_att(File,pio_global,'msec',msec), &
+            subname//' ERROR writing restart time')
 
-         status = pio_def_dim(File,'ni',nx_global,dimid_ni)
-         status = pio_def_dim(File,'nj',ny_global,dimid_nj)
-         status = pio_def_dim(File,'ncat',ncat,dimid_ncat)
+         call ice_pio_check(pio_def_dim(File,'ni',nx_global,dimid_ni), &
+            subname//' ERROR defining restart dim ni')
+         call ice_pio_check(pio_def_dim(File,'nj',ny_global,dimid_nj), &
+            subname//' ERROR defining restart dim nj')
+         call ice_pio_check(pio_def_dim(File,'ncat',ncat,dimid_ncat), &
+            subname//' ERROR defining restart dim ncat')
 
       !-----------------------------------------------------------------
       ! 2D restart fields
@@ -660,6 +675,8 @@
          deallocate(dims)
          status = pio_enddef(File)
 
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+
          call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
          call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat, remap=.true., precision=8)
 
@@ -719,26 +736,21 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
+      call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
 !     if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file read: ',vname
 
-         call pio_seterrorhandling(File, PIO_BCAST_ERROR)
-
-         status = pio_inq_varid(File,trim(vname),vardesc)
-
-         if (status /= PIO_noerr) then
-            call abort_ice(subname// &
-               "ERROR: CICE restart? Missing variable: "//trim(vname))
-         endif
-
-         status = pio_inq_varndims(File, vardesc, ndims)
-
-         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+         call ice_pio_check(pio_inq_varid(File,trim(vname),vardesc), &
+            subname// "ERROR: CICE restart? Missing variable: "//trim(vname))
+         
+         call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
+            subname// "ERROR reading ndims for  "//trim(vname))
 
 !         if (ndim3 == ncat .and. ncat>1) then
          if (ndim3 == ncat .and. ndims == 3) then
-            call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
+            call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)          
 #ifdef CESMCOUPLED
             where (work == PIO_FILL_DOUBLE) work = c0
 #endif
@@ -762,6 +774,11 @@
             write(nu_diag,*) "ndim3 not supported ",ndim3
          endif
 
+         call ice_pio_check(status, &
+            subname//" ERROR reading distributed array for "//trim(vname))
+         
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+
          if (diag) then
             if (ndim3 > 1) then
                do n=1,ndim3
@@ -783,7 +800,7 @@
 
          endif
 !     else
-!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!        call abort_ice(subname//" ERROR: Invalid restart_format: "//trim(restart_format))
 !     endif  ! restart_format
 
       end subroutine read_restart_field
@@ -830,13 +847,17 @@
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
+      call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
 !      if (restart_format(1:3) == "pio") then
          if (my_task == master_task) &
             write(nu_diag,*)'Parallel restart file write: ',vname
 
-         status = pio_inq_varid(File,trim(vname),vardesc)
+         call ice_pio_check(pio_inq_varid(File,trim(vname),vardesc), &
+            subname// "ERROR reading "//trim(vname))
 
-         status = pio_inq_varndims(File, vardesc, ndims)
+         call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
+            subname// "ERROR reading "//trim(vname))
 
          if (ndims==3) then
             call pio_write_darray(File, vardesc, iodesc3d_ncat,work(:,:,:,1:nblocks), &
@@ -847,6 +868,11 @@
          else
             write(nu_diag,*) "ndims not supported",ndims,ndim3
          endif
+         
+         call ice_pio_check(status, &
+            subname//" ERROR writing distributed array for "//trim(vname))
+         
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
          if (diag) then
             if (ndim3 > 1) then
@@ -868,7 +894,7 @@
             endif
          endif
 !     else
-!        call abort_ice(subname//"ERROR: Invalid restart_format: "//trim(restart_format))
+!        call abort_ice(subname//" ERROR: Invalid restart_format: "//trim(restart_format))
 !     endif
 
       end subroutine write_restart_field
@@ -910,7 +936,8 @@
 
       character(len=*), parameter :: subname = '(define_rest_field)'
 
-      status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
+      call ice_pio_check(pio_def_var(File,trim(vname),pio_double,dims,vardesc), &
+         subname//' ERROR defining restart field '//trim(vname))
 
       end subroutine define_rest_field
 
@@ -931,8 +958,12 @@
 
       query_field = .false.
 
+      call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
       status = pio_inq_varid(File,trim(vname),vardesc)
       if (status == PIO_noerr) query_field = .true.
+
+      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       end function query_field
 
