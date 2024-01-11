@@ -115,20 +115,6 @@
          G_HTE  , & ! length of eastern edge of T-cell (global ext.)
          G_HTN      ! length of northern edge of T-cell (global ext.)
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j)
-         cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
-         cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j)
-         cxm    , & ! 0.5*HTN(i,j)-1.5*HTS(i,j) = 0.5*HTN(i,j)-1.5*HTN(i,j-1)
-         dxhy   , & ! 0.5*(HTE(i,j) - HTW(i,j)) = 0.5*(HTE(i,j) - HTE(i-1,j))
-         dyhx       ! 0.5*(HTN(i,j) - HTS(i,j)) = 0.5*(HTN(i,j) - HTN(i,j-1))
-
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         ratiodxN    , & ! - dxN(i+1,j)   / dxN(i,j)
-         ratiodyE    , & ! - dyE(i  ,j+1) / dyE(i,j)
-         ratiodxNr   , & !   1 / ratiodxN
-         ratiodyEr       !   1 / ratiodyE
-
       ! grid dimensions for rectangular grid
       real (kind=dbl_kind), public ::  &
          dxrect, & !  user_specified spacing (cm) in x-direction (uniform HTN)
@@ -153,26 +139,6 @@
          latn_bounds, & ! latitude of gridbox corners for N point
          lone_bounds, & ! longitude of gridbox corners for E point
          late_bounds    ! latitude of gridbox corners for E point
-
-      ! geometric quantities used for remapping transport
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         xav  , & ! mean T-cell value of x
-         yav  , & ! mean T-cell value of y
-         xxav , & ! mean T-cell value of xx
-!         xyav , & ! mean T-cell value of xy
-!         yyav , & ! mean T-cell value of yy
-         yyav     ! mean T-cell value of yy
-!         xxxav, & ! mean T-cell value of xxx
-!         xxyav, & ! mean T-cell value of xxy
-!         xyyav, & ! mean T-cell value of xyy
-!         yyyav    ! mean T-cell value of yyy
-
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:,:), allocatable, public :: &
-         mne, & ! matrices used for coordinate transformations in remapping
-         mnw, & ! ne = northeast corner, nw = northwest, etc.
-         mse, &
-         msw
 
       ! masks
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
@@ -256,16 +222,6 @@
          ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
          bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
-         cyp      (nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
-         cxp      (nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
-         cym      (nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
-         cxm      (nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
-         dxhy     (nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
-         dyhx     (nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
-         xav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of x
-         yav      (nx_block,ny_block,max_blocks), & ! mean T-cell value of y
-         xxav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of xx
-         yyav     (nx_block,ny_block,max_blocks), & ! mean T-cell value of yy
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
          uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
@@ -288,22 +244,8 @@
          latn_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for N point
          lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
-         mne  (2,2,nx_block,ny_block,max_blocks), & ! matrices used for coordinate transformations in remapping
-         mnw  (2,2,nx_block,ny_block,max_blocks), & ! ne = northeast corner, nw = northwest, etc.
-         mse  (2,2,nx_block,ny_block,max_blocks), &
-         msw  (2,2,nx_block,ny_block,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory1')
-
-      if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         allocate( &
-            ratiodxN (nx_block,ny_block,max_blocks), &
-            ratiodyE (nx_block,ny_block,max_blocks), &
-            ratiodxNr(nx_block,ny_block,max_blocks), &
-            ratiodyEr(nx_block,ny_block,max_blocks), &
-            stat=ierr)
-         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory2')
-      endif
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -599,34 +541,6 @@
          enddo
          enddo
 
-         do j = jlo, jhi
-         do i = ilo, ihi
-            dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
-            dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
-         enddo
-         enddo
-
-         do j = jlo, jhi+1
-         do i = ilo, ihi+1
-            cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
-            cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
-            ! match order of operations in cyp, cxp for tripole grids
-            cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
-            cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
-         enddo
-         enddo
-
-         if (grid_ice == 'CD' .or. grid_ice == 'C') then
-            do j = jlo, jhi
-            do i = ilo, ihi
-               ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
-               ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
-               ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
-               ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
-            enddo
-            enddo
-         endif
-
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
@@ -641,13 +555,6 @@
       !-----------------------------------------------------------------
 
       call ice_timer_start(timer_bound)
-
-      call ice_HaloUpdate (dxhy,               halo_info, &
-                           field_loc_center,   field_type_vector, &
-                           fillValue=c1)
-      call ice_HaloUpdate (dyhx,               halo_info, &
-                           field_loc_center,   field_type_vector, &
-                           fillValue=c1)
 
       ! Update just on the tripole seam to ensure bit-for-bit symmetry across seam
       call ice_HaloUpdate (tarea,              halo_info, &
@@ -1353,12 +1260,6 @@
             dyN   (i,j,iblk) = 1.e36_dbl_kind
             dxE   (i,j,iblk) = 1.e36_dbl_kind
             dyE   (i,j,iblk) = 1.e36_dbl_kind
-            dxhy  (i,j,iblk) = 1.e36_dbl_kind
-            dyhx  (i,j,iblk) = 1.e36_dbl_kind
-            cyp   (i,j,iblk) = 1.e36_dbl_kind
-            cxp   (i,j,iblk) = 1.e36_dbl_kind
-            cym   (i,j,iblk) = 1.e36_dbl_kind
-            cxm   (i,j,iblk) = 1.e36_dbl_kind
          enddo
          enddo
       enddo
