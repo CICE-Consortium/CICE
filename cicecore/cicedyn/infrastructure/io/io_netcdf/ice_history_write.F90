@@ -24,6 +24,7 @@
       use ice_constants, only: c0, c360, p5, spval, spval_dbl
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
+      use ice_read_write, only: ice_check_nc
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
 
@@ -137,654 +138,654 @@
 
       if (my_task == master_task) then
 
-        call construct_filename(ncfile(ns),'nc',ns)
+         call construct_filename(ncfile(ns),'nc',ns)
 
-        ! add local directory path name to ncfile
-        if (write_ic) then
-          ncfile(ns) = trim(incond_dir)//ncfile(ns)
-        else
-          ncfile(ns) = trim(history_dir)//ncfile(ns)
-        endif
+         ! add local directory path name to ncfile
+         if (write_ic) then
+            ncfile(ns) = trim(incond_dir)//ncfile(ns)
+         else
+            ncfile(ns) = trim(history_dir)//ncfile(ns)
+         endif
 
-        ! create file
-        iflag = nf90_clobber
-        if (lcdf64) iflag = ior(iflag,nf90_64bit_offset)
-        status = nf90_create(ncfile(ns), iflag, ncid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-           'ERROR: creating history ncfile '//ncfile(ns))
+         ! create file
+         iflag = nf90_clobber
+         if (lcdf64) iflag = ior(iflag,nf90_64bit_offset)
+         status = nf90_create(ncfile(ns), iflag, ncid)
+         call ice_check_nc(status, subname// ' ERROR: creating history ncfile '//ncfile(ns), &
+                           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! define dimensions
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define dimensions
+         !-----------------------------------------------------------------
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          status = nf90_def_dim(ncid,'nbnd',2,boundid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: defining dim nbnd')
-        endif
+         if (hist_avg(ns) .and. .not. write_ic) then
+            status = nf90_def_dim(ncid,'nbnd',2,boundid)
+            call ice_check_nc(status, subname// ' ERROR: defining dim nbnd', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
-        status = nf90_def_dim(ncid,'ni',nx_global,imtid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim ni')
+         status = nf90_def_dim(ncid,'ni',nx_global,imtid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim ni', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nj',ny_global,jmtid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nj')
+         status = nf90_def_dim(ncid,'nj',ny_global,jmtid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nj', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nc',ncat_hist,cmtid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nc')
+         status = nf90_def_dim(ncid,'nc',ncat_hist,cmtid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nc', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nkice',nzilyr,kmtidi)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nki')
+         status = nf90_def_dim(ncid,'nkice',nzilyr,kmtidi)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nki', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nksnow',nzslyr,kmtids)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nks')
+         status = nf90_def_dim(ncid,'nksnow',nzslyr,kmtids)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nks', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nkbio',nzblyr,kmtidb)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nkb')
+         status = nf90_def_dim(ncid,'nkbio',nzblyr,kmtidb)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nkb', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nkaer',nzalyr,kmtida)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nka')
+         status = nf90_def_dim(ncid,'nkaer',nzalyr,kmtida)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nka', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim time')
+         status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim time', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nvertices',nverts,nvertexid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nverts')
+         status = nf90_def_dim(ncid,'nvertices',nverts,nvertexid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nverts', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_def_dim(ncid,'nf',nfsd_hist,fmtid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining dim nf')
+         status = nf90_def_dim(ncid,'nf',nfsd_hist,fmtid)
+         call ice_check_nc(status, subname// ' ERROR: defining dim nf', &
+                           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! define coordinate variables
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define coordinate variables
+         !-----------------------------------------------------------------
 
-        status = nf90_def_var(ncid,'time',nf90_double,timid,varid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: defining var time')
+         status = nf90_def_var(ncid,'time',nf90_double,timid,varid)
+         call ice_check_nc(status, subname// ' ERROR: defining var time', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_put_att(ncid,varid,'long_name','time')
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ice Error: time long_name')
+         status = nf90_put_att(ncid,varid,'long_name','time')
+         call ice_check_nc(status, subname// ' ERROR: time long_name', &
+                           file=__FILE__, line=__LINE__)
 
-        write(cdate,'(i8.8)') idate0
-        write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-              hh_init,':',mm_init,':',ss_init
-        status = nf90_put_att(ncid,varid,'units',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: time units')
+         write(cdate,'(i8.8)') idate0
+         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+               hh_init,':',mm_init,':',ss_init
+         status = nf90_put_att(ncid,varid,'units',title)
+         call ice_check_nc(status, subname// ' ERROR: time units', &
+                           file=__FILE__, line=__LINE__)
 
-        if (days_per_year == 360) then
-           status = nf90_put_att(ncid,varid,'calendar','360_day')
-           if (status /= nf90_noerr) call abort_ice(subname// &
-                         'ERROR: time calendar')
-        elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           status = nf90_put_att(ncid,varid,'calendar','noleap')
-           if (status /= nf90_noerr) call abort_ice(subname// &
-                         'ERROR: time calendar')
-        elseif (use_leap_years) then
-           status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-           if (status /= nf90_noerr) call abort_ice(subname// &
-                         'ERROR: time calendar')
-        else
-           call abort_ice(subname//'ERROR: invalid calendar settings')
-        endif
+         if (days_per_year == 360) then
+            status = nf90_put_att(ncid,varid,'calendar','360_day')
+            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+                              file=__FILE__, line=__LINE__)
+         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+            status = nf90_put_att(ncid,varid,'calendar','noleap')
+            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+                              file=__FILE__, line=__LINE__)
+         elseif (use_leap_years) then
+            status = nf90_put_att(ncid,varid,'calendar','Gregorian')
+            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+                              file=__FILE__, line=__LINE__)
+         else
+            call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
+         endif
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          status = nf90_put_att(ncid,varid,'bounds','time_bounds')
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: time bounds')
-        endif
+         if (hist_avg(ns) .and. .not. write_ic) then
+            status = nf90_put_att(ncid,varid,'bounds','time_bounds')
+            call ice_check_nc(status, subname// ' ERROR: time bounds', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
-      !-----------------------------------------------------------------
-      ! Define attributes for time bounds if hist_avg is true
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! Define attributes for time bounds if hist_avg is true
+         !-----------------------------------------------------------------
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          dimid(1) = boundid
-          dimid(2) = timid
-          status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: defining var time_bounds')
-          status = nf90_put_att(ncid,varid,'long_name', &
-                                'time interval endpoints')
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: time_bounds long_name')
-          write(cdate,'(i8.8)') idate0
-          write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-                hh_init,':',mm_init,':',ss_init
-          status = nf90_put_att(ncid,varid,'units',title)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: time_bounds units')
-          if (days_per_year == 360) then
-             status = nf90_put_att(ncid,varid,'calendar','360_day')
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                           'ERROR: time calendar')
-          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-             status = nf90_put_att(ncid,varid,'calendar','noleap')
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                           'ERROR: time calendar')
-          elseif (use_leap_years) then
-             status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                           'ERROR: time calendar')
-          else
-             call abort_ice(subname//'ERROR: invalid calendar settings')
-          endif
+         if (hist_avg(ns) .and. .not. write_ic) then
+            dimid(1) = boundid
+            dimid(2) = timid
+            status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
+            call ice_check_nc(status, subname// ' ERROR: defining var time_bounds', &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_att(ncid,varid,'long_name', 'time interval endpoints')
+            call ice_check_nc(status, subname// ' ERROR: time_bounds long_name', &
+                              file=__FILE__, line=__LINE__)
+            write(cdate,'(i8.8)') idate0
+            write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+                  cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+                  hh_init,':',mm_init,':',ss_init
+            status = nf90_put_att(ncid,varid,'units',title)
+            call ice_check_nc(status, subname// ' ERROR: time_bounds units', &
+                              file=__FILE__, line=__LINE__)
+            if (days_per_year == 360) then
+               status = nf90_put_att(ncid,varid,'calendar','360_day')
+               call ice_check_nc(status, subname// ' ERROR: time calendar1', &
+                                 file=__FILE__, line=__LINE__)
+            elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+               status = nf90_put_att(ncid,varid,'calendar','noleap')
+               call ice_check_nc(status, subname// ' ERROR: time calendar2', &
+                                 file=__FILE__, line=__LINE__)
+            elseif (use_leap_years) then
+               status = nf90_put_att(ncid,varid,'calendar','Gregorian')
+               call ice_check_nc(status, subname// ' ERROR: time calendar3', &
+                                 file=__FILE__, line=__LINE__)
+            else
+               call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
+            endif
 
-        endif
+         endif
 
-      !-----------------------------------------------------------------
-      ! define information for required time-invariant variables
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define information for required time-invariant variables
+         !-----------------------------------------------------------------
 
-      ind = 0
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLON', &
-                       'T grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lont_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLAT', &
-                       'T grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latt_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULON', &
-                       'U grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULAT', &
-                       'U grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLON', &
-                       'N grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLAT', &
-                       'N grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELON', &
-                       'E grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lone_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELAT', &
-                       'E grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'late_bounds'
+         ind = 0
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('TLON', &
+                          'T grid center longitude', 'degrees_east')
+         coord_bounds(ind) = 'lont_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('TLAT', &
+                          'T grid center latitude',  'degrees_north')
+         coord_bounds(ind) = 'latt_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('ULON', &
+                          'U grid center longitude', 'degrees_east')
+         coord_bounds(ind) = 'lonu_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('ULAT', &
+                          'U grid center latitude',  'degrees_north')
+         coord_bounds(ind) = 'latu_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('NLON', &
+                          'N grid center longitude', 'degrees_east')
+         coord_bounds(ind) = 'lonn_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('NLAT', &
+                          'N grid center latitude',  'degrees_north')
+         coord_bounds(ind) = 'latn_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('ELON', &
+                          'E grid center longitude', 'degrees_east')
+         coord_bounds(ind) = 'lone_bounds'
+         ind = ind + 1
+         var_coord(ind) = coord_attributes('ELAT', &
+                          'E grid center latitude',  'degrees_north')
+         coord_bounds(ind) = 'late_bounds'
 
-      var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
-      var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
-      var_grdz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1')
-      var_grdz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
-      var_grdz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
-      var_grdz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
+         var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
+         var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
+         var_grdz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1')
+         var_grdz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
+         var_grdz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
+         var_grdz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
 
-      !-----------------------------------------------------------------
-      ! define information for optional time-invariant variables
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define information for optional time-invariant variables
+         !-----------------------------------------------------------------
 
-      var_grd(n_tmask)%req = coord_attributes('tmask', &
-                  'mask of T grid cells, 0 = land, 1 = ocean', 'unitless')
-      var_grd(n_tmask)%coordinates = 'TLON TLAT'
-      var_grd(n_umask)%req = coord_attributes('umask', &
-                  'mask of U grid cells, 0 = land, 1 = ocean', 'unitless')
-      var_grd(n_umask)%coordinates = 'ULON ULAT'
-      var_grd(n_nmask)%req = coord_attributes('nmask', &
-                  'mask of N grid cells, 0 = land, 1 = ocean', 'unitless')
-      var_grd(n_nmask)%coordinates = 'NLON NLAT'
-      var_grd(n_emask)%req = coord_attributes('emask', &
-                  'mask of E grid cells, 0 = land, 1 = ocean', 'unitless')
-      var_grd(n_emask)%coordinates = 'ELON ELAT'
+         var_grd(n_tmask)%req = coord_attributes('tmask', &
+                     'mask of T grid cells, 0 = land, 1 = ocean', 'unitless')
+         var_grd(n_tmask)%coordinates = 'TLON TLAT'
+         var_grd(n_umask)%req = coord_attributes('umask', &
+                     'mask of U grid cells, 0 = land, 1 = ocean', 'unitless')
+         var_grd(n_umask)%coordinates = 'ULON ULAT'
+         var_grd(n_nmask)%req = coord_attributes('nmask', &
+                     'mask of N grid cells, 0 = land, 1 = ocean', 'unitless')
+         var_grd(n_nmask)%coordinates = 'NLON NLAT'
+         var_grd(n_emask)%req = coord_attributes('emask', &
+                     'mask of E grid cells, 0 = land, 1 = ocean', 'unitless')
+         var_grd(n_emask)%coordinates = 'ELON ELAT'
 
-      var_grd(n_tarea)%req = coord_attributes('tarea', &
-                  'area of T grid cells', 'm^2')
-      var_grd(n_tarea)%coordinates = 'TLON TLAT'
-      var_grd(n_uarea)%req = coord_attributes('uarea', &
-                  'area of U grid cells', 'm^2')
-      var_grd(n_uarea)%coordinates = 'ULON ULAT'
-      var_grd(n_narea)%req = coord_attributes('narea', &
-                  'area of N grid cells', 'm^2')
-      var_grd(n_narea)%coordinates = 'NLON NLAT'
-      var_grd(n_earea)%req = coord_attributes('earea', &
-                  'area of E grid cells', 'm^2')
-      var_grd(n_earea)%coordinates = 'ELON ELAT'
+         var_grd(n_tarea)%req = coord_attributes('tarea', &
+                     'area of T grid cells', 'm^2')
+         var_grd(n_tarea)%coordinates = 'TLON TLAT'
+         var_grd(n_uarea)%req = coord_attributes('uarea', &
+                     'area of U grid cells', 'm^2')
+         var_grd(n_uarea)%coordinates = 'ULON ULAT'
+         var_grd(n_narea)%req = coord_attributes('narea', &
+                     'area of N grid cells', 'm^2')
+         var_grd(n_narea)%coordinates = 'NLON NLAT'
+         var_grd(n_earea)%req = coord_attributes('earea', &
+                     'area of E grid cells', 'm^2')
+         var_grd(n_earea)%coordinates = 'ELON ELAT'
 
-      var_grd(n_blkmask)%req = coord_attributes('blkmask', &
-                  'block id of T grid cells, mytask + iblk/100', 'unitless')
-      var_grd(n_blkmask)%coordinates = 'TLON TLAT'
+         var_grd(n_blkmask)%req = coord_attributes('blkmask', &
+                     'block id of T grid cells, mytask + iblk/100', 'unitless')
+         var_grd(n_blkmask)%coordinates = 'TLON TLAT'
 
-      var_grd(n_dxt)%req = coord_attributes('dxt', &
-                  'T cell width through middle', 'm')
-      var_grd(n_dxt)%coordinates = 'TLON TLAT'
-      var_grd(n_dyt)%req = coord_attributes('dyt', &
-                  'T cell height through middle', 'm')
-      var_grd(n_dyt)%coordinates = 'TLON TLAT'
-      var_grd(n_dxu)%req = coord_attributes('dxu', &
-                  'U cell width through middle', 'm')
-      var_grd(n_dxu)%coordinates = 'ULON ULAT'
-      var_grd(n_dyu)%req = coord_attributes('dyu', &
-                  'U cell height through middle', 'm')
-      var_grd(n_dyu)%coordinates = 'ULON ULAT'
-      var_grd(n_dxn)%req = coord_attributes('dxn', &
-                  'N cell width through middle', 'm')
-      var_grd(n_dxn)%coordinates = 'NLON NLAT'
-      var_grd(n_dyn)%req = coord_attributes('dyn', &
-                  'N cell height through middle', 'm')
-      var_grd(n_dyn)%coordinates = 'NLON NLAT'
-      var_grd(n_dxe)%req = coord_attributes('dxe', &
-                  'E cell width through middle', 'm')
-      var_grd(n_dxe)%coordinates = 'ELON ELAT'
-      var_grd(n_dye)%req = coord_attributes('dye', &
-                  'E cell height through middle', 'm')
-      var_grd(n_dye)%coordinates = 'ELON ELAT'
+         var_grd(n_dxt)%req = coord_attributes('dxt', &
+                     'T cell width through middle', 'm')
+         var_grd(n_dxt)%coordinates = 'TLON TLAT'
+         var_grd(n_dyt)%req = coord_attributes('dyt', &
+                     'T cell height through middle', 'm')
+         var_grd(n_dyt)%coordinates = 'TLON TLAT'
+         var_grd(n_dxu)%req = coord_attributes('dxu', &
+                     'U cell width through middle', 'm')
+         var_grd(n_dxu)%coordinates = 'ULON ULAT'
+         var_grd(n_dyu)%req = coord_attributes('dyu', &
+                     'U cell height through middle', 'm')
+         var_grd(n_dyu)%coordinates = 'ULON ULAT'
+         var_grd(n_dxn)%req = coord_attributes('dxn', &
+                     'N cell width through middle', 'm')
+         var_grd(n_dxn)%coordinates = 'NLON NLAT'
+         var_grd(n_dyn)%req = coord_attributes('dyn', &
+                     'N cell height through middle', 'm')
+         var_grd(n_dyn)%coordinates = 'NLON NLAT'
+         var_grd(n_dxe)%req = coord_attributes('dxe', &
+                     'E cell width through middle', 'm')
+         var_grd(n_dxe)%coordinates = 'ELON ELAT'
+         var_grd(n_dye)%req = coord_attributes('dye', &
+                     'E cell height through middle', 'm')
+         var_grd(n_dye)%coordinates = 'ELON ELAT'
 
-      var_grd(n_HTN)%req = coord_attributes('HTN', &
-                  'T cell width on North side','m')
-      var_grd(n_HTN)%coordinates = 'TLON TLAT'
-      var_grd(n_HTE)%req = coord_attributes('HTE', &
-                  'T cell width on East side', 'm')
-      var_grd(n_HTE)%coordinates = 'TLON TLAT'
-      var_grd(n_ANGLE)%req = coord_attributes('ANGLE', &
-                  'angle grid makes with latitude line on U grid', &
-                  'radians')
-      var_grd(n_ANGLE)%coordinates = 'ULON ULAT'
-      var_grd(n_ANGLET)%req = coord_attributes('ANGLET', &
-                  'angle grid makes with latitude line on T grid', &
-                  'radians')
-      var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
+         var_grd(n_HTN)%req = coord_attributes('HTN', &
+                     'T cell width on North side','m')
+         var_grd(n_HTN)%coordinates = 'TLON TLAT'
+         var_grd(n_HTE)%req = coord_attributes('HTE', &
+                     'T cell width on East side', 'm')
+         var_grd(n_HTE)%coordinates = 'TLON TLAT'
+         var_grd(n_ANGLE)%req = coord_attributes('ANGLE', &
+                     'angle grid makes with latitude line on U grid', &
+                     'radians')
+         var_grd(n_ANGLE)%coordinates = 'ULON ULAT'
+         var_grd(n_ANGLET)%req = coord_attributes('ANGLET', &
+                     'angle grid makes with latitude line on T grid', &
+                     'radians')
+         var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
 
-      ! These fields are required for CF compliance
-      ! dimensions (nx,ny,nverts)
-      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
-                  'longitude boundaries of T cells', 'degrees_east')
-      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
-                  'latitude boundaries of T cells', 'degrees_north')
-      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
-                  'longitude boundaries of U cells', 'degrees_east')
-      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
-                  'latitude boundaries of U cells', 'degrees_north')
-      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
-                  'longitude boundaries of N cells', 'degrees_east')
-      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
-                  'latitude boundaries of N cells', 'degrees_north')
-      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
-                  'longitude boundaries of E cells', 'degrees_east')
-      var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
-                  'latitude boundaries of E cells', 'degrees_north')
+         ! These fields are required for CF compliance
+         ! dimensions (nx,ny,nverts)
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
+                     'longitude boundaries of T cells', 'degrees_east')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
+                     'latitude boundaries of T cells', 'degrees_north')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
+                     'longitude boundaries of U cells', 'degrees_east')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
+                     'latitude boundaries of U cells', 'degrees_north')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
+                     'longitude boundaries of N cells', 'degrees_east')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
+                     'latitude boundaries of N cells', 'degrees_north')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
+                     'longitude boundaries of E cells', 'degrees_east')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
+                     'latitude boundaries of E cells', 'degrees_north')
 
-      !-----------------------------------------------------------------
-      ! define attributes for time-invariant variables
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define attributes for time-invariant variables
+         !-----------------------------------------------------------------
 
-        dimid(1) = imtid
-        dimid(2) = jmtid
-        dimid(3) = timid
+         dimid(1) = imtid
+         dimid(2) = jmtid
+         dimid(3) = timid
 
-        do i = 1, ncoord
-          status = nf90_def_var(ncid, var_coord(i)%short_name, lprecision, &
-                                dimid(1:2), varid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining short_name for '//var_coord(i)%short_name)
-          status = nf90_put_att(ncid,varid,'long_name',var_coord(i)%long_name)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining long_name for '//var_coord(i)%short_name)
-          status = nf90_put_att(ncid, varid, 'units', var_coord(i)%units)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining units for '//var_coord(i)%short_name)
-          call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
-          if (var_coord(i)%short_name == 'ULAT') then
-             status = nf90_put_att(ncid,varid,'comment', &
-                  'Latitude of NE corner of T grid cell')
-             if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining comment for '//var_coord(i)%short_name)
-          endif
-          if (f_bounds) then
-             status = nf90_put_att(ncid, varid, 'bounds', coord_bounds(i))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining bounds for '//var_coord(i)%short_name)
-          endif
-        enddo
+         do i = 1, ncoord
+            status = nf90_def_var(ncid, var_coord(i)%short_name, lprecision, &
+                                  dimid(1:2), varid)
+            call ice_check_nc(status, subname// ' ERROR: defining short_name for '//var_coord(i)%short_name, &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_att(ncid,varid,'long_name',var_coord(i)%long_name)
+            call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_coord(i)%short_name, &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_att(ncid, varid, 'units', var_coord(i)%units)
+            call ice_check_nc(status, subname// ' ERROR: defining units for '//var_coord(i)%short_name, &
+                              file=__FILE__, line=__LINE__)
+            call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
+            if (var_coord(i)%short_name == 'ULAT') then
+               status = nf90_put_att(ncid,varid,'comment', &
+                    'Latitude of NE corner of T grid cell')
+               call ice_check_nc(status, subname// ' ERROR: defining comment for '//var_coord(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            if (f_bounds) then
+               status = nf90_put_att(ncid, varid, 'bounds', coord_bounds(i))
+               call ice_check_nc(status, subname// ' ERROR: defining bounds for '//var_coord(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         enddo
 
-        ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
-          dimidex(1)=cmtid
-          dimidex(2)=kmtidi
-          dimidex(3)=kmtids
-          dimidex(4)=kmtidb
-          dimidex(5)=kmtida
-          dimidex(6)=fmtid
+         ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
+         dimidex(1)=cmtid
+         dimidex(2)=kmtidi
+         dimidex(3)=kmtids
+         dimidex(4)=kmtidb
+         dimidex(5)=kmtida
+         dimidex(6)=fmtid
 
-        do i = 1, nvar_grdz
-           if (igrdz(i)) then
-             status = nf90_def_var(ncid, var_grdz(i)%short_name, &
-                                   lprecision, dimidex(i), varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: defining short_name for '//var_grdz(i)%short_name)
-             status = nf90_put_att(ncid,varid,'long_name',var_grdz(i)%long_name)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: defining long_name for '//var_grdz(i)%short_name)
-             status = nf90_put_att(ncid, varid, 'units', var_grdz(i)%units)
-             if (Status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: defining units for '//var_grdz(i)%short_name)
-           endif
-        enddo
+         do i = 1, nvar_grdz
+            if (igrdz(i)) then
+               status = nf90_def_var(ncid, var_grdz(i)%short_name, &
+                                     lprecision, dimidex(i), varid)
+               call ice_check_nc(status, subname// ' ERROR: defining short_name for '//var_grdz(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid,varid,'long_name',var_grdz(i)%long_name)
+               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_grdz(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid, varid, 'units', var_grdz(i)%units)
+               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_grdz(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         enddo
 
-        do i = 1, nvar_grd
-          if (igrd(i)) then
-             status = nf90_def_var(ncid, var_grd(i)%req%short_name, &
-                                   lprecision, dimid(1:2), varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining variable '//var_grd(i)%req%short_name)
-             status = nf90_put_att(ncid,varid, 'long_name', var_grd(i)%req%long_name)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining long_name for '//var_grd(i)%req%short_name)
-             status = nf90_put_att(ncid, varid, 'units', var_grd(i)%req%units)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining units for '//var_grd(i)%req%short_name)
-             status = nf90_put_att(ncid, varid, 'coordinates', var_grd(i)%coordinates)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining coordinates for '//var_grd(i)%req%short_name)
-             call ice_write_hist_fill(ncid,varid,var_grd(i)%req%short_name,history_precision)
-          endif
-        enddo
+         do i = 1, nvar_grd
+            if (igrd(i)) then
+               status = nf90_def_var(ncid, var_grd(i)%req%short_name, &
+                                     lprecision, dimid(1:2), varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid,varid, 'long_name', var_grd(i)%req%long_name)
+               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid, varid, 'units', var_grd(i)%req%units)
+               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid, varid, 'coordinates', var_grd(i)%coordinates)
+               call ice_check_nc(status, subname// ' ERROR: defining coordinates for '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_fill(ncid,varid,var_grd(i)%req%short_name,history_precision)
+            endif
+         enddo
 
-        ! Fields with dimensions (nverts,nx,ny)
-        dimid_nverts(1) = nvertexid
-        dimid_nverts(2) = imtid
-        dimid_nverts(3) = jmtid
-        do i = 1, nvar_verts
-          if (f_bounds) then
-             status = nf90_def_var(ncid, var_nverts(i)%short_name, &
-                                   lprecision,dimid_nverts, varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining variable '//var_nverts(i)%short_name)
-             status = nf90_put_att(ncid,varid, 'long_name', var_nverts(i)%long_name)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining long_name for '//var_nverts(i)%short_name)
-             status = nf90_put_att(ncid, varid, 'units', var_nverts(i)%units)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: defining units for '//var_nverts(i)%short_name)
-             call ice_write_hist_fill(ncid,varid,var_nverts(i)%short_name,history_precision)
-          endif
-        enddo
+         ! Fields with dimensions (nverts,nx,ny)
+         dimid_nverts(1) = nvertexid
+         dimid_nverts(2) = imtid
+         dimid_nverts(3) = jmtid
+         do i = 1, nvar_verts
+            if (f_bounds) then
+               status = nf90_def_var(ncid, var_nverts(i)%short_name, &
+                                     lprecision,dimid_nverts, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//var_nverts(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid,varid, 'long_name', var_nverts(i)%long_name)
+               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_nverts(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_att(ncid, varid, 'units', var_nverts(i)%units)
+               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_nverts(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_fill(ncid,varid,var_nverts(i)%short_name,history_precision)
+            endif
+         enddo
 
-        do n=1,num_avail_hist_fields_2D
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimid, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_2D
+         do n=1,num_avail_hist_fields_2D
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimid, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_2D
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = cmtid
-        dimidz(4) = timid
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
+         dimidz(3) = cmtid
+         dimidz(4) = timid
 
-        do n = n2D + 1, n3Dccum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimidz, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Dc
+         do n = n2D + 1, n3Dccum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimidz, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_3Dc
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtidi
-        dimidz(4) = timid
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
+         dimidz(3) = kmtidi
+         dimidz(4) = timid
 
-        do n = n3Dccum + 1, n3Dzcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimidz, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Dz
+         do n = n3Dccum + 1, n3Dzcum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimidz, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_3Dz
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtidb
-        dimidz(4) = timid
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
+         dimidz(3) = kmtidb
+         dimidz(4) = timid
 
-        do n = n3Dzcum + 1, n3Dbcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimidz, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Db
+         do n = n3Dzcum + 1, n3Dbcum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimidz, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_3Db
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtida
-        dimidz(4) = timid
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
+         dimidz(3) = kmtida
+         dimidz(4) = timid
 
-        do n = n3Dbcum + 1, n3Dacum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimidz, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Da
+         do n = n3Dbcum + 1, n3Dacum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimidz, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_3Da
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = fmtid
-        dimidz(4) = timid
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
+         dimidz(3) = fmtid
+         dimidz(4) = timid
 
-        do n = n3Dacum + 1, n3Dfcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                         lprecision, dimidz, varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Df
+         do n = n3Dacum + 1, n3Dfcum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+                            lprecision, dimidz, varid)
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_3Df
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = kmtidi
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+         dimidcz(1) = imtid
+         dimidcz(2) = jmtid
+         dimidcz(3) = kmtidi
+         dimidcz(4) = cmtid
+         dimidcz(5) = timid
 
-        do n = n3Dfcum + 1, n4Dicum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                             lprecision, dimidcz, varid)
-                             lprecision, dimidcz(1:4), varid) ! ferret
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Di
+         do n = n3Dfcum + 1, n4Dicum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+!                                lprecision, dimidcz, varid)
+                                lprecision, dimidcz(1:4), varid) ! ferret
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_4Di
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = kmtids
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+         dimidcz(1) = imtid
+         dimidcz(2) = jmtid
+         dimidcz(3) = kmtids
+         dimidcz(4) = cmtid
+         dimidcz(5) = timid
 
-        do n = n4Dicum + 1, n4Dscum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                             lprecision, dimidcz, varid)
-                             lprecision, dimidcz(1:4), varid) ! ferret
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Ds
+         do n = n4Dicum + 1, n4Dscum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+!                                lprecision, dimidcz, varid)
+                                lprecision, dimidcz(1:4), varid) ! ferret
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_4Ds
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = fmtid
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+         dimidcz(1) = imtid
+         dimidcz(2) = jmtid
+         dimidcz(3) = fmtid
+         dimidcz(4) = cmtid
+         dimidcz(5) = timid
 
-        do n = n4Dscum + 1, n4Dfcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                             lprecision, dimidcz, varid)
-                             lprecision, dimidcz(1:4), varid) ! ferret
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining variable '//avail_hist_fields(n)%vname)
-            call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Df
+         do n = n4Dscum + 1, n4Dfcum
+            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
+!                                lprecision, dimidcz, varid)
+                                lprecision, dimidcz(1:4), varid) ! ferret
+               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+            endif
+         enddo  ! num_avail_hist_fields_4Df
 
-      !-----------------------------------------------------------------
-      ! global attributes
-      !-----------------------------------------------------------------
-      ! ... the user should change these to something useful ...
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! global attributes
+         !-----------------------------------------------------------------
+         ! ... the user should change these to something useful ...
+         !-----------------------------------------------------------------
 #ifdef CESMCOUPLED
-        status = nf90_put_att(ncid,nf90_global,'title',runid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: in global attribute title')
+         status = nf90_put_att(ncid,nf90_global,'title',runid)
+         call ice_check_nc(status, subname// ' ERROR: in global attribute title', &
+                           file=__FILE__, line=__LINE__)
 #else
-        title  = 'sea ice model output for CICE'
-        status = nf90_put_att(ncid,nf90_global,'title',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: in global attribute title')
+         title  = 'sea ice model output for CICE'
+         status = nf90_put_att(ncid,nf90_global,'title',title)
+         call ice_check_nc(status, subname// ' ERROR: in global attribute title', &
+                           file=__FILE__, line=__LINE__)
 #endif
-        title = 'Diagnostic and Prognostic Variables'
-        status = nf90_put_att(ncid,nf90_global,'contents',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute contents')
+         title = 'Diagnostic and Prognostic Variables'
+         status = nf90_put_att(ncid,nf90_global,'contents',title)
+         call ice_check_nc(status, subname// ' ERROR: global attribute contents', &
+                           file=__FILE__, line=__LINE__)
 
-        write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
-        status = nf90_put_att(ncid,nf90_global,'source',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute source')
+         write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
+         status = nf90_put_att(ncid,nf90_global,'source',title)
+         call ice_check_nc(status, subname// ' ERROR: global attribute source', &
+                           file=__FILE__, line=__LINE__)
 
-        if (use_leap_years) then
-          write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
-        else
-          write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
-        endif
-        status = nf90_put_att(ncid,nf90_global,'comment',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute comment')
+         if (use_leap_years) then
+           write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
+         else
+           write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
+         endif
+         status = nf90_put_att(ncid,nf90_global,'comment',title)
+         call ice_check_nc(status, subname// ' ERROR: global attribute comment', &
+                           file=__FILE__, line=__LINE__)
 
-        write(title,'(a,i8.8)') 'File written on model date ',idate
-        status = nf90_put_att(ncid,nf90_global,'comment2',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute date1')
+         write(title,'(a,i8.8)') 'File written on model date ',idate
+         status = nf90_put_att(ncid,nf90_global,'comment2',title)
+         call ice_check_nc(status, subname// ' ERROR: global attribute date1', &
+                           file=__FILE__, line=__LINE__)
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
-        status = nf90_put_att(ncid,nf90_global,'comment3',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute date2')
+         write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
+         status = nf90_put_att(ncid,nf90_global,'comment3',title)
+         call ice_check_nc(status, subname// ' ERROR: global attribute date2', &
+                           file=__FILE__, line=__LINE__)
 
-        select case (histfreq(ns))
-         case ("y", "Y")
-            write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
-         case ("m", "M")
-            write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
-         case ("d", "D")
-            write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
-         case ("h", "H")
-            write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
-         case ("1")
-            write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
-        end select
+         select case (histfreq(ns))
+            case ("y", "Y")
+               write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
+            case ("m", "M")
+               write(time_period_freq,'(a,i0)') 'month_',histfreq_n(ns)
+            case ("d", "D")
+               write(time_period_freq,'(a,i0)') 'day_',histfreq_n(ns)
+            case ("h", "H")
+               write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
+            case ("1")
+               write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
+         end select
 
-        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
-           status = nf90_put_att(ncid,nf90_global,'time_period_freq',trim(time_period_freq))
-           if (status /= nf90_noerr) call abort_ice(subname// &
-                         'ERROR: global attribute time_period_freq')
-        endif
+         if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
+            status = nf90_put_att(ncid,nf90_global,'time_period_freq',trim(time_period_freq))
+            call ice_check_nc(status, subname// ' ERROR: global attribute time_period_freq', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
-        if (hist_avg(ns)) then
-           status = nf90_put_att(ncid,nf90_global,'time_axis_position',trim(hist_time_axis))
-           if (status /= nf90_noerr) call abort_ice(subname// &
-                         'ERROR: global attribute time axis position')
-        endif
+         if (hist_avg(ns)) then
+            status = nf90_put_att(ncid,nf90_global,'time_axis_position',trim(hist_time_axis))
+            call ice_check_nc(status, subname// ' ERROR: global attribute time axis position', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
-        title = 'CF-1.0'
-        status =  &
-             nf90_put_att(ncid,nf90_global,'conventions',title)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: in global attribute conventions')
+         title = 'CF-1.0'
+         status =  &
+              nf90_put_att(ncid,nf90_global,'conventions',title)
+         call ice_check_nc(status, subname// ' ERROR: in global attribute conventions', &
+                           file=__FILE__, line=__LINE__)
 
-        call date_and_time(date=current_date, time=current_time)
-        write(start_time,1000) current_date(1:4), current_date(5:6), &
-                               current_date(7:8), current_time(1:2), &
-                               current_time(3:4), current_time(5:8)
-1000    format('This dataset was created on ', &
-                a,'-',a,'-',a,' at ',a,':',a,':',a)
+         call date_and_time(date=current_date, time=current_time)
+         write(start_time,1000) current_date(1:4), current_date(5:6), &
+                                current_date(7:8), current_time(1:2), &
+                                current_time(3:4), current_time(5:8)
+1000     format('This dataset was created on ', &
+                 a,'-',a,'-',a,' at ',a,':',a,':',a)
 
-        status = nf90_put_att(ncid,nf90_global,'history',start_time)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute history')
+         status = nf90_put_att(ncid,nf90_global,'history',start_time)
+         call ice_check_nc(status, subname// ' ERROR: global attribute history', &
+                           file=__FILE__, line=__LINE__)
 
-        status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf')
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: global attribute io_flavor')
+         status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf')
+         call ice_check_nc(status, subname// ' ERROR: global attribute io_flavor', &
+                           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! end define mode
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! end define mode
+         !-----------------------------------------------------------------
 
-        status = nf90_enddef(ncid)
-        if (status /= nf90_noerr) call abort_ice(subname//'ERROR in nf90_enddef')
+         status = nf90_enddef(ncid)
+         call ice_check_nc(status, subname// ' ERROR in nf90_enddef', &
+                           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! write time variable
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! write time variable
+         !-----------------------------------------------------------------
 
-        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-        ! Some coupled models require the time axis "stamp" to be in the middle
-        ! or even beginning of averaging interval.
-        if (hist_avg(ns)) then
-           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
-           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
-        endif
+         ! Some coupled models require the time axis "stamp" to be in the middle
+         ! or even beginning of averaging interval.
+         if (hist_avg(ns)) then
+            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+         endif
 
-        status = nf90_inq_varid(ncid,'time',varid)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: getting time varid')
-        status = nf90_put_var(ncid,varid,ltime2)
-        if (status /= nf90_noerr) call abort_ice(subname// &
-                      'ERROR: writing time variable')
+         status = nf90_inq_varid(ncid,'time',varid)
+         call ice_check_nc(status, subname// ' ERROR: getting time varid', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_put_var(ncid,varid,ltime2)
+         call ice_check_nc(status, subname// ' ERROR: writing time variable', &
+                           file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! write time_bounds info
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! write time_bounds info
+         !-----------------------------------------------------------------
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          status = nf90_inq_varid(ncid,'time_bounds',varid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: getting time_bounds id')
-          status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: writing time_beg')
-          status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: writing time_end')
-        endif
+         if (hist_avg(ns) .and. .not. write_ic) then
+            status = nf90_inq_varid(ncid,'time_bounds',varid)
+            call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
+            call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
+            call ice_check_nc(status, subname// ' ERROR: writing time_end', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
       endif                     ! master_task
 
@@ -800,138 +801,138 @@
       ! write coordinate variables
       !-----------------------------------------------------------------
 
-        do i = 1,ncoord
-          call broadcast_scalar(var_coord(i)%short_name,master_task)
-          SELECT CASE (var_coord(i)%short_name)
+      do i = 1,ncoord
+         call broadcast_scalar(var_coord(i)%short_name,master_task)
+         SELECT CASE (var_coord(i)%short_name)
             CASE ('TLON')
-              ! Convert T grid longitude from -180 -> 180 to 0 to 360
-              work1 = TLON*rad_to_deg + c360
-              where (work1 > c360) work1 = work1 - c360
-              where (work1 < c0 )  work1 = work1 + c360
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               ! Convert T grid longitude from -180 -> 180 to 0 to 360
+               work1 = TLON*rad_to_deg + c360
+               where (work1 > c360) work1 = work1 - c360
+               where (work1 < c0 )  work1 = work1 + c360
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('TLAT')
-              work1 = TLAT*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = TLAT*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('ULON')
-              work1 = ULON*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = ULON*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('ULAT')
-              work1 = ULAT*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = ULAT*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('NLON')
-              work1 = NLON*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = NLON*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('NLAT')
-              work1 = NLAT*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = NLAT*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('ELON')
-              work1 = ELON*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
+               work1 = ELON*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
             CASE ('ELAT')
-              work1 = ELAT*rad_to_deg
-              call gather_global(work_g1,work1,master_task,distrb_info)
-          END SELECT
+               work1 = ELAT*rad_to_deg
+               call gather_global(work_g1,work1,master_task,distrb_info)
+         END SELECT
 
-          if (my_task == master_task) then
-             status = nf90_inq_varid(ncid, var_coord(i)%short_name, varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: getting varid for '//var_coord(i)%short_name)
-             status = nf90_put_var(ncid,varid,work_g1)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: writing'//var_coord(i)%short_name)
-          endif
-        enddo
+         if (my_task == master_task) then
+            status = nf90_inq_varid(ncid, var_coord(i)%short_name, varid)
+            call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_coord(i)%short_name, &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_var(ncid,varid,work_g1)
+            call ice_check_nc(status, subname// ' ERROR: writing'//var_coord(i)%short_name, &
+                              file=__FILE__, line=__LINE__)
+         endif
+      enddo
 
-        ! Extra dimensions (NCAT, NFSD, VGRD*)
+      ! Extra dimensions (NCAT, NFSD, VGRD*)
 
-        do i = 1, nvar_grdz
-          if (igrdz(i)) then
-          call broadcast_scalar(var_grdz(i)%short_name,master_task)
-          if (my_task == master_task) then
-             status = nf90_inq_varid(ncid, var_grdz(i)%short_name, varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                  'ERROR: getting varid for '//var_grdz(i)%short_name)
-             SELECT CASE (var_grdz(i)%short_name)
-               CASE ('NCAT')
-                 status = nf90_put_var(ncid,varid,hin_max(1:ncat_hist))
-               CASE ('NFSD')
-                 status = nf90_put_var(ncid,varid,floe_rad_c(1:nfsd_hist))
-               CASE ('VGRDi') ! index - needed for Met Office analysis code
-                 status = nf90_put_var(ncid,varid,(/(k, k=1,nzilyr)/))
-               CASE ('VGRDs') ! index - needed for Met Office analysis code
-                 status = nf90_put_var(ncid,varid,(/(k, k=1,nzslyr)/))
-               CASE ('VGRDb')
-                 status = nf90_put_var(ncid,varid,(/(k, k=1,nzblyr)/))
-               CASE ('VGRDa')
-                 status = nf90_put_var(ncid,varid,(/(k, k=1,nzalyr)/))
-             END SELECT
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                           'ERROR: writing'//var_grdz(i)%short_name)
-          endif
-          endif
-        enddo
+      do i = 1, nvar_grdz
+         if (igrdz(i)) then
+            call broadcast_scalar(var_grdz(i)%short_name,master_task)
+            if (my_task == master_task) then
+               status = nf90_inq_varid(ncid, var_grdz(i)%short_name, varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_grdz(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               SELECT CASE (var_grdz(i)%short_name)
+                  CASE ('NCAT')
+                     status = nf90_put_var(ncid,varid,hin_max(1:ncat_hist))
+                  CASE ('NFSD')
+                     status = nf90_put_var(ncid,varid,floe_rad_c(1:nfsd_hist))
+                  CASE ('VGRDi') ! index - needed for Met Office analysis code
+                     status = nf90_put_var(ncid,varid,(/(k, k=1,nzilyr)/))
+                  CASE ('VGRDs') ! index - needed for Met Office analysis code
+                     status = nf90_put_var(ncid,varid,(/(k, k=1,nzslyr)/))
+                  CASE ('VGRDb')
+                     status = nf90_put_var(ncid,varid,(/(k, k=1,nzblyr)/))
+                  CASE ('VGRDa')
+                     status = nf90_put_var(ncid,varid,(/(k, k=1,nzalyr)/))
+               END SELECT
+               call ice_check_nc(status, subname// ' ERROR: put var '//var_grdz(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         endif
+      enddo
 
       !-----------------------------------------------------------------
       ! write grid masks, area and rotation angle
       !-----------------------------------------------------------------
 
       do i = 1, nvar_grd
-        if (igrd(i)) then
-        call broadcast_scalar(var_grd(i)%req%short_name,master_task)
-        SELECT CASE (var_grd(i)%req%short_name)
-          CASE ('tmask')
-            call gather_global(work_g1,    hm, master_task, distrb_info)
-          CASE ('umask')
-            call gather_global(work_g1,   uvm, master_task, distrb_info)
-          CASE ('nmask')
-            call gather_global(work_g1,   npm, master_task, distrb_info)
-          CASE ('emask')
-            call gather_global(work_g1,   epm, master_task, distrb_info)
-          CASE ('tarea')
-            call gather_global(work_g1, tarea, master_task, distrb_info)
-          CASE ('uarea')
-            call gather_global(work_g1, uarea, master_task, distrb_info)
-          CASE ('narea')
-            call gather_global(work_g1, narea, master_task, distrb_info)
-          CASE ('earea')
-            call gather_global(work_g1, earea, master_task, distrb_info)
-          CASE ('blkmask')
-            call gather_global(work_g1,    bm, master_task, distrb_info)
-          CASE ('dxu')
-            call gather_global(work_g1,   dxU, master_task, distrb_info)
-          CASE ('dyu')
-            call gather_global(work_g1,   dyU, master_task, distrb_info)
-          CASE ('dxt')
-            call gather_global(work_g1,   dxT, master_task, distrb_info)
-          CASE ('dyt')
-            call gather_global(work_g1,   dyT, master_task, distrb_info)
-          CASE ('dxn')
-            call gather_global(work_g1,   dxN, master_task, distrb_info)
-          CASE ('dyn')
-            call gather_global(work_g1,   dyN, master_task, distrb_info)
-          CASE ('dxe')
-            call gather_global(work_g1,   dxE, master_task, distrb_info)
-          CASE ('dye')
-            call gather_global(work_g1,   dyE, master_task, distrb_info)
-          CASE ('HTN')
-            call gather_global(work_g1,   HTN, master_task, distrb_info)
-          CASE ('HTE')
-            call gather_global(work_g1,   HTE, master_task, distrb_info)
-          CASE ('ANGLE')
-            call gather_global(work_g1, ANGLE, master_task, distrb_info)
-          CASE ('ANGLET')
-            call gather_global(work_g1, ANGLET,master_task, distrb_info)
-        END SELECT
+         if (igrd(i)) then
+            call broadcast_scalar(var_grd(i)%req%short_name,master_task)
+            SELECT CASE (var_grd(i)%req%short_name)
+               CASE ('tmask')
+                  call gather_global(work_g1,    hm, master_task, distrb_info)
+               CASE ('umask')
+                  call gather_global(work_g1,   uvm, master_task, distrb_info)
+               CASE ('nmask')
+                  call gather_global(work_g1,   npm, master_task, distrb_info)
+               CASE ('emask')
+                  call gather_global(work_g1,   epm, master_task, distrb_info)
+               CASE ('tarea')
+                  call gather_global(work_g1, tarea, master_task, distrb_info)
+               CASE ('uarea')
+                  call gather_global(work_g1, uarea, master_task, distrb_info)
+               CASE ('narea')
+                  call gather_global(work_g1, narea, master_task, distrb_info)
+               CASE ('earea')
+                  call gather_global(work_g1, earea, master_task, distrb_info)
+               CASE ('blkmask')
+                  call gather_global(work_g1,    bm, master_task, distrb_info)
+               CASE ('dxu')
+                  call gather_global(work_g1,   dxU, master_task, distrb_info)
+               CASE ('dyu')
+                  call gather_global(work_g1,   dyU, master_task, distrb_info)
+               CASE ('dxt')
+                  call gather_global(work_g1,   dxT, master_task, distrb_info)
+               CASE ('dyt')
+                  call gather_global(work_g1,   dyT, master_task, distrb_info)
+               CASE ('dxn')
+                  call gather_global(work_g1,   dxN, master_task, distrb_info)
+               CASE ('dyn')
+                  call gather_global(work_g1,   dyN, master_task, distrb_info)
+               CASE ('dxe')
+                  call gather_global(work_g1,   dxE, master_task, distrb_info)
+               CASE ('dye')
+                  call gather_global(work_g1,   dyE, master_task, distrb_info)
+               CASE ('HTN')
+                  call gather_global(work_g1,   HTN, master_task, distrb_info)
+               CASE ('HTE')
+                  call gather_global(work_g1,   HTE, master_task, distrb_info)
+               CASE ('ANGLE')
+                  call gather_global(work_g1, ANGLE, master_task, distrb_info)
+               CASE ('ANGLET')
+                  call gather_global(work_g1, ANGLET,master_task, distrb_info)
+            END SELECT
 
-        if (my_task == master_task) then
-          status = nf90_inq_varid(ncid, var_grd(i)%req%short_name, varid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: getting varid for '//var_grd(i)%req%short_name)
-          status = nf90_put_var(ncid,varid,work_g1)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-                        'ERROR: writing variable '//var_grd(i)%req%short_name)
-        endif
-        endif
+            if (my_task == master_task) then
+               status = nf90_inq_varid(ncid, var_grd(i)%req%short_name, varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,work_g1)
+               call ice_check_nc(status, subname// ' ERROR: writing variable '//var_grd(i)%req%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         endif
       enddo
 
       !----------------------------------------------------------------
@@ -939,78 +940,78 @@
       !----------------------------------------------------------------
 
       if (f_bounds) then
-      if (my_task==master_task) then
-         allocate(work1_3(nverts,nx_global,ny_global))
-      else
-         allocate(work1_3(1,1,1))   ! to save memory
-      endif
+         if (my_task==master_task) then
+            allocate(work1_3(nverts,nx_global,ny_global))
+         else
+            allocate(work1_3(1,1,1))   ! to save memory
+         endif
 
-      work1_3(:,:,:) = c0
-      work1  (:,:,:) = c0
+         work1_3(:,:,:) = c0
+         work1  (:,:,:) = c0
 
-      do i = 1, nvar_verts
-        call broadcast_scalar(var_nverts(i)%short_name,master_task)
-        SELECT CASE (var_nverts(i)%short_name)
-        CASE ('lont_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = lont_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('latt_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = latt_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('lonu_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = lonu_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('latu_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = latu_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('lonn_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = lonn_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('latn_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = latn_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('lone_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = lone_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        CASE ('late_bounds')
-        do ivertex = 1, nverts
-           work1(:,:,:) = late_bounds(ivertex,:,:,:)
-           call gather_global(work_g1, work1, master_task, distrb_info)
-           if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
-        enddo
-        END SELECT
+         do i = 1, nvar_verts
+            call broadcast_scalar(var_nverts(i)%short_name,master_task)
+            SELECT CASE (var_nverts(i)%short_name)
+               CASE ('lont_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = lont_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('latt_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = latt_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('lonu_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = lonu_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('latu_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = latu_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('lonn_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = lonn_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('latn_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = latn_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('lone_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = lone_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+               CASE ('late_bounds')
+                  do ivertex = 1, nverts
+                     work1(:,:,:) = late_bounds(ivertex,:,:,:)
+                     call gather_global(work_g1, work1, master_task, distrb_info)
+                     if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
+                  enddo
+            END SELECT
 
-        if (my_task == master_task) then
-          status = nf90_inq_varid(ncid, var_nverts(i)%short_name, varid)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: getting varid for '//var_nverts(i)%short_name)
-          status = nf90_put_var(ncid,varid,work1_3)
-          if (status /= nf90_noerr) call abort_ice(subname// &
-             'ERROR: writing variable '//var_nverts(i)%short_name)
-        endif
-      enddo
-      deallocate(work1_3)
+            if (my_task == master_task) then
+               status = nf90_inq_varid(ncid, var_nverts(i)%short_name, varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_nverts(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,work1_3)
+               call ice_check_nc(status, subname// ' ERROR: writing variable '//var_nverts(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         enddo
+         deallocate(work1_3)
       endif
 
       !-----------------------------------------------------------------
@@ -1020,223 +1021,223 @@
       work_g1(:,:) = c0
 
       do n=1,num_avail_hist_fields_2D
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          call gather_global(work_g1, a2D(:,:,n,:), &
-                             master_task, distrb_info)
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-            status  = nf90_put_var(ncid,varid,work_g1, &
-                                   count=(/nx_global,ny_global/))
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: writing variable '//avail_hist_fields(n)%vname)
-          endif
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call gather_global(work_g1, a2D(:,:,n,:), &
+                               master_task, distrb_info)
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+               status  = nf90_put_var(ncid,varid,work_g1, &
+                                      count=(/nx_global,ny_global/))
+               call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
 
-        endif
+         endif
       enddo ! num_avail_hist_fields_2D
 
       work_g1(:,:) = c0
 
       do n = n2D + 1, n3Dccum
-        nn = n - n2D
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do k = 1, ncat_hist
-             call gather_global(work_g1, a3Dc(:,:,k,nn,:), &
-                                master_task, distrb_info)
+         nn = n - n2D
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do k = 1, ncat_hist
+               call gather_global(work_g1, a3Dc(:,:,k,nn,:), &
+                                  master_task, distrb_info)
 
-             if (my_task == master_task) then
-             status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-             status  = nf90_put_var(ncid,varid,work_g1, &
-                                    start=(/        1,        1,k/), &
-                                    count=(/nx_global,ny_global,1/))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: writing variable '//avail_hist_fields(n)%vname)
-             endif
-          enddo ! k
-        endif
+               if (my_task == master_task) then
+                  status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+                  status  = nf90_put_var(ncid,varid,work_g1, &
+                                         start=(/        1,        1,k/), &
+                                         count=(/nx_global,ny_global,1/))
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+         endif
       enddo ! num_avail_hist_fields_3Dc
 
       work_g1(:,:) = c0
 
       do n = n3Dccum+1, n3Dzcum
-        nn = n - n3Dccum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do k = 1, nzilyr
-             call gather_global(work_g1, a3Dz(:,:,k,nn,:), &
-                                master_task, distrb_info)
+         nn = n - n3Dccum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do k = 1, nzilyr
+               call gather_global(work_g1, a3Dz(:,:,k,nn,:), &
+                                  master_task, distrb_info)
 
-             if (my_task == master_task) then
-             status  = nf90_put_var(ncid,varid,work_g1, &
-                                    start=(/        1,        1,k/), &
-                                    count=(/nx_global,ny_global,1/))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: writing variable '//avail_hist_fields(n)%vname)
-           endif
-           enddo ! k
-        endif
+               if (my_task == master_task) then
+                  status  = nf90_put_var(ncid,varid,work_g1, &
+                                         start=(/        1,        1,k/), &
+                                         count=(/nx_global,ny_global,1/))
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+         endif
       enddo ! num_avail_hist_fields_3Dz
 
       work_g1(:,:) = c0
 
-     do n = n3Dzcum+1, n3Dbcum
-        nn = n - n3Dzcum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do k = 1, nzblyr
-             call gather_global(work_g1, a3Db(:,:,k,nn,:), &
-                                master_task, distrb_info)
+      do n = n3Dzcum+1, n3Dbcum
+         nn = n - n3Dzcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do k = 1, nzblyr
+               call gather_global(work_g1, a3Db(:,:,k,nn,:), &
+                                  master_task, distrb_info)
 
-             if (my_task == master_task) then
-             status  = nf90_put_var(ncid,varid,work_g1, &
-                                    start=(/        1,        1,k/), &
-                                    count=(/nx_global,ny_global,1/))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: writing variable '//avail_hist_fields(n)%vname)
-           endif
-           enddo ! k
-        endif
+               if (my_task == master_task) then
+                  status  = nf90_put_var(ncid,varid,work_g1, &
+                                         start=(/        1,        1,k/), &
+                                         count=(/nx_global,ny_global,1/))
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+         endif
       enddo ! num_avail_hist_fields_3Db
 
       work_g1(:,:) = c0
 
       do n = n3Dbcum+1, n3Dacum
-        nn = n - n3Dbcum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do k = 1, nzalyr
-             call gather_global(work_g1, a3Da(:,:,k,nn,:), &
-                                master_task, distrb_info)
+         nn = n - n3Dbcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do k = 1, nzalyr
+               call gather_global(work_g1, a3Da(:,:,k,nn,:), &
+                                  master_task, distrb_info)
 
-             if (my_task == master_task) then
-             status  = nf90_put_var(ncid,varid,work_g1, &
-                                    start=(/        1,        1,k/), &
-                                    count=(/nx_global,ny_global,1/))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: writing variable '//avail_hist_fields(n)%vname)
-           endif
-           enddo ! k
-        endif
+               if (my_task == master_task) then
+                  status  = nf90_put_var(ncid,varid,work_g1, &
+                                         start=(/        1,        1,k/), &
+                                         count=(/nx_global,ny_global,1/))
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+         endif
       enddo ! num_avail_hist_fields_3Da
 
       work_g1(:,:) = c0
 
       do n = n3Dacum+1, n3Dfcum
-        nn = n - n3Dacum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do k = 1, nfsd_hist
-             call gather_global(work_g1, a3Df(:,:,k,nn,:), &
-                                master_task, distrb_info)
-             if (my_task == master_task) then
-             status  = nf90_put_var(ncid,varid,work_g1, &
-                                    start=(/        1,        1,k/), &
-                                    count=(/nx_global,ny_global,1/))
-             if (status /= nf90_noerr) call abort_ice(subname// &
-                'ERROR: writing variable '//avail_hist_fields(n)%vname)
-           endif
-           enddo ! k
-        endif
+         nn = n - n3Dacum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do k = 1, nfsd_hist
+               call gather_global(work_g1, a3Df(:,:,k,nn,:), &
+                                  master_task, distrb_info)
+               if (my_task == master_task) then
+                  status  = nf90_put_var(ncid,varid,work_g1, &
+                                         start=(/        1,        1,k/), &
+                                         count=(/nx_global,ny_global,1/))
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+         endif
       enddo ! num_avail_hist_fields_3Df
 
       work_g1(:,:) = c0
 
       do n = n3Dfcum+1, n4Dicum
-        nn = n - n3Dfcum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do ic = 1, ncat_hist
-             do k = 1, nzilyr
-                call gather_global(work_g1, a4Di(:,:,k,ic,nn,:), &
-                                master_task, distrb_info)
-                if (my_task == master_task) then
+         nn = n - n3Dfcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do ic = 1, ncat_hist
+            do k = 1, nzilyr
+               call gather_global(work_g1, a4Di(:,:,k,ic,nn,:), &
+                                  master_task, distrb_info)
+               if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
                                          count=(/nx_global,ny_global,1, 1/))
-                  if (status /= nf90_noerr) call abort_ice(subname// &
-                     'ERROR: writing variable '//avail_hist_fields(n)%vname)
-                endif
-             enddo ! k
-          enddo ! ic
-        endif
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+            enddo ! ic
+         endif
       enddo ! num_avail_hist_fields_4Di
 
       work_g1(:,:) = c0
 
       do n = n4Dicum+1, n4Dscum
-        nn = n - n4Dicum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do ic = 1, ncat_hist
-             do k = 1, nzslyr
-                call gather_global(work_g1, a4Ds(:,:,k,ic,nn,:), &
-                                master_task, distrb_info)
-                if (my_task == master_task) then
+         nn = n - n4Dicum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do ic = 1, ncat_hist
+            do k = 1, nzslyr
+               call gather_global(work_g1, a4Ds(:,:,k,ic,nn,:), &
+                                  master_task, distrb_info)
+               if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
                                          count=(/nx_global,ny_global,1, 1/))
-                  if (status /= nf90_noerr) call abort_ice(subname// &
-                     'ERROR: writing variable '//avail_hist_fields(n)%vname)
-                endif
-             enddo ! k
-          enddo ! ic
-        endif
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+            enddo ! ic
+         endif
       enddo ! num_avail_hist_fields_4Ds
 
       do n = n4Dscum+1, n4Dfcum
-        nn = n - n4Dscum
-        if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-          if (my_task == master_task) then
-            status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
-          endif
-          do ic = 1, ncat_hist
-             do k = 1, nfsd_hist
-                call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), &
-                                master_task, distrb_info)
-                if (my_task == master_task) then
+         nn = n - n4Dscum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            if (my_task == master_task) then
+               status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
+                                 file=__FILE__, line=__LINE__)
+            endif
+            do ic = 1, ncat_hist
+            do k = 1, nfsd_hist
+               call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), &
+                                  master_task, distrb_info)
+               if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
                                          count=(/nx_global,ny_global,1, 1/))
-                  if (status /= nf90_noerr) call abort_ice(subname// &
-                     'ERROR: writing variable '//avail_hist_fields(n)%vname)
-                endif
-             enddo ! k
-          enddo ! ic
-        endif
+                  call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo ! k
+            enddo ! ic
+         endif
       enddo ! num_avail_hist_fields_4Df
 
       deallocate(work_g1)
@@ -1247,15 +1248,14 @@
 
       if (my_task == master_task) then
          status = nf90_close(ncid)
-         if (status /= nf90_noerr) call abort_ice(subname// &
-                       'ERROR: closing netCDF history file')
+         call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
+                           file=__FILE__, line=__LINE__)
          write(nu_diag,*) ' '
          write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
       endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_hist
@@ -1284,25 +1284,25 @@
 
 #ifdef USE_NETCDF
       status = nf90_put_att(ncid,varid,'units', hfield%vunit)
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining units for '//hfield%vname)
+      call ice_check_nc(status, subname// ' ERROR: defining units for '//hfield%vname, &
+                        file=__FILE__, line=__LINE__)
 
       status = nf90_put_att(ncid,varid, 'long_name', hfield%vdesc)
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining long_name for '//hfield%vname)
+      call ice_check_nc(status, subname// ' ERROR: defining long_name for '//hfield%vname, &
+                        file=__FILE__, line=__LINE__)
 
       status = nf90_put_att(ncid,varid,'coordinates', hfield%vcoord)
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining coordinates for '//hfield%vname)
+      call ice_check_nc(status, subname// ' ERROR: defining coordinates for '//hfield%vname, &
+                        file=__FILE__, line=__LINE__)
 
       status = nf90_put_att(ncid,varid,'cell_measures', hfield%vcellmeas)
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining cell measures for '//hfield%vname)
+      call ice_check_nc(status, subname// ' ERROR: defining cell measures for '//hfield%vname, &
+                        file=__FILE__, line=__LINE__)
 
-     if (hfield%vcomment /= "none") then
-          status = nf90_put_att(ncid,varid,'comment', hfield%vcomment)
-         if (status /= nf90_noerr) call abort_ice(subname// &
-            'ERROR: defining comment for '//hfield%vname)
+      if (hfield%vcomment /= "none") then
+         status = nf90_put_att(ncid,varid,'comment', hfield%vcomment)
+         call ice_check_nc(status, subname// ' ERROR: defining comment for '//hfield%vname, &
+                           file=__FILE__, line=__LINE__)
       endif
 
       call ice_write_hist_fill(ncid,varid,hfield%vname,history_precision)
@@ -1314,9 +1314,9 @@
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
-            if (status /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: defining cell methods for '//hfield%vname)
+             status = nf90_put_att(ncid,varid,'cell_methods','time: mean')
+             call ice_check_nc(status, subname// ' ERROR: defining cell methods for '//hfield%vname, &
+                               file=__FILE__, line=__LINE__)
          endif
       endif
 
@@ -1340,12 +1340,11 @@
       else
          status = nf90_put_att(ncid,varid,'time_rep','averaged')
       endif
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining time rep for '//hfield%vname)
+      call ice_check_nc(status, subname// ' ERROR: defining time rep for '//hfield%vname, &
+                        file=__FILE__, line=__LINE__)
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_hist_attrs
@@ -1375,19 +1374,18 @@
       else
          status = nf90_put_att(ncid,varid,'missing_value',spval)
       endif
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining missing_value for '//trim(vname))
+      call ice_check_nc(status, subname// ' ERROR: defining missing_value for '//trim(vname), &
+                        file=__FILE__, line=__LINE__)
 
       if (precision == 8) then
          status = nf90_put_att(ncid,varid,'_FillValue',spval_dbl)
       else
          status = nf90_put_att(ncid,varid,'_FillValue',spval)
       endif
-      if (status /= nf90_noerr) call abort_ice(subname// &
-         'ERROR: defining _FillValue for '//trim(vname))
+      call ice_check_nc(status, subname// ' ERROR: defining _FillValue for '//trim(vname), &
+                        file=__FILE__, line=__LINE__)
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
-          file=__FILE__, line=__LINE__)
+      call abort_ice(subname//' ERROR : USE_NETCDF cpp not defined', file=__FILE__, line=__LINE__)
 #endif
 
       end subroutine ice_write_hist_fill

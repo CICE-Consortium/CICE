@@ -195,103 +195,102 @@
 
       if (hist_avg(ns) .and. .not. write_ic) then
          call ice_pio_check(pio_def_dim(File,'nbnd',2,boundid), &
-           subname//' ERROR: defining dim nbnd with len 2')
-       endif
+              subname//' ERROR: defining dim nbnd with len 2',file=__FILE__,line=__LINE__)
+      endif
 
-       call ice_pio_check(pio_def_dim(File,'ni',nx_global,imtid), &
-           subname//' ERROR: defining dim ni')
+      call ice_pio_check(pio_def_dim(File,'ni',nx_global,imtid), &
+           subname//' ERROR: defining dim ni',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nj',ny_global,jmtid), &
-           subname//' ERROR: defining dim nj')
+      call ice_pio_check(pio_def_dim(File,'nj',ny_global,jmtid), &
+           subname//' ERROR: defining dim nj',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nc',ncat_hist,cmtid), &
-           subname//' ERROR: defining dim nc')
+      call ice_pio_check(pio_def_dim(File,'nc',ncat_hist,cmtid), &
+           subname//' ERROR: defining dim nc',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nkice',nzilyr,kmtidi), &
-           subname//' ERROR: defining dim nkice')
+      call ice_pio_check(pio_def_dim(File,'nkice',nzilyr,kmtidi), &
+           subname//' ERROR: defining dim nkice',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nksnow',nzslyr,kmtids), &
-           subname//' ERROR: defining dim nksnow')
+      call ice_pio_check(pio_def_dim(File,'nksnow',nzslyr,kmtids), &
+           subname//' ERROR: defining dim nksnow',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nkbio',nzblyr,kmtidb), &
-           subname//' ERROR: defining dim nkbio')
+      call ice_pio_check(pio_def_dim(File,'nkbio',nzblyr,kmtidb), &
+           subname//' ERROR: defining dim nkbio',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nkaer',nzalyr,kmtida), &
-           subname//' ERROR: defining dim nkaer')
+      call ice_pio_check(pio_def_dim(File,'nkaer',nzalyr,kmtida), &
+           subname//' ERROR: defining dim nkaer',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
-           subname//' ERROR: defining dim time')
-     
-       call ice_pio_check(pio_def_dim(File,'nvertices',nverts,nvertexid), &
-           subname//' ERROR: defining dim nverticies')
+      call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
+           subname//' ERROR: defining dim time',file=__FILE__,line=__LINE__)
 
-       call ice_pio_check(pio_def_dim(File,'nf',nfsd_hist,fmtid), &
-           subname//' ERROR: defining dim nf')
+      call ice_pio_check(pio_def_dim(File,'nvertices',nverts,nvertexid), &
+           subname//' ERROR: defining dim nverticies',file=__FILE__,line=__LINE__)
+
+      call ice_pio_check(pio_def_dim(File,'nf',nfsd_hist,fmtid), &
+           subname//' ERROR: defining dim nf',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! define coordinate variables:  time, time_bounds
       !-----------------------------------------------------------------
 
-        call ice_pio_check(pio_def_var(File,'time',pio_double,(/timid/),varid), &
-             subname//' ERROR: defining var time')
-        call ice_pio_check(pio_put_att(File,varid,'long_name','time'), &
-            subname//' ERROR: defining attribute "long_name" as "time"')
+      call ice_pio_check(pio_def_var(File,'time',pio_double,(/timid/),varid), &
+           subname//' ERROR: defining var time',file=__FILE__,line=__LINE__)
+      call ice_pio_check(pio_put_att(File,varid,'long_name','time'), &
+           subname//' ERROR: defining att long_name time',file=__FILE__,line=__LINE__)
 
-        write(cdate,'(i8.8)') idate0
-        write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-              cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-              hh_init,':',mm_init,':',ss_init
-        call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
-            subname//' ERROR: defining attribute "units" as '//trim(title))
+      write(cdate,'(i8.8)') idate0
+      write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+            cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+            hh_init,':',mm_init,':',ss_init
+      call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
+           subname//' ERROR: defining att units '//trim(title),file=__FILE__,line=__LINE__)
 
-        if (days_per_year == 360) then
-           call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
-               subname//' ERROR: defining calendar')
-        elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-           call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
-               subname//' ERROR: defining calendar')
-        elseif (use_leap_years) then
-           call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
-               subname//' ERROR: defining calendar')
-        else
-           call abort_ice(subname//' ERROR: invalid calendar settings')
-        endif
+      if (days_per_year == 360) then
+         call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
+              subname//' ERROR: defining att calendar1',file=__FILE__,line=__LINE__)
+      elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+         call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
+              subname//' ERROR: defining att calendar2',file=__FILE__,line=__LINE__)
+      elseif (use_leap_years) then
+         call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
+              subname//' ERROR: defining att calendar3',file=__FILE__,line=__LINE__)
+      else
+         call abort_ice(subname//' ERROR: invalid calendar settings')
+      endif
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
-               subname//' ERROR: defining attribute "bounds" as "time_bounds"')
-        endif
+      if (hist_avg(ns) .and. .not. write_ic) then
+         call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
+              subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
+      endif
 
-        ! Define attributes for time_bounds if hist_avg is true
-        if (hist_avg(ns) .and. .not. write_ic) then
-          dimid2(1) = boundid
-          dimid2(2) = timid
-          call ice_pio_check(pio_def_var(File,'time_bounds',pio_double,dimid2,varid), &
-               subname//' ERROR: defining var time_bounds')
-          call ice_pio_check(pio_put_att(File,varid,'long_name', 'time interval endpoints'), &
-               subname//' ERROR: defining attribute "long_name" as "time interval endpoints"')
+      ! Define attributes for time_bounds if hist_avg is true
+      if (hist_avg(ns) .and. .not. write_ic) then
+         dimid2(1) = boundid
+         dimid2(2) = timid
+         call ice_pio_check(pio_def_var(File,'time_bounds',pio_double,dimid2,varid), &
+              subname//' ERROR: defining var time_bounds',file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_att(File,varid,'long_name', 'time interval endpoints'), &
+              subname//' ERROR: defining att long_name time interval endpoints',file=__FILE__,line=__LINE__)
 
-          if (days_per_year == 360) then
-             call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
-                  subname//' ERROR: defining calendar for time_bounds')
-          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-             call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
-                  subname//' ERROR: defining calendar for time_bounds')
-          elseif (use_leap_years) then
-             call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
-                  subname//' ERROR: defining calendar for time_bounds')
-          else
-             call abort_ice(subname//' ERROR: invalid calendar settings')
-          endif
+         if (days_per_year == 360) then
+            call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
+                 subname//' ERROR: defining att calendar1 tb',file=__FILE__,line=__LINE__)
+         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+            call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
+                 subname//' ERROR: defining att calendar2 tb',file=__FILE__,line=__LINE__)
+         elseif (use_leap_years) then
+            call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
+                 subname//' ERROR: defining att calendar3 tb',file=__FILE__,line=__LINE__)
+         else
+            call abort_ice(subname//' ERROR: invalid calendar settings')
+         endif
 
-          write(cdate,'(i8.8)') idate0
-          write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-                hh_init,':',mm_init,':',ss_init
-          call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
-               subname//' ERROR: defining attribute "units" as '//trim(title))
-               
-        endif
+         write(cdate,'(i8.8)') idate0
+         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+               hh_init,':',mm_init,':',ss_init
+         call ice_pio_check(pio_put_att(File,varid,'units',trim(title)), &
+              subname//' ERROR: defining att units '//trim(title),file=__FILE__,line=__LINE__)
+      endif
 
       !-----------------------------------------------------------------
       ! define information for required time-invariant variables
@@ -435,80 +434,76 @@
       ! define attributes for time-invariant variables
       !-----------------------------------------------------------------
 
-        dimid2(1) = imtid
-        dimid2(2) = jmtid
+      dimid2(1) = imtid
+      dimid2(2) = jmtid
 
-        do i = 1, ncoord
-          call ice_pio_check(pio_def_var(File, trim(var_coord(i)%short_name), lprecision, &
-                                dimid2, varid), &
-                                subname//' ERROR: defining var'//trim(var_coord(i)%short_name))
-          call ice_pio_check(pio_put_att(File,varid,'long_name',trim(var_coord(i)%long_name)), &
-               subname//' ERROR: defining attribute "long_name" as '//trim(var_coord(i)%long_name))
-          call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_coord(i)%units)), &
-               subname//' ERROR: defining attribute "units" as '//trim(var_coord(i)%units))
-          call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
-          if (var_coord(i)%short_name == 'ULAT') then
-             call ice_pio_check(pio_put_att(File,varid,'comment', &
-                  trim('Latitude of NE corner of T grid cell')), &
-                  subname//' ERROR: defining attribute "comment"')
-          endif
-          if (f_bounds) then
-              call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
-                  subname//' ERROR: defining attribute "bounds" as '//trim(coord_bounds(i)))
-          endif
-        enddo
+      do i = 1, ncoord
+         call ice_pio_check(pio_def_var(File, trim(var_coord(i)%short_name), lprecision,dimid2, varid), &
+              subname//' ERROR: defining var '//trim(var_coord(i)%short_name),file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_att(File,varid,'long_name',trim(var_coord(i)%long_name)), &
+              subname//' ERROR: defining att long_name '//trim(var_coord(i)%long_name),file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_coord(i)%units)), &
+              subname//' ERROR: defining att units '//trim(var_coord(i)%units),file=__FILE__,line=__LINE__)
+         call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
+         if (var_coord(i)%short_name == 'ULAT') then
+            call ice_pio_check(pio_put_att(File,varid,'comment', &
+                 trim('Latitude of NE corner of T grid cell')), &
+                 subname//' ERROR: defining att comment',file=__FILE__,line=__LINE__)
+         endif
+         if (f_bounds) then
+            call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
+                 subname//' ERROR: defining att bounds '//trim(coord_bounds(i)),file=__FILE__,line=__LINE__)
+         endif
+      enddo
 
-        ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
-          dimidex(1)=cmtid
-          dimidex(2)=kmtidi
-          dimidex(3)=kmtids
-          dimidex(4)=kmtidb
-          dimidex(5)=kmtida
-          dimidex(6)=fmtid
+      ! Extra dimensions (NCAT, NZILYR, NZSLYR, NZBLYR, NZALYR, NFSD)
+      dimidex(1)=cmtid
+      dimidex(2)=kmtidi
+      dimidex(3)=kmtids
+      dimidex(4)=kmtidb
+      dimidex(5)=kmtida
+      dimidex(6)=fmtid
 
-        do i = 1, nvar_grdz
-           if (igrdz(i)) then
-              call ice_pio_check(pio_def_var(File, trim(var_grdz(i)%short_name), lprecision, &
-                                   (/dimidex(i)/), varid), &
-                                   subname//' ERROR: defining var'//trim(var_grdz(i)%short_name))
-              call ice_pio_check(pio_put_att(File, varid, 'long_name', var_grdz(i)%long_name), &
-                  subname//' ERROR: defining attribute "long_name" as '//trim(var_grdz(i)%long_name))
-              call ice_pio_check(pio_put_att(File, varid, 'units'    , var_grdz(i)%units), &
-                  subname//' ERROR: defining attribute "units" as '//trim(var_grdz(i)%units))
-           endif
-        enddo
+      do i = 1, nvar_grdz
+         if (igrdz(i)) then
+            call ice_pio_check(pio_def_var(File, trim(var_grdz(i)%short_name), lprecision,(/dimidex(i)/), varid), &
+                 subname//' ERROR: defining var'//trim(var_grdz(i)%short_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File, varid, 'long_name', var_grdz(i)%long_name), &
+                 subname//' ERROR: defining att long_name '//trim(var_grdz(i)%long_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File, varid, 'units'    , var_grdz(i)%units), &
+                 subname//' ERROR: defining att units '//trim(var_grdz(i)%units),file=__FILE__,line=__LINE__)
+         endif
+      enddo
 
-        do i = 1, nvar_grd
-          if (igrd(i)) then
-             call ice_pio_check(pio_def_var(File, trim(var_grd(i)%req%short_name), &
-                                   lprecision, dimid2, varid), &
-                                   subname//' ERROR: defining var'//trim(var_grd(i)%req%short_name))
-             call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_grd(i)%req%long_name)), &
-                  subname//' ERROR: defining attribute "long_name" as '//trim(var_grd(i)%req%long_name))
-             call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_grd(i)%req%units)), &
-                  subname//' ERROR: defining attribute "units" as '//trim(var_grd(i)%req%units))
-             call ice_pio_check(pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates)), &
-                  subname//' ERROR: defining attribute "coordinates" as '//trim(var_grd(i)%coordinates))
-             call ice_write_hist_fill(File,varid,var_grd(i)%req%short_name,history_precision)
-          endif
-        enddo
+      do i = 1, nvar_grd
+         if (igrd(i)) then
+            call ice_pio_check(pio_def_var(File, trim(var_grd(i)%req%short_name), lprecision, dimid2, varid), &
+                 subname//' ERROR: defining var'//trim(var_grd(i)%req%short_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_grd(i)%req%long_name)), &
+                 subname//' ERROR: defining att long_name '//trim(var_grd(i)%req%long_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_grd(i)%req%units)), &
+                 subname//' ERROR: defining att units '//trim(var_grd(i)%req%units),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates)), &
+                 subname//' ERROR: defining att coordinates '//trim(var_grd(i)%coordinates),file=__FILE__,line=__LINE__)
+            call ice_write_hist_fill(File,varid,var_grd(i)%req%short_name,history_precision)
+         endif
+      enddo
 
-        ! Fields with dimensions (nverts,nx,ny)
-        dimid_nverts(1) = nvertexid
-        dimid_nverts(2) = imtid
-        dimid_nverts(3) = jmtid
-        do i = 1, nvar_verts
-          if (f_bounds) then
-             call ice_pio_check(pio_def_var(File, trim(var_nverts(i)%short_name), &
-                                   lprecision,dimid_nverts, varid), &
-                                   subname//' ERROR: defining var'//trim(var_nverts(i)%short_name))
-             call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name)), &
-                  subname//' ERROR: defining attribute "long_name" as '//trim(var_nverts(i)%long_name))
-             call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_nverts(i)%units)), &
-                  subname//' ERROR: defining attribute "units" as '//trim(var_nverts(i)%units))
-             call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
-          endif
-        enddo
+      ! Fields with dimensions (nverts,nx,ny)
+      dimid_nverts(1) = nvertexid
+      dimid_nverts(2) = imtid
+      dimid_nverts(3) = jmtid
+      do i = 1, nvar_verts
+         if (f_bounds) then
+            call ice_pio_check(pio_def_var(File, trim(var_nverts(i)%short_name),lprecision,dimid_nverts, varid), &
+                 subname//' ERROR: defining var'//trim(var_nverts(i)%short_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(var_nverts(i)%long_name)), &
+                 subname//' ERROR: defining att long_name '//trim(var_nverts(i)%long_name),file=__FILE__,line=__LINE__)
+            call ice_pio_check(pio_put_att(File, varid, 'units', trim(var_nverts(i)%units)), &
+                 subname//' ERROR: defining att units '//trim(var_nverts(i)%units),file=__FILE__,line=__LINE__)
+            call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
+         endif
+      enddo
 
       !-----------------------------------------------------------------
       ! define attributes for time-variant variables
@@ -518,108 +513,102 @@
       ! 2D
       !-----------------------------------------------------------------
 
-        dimid3(1) = imtid
-        dimid3(2) = jmtid
-        dimid3(3) = timid
+      dimid3(1) = imtid
+      dimid3(2) = jmtid
+      dimid3(3) = timid
 
-        do n=1,num_avail_hist_fields_2D
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimid3, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n=1,num_avail_hist_fields_2D
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimid3, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_2D
+         endif
+      enddo  ! num_avail_hist_fields_2D
 
       !-----------------------------------------------------------------
       ! 3D (category)
       !-----------------------------------------------------------------
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = cmtid
-        dimidz(4) = timid
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = cmtid
+      dimidz(4) = timid
 
-        do n = n2D + 1, n3Dccum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n2D + 1, n3Dccum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Dc
+         endif
+      enddo  ! num_avail_hist_fields_3Dc
 
       !-----------------------------------------------------------------
       ! 3D (ice layers)
       !-----------------------------------------------------------------
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtidi
-        dimidz(4) = timid
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtidi
+      dimidz(4) = timid
 
-        do n = n3Dccum + 1, n3Dzcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n3Dccum + 1, n3Dzcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Dz
+         endif
+      enddo  ! num_avail_hist_fields_3Dz
 
       !-----------------------------------------------------------------
       ! 3D (biology ice layers)
       !-----------------------------------------------------------------
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtidb
-        dimidz(4) = timid
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtidb
+      dimidz(4) = timid
 
-        do n = n3Dzcum + 1, n3Dbcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n3Dzcum + 1, n3Dbcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Db
+         endif
+      enddo  ! num_avail_hist_fields_3Db
 
       !-----------------------------------------------------------------
       ! 3D (biology snow layers)
       !-----------------------------------------------------------------
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = kmtida
-        dimidz(4) = timid
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtida
+      dimidz(4) = timid
 
-        do n = n3Dbcum + 1, n3Dacum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n3Dbcum + 1, n3Dacum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Da
+         endif
+      enddo  ! num_avail_hist_fields_3Da
 
       !-----------------------------------------------------------------
       ! 3D (fsd)
       !-----------------------------------------------------------------
 
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = fmtid
-        dimidz(4) = timid
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = fmtid
+      dimidz(4) = timid
 
-        do n = n3Dacum + 1, n3Dfcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                         lprecision, dimidz, varid), &
-                         subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n3Dacum + 1, n3Dfcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_3Df
+         endif
+      enddo  ! num_avail_hist_fields_3Df
 
       !-----------------------------------------------------------------
       ! define attributes for 4D variables
@@ -630,59 +619,55 @@
       ! 4D (ice categories)
       !-----------------------------------------------------------------
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = kmtidi
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = kmtidi
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
 
-        do n = n3Dfcum + 1, n4Dicum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid), &
-                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n3Dfcum + 1, n4Dicum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidcz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Di
+         endif
+      enddo  ! num_avail_hist_fields_4Di
 
       !-----------------------------------------------------------------
       ! 4D (snow layers)
       !-----------------------------------------------------------------
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = kmtids
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = kmtids
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
 
-        do n = n4Dicum + 1, n4Dscum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid), &
-                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n4Dicum + 1, n4Dscum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidcz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Ds
-
+         endif
+      enddo  ! num_avail_hist_fields_4Ds
 
       !-----------------------------------------------------------------
       ! 4D (fsd layers)
       !-----------------------------------------------------------------
 
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = fmtid
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = fmtid
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
 
-        do n = n4Dscum + 1, n4Dfcum
-          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), &
-                             lprecision, dimidcz, varid), &
-                             subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname))
+      do n = n4Dscum + 1, n4Dfcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_pio_check(pio_def_var(File, trim(avail_hist_fields(n)%vname), lprecision, dimidcz, varid), &
+                 subname//' ERROR: defining var'//trim(avail_hist_fields(n)%vname),file=__FILE__,line=__LINE__)
             call ice_write_hist_attrs(File,varid,avail_hist_fields(n),ns)
-          endif
-        enddo  ! num_avail_hist_fields_4Df
+         endif
+      enddo  ! num_avail_hist_fields_4Df
 
       !-----------------------------------------------------------------
       ! global attributes
@@ -690,38 +675,38 @@
       ! ... the user should change these to something useful ...
       !-----------------------------------------------------------------
 #ifdef CESMCOUPLED
-        call ice_pio_check(pio_put_att(File,pio_global,'title',runid), &
-            subname//' ERROR: defining attribute "title" as '//runid)
+      call ice_pio_check(pio_put_att(File,pio_global,'title',runid), &
+           subname//' ERROR: defining att title '//runid,file=__FILE__,line=__LINE__)
 #else
-        title  = 'sea ice model output for CICE'
-        call ice_pio_check(pio_put_att(File,pio_global,'title',trim(title)), &
-            subname//' ERROR: defining attribute "title" as '//trim(title))
+      title  = 'sea ice model output for CICE'
+      call ice_pio_check(pio_put_att(File,pio_global,'title',trim(title)), &
+           subname//' ERROR: defining att title '//trim(title),file=__FILE__,line=__LINE__)
 #endif
-        title = 'Diagnostic and Prognostic Variables'
-        call ice_pio_check(pio_put_att(File,pio_global,'contents',trim(title)), &
-            subname//' ERROR: defining attribute "contents" as '//trim(title))
+      title = 'Diagnostic and Prognostic Variables'
+      call ice_pio_check(pio_put_att(File,pio_global,'contents',trim(title)), &
+           subname//' ERROR: defining att contents '//trim(title),file=__FILE__,line=__LINE__)
 
-        write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
-        call ice_pio_check(pio_put_att(File,pio_global,'source',trim(title)), &
-            subname//' ERROR: defining attribute "source" as '//trim(title))
+      write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
+      call ice_pio_check(pio_put_att(File,pio_global,'source',trim(title)), &
+           subname//' ERROR: defining att source '//trim(title),file=__FILE__,line=__LINE__)
 
-        if (use_leap_years) then
-          write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
-        else
-          write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
-        endif
-        call ice_pio_check(pio_put_att(File,pio_global,'comment',trim(title)), &
-            subname//' ERROR: defining attribute "comment" as '//trim(title))
+      if (use_leap_years) then
+         write(title,'(a,i3,a)') 'This year has ',dayyr,' days'
+      else
+         write(title,'(a,i3,a)') 'All years have exactly ',dayyr,' days'
+      endif
+      call ice_pio_check(pio_put_att(File,pio_global,'comment',trim(title)), &
+           subname//' ERROR: defining att comment '//trim(title),file=__FILE__,line=__LINE__)
 
-        write(title,'(a,i8.8)') 'File written on model date ',idate
-        call ice_pio_check(pio_put_att(File,pio_global,'comment2',trim(title)), &
-            subname//' ERROR: defining attribute '//trim(title))
+      write(title,'(a,i8.8)') 'File written on model date ',idate
+      call ice_pio_check(pio_put_att(File,pio_global,'comment2',trim(title)), &
+           subname//' ERROR: defining att comment2 '//trim(title),file=__FILE__,line=__LINE__)
 
-        write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
-        call ice_pio_check(pio_put_att(File,pio_global,'comment3',trim(title)), &
-            subname//' ERROR: defining attribute '//trim(title))
+      write(title,'(a,i6)') 'seconds elapsed into model date: ',msec
+      call ice_pio_check(pio_put_att(File,pio_global,'comment3',trim(title)), &
+           subname//' ERROR: defining att comment3 '//trim(title),file=__FILE__,line=__LINE__)
 
-        select case (histfreq(ns))
+      select case (histfreq(ns))
          case ("y", "Y")
             write(time_period_freq,'(a,i0)') 'year_',histfreq_n(ns)
          case ("m", "M")
@@ -732,89 +717,88 @@
             write(time_period_freq,'(a,i0)') 'hour_',histfreq_n(ns)
          case ("1")
             write(time_period_freq,'(a,i0)') 'step_',histfreq_n(ns)
-        end select
+      end select
 
-        if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
-           call ice_pio_check(pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq)), &
-               subname//' ERROR: defining attribute "time_period_freq" as '//trim(time_period_freq))
-        endif
+      if (.not.write_ic .and. trim(time_period_freq) /= 'none') then
+         call ice_pio_check(pio_put_att(File,pio_global,'time_period_freq',trim(time_period_freq)), &
+              subname//' ERROR: defining att time_period_freq '//trim(time_period_freq),file=__FILE__,line=__LINE__)
+      endif
 
-        if (hist_avg(ns)) &
-           call ice_pio_check(pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis)), &
-               subname//' ERROR: defining attribute "time_axis_position" as '//trim(hist_time_axis))
+      if (hist_avg(ns)) &
+         call ice_pio_check(pio_put_att(File,pio_global,'time_axis_position',trim(hist_time_axis)), &
+              subname//' ERROR: defining att time_axis_position '//trim(hist_time_axis),file=__FILE__,line=__LINE__)
 
-        title = 'CF-1.0'
-        call ice_pio_check(pio_put_att(File,pio_global,'conventions',trim(title)), &
-               subname//' ERROR: defining attribute "conventions" as '//trim(title))
+      title = 'CF-1.0'
+      call ice_pio_check(pio_put_att(File,pio_global,'conventions',trim(title)), &
+           subname//' ERROR: defining att conventions '//trim(title),file=__FILE__,line=__LINE__)
 
-        call date_and_time(date=current_date, time=current_time)
-        write(start_time,1000) current_date(1:4), current_date(5:6), &
-                               current_date(7:8), current_time(1:2), &
-                               current_time(3:4)
-1000    format('This dataset was created on ', &
-                a,'-',a,'-',a,' at ',a,':',a)
-        call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
-               subname//' ERROR: defining attribute "history" as '//trim(start_time))
+      call date_and_time(date=current_date, time=current_time)
+      write(start_time,1000) current_date(1:4), current_date(5:6), &
+                             current_date(7:8), current_time(1:2), &
+                             current_time(3:4)
+1000  format('This dataset was created on ', &
+              a,'-',a,'-',a,' at ',a,':',a)
+      call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
+           subname//' ERROR: defining att history '//trim(start_time),file=__FILE__,line=__LINE__)
 
-        if (history_format == 'pio_pnetcdf') then
-           call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf'), &
-                  subname//' ERROR: defining attribute "io_flavor"' )
-        else
-           call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio netcdf'), &
-                  subname//' ERROR: defining attribute "io_flavor"' )
-        endif
+      if (history_format == 'pio_pnetcdf') then
+         call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf'), &
+              subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
+      else
+         call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio netcdf'), &
+              subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
+      endif
 
       !-----------------------------------------------------------------
       ! end define mode
       !-----------------------------------------------------------------
 
-        call ice_pio_check(pio_enddef(File), &
-            subname//' ERROR: ending pio definitions')
+      call ice_pio_check(pio_enddef(File), &
+           subname//' ERROR: ending pio definitions',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! write time variable
       !-----------------------------------------------------------------
 
-        ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+      ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-        ! Some coupled models require the time axis "stamp" to be in the middle
-        ! or even beginning of averaging interval.
-        if (hist_avg(ns)) then
-           if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
-           if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
-        endif
+      ! Some coupled models require the time axis "stamp" to be in the middle
+      ! or even beginning of averaging interval.
+      if (hist_avg(ns)) then
+         if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+         if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+      endif
 
-        call ice_pio_check(pio_inq_varid(File,'time',varid), &
-            subname//' ERROR: getting var "time"')
-        call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
-            subname//' ERROR: setting var "time"')
+      call ice_pio_check(pio_inq_varid(File,'time',varid), &
+           subname//' ERROR: getting var time',file=__FILE__,line=__LINE__)
+      call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
+           subname//' ERROR: setting var time',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! write time_bounds info
       !-----------------------------------------------------------------
 
-        if (hist_avg(ns) .and. .not. write_ic) then
-          call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
-               subname//' ERROR: getting "time_bounds"' )
-          time_bounds=(/time_beg(ns),time_end(ns)/)
-          bnd_start  = (/1,1/)
-          bnd_length = (/2,1/)
-          call ice_pio_check(pio_put_var(File,varid,ival=time_bounds, &
-                   start=bnd_start(:),count=bnd_length(:)), &
-                   subname//' ERROR: setting "time_bounds"' )
-        endif
+      if (hist_avg(ns) .and. .not. write_ic) then
+         call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
+              subname//' ERROR: getting time_bounds' ,file=__FILE__,line=__LINE__)
+         time_bounds=(/time_beg(ns),time_end(ns)/)
+         bnd_start  = (/1,1/)
+         bnd_length = (/2,1/)
+         call ice_pio_check(pio_put_var(File,varid,ival=time_bounds,start=bnd_start(:),count=bnd_length(:)), &
+              subname//' ERROR: setting time_bounds' ,file=__FILE__,line=__LINE__)
+      endif
 
       !-----------------------------------------------------------------
       ! write coordinate variables
       !-----------------------------------------------------------------
 
-        allocate(workd2(nx_block,ny_block,nblocks))
-        allocate(workr2(nx_block,ny_block,nblocks))
+      allocate(workd2(nx_block,ny_block,nblocks))
+      allocate(workr2(nx_block,ny_block,nblocks))
 
-        do i = 1,ncoord
-          call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
-               subname//' ERROR: getting '//var_coord(i)%short_name )
-          SELECT CASE (var_coord(i)%short_name)
+      do i = 1,ncoord
+         call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
+              subname//' ERROR: getting '//var_coord(i)%short_name ,file=__FILE__,line=__LINE__)
+         SELECT CASE (var_coord(i)%short_name)
             CASE ('TLON')
               ! Convert T grid longitude from -180 -> 180 to 0 to 360
                  workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
@@ -832,47 +816,47 @@
               workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
             CASE ('ELAT')
               workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
-          END SELECT
-          if (history_precision == 8) then
-             call pio_write_darray(File, varid, iodesc2d, &
-                  workd2, status, fillval=spval_dbl)
-          else
-             workr2 = workd2
-             call pio_write_darray(File, varid, iodesc2d, &
-                  workr2, status, fillval=spval)
-          endif
+         END SELECT
+         if (history_precision == 8) then
+            call pio_write_darray(File, varid, iodesc2d, &
+                 workd2, status, fillval=spval_dbl)
+         else
+            workr2 = workd2
+            call pio_write_darray(File, varid, iodesc2d, &
+                 workr2, status, fillval=spval)
+         endif
 
-          call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
-        enddo
+         call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+      enddo
 
-        ! Extra dimensions (NCAT, NFSD, VGRD*)
+      ! Extra dimensions (NCAT, NFSD, VGRD*)
 
-        do i = 1, nvar_grdz
-          if (igrdz(i)) then
+      do i = 1, nvar_grdz
+         if (igrdz(i)) then
             call ice_pio_check(pio_inq_varid(File, var_grdz(i)%short_name, varid), &
-               subname//' ERROR: getting '//var_grdz(i)%short_name )
+                 subname//' ERROR: getting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
             SELECT CASE (var_grdz(i)%short_name)
-              CASE ('NCAT')
-                call ice_pio_check(pio_put_var(File, varid, hin_max(1:ncat_hist)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-              CASE ('NFSD')
-                call ice_pio_check(pio_put_var(File, varid, floe_rad_c(1:nfsd_hist)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-              CASE ('VGRDi')
-                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzilyr)/)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-              CASE ('VGRDs')
-                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzslyr)/)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-              CASE ('VGRDb')
-                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzblyr)/)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-              CASE ('VGRDa')
-                call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzalyr)/)), &
-                  subname//' ERROR: setting '//var_grdz(i)%short_name )
-             END SELECT
-           endif
-        enddo
+               CASE ('NCAT')
+                  call ice_pio_check(pio_put_var(File, varid, hin_max(1:ncat_hist)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+               CASE ('NFSD')
+                  call ice_pio_check(pio_put_var(File, varid, floe_rad_c(1:nfsd_hist)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+               CASE ('VGRDi')
+                  call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzilyr)/)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+               CASE ('VGRDs')
+                  call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzslyr)/)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+               CASE ('VGRDb')
+                  call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzblyr)/)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+               CASE ('VGRDa')
+                  call ice_pio_check(pio_put_var(File, varid, (/(k, k=1,nzalyr)/)), &
+                       subname//' ERROR: setting '//var_grdz(i)%short_name,file=__FILE__,line=__LINE__)
+            END SELECT
+         endif
+      enddo
 
       !-----------------------------------------------------------------
       ! write grid masks, area and rotation angle
@@ -881,51 +865,51 @@
       do i = 1, nvar_grd
          if (igrd(i)) then
             SELECT CASE (var_grd(i)%req%short_name)
-            CASE ('tmask')
-               workd2 = hm(:,:,1:nblocks)
-            CASE ('umask')
-               workd2 = uvm(:,:,1:nblocks)
-            CASE ('nmask')
-               workd2 = npm(:,:,1:nblocks)
-            CASE ('emask')
-               workd2 = epm(:,:,1:nblocks)
-            CASE ('blkmask')
-               workd2 = bm(:,:,1:nblocks)
-            CASE ('tarea')
-               workd2 = tarea(:,:,1:nblocks)
-            CASE ('uarea')
-               workd2 = uarea(:,:,1:nblocks)
-            CASE ('narea')
-               workd2 = narea(:,:,1:nblocks)
-            CASE ('earea')
-               workd2 = earea(:,:,1:nblocks)
-            CASE ('dxt')
-               workd2 = dxT(:,:,1:nblocks)
-            CASE ('dyt')
-               workd2 = dyT(:,:,1:nblocks)
-            CASE ('dxu')
-               workd2 = dxU(:,:,1:nblocks)
-            CASE ('dyu')
-               workd2 = dyU(:,:,1:nblocks)
-            CASE ('dxn')
-               workd2 = dxN(:,:,1:nblocks)
-            CASE ('dyn')
-               workd2 = dyN(:,:,1:nblocks)
-            CASE ('dxe')
-               workd2 = dxE(:,:,1:nblocks)
-            CASE ('dye')
-               workd2 = dyE(:,:,1:nblocks)
-            CASE ('HTN')
-               workd2 = HTN(:,:,1:nblocks)
-            CASE ('HTE')
-               workd2 = HTE(:,:,1:nblocks)
-            CASE ('ANGLE')
-               workd2 = ANGLE(:,:,1:nblocks)
-            CASE ('ANGLET')
-               workd2 = ANGLET(:,:,1:nblocks)
+               CASE ('tmask')
+                  workd2 = hm(:,:,1:nblocks)
+               CASE ('umask')
+                  workd2 = uvm(:,:,1:nblocks)
+               CASE ('nmask')
+                  workd2 = npm(:,:,1:nblocks)
+               CASE ('emask')
+                  workd2 = epm(:,:,1:nblocks)
+               CASE ('blkmask')
+                  workd2 = bm(:,:,1:nblocks)
+               CASE ('tarea')
+                  workd2 = tarea(:,:,1:nblocks)
+               CASE ('uarea')
+                  workd2 = uarea(:,:,1:nblocks)
+               CASE ('narea')
+                  workd2 = narea(:,:,1:nblocks)
+               CASE ('earea')
+                  workd2 = earea(:,:,1:nblocks)
+               CASE ('dxt')
+                  workd2 = dxT(:,:,1:nblocks)
+               CASE ('dyt')
+                  workd2 = dyT(:,:,1:nblocks)
+               CASE ('dxu')
+                  workd2 = dxU(:,:,1:nblocks)
+               CASE ('dyu')
+                  workd2 = dyU(:,:,1:nblocks)
+               CASE ('dxn')
+                  workd2 = dxN(:,:,1:nblocks)
+               CASE ('dyn')
+                  workd2 = dyN(:,:,1:nblocks)
+               CASE ('dxe')
+                  workd2 = dxE(:,:,1:nblocks)
+               CASE ('dye')
+                  workd2 = dyE(:,:,1:nblocks)
+               CASE ('HTN')
+                  workd2 = HTN(:,:,1:nblocks)
+               CASE ('HTE')
+                  workd2 = HTE(:,:,1:nblocks)
+               CASE ('ANGLE')
+                  workd2 = ANGLE(:,:,1:nblocks)
+               CASE ('ANGLET')
+                  workd2 = ANGLET(:,:,1:nblocks)
             END SELECT
             call ice_pio_check(pio_inq_varid(File, var_grd(i)%req%short_name, varid), &
-               subname//' ERROR: getting '//var_grd(i)%req%short_name )
+                 subname//' ERROR: getting '//var_grd(i)%req%short_name,file=__FILE__,line=__LINE__)
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d, &
                     workd2, status, fillval=spval_dbl)
@@ -935,7 +919,7 @@
                     workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo
 
@@ -944,62 +928,61 @@
       !----------------------------------------------------------------
 
       if (f_bounds) then
-      allocate(workd3v(nverts,nx_block,ny_block,nblocks))
-      allocate(workr3v(nverts,nx_block,ny_block,nblocks))
-      workd3v (:,:,:,:) = c0
-      do i = 1, nvar_verts
-        SELECT CASE (var_nverts(i)%short_name)
-        CASE ('lont_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('latt_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('lonu_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('latu_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('lonn_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('latn_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('lone_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        CASE ('late_bounds')
-           do ivertex = 1, nverts
-              workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
-           enddo
-        END SELECT
+         allocate(workd3v(nverts,nx_block,ny_block,nblocks))
+         allocate(workr3v(nverts,nx_block,ny_block,nblocks))
+         workd3v (:,:,:,:) = c0
+         do i = 1, nvar_verts
+            SELECT CASE (var_nverts(i)%short_name)
+               CASE ('lont_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('latt_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('lonu_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('latu_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('lonn_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('latn_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('lone_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+               CASE ('late_bounds')
+                  do ivertex = 1, nverts
+                     workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
+                  enddo
+            END SELECT
 
-          call ice_pio_check(pio_inq_varid(File, var_nverts(i)%short_name, varid), &
-            subname//' ERROR: getting '//var_nverts(i)%short_name )
-          if (history_precision == 8) then
-             call pio_write_darray(File, varid, iodesc3dv, &
+            call ice_pio_check(pio_inq_varid(File, var_nverts(i)%short_name, varid), &
+                 subname//' ERROR: getting '//var_nverts(i)%short_name,file=__FILE__,line=__LINE__)
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc3dv, &
                                    workd3v, status, fillval=spval_dbl)
-          else
-             workr3v = workd3v
-             call pio_write_darray(File, varid, iodesc3dv, &
-                                   workr3v, status, fillval=spval)
-          endif
+            else
+               workr3v = workd3v
+               call pio_write_darray(File, varid, iodesc3dv, &
+                                     workr3v, status, fillval=spval)
+            endif
 
-          call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
-      enddo
-      deallocate(workd3v)
-      deallocate(workr3v)
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+         enddo
+         deallocate(workd3v)
+         deallocate(workr3v)
       endif  ! f_bounds
-
 
       !-----------------------------------------------------------------
       ! write variable data
@@ -1009,7 +992,7 @@
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             workd2(:,:,:) = a2D(:,:,n,1:nblocks)
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
@@ -1027,7 +1010,7 @@
                                      workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_2D
 
@@ -1041,7 +1024,7 @@
          nn = n - n2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, ncat_hist
                workd3(:,:,j,i) = a3Dc(:,:,i,nn,j)
@@ -1063,7 +1046,7 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Dc
       deallocate(workd3)
@@ -1076,7 +1059,7 @@
          nn = n - n3Dccum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, nzilyr
                workd3(:,:,j,i) = a3Dz(:,:,i,nn,j)
@@ -1098,7 +1081,7 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Dz
       deallocate(workd3)
@@ -1111,7 +1094,7 @@
          nn = n - n3Dzcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, nzblyr
                workd3(:,:,j,i) = a3Db(:,:,i,nn,j)
@@ -1133,7 +1116,7 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1146,7 +1129,7 @@
          nn = n - n3Dbcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, nzalyr
                workd3(:,:,j,i) = a3Da(:,:,i,nn,j)
@@ -1168,7 +1151,7 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1181,7 +1164,7 @@
          nn = n - n3Dacum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, nfsd_hist
                workd3(:,:,j,i) = a3Df(:,:,i,nn,j)
@@ -1203,7 +1186,7 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Df
       deallocate(workd3)
@@ -1216,7 +1199,7 @@
          nn = n - n3Dfcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzilyr
@@ -1239,7 +1222,7 @@
                call pio_write_darray(File, varid, iodesc4di,&
                                      workr4, status, fillval=spval)
             endif
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Di
       deallocate(workd4)
@@ -1252,7 +1235,7 @@
          nn = n - n4Dicum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nzslyr
@@ -1276,7 +1259,7 @@
                                      workr4, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname) ! maybe we don't actually want to abort here?
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Ds
       deallocate(workd4)
@@ -1289,7 +1272,7 @@
          nn = n - n4Dscum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-               'ERROR: getting varid for '//avail_hist_fields(n)%vname)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             do j = 1, nblocks
             do i = 1, ncat_hist
             do k = 1, nfsd_hist
@@ -1312,8 +1295,7 @@
                call pio_write_darray(File, varid, iodesc4df,&
                                      workr4, status, fillval=spval)
             endif
-            call ice_pio_check(status,subname//" ERROR writing "//avail_hist_fields(n)%vname)! maybe we don't actually want to abort here?
-         
+            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Df
       deallocate(workd4)
@@ -1321,7 +1303,7 @@
 
 !     similarly for num_avail_hist_fields_4Db (define workd4b, iodesc4db)
 
-      
+
       !-----------------------------------------------------------------
       ! clean-up PIO descriptors
       !-----------------------------------------------------------------
@@ -1372,20 +1354,20 @@
       character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
 
       call ice_pio_check(pio_put_att(File,varid,'units', trim(hfield%vunit)), &
-         'ERROR: defining "units" as '//trim(hfield%vunit))
+           subname//' ERROR: defining att units '//trim(hfield%vunit),file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_put_att(File,varid, 'long_name', trim(hfield%vdesc)), &
-         'ERROR: defining "long_name" as '//trim(hfield%vdesc))
+           subname//' ERROR: defining att long_name '//trim(hfield%vdesc),file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_put_att(File,varid,'coordinates', trim(hfield%vcoord)), &
-         'ERROR: defining "coordinates" as '//trim(hfield%vdesc))
+           subname//' ERROR: defining att coordinates '//trim(hfield%vdesc),file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_put_att(File,varid,'cell_measures',trim(hfield%vcellmeas)), &
-         'ERROR: defining "cell_measures" as '//trim(hfield%vcoord))
+           subname//' ERROR: defining att cell_measures '//trim(hfield%vcoord),file=__FILE__,line=__LINE__)
 
       if (hfield%vcomment /= "none") then
          call ice_pio_check(pio_put_att(File,varid,'comment', trim(hfield%vcomment)), &
-            'ERROR: defining "comment" as '//trim(hfield%vcomment))
+              subname//' ERROR: defining att comment '//trim(hfield%vcomment),file=__FILE__,line=__LINE__)
       endif
 
       call ice_write_hist_fill(File,varid,hfield%vname,history_precision)
@@ -1398,7 +1380,7 @@
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
             call ice_pio_check(pio_put_att(File,varid,'cell_methods','time: mean'), &
-               'ERROR: defining "cell_methods"')
+                 subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
          endif
       endif
 
@@ -1419,10 +1401,10 @@
           .or.TRIM(hfield%vname(1:6))=='hisnap' &
           .or.TRIM(hfield%vname(1:6))=='aisnap') then
          call ice_pio_check(pio_put_att(File,varid,'time_rep','instantaneous'), &
-            'ERROR: defining "time_rep"')
+              subname//' ERROR: defining att time_rep i',file=__FILE__,line=__LINE__)
       else
          call ice_pio_check(pio_put_att(File,varid,'time_rep','averaged'), &
-            'ERROR: defining "time_rep"')
+              subname//' ERROR: defining att time_rep a',file=__FILE__,line=__LINE__)
       endif
 
       end subroutine ice_write_hist_attrs
@@ -1437,8 +1419,8 @@
 
       type(file_desc_t)      , intent(inout) :: File
       type(var_desc_t)       , intent(in) :: varid
-      character(len=*),        intent(in) :: vname 
-      integer (kind=int_kind), intent(in) :: precision 
+      character(len=*),        intent(in) :: vname
+      integer (kind=int_kind), intent(in) :: precision
 
       ! local variables
 
@@ -1447,14 +1429,14 @@
 
       if (precision == 8) then
          call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval_dbl), &
-            'ERROR: defining "missing_value"')
+              subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
          call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval_dbl), &
-            'ERROR: defining "_FillValue"')
+              subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
       else
          call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval), &
-            'ERROR: defining "missing_value"')
+              subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
          call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval), &
-            'ERROR: defining "_FillValue"')
+              subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
       endif
 
       end subroutine ice_write_hist_fill

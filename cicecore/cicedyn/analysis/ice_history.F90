@@ -3,7 +3,7 @@
 !
 ! The following variables are currently hard-wired as snapshots
 !   (instantaneous rather than time-averages):
-!   divu, shear, vort, sig1, sig2, sigP, trsig, mlt_onset, 
+!   divu, shear, vort, sig1, sig2, sigP, trsig, mlt_onset,
 !   frz_onset, hisnap, aisnap
 !
 ! Options for histfreq: '1','h','d','m','y','x', where x means that
