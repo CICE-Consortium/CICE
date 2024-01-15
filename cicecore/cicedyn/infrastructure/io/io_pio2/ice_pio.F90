@@ -113,7 +113,7 @@
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
                  rearranger, ice_pio_subsystem, base=basetask)
 
-   call pio_seterrorhandling(ice_pio_subsystem, PIO_BCAST_ERROR)
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 
    !--- initialize rearranger options
    !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
@@ -185,16 +185,16 @@
          inquire(file=trim(filename),exist=exists)
          if (exists) then
             if (my_task == master_task) then
-               write(nu_diag,*) subname,' opening file for reading'
+               write(nu_diag,*) subname//' opening file for reading '//trim(filename)
             endif
             status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
             call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename), &
              file=__FILE__,line=__LINE__)
          else
             if(my_task==master_task) then
-               write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
+               write(nu_diag,*) subname//' ERROR: file not found '//trim(filename)
             end if
-            call abort_ice(subname//'ERROR: aborting with invalid file')
+            call abort_ice(subname//' ERROR: aborting with invalid file '//trim(filename))
          endif
       end if
 
@@ -499,11 +499,11 @@
          strerror_status = pio_strerror(status, err_msg)
 #endif
          if (present(file) .and. present(line)) then
-            call abort_ice(subname//trim(err_msg)//':'//trim(abort_msg), file=file, line=line)
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file, line=line)
          elseif (present(file)) then
-            call abort_ice(subname//trim(err_msg)//':'//trim(abort_msg), file=file)
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file)
          else
-            call abort_ice(subname//trim(err_msg)//':'//trim(abort_msg))
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg))
          endif
       endif
    end subroutine ice_pio_check

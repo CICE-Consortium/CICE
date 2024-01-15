@@ -116,7 +116,8 @@
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (my_task == master_task) then
-         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read at istep=',istep0,myear,'-',mmonth,'-',mday,'-',msec
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+            'Restart read at istep=',istep0,myear,'-',mmonth,'-',mday,'-',msec
       endif
 
       call broadcast_scalar(istep0,master_task)
@@ -230,22 +231,22 @@
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
       call ice_pio_check(pio_put_att(File,pio_global,'istep1',istep1), &
-           subname//' ERROR writing restart step',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart step',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'myear',myear), &
-           subname//' ERROR writing restart year',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart year',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'mmonth',mmonth), &
-           subname//' ERROR writing restart month',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart month',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'mday',mday), &
-           subname//' ERROR writing restart day',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart day',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'msec',msec), &
-           subname//' ERROR writing restart sec',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart sec',file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_def_dim(File,'ni',nx_global,dimid_ni), &
-           subname//' ERROR defining restart dim ni',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim ni',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_def_dim(File,'nj',ny_global,dimid_nj), &
-           subname//' ERROR defining restart dim nj',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim nj',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_def_dim(File,'ncat',ncat,dimid_ncat), &
-           subname//' ERROR defining restart dim ncat',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim ncat',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! 2D restart fields
@@ -662,7 +663,7 @@
       endif   !z_tracers
 
       deallocate(dims)
-      call ice_pio_check(pio_enddef(File), subname//' ERROR enddef',file=__FILE__,line=__LINE__)
+      call ice_pio_check(pio_enddef(File), subname//' ERROR: enddef',file=__FILE__,line=__LINE__)
 
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
@@ -730,10 +731,10 @@
       endif
 
       call ice_pio_check(pio_inq_varid(File,trim(vname),vardesc), &
-           subname// "ERROR: missing varid "//trim(vname),file=__FILE__,line=__LINE__)
+           subname// " ERROR: missing varid "//trim(vname),file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
-           subname// "ERROR missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
+           subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
 
       if (ndim3 == ncat .and. ndims == 3) then
          call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
@@ -760,7 +761,7 @@
       endif
 
       call ice_pio_check(status, &
-           subname//" ERROR reading var "//trim(vname),file=__FILE__,line=__LINE__)
+           subname//" ERROR: reading var "//trim(vname),file=__FILE__,line=__LINE__)
 
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
@@ -835,10 +836,10 @@
       endif
 
       call ice_pio_check(pio_inq_varid(File,trim(vname),vardesc), &
-           subname// "ERROR missing varid "//trim(vname),file=__FILE__,line=__LINE__)
+           subname// " ERROR: missing varid "//trim(vname),file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
-           subname// "ERROR missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
+           subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
 
       if (ndims==3) then
          call pio_write_darray(File, vardesc, iodesc3d_ncat,work(:,:,:,1:nblocks), &
@@ -851,7 +852,7 @@
       endif
 
       call ice_pio_check(status, &
-           subname//" ERROR writing "//trim(vname),file=__FILE__,line=__LINE__)
+           subname//" ERROR: writing "//trim(vname),file=__FILE__,line=__LINE__)
 
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
@@ -893,7 +894,8 @@
       call pio_closefile(File)
 
       if (my_task == master_task) then
-         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+            'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
       endif
 
       end subroutine final_restart
@@ -912,7 +914,7 @@
       character(len=*), parameter :: subname = '(define_rest_field)'
 
       call ice_pio_check(pio_def_var(File,trim(vname),pio_double,dims,vardesc), &
-           subname//' ERROR def_var '//trim(vname),file=__FILE__,line=__LINE__)
+           subname//' ERROR: def_var '//trim(vname),file=__FILE__,line=__LINE__)
 
       end subroutine define_rest_field
 

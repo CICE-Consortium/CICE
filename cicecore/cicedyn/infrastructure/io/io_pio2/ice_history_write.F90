@@ -826,7 +826,8 @@
                  workr2, status, fillval=spval)
          endif
 
-         call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+         call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                            file=__FILE__,line=__LINE__)
       enddo
 
       ! Extra dimensions (NCAT, NFSD, VGRD*)
@@ -919,7 +920,8 @@
                     workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo
 
@@ -978,7 +980,8 @@
                                      workr3v, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          enddo
          deallocate(workd3v)
          deallocate(workr3v)
@@ -992,7 +995,7 @@
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
-                 subname//' ERROR getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+                 subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
             workd2(:,:,:) = a2D(:,:,n,1:nblocks)
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
@@ -1010,7 +1013,8 @@
                                      workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_2D
 
@@ -1046,7 +1050,8 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Dc
       deallocate(workd3)
@@ -1081,7 +1086,8 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Dz
       deallocate(workd3)
@@ -1116,7 +1122,8 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1151,7 +1158,8 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Db
       deallocate(workd3)
@@ -1186,7 +1194,8 @@
                                      workr3, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_3Df
       deallocate(workd3)
@@ -1222,7 +1231,8 @@
                call pio_write_darray(File, varid, iodesc4di,&
                                      workr4, status, fillval=spval)
             endif
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Di
       deallocate(workd4)
@@ -1259,7 +1269,8 @@
                                      workr4, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Ds
       deallocate(workd4)
@@ -1295,7 +1306,8 @@
                call pio_write_darray(File, varid, iodesc4df,&
                                      workr4, status, fillval=spval)
             endif
-            call ice_pio_check(status,subname//' ERROR writing '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_4Df
       deallocate(workd4)

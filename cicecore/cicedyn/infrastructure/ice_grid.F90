@@ -224,7 +224,7 @@
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - all water point
          npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
@@ -245,7 +245,7 @@
          lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory1', file=__FILE__, line=__LINE__)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -259,7 +259,7 @@
                G_HTN(1,1), & ! never used in code
                stat=ierr)
          endif
-         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory3', file=__FILE__, line=__LINE__)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory3', file=__FILE__, line=__LINE__)
       endif
 
       end subroutine alloc_grid
@@ -277,7 +277,7 @@
 
       if (save_ghte_ghtn) then
          deallocate(G_HTE, G_HTN, stat=ierr)
-         if (ierr/=0) call abort_ice(subname//'ERROR: Dealloc error1', file=__FILE__, line=__LINE__)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error1', file=__FILE__, line=__LINE__)
       endif
 
       end subroutine dealloc_grid
@@ -324,12 +324,12 @@
 
       if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
           ns_boundary_type /= 'tripoleT') then
-         call abort_ice(subname//'ERROR: grid_type tripole needs tripole ns_boundary_type', &
+         call abort_ice(subname//' ERROR: grid_type tripole needs tripole ns_boundary_type', &
                         file=__FILE__, line=__LINE__)
       endif
 
       if (grid_type == 'tripole' .and. (mod(nx_global,2)/=0)) then
-         call abort_ice(subname//'ERROR: grid_type tripole requires even nx_global number', &
+         call abort_ice(subname//' ERROR: grid_type tripole requires even nx_global number', &
                         file=__FILE__, line=__LINE__)
       endif
 
@@ -676,7 +676,7 @@
       elseif (trim(bathymetry_format) == 'pop') then
          call get_bathymetry_popfile
       else
-         call abort_ice(subname//'ERROR: bathymetry_format value must be default or pop', &
+         call abort_ice(subname//' ERROR: bathymetry_format value must be default or pop', &
             file=__FILE__, line=__LINE__)
       endif
 
@@ -991,7 +991,7 @@
          call ice_close_nc(fid_kmt)
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -1090,7 +1090,7 @@
                write(nu_diag,*) 'Because you have selected the column model flag'
                write(nu_diag,*) 'Please set nx_global=ny_global=1 in file'
                write(nu_diag,*) 'ice_domain_size.F and recompile'
-               call abort_ice (subname//'ERROR: check nx_global, ny_global', file=__FILE__, line=__LINE__)
+               call abort_ice (subname//' ERROR: check nx_global, ny_global', file=__FILE__, line=__LINE__)
             endif
          end if
 
@@ -1162,7 +1162,8 @@
             if (nx_global /= ni .and. ny_global /= nj) then
               write(nu_diag,*) 'latlongrid: ni,nj = ',ni,nj
               write(nu_diag,*) 'latlongrid: nx_g,ny_g = ',nx_global, ny_global
-              call abort_ice (subname//'ERROR: ni,nj not equal to nx_global,ny_global', file=__FILE__, line=__LINE__)
+              call abort_ice (subname//' ERROR: ni,nj not equal to nx_global,ny_global', &
+                              file=__FILE__, line=__LINE__)
             end if
          end if
 
@@ -1271,7 +1272,7 @@
 
       call makemask
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -1454,7 +1455,7 @@
 
          else
 
-            call abort_ice(subname//'ERROR: unknown kmt_type '//trim(kmt_type), &
+            call abort_ice(subname//' ERROR: unknown kmt_type '//trim(kmt_type), &
                  file=__FILE__, line=__LINE__)
 
          endif ! kmt_type
@@ -1657,7 +1658,7 @@
       nyb = int(real(ny_global, dbl_kind) / c20, int_kind)
 
       if (nxb < 1 .or. nyb < 1) &
-         call abort_ice(subname//'ERROR: requires larger grid size', &
+         call abort_ice(subname//' ERROR: requires larger grid size', &
               file=__FILE__, line=__LINE__)
 
       ! initialize work area as all ocean (c1).
@@ -2723,7 +2724,7 @@
             call grid_average_X2Y_2('NE2TA',work1b,narea,npm,work1a,earea,epm,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_NEversion
@@ -2832,7 +2833,7 @@
             call grid_average_X2YA('SE',work1,narea,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_1
@@ -2944,7 +2945,7 @@
             call grid_average_X2YA('SE',work1,wght1,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_1f
@@ -3173,7 +3174,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YS
@@ -3401,7 +3402,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YA
@@ -3603,7 +3604,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YF
@@ -3748,7 +3749,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2Y_2

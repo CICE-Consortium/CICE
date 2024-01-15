@@ -1197,7 +1197,7 @@
             call ice_check_nc(status, subname//' ERROR: inquire dimension size 3 '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             if (lnrec > dimlen) then
-               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               write(nu_diag,*) subname,' ERROR: not enough records, ',trim(varname),lnrec,dimlen
                call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             endif
@@ -1398,7 +1398,7 @@
             call ice_check_nc(status, subname//' ERROR: inquire dimension size 4 '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             if (lnrec > dimlen) then
-               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               write(nu_diag,*) subname,' ERROR: not enough records, ',trim(varname),lnrec,dimlen
                call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             endif
@@ -1610,7 +1610,7 @@
             call ice_check_nc(status, subname//' ERROR: inquire dimension size 4 '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             if (lnrec > dimlen) then
-               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               write(nu_diag,*) subname,' ERROR: not enough records, ',trim(varname),lnrec,dimlen
                call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             endif
@@ -1777,7 +1777,7 @@
             call ice_check_nc(status, subname//' ERROR: inquire dimension size 1 '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             if (lnrec > dimlen) then
-               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               write(nu_diag,*) subname,' ERROR: not enough records, ',trim(varname),lnrec,dimlen
                call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             endif
@@ -1895,7 +1895,7 @@
          endif
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
                      file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
@@ -1981,7 +1981,7 @@
          endif
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
                      file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
@@ -2069,7 +2069,7 @@
          endif
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
                      file=__FILE__, line=__LINE__)
       work = c0 ! to satisfy intent(out) attribute
 #endif
@@ -2157,7 +2157,7 @@
             call ice_check_nc(status, subname//' ERROR: inquire dimension size 2 '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             if (lnrec > dimlen) then
-               write(nu_diag,*) subname,' ERROR not enough records, ',trim(varname),lnrec,dimlen
+               write(nu_diag,*) subname,' ERROR: not enough records, ',trim(varname),lnrec,dimlen
                call abort_ice(subname//' ERROR: not enough records '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             endif
@@ -2589,13 +2589,13 @@
 #ifdef USE_NETCDF
       if (status /= nf90_noerr) then
          if (present(file) .and. present(line)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//':'//trim(abort_msg), &
+            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file, line=line)
          elseif (present(file)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//':'//trim(abort_msg), &
+            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file)
          else
-            call abort_ice(subname//trim(nf90_strerror(status))//':'//trim(abort_msg))
+            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg))
          endif
       endif
 #else

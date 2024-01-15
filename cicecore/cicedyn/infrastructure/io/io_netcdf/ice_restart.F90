@@ -55,7 +55,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status, status1
+      integer (kind=int_kind) :: status
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -80,24 +80,31 @@
          call ice_check_nc(status, subname//' ERROR: open '//trim(filename), file=__FILE__, line=__LINE__)
 
          if (use_restart_time) then
-            status1 = nf90_noerr
+            ! for backwards compatibility, check nyr, month, and sec as well
             status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
-            if (status /= nf90_noerr) status1 = status
-!            status = nf90_get_att(ncid, nf90_global, 'time', time)
-!            status = nf90_get_att(ncid, nf90_global, 'time_forc', time_forc)
+            call ice_check_nc(status, subname//" ERROR: reading restart step ",file=__FILE__,line=__LINE__)
+
             status = nf90_get_att(ncid, nf90_global, 'myear', myear)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
-            if (status /= nf90_noerr) status1 = status
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
+               call ice_check_nc(status, subname//" ERROR: reading restart year ",file=__FILE__,line=__LINE__)
+            endif
+
             status = nf90_get_att(ncid, nf90_global, 'mmonth', mmonth)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
-            if (status /= nf90_noerr) status1 = status
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
+               call ice_check_nc(status, subname//" ERROR: reading restart month ",file=__FILE__,line=__LINE__)
+            endif
+
             status = nf90_get_att(ncid, nf90_global, 'mday', mday)
-            if (status /= nf90_noerr) status1 = status
+            call ice_check_nc(status, subname//" ERROR: reading restart day ",file=__FILE__,line=__LINE__)
+
             status = nf90_get_att(ncid, nf90_global, 'msec', msec)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'sec', msec)
-            if (status /= nf90_noerr) status1 = status
-            if (status1 /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: reading restart time '//trim(filename), file=__FILE__, line=__LINE__)
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'sec', msec)
+               call ice_check_nc(status, subname//" ERROR: reading restart sec ",file=__FILE__,line=__LINE__)
+            endif
+
          endif ! use namelist values if use_restart_time = F
 
       endif
@@ -115,7 +122,7 @@
          npt = npt - istep0
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -663,7 +670,7 @@
       endif ! master_task
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(filename_spec), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(filename_spec), &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -749,7 +756,7 @@
       endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -819,7 +826,7 @@
       endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -843,10 +850,11 @@
          ! ncid is only valid on master
          status = nf90_close(ncid)
          call ice_check_nc(status, subname//' ERROR: closing', file=__FILE__, line=__LINE__)
-         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') 'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+            'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -874,7 +882,7 @@
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
       call ice_check_nc(status, subname//' ERROR: def var '//trim(vname), file=__FILE__, line=__LINE__)
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -903,7 +911,7 @@
       endif
       call broadcast_scalar(query_field,master_task)
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)
 #endif
 

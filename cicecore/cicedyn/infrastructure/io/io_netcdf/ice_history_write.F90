@@ -177,19 +177,19 @@
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nkice',nzilyr,kmtidi)
-         call ice_check_nc(status, subname// ' ERROR: defining dim nki', &
+         call ice_check_nc(status, subname// ' ERROR: defining dim nkice', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nksnow',nzslyr,kmtids)
-         call ice_check_nc(status, subname// ' ERROR: defining dim nks', &
+         call ice_check_nc(status, subname// ' ERROR: defining dim nksnow', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nkbio',nzblyr,kmtidb)
-         call ice_check_nc(status, subname// ' ERROR: defining dim nkb', &
+         call ice_check_nc(status, subname// ' ERROR: defining dim nkbio', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nkaer',nzalyr,kmtida)
-         call ice_check_nc(status, subname// ' ERROR: defining dim nka', &
+         call ice_check_nc(status, subname// ' ERROR: defining dim nkaer', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
@@ -197,7 +197,7 @@
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nvertices',nverts,nvertexid)
-         call ice_check_nc(status, subname// ' ERROR: defining dim nverts', &
+         call ice_check_nc(status, subname// ' ERROR: defining dim nvertices', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'nf',nfsd_hist,fmtid)
@@ -723,8 +723,7 @@
          endif
 
          title = 'CF-1.0'
-         status =  &
-              nf90_put_att(ncid,nf90_global,'conventions',title)
+         status =  nf90_put_att(ncid,nf90_global,'conventions',title)
          call ice_check_nc(status, subname// ' ERROR: in global attribute conventions', &
                            file=__FILE__, line=__LINE__)
 
@@ -748,7 +747,7 @@
          !-----------------------------------------------------------------
 
          status = nf90_enddef(ncid)
-         call ice_check_nc(status, subname// ' ERROR in nf90_enddef', &
+         call ice_check_nc(status, subname// ' ERROR: in nf90_enddef', &
                            file=__FILE__, line=__LINE__)
 
          !-----------------------------------------------------------------
