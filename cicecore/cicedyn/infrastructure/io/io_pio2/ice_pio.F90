@@ -76,7 +76,7 @@
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
 
-   pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 #else
 
 #ifdef GPTL
