@@ -1071,13 +1071,13 @@
          call ice_open_nc(kmt_file, ncid)
 
          status = nf90_inq_dimid (ncid, 'ni', dimid)
-         call ice_check_nc(status, subname//' inq_dimid ni', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_dimid ni', file=__FILE__, line=__LINE__)
          status = nf90_inquire_dimension(ncid, dimid, len=ni)
-         call ice_check_nc(status, subname//' inq dim ni', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq dim ni', file=__FILE__, line=__LINE__)
          status = nf90_inq_dimid (ncid, 'nj', dimid)
-         call ice_check_nc(status, subname//' inq_dimid nj', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_dimid nj', file=__FILE__, line=__LINE__)
          status = nf90_inquire_dimension(ncid, dimid, len=nj)
-         call ice_check_nc(status, subname//' inq dim nj', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq dim nj', file=__FILE__, line=__LINE__)
       end if
 
       ! Determine start/count to read in for either single column or global lat-lon grid
@@ -1103,17 +1103,17 @@
          start3=(/1,1,1/)
          count3=(/ni,nj,1/)
          status = nf90_inq_varid(ncid, 'xc' , varid)
-         call ice_check_nc(status, subname//' inq_varid xc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid xc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, glob_grid, start3, count3)
-         call ice_check_nc(status, subname//' get_var xc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var xc', file=__FILE__, line=__LINE__)
          do i = 1,ni
             lons(i) = glob_grid(i,1)
          end do
 
          status = nf90_inq_varid(ncid, 'yc' , varid)
-         call ice_check_nc(status, subname//' inq_varid yc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid yc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, glob_grid, start3, count3)
-         call ice_check_nc(status, subname//' get_var yc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var yc', file=__FILE__, line=__LINE__)
          do j = 1,nj
             lats(j) = glob_grid(1,j)
          end do
@@ -1132,29 +1132,29 @@
          deallocate(glob_grid)
 
          status = nf90_inq_varid(ncid, 'xc' , varid)
-         call ice_check_nc(status, subname//' inq_varid xc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid xc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         call ice_check_nc(status, subname//' get_var xc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var xc', file=__FILE__, line=__LINE__)
          TLON = scamdata
          status = nf90_inq_varid(ncid, 'yc' , varid)
-         call ice_check_nc(status, subname//' inq_varid yc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid yc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         call ice_check_nc(status, subname//' get_var yc', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var yc', file=__FILE__, line=__LINE__)
          TLAT = scamdata
          status = nf90_inq_varid(ncid, 'area' , varid)
-         call ice_check_nc(status, subname//' inq_varid area', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid area', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         call ice_check_nc(status, subname//' get_var are', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var are', file=__FILE__, line=__LINE__)
          tarea = scamdata
          status = nf90_inq_varid(ncid, 'mask' , varid)
-         call ice_check_nc(status, subname//' inq_varid mask', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid mask', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         call ice_check_nc(status, subname//' get_var mask', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var mask', file=__FILE__, line=__LINE__)
          hm = scamdata
          status = nf90_inq_varid(ncid, 'frac' , varid)
-         call ice_check_nc(status, subname//' inq_varid frac', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: inq_varid frac', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         call ice_check_nc(status, subname//' get_var frac', file=__FILE__, line=__LINE__)
+         call ice_check_nc(status, subname//' ERROR: get_var frac', file=__FILE__, line=__LINE__)
          ocn_gridcell_frac = scamdata
       else
          ! Check for consistency
