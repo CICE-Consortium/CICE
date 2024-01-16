@@ -437,8 +437,9 @@ contains
 
     use ice_grid      , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
     use ice_grid      , only : uarea, uarear, tarear!, tinyarea
-    use ice_grid      , only : dxT, dyT, dxU, dyU, dyhx, dxhy, cyp, cxp, cym, cxm
+    use ice_grid      , only : dxT, dyT, dxU, dyU
     use ice_grid      , only : makemask
+    use ice_dyn_shared, only : dyhx, dxhy, cyp, cxp, cym, cxm
     use ice_boundary  , only : ice_HaloUpdate
     use ice_domain    , only : blocks_ice, nblocks, halo_info, distrb_info
     use ice_constants , only : c0, c1, p25

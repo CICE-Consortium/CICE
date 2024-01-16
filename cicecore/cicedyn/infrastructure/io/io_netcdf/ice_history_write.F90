@@ -226,15 +226,15 @@
 
          if (days_per_year == 360) then
             status = nf90_put_att(ncid,varid,'calendar','360_day')
-            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+            call ice_check_nc(status, subname// ' ERROR: time calendar 360', &
                               file=__FILE__, line=__LINE__)
          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
             status = nf90_put_att(ncid,varid,'calendar','noleap')
-            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+            call ice_check_nc(status, subname// ' ERROR: time calendar noleap', &
                               file=__FILE__, line=__LINE__)
          elseif (use_leap_years) then
             status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-            call ice_check_nc(status, subname// ' ERROR: time calendar', &
+            call ice_check_nc(status, subname// ' ERROR: time calendar Gregorian', &
                               file=__FILE__, line=__LINE__)
          else
             call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
@@ -268,15 +268,15 @@
                               file=__FILE__, line=__LINE__)
             if (days_per_year == 360) then
                status = nf90_put_att(ncid,varid,'calendar','360_day')
-               call ice_check_nc(status, subname// ' ERROR: time calendar1', &
+               call ice_check_nc(status, subname// ' ERROR: time calendar 360 time bounds', &
                                  file=__FILE__, line=__LINE__)
             elseif (days_per_year == 365 .and. .not.use_leap_years ) then
                status = nf90_put_att(ncid,varid,'calendar','noleap')
-               call ice_check_nc(status, subname// ' ERROR: time calendar2', &
+               call ice_check_nc(status, subname// ' ERROR: time calendar noleap time bounds', &
                                  file=__FILE__, line=__LINE__)
             elseif (use_leap_years) then
                status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-               call ice_check_nc(status, subname// ' ERROR: time calendar3', &
+               call ice_check_nc(status, subname// ' ERROR: time calendar Gregorian time bounds', &
                                  file=__FILE__, line=__LINE__)
             else
                call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)

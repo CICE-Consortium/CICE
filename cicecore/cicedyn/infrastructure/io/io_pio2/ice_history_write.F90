@@ -223,7 +223,7 @@
            subname//' ERROR: defining dim time',file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_def_dim(File,'nvertices',nverts,nvertexid), &
-           subname//' ERROR: defining dim nverticies',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining dim nvertices',file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_def_dim(File,'nf',nfsd_hist,fmtid), &
            subname//' ERROR: defining dim nf',file=__FILE__,line=__LINE__)
@@ -246,13 +246,13 @@
 
       if (days_per_year == 360) then
          call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
-              subname//' ERROR: defining att calendar1',file=__FILE__,line=__LINE__)
+              subname//' ERROR: defining att calendar 360',file=__FILE__,line=__LINE__)
       elseif (days_per_year == 365 .and. .not.use_leap_years ) then
          call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
-              subname//' ERROR: defining att calendar2',file=__FILE__,line=__LINE__)
+              subname//' ERROR: defining att calendar noleap',file=__FILE__,line=__LINE__)
       elseif (use_leap_years) then
          call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
-              subname//' ERROR: defining att calendar3',file=__FILE__,line=__LINE__)
+              subname//' ERROR: defining att calendar Gregorian',file=__FILE__,line=__LINE__)
       else
          call abort_ice(subname//' ERROR: invalid calendar settings')
       endif
@@ -273,13 +273,13 @@
 
          if (days_per_year == 360) then
             call ice_pio_check(pio_put_att(File,varid,'calendar','360_day'), &
-                 subname//' ERROR: defining att calendar1 tb',file=__FILE__,line=__LINE__)
+                 subname//' ERROR: defining att calendar 360 time bounds',file=__FILE__,line=__LINE__)
          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
             call ice_pio_check(pio_put_att(File,varid,'calendar','noleap'), &
-                 subname//' ERROR: defining att calendar2 tb',file=__FILE__,line=__LINE__)
+                 subname//' ERROR: defining att calendar noleap time bounds',file=__FILE__,line=__LINE__)
          elseif (use_leap_years) then
             call ice_pio_check(pio_put_att(File,varid,'calendar','Gregorian'), &
-                 subname//' ERROR: defining att calendar3 tb',file=__FILE__,line=__LINE__)
+                 subname//' ERROR: defining att calendar Gregorian time bounds',file=__FILE__,line=__LINE__)
          else
             call abort_ice(subname//' ERROR: invalid calendar settings')
          endif
