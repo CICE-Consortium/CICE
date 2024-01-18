@@ -224,7 +224,7 @@
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - all water point
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
