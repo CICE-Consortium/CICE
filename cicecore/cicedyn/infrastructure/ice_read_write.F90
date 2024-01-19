@@ -1237,7 +1237,7 @@
 !            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          ! optional
-         missingvalue = 1.234e30
+         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
@@ -1438,7 +1438,7 @@
 !            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          ! optional
-         missingvalue = 1.234e30
+         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
@@ -1650,7 +1650,7 @@
             write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
          enddo
          ! optional
-         missingvalue = 1.234e30
+         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)

@@ -1348,7 +1348,6 @@
 
       subroutine ice_write_hist_attrs(File, varid, hfield, ns)
 
-      use ice_kinds_mod
       use ice_calendar, only: histfreq, histfreq_n, write_ic
       use ice_history_shared, only: ice_hist_field, history_precision, &
           hist_avg
@@ -1425,7 +1424,6 @@
 
       subroutine ice_write_hist_fill(File,varid,vname,precision)
 
-      ! use ice_kinds_mod, only: int_kind
       use ice_pio, only: ice_pio_check
       use pio, only: pio_put_att, file_desc_t, var_desc_t
 

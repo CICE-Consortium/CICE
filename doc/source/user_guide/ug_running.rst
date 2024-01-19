@@ -17,7 +17,7 @@ To run stand-alone, CICE requires
 - bash and csh
 - gmake (GNU Make)
 - Fortran and C	compilers (Intel, PGI, GNU, Cray, NVHPC, AOCC, and NAG have been tested)
-- NetCDF (optional, but required to test standard configurations that have netcdf grid, input, and forcing files)
+- NetCDF (optional, but required to test standard configurations that have netCDF grid, input, and forcing files)
 - MPI (optional, but required for running on more than 1 processor)
 - PIO (optional, but required for running with PIO I/O interfaces)
 
@@ -25,7 +25,7 @@ Below are lists of software versions that the Consortium has tested at some poin
 guarantee that all compiler versions work with all CICE model versions.  At any given
 point, the Consortium is regularly testing on several different compilers, but not 
 necessarily on all possible versions or combinations.  CICE supports both PIO1 and PIO2.  To
-use PIO1, the cpp USE_PIO1 should also be set.  A CICE goal is to be relatively portable
+use PIO1, the ``USE_PIO1`` macro should also be set.  A CICE goal is to be relatively portable
 across different hardware, compilers, and other software.  As a result, the coding
 implementation tends to be on the conservative side at times.  If there are problems 
 porting to a particular system, please let the Consortium know.
@@ -72,7 +72,7 @@ The Consortium has tested the following compilers at some point,
 - NAG 6.2
 - NVC 23.5-0
 
-The Consortium has tested the following mpi versions,
+The Consortium has tested the following MPI implementations and versions,
 
 - MPICH 7.3.2
 - MPICH 7.5.3
