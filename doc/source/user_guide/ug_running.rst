@@ -132,9 +132,9 @@ CICE has been tested with
 - PIO 2.5.9
 - PIO 2.6.0
 - PIO 2.6.1
-- PnetCDF 2.6.2
 - PnetCDF 1.12.2
 - PnetCDF 1.12.3
+- PnetCDF 2.6.2
 
 Please email the Consortium if this list can be extended.
 
