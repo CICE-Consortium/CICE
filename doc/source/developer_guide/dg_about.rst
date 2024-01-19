@@ -53,13 +53,13 @@ Overall, CICE code should be implemented as follows,
 
     Any public module interfaces or data should be explicitly specified
 
-  * All subroutines and functions should define the subname character parameter statement to match the interface name like
+  * All subroutines and functions should define the ``subname`` character parameter statement to match the interface name like
 
     .. code-block:: fortran
 
        character(len=*),parameter :: subname='(advance_timestep)'
 
-  * Public Icepack interfaces should be accessed thru the icepack_intfc module like
+  * Public Icepack interfaces should be accessed thru the ``icepack_intfc`` module like
 
     .. code-block:: fortran
 
@@ -72,6 +72,12 @@ Overall, CICE code should be implemented as follows,
        call icepack_physics()
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+
+  * Use ``ice_check_nc`` or ``ice_pio_check`` after netcdf or pio calls to check for return errors.
+
+  * Use subroutine ``abort_ice`` to abort the model run. Do not use stop or MPI_ABORT.  Use optional arguments (file=__FILE__, line=__LINE__) in calls to ``abort_ice`` to improve debugging
+
+  * Write output to stdout from the master task only unless the output is associated with an abort call.  Write to unit ``nu_diag`` following the current standard.  Do not use units 5 or 6.  Do not use the print statement.
 
   * Use of new Fortran features or external libraries need to be balanced against usability and the desire to compile on as many machines and compilers as possible.  Developers are encouraged to contact the Consortium as early as possible to discuss requirements and implementation in this case.
 
