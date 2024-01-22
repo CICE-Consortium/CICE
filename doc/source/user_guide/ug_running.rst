@@ -16,59 +16,88 @@ To run stand-alone, CICE requires
 
 - bash and csh
 - gmake (GNU Make)
-- Fortran and C	compilers (Intel, PGI, GNU, Cray, and NAG have been tested)
-- NetCDF (this is actually optional but required to test out of the box configurations)
-- MPI (this is actually	optional but without it	you can	only run on 1 processor)
+- Fortran and C	compilers (Intel, PGI, GNU, Cray, NVHPC, AOCC, and NAG have been tested)
+- NetCDF (optional, but required to test standard configurations that have netCDF grid, input, and forcing files)
+- MPI (optional, but required for running on more than 1 processor)
+- PIO (optional, but required for running with PIO I/O interfaces)
 
 Below are lists of software versions that the Consortium has tested at some point.  There is no
 guarantee that all compiler versions work with all CICE model versions.  At any given
 point, the Consortium is regularly testing on several different compilers, but not 
-necessarily on all possible versions or combinations.  A CICE goal is to be relatively portable
+necessarily on all possible versions or combinations.  CICE supports both PIO1 and PIO2.  To
+use PIO1, the ``USE_PIO1`` macro should also be set.  A CICE goal is to be relatively portable
 across different hardware, compilers, and other software.  As a result, the coding
 implementation tends to be on the conservative side at times.  If there are problems 
 porting to a particular system, please let the Consortium know.
 
 The Consortium has tested the following compilers at some point,
 
-- Intel 15.0.3.187
-- Intel 16.0.1.150
-- Intel 17.0.1.132
-- Intel 17.0.2.174
-- Intel 17.0.5.239
-- Intel 18.0.1.163
-- Intel 18.0.5
-- Intel 19.0.2
-- Intel 19.0.3.199
-- Intel 19.1.0.166
-- Intel 19.1.1.217
+- AOCC 3.0.0
+- Intel ifort 15.0.3.187
+- Intel ifort 16.0.1.150
+- Intel ifort 17.0.1.132
+- Intel ifort 17.0.2.174
+- Intel ifort 17.0.5.239
+- Intel ifort 18.0.1.163
+- Intel ifort 18.0.5
+- Intel ifort 19.0.2
+- Intel ifort 19.0.3.199
+- Intel ifort 19.1.0.166
+- Intel ifort 19.1.1.217
+- Intel ifort 19.1.2.254
+- Intel ifort 2021.4.0
+- Intel ifort 2021.6.0
+- Intel ifort 2021.8.0
+- Intel ifort 2021.9.0
+- Intel ifort 2022.2.1
 - PGI 16.10.0
 - PGI 19.9-0
 - PGI 20.1-0
+- PGI 20.4-0
 - GNU 6.3.0
 - GNU 7.2.0
 - GNU 7.3.0
+- GNU 7.7.0
 - GNU 8.3.0
 - GNU 9.3.0
-- Cray 8.5.8
-- Cray 8.6.4
+- GNU 10.1.0
+- GNU 11.2.0
+- GNU 12.1.0
+- GNU 12.2.0
+- Cray CCE 8.5.8
+- Cray CCE 8.6.4
+- Cray CCE 13.0.2
+- Cray CCE 14.0.3
+- Cray CCE 15.0.1
 - NAG 6.2
+- NVC 23.5-0
 
-The Consortium has tested the following mpi versions,
+The Consortium has tested the following MPI implementations and versions,
 
 - MPICH 7.3.2
 - MPICH 7.5.3
 - MPICH 7.6.2
 - MPICH 7.6.3
+- MPICH 7.7.0
 - MPICH 7.7.6
+- MPICH 7.7.7
+- MPICH 7.7.19
+- MPICH 7.7.20
+- MPICH 8.1.14
+- MPICH 8.1.21
+- MPICH 8.1.25
 - Intel MPI 18.0.1
 - Intel MPI 18.0.4
 - Intel MPI 2019 Update 6
+- Intel MPI 2019 Update 8
 - MPT 2.14
 - MPT 2.17
 - MPT 2.18
 - MPT 2.19
 - MPT 2.20
 - MPT 2.21
+- MPT 2.22
+- MPT 2.25
 - mvapich2-2.3.3
 - OpenMPI 1.6.5
 - OpenMPI 4.0.2
@@ -79,6 +108,7 @@ The NetCDF implementation is relatively general and should work with any version
 - NetCDF 4.3.2
 - NetCDF 4.4.0
 - NetCDF 4.4.1.1.3
+- NetCDF 4.4.1.1.6
 - NetCDF 4.4.1.1
 - NetCDF 4.4.2
 - NetCDF 4.5.0
@@ -88,6 +118,23 @@ The NetCDF implementation is relatively general and should work with any version
 - NetCDF 4.6.3.2
 - NetCDF 4.7.2
 - NetCDF 4.7.4
+- NetCDF 4.8.1
+- NetCDF 4.8.1.1
+- NetCDF 4.8.1.3
+- NetCDF 4.9.0.1
+- NetCDF 4.9.0.3
+- NetCDF 4.9.2
+
+CICE has been tested with
+
+- PIO 1.10.1
+- PIO 2.5.4
+- PIO 2.5.9
+- PIO 2.6.0
+- PIO 2.6.1
+- PnetCDF 1.12.2
+- PnetCDF 1.12.3
+- PnetCDF 2.6.2
 
 Please email the Consortium if this list can be extended.
 

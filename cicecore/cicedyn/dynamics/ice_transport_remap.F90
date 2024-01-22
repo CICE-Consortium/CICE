@@ -1177,7 +1177,7 @@
 
             ! center of mass (mxav,myav) for each cell
 
-            mxav(i,j) = mx(i,j)*xxav / mm(i,j) 
+            mxav(i,j) = mx(i,j)*xxav / mm(i,j)
             myav(i,j) = my(i,j)*yyav / mm(i,j)
 
          enddo

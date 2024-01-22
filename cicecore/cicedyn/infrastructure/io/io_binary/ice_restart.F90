@@ -128,7 +128,7 @@
       if (kdyn == 2) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: eap restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: eap restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -148,7 +148,7 @@
       if (tr_fsd) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: fsd restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: fsd restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -168,7 +168,7 @@
       if (tr_iage) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: iage restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: iage restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -188,7 +188,7 @@
       if (tr_FY) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: FY restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: FY restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -208,7 +208,7 @@
       if (tr_lvl) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: lvl restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: lvl restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -228,7 +228,7 @@
       if (tr_pond_lvl) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR:pond_lvl restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR:pond_lvl restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -248,7 +248,7 @@
       if (tr_pond_topo) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: pond_topo restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: pond_topo restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -268,7 +268,7 @@
       if (tr_snow) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: snow restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: snow restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -288,7 +288,7 @@
       if (tr_brine) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: brine restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: brine restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -308,7 +308,7 @@
       if (nbtrcr > 0) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: bgc restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: bgc restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -328,7 +328,7 @@
       if (tr_iso) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: iso restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: iso restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &
@@ -348,7 +348,7 @@
       if (tr_aero) then
          if (my_task == master_task) then
             n = index(filename0,trim(restart_file))
-            if (n == 0) call abort_ice(subname//'ERROR: aero restart: filename discrepancy')
+            if (n == 0) call abort_ice(subname//' ERROR: aero restart: filename discrepancy')
             string1 = trim(filename0(1:n-1))
             string2 = trim(filename0(n+lenstr(restart_file):lenstr(filename0)))
             write(filename,'(a,a,a,a)') &

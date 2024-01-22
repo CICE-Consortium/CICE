@@ -1742,7 +1742,7 @@
          tarear       ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         vort     , & ! vorticity (1/s)   
+         vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          rdg_conv , & ! convergence term for ridging (1/s)

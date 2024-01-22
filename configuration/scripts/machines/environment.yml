@@ -6,6 +6,7 @@ dependencies:
 # Build dependencies
   - compilers
   - netcdf-fortran
+  - parallelio 
   - openmpi
   - make
   - liblapack

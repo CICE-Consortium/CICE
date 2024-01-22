@@ -173,7 +173,7 @@ contains
    do jblock=1,nblocks_y
       js = (jblock-1)*block_size_y + 1
       if (js > ny_global) call abort_ice(subname// &
-            'ERROR: Bad block decomp: ny_block too large?')
+            ' ERROR: Bad block decomp: ny_block too large?')
       je = js + block_size_y - 1
       if (je > ny_global) je = ny_global ! pad array
 
@@ -182,7 +182,7 @@ contains
 
          is = (iblock-1)*block_size_x + 1
          if (is > nx_global) call abort_ice(subname// &
-            'ERROR: Bad block decomp: nx_block too large?')
+            ' ERROR: Bad block decomp: nx_block too large?')
          ie = is + block_size_x - 1
          if (ie > nx_global) ie = nx_global
 
@@ -223,7 +223,7 @@ contains
                case ('tripoleT')
                   j_global(j,n) = -j_global(j,n) + 1 ! open
                case default
-                  call abort_ice(subname//'ERROR: unknown n-s bndy type')
+                  call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
             endif
 
@@ -247,7 +247,7 @@ contains
                case ('tripoleT')
                   j_global(j,n) = -j_global(j,n)
                case default
-                  call abort_ice(subname//'ERROR: unknown n-s bndy type')
+                  call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
 
             !*** set last physical point if padded domain
@@ -275,7 +275,7 @@ contains
                case ('closed')
                   i_global(i,n) = 0
                case default
-                  call abort_ice(subname//'ERROR: unknown e-w bndy type')
+                  call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select
             endif
 
@@ -295,7 +295,7 @@ contains
                case ('closed')
                   i_global(i,n) = 0
                case default
-                  call abort_ice(subname//'ERROR: unknown e-w bndy type')
+                  call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select
 
             !*** last physical point in padded domain
@@ -427,7 +427,7 @@ end subroutine create_blocks
             inbr =  nblocks_x - iBlock + 1
             jnbr = -jBlock
          case default
-            call abort_ice(subname//'ERROR: unknown north boundary')
+            call abort_ice(subname//' ERROR: unknown north boundary')
          end select
       endif
 
@@ -448,7 +448,7 @@ end subroutine create_blocks
          case ('tripoleT')
             jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//'ERROR: unknown south boundary')
+            call abort_ice(subname//' ERROR: unknown south boundary')
          end select
       endif
 
@@ -465,7 +465,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//'ERROR: unknown east boundary')
+            call abort_ice(subname//' ERROR: unknown east boundary')
          end select
       endif
 
@@ -482,7 +482,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//'ERROR: unknown west boundary')
+            call abort_ice(subname//' ERROR: unknown west boundary')
          end select
       endif
 
@@ -499,7 +499,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//'ERROR: unknown east boundary')
+            call abort_ice(subname//' ERROR: unknown east boundary')
          end select
       endif
       if (jnbr > nblocks_y) then
@@ -521,7 +521,7 @@ end subroutine create_blocks
             if (inbr == 0) inbr = nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//'ERROR: unknown north boundary')
+            call abort_ice(subname//' ERROR: unknown north boundary')
          end select
       endif
 
@@ -538,7 +538,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//'ERROR: unknown west boundary')
+            call abort_ice(subname//' ERROR: unknown west boundary')
          end select
       endif
       if (jnbr > nblocks_y) then
@@ -560,7 +560,7 @@ end subroutine create_blocks
             if (inbr > nblocks_x) inbr = 1
             jnbr = -jBlock
          case default
-            call abort_ice(subname//'ERROR: unknown north boundary')
+            call abort_ice(subname//' ERROR: unknown north boundary')
          end select
       endif
 
@@ -577,7 +577,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//'ERROR: unknown east boundary')
+            call abort_ice(subname//' ERROR: unknown east boundary')
          end select
       endif
       if (jnbr < 1) then
@@ -593,7 +593,7 @@ end subroutine create_blocks
          case ('tripoleT')
             jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//'ERROR: unknown south boundary')
+            call abort_ice(subname//' ERROR: unknown south boundary')
          end select
       endif
 
@@ -609,7 +609,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//'ERROR: unknown west boundary')
+            call abort_ice(subname//' ERROR: unknown west boundary')
          end select
       endif
       if (jnbr < 1) then
@@ -625,7 +625,7 @@ end subroutine create_blocks
          case ('tripoleT')
             jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//'ERROR: unknown south boundary')
+            call abort_ice(subname//' ERROR: unknown south boundary')
          end select
       endif
 
@@ -642,7 +642,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = inbr - nblocks_x
          case default
-            call abort_ice(subname//'ERROR: unknown east boundary')
+            call abort_ice(subname//' ERROR: unknown east boundary')
          end select
       endif
 
@@ -658,7 +658,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = nblocks_x + inbr
          case default
-            call abort_ice(subname//'ERROR: unknown west boundary')
+            call abort_ice(subname//' ERROR: unknown west boundary')
          end select
       endif
 
@@ -675,7 +675,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = inbr - nblocks_x
          case default
-            call abort_ice(subname//'ERROR: unknown east boundary')
+            call abort_ice(subname//' ERROR: unknown east boundary')
          end select
       endif
       if (jnbr > nblocks_y) then
@@ -697,7 +697,7 @@ end subroutine create_blocks
             if (inbr <= 0) inbr = inbr + nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//'ERROR: unknown north boundary')
+            call abort_ice(subname//' ERROR: unknown north boundary')
          end select
       endif
 
@@ -714,7 +714,7 @@ end subroutine create_blocks
          case ('cyclic')
             inbr = nblocks_x + inbr
          case default
-            call abort_ice(subname//'ERROR: unknown west boundary')
+            call abort_ice(subname//' ERROR: unknown west boundary')
          end select
       endif
       if (jnbr > nblocks_y) then
@@ -736,13 +736,13 @@ end subroutine create_blocks
             if (inbr > nblocks_x) inbr = inbr - nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//'ERROR: unknown north boundary')
+            call abort_ice(subname//' ERROR: unknown north boundary')
          end select
       endif
 
    case default
 
-      call abort_ice(subname//'ERROR: unknown direction')
+      call abort_ice(subname//' ERROR: unknown direction')
       return
 
    end select
@@ -789,7 +789,7 @@ end subroutine create_blocks
 !----------------------------------------------------------------------
 
    if (block_id < 1 .or. block_id > nblocks_tot) then
-      call abort_ice(subname//'ERROR: invalid block_id')
+      call abort_ice(subname//' ERROR: invalid block_id')
    endif
 
    get_block = all_blocks(block_id)
@@ -834,7 +834,7 @@ end subroutine create_blocks
 !----------------------------------------------------------------------
 
    if (block_id < 1 .or. block_id > nblocks_tot) then
-      call abort_ice(subname//'ERROR: invalid block_id')
+      call abort_ice(subname//' ERROR: invalid block_id')
    endif
 
    if (present(local_id)) local_id = all_blocks(block_id)%local_id

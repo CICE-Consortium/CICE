@@ -147,8 +147,11 @@ jobs:
         run: |
           cd $HOME/cice-dirs/input
           wget --progress=dot:giga https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz && tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
-          wget --progress=dot:giga https://zenodo.org/record/3728364/files/CICE_data_gx3_forcing_JRA55-20200320.tar.gz && tar xvfz CICE_data_gx3_forcing_JRA55-20200320.tar.gz
+          wget --progress=dot:giga https://zenodo.org/records/10419929/files/CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz && tar xvfz CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
           pwd
+          cd CICE_data/forcing/gx3/JRA55/8XDAILY
+          ln -s JRA55_gx3_03hr_forcing_200501.nc JRA55_gx3_03hr_forcing_2005.nc
+          cd $HOME/cice-dirs/input
           ls -alR
 #      - name: run case
 #        run: |

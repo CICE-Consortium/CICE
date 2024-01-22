@@ -27,6 +27,7 @@
 
   public ice_pio_init
   public ice_pio_initdecomp
+  public ice_pio_check
 
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem
@@ -66,23 +67,16 @@
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
-   integer :: nprocs
-   integer :: istride
-   integer :: basetask
-   integer :: numiotasks
-   integer :: rearranger
-   integer :: pio_iotype
-   logical :: exists
-   logical :: lclobber
-   logical :: lcdf64
-   integer :: status
-   integer :: nmode
-   character(len=*), parameter :: subname = '(ice_pio_init)'
+   integer :: nprocs , istride, basetask, numiotasks, rearranger, pio_iotype, status, nmode
+   logical :: lclobber, lcdf64, exists
    logical, save :: first_call = .true.
+   character(len=*), parameter :: subname = '(ice_pio_init)'
 
 #ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 #else
 
 #ifdef GPTL
@@ -118,6 +112,9 @@
 
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
                  rearranger, ice_pio_subsystem, base=basetask)
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
+
    !--- initialize rearranger options
    !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
    !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
@@ -156,12 +153,16 @@
                   nmode = pio_clobber
                   if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check(status, subname//' ERROR: Failed to create file '//trim(filename), &
+                       file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)
                   end if
                else
                   nmode = pio_write
                   status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check( status,  subname//' ERROR: Failed to open file '//trim(filename), &
+                       file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' open file ',trim(filename)
                   end if
@@ -170,28 +171,36 @@
                nmode = pio_noclobber
                if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+               call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename), &
+                    file=__FILE__,line=__LINE__)
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)
                end if
             endif
-         else
-            ! filename is already open, just return
+         ! else: filename is already open, just return
          endif
       end if
 
       if (trim(mode) == 'read') then
          inquire(file=trim(filename),exist=exists)
          if (exists) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' opening file for reading '//trim(filename)
+            endif
             status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
+            call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename), &
+             file=__FILE__,line=__LINE__)
          else
             if(my_task==master_task) then
-               write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
+               write(nu_diag,*) subname//' ERROR: file not found '//trim(filename)
             end if
-            call abort_ice(subname//'ERROR: aborting with invalid file')
+            call abort_ice(subname//' ERROR: aborting with invalid file '//trim(filename))
          endif
       end if
 
    end if
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_INTERNAL_ERROR)
 
    end subroutine ice_pio_init
 
@@ -464,6 +473,40 @@
       deallocate(dof4d)
 
    end subroutine ice_pio_initdecomp_4d
+
+
+!================================================================================
+
+   ! PIO Error handling
+   ! Author: Anton Steketee, ACCESS-NRI
+
+   subroutine ice_pio_check(status, abort_msg, file, line)
+      integer(kind=int_kind), intent (in) :: status
+      character (len=*)     , intent (in) :: abort_msg
+      character (len=*)     , intent (in), optional :: file
+      integer(kind=int_kind), intent (in), optional :: line
+
+      ! local variables
+
+      character(len=pio_max_name) :: err_msg
+      integer(kind=int_kind)      :: strerror_status
+      character(len=*), parameter :: subname = '(ice_pio_check)'
+
+      if (status /= PIO_NOERR) then
+#ifdef USE_PIO1
+         err_msg = ''
+#else
+         strerror_status = pio_strerror(status, err_msg)
+#endif
+         if (present(file) .and. present(line)) then
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file, line=line)
+         elseif (present(file)) then
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file)
+         else
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg))
+         endif
+      endif
+   end subroutine ice_pio_check
 
 !================================================================================
 

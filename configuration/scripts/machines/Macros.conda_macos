@@ -61,3 +61,7 @@ ifeq ($(ICE_THREADED), true)
    FFLAGS  += -fopenmp
 endif
 
+ifeq ($(ICE_IOTYPE), pio2)
+   SLIBS   := $(SLIBS) -lpiof -lpioc
+endif
+

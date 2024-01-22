@@ -39,7 +39,7 @@
           get_fileunit, release_fileunit, flush_fileunit
       use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
-          ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc
+          ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc, ice_check_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
       use ice_exit, only: abort_ice
       use ice_global_reductions, only: global_minval, global_maxval
@@ -224,7 +224,7 @@
          ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
          hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
          bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell) - water in case of all water point
+         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
          kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
@@ -245,7 +245,7 @@
          lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory1')
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -259,7 +259,7 @@
                G_HTN(1,1), & ! never used in code
                stat=ierr)
          endif
-         if (ierr/=0) call abort_ice(subname//'ERROR: Out of memory3')
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory3', file=__FILE__, line=__LINE__)
       endif
 
       end subroutine alloc_grid
@@ -277,7 +277,7 @@
 
       if (save_ghte_ghtn) then
          deallocate(G_HTE, G_HTN, stat=ierr)
-         if (ierr/=0) call abort_ice(subname//'ERROR: Dealloc error1')
+         if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error1', file=__FILE__, line=__LINE__)
       endif
 
       end subroutine dealloc_grid
@@ -324,12 +324,12 @@
 
       if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
           ns_boundary_type /= 'tripoleT') then
-         call abort_ice(subname//'ERROR: grid_type tripole needs tripole ns_boundary_type', &
+         call abort_ice(subname//' ERROR: grid_type tripole needs tripole ns_boundary_type', &
                         file=__FILE__, line=__LINE__)
       endif
 
       if (grid_type == 'tripole' .and. (mod(nx_global,2)/=0)) then
-         call abort_ice(subname//'ERROR: grid_type tripole requires even nx_global number', &
+         call abort_ice(subname//' ERROR: grid_type tripole requires even nx_global number', &
                         file=__FILE__, line=__LINE__)
       endif
 
@@ -676,7 +676,7 @@
       elseif (trim(bathymetry_format) == 'pop') then
          call get_bathymetry_popfile
       else
-         call abort_ice(subname//'ERROR: bathymetry_format value must be default or pop', &
+         call abort_ice(subname//' ERROR: bathymetry_format value must be default or pop', &
             file=__FILE__, line=__LINE__)
       endif
 
@@ -991,7 +991,7 @@
          call ice_close_nc(fid_kmt)
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -1071,9 +1071,13 @@
          call ice_open_nc(kmt_file, ncid)
 
          status = nf90_inq_dimid (ncid, 'ni', dimid)
+         call ice_check_nc(status, subname//' ERROR: inq_dimid ni', file=__FILE__, line=__LINE__)
          status = nf90_inquire_dimension(ncid, dimid, len=ni)
+         call ice_check_nc(status, subname//' ERROR: inq dim ni', file=__FILE__, line=__LINE__)
          status = nf90_inq_dimid (ncid, 'nj', dimid)
+         call ice_check_nc(status, subname//' ERROR: inq_dimid nj', file=__FILE__, line=__LINE__)
          status = nf90_inquire_dimension(ncid, dimid, len=nj)
+         call ice_check_nc(status, subname//' ERROR: inq dim nj', file=__FILE__, line=__LINE__)
       end if
 
       ! Determine start/count to read in for either single column or global lat-lon grid
@@ -1086,7 +1090,7 @@
                write(nu_diag,*) 'Because you have selected the column model flag'
                write(nu_diag,*) 'Please set nx_global=ny_global=1 in file'
                write(nu_diag,*) 'ice_domain_size.F and recompile'
-               call abort_ice (subname//'ERROR: check nx_global, ny_global')
+               call abort_ice (subname//' ERROR: check nx_global, ny_global', file=__FILE__, line=__LINE__)
             endif
          end if
 
@@ -1099,17 +1103,17 @@
          start3=(/1,1,1/)
          count3=(/ni,nj,1/)
          status = nf90_inq_varid(ncid, 'xc' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid xc')
+         call ice_check_nc(status, subname//' ERROR: inq_varid xc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, glob_grid, start3, count3)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var xc')
+         call ice_check_nc(status, subname//' ERROR: get_var xc', file=__FILE__, line=__LINE__)
          do i = 1,ni
             lons(i) = glob_grid(i,1)
          end do
 
          status = nf90_inq_varid(ncid, 'yc' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid yc')
+         call ice_check_nc(status, subname//' ERROR: inq_varid yc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, glob_grid, start3, count3)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var yc')
+         call ice_check_nc(status, subname//' ERROR: get_var yc', file=__FILE__, line=__LINE__)
          do j = 1,nj
             lats(j) = glob_grid(1,j)
          end do
@@ -1128,29 +1132,29 @@
          deallocate(glob_grid)
 
          status = nf90_inq_varid(ncid, 'xc' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid xc')
+         call ice_check_nc(status, subname//' ERROR: inq_varid xc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var xc')
+         call ice_check_nc(status, subname//' ERROR: get_var xc', file=__FILE__, line=__LINE__)
          TLON = scamdata
          status = nf90_inq_varid(ncid, 'yc' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid yc')
+         call ice_check_nc(status, subname//' ERROR: inq_varid yc', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var yc')
+         call ice_check_nc(status, subname//' ERROR: get_var yc', file=__FILE__, line=__LINE__)
          TLAT = scamdata
          status = nf90_inq_varid(ncid, 'area' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid area')
+         call ice_check_nc(status, subname//' ERROR: inq_varid area', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var are')
+         call ice_check_nc(status, subname//' ERROR: get_var are', file=__FILE__, line=__LINE__)
          tarea = scamdata
          status = nf90_inq_varid(ncid, 'mask' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid mask')
+         call ice_check_nc(status, subname//' ERROR: inq_varid mask', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var mask')
+         call ice_check_nc(status, subname//' ERROR: get_var mask', file=__FILE__, line=__LINE__)
          hm = scamdata
          status = nf90_inq_varid(ncid, 'frac' , varid)
-         if (status /= nf90_noerr) call abort_ice (subname//' inq_varid frac')
+         call ice_check_nc(status, subname//' ERROR: inq_varid frac', file=__FILE__, line=__LINE__)
          status = nf90_get_var(ncid, varid, scamdata, start)
-         if (status /= nf90_noerr) call abort_ice (subname//' get_var frac')
+         call ice_check_nc(status, subname//' ERROR: get_var frac', file=__FILE__, line=__LINE__)
          ocn_gridcell_frac = scamdata
       else
          ! Check for consistency
@@ -1158,7 +1162,8 @@
             if (nx_global /= ni .and. ny_global /= nj) then
               write(nu_diag,*) 'latlongrid: ni,nj = ',ni,nj
               write(nu_diag,*) 'latlongrid: nx_g,ny_g = ',nx_global, ny_global
-              call abort_ice (subname//'ERROR: ni,nj not equal to nx_global,ny_global')
+              call abort_ice (subname//' ERROR: ni,nj not equal to nx_global,ny_global', &
+                              file=__FILE__, line=__LINE__)
             end if
          end if
 
@@ -1267,7 +1272,7 @@
 
       call makemask
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -1450,7 +1455,8 @@
 
          else
 
-            call abort_ice(subname//'ERROR: unknown kmt_type '//trim(kmt_type))
+            call abort_ice(subname//' ERROR: unknown kmt_type '//trim(kmt_type), &
+                 file=__FILE__, line=__LINE__)
 
          endif ! kmt_type
 
@@ -1652,7 +1658,8 @@
       nyb = int(real(ny_global, dbl_kind) / c20, int_kind)
 
       if (nxb < 1 .or. nyb < 1) &
-         call abort_ice(subname//'ERROR: requires larger grid size')
+         call abort_ice(subname//' ERROR: requires larger grid size', &
+              file=__FILE__, line=__LINE__)
 
       ! initialize work area as all ocean (c1).
       work(:,:) = c1
@@ -2717,7 +2724,7 @@
             call grid_average_X2Y_2('NE2TA',work1b,narea,npm,work1a,earea,epm,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_NEversion
@@ -2826,7 +2833,7 @@
             call grid_average_X2YA('SE',work1,narea,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_1
@@ -2938,7 +2945,7 @@
             call grid_average_X2YA('SE',work1,wght1,work2)
 
          case default
-            call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
+            call abort_ice(subname//' ERROR: unknown X2Y '//trim(X2Y), file=__FILE__, line=__LINE__)
       end select
 
       end subroutine grid_average_X2Y_1f
@@ -3167,7 +3174,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YS
@@ -3395,7 +3402,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YA
@@ -3597,7 +3604,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2YF
@@ -3742,7 +3749,7 @@
             !$OMP END PARALLEL DO
 
          case default
-            call abort_ice(subname//'ERROR: unknown option '//trim(dir))
+            call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
          end select
 
       end subroutine grid_average_X2Y_2
@@ -3772,7 +3779,7 @@
          case('N')
             mini = min(field(i,j), field(i,j+1))
          case default
-            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location, file=__FILE__, line=__LINE__)
       end select
 
       end function grid_neighbor_min
@@ -3803,7 +3810,7 @@
          case('N')
             maxi = max(field(i,j), field(i,j+1))
          case default
-            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location, file=__FILE__, line=__LINE__)
       end select
 
       end function grid_neighbor_max
@@ -4478,7 +4485,8 @@
             do j = 1, ny_block
             do i = 1, nx_block
                k = min(nint(kmt(i,j,iblk)),nlevel)
-               if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
+               if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error', &
+                                    file=__FILE__, line=__LINE__)
                if (k > 0) bathymetry(i,j,iblk) = depth(k)
             enddo
             enddo
@@ -4537,10 +4545,10 @@
          if (my_task == master_task) then
             call get_fileunit(fid)
             open(fid,file=bathymetry_file,form='formatted',iostat=ierr)
-            if (ierr/=0) call abort_ice(subname//' open error')
+            if (ierr/=0) call abort_ice(subname//' open error', file=__FILE__, line=__LINE__)
             do k = 1,nlevel
                read(fid,*,iostat=ierr) thick(k)
-               if (ierr/=0) call abort_ice(subname//' read error')
+               if (ierr/=0) call abort_ice(subname//' read error', file=__FILE__, line=__LINE__)
             enddo
             call release_fileunit(fid)
          endif
@@ -4567,7 +4575,7 @@
       depth(1) = thick(1)
       do k = 2, nlevel
          depth(k) = depth(k-1) + thick(k)
-         if (depth(k) < 0.) call abort_ice(subname//' negative depth error')
+         if (depth(k) < 0.) call abort_ice(subname//' negative depth error', file=__FILE__, line=__LINE__)
       enddo
 
       if (my_task==master_task) then
@@ -4581,7 +4589,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             k = nint(kmt(i,j,iblk))
-            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error')
+            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error', file=__FILE__, line=__LINE__)
             if (k > 0) bathymetry(i,j,iblk) = depth(k)
          enddo
          enddo

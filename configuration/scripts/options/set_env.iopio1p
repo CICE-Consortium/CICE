@@ -1,1 +1,2 @@
 setenv ICE_IOTYPE  pio1
+setenv ICE_CPPDEFS -DUSE_PIO1
