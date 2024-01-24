@@ -57,7 +57,7 @@
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
       use ice_arrays_column, only: hin_max, floe_rad_c
-      use ice_restart_shared, only: runid, lcdf64
+      use ice_restart_shared, only: runid
       use ice_pio
       use pio
 
@@ -78,7 +78,6 @@
       character (char_len) :: title
       character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
-      integer (kind=int_kind) :: iotype
 
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid
 
@@ -167,11 +166,9 @@
       call broadcast_scalar(filename, master_task)
 
       ! create file
-      iotype = PIO_IOTYPE_NETCDF
-      if (history_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
-        clobber=.true., cdf64=lcdf64, iotype=iotype)
+        clobber=.true., fformat=trim(history_format))
 
       call ice_pio_initdecomp(iodesc=iodesc2d, precision=history_precision)
       call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc, precision=history_precision)
@@ -741,13 +738,8 @@
       call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
            subname//' ERROR: defining att history '//trim(start_time),file=__FILE__,line=__LINE__)
 
-      if (history_format == 'pio_pnetcdf') then
-         call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio pnetcdf'), &
-              subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
-      else
-         call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio netcdf'), &
-              subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
-      endif
+      call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio '//trim(history_format)), &
+           subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! end define mode

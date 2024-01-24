@@ -12,7 +12,7 @@
       use ice_kinds_mod
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr, &
+          runid, runtype, use_restart_time, restart_format, lenstr, &
           restart_coszen
       use ice_pio
       use pio
@@ -76,10 +76,8 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-      iotype = PIO_IOTYPE_NETCDF
-      if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
-      call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
+      call ice_pio_init(mode='read', filename=trim(filename), File=File, fformat=trim(restart_format))
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
@@ -222,11 +220,9 @@
          close(nu_rst_pointer)
       endif
 
-      iotype = PIO_IOTYPE_NETCDF
-      if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
-           clobber=.true., cdf64=lcdf64, iotype=iotype)
+           clobber=.true., fformat=trim(restart_format))
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 

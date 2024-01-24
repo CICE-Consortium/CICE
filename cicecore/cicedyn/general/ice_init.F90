@@ -78,7 +78,7 @@
           restart_fsd, restart_iso, restart_snow
       use ice_restart_shared, only: &
           restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64
+          runid, runtype, use_restart_time, restart_format
       use ice_history_shared, only: hist_avg, history_dir, history_file, hist_suffix, &
                              incond_dir, incond_file, version_name, &
                              history_precision, history_format, hist_time_axis
@@ -163,6 +163,7 @@
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
       logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
+      logical (kind=log_kind) :: lcdf64  ! deprecated, backwards compatibility
 
       integer (kind=int_kind) :: rplvl, rptopo
       real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity, Tocnfrz
@@ -326,7 +327,7 @@
       histfreq_base(:) = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       hist_suffix(:) = 'x'   ! appended to 'history_file' in filename when not 'x'
-      history_format = 'default' ! history file format
+      history_format = 'cdf2'! history file format
       hist_time_axis = 'end' ! History file time axis averaging interval position
 
       history_dir  = './'    ! write to executable dir for default
@@ -347,7 +348,7 @@
       restart_ext  = .false. ! if true, read/write ghost cells
       restart_coszen  = .false.   ! if true, read/write coszen
       pointer_file = 'ice.restart_file'
-      restart_format = 'default'  ! restart file format
+      restart_format = 'cdf2'     ! restart file format
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
       grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
@@ -1232,6 +1233,111 @@
          abort_list = trim(abort_list)//":1"
       endif
 
+      if (history_format /= 'cdf1'        .and. &
+          history_format /= 'cdf2'        .and. &
+          history_format /= 'cdf5'        .and. &
+          history_format /= 'hdf5'        .and. &
+          history_format /= 'pnetcdf1'    .and. &
+          history_format /= 'pnetcdf2'    .and. &
+          history_format /= 'pnetcdf5'    .and. &
+          history_format /= 'pio_netcdf'  .and. &  ! backwards compatibility
+          history_format /= 'pio_pnetcdf' .and. &  ! backwards compatibility
+          history_format /= 'default')     then    ! backwards compatibility
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: history_format unknown = ',trim(history_format)
+         endif
+         abort_list = trim(abort_list)//":50"
+      endif
+
+      if (restart_format /= 'cdf1'        .and. &
+          restart_format /= 'cdf2'        .and. &
+          restart_format /= 'cdf5'        .and. &
+          restart_format /= 'hdf5'        .and. &
+          restart_format /= 'pnetcdf1'    .and. &
+          restart_format /= 'pnetcdf2'    .and. &
+          restart_format /= 'pnetcdf5'    .and. &
+          restart_format /= 'pio_netcdf'  .and. &  ! backwards compatibility
+          restart_format /= 'pio_pnetcdf' .and. &  ! backwards compatibility
+          restart_format /= 'default')     then    ! backwards compatibility
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: restart_format unknown = ',trim(restart_format)
+         endif
+         abort_list = trim(abort_list)//":51"
+      endif
+
+      ! backwards compatibility
+      if (lcdf64) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: lcdf64 is deprecated, please update namelist settings'
+         endif
+
+         if (history_format == 'default' .or. history_format == 'pio_netcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            history_format = 'cdf2'
+         elseif (history_format == 'pio_pnetcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            history_format = 'pnetcdf2'
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: lcdf64 is T and history_format not supported for '//trim(history_format)
+            endif
+            abort_list = trim(abort_list)//":52"
+         endif
+
+         if (restart_format == 'default' .or. restart_format == 'pio_netcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            restart_format = 'cdf2'
+         elseif (restart_format == 'pio_pnetcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            restart_format = 'pnetcdf2'
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: lcdf64 is T and restart_format not supported for '//trim(restart_format)
+            endif
+            abort_list = trim(abort_list)//":53"
+         endif
+      else
+         if (history_format == 'default' .or. history_format == 'pio_netcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            history_format = 'cdf1'
+         elseif (history_format == 'pio_pnetcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            history_format = 'pnetcdf1'
+         endif
+
+         if (restart_format == 'default' .or. restart_format == 'pio_netcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            restart_format = 'cdf1'
+         elseif (restart_format == 'pio_pnetcdf') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
+                                ' is deprecated, please update namelist settings'
+            endif
+            restart_format = 'pnetcdf1'
+         endif
+      endif
+
       if (ktransport <= 0) then
          advection = 'none'
       endif
@@ -1504,7 +1610,7 @@
             write (nu_diag,*) subname//' ERROR: snow grain radius is activated'
             write (nu_diag,*) subname//' ERROR:   Must use shortwave=dEdd or dEdd_snicar_ad'
          endif
-         abort_list = trim(abort_list)//":29"
+         abort_list = trim(abort_list)//":17"
       endif
 
       if ((rfracmin < -puny .or. rfracmin > c1+puny) .or. &
@@ -2377,7 +2483,7 @@
          write(nu_diag,1011) ' restart_ext      = ', restart_ext
          write(nu_diag,1011) ' restart_coszen   = ', restart_coszen
          write(nu_diag,1031) ' restart_format   = ', trim(restart_format)
-         write(nu_diag,1011) ' lcdf64           = ', lcdf64
+!         write(nu_diag,1011) ' lcdf64           = ', lcdf64   ! deprecated
          write(nu_diag,1031) ' restart_file     = ', trim(restart_file)
          write(nu_diag,1031) ' pointer_file     = ', trim(pointer_file)
          write(nu_diag,1011) ' use_restart_time = ', use_restart_time

@@ -18,7 +18,7 @@
       use ice_read_write, only: ice_check_nc
       use ice_restart_shared, only: &
           restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lcdf64, lenstr, restart_coszen
+          runid, use_restart_time, lenstr, restart_coszen, restart_format
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -216,8 +216,18 @@
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
 
-         iflag = 0
-         if (lcdf64) iflag = nf90_64bit_offset
+         if (restart_format == 'cdf1') then
+           iflag = nf90_clobber
+         elseif (restart_format == 'cdf2') then
+           iflag = ior(nf90_clobber,nf90_64bit_offset)
+         elseif (restart_format == 'cdf5') then
+           iflag = ior(nf90_clobber,nf90_64bit_data)
+         elseif (restart_format == 'hdf5') then
+           iflag = ior(nf90_clobber,nf90_netcdf4)
+         else
+           call abort_ice(subname//' ERROR: restart_format not allowed for '//trim(restart_format), &
+              file=__FILE__, line=__LINE__)
+         endif
          status = nf90_create(trim(filename), iflag, ncid)
          call ice_check_nc(status, subname//' ERROR: creating '//trim(filename), file=__FILE__, line=__LINE__)
 

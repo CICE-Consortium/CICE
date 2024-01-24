@@ -44,7 +44,7 @@
 !    Initialize the io subsystem
 !    2009-Feb-17 - J. Edwards - initial version
 
-   subroutine ice_pio_init(mode, filename, File, clobber, cdf64, iotype)
+   subroutine ice_pio_init(mode, filename, File, clobber, fformat)
 
 #ifdef CESMCOUPLED
    use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
@@ -59,16 +59,16 @@
    character(len=*)     , intent(in),    optional :: filename
    type(file_desc_t)    , intent(inout), optional :: File
    logical              , intent(in),    optional :: clobber
-   logical              , intent(in),    optional :: cdf64
-   integer              , intent(in),    optional :: iotype
+   character(len=*)     , intent(in),    optional :: fformat
 
    ! local variables
 
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
-   integer :: nprocs , istride, basetask, numiotasks, rearranger, pio_iotype, status, nmode
-   logical :: lclobber, lcdf64, exists
+   integer :: nprocs , istride, basetask, numiotasks, rearranger
+   integer ::pio_iotype, status, nmode0, nmode
+   logical :: lclobber, exists
    logical, save :: first_call = .true.
    character(len=*), parameter :: subname = '(ice_pio_init)'
 
@@ -86,12 +86,26 @@
 #endif
 
    !--- initialize type of io
-   !pio_iotype = PIO_IOTYPE_PNETCDF
-   !pio_iotype = PIO_IOTYPE_NETCDF4C
-   !pio_iotype = PIO_IOTYPE_NETCDF4P
-   pio_iotype = PIO_IOTYPE_NETCDF
-   if (present(iotype)) then
-      pio_iotype = iotype
+
+   lclobber = .false.
+   if (present(clobber)) lclobber=clobber
+
+   if (fformat(1:3) == 'cdf') then
+     pio_iotype = PIO_IOTYPE_NETCDF
+   elseif (fformat(1:3) == 'hdf') then
+     pio_iotype = PIO_IOTYPE_NETCDF4P 
+   elseif (fformat(1:7) == 'pnetcdf') then
+     pio_iotype = PIO_IOTYPE_PNETCDF
+   else
+     call abort_ice(subname//' ERROR: format not allowed for '//trim(fformat), &
+        file=__FILE__, line=__LINE__)
+   endif
+
+   nmode0 = 0
+   if (fformat == 'cdf2' .or. fformat == 'pnetcdf2') then
+      nmode0 = PIO_64BIT_OFFSET
+   elseif (fformat == 'cdf5' .or. fformat == 'pnetcdf5') then
+      nmode0 = PIO_64BIT_DATA
    endif
 
    !--- initialize ice_pio_subsystem
@@ -102,12 +116,14 @@
 !--tcraig this should work better but it causes pio2.4.4 to fail for reasons unknown
 !   numiotasks = 1 + (nprocs-basetask-1)/istride
    rearranger = PIO_REARR_BOX
+
    if (my_task == master_task) then
       write(nu_diag,*) subname,' nprocs     = ',nprocs
       write(nu_diag,*) subname,' istride    = ',istride
       write(nu_diag,*) subname,' basetask   = ',basetask
       write(nu_diag,*) subname,' numiotasks = ',numiotasks
       write(nu_diag,*) subname,' pio_iotype = ',pio_iotype
+      write(nu_diag,*) subname,' nmode      = ',nmode0
    end if
 
    call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
@@ -139,19 +155,13 @@
    if (present(mode) .and. present(filename) .and. present(File)) then
 
       if (trim(mode) == 'write') then
-         lclobber = .false.
-         if (present(clobber)) lclobber=clobber
-
-         lcdf64 = .false.
-         if (present(cdf64)) lcdf64=cdf64
 
          if (File%fh<0) then
             ! filename not open
             inquire(file=trim(filename),exist=exists)
             if (exists) then
                if (lclobber) then
-                  nmode = pio_clobber
-                  if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+                  nmode = ior(PIO_CLOBBER,nmode0)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                   call ice_pio_check(status, subname//' ERROR: Failed to create file '//trim(filename), &
                        file=__FILE__,line=__LINE__)
@@ -168,8 +178,7 @@
                   end if
                endif
             else
-               nmode = pio_noclobber
-               if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+               nmode = ior(PIO_NOCLOBBER,nmode0)
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
                call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename), &
                     file=__FILE__,line=__LINE__)

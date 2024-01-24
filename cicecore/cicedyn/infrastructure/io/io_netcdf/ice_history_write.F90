@@ -61,7 +61,6 @@
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
-      use ice_restart_shared, only: lcdf64
 #ifdef CESMCOUPLED
       use ice_restart_shared, only: runid
 #endif
@@ -148,8 +147,18 @@
          endif
 
          ! create file
-         iflag = nf90_clobber
-         if (lcdf64) iflag = ior(iflag,nf90_64bit_offset)
+         if (history_format == 'cdf1') then
+           iflag = nf90_clobber
+         elseif (history_format == 'cdf2') then
+           iflag = ior(nf90_clobber,nf90_64bit_offset)
+         elseif (history_format == 'cdf5') then
+           iflag = ior(nf90_clobber,nf90_64bit_data)
+         elseif (history_format == 'hdf5') then
+           iflag = ior(nf90_clobber,nf90_netcdf4)
+         else
+           call abort_ice(subname//' ERROR: history_format not allowed for '//trim(history_format), &
+              file=__FILE__, line=__LINE__)
+         endif
          status = nf90_create(ncfile(ns), iflag, ncid)
          call ice_check_nc(status, subname// ' ERROR: creating history ncfile '//ncfile(ns), &
                            file=__FILE__, line=__LINE__)
