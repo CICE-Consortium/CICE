@@ -144,6 +144,8 @@
 
       integer (kind=int_kind) :: lprecision
 
+      logical (kind=log_kind), save :: first_call = .true.
+
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -168,7 +170,8 @@
       ! create file
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
-        clobber=.true., fformat=trim(history_format))
+           clobber=.true., fformat=trim(history_format), rearr=trim(history_rearranger), &
+           iotasks=history_iotasks, root=history_root, stride=history_stride, debug=first_call)
 
       call ice_pio_initdecomp(iodesc=iodesc2d, precision=history_precision)
       call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc, precision=history_precision)
@@ -1333,6 +1336,8 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
       endif
+
+      first_call = .false.
 
       end subroutine ice_write_hist
 

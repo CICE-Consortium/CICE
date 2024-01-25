@@ -26,7 +26,13 @@
          pointer_file      ! input pointer file for restarts
 
       character (len=char_len), public :: &
-         restart_format    ! format of restart files 'nc'
+         restart_format      , & ! format of restart files 'nc'
+         restart_rearranger      ! restart file rearranger, box or subset for pio
+
+      integer (kind=int_kind), public :: &
+         restart_iotasks     , & ! iotasks, root, stride defines io pes for pio
+         restart_root        , & ! iotasks, root, stride defines io pes for pio
+         restart_stride          ! iotasks, root, stride defines io pes for pio
 
 !=======================================================================
 

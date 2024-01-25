@@ -13,7 +13,8 @@
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, restart_format, lenstr, &
-          restart_coszen
+          restart_coszen, restart_rearranger, &
+          restart_iotasks, restart_root, restart_stride
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -57,6 +58,8 @@
 
       integer (kind=int_kind) :: status, iotype
 
+      logical (kind=log_kind), save :: first_call = .true.
+
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then
@@ -77,7 +80,10 @@
       end if
 
       File%fh=-1
-      call ice_pio_init(mode='read', filename=trim(filename), File=File, fformat=trim(restart_format))
+      call ice_pio_init(mode='read', filename=trim(filename), File=File, &
+           fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+           iotasks=restart_iotasks, root=restart_root, stride=restart_stride, &
+           debug=first_call)
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
@@ -131,6 +137,8 @@
          npt = npt - istep0
       endif
 
+      first_call = .false.
+
       end subroutine init_restart_read
 
 !=======================================================================
@@ -181,6 +189,8 @@
 
       character (len=3) :: nchar, ncharb
 
+      logical (kind=log_kind), save :: first_call = .true.
+
       character(len=*), parameter :: subname = '(init_restart_write)'
 
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
@@ -222,7 +232,9 @@
 
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
-           clobber=.true., fformat=trim(restart_format))
+           clobber=.true., fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+           iotasks=restart_iotasks, root=restart_root, stride=restart_stride, &
+           debug=first_call)
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
@@ -669,6 +681,8 @@
       if (my_task == master_task) then
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
       endif
+
+      first_call = .false.
 
       end subroutine init_restart_write
 
