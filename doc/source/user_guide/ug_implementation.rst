@@ -1168,13 +1168,13 @@ In general, the detailed format is not enforced for input files so
 if ``cdf2`` format is specified in namelist, ``cdf1``, ``cdf2``, or ``cdf5`` files can be read.
 
 There are additional namelist options that affect IO performance for both
-restart and history output.  ``history_,restart_`` 
-``iotasks``, ``root``, and ``stride``
+restart and history output.  [``history_,restart_``] 
+[``iotasks,root,stride``]
 namelist options control the PIO processor/task usage and specify the total number of 
 IO tasks, the root IO task, and the IO task stride respectively.
 ``history_rearranger`` and ``restart_rearranger`` 
-define the PIO rearranger strategy.  Finally, ``history_,restart_``  
-``deflate`` and ``chunksize`` provide
+define the PIO rearranger strategy.  Finally, [``history_,restart_``]  
+[``deflate,chunksize``] provide
 controls for hdf5 compression and chunking for the ``hdf5`` options
 in both netCDF and PIO output.
 
