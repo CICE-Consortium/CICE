@@ -1205,7 +1205,7 @@ in both netCDF and PIO output.
 netCDF requires CICE compilation with a netcdf library built externally.  
 PIO requires CICE compilation with a PIO and netcdf library built externally.  
 Both netCDF and PIO can be built with many options which may require additional libraries
-such as hdf5 or pnetCDF.
+such as MPI, hdf5, or pnetCDF.
 
 .. _history:
 
