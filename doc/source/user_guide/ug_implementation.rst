@@ -1168,12 +1168,12 @@ In general, the detailed format is not enforced for input files in the sense
 that if ``cdf2`` files are written, ``cdf1``, ``cdf2``, or ``cdf5`` can be read.
 
 There are additional namelist options that affect IO performance for both
-restart and history output.  ``[history_,restart_]`` 
+restart and history output.  ``history_,restart_`` 
 ``iotasks``, ``root``, and ``stride``
 namelist options control the PIO processor/task usage and specify the total number of 
-IO tasks, the root IO task, and the IO task stride respectively for PIO IO for history
-and restart files.  ``history_rearranger`` and ``restart_rearranger`` 
-define the PIO rearranger strategy.  Finally, ``[history_,restart_]``  
+IO tasks, the root IO task, and the IO task stride respectively.
+  ``history_rearranger`` and ``restart_rearranger`` 
+define the PIO rearranger strategy.  Finally, ``history_,restart_``  
 ``deflate`` and ``chunksize`` provide
 controls for hdf5 compression and chunking for the ``hdf5`` options
 in both netCDF and PIO output.
@@ -1215,7 +1215,7 @@ CICE provides history data output in binary unformatted or netCDF formats via
 separate implementations of binary, netcdf, and pio source code as described
 above.  In addition, ``history_format`` as well as other history namelist
 options control the specific file format as well as features related to 
-IO performance, see :ref:``iooverview``.
+IO performance, see :ref:`iooverview`.
 
 CICE Model history output data can be written as instantaneous or average data as specified
 by the ``hist_avg`` namelist array and is customizable by stream. Characters
@@ -1463,7 +1463,7 @@ CICE reads and writes restart data in binary unformatted or netCDF formats via
 separate implementations of binary, netcdf, and pio source code as described
 above.  In addition, ``restart_format`` as well as other restart namelist
 options control the specific file format as well as features related to 
-IO performance, see :ref:``iooverview``.
+IO performance, see :ref:`iooverview`.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
