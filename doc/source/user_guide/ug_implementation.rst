@@ -1172,7 +1172,7 @@ restart and history output.  ``history_,restart_``
 ``iotasks``, ``root``, and ``stride``
 namelist options control the PIO processor/task usage and specify the total number of 
 IO tasks, the root IO task, and the IO task stride respectively.
-  ``history_rearranger`` and ``restart_rearranger`` 
+``history_rearranger`` and ``restart_rearranger`` 
 define the PIO rearranger strategy.  Finally, ``history_,restart_``  
 ``deflate`` and ``chunksize`` provide
 controls for hdf5 compression and chunking for the ``hdf5`` options
