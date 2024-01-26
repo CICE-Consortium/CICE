@@ -1202,8 +1202,10 @@ in both netCDF and PIO output.
    | pnetcdf5     | netCDF3-64bit-data   | pnetCDF | pio                 |
    +--------------+----------------------+---------+---------------------+
 
-These options are available for both history and restart files.  Additional 
-details for history and restart files are provided later in this section.
+netCDF requires CICE compilation with a netcdf library built externally.  
+PIO requires CICE compilation with a PIO and netcdf library built externally.  
+Both netCDF and PIO can be built with many options which may require additional libraries
+such as hdf5 or pnetCDF.
 
 .. _history:
 
