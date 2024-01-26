@@ -1161,11 +1161,11 @@ in **cice.settings** to ``binary``, ``netcdf``, ``pio1``, or ``pio2``.
 At run-time, more detailed IO settings are available.  ``restart_format`` and
 ``history_format`` namelist options specify the method and format further.  Valid options
 are listed in :ref:`formats`.  Note that with ``ICE_IOTYPE = binary``, the format name
-is actually ignored.    The CICE netCDF output contains a file attribute, ``io_flavor``,
+is actually ignored.    The CICE netCDF output contains a global metadata attribute, ``io_flavor``,
 that indicates the format chosen for the file.  ``ncdump -k filename.nc`` also
 provides information about the specific netCDF file format.
-In general, the detailed format is not enforced for input files in the sense 
-that if ``cdf2`` files are written, ``cdf1``, ``cdf2``, or ``cdf5`` can be read.
+In general, the detailed format is not enforced for input files so 
+if ``cdf2`` format is specified in namelist, ``cdf1``, ``cdf2``, or ``cdf5`` files can be read.
 
 There are additional namelist options that affect IO performance for both
 restart and history output.  ``history_,restart_`` 
