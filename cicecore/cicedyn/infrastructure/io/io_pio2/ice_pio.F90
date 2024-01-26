@@ -164,7 +164,7 @@
    ! tcraig, should work better but aborts in pio2
    !liotasks = min(liotasks, 1 + (nprocs-lroot-1)/lstride)
    if (lroot + (liotasks-1)*lstride > nprocs-1) then
-      liotasks = min(liotasks, (nprocs-lroot)/lstride)
+      liotasks = max(1,(nprocs-lroot)/lstride)
    endif
 
    !--- initialize ice_pio_subsystem

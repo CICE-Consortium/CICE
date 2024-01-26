@@ -1136,11 +1136,74 @@ relaxation parameter ``arlx1i`` effectively sets the damping timescale in
 the problem, and ``brlx`` represents the effective subcycling
 :cite:`Bouillon13` (see Section :ref:`revp`).
 
-~~~~~~~~~~~~
-Model output
-~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+Model Input and Output
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are a number of model output streams and formats.
+.. _iooverview:
+
+*************
+IO Overview
+*************
+
+CICE provides the ability to read and write binary unformatted or netCDF
+data via a number of different methods.  The IO implementation is specified
+both at build-time (via selection of specific source code) and run-time (via namelist).
+Three different IO packages are available in CICE under the directory
+**cicecore/cicedyn/infrastructure/io**.  Those are io_binary, io_netcdf, and
+io_pio2, and those support IO thru binary, netCDF, and PIO interfaces respectively.
+The io_pio2 directory supports both PIO1 and PIO2 and can write data thru the
+netCDF or parallel netCDF (pnetCDF) interface.  The netCDF history files are CF-compliant, and
+header information for data contained in the netCDF files is displayed with 
+the command ``ncdump -h filename.nc``.  To select the io source code, set ``ICE_IOTYPE``
+in **cice.settings** to ``binary``, ``netcdf``, ``pio1``, or ``pio2``.
+
+At run-time, more detailed IO settings are available.  ``restart_format`` and
+``history_format`` namelist options specify the method and format further.  Valid options
+are listed in :ref:`formats`.  Note that with ``ICE_IOTYPE = binary``, the format name
+is actually ignored.    The CICE netCDF output contains a file attribute, ``io_flavor``,
+that indicates the format chosen for the file.  ``ncdump -k filename.nc`` also
+provides information about the specific netCDF file format.
+In general, the detailed format is not enforced for input files in the sense 
+that if ``cdf2`` files are written, ``cdf1``, ``cdf2``, or ``cdf5`` can be read.
+
+There are additional namelist options that affect IO performance for both
+restart and history output.  ``[history_,restart_]`` 
+``iotasks``, ``root``, and ``stride``
+namelist options control the PIO processor/task usage and specify the total number of 
+IO tasks, the root IO task, and the IO task stride respectively for PIO IO for history
+and restart files.  ``history_rearranger`` and ``restart_rearranger`` 
+define the PIO rearranger strategy.  Finally, ``[history_,restart_]``  
+``deflate`` and ``chunksize`` provide
+controls for hdf5 compression and chunking for the ``hdf5`` options
+in both netCDF and PIO output.
+
+.. _formats:
+
+.. table:: CICE IO formats
+
+   +--------------+----------------------+---------+---------------------+
+   | **Name**     | **Format**           | **By**  |  **Valid With**     |
+   +--------------+----------------------+---------+---------------------+
+   | default      | ICE_IOTYPE dependent | fortran | binary, netcdf, pio |
+   +--------------+----------------------+---------+---------------------+
+   | cdf1         | netCDF3-classic      | netCDF  | netcdf, pio         |
+   +--------------+----------------------+---------+---------------------+
+   | cdf2         | netCDF3-64bit-offset | netCDF  | netcdf, pio         |
+   +--------------+----------------------+---------+---------------------+
+   | cdf5         | netCDF3-64bit-data   | netCDF  | netcdf, pio         |
+   +--------------+----------------------+---------+---------------------+
+   | hdf5         | netCDF4 hdf5         | netCDF  | netcdf, pio         |
+   +--------------+----------------------+---------+---------------------+
+   | pnetcdf1     | netCDF3-classic      | pnetCDF | pio                 |
+   +--------------+----------------------+---------+---------------------+
+   | pnetcdf2     | netCDF3-64bit-offset | pnetCDF | pio                 |
+   +--------------+----------------------+---------+---------------------+
+   | pnetcdf5     | netCDF3-64bit-data   | pnetCDF | pio                 |
+   +--------------+----------------------+---------+---------------------+
+
+These options are available for both history and restart files.  Additional 
+details for history and restart files are provided later in this section.
 
 .. _history:
 
@@ -1148,16 +1211,13 @@ There are a number of model output streams and formats.
 History files
 *************
 
-CICE provides history data in binary unformatted or netCDF formats via
-separate implementations of binary, netcdf, and pio source code under the 
-directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
-specifies the IO type and defines which source code directory is compiled.
-At the present time, binary, netcdf, and PIO are exclusive formats
-for history and restart files, and history and restart file must use the same 
-io package.  The namelist variable ``history_format`` further refines the
-format approach or style for some io packages.
+CICE provides history data output in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code as described
+above.  In addition, ``history_format`` as well as other history namelist
+options control the specific file format as well as features related to 
+IO performance, see :ref:``iooverview``.
 
-Model output data can be written as instantaneous or average data as specified
+CICE Model history output data can be written as instantaneous or average data as specified
 by the ``hist_avg`` namelist array and is customizable by stream. Characters
 can be added to the ``history_filename`` to distinguish the streams. This can be changed
 by modifying ``hist_suffix`` to something other than "x".
@@ -1169,12 +1229,7 @@ in **ice_in**. These settings for history files are set in the
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
 If ``history_file`` = ‘iceh’ then the 
 filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
-depending on the output file format chosen in **cice.settings** (set
-``ICE_IOTYPE``). The netCDF history files are CF-compliant; header information for
-data contained in the netCDF files is displayed with the command ``ncdump -h
-filename.nc``. Parallel netCDF output is available using the PIO library; the
-output file attribute ``io_flavor`` distinguishes output files written with PIO from
-those written with standard netCDF. With binary files, a separate header
+depending on the output file format chosen.  With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
 (see :ref:`tabnamelist`).
@@ -1404,18 +1459,16 @@ The timers use *MPI\_WTIME* for parallel runs and the F90 intrinsic
 Restart files
 *************
 
-CICE provides restart data in binary unformatted or netCDF formats via
-separate implementations of binary, netcdf, and pio source code under the 
-directory **infrastructure/io**.  ``ICE_IOTYPE`` defined in cice.settings
-specifies the IO type and defines which source code directory is compiled.
-At the present time, binary, netcdf, and PIO are exclusive formats
-for history and restart files, and history and restart file must use the same 
-io package.  The namelist variable ``restart_format`` further refines the
-format approach or style for some io packages.
+CICE reads and writes restart data in binary unformatted or netCDF formats via
+separate implementations of binary, netcdf, and pio source code as described
+above.  In addition, ``restart_format`` as well as other restart namelist
+options control the specific file format as well as features related to 
+IO performance, see :ref:``iooverview``.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
-‘iced.’, and the restart dump frequency is given by the namelist
+define by the ``restart_file`` namelist input, and the restart dump frequency 
+is given by the namelist
 variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
 specified by ``dumpfreq_base``.  Multiple restart frequencies are supported
 in the code with a similar mechanism to history streams.  The pointer to the filename from

@@ -41,6 +41,7 @@ restart        gx3    31x1        isotope,histall,ionetcdf,iocdf5,precision8
 restart        gx3    14x2        fsd12,histall,ionetcdf,iohdf5
 restart        gx3    32x1        debug,histall,ionetcdf,iohdf5,histinst
 
+restart        gx3    16x2        histall,iopio1,iopioopts
 restart        gx3    16x2        debug,histall,iopio1,iocdf2
 restart        gx3    14x2        alt01,histall,iopio1,iocdf5
 restart        gx3    32x1        alt02,histall,iopio1,iohdf5
@@ -55,6 +56,7 @@ restart        gx3     8x4        isotope,histall,iopio1,iopnetcdf1
 restart        gx3    12x2        fsd12,histall,iopio1,iopnetcdf2
 restart        gx3    16x2        debug,histall,iopio1,iopnetcdf5,histinst
 
+restart        gx3    16x2        debug,histall,iopio2,iopioopts
 restart        gx3    16x2        debug,histall,iopio2,iopnetcdf1,precision8
 restart        gx3    14x2        alt01,histall,iopio2,iopnetcdf2,precision8
 restart        gx3    32x1        alt02,histall,iopio2,iopnetcdf5,precision8
