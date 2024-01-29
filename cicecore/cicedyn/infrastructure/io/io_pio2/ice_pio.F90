@@ -48,7 +48,7 @@
                            rearr, iotasks, root, stride, debug)
 
 #ifdef CESMCOUPLED
-   use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
+   use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #else
 #ifdef GPTL
    use perf_mod, only : t_initf
@@ -80,6 +80,11 @@
 #ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+   if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
+      nmode0 = shr_pio_getioformat(inst_name)
+   else
+      nmode=0
+   endif
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 #else
@@ -91,12 +96,6 @@
 #endif
 
    !--- initialize type of io
-
-   lclobber = .false.
-   if (present(clobber)) then
-      lclobber=clobber
-   endif
-
    ldebug = .false.
    if (present(debug)) then
       ldebug = debug
@@ -183,30 +182,16 @@
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 
-   !--- initialize rearranger options
-   !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
-   !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
-   !pio_rearr_opt_c2i_enable_hs = logical
-   !pio_rearr_opt_c2i_enable_isend = logical
-   !pio_rearr_opt_c2i_max_pend_req = integer
-   !pio_rearr_opt_i2c_enable_hs = logical
-   !pio_rearr_opt_i2c_enable_isend = logical
-   !pio_rearr_opt_c2i_max_pend_req = integer
-   !ret = pio_set_rearr_opts(ice_pio_subsystem, pio_rearr_opt_comm_type,&
-   !              pio_rearr_opt_fcd,&
-   !              pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
-   !              pio_rearr_opt_c2i_max_pend_req,&
-   !              pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
-   !              pio_rearr_opt_i2c_max_pend_req)
-   !if(ret /= PIO_NOERR) then
-   !   call abort_ice(subname//'ERROR: aborting in pio_set_rearr_opts')
-   !end if
-
 #endif
 
    if (present(mode) .and. present(filename) .and. present(File)) then
 
       if (trim(mode) == 'write') then
+
+         lclobber = .false.
+         if (present(clobber)) then
+            lclobber=clobber
+         endif
 
          if (File%fh<0) then
             ! filename not open
@@ -215,7 +200,7 @@
                if (lclobber) then
                   nmode = ior(PIO_CLOBBER,nmode0)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
-                  call ice_pio_check(status, subname//' ERROR: Failed to create file '//trim(filename), &
+                  call ice_pio_check(status, subname//' ERROR: Failed to overwrite file '//trim(filename), &
                        file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)

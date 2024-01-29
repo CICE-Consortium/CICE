@@ -18,7 +18,8 @@
       use ice_read_write, only: ice_check_nc
       use ice_restart_shared, only: &
           restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, restart_format
+          runid, use_restart_time, lenstr, restart_coszen, restart_format, &
+          restart_chunksize, restart_deflate
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -883,13 +884,23 @@
 
       integer (kind=int_kind) :: varid
 
-      integer (kind=int_kind) :: &
-         status        ! status variable from netCDF routine
+      integer (kind=int_kind) :: chunks(size(dims)), status, i
 
       character(len=*), parameter :: subname = '(define_rest_field)'
 
 #ifdef USE_NETCDF
-      status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
+
+      if (restart_format=='hdf5') then
+         chunks(1)=restart_chunksize(1)
+         chunks(2)=restart_chunksize(2)
+         do i = 3, size(dims)
+            chunks(i) = 0
+         enddo
+         status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid, &
+            chunksizes=chunks, deflate_level=restart_deflate)
+      else
+         status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
+      end if
       call ice_check_nc(status, subname//' ERROR: def var '//trim(vname), file=__FILE__, line=__LINE__)
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &

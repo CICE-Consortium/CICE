@@ -32,8 +32,11 @@
       integer (kind=int_kind), public :: &
          restart_iotasks     , & ! iotasks, root, stride defines io pes for pio
          restart_root        , & ! iotasks, root, stride defines io pes for pio
-         restart_stride          ! iotasks, root, stride defines io pes for pio
-
+         restart_stride      , & ! iotasks, root, stride defines io pes for pio
+         restart_deflate     , & ! compression level for netcdf4 
+         restart_chunksize(2)    ! chunksize for netcdf4
+      
+      
 !=======================================================================
 
       contains

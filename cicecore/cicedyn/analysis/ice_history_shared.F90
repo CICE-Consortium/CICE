@@ -64,6 +64,10 @@
          history_root        , & ! iotasks, root, stride defines io pes for pio
          history_stride          ! iotasks, root, stride defines io pes for pio
 
+      integer (kind=int_kind), public :: history_deflate ! compression level for netcdf4
+
+      integer (kind=int_kind), dimension(2), public :: history_chunksize ! chunksize for netcdf4
+
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')
       !     Here or in ice_history_[process].F90:
