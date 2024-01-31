@@ -81,14 +81,15 @@
           restart_pond_lvl, restart_pond_topo, restart_aero, &
           restart_fsd, restart_iso, restart_snow
       use ice_restart_shared, only: &
-          restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, &
-          restart_rearranger, restart_iotasks, restart_root, restart_stride
+          restart, restart_ext, restart_coszen, use_restart_time, &
+          runtype, restart_file, restart_dir, runid, pointer_file, &
+          restart_format, restart_rearranger, restart_iotasks, restart_root, &
+          restart_stride, restart_deflate, restart_chunksize
       use ice_history_shared, only: &
-          hist_avg, history_dir, history_file, hist_suffix, &
-          incond_dir, incond_file, version_name, &
-          history_precision, history_format, hist_time_axis, &
-          history_rearranger, history_iotasks, history_root, history_stride
+          history_precision, hist_avg, history_format, history_file, incond_file, &
+          history_dir, incond_dir, version_name, history_rearranger, &
+          hist_suffix, history_iotasks, history_root, history_stride, &
+          history_deflate, history_chunksize, hist_time_axis
       use ice_flux, only: update_ocn_f, cpl_frazil, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -194,13 +195,14 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
+        restart_deflate, restart_chunksize,                             &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
-        hist_suffix,                                                    &
+        hist_suffix, history_deflate, history_chunksize,                &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         histfreq_base,  dumpfreq_base,  timer_stats,     memory_stats,  &
         conserv_check,  debug_model,    debug_model_step,               &
@@ -347,6 +349,8 @@
       history_dir  = './'    ! write to executable dir for default
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
+      history_deflate = 0    ! compression level for netcdf4
+      history_chunksize(:) = 0 ! chunksize for netcdf4
       write_ic = .false.     ! write out initial condition
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
@@ -367,6 +371,8 @@
       restart_stride = -99   ! restart iotasks, root, stride sets pes for pio
       restart_iotasks = -99  ! restart iotasks, root, stride sets pes for pio
       restart_rearranger = 'default'  ! restart rearranger for pio
+      restart_deflate = 0    ! compression level for netcdf4
+      restart_chunksize(:) = 0    ! chunksize for netcdf4
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
       grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
@@ -946,6 +952,8 @@
       call broadcast_scalar(history_stride,       master_task)
       call broadcast_scalar(history_rearranger,   master_task)
       call broadcast_scalar(hist_time_axis,       master_task)
+      call broadcast_scalar(history_deflate,      master_task)
+      call broadcast_array(history_chunksize,     master_task)
       call broadcast_scalar(write_ic,             master_task)
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
@@ -962,6 +970,8 @@
       call broadcast_scalar(restart_root,         master_task)
       call broadcast_scalar(restart_stride,       master_task)
       call broadcast_scalar(restart_rearranger,   master_task)
+      call broadcast_scalar(restart_deflate,      master_task)
+      call broadcast_array(restart_chunksize,     master_task)
       call broadcast_scalar(lcdf64,               master_task)
       call broadcast_scalar(pointer_file,         master_task)
       call broadcast_scalar(ice_ic,               master_task)
@@ -1753,6 +1763,58 @@
          abort_list = trim(abort_list)//":29"
       endif
 
+#ifdef USE_PIO1
+      if (history_deflate/=0 .or. restart_deflate/=0 &
+         .or. history_chunksize(1)/=0 .or. history_chunksize(2)/=0 &
+         .or. restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0) then
+         if (my_task == master_task) write (nu_diag,*) subname//' ERROR: _deflate and _chunksize not compatible with PIO1'
+         abort_list = trim(abort_list)//":54"
+      endif
+#else 
+#ifndef CESMCOUPLED
+      ! history_format not used by nuopc driver
+      if (history_format/='hdf5' .and. history_deflate/=0) then
+         if (my_task == master_task) then
+            write (nu_diag,*) subname//' WARNING: history_deflate not compatible with '//history_format
+            write (nu_diag,*) subname//' WARNING: netcdf compression only possible with history_type="hdf5" '
+         endif
+      endif
+
+      if (history_format/='hdf5' .and. (history_chunksize(1)/=0 .or. history_chunksize(2)/=0)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) subname//' WARNING: history_chunksize not compatible with '//history_format
+            write (nu_diag,*) subname//' WARNING: netcdf chunking only possible with history_type="hdf5" '
+         endif
+      endif
+
+      if (restart_format/='hdf5' .and. restart_deflate/=0) then
+         if (my_task == master_task) then
+            write (nu_diag,*) subname//' WARNING: restart_deflate not compatible with '//restart_format
+            write (nu_diag,*) subname//' WARNING: netcdf compression only possible with restart_type="hdf5" '
+         endif
+      endif
+
+      if (restart_format/='hdf5' .and. (restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) subname//' WARNING: restart_chunksize not compatible with '//restart_format
+            write (nu_diag,*) subname//' WARNING: netcdf chunking only possible with restart_type="hdf5" '
+         endif
+      endif
+#endif
+
+   if(history_deflate<0 .or. history_deflate>9) then
+      if (my_task == master_task) write (nu_diag,*) subname//&
+         ' ERROR: history_deflate value not valid. Allowed range: integers from 0 to 9 '
+      abort_list = trim(abort_list)//":55"
+   endif
+
+   if(restart_deflate<0 .or. restart_deflate>9) then
+      if (my_task == master_task) write (nu_diag,*) subname//&
+         ' ERROR: restart_deflate value not valid. Allowed range: integers from 0 to 9 '
+      abort_list = trim(abort_list)//":56"
+   endif
+#endif
+
       ! Implicit solver input validation
       if (kdyn == 3) then
          if (.not. (trim(algo_nonlin) == 'picard' .or. trim(algo_nonlin) == 'anderson')) then
@@ -2489,7 +2551,7 @@
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(:)
-         write(nu_diag,*)    ' hist_avg         = ', hist_avg(:)
+         write(nu_diag,1033) ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
@@ -2500,6 +2562,8 @@
          write(nu_diag,1021) ' history_root     = ', history_root
          write(nu_diag,1021) ' history_stride   = ', history_stride
          write(nu_diag,1031) ' hist_time_axis   = ', trim(hist_time_axis)
+         write(nu_diag,1021) ' history_deflate  = ', history_deflate
+         write(nu_diag,1023) ' history_chunksize= ', history_chunksize
          if (write_ic) then
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
@@ -2513,6 +2577,8 @@
          write(nu_diag,1011) ' restart_ext      = ', restart_ext
          write(nu_diag,1011) ' restart_coszen   = ', restart_coszen
          write(nu_diag,1031) ' restart_format   = ', trim(restart_format)
+         write(nu_diag,1021) ' restart_deflate  = ', restart_deflate
+         write(nu_diag,1023) ' restart_chunksize= ', restart_chunksize
 !         write(nu_diag,1011) ' lcdf64           = ', lcdf64   ! deprecated
          write(nu_diag,1031) ' restart_rearranger = ', trim(restart_rearranger)
          write(nu_diag,1021) ' restart_iotasks  = ', restart_iotasks

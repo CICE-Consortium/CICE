@@ -62,7 +62,9 @@
       integer (kind=int_kind), public :: &
          history_iotasks     , & ! iotasks, root, stride defines io pes for pio
          history_root        , & ! iotasks, root, stride defines io pes for pio
-         history_stride          ! iotasks, root, stride defines io pes for pio
+         history_stride      , & ! iotasks, root, stride defines io pes for pio
+         history_deflate     , & ! compression level for hdf5/netcdf4
+         history_chunksize(2) ! chunksize for hdf5/netcdf4
 
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')

@@ -2589,13 +2589,13 @@
 #ifdef USE_NETCDF
       if (status /= nf90_noerr) then
          if (present(file) .and. present(line)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file, line=line)
          elseif (present(file)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file)
          else
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg))
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg))
          endif
       endif
 #else

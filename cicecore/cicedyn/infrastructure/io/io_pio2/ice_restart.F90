@@ -10,11 +10,7 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
       use ice_kinds_mod
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lenstr, &
-          restart_coszen, restart_rearranger, &
-          restart_iotasks, restart_root, restart_stride
+      use ice_restart_shared
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -32,6 +28,8 @@
 
       type(io_desc_t)       :: iodesc2d
       type(io_desc_t)       :: iodesc3d_ncat
+
+      integer (kind=int_kind) :: dimid_ni, dimid_nj
 
 !=======================================================================
 
@@ -56,7 +54,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status, iotype
+      integer (kind=int_kind) :: status
 
       logical (kind=log_kind), save :: first_call = .true.
 
@@ -88,7 +86,7 @@
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
       call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
-      call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
+      call ice_pio_initdecomp(ndim3=ncat, iodesc=iodesc3d_ncat, remap=.true., precision=8)
 
       if (use_restart_time) then
          ! for backwards compatibility, check nyr, month, and sec as well
@@ -178,13 +176,10 @@
       character(len=char_len_long) :: filename
 
       integer (kind=int_kind) :: &
-         dimid_ni, dimid_nj, dimid_ncat, &
-         dimid_nilyr, dimid_nslyr, dimid_naero
+         dimid_ncat, dimid_nilyr, dimid_nslyr, dimid_naero
 
       integer (kind=int_kind), allocatable :: dims(:)
-
-      integer (kind=int_kind) :: iotype
-
+      
       integer (kind=int_kind) :: k, n       ! loop index
 
       character (len=3) :: nchar, ncharb
@@ -229,7 +224,7 @@
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
       endif
-
+      
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
            clobber=.true., fformat=trim(restart_format), rearr=trim(restart_rearranger), &
@@ -917,14 +912,44 @@
 
       subroutine define_rest_field(File, vname, dims)
 
+#ifndef USE_PIO1
+      use netcdf, only: NF90_CHUNKED
+      use pio_nf, only: pio_def_var_chunking !PIO <2.6.0 was missing this in the pio module
+#endif
       type(file_desc_t)      , intent(in)  :: File
       character (len=*)      , intent(in)  :: vname
       integer (kind=int_kind), intent(in)  :: dims(:)
 
+      integer (kind=int_kind) :: chunks(size(dims)), i, status
+
       character(len=*), parameter :: subname = '(define_rest_field)'
 
-      call ice_pio_check(pio_def_var(File,trim(vname),pio_double,dims,vardesc), &
-           subname//' ERROR: def_var '//trim(vname),file=__FILE__,line=__LINE__)
+      
+      status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
+      call ice_pio_check(status, &
+         subname//' ERROR defining restart field '//trim(vname))
+
+#ifndef USE_PIO1            
+      if (restart_format=='hdf5' .and. restart_deflate/=0) then 
+         status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=0,deflate_level=restart_deflate)
+         call ice_pio_check(status, &
+            subname//' ERROR: deflating restart field '//trim(vname),file=__FILE__,line=__LINE__)
+      endif
+      
+      if (restart_format=='hdf5' .and. size(dims)>1) then 
+         if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
+            chunks(1)=restart_chunksize(1)
+            chunks(2)=restart_chunksize(2)
+            do i = 3, size(dims)
+               chunks(i) = 0
+            enddo
+            
+            status = pio_def_var_chunking(File, vardesc, NF90_CHUNKED, chunks)
+            call ice_pio_check(status, subname//' ERROR: chunking restart field '//trim(vname),&
+               file=__FILE__,line=__LINE__)
+         endif
+      endif
+#endif
 
       end subroutine define_rest_field
 
