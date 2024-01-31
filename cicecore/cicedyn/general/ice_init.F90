@@ -350,7 +350,7 @@
       history_file = 'iceh'  ! history file name prefix
       history_precision = 4  ! precision of history files
       history_deflate = 0    ! compression level for netcdf4
-      history_chunksize = (/0,0/) ! chunksize for netcdf4
+      history_chunksize(:) = 0 ! chunksize for netcdf4
       write_ic = .false.     ! write out initial condition
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
@@ -372,7 +372,7 @@
       restart_iotasks = -99  ! restart iotasks, root, stride sets pes for pio
       restart_rearranger = 'default'  ! restart rearranger for pio
       restart_deflate = 0    ! compression level for netcdf4
-      restart_chunksize = (/0,0/) ! chunksize for netcdf4
+      restart_chunksize(:) = 0    ! chunksize for netcdf4
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
       grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
@@ -953,8 +953,7 @@
       call broadcast_scalar(history_rearranger,   master_task)
       call broadcast_scalar(hist_time_axis,       master_task)
       call broadcast_scalar(history_deflate,      master_task)
-      call broadcast_scalar(history_chunksize(1), master_task)
-      call broadcast_scalar(history_chunksize(2), master_task)
+      call broadcast_array(history_chunksize,     master_task)
       call broadcast_scalar(write_ic,             master_task)
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
@@ -972,8 +971,7 @@
       call broadcast_scalar(restart_stride,       master_task)
       call broadcast_scalar(restart_rearranger,   master_task)
       call broadcast_scalar(restart_deflate,      master_task)
-      call broadcast_scalar(restart_chunksize(1), master_task)
-      call broadcast_scalar(restart_chunksize(2), master_task)
+      call broadcast_array(restart_chunksize,     master_task)
       call broadcast_scalar(lcdf64,               master_task)
       call broadcast_scalar(pointer_file,         master_task)
       call broadcast_scalar(ice_ic,               master_task)
@@ -1769,26 +1767,10 @@
       if (history_deflate/=0 .or. restart_deflate/=0 &
          .or. history_chunksize(1)/=0 .or. history_chunksize(2)/=0 &
          .or. restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0) then
-         if (my_task == master_task) then
-            write (nu_diag,*) subname//' WARNING: _deflate and _chunksize not compatible with PIO1, will be ignored'
-         endif
-#else
-      if(history_deflate<0 .or. history_deflate>9) then
-         if (my_task == master_task) then
-            write (nu_diag,*) subname//' WARNING: history_deflate value not valid, setting to 0 '
-            write (nu_diag,*) subname//' WARNING: Allowed range: integers from 0 to 9 '
-         endif
-         history_deflate=0
+         if (my_task == master_task) write (nu_diag,*) subname//' ERROR: _deflate and _chunksize not compatible with PIO1'
+         abort_list = trim(abort_list)//":54"
       endif
-
-      if(restart_deflate<0 .or. restart_deflate>9) then
-         if (my_task == master_task) then
-            write (nu_diag,*) subname//' WARNING: restart_deflate value not valid, setting to 0 '
-            write (nu_diag,*) subname//' WARNING: Allowed range: integers from 0 to 9 '
-         endif
-         restart_deflate=0
-      endif
-
+#else 
 #ifndef CESMCOUPLED
       ! history_format not used by nuopc driver
       if (history_format/='hdf5' .and. history_deflate/=0) then
@@ -1796,7 +1778,6 @@
             write (nu_diag,*) subname//' WARNING: history_deflate not compatible with '//history_format
             write (nu_diag,*) subname//' WARNING: netcdf compression only possible with history_type="hdf5" '
          endif
-         history_deflate=0
       endif
 
       if (history_format/='hdf5' .and. (history_chunksize(1)/=0 .or. history_chunksize(2)/=0)) then
@@ -1811,7 +1792,6 @@
             write (nu_diag,*) subname//' WARNING: restart_deflate not compatible with '//restart_format
             write (nu_diag,*) subname//' WARNING: netcdf compression only possible with restart_type="hdf5" '
          endif
-         restart_deflate=0
       endif
 
       if (restart_format/='hdf5' .and. (restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0)) then
@@ -1820,8 +1800,19 @@
             write (nu_diag,*) subname//' WARNING: netcdf chunking only possible with restart_type="hdf5" '
          endif
       endif
-
 #endif
+
+   if(history_deflate<0 .or. history_deflate>9) then
+      if (my_task == master_task) write (nu_diag,*) subname//&
+         ' ERROR: history_deflate value not valid. Allowed range: integers from 0 to 9 '
+      abort_list = trim(abort_list)//":55"
+   endif
+
+   if(restart_deflate<0 .or. restart_deflate>9) then
+      if (my_task == master_task) write (nu_diag,*) subname//&
+         ' ERROR: restart_deflate value not valid. Allowed range: integers from 0 to 9 '
+      abort_list = trim(abort_list)//":56"
+   endif
 #endif
 
       ! Implicit solver input validation

@@ -45,6 +45,8 @@
 
       public :: ice_write_hist
 
+      integer (kind=int_kind) :: imtid,jmtid
+
 !=======================================================================
 
       contains
@@ -90,7 +92,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work1
 
       integer (kind=int_kind) :: i,k,ic,n,nn, &
-         ncid,status,imtid,jmtid,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
+         ncid,status,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
          nvertexid,ivertex,kmtida,iflag, fmtid
       integer (kind=int_kind), dimension(3) :: dimid
       integer (kind=int_kind), dimension(4) :: dimidz
@@ -454,9 +456,9 @@
             endif
          enddo
 
-      !-----------------------------------------------------------------
-      ! define attributes for time-variant variables
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! define attributes for time-variant variables
+         !-----------------------------------------------------------------
          
          do n=1,num_avail_hist_fields_2D
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -475,7 +477,10 @@
             endif
          enddo  ! num_avail_hist_fields_3Dc
 
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
          dimidz(3) = kmtidi
+         dimidz(4) = timid
          
          do n = n3Dccum + 1, n3Dzcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -483,7 +488,10 @@
             endif
          enddo  ! num_avail_hist_fields_3Dz
 
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
          dimidz(3) = kmtidb
+         dimidz(4) = timid
          
          do n = n3Dzcum + 1, n3Dbcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -491,7 +499,10 @@
             endif
          enddo  ! num_avail_hist_fields_3Db
 
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
          dimidz(3) = kmtida
+         dimidz(4) = timid
          
          do n = n3Dbcum + 1, n3Dacum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -499,7 +510,10 @@
             endif
          enddo  ! num_avail_hist_fields_3Da
 
+         dimidz(1) = imtid
+         dimidz(2) = jmtid
          dimidz(3) = fmtid
+         dimidz(4) = timid
          
          do n = n3Dacum + 1, n3Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -519,7 +533,11 @@
             endif
          enddo  ! num_avail_hist_fields_4Di
 
+         dimidcz(1) = imtid
+         dimidcz(2) = jmtid
          dimidcz(3) = kmtids
+         dimidcz(4) = cmtid
+         dimidcz(5) = timid
          
          do n = n4Dicum + 1, n4Dscum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -527,7 +545,11 @@
             endif
          enddo  ! num_avail_hist_fields_4Ds
 
+         dimidcz(1) = imtid
+         dimidcz(2) = jmtid
          dimidcz(3) = fmtid
+         dimidcz(4) = cmtid
+         dimidcz(5) = timid
          
          do n = n4Dscum + 1, n4Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -1155,7 +1177,7 @@
             history_precision, hist_avg
          use ice_calendar, only: histfreq, histfreq_n, write_ic
 #ifdef USE_NETCDF
-         use netcdf, only: NF90_CHUNKED, nf90_def_var, nf90_put_att
+         use netcdf, only: NF90_CHUNKED, nf90_def_var, nf90_put_att, nf90_def_var_chunking, nf90_def_var_deflate
          
          integer(kind=int_kind), intent(in) :: ncid, dimids(:), lprecision, ns
          type(ice_hist_field), intent(in) :: hfield
@@ -1164,24 +1186,25 @@
          integer(kind=int_kind) :: chunks(size(dimids)), i, status, varid
 
          character(len=*), parameter :: subname = '(ice_hist_field_def)'
-                  
-         if (history_format=='hdf5') then 
-            chunks(1)=history_chunksize(1)
-            chunks(2)=history_chunksize(2)
-            do i = 3, size(dimids)
-               chunks(i) = 0
-            enddo
-            status = nf90_def_var(ncid, hfield%vname, &
-               lprecision, dimids, varid, &
-               chunksizes=chunks, deflate_level=history_deflate)
-            call ice_check_nc(status, &
-               subname//' ERROR: defining var '//hfield%vname,file=__FILE__,line=__LINE__)
-         else 
-            ! no chunk and compress
-            status = nf90_def_var(ncid, hfield%vname, &
-               lprecision, dimids, varid)
-            call ice_check_nc(status, &
-               subname//' ERROR: defining var '//hfield%vname,file=__FILE__,line=__LINE__)
+
+         status = nf90_def_var(ncid, hfield%vname, lprecision, dimids, varid)
+         call ice_check_nc(status, subname//' ERROR: defining var '//trim(hfield%vname),file=__FILE__,line=__LINE__)
+                           
+         if (history_format=='hdf5' .and. size(dimids)>1) then
+            if (dimids(1)==imtid .and. dimids(2)==jmtid) then
+               chunks(1)=history_chunksize(1)
+               chunks(2)=history_chunksize(2)
+               do i = 3, size(dimids)
+                  chunks(i) = 0
+               enddo
+               status = nf90_def_var_chunking(ncid,varid, NF90_CHUNKED, chunksizes=chunks)
+               call ice_check_nc(status, subname//' ERROR chunking var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
+            endif
+         endif
+
+         if (history_format=='hdf5' .and. history_deflate/=0) then
+            status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
+            call ice_check_nc(status, subname//' ERROR deflating var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
          endif
 
       ! add attributes
@@ -1300,32 +1323,39 @@
    
       subroutine ice_hist_coord_def(ncid, coord, lprecision, dimids, varid)
 
-         use ice_history_shared, only: history_deflate, history_format
+         use ice_history_shared, only: history_deflate, history_format, history_chunksize
 #ifdef USE_NETCDF
-         use netcdf, only: nf90_def_var, nf90_put_att
+         use netcdf, only: nf90_def_var, nf90_put_att, nf90_def_var_chunking, nf90_def_var_deflate, NF90_CHUNKED
 
          integer(kind=int_kind), intent(in) :: ncid, dimids(:), lprecision
          type(coord_attributes), intent(in) :: coord
          integer(kind=int_kind), intent(inout) :: varid
          
          !local vars
-         integer(kind=int_kind) :: status
+         integer(kind=int_kind) ::chunks(size(dimids)), i, status
 
          character(len=*), parameter :: subname = '(ice_hist_coord_def)'
+
+         status = nf90_def_var(ncid, coord%short_name, lprecision, dimids, varid)
+         call ice_check_nc(status, subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
                   
-         !define var, set deflate, long_name and units
-         if (history_format=='hdf5' .and. size(dimids)>1 ) then
-            status = nf90_def_var(ncid, trim(coord%short_name), &
-               lprecision, dimids, varid, deflate_level=history_deflate)
-            call ice_check_nc(status, &
-               subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
-         else 
-            ! no compress
-            status = nf90_def_var(ncid, coord%short_name, &
-               lprecision, dimids, varid)
-            call ice_check_nc(status, &
-               subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
+         if (history_format=='hdf5' .and. size(dimids)>1) then
+            if (dimids(1)==imtid .and. dimids(2)==jmtid) then
+               chunks(1)=history_chunksize(1)
+               chunks(2)=history_chunksize(2)
+               do i = 3, size(dimids)
+                  chunks(i) = 0
+               enddo
+               status = nf90_def_var_chunking(ncid,varid, NF90_CHUNKED, chunksizes=chunks)
+               call ice_check_nc(status, subname//' ERROR chunking var '//trim(coord%short_name), file=__FILE__, line=__LINE__)
+            endif
          endif
+
+         if (history_format=='hdf5' .and. history_deflate/=0) then
+            status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
+            call ice_check_nc(status, subname//' ERROR deflating var '//trim(coord%short_name), file=__FILE__, line=__LINE__)
+         endif
+         
          status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
          call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
                            file=__FILE__, line=__LINE__)

@@ -29,7 +29,7 @@
       type(io_desc_t)       :: iodesc2d
       type(io_desc_t)       :: iodesc3d_ncat
 
-      integer (kind=int_kind) :: deflate 
+      integer (kind=int_kind) :: dimid_ni, dimid_nj
 
 !=======================================================================
 
@@ -176,8 +176,7 @@
       character(len=char_len_long) :: filename
 
       integer (kind=int_kind) :: &
-         dimid_ni, dimid_nj, dimid_ncat, &
-         dimid_nilyr, dimid_nslyr, dimid_naero
+         dimid_ncat, dimid_nilyr, dimid_nslyr, dimid_naero
 
       integer (kind=int_kind), allocatable :: dims(:)
       
@@ -225,12 +224,6 @@
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
       endif
-
-      if (restart_deflate/=0 .and. restart_format=='hdf5') then  
-         deflate = 1
-      else 
-         deflate = 0
-      endif
       
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
@@ -241,22 +234,22 @@
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
       call ice_pio_check(pio_put_att(File,pio_global,'istep1',istep1), &
-            subname//' ERROR: writing restart step',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart step',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'myear',myear), &
-            subname//' ERROR: writing restart year',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart year',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'mmonth',mmonth), &
-            subname//' ERROR: writing restart month',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart month',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'mday',mday), &
-            subname//' ERROR: writing restart day',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart day',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File,pio_global,'msec',msec), &
-            subname//' ERROR: writing restart sec',file=__FILE__,line=__LINE__)
+           subname//' ERROR: writing restart sec',file=__FILE__,line=__LINE__)
 
       call ice_pio_check(pio_def_dim(File,'ni',nx_global,dimid_ni), &
-            subname//' ERROR: defining restart dim ni',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim ni',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_def_dim(File,'nj',ny_global,dimid_nj), &
-            subname//' ERROR: defining restart dim nj',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim nj',file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_def_dim(File,'ncat',ncat,dimid_ncat), &
-            subname//' ERROR: defining restart dim ncat',file=__FILE__,line=__LINE__)
+           subname//' ERROR: defining restart dim ncat',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
       ! 2D restart fields
@@ -937,22 +930,24 @@
          subname//' ERROR defining restart field '//trim(vname))
 
 #ifndef USE_PIO1            
-      if (deflate==1) then 
-         status = pio_def_var_deflate(File, vardesc, 0, deflate,restart_deflate)
+      if (restart_format=='hdf5' .and. restart_deflate/=0) then 
+         status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=0,deflate_level=restart_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating restart field '//trim(vname),file=__FILE__,line=__LINE__)
       endif
       
       if (restart_format=='hdf5' .and. size(dims)>1) then 
-         chunks(1)=restart_chunksize(1)
-         chunks(2)=restart_chunksize(2)
-         do i = 3, size(dims)
-            chunks(i) = 0
-         enddo
-         
-         status = pio_def_var_chunking(File, vardesc, NF90_CHUNKED, chunks)
-         call ice_pio_check(status, subname//' ERROR: chunking restart field '//trim(vname),&
-            file=__FILE__,line=__LINE__)
+         if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
+            chunks(1)=restart_chunksize(1)
+            chunks(2)=restart_chunksize(2)
+            do i = 3, size(dims)
+               chunks(i) = 0
+            enddo
+            
+            status = pio_def_var_chunking(File, vardesc, NF90_CHUNKED, chunks)
+            call ice_pio_check(status, subname//' ERROR: chunking restart field '//trim(vname),&
+               file=__FILE__,line=__LINE__)
+         endif
       endif
 #endif
 

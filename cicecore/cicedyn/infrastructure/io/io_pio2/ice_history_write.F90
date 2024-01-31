@@ -42,7 +42,6 @@
 
       public :: ice_write_hist
 
-      integer (kind=int_kind) :: deflate , shuffle = 0
       integer (kind=int_kind) :: imtid,jmtid
 
 !=======================================================================
@@ -193,13 +192,6 @@
       ! option of turning on double precision history files
       lprecision = pio_real
       if (history_precision == 8) lprecision = pio_double
-
-      ! option to deflate netcdf4 iotypes
-      if (history_deflate/=0 .and. history_format=='hdf5') then  
-         deflate = 1
-      else 
-         deflate = 0
-      endif
       
       !-----------------------------------------------------------------
       ! define dimensions
@@ -479,95 +471,114 @@
       !-----------------------------------------------------------------
 
       ! 2D
-        dimid3(1) = imtid
-        dimid3(2) = jmtid
-        dimid3(3) = timid
+      dimid3(1) = imtid
+      dimid3(2) = jmtid
+      dimid3(3) = timid
 
-        do n=1,num_avail_hist_fields_2D
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimid3, ns)
-            endif
-        enddo  
+      do n=1,num_avail_hist_fields_2D
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimid3, ns)
+         endif
+      enddo  
 
-       ! 3D (category)
-        dimidz(1) = imtid
-        dimidz(2) = jmtid
-        dimidz(3) = cmtid
-        dimidz(4) = timid
+      ! 3D (category)
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = cmtid
+      dimidz(4) = timid
 
-        do n = n2D + 1, n3Dccum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_3Dc
+      do n = n2D + 1, n3Dccum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_3Dc
 
-       ! 3D (ice layers)
-         dimidz(3) = kmtidi
-      
-        do n = n3Dccum + 1, n3Dzcum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_3Dz
+      ! 3D (ice layers)
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtidi
+      dimidz(4) = timid
+   
+      do n = n3Dccum + 1, n3Dzcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_3Dz
 
-       ! 3D (biology ice layers)
-         dimidz(3) = kmtidb
-      
-        do n = n3Dzcum + 1, n3Dbcum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_3Db
+      ! 3D (biology ice layers)
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtidb
+      dimidz(4) = timid
+   
+      do n = n3Dzcum + 1, n3Dbcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_3Db
 
-       ! 3D (biology snow layers)
-         dimidz(3) = kmtida
-      
-        do n = n3Dbcum + 1, n3Dacum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_3Da
+      ! 3D (biology snow layers)
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = kmtida
+      dimidz(4) = timid
+   
+      do n = n3Dbcum + 1, n3Dacum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_3Da
 
-       ! 3D (fsd)
-         dimidz(3) = fmtid
-      
-        do n = n3Dacum + 1, n3Dfcum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_3Df
+      ! 3D (fsd)
+      dimidz(1) = imtid
+      dimidz(2) = jmtid
+      dimidz(3) = fmtid
+      dimidz(4) = timid
+
+      do n = n3Dacum + 1, n3Dfcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_3Df
 
       ! 4D (ice categories)
-      
-        dimidcz(1) = imtid
-        dimidcz(2) = jmtid
-        dimidcz(3) = kmtidi
-        dimidcz(4) = cmtid
-        dimidcz(5) = timid
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = kmtidi
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
 
-        do n = n3Dfcum + 1, n4Dicum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_4Di
+      do n = n3Dfcum + 1, n4Dicum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_4Di
 
-       ! 4D (snow layers)
-        dimidcz(3) = kmtids
-      
-        do n = n4Dicum + 1, n4Dscum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
-            endif
-         enddo  ! num_avail_hist_fields_4Ds
+      ! 4D (snow layers)
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = kmtids
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
+   
+      do n = n4Dicum + 1, n4Dscum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_4Ds
 
       ! 4D (fsd layers)
-        dimidcz(3) = fmtid
+      dimidcz(1) = imtid
+      dimidcz(2) = jmtid
+      dimidcz(3) = fmtid
+      dimidcz(4) = cmtid
+      dimidcz(5) = timid
 
-        do n = n4Dscum + 1, n4Dfcum
-            if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
-            endif
-        enddo  ! num_avail_hist_fields_4Df
+      do n = n4Dscum + 1, n4Dfcum
+         if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
+            call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
+         endif
+      enddo  ! num_avail_hist_fields_4Df
 
       !-----------------------------------------------------------------
       ! global attributes
@@ -1269,21 +1280,23 @@
       call ice_pio_check(status, &
          subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
 #ifndef USE_PIO1
-      if (deflate==1 .and. size(dimids)>1 ) then 
-         status = pio_def_var_deflate(File, varid, shuffle, deflate ,history_deflate)
+      if (history_deflate/=0 .and. history_format=='hdf5') then 
+         status = pio_def_var_deflate(File, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating coord '//coord%short_name,file=__FILE__,line=__LINE__)
       endif
 
-      if (history_format=='hdf5' .and. dimids(1)==imtid .and. dimids(2)==jmtid) then 
-         chunks(1)=history_chunksize(1)
-         chunks(2)=history_chunksize(2)
-         do i = 3, size(dimids)
-            chunks(i) = 0
-         enddo
-         status = pio_def_var_chunking(File, varid, NF90_CHUNKED, chunks)
-         call ice_pio_check(status, &
-            subname//' ERROR: chunking coord '//coord%short_name,file=__FILE__,line=__LINE__)
+      if (history_format=='hdf5' .and. size(dimids)>1) then
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then  
+            chunks(1)=history_chunksize(1)
+            chunks(2)=history_chunksize(2)
+            do i = 3, size(dimids)
+               chunks(i) = 0
+            enddo
+            status = pio_def_var_chunking(File, varid, NF90_CHUNKED, chunks)
+            call ice_pio_check(status, &
+               subname//' ERROR: chunking coord '//coord%short_name,file=__FILE__,line=__LINE__)
+         endif
       endif
 #endif
       call ice_pio_check(pio_put_att(File,varid,'long_name',trim(coord%long_name)), &
@@ -1323,23 +1336,26 @@
          subname//' ERROR: defining var '//hfield%vname,file=__FILE__,line=__LINE__)
 
 #ifndef USE_PIO1
-      if (deflate==1) then 
-         status = pio_def_var_deflate(File, varid, shuffle, deflate ,history_deflate)
+      if (history_deflate/=0 .and. history_format=='hdf5') then 
+         status = pio_def_var_deflate(File, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating var '//hfield%vname,file=__FILE__,line=__LINE__)
       endif
       
-      if (history_format=='hdf5' .and. dimids(1)==imtid .and. dimids(2)==jmtid) then 
-         chunks(1)=history_chunksize(1)
-         chunks(2)=history_chunksize(2)
-         do i = 1, size(dimids)
-            chunks(i) = 0
-         enddo
-         status = pio_def_var_chunking(File, varid, NF90_CHUNKED, chunks)
-         call ice_pio_check(status, &
-            subname//' ERROR: chunking var '//hfield%vname,file=__FILE__,line=__LINE__)
+      if (history_format=='hdf5' .and. size(dimids)>1) then
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then 
+            chunks(1)=history_chunksize(1)
+            chunks(2)=history_chunksize(2)
+            do i = 1, size(dimids)
+               chunks(i) = 0
+            enddo
+            status = pio_def_var_chunking(File, varid, NF90_CHUNKED, chunks)
+            call ice_pio_check(status, &
+               subname//' ERROR: chunking var '//hfield%vname,file=__FILE__,line=__LINE__)
+         endif
       endif
 #endif
+
       !var attributes
 
       call ice_pio_check(pio_put_att(File,varid,'units', trim(hfield%vunit)), &
