@@ -1168,8 +1168,8 @@
 !=======================================================================
 
    ! Defines a (time-dependent) history var in the history file
-   ! coordinates have short_name, long_name and units, coordsiantes and cell_measures attributes, 
-   !  and are compressed and chunked for 'hd5' 
+   ! variables have short_name, long_name and units, coordiantes and cell_measures attributes, 
+   !  and are compressed and chunked for 'hdf5' 
    
       subroutine ice_hist_field_def(ncid, hfield, lprecision, dimids, ns)
 
@@ -1203,7 +1203,7 @@
          endif
 
          if (history_format=='hdf5' .and. history_deflate/=0) then
-            status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
+            status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
             call ice_check_nc(status, subname//' ERROR deflating var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
          endif
 
@@ -1319,7 +1319,7 @@
 
    ! Defines a coordinate var in the history file
    ! coordinates have short_name, long_name and units attributes, 
-   !  and are compressed for 'hd5' when more than one dimensional
+   !  and are compressed for 'hdf5' when more than one dimensional
    
       subroutine ice_hist_coord_def(ncid, coord, lprecision, dimids, varid)
 
