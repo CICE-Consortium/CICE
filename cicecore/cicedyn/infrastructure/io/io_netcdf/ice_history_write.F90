@@ -648,6 +648,12 @@
          call ice_check_nc(status, subname// ' ERROR: global attribute io_flavor', &
                            file=__FILE__, line=__LINE__)
 
+         if (history_format == 'hdf5') then
+            status = nf90_put_att(ncid,nf90_global,'deflate',history_deflate)
+            call ice_check_nc(status, subname//' ERROR: defining attribte deflate', &
+                              file=__FILE__,line=__LINE__)
+         endif
+
          !-----------------------------------------------------------------
          ! end define mode
          !-----------------------------------------------------------------

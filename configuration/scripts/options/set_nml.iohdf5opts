@@ -1,0 +1,4 @@
+history_deflate = 6
+history_chunksize = 50,58
+restart_deflate = 8
+restart_chunksize = 50,58

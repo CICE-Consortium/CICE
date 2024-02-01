@@ -931,7 +931,7 @@
 
 #ifndef USE_PIO1            
       if (restart_format=='hdf5' .and. restart_deflate/=0) then 
-         status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=0,deflate_level=restart_deflate)
+         status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=1, deflate_level=restart_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating restart field '//trim(vname),file=__FILE__,line=__LINE__)
       endif

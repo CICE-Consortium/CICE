@@ -652,8 +652,18 @@
       call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
            subname//' ERROR: defining att history '//trim(start_time),file=__FILE__,line=__LINE__)
 
-      call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio '//trim(history_format)), &
+#ifdef USE_PIO1
+      call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio1 '//trim(history_format)), &
            subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
+#else
+      call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio2 '//trim(history_format)), &
+           subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
+#endif
+
+      if (history_format == 'hdf5') then
+         call ice_pio_check(pio_put_att(File,pio_global,'deflate',history_deflate), &
+              subname//' ERROR: defining att deflate',file=__FILE__,line=__LINE__)
+      endif
 
       !-----------------------------------------------------------------
       ! end define mode
@@ -1265,10 +1275,10 @@
       use ice_history_shared, only: history_deflate, history_chunksize, history_format
 #endif
       
-      type(file_desc_t), intent(in) :: File
+      type(file_desc_t),   intent(inout) :: File
       type(coord_attributes), intent(in) :: coord
       integer(kind=int_kind), intent(in) :: dimids(:), lprecision
-      type(var_desc_t), intent(inout):: varid
+      type(var_desc_t),    intent(inout) :: varid
       
       ! local vars
       integer(kind=int_kind) :: chunks(size(dimids)), i, status
@@ -1321,8 +1331,8 @@
       use ice_history_shared, only:  ice_hist_field, history_precision, hist_avg
       use ice_calendar, only: histfreq, histfreq_n, write_ic
 
-      type(file_desc_t), intent(in) :: File
-      type(ice_hist_field), intent(in) :: hfield
+      type(file_desc_t),   intent(inout) :: File
+      type(ice_hist_field)  , intent(in) :: hfield
       integer(kind=int_kind), intent(in) :: dimids(:), lprecision, ns
 
       ! local vars
@@ -1421,8 +1431,8 @@
 
          use pio, only: pio_put_att, file_desc_t, var_desc_t
    
-         type(file_desc_t)      , intent(in) :: File
-         type(var_desc_t)       , intent(in) :: varid
+         type(file_desc_t),    intent(inout) :: File
+         type(var_desc_t),        intent(in) :: varid
          character(len=*),        intent(in) :: vname
          integer (kind=int_kind), intent(in) :: precision
    

@@ -355,10 +355,10 @@
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
-      dumpfreq(:)='x'           ! restart frequency option
+      dumpfreq(:) = 'x'         ! restart frequency option
       dumpfreq_n(:) = 1         ! restart frequency
       dumpfreq_base(:) = 'init' ! restart frequency reference date
-      dumpfreq(1)='y'           ! restart frequency option
+      dumpfreq(1) = 'y'         ! restart frequency option
       dumpfreq_n(1) = 1         ! restart frequency
       dump_last = .false.    ! write restart on last time step
       restart_dir  = './'    ! write to executable dir for default
@@ -1732,18 +1732,18 @@
          abort_list = trim(abort_list)//":19"
       endif
 
-      if(history_precision .ne. 4 .and. history_precision .ne. 8) then
+      if (history_precision .ne. 4 .and. history_precision .ne. 8) then
          write (nu_diag,*) subname//' ERROR: bad value for history_precision, allowed values: 4, 8'
          abort_list = trim(abort_list)//":22"
       endif
 
       do n = 1,max_nstrm
-         if(histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
+         if (histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
             write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero: '//trim(histfreq_base(n))
             abort_list = trim(abort_list)//":24"
          endif
 
-         if(dumpfreq_base(n) /= 'init' .and. dumpfreq_base(n) /= 'zero') then
+         if (dumpfreq_base(n) /= 'init' .and. dumpfreq_base(n) /= 'zero') then
             write (nu_diag,*) subname//' ERROR: bad value for dumpfreq_base, allowed values: init, zero: '//trim(dumpfreq_base(n))
             abort_list = trim(abort_list)//":25"
          endif
@@ -1758,15 +1758,15 @@
          endif
       enddo
 
-      if(trim(hist_time_axis) /= 'begin' .and. trim(hist_time_axis) /= 'middle' .and. trim(hist_time_axis) /= 'end') then
+      if (trim(hist_time_axis) /= 'begin' .and. trim(hist_time_axis) /= 'middle' .and. trim(hist_time_axis) /= 'end') then
          write (nu_diag,*) subname//' ERROR: hist_time_axis value not valid = '//trim(hist_time_axis)
          abort_list = trim(abort_list)//":29"
       endif
 
 #ifdef USE_PIO1
-      if (history_deflate/=0 .or. restart_deflate/=0 &
-         .or. history_chunksize(1)/=0 .or. history_chunksize(2)/=0 &
-         .or. restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0) then
+      if (history_deflate/=0 .or. restart_deflate/=0 .or. &
+          history_chunksize(1)/=0 .or. history_chunksize(2)/=0 .or. &
+          restart_chunksize(1)/=0 .or. restart_chunksize(2)/=0) then
          if (my_task == master_task) write (nu_diag,*) subname//' ERROR: _deflate and _chunksize not compatible with PIO1'
          abort_list = trim(abort_list)//":54"
       endif
@@ -1802,17 +1802,17 @@
       endif
 #endif
 
-   if(history_deflate<0 .or. history_deflate>9) then
-      if (my_task == master_task) write (nu_diag,*) subname//&
-         ' ERROR: history_deflate value not valid. Allowed range: integers from 0 to 9 '
-      abort_list = trim(abort_list)//":55"
-   endif
+      if (history_deflate<0 .or. history_deflate>9) then
+         if (my_task == master_task) write (nu_diag,*) subname//&
+            ' ERROR: history_deflate value not valid. Allowed range: integers from 0 to 9 '
+         abort_list = trim(abort_list)//":55"
+      endif
 
-   if(restart_deflate<0 .or. restart_deflate>9) then
-      if (my_task == master_task) write (nu_diag,*) subname//&
-         ' ERROR: restart_deflate value not valid. Allowed range: integers from 0 to 9 '
-      abort_list = trim(abort_list)//":56"
-   endif
+      if (restart_deflate<0 .or. restart_deflate>9) then
+         if (my_task == master_task) write (nu_diag,*) subname//&
+            ' ERROR: restart_deflate value not valid. Allowed range: integers from 0 to 9 '
+         abort_list = trim(abort_list)//":56"
+      endif
 #endif
 
       ! Implicit solver input validation
@@ -2358,7 +2358,7 @@
             tmpstr2 = ' : dragio hard-coded'
          endif
          write(nu_diag,1010) ' calc_dragio   = ', calc_dragio,trim(tmpstr2)
-         if(calc_dragio) then
+         if (calc_dragio) then
             write(nu_diag,1002) ' iceruf_ocn       = ', iceruf_ocn,' : under-ice roughness length'
          endif
 
@@ -2608,7 +2608,7 @@
          if (trim(atm_data_type) /= 'default') then
             write(nu_diag,1031) ' atm_data_dir     = ', trim(atm_data_dir)
             write(nu_diag,1031) ' precip_units     = ', trim(precip_units)
-         elseif (trim(atm_data_type)=='default') then
+         elseif (trim(atm_data_type) == 'default') then
             write(nu_diag,1031) ' default_season   = ', trim(default_season)
          endif
 
