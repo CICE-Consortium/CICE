@@ -1265,6 +1265,9 @@
 !=======================================================================
 
    ! Defines a coordinate var in the history file
+   ! coordinates have short_name, long_name and units attributes, 
+   !  and are compressed for 'hdf5' when more than one dimensional
+   
       subroutine ice_hist_coord_def(File, coord,lprecision, dimids,varid)
 
       use pio, only: file_desc_t, var_desc_t, pio_def_var,  pio_put_att
@@ -1297,7 +1300,7 @@
       endif
 
       if (history_format=='hdf5' .and. size(dimids)>1) then
-         if (dimids(1)==imtid .and. dimids(2)==jmtid) then  
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then 
             chunks(1)=history_chunksize(1)
             chunks(2)=history_chunksize(2)
             do i = 3, size(dimids)
@@ -1319,6 +1322,9 @@
 !=======================================================================
 
    ! Defines a (time-dependent) history var in the history file
+   ! variables have short_name, long_name and units, coordiantes and cell_measures attributes, 
+   !  and are compressed and chunked for 'hdf5'
+
       subroutine ice_hist_field_def(File, hfield,lprecision, dimids, ns)
 
       use pio, only: file_desc_t , var_desc_t, pio_def_var, pio_put_att
@@ -1328,7 +1334,7 @@
       use netcdf, only: NF90_CHUNKED
       use ice_history_shared, only: history_deflate, history_chunksize, history_format
 #endif
-      use ice_history_shared, only:  ice_hist_field, history_precision, hist_avg
+      use ice_history_shared, only: ice_hist_field, history_precision, hist_avg
       use ice_calendar, only: histfreq, histfreq_n, write_ic
 
       type(file_desc_t),   intent(inout) :: File
@@ -1356,12 +1362,11 @@
          if (dimids(1)==imtid .and. dimids(2)==jmtid) then 
             chunks(1)=history_chunksize(1)
             chunks(2)=history_chunksize(2)
-            do i = 1, size(dimids)
+            do i = 3, size(dimids)
                chunks(i) = 0
             enddo
             status = pio_def_var_chunking(File, varid, NF90_CHUNKED, chunks)
-            call ice_pio_check(status, &
-               subname//' ERROR: chunking var '//hfield%vname,file=__FILE__,line=__LINE__)
+            call ice_pio_check(status, subname//' ERROR: chunking var '//hfield%vname,file=__FILE__,line=__LINE__)
          endif
       endif
 #endif
