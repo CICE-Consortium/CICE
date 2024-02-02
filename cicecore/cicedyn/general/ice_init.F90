@@ -340,7 +340,7 @@
       histfreq_base(:) = 'zero' ! output frequency reference date
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       hist_suffix(:) = 'x'   ! appended to 'history_file' in filename when not 'x'
-      history_format = 'cdf2'! history file format
+      history_format = 'cdf1'! history file format
       history_root = -99     ! history iotasks, root, stride sets pes for pio
       history_stride = -99   ! history iotasks, root, stride sets pes for pio
       history_iotasks = -99  ! history iotasks, root, stride sets pes for pio
@@ -366,7 +366,7 @@
       restart_ext  = .false. ! if true, read/write ghost cells
       restart_coszen  = .false.   ! if true, read/write coszen
       pointer_file = 'ice.restart_file'
-      restart_format = 'cdf2'     ! restart file format
+      restart_format = 'cdf1'     ! restart file format
       restart_root = -99     ! restart iotasks, root, stride sets pes for pio
       restart_stride = -99   ! restart iotasks, root, stride sets pes for pio
       restart_iotasks = -99  ! restart iotasks, root, stride sets pes for pio
@@ -1278,6 +1278,7 @@
           history_format /= 'pnetcdf5'    .and. &
           history_format /= 'pio_netcdf'  .and. &  ! backwards compatibility
           history_format /= 'pio_pnetcdf' .and. &  ! backwards compatibility
+          history_format /= 'binary'      .and. &
           history_format /= 'default')     then    ! backwards compatibility
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: history_format unknown = ',trim(history_format)
@@ -1294,6 +1295,7 @@
           restart_format /= 'pnetcdf5'    .and. &
           restart_format /= 'pio_netcdf'  .and. &  ! backwards compatibility
           restart_format /= 'pio_pnetcdf' .and. &  ! backwards compatibility
+          restart_format /= 'binary'      .and. &
           restart_format /= 'default')     then    ! backwards compatibility
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: restart_format unknown = ',trim(restart_format)
@@ -1301,23 +1303,29 @@
          abort_list = trim(abort_list)//":51"
       endif
 
-      ! backwards compatibility
+      ! backwards compatibility for history and restart formats, lcdf64
+
+      if (history_format == 'pio_pnetcdf' .or. history_format == 'pio_netcdf') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
+                             ' is deprecated, please update namelist settings'
+         endif
+      endif
+      if (restart_format == 'pio_pnetcdf' .or. restart_format == 'pio_netcdf') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
+                             ' is deprecated, please update namelist settings'
+         endif
+      endif
+
       if (lcdf64) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: lcdf64 is deprecated, please update namelist settings'
          endif
 
          if (history_format == 'default' .or. history_format == 'pio_netcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             history_format = 'cdf2'
          elseif (history_format == 'pio_pnetcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             history_format = 'pnetcdf2'
          else
             if (my_task == master_task) then
@@ -1327,16 +1335,8 @@
          endif
 
          if (restart_format == 'default' .or. restart_format == 'pio_netcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             restart_format = 'cdf2'
          elseif (restart_format == 'pio_pnetcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             restart_format = 'pnetcdf2'
          else
             if (my_task == master_task) then
@@ -1346,30 +1346,14 @@
          endif
       else
          if (history_format == 'default' .or. history_format == 'pio_netcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             history_format = 'cdf1'
          elseif (history_format == 'pio_pnetcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: history_format='//trim(history_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             history_format = 'pnetcdf1'
          endif
 
          if (restart_format == 'default' .or. restart_format == 'pio_netcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             restart_format = 'cdf1'
          elseif (restart_format == 'pio_pnetcdf') then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: restart_format='//trim(restart_format)// &
-                                ' is deprecated, please update namelist settings'
-            endif
             restart_format = 'pnetcdf1'
          endif
       endif
@@ -1770,7 +1754,7 @@
          if (my_task == master_task) write (nu_diag,*) subname//' ERROR: _deflate and _chunksize not compatible with PIO1'
          abort_list = trim(abort_list)//":54"
       endif
-#else 
+#else
 #ifndef CESMCOUPLED
       ! history_format not used by nuopc driver
       if (history_format/='hdf5' .and. history_deflate/=0) then
@@ -2551,7 +2535,7 @@
          write(nu_diag,1033) ' histfreq         = ', histfreq(:)
          write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(:)
-         write(nu_diag,1033) ' hist_avg         = ', hist_avg(:)
+         write(nu_diag,1013) ' hist_avg         = ', hist_avg(:)
          write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(:)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
@@ -2766,6 +2750,7 @@
  1009    format (a20,1x,d13.6,1x,a)
  1010    format (a20,8x,l6,1x,a)  ! logical
  1011    format (a20,1x,l6)
+ 1013    format (a20,1x,6l3)
  1020    format (a20,8x,i6,1x,a)  ! integer
  1021    format (a20,1x,i6)
  1022    format (a20,1x,i12)

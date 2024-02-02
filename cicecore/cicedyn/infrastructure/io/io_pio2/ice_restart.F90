@@ -179,7 +179,7 @@
          dimid_ncat, dimid_nilyr, dimid_nslyr, dimid_naero
 
       integer (kind=int_kind), allocatable :: dims(:)
-      
+
       integer (kind=int_kind) :: k, n       ! loop index
 
       character (len=3) :: nchar, ncharb
@@ -224,7 +224,7 @@
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
       endif
-      
+
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
            clobber=.true., fformat=trim(restart_format), rearr=trim(restart_rearranger), &
@@ -924,26 +924,26 @@
 
       character(len=*), parameter :: subname = '(define_rest_field)'
 
-      
+
       status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
       call ice_pio_check(status, &
          subname//' ERROR defining restart field '//trim(vname))
 
-#ifndef USE_PIO1            
-      if (restart_format=='hdf5' .and. restart_deflate/=0) then 
+#ifndef USE_PIO1
+      if (restart_format=='hdf5' .and. restart_deflate/=0) then
          status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=1, deflate_level=restart_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating restart field '//trim(vname),file=__FILE__,line=__LINE__)
       endif
-      
-      if (restart_format=='hdf5' .and. size(dims)>1) then 
+
+      if (restart_format=='hdf5' .and. size(dims)>1) then
          if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
             chunks(1)=restart_chunksize(1)
             chunks(2)=restart_chunksize(2)
             do i = 3, size(dims)
                chunks(i) = 0
             enddo
-            
+
             status = pio_def_var_chunking(File, vardesc, NF90_CHUNKED, chunks)
             call ice_pio_check(status, subname//' ERROR: chunking restart field '//trim(vname),&
                file=__FILE__,line=__LINE__)

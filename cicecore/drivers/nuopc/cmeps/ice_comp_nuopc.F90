@@ -660,7 +660,7 @@ contains
          write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
       endif
 
-      ! The only reason to set these is to detect in ice_history_write if the chunk/deflate settings are ok.    
+      ! The only reason to set these is to detect in ice_history_write if the chunk/deflate settings are ok.
       select case (trim(cvalue))
       case ('netcdf4p')
          history_format='hdf5'

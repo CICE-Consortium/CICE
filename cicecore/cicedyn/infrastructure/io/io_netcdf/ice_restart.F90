@@ -172,7 +172,7 @@
       integer (kind=int_kind), allocatable :: dims(:)
 
       integer (kind=int_kind) :: &
-        
+
         dimid_ncat, & !
         iflag,      & ! netCDF creation flag
         status        ! status variable from netCDF routine
@@ -893,7 +893,7 @@
 
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
       call ice_check_nc(status, subname//' ERROR: def var '//trim(vname), file=__FILE__, line=__LINE__)
-   
+
       if (restart_format=='hdf5' .and. size(dims)>1) then
          if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
             chunks(1)=restart_chunksize(1)
@@ -901,11 +901,11 @@
             do i = 3, size(dims)
                chunks(i) = 0
             enddo
-            status = nf90_def_var_chunking(ncid,varid, NF90_CHUNKED, chunksizes=chunks)
+            status = nf90_def_var_chunking(ncid, varid, NF90_CHUNKED, chunksizes=chunks)
             call ice_check_nc(status, subname//' ERROR: chunking var '//trim(vname), file=__FILE__, line=__LINE__)
          endif
       endif
-               
+
       if (restart_format=='hdf5' .and. restart_deflate/=0) then
          status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=restart_deflate)
          call ice_check_nc(status, subname//' ERROR deflating var '//trim(vname), file=__FILE__, line=__LINE__)
@@ -941,7 +941,7 @@
       endif
       call broadcast_scalar(query_field,master_task)
 #else
-      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 

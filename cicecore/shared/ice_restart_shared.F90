@@ -33,10 +33,10 @@
          restart_iotasks     , & ! iotasks, root, stride defines io pes for pio
          restart_root        , & ! iotasks, root, stride defines io pes for pio
          restart_stride      , & ! iotasks, root, stride defines io pes for pio
-         restart_deflate     , & ! compression level for hdf5/netcdf4 
+         restart_deflate     , & ! compression level for hdf5/netcdf4
          restart_chunksize(2)    ! chunksize for hdf5/netcdf4
-      
-      
+
+
 !=======================================================================
 
       contains

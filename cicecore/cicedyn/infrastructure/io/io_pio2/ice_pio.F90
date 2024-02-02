@@ -105,7 +105,7 @@
       if (fformat(1:3) == 'cdf') then
          pio_iotype = PIO_IOTYPE_NETCDF
       elseif (fformat(1:3) == 'hdf') then
-         pio_iotype = PIO_IOTYPE_NETCDF4P 
+         pio_iotype = PIO_IOTYPE_NETCDF4P
       elseif (fformat(1:7) == 'pnetcdf') then
          pio_iotype = PIO_IOTYPE_PNETCDF
       else

@@ -100,7 +100,7 @@
 
       character (len=char_len) :: start_time,current_date,current_time
       character (len=16) :: c_aice
-      
+
       type(file_desc_t)     :: File
       type(io_desc_t)       :: iodesc2d, &
                                iodesc3dc, iodesc3dv, iodesc3di, iodesc3db, iodesc3da, &
@@ -192,7 +192,7 @@
       ! option of turning on double precision history files
       lprecision = pio_real
       if (history_precision == 8) lprecision = pio_double
-      
+
       !-----------------------------------------------------------------
       ! define dimensions
       !-----------------------------------------------------------------
@@ -241,7 +241,7 @@
       write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
             cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
             hh_init,':',mm_init,':',ss_init
-      
+
       if (days_per_year == 360) then
          cal_att='360_day'
       elseif (days_per_year == 365 .and. .not.use_leap_years ) then
@@ -251,7 +251,7 @@
       else
          call abort_ice(subname//' ERROR: invalid calendar settings')
       endif
-      
+
       time_coord = coord_attributes('time', 'time', trim(cal_units))
       call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid) !why is pio_double this not lprecision ?
       call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
@@ -264,7 +264,7 @@
       ! Define coord time_bounds if hist_avg is true
       if (hist_avg(ns) .and. .not. write_ic) then
          time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units))
-      
+
          dimid2(1) = boundid
          dimid2(2) = timid
 
@@ -479,7 +479,7 @@
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimid3, ns)
          endif
-      enddo  
+      enddo
 
       ! 3D (category)
       dimidz(1) = imtid
@@ -498,7 +498,7 @@
       dimidz(2) = jmtid
       dimidz(3) = kmtidi
       dimidz(4) = timid
-   
+
       do n = n3Dccum + 1, n3Dzcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
@@ -510,7 +510,7 @@
       dimidz(2) = jmtid
       dimidz(3) = kmtidb
       dimidz(4) = timid
-   
+
       do n = n3Dzcum + 1, n3Dbcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
@@ -522,7 +522,7 @@
       dimidz(2) = jmtid
       dimidz(3) = kmtida
       dimidz(4) = timid
-   
+
       do n = n3Dbcum + 1, n3Dacum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidz,ns)
@@ -560,7 +560,7 @@
       dimidcz(3) = kmtids
       dimidcz(4) = cmtid
       dimidcz(5) = timid
-   
+
       do n = n4Dicum + 1, n4Dscum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_hist_field_def(File, avail_hist_fields(n),lprecision, dimidcz,ns)
@@ -597,7 +597,7 @@
       call ice_pio_check(pio_put_att(File,pio_global,'contents',trim(title)), &
            subname//' ERROR: defining att contents '//trim(title),file=__FILE__,line=__LINE__)
 
-      write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
+      write(title,'(2a)') 'CICE Sea Ice Model, ', trim(version_name)
       call ice_pio_check(pio_put_att(File,pio_global,'source',trim(title)), &
            subname//' ERROR: defining att source '//trim(title),file=__FILE__,line=__LINE__)
 
@@ -1263,11 +1263,10 @@
 
 
 !=======================================================================
+! Defines a coordinate var in the history file
+! coordinates have short_name, long_name and units attributes,
+!  and are compressed for 'hdf5' when more than one dimensional
 
-   ! Defines a coordinate var in the history file
-   ! coordinates have short_name, long_name and units attributes, 
-   !  and are compressed for 'hdf5' when more than one dimensional
-   
       subroutine ice_hist_coord_def(File, coord,lprecision, dimids,varid)
 
       use pio, only: file_desc_t, var_desc_t, pio_def_var,  pio_put_att
@@ -1277,12 +1276,12 @@
       use netcdf, only: NF90_CHUNKED
       use ice_history_shared, only: history_deflate, history_chunksize, history_format
 #endif
-      
+
       type(file_desc_t),   intent(inout) :: File
       type(coord_attributes), intent(in) :: coord
       integer(kind=int_kind), intent(in) :: dimids(:), lprecision
       type(var_desc_t),    intent(inout) :: varid
-      
+
       ! local vars
       integer(kind=int_kind) :: chunks(size(dimids)), i, status
 
@@ -1293,14 +1292,14 @@
       call ice_pio_check(status, &
          subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
 #ifndef USE_PIO1
-      if (history_deflate/=0 .and. history_format=='hdf5') then 
+      if (history_deflate/=0 .and. history_format=='hdf5') then
          status = pio_def_var_deflate(File, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating coord '//coord%short_name,file=__FILE__,line=__LINE__)
       endif
 
       if (history_format=='hdf5' .and. size(dimids)>1) then
-         if (dimids(1)==imtid .and. dimids(2)==jmtid) then 
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then
             chunks(1)=history_chunksize(1)
             chunks(2)=history_chunksize(2)
             do i = 3, size(dimids)
@@ -1316,14 +1315,13 @@
             subname//' ERROR: defining att long_name '//coord%long_name,file=__FILE__,line=__LINE__)
       call ice_pio_check(pio_put_att(File, varid, 'units', trim(coord%units)), &
             subname//' ERROR: defining att units '//coord%units,file=__FILE__,line=__LINE__)
-                        
+
       end subroutine ice_hist_coord_def
 
 !=======================================================================
-
-   ! Defines a (time-dependent) history var in the history file
-   ! variables have short_name, long_name and units, coordiantes and cell_measures attributes, 
-   !  and are compressed and chunked for 'hdf5'
+! Defines a (time-dependent) history var in the history file
+! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+!  and are compressed and chunked for 'hdf5'
 
       subroutine ice_hist_field_def(File, hfield,lprecision, dimids, ns)
 
@@ -1352,14 +1350,14 @@
          subname//' ERROR: defining var '//hfield%vname,file=__FILE__,line=__LINE__)
 
 #ifndef USE_PIO1
-      if (history_deflate/=0 .and. history_format=='hdf5') then 
+      if (history_deflate/=0 .and. history_format=='hdf5') then
          status = pio_def_var_deflate(File, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_pio_check(status, &
             subname//' ERROR: deflating var '//hfield%vname,file=__FILE__,line=__LINE__)
       endif
-      
+
       if (history_format=='hdf5' .and. size(dimids)>1) then
-         if (dimids(1)==imtid .and. dimids(2)==jmtid) then 
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then
             chunks(1)=history_chunksize(1)
             chunks(2)=history_chunksize(2)
             do i = 3, size(dimids)
@@ -1426,40 +1424,40 @@
          call ice_pio_check(pio_put_att(File,varid,'time_rep','averaged'), &
               subname//' ERROR: defining att time_rep a',file=__FILE__,line=__LINE__)
       endif
-            
+
       end subroutine ice_hist_field_def
 
 !=======================================================================
+! Defines missing_value and _FillValue attributes
 
-   ! Defines missing_value and _FillValue attributes
       subroutine ice_write_hist_fill(File,varid,vname,precision)
 
-         use pio, only: pio_put_att, file_desc_t, var_desc_t
-   
-         type(file_desc_t),    intent(inout) :: File
-         type(var_desc_t),        intent(in) :: varid
-         character(len=*),        intent(in) :: vname
-         integer (kind=int_kind), intent(in) :: precision
-   
-         ! local variables
-   
-         integer (kind=int_kind) :: status
-         character(len=*), parameter :: subname = '(ice_write_hist_fill)'
-   
-         if (precision == 8) then
-            call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval_dbl), &
-                 subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
-            call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval_dbl), &
-                 subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
-         else
-            call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval), &
-                 subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
-            call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval), &
-                 subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
-         endif
-   
-         end subroutine ice_write_hist_fill
-         
+      use pio, only: pio_put_att, file_desc_t, var_desc_t
+
+      type(file_desc_t),    intent(inout) :: File
+      type(var_desc_t),        intent(in) :: varid
+      character(len=*),        intent(in) :: vname
+      integer (kind=int_kind), intent(in) :: precision
+
+      ! local variables
+
+      integer (kind=int_kind) :: status
+      character(len=*), parameter :: subname = '(ice_write_hist_fill)'
+
+      if (precision == 8) then
+         call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval_dbl), &
+              subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval_dbl), &
+              subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
+      else
+         call ice_pio_check(pio_put_att(File, varid, 'missing_value', spval), &
+              subname//' ERROR: defining att missing_value',file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_att(File, varid,'_FillValue',spval), &
+              subname//' ERROR: defining att _FillValue',file=__FILE__,line=__LINE__)
+      endif
+
+      end subroutine ice_write_hist_fill
+
 !=======================================================================
 
       end module ice_history_write

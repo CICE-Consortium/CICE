@@ -747,7 +747,7 @@ characteristics. In the ‘sectcart’ case, the domain is divided into four
 (east-west,north-south) quarters and the loops are done over each, sequentially.
 
 The ``wghtfile`` decomposition drives the decomposition based on 
-weights provided in a weight file.  That file should be a netcdf
+weights provided in a weight file.  That file should be a netCDF
 file with a double real field called ``wght`` containing the relative
 weight of each gridcell.  :ref:`fig-distrbB` (b) and (c) show
 an example.  The weights associated with each gridcell will be
@@ -1136,6 +1136,8 @@ relaxation parameter ``arlx1i`` effectively sets the damping timescale in
 the problem, and ``brlx`` represents the effective subcycling
 :cite:`Bouillon13` (see Section :ref:`revp`).
 
+.. _modelio:
+
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Model Input and Output
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1151,7 +1153,8 @@ data via a number of different methods.  The IO implementation is specified
 both at build-time (via selection of specific source code) and run-time (via namelist).
 Three different IO packages are available in CICE under the directory
 **cicecore/cicedyn/infrastructure/io**.  Those are io_binary, io_netcdf, and
-io_pio2, and those support IO thru binary, netCDF, and PIO interfaces respectively.
+io_pio2, and those support IO thru binary, netCDF (https://www.unidata.ucar.edu/software/netcdf), 
+and PIO (https://github.com/NCAR/ParallelIO) interfaces respectively.
 The io_pio2 directory supports both PIO1 and PIO2 and can write data thru the
 netCDF or parallel netCDF (pnetCDF) interface.  The netCDF history files are CF-compliant, and
 header information for data contained in the netCDF files is displayed with 
@@ -1164,28 +1167,18 @@ are listed in :ref:`formats`.  Note that with ``ICE_IOTYPE = binary``, the forma
 is actually ignored.    The CICE netCDF output contains a global metadata attribute, ``io_flavor``,
 that indicates the format chosen for the file.  ``ncdump -k filename.nc`` also
 provides information about the specific netCDF file format.
-In general, the detailed format is not enforced for input files so 
-if ``cdf2`` format is specified in namelist, ``cdf1``, ``cdf2``, or ``cdf5`` files can be read.
-
-There are additional namelist options that affect IO performance for both
-restart and history output.  [``history_,restart_``] 
-[``iotasks,root,stride``]
-namelist options control the PIO processor/task usage and specify the total number of 
-IO tasks, the root IO task, and the IO task stride respectively.
-``history_rearranger`` and ``restart_rearranger`` 
-define the PIO rearranger strategy.  Finally, [``history_,restart_``]  
-[``deflate,chunksize``] provide
-controls for hdf5 compression and chunking for the ``hdf5`` options
-in both netCDF and PIO output.
+In general, the detailed format is not enforced for input files, so any netCDF format 
+can be read in CICE regardless of CICE namelist settings.
 
 .. _formats:
 
 .. table:: CICE IO formats
 
    +--------------+----------------------+---------+---------------------+
-   | **Name**     | **Format**           | **By**  |  **Valid With**     |
+   | **Namelist** | **Format**           | **By**  |  **Valid With**     |
+   | **Option**   |                      |         |  **ICE_IOTYPE**     |
    +--------------+----------------------+---------+---------------------+
-   | default      | ICE_IOTYPE dependent | fortran | binary, netcdf, pio |
+   | binary       | Fortran binary       | fortran | binary              |
    +--------------+----------------------+---------+---------------------+
    | cdf1         | netCDF3-classic      | netCDF  | netcdf, pio         |
    +--------------+----------------------+---------+---------------------+
@@ -1193,7 +1186,11 @@ in both netCDF and PIO output.
    +--------------+----------------------+---------+---------------------+
    | cdf5         | netCDF3-64bit-data   | netCDF  | netcdf, pio         |
    +--------------+----------------------+---------+---------------------+
-   | hdf5         | netCDF4 hdf5         | netCDF  | netcdf, pio         |
+   | default      | binary or cdf1,      | varies  | binary, netcdf, pio |
+   |              | depends on ICE_IOTYPE|         |                     |
+   +--------------+----------------------+---------+---------------------+
+   | hdf5         | netCDF4 hdf5         | netCDF  | netcdf (serial),    |
+   |              |                      |         | pio (parallel)      |
    +--------------+----------------------+---------+---------------------+
    | pnetcdf1     | netCDF3-classic      | pnetCDF | pio                 |
    +--------------+----------------------+---------+---------------------+
@@ -1202,8 +1199,23 @@ in both netCDF and PIO output.
    | pnetcdf5     | netCDF3-64bit-data   | pnetCDF | pio                 |
    +--------------+----------------------+---------+---------------------+
 
-netCDF requires CICE compilation with a netcdf library built externally.  
-PIO requires CICE compilation with a PIO and netcdf library built externally.  
+There are additional namelist options that affect PIO performance for both
+restart and history output.  [``history_,restart_``] 
+[``iotasks,root,stride``]
+namelist options control the PIO processor/task usage and specify the total number of 
+IO tasks, the root IO task, and the IO task stride respectively.
+``history_rearranger`` and ``restart_rearranger`` 
+define the PIO rearranger strategy.  Finally, [``history_,restart_``]  
+[``deflate,chunksize``] provide
+controls for hdf5 compression and chunking for the ``hdf5`` options
+in both netCDF and PIO output.  ``hdf5`` is written serially thru the
+netCDF library and in parallel thru the PIO library in CICE.  Additional
+details about the netCDF and PIO settings and implementations can 
+found in (https://www.unidata.ucar.edu/software/netcdf)
+and (https://github.com/NCAR/ParallelIO).
+
+netCDF requires CICE compilation with a netCDF library built externally.  
+PIO requires CICE compilation with a PIO and netCDF library built externally.  
 Both netCDF and PIO can be built with many options which may require additional libraries
 such as MPI, hdf5, or pnetCDF.
 
@@ -1214,7 +1226,7 @@ History files
 *************
 
 CICE provides history data output in binary unformatted or netCDF formats via
-separate implementations of binary, netcdf, and pio source code as described
+separate implementations of binary, netCDF, and PIO interfaces as described
 above.  In addition, ``history_format`` as well as other history namelist
 options control the specific file format as well as features related to 
 IO performance, see :ref:`iooverview`.
@@ -1462,7 +1474,7 @@ Restart files
 *************
 
 CICE reads and writes restart data in binary unformatted or netCDF formats via
-separate implementations of binary, netcdf, and pio source code as described
+separate implementations of binary, netCDF, and PIO interfaces as described
 above.  In addition, ``restart_format`` as well as other restart namelist
 options control the specific file format as well as features related to 
 IO performance, see :ref:`iooverview`.
