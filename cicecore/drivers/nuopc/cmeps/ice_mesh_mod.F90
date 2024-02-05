@@ -439,7 +439,6 @@ contains
     use ice_grid      , only : uarea, uarear, tarear!, tinyarea
     use ice_grid      , only : dxT, dyT, dxU, dyU
     use ice_grid      , only : makemask
-    use ice_dyn_shared, only : dyhx, dxhy, cyp, cxp, cym, cxm
     use ice_boundary  , only : ice_HaloUpdate
     use ice_domain    , only : blocks_ice, nblocks, halo_info, distrb_info
     use ice_constants , only : c0, c1, p25
@@ -536,12 +535,6 @@ contains
              dyT   (i,j,iblk) = 1.e36_dbl_kind
              dxU   (i,j,iblk) = 1.e36_dbl_kind
              dyU   (i,j,iblk) = 1.e36_dbl_kind
-             dxhy  (i,j,iblk) = 1.e36_dbl_kind
-             dyhx  (i,j,iblk) = 1.e36_dbl_kind
-             cyp   (i,j,iblk) = 1.e36_dbl_kind
-             cxp   (i,j,iblk) = 1.e36_dbl_kind
-             cym   (i,j,iblk) = 1.e36_dbl_kind
-             cxm   (i,j,iblk) = 1.e36_dbl_kind
           enddo
        enddo
     enddo
