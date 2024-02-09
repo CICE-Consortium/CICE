@@ -24,7 +24,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
       use ice_calendar, only: write_ic, histfreq
-      use ice_pio, only: ice_pio_check
+      use ice_pio
 
       implicit none
       private
@@ -75,7 +75,6 @@
       use ice_arrays_column, only: hin_max, floe_rad_c
       use ice_restart_shared, only: runid
       use pio
-      use ice_pio
 
       integer (kind=int_kind), intent(in) :: ns
 
@@ -253,7 +252,7 @@
       endif
 
       time_coord = coord_attributes('time', 'time', trim(cal_units))
-      call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid) !why is pio_double this not lprecision ?
+      call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid)
       call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
               subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
       if (hist_avg(ns) .and. .not. write_ic) then
@@ -268,7 +267,7 @@
          dimid2(1) = boundid
          dimid2(2) = timid
 
-         call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid) !why is pio_double this not lprecision ?
+         call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
          call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
               subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
       endif
@@ -659,11 +658,6 @@
       call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio2 '//trim(history_format)), &
            subname//' ERROR: defining att io_flavor',file=__FILE__,line=__LINE__)
 #endif
-
-      if (history_format == 'hdf5') then
-         call ice_pio_check(pio_put_att(File,pio_global,'deflate',history_deflate), &
-              subname//' ERROR: defining att deflate',file=__FILE__,line=__LINE__)
-      endif
 
       !-----------------------------------------------------------------
       ! end define mode

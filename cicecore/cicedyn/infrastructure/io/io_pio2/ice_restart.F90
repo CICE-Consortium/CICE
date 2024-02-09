@@ -78,8 +78,13 @@
       end if
 
       File%fh=-1
+! tcraig, including fformat here causes some problems when restart_format=hdf5
+!         and reading non hdf5 files with spack built PIO.  Excluding the fformat
+!         argument here defaults the PIO format to cdf1 which then reads
+!         any netcdf format file fine.
       call ice_pio_init(mode='read', filename=trim(filename), File=File, &
-           fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+!          fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+                                         rearr=trim(restart_rearranger), &
            iotasks=restart_iotasks, root=restart_root, stride=restart_stride, &
            debug=first_call)
 
