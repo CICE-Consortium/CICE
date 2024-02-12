@@ -29,4 +29,4 @@ please refer to: <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Inde
     - [ ] No, does the documentation need to be updated at a later time?
         - [ ] Yes
         - [ ] No 
-- [ ] Please provide any additional information or relevant details below:
+- [ ] Please document the changes in detail, including _why_ the changes are made.  This will become part of the PR commit log.
