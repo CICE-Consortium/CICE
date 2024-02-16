@@ -113,9 +113,6 @@
       ! time coord
       TYPE(coord_attributes) :: time_coord
 
-      ! 8 coordinate variables: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT
-      INTEGER (kind=int_kind), PARAMETER :: ncoord = 8
-
       ! 4 vertices in each grid cell
       INTEGER (kind=int_kind), PARAMETER :: nverts = 4
 
