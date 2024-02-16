@@ -406,18 +406,20 @@
          dimid(3) = timid
 
          do i = 1, ncoord
-            call ice_hist_coord_def(ncid, var_coord(i), lprecision, dimid(1:2), varid)
-            call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
-            if (var_coord(i)%short_name == 'ULAT') then
-               status = nf90_put_att(ncid,varid,'comment', &
-                    'Latitude of NE corner of T grid cell')
-               call ice_check_nc(status, subname// ' ERROR: defining comment for '//var_coord(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
-            endif
-            if (f_bounds) then
-               status = nf90_put_att(ncid, varid, 'bounds', coord_bounds(i))
-               call ice_check_nc(status, subname// ' ERROR: defining bounds for '//var_coord(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
+            if(icoord(i)) then
+               call ice_hist_coord_def(ncid, var_coord(i), lprecision, dimid(1:2), varid)
+               call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
+               if (var_coord(i)%short_name == 'ULAT') then
+                  status = nf90_put_att(ncid,varid,'comment', &
+                       'Latitude of NE corner of T grid cell')
+                  call ice_check_nc(status, subname// ' ERROR: defining comment for '//var_coord(i)%short_name, &
+                                    file=__FILE__, line=__LINE__)
+               endif
+               if (f_bounds) then
+                  status = nf90_put_att(ncid, varid, 'bounds', coord_bounds(i))
+                  call ice_check_nc(status, subname// ' ERROR: defining bounds for '//var_coord(i)%short_name, &
+                                    file=__FILE__, line=__LINE__)
+               endif
             endif
          enddo
 
@@ -707,44 +709,46 @@
       !-----------------------------------------------------------------
 
       do i = 1,ncoord
-         call broadcast_scalar(var_coord(i)%short_name,master_task)
-         SELECT CASE (var_coord(i)%short_name)
-            CASE ('TLON')
-               ! Convert T grid longitude from -180 -> 180 to 0 to 360
-               work1 = TLON*rad_to_deg + c360
-               where (work1 > c360) work1 = work1 - c360
-               where (work1 < c0 )  work1 = work1 + c360
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('TLAT')
-               work1 = TLAT*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('ULON')
-               work1 = ULON*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('ULAT')
-               work1 = ULAT*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('NLON')
-               work1 = NLON*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('NLAT')
-               work1 = NLAT*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('ELON')
-               work1 = ELON*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-            CASE ('ELAT')
-               work1 = ELAT*rad_to_deg
-               call gather_global(work_g1,work1,master_task,distrb_info)
-         END SELECT
+         if(icoord(i)) then
+            call broadcast_scalar(var_coord(i)%short_name,master_task)
+            SELECT CASE (var_coord(i)%short_name)
+               CASE ('TLON')
+                  ! Convert T grid longitude from -180 -> 180 to 0 to 360
+                  work1 = TLON*rad_to_deg + c360
+                  where (work1 > c360) work1 = work1 - c360
+                  where (work1 < c0 )  work1 = work1 + c360
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('TLAT')
+                  work1 = TLAT*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('ULON')
+                  work1 = ULON*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('ULAT')
+                  work1 = ULAT*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('NLON')
+                  work1 = NLON*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('NLAT')
+                  work1 = NLAT*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('ELON')
+                  work1 = ELON*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+               CASE ('ELAT')
+                  work1 = ELAT*rad_to_deg
+                  call gather_global(work_g1,work1,master_task,distrb_info)
+            END SELECT
 
-         if (my_task == master_task) then
-            status = nf90_inq_varid(ncid, var_coord(i)%short_name, varid)
-            call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_coord(i)%short_name, &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,work_g1)
-            call ice_check_nc(status, subname// ' ERROR: writing'//var_coord(i)%short_name, &
-                              file=__FILE__, line=__LINE__)
+            if (my_task == master_task) then
+               status = nf90_inq_varid(ncid, var_coord(i)%short_name, varid)
+               call ice_check_nc(status, subname// ' ERROR: getting varid for '//var_coord(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,work_g1)
+               call ice_check_nc(status, subname// ' ERROR: writing'//var_coord(i)%short_name, &
+                                 file=__FILE__, line=__LINE__)
+            endif
          endif
       enddo
 
