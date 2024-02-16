@@ -273,39 +273,42 @@
       ! define information for required time-invariant variables
       !-----------------------------------------------------------------
 
-      ind = 0
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLON', &
-                       'T grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lont_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLAT', &
-                       'T grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latt_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULON', &
-                       'U grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULAT', &
-                       'U grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLON', &
-                       'N grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLAT', &
-                       'N grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELON', &
-                       'E grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lone_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELAT', &
-                       'E grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'late_bounds'
+      do ind = 1, ncoord
+         select case (ind)
+            case(n_tlon)
+               var_coord(ind) = coord_attributes('TLON', &
+                                'T grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lont_bounds'
+            case(n_tlat)
+               var_coord(ind) = coord_attributes('TLAT', &
+                                'T grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latt_bounds'
+            case(n_ulon)
+               var_coord(ind) = coord_attributes('ULON', &
+                                'U grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lonu_bounds'
+            case(n_ulat)
+               var_coord(ind) = coord_attributes('ULAT', &
+                                'U grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latu_bounds'
+            case(n_nlon)
+               var_coord(ind) = coord_attributes('NLON', &
+                                'N grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lonn_bounds'
+            case(n_nlat)
+               var_coord(ind) = coord_attributes('NLAT', &
+                                'N grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latn_bounds'
+            case(n_elon)
+               var_coord(ind) = coord_attributes('ELON', &
+                                'E grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lone_bounds'
+            case(n_elat)
+               var_coord(ind) = coord_attributes('ELAT', &
+                                'E grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'late_bounds'
+         end select
+      end do
 
       var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
       var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
