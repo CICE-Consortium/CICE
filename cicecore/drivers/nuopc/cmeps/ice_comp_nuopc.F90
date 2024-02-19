@@ -23,10 +23,10 @@ module ice_comp_nuopc
   use ice_domain_size    , only : nx_global, ny_global
   use ice_grid           , only : grid_format, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
-  use ice_calendar       , only : force_restart_now, write_ic, init_calendar
-  use ice_calendar       , only : idate, mday, mmonth, myear, year_init
+  use ice_calendar       , only : force_restart_now, write_ic
+  use ice_calendar       , only : idate, idate0,  mday, mmonth, myear, year_init, month_init, day_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
-  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian, use_leap_years
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
@@ -675,6 +675,10 @@ contains
     else
       if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
     end if
+    ! Set use_leap_years as some CICE calls use this instead of the calendar type
+    call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (esmf_caltype == ESMF_CALKIND_GREGORIAN) use_leap_years = .true.
 
 #else
 
@@ -805,7 +809,7 @@ contains
        if (ref_ymd /= start_ymd .or. ref_tod /= start_tod) then
           if (my_task == master_task) then
              write(nu_diag,*) trim(subname),': ref_ymd ',ref_ymd, ' must equal start_ymd ',start_ymd
-             write(nu_diag,*) trim(subname),': ref_ymd ',ref_tod, ' must equal start_ymd ',start_tod
+             write(nu_diag,*) trim(subname),': ref_ymd ',ref_tod, ' must equal start_tod ',start_tod
           end if
        end if
 
@@ -836,6 +840,12 @@ contains
        endif
 
     end if
+
+    !  - start time from ESMF clock. Used to set history time units
+    idate0    = start_ymd
+    year_init = (idate0/10000)
+    month_init= (idate0-year_init*10000)/100           ! integer month of basedate
+    day_init  = idate0-year_init*10000-month_init*100 
 
     call calendar()     ! update calendar info
 
