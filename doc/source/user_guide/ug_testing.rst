@@ -1153,6 +1153,11 @@ Below is an example of a step-by-step procedure for testing a code change that m
 
   ./cice.setup -m onyx -e intel --suite base_suite --testid base0 --bgen cice.my.baseline
 
+  # Check the results
+
+  cd testsuite.base0
+  ./results.csh
+
   # Run the test suite with the new code
   # git clone the new code
 
