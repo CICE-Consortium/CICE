@@ -141,7 +141,10 @@
    nprocs = get_num_procs()
    lstride = 4
    lroot = min(1,nprocs-1)
-   liotasks = max(1,(nprocs-lroot)/lstride)
+!  Adjustments for PIO2 iotask issue, https://github.com/NCAR/ParallelIO/issues/1986
+!   liotasks = max(1,(nprocs-lroot)/lstride)  ! very conservative
+   liotasks = max(1,nprocs/lstride - lroot/lstride)  ! less conservative (note integer math)
+!   liotasks = 1 + (nprocs-lroot-1)/lstride   ! optimal
 
    if (present(iotasks)) then
       if (iotasks /= -99) liotasks=iotasks
@@ -160,11 +163,10 @@
 
    ! adjust to fit in nprocs, preserve root and stride as much as possible
    lroot = min(lroot,nprocs-1)   ! lroot <= nprocs-1
-   ! tcraig, should work better but aborts in pio2
-   !liotasks = min(liotasks, 1 + (nprocs-lroot-1)/lstride)
-   if (lroot + (liotasks-1)*lstride > nprocs-1) then
-      liotasks = max(1,(nprocs-lroot)/lstride)
-   endif
+!  Adjustments for PIO2 iotask issue, https://github.com/NCAR/ParallelIO/issues/1986
+!   liotasks = max(1,min(liotasks, (nprocs-lroot)/lstride))  ! very conservative
+   liotasks = max(1,min(liotasks,nprocs/lstride - lroot/lstride))  ! less conservative (note integer math)
+!   liotasks = max(1,min(liotasks, 1 + (nprocs-lroot-1)/lstride))  ! optimal
 
    !--- initialize ice_pio_subsystem
 
