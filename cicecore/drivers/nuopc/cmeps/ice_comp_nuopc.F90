@@ -809,7 +809,7 @@ contains
        if (ref_ymd /= start_ymd .or. ref_tod /= start_tod) then
           if (my_task == master_task) then
              write(nu_diag,*) trim(subname),': ref_ymd ',ref_ymd, ' must equal start_ymd ',start_ymd
-             write(nu_diag,*) trim(subname),': ref_ymd ',ref_tod, ' must equal start_tod ',start_tod
+             write(nu_diag,*) trim(subname),': ref_tod',ref_tod, ' must equal start_tod ',start_tod
           end if
        end if
 
