@@ -651,11 +651,11 @@ contains
          isPresent=isPresent, isSet=isSet, rc=rc)
     if (chkerr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-      if (trim(history_format)/='cdf2' .and. mastertask) then
+      if (trim(history_format)/='cdf1' .and. mastertask) then
          write(nu_diag,*) trim(subname)//history_format//'WARNING: history_format from cice_namelist ignored'
          write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
       endif
-      if (trim(restart_format)/='cdf2' .and. mastertask) then
+      if (trim(restart_format)/='cdf1' .and. mastertask) then
          write(nu_diag,*) trim(subname)//restart_format//'WARNING: restart_format from cice_namelist ignored'
          write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
       endif
