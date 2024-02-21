@@ -1163,7 +1163,7 @@ in **cice.settings** to ``binary``, ``netcdf``, ``pio1``, or ``pio2``.
 
 At run-time, more detailed IO settings are available.  ``restart_format`` and
 ``history_format`` namelist options specify the method and format further.  Valid options
-are listed in :ref:`formats`.  These format specify the format of new files created
+are listed in :ref:`formats`.  These options specify the format of new files created
 by CICE.  Existing files can be read in any format as long as it's consistent
 with ``ICE_IOTYPE`` defined.  Note that with ``ICE_IOTYPE = binary``, the format name
 is actually ignored.    The CICE netCDF output contains a global metadata attribute, ``io_flavor``,
@@ -1176,30 +1176,29 @@ can be read in CICE regardless of CICE namelist settings.
 
 .. table:: CICE IO formats
 
-   +--------------+----------------------+---------+---------------------+
-   | **Namelist** | **Format**           | **By**  |  **Valid With**     |
-   | **Option**   |                      |         |  **ICE_IOTYPE**     |
-   +--------------+----------------------+---------+---------------------+
-   | binary       | Fortran binary       | fortran | binary              |
-   +--------------+----------------------+---------+---------------------+
-   | cdf1         | netCDF3-classic      | netCDF  | netcdf, pio         |
-   +--------------+----------------------+---------+---------------------+
-   | cdf2         | netCDF3-64bit-offset | netCDF  | netcdf, pio         |
-   +--------------+----------------------+---------+---------------------+
-   | cdf5         | netCDF3-64bit-data   | netCDF  | netcdf, pio         |
-   +--------------+----------------------+---------+---------------------+
-   | default      | binary or cdf1,      | varies  | binary, netcdf, pio |
-   |              | depends on ICE_IOTYPE|         |                     |
-   +--------------+----------------------+---------+---------------------+
-   | hdf5         | netCDF4 hdf5         | netCDF  | netcdf (serial),    |
-   |              |                      |         | pio (parallel)      |
-   +--------------+----------------------+---------+---------------------+
-   | pnetcdf1     | netCDF3-classic      | pnetCDF | pio                 |
-   +--------------+----------------------+---------+---------------------+
-   | pnetcdf2     | netCDF3-64bit-offset | pnetCDF | pio                 |
-   +--------------+----------------------+---------+---------------------+
-   | pnetcdf5     | netCDF3-64bit-data   | pnetCDF | pio                 |
-   +--------------+----------------------+---------+---------------------+
+   +--------------+----------------------+-------------+---------------------+
+   | **Namelist** | **Format**           | **Written** |  **Valid With**     |
+   | **Option**   |                      | **Thru**    |  **ICE_IOTYPE**     |
+   +--------------+----------------------+-------------+---------------------+
+   | binary       | Fortran binary       | fortran     | binary              |
+   +--------------+----------------------+-------------+---------------------+
+   | cdf1         | netCDF3-classic      | netCDF      | netcdf, pio1, pio2  |
+   +--------------+----------------------+-------------+---------------------+
+   | cdf2         | netCDF3-64bit-offset | netCDF      | netcdf, pio1, pio2  |
+   +--------------+----------------------+-------------+---------------------+
+   | cdf5         | netCDF3-64bit-data   | netCDF      | netcdf, pio1, pio2  |
+   +--------------+----------------------+-------------+---------------------+
+   | default      | binary or cdf1,      | varies      | binary, netcdf,     |
+   |              | depends on ICE_IOTYPE|             | pio1, pio2          |
+   +--------------+----------------------+-------------+---------------------+
+   | hdf5         | netCDF4 hdf5         | netCDF      | netcdf, pio1, pio2  |
+   +--------------+----------------------+-------------+---------------------+
+   | pnetcdf1     | netCDF3-classic      | pnetCDF     | pio1, pio2          |
+   +--------------+----------------------+-------------+---------------------+
+   | pnetcdf2     | netCDF3-64bit-offset | pnetCDF     | pio1, pio2          |
+   +--------------+----------------------+-------------+---------------------+
+   | pnetcdf5     | netCDF3-64bit-data   | pnetCDF     | pio1, pio2          |
+   +--------------+----------------------+-------------+---------------------+
 
 There are additional namelist options that affect PIO performance for both
 restart and history output.  [``history_,restart_``] 
@@ -1483,7 +1482,7 @@ IO performance, see :ref:`iooverview`.
 
 The restart files created by CICE contain all of the variables needed
 for a full, exact restart. The filename begins with the character string
-define by the ``restart_file`` namelist input, and the restart dump frequency 
+defined by the ``restart_file`` namelist input, and the restart dump frequency 
 is given by the namelist
 variables ``dumpfreq`` and ``dumpfreq_n`` relative to a reference date
 specified by ``dumpfreq_base``.  Multiple restart frequencies are supported
