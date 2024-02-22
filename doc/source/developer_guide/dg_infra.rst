@@ -40,7 +40,7 @@ Time manager data is module data in **cicecore/shared/ice_calendar.F90**.  Much 
 data is public and operated on during the model timestepping.  The model timestepping actually takes
 place in the **CICE_RunMod.F90** file which is part of the driver code.
 
-The time manager was updated in early 2021.  Additional information about the time manager can be found here, :ref:`timemanagerplus`
+The time manager was updated in early 2021.  Additional information about the time manager can be found here, :ref:`timemanagerplus`.
 
 
 
@@ -82,3 +82,5 @@ is a parallel io library (https://github.com/NCAR/ParallelIO) that supports read
 binary and netcdf file through various interfaces including netcdf and pnetcdf.  pio is generally
 more parallel in memory even when using serial netcdf than the standard gather/scatter methods,
 and it provides parallel read/write capabilities by optionally linking and using pnetcdf.
+
+There is additional IO information in :ref:`modelio`.

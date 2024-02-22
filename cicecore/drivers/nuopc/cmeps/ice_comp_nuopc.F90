@@ -30,8 +30,9 @@ module ice_comp_nuopc
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
-  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file
+  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, restart_format, restart_chunksize
   use ice_history        , only : accum_hist
+  use ice_history_shared , only : history_format, history_chunksize
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
@@ -644,6 +645,36 @@ contains
             ' must be the same as natmiter from cice namelist ',natmiter
        call abort_ice(trim(errmsg))
     endif
+
+    ! Netcdf output created by PIO
+    call NUOPC_CompAttributeGet(gcomp, name="pio_typename", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      if (trim(history_format)/='cdf1' .and. mastertask) then
+         write(nu_diag,*) trim(subname)//history_format//'WARNING: history_format from cice_namelist ignored'
+         write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
+      endif
+      if (trim(restart_format)/='cdf1' .and. mastertask) then
+         write(nu_diag,*) trim(subname)//restart_format//'WARNING: restart_format from cice_namelist ignored'
+         write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
+      endif
+
+      ! The only reason to set these is to detect in ice_history_write if the chunk/deflate settings are ok.
+      select case (trim(cvalue))
+      case ('netcdf4p')
+         history_format='hdf5'
+         restart_format='hdf5'
+      case ('netcdf4c')
+         if (mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename = netcdf4c is superseded, use netcdf4p'
+         history_format='hdf5'
+         restart_format='hdf5'
+      case default !pio_typename=netcdf or pnetcdf
+         ! do nothing
+      end select
+    else
+      if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
+    end if
 
 #else
 

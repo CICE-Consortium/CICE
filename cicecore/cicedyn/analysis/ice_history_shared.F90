@@ -49,17 +49,22 @@
          history_dir   , & ! directory name for history file
          incond_dir        ! directory for snapshot initial conditions
 
-      character (len=char_len_long), public :: &
-         pointer_file      ! input pointer file for restarts
-
       character (len=char_len), public :: &
          version_name
 
       character (len=char_len), public :: &
-         history_format
+         history_format      , & ! history format, cdf1, cdf2, cdf5, etc
+         history_rearranger      ! history file rearranger, box or subset for pio
 
       character (len=char_len), public :: &
          hist_suffix(max_nstrm)  ! appended to 'h' in filename when not 'x'
+
+      integer (kind=int_kind), public :: &
+         history_iotasks     , & ! iotasks, root, stride defines io pes for pio
+         history_root        , & ! iotasks, root, stride defines io pes for pio
+         history_stride      , & ! iotasks, root, stride defines io pes for pio
+         history_deflate     , & ! compression level for hdf5/netcdf4
+         history_chunksize(2) ! chunksize for hdf5/netcdf4
 
       !---------------------------------------------------------------
       ! Instructions for adding a field: (search for 'example')

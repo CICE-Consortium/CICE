@@ -27,10 +27,28 @@
       use ice_read_write, only: ice_check_nc
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
+      use ice_kinds_mod, only: int_kind
+#ifdef USE_NETCDF
+      use netcdf
+#endif
 
       implicit none
       private
+
+      TYPE coord_attributes         ! netcdf coordinate attributes
+        character (len=11)   :: short_name
+        character (len=45)   :: long_name
+        character (len=30)   :: units
+      END TYPE coord_attributes
+
+      TYPE req_attributes         ! req'd netcdf attributes
+        type (coord_attributes) :: req
+        character (len=20)   :: coordinates
+      END TYPE req_attributes
+
       public :: ice_write_hist
+
+      integer (kind=int_kind) :: imtid,jmtid
 
 !=======================================================================
 
@@ -61,12 +79,8 @@
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
-      use ice_restart_shared, only: lcdf64
 #ifdef CESMCOUPLED
       use ice_restart_shared, only: runid
-#endif
-#ifdef USE_NETCDF
-      use netcdf
 #endif
 
       integer (kind=int_kind), intent(in) :: ns
@@ -78,7 +92,7 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work1
 
       integer (kind=int_kind) :: i,k,ic,n,nn, &
-         ncid,status,imtid,jmtid,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
+         ncid,status,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
          nvertexid,ivertex,kmtida,iflag, fmtid
       integer (kind=int_kind), dimension(3) :: dimid
       integer (kind=int_kind), dimension(4) :: dimidz
@@ -86,17 +100,18 @@
       integer (kind=int_kind), dimension(3) :: dimid_nverts
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind=dbl_kind)  :: ltime2
-      character (char_len) :: title
+      character (char_len) :: title, cal_units, cal_att
       character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile(max_nstrm)
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
-      integer (kind=int_kind) :: ind,boundid
-
-      integer (kind=int_kind) :: lprecision
+      integer (kind=int_kind) :: ind,boundid, lprecision
 
       character (char_len) :: start_time,current_date,current_time
       character (len=8) :: cdate
+
+      ! time coord
+      TYPE(coord_attributes) :: time_coord
 
       ! 8 coordinate variables: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT
       INTEGER (kind=int_kind), PARAMETER :: ncoord = 8
@@ -107,17 +122,6 @@
       ! 8 variables describe T, U grid boundaries:
       ! lont_bounds, latt_bounds, lonu_bounds, latu_bounds
       INTEGER (kind=int_kind), PARAMETER :: nvar_verts = 8
-
-      TYPE coord_attributes         ! netcdf coordinate attributes
-        character (len=11)   :: short_name
-        character (len=45)   :: long_name
-        character (len=20)   :: units
-      END TYPE coord_attributes
-
-      TYPE req_attributes         ! req'd netcdf attributes
-        type (coord_attributes) :: req
-        character (len=20)   :: coordinates
-      END TYPE req_attributes
 
       TYPE(req_attributes), dimension(nvar_grd) :: var_grd
       TYPE(coord_attributes), dimension(ncoord) :: var_coord
@@ -148,8 +152,18 @@
          endif
 
          ! create file
-         iflag = nf90_clobber
-         if (lcdf64) iflag = ior(iflag,nf90_64bit_offset)
+         if (history_format == 'cdf1') then
+           iflag = nf90_clobber
+         elseif (history_format == 'cdf2') then
+           iflag = ior(nf90_clobber,nf90_64bit_offset)
+         elseif (history_format == 'cdf5') then
+           iflag = ior(nf90_clobber,nf90_64bit_data)
+         elseif (history_format == 'hdf5') then
+           iflag = ior(nf90_clobber,nf90_netcdf4)
+         else
+           call abort_ice(subname//' ERROR: history_format not allowed for '//trim(history_format), &
+              file=__FILE__, line=__LINE__)
+         endif
          status = nf90_create(ncfile(ns), iflag, ncid)
          call ice_check_nc(status, subname// ' ERROR: creating history ncfile '//ncfile(ns), &
                            file=__FILE__, line=__LINE__)
@@ -205,83 +219,44 @@
                            file=__FILE__, line=__LINE__)
 
          !-----------------------------------------------------------------
-         ! define coordinate variables
+         ! define coordinate variables: time, time_bounds
          !-----------------------------------------------------------------
 
-         status = nf90_def_var(ncid,'time',nf90_double,timid,varid)
-         call ice_check_nc(status, subname// ' ERROR: defining var time', &
-                           file=__FILE__, line=__LINE__)
-
-         status = nf90_put_att(ncid,varid,'long_name','time')
-         call ice_check_nc(status, subname// ' ERROR: time long_name', &
-                           file=__FILE__, line=__LINE__)
-
          write(cdate,'(i8.8)') idate0
-         write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+         write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
                cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
                hh_init,':',mm_init,':',ss_init
-         status = nf90_put_att(ncid,varid,'units',title)
-         call ice_check_nc(status, subname// ' ERROR: time units', &
-                           file=__FILE__, line=__LINE__)
 
          if (days_per_year == 360) then
-            status = nf90_put_att(ncid,varid,'calendar','360_day')
-            call ice_check_nc(status, subname// ' ERROR: time calendar 360', &
-                              file=__FILE__, line=__LINE__)
+            cal_att='360_day'
          elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-            status = nf90_put_att(ncid,varid,'calendar','noleap')
-            call ice_check_nc(status, subname// ' ERROR: time calendar noleap', &
-                              file=__FILE__, line=__LINE__)
+            cal_att='noleap'
          elseif (use_leap_years) then
-            status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-            call ice_check_nc(status, subname// ' ERROR: time calendar Gregorian', &
-                              file=__FILE__, line=__LINE__)
+            cal_att='Gregorian'
          else
             call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
          endif
 
+         time_coord = coord_attributes('time', 'time', trim(cal_units))
+         call ice_hist_coord_def(ncid, time_coord, nf90_double, (/timid/), varid)
+
+         status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
+         call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          if (hist_avg(ns) .and. .not. write_ic) then
             status = nf90_put_att(ncid,varid,'bounds','time_bounds')
-            call ice_check_nc(status, subname// ' ERROR: time bounds', &
-                              file=__FILE__, line=__LINE__)
+            call ice_check_nc(status, subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
          endif
 
-         !-----------------------------------------------------------------
-         ! Define attributes for time bounds if hist_avg is true
-         !-----------------------------------------------------------------
-
+         ! Define coord time_bounds if hist_avg is true
          if (hist_avg(ns) .and. .not. write_ic) then
+            time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units))
+
             dimid(1) = boundid
             dimid(2) = timid
-            status = nf90_def_var(ncid,'time_bounds',lprecision,dimid(1:2),varid)
-            call ice_check_nc(status, subname// ' ERROR: defining var time_bounds', &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid,varid,'long_name', 'time interval endpoints')
-            call ice_check_nc(status, subname// ' ERROR: time_bounds long_name', &
-                              file=__FILE__, line=__LINE__)
-            write(cdate,'(i8.8)') idate0
-            write(title,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-                  cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-                  hh_init,':',mm_init,':',ss_init
-            status = nf90_put_att(ncid,varid,'units',title)
-            call ice_check_nc(status, subname// ' ERROR: time_bounds units', &
-                              file=__FILE__, line=__LINE__)
-            if (days_per_year == 360) then
-               status = nf90_put_att(ncid,varid,'calendar','360_day')
-               call ice_check_nc(status, subname// ' ERROR: time calendar 360 time bounds', &
-                                 file=__FILE__, line=__LINE__)
-            elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-               status = nf90_put_att(ncid,varid,'calendar','noleap')
-               call ice_check_nc(status, subname// ' ERROR: time calendar noleap time bounds', &
-                                 file=__FILE__, line=__LINE__)
-            elseif (use_leap_years) then
-               status = nf90_put_att(ncid,varid,'calendar','Gregorian')
-               call ice_check_nc(status, subname// ' ERROR: time calendar Gregorian time bounds', &
-                                 file=__FILE__, line=__LINE__)
-            else
-               call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
-            endif
 
+            call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
+            status = nf90_put_att(ncid,varid,'calendar',cal_att)
+            call ice_check_nc(status, subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          endif
 
          !-----------------------------------------------------------------
@@ -431,16 +406,7 @@
          dimid(3) = timid
 
          do i = 1, ncoord
-            status = nf90_def_var(ncid, var_coord(i)%short_name, lprecision, &
-                                  dimid(1:2), varid)
-            call ice_check_nc(status, subname// ' ERROR: defining short_name for '//var_coord(i)%short_name, &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid,varid,'long_name',var_coord(i)%long_name)
-            call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_coord(i)%short_name, &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid, varid, 'units', var_coord(i)%units)
-            call ice_check_nc(status, subname// ' ERROR: defining units for '//var_coord(i)%short_name, &
-                              file=__FILE__, line=__LINE__)
+            call ice_hist_coord_def(ncid, var_coord(i), lprecision, dimid(1:2), varid)
             call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
             if (var_coord(i)%short_name == 'ULAT') then
                status = nf90_put_att(ncid,varid,'comment', &
@@ -465,31 +431,13 @@
 
          do i = 1, nvar_grdz
             if (igrdz(i)) then
-               status = nf90_def_var(ncid, var_grdz(i)%short_name, &
-                                     lprecision, dimidex(i), varid)
-               call ice_check_nc(status, subname// ' ERROR: defining short_name for '//var_grdz(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid,varid,'long_name',var_grdz(i)%long_name)
-               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_grdz(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid, varid, 'units', var_grdz(i)%units)
-               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_grdz(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
+               call ice_hist_coord_def(ncid, var_grdz(i), lprecision, dimidex(i:i), varid)
             endif
          enddo
 
          do i = 1, nvar_grd
             if (igrd(i)) then
-               status = nf90_def_var(ncid, var_grd(i)%req%short_name, &
-                                     lprecision, dimid(1:2), varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//var_grd(i)%req%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid,varid, 'long_name', var_grd(i)%req%long_name)
-               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_grd(i)%req%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid, varid, 'units', var_grd(i)%req%units)
-               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_grd(i)%req%short_name, &
-                                 file=__FILE__, line=__LINE__)
+               call ice_hist_coord_def(ncid, var_grd(i)%req, lprecision, dimid(1:2), varid)
                status = nf90_put_att(ncid, varid, 'coordinates', var_grd(i)%coordinates)
                call ice_check_nc(status, subname// ' ERROR: defining coordinates for '//var_grd(i)%req%short_name, &
                                  file=__FILE__, line=__LINE__)
@@ -503,27 +451,18 @@
          dimid_nverts(3) = jmtid
          do i = 1, nvar_verts
             if (f_bounds) then
-               status = nf90_def_var(ncid, var_nverts(i)%short_name, &
-                                     lprecision,dimid_nverts, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//var_nverts(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid,varid, 'long_name', var_nverts(i)%long_name)
-               call ice_check_nc(status, subname// ' ERROR: defining long_name for '//var_nverts(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
-               status = nf90_put_att(ncid, varid, 'units', var_nverts(i)%units)
-               call ice_check_nc(status, subname// ' ERROR: defining units for '//var_nverts(i)%short_name, &
-                                 file=__FILE__, line=__LINE__)
+               call ice_hist_coord_def(ncid, var_nverts(i), lprecision, dimid_nverts, varid)
                call ice_write_hist_fill(ncid,varid,var_nverts(i)%short_name,history_precision)
             endif
          enddo
 
+         !-----------------------------------------------------------------
+         ! define attributes for time-variant variables
+         !-----------------------------------------------------------------
+
          do n=1,num_avail_hist_fields_2D
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimid, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimid,ns)
             endif
          enddo  ! num_avail_hist_fields_2D
 
@@ -534,11 +473,7 @@
 
          do n = n2D + 1, n3Dccum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimidz, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidz,ns)
             endif
          enddo  ! num_avail_hist_fields_3Dc
 
@@ -549,11 +484,7 @@
 
          do n = n3Dccum + 1, n3Dzcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimidz, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidz,ns)
             endif
          enddo  ! num_avail_hist_fields_3Dz
 
@@ -564,11 +495,7 @@
 
          do n = n3Dzcum + 1, n3Dbcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimidz, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidz,ns)
             endif
          enddo  ! num_avail_hist_fields_3Db
 
@@ -579,11 +506,7 @@
 
          do n = n3Dbcum + 1, n3Dacum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimidz, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidz,ns)
             endif
          enddo  ! num_avail_hist_fields_3Da
 
@@ -594,11 +517,7 @@
 
          do n = n3Dacum + 1, n3Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-                            lprecision, dimidz, varid)
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidz,ns)
             endif
          enddo  ! num_avail_hist_fields_3Df
 
@@ -610,12 +529,7 @@
 
          do n = n3Dfcum + 1, n4Dicum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                                lprecision, dimidcz, varid)
-                                lprecision, dimidcz(1:4), varid) ! ferret
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidcz,ns)
             endif
          enddo  ! num_avail_hist_fields_4Di
 
@@ -627,12 +541,7 @@
 
          do n = n4Dicum + 1, n4Dscum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                                lprecision, dimidcz, varid)
-                                lprecision, dimidcz(1:4), varid) ! ferret
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidcz,ns)
             endif
          enddo  ! num_avail_hist_fields_4Ds
 
@@ -644,13 +553,10 @@
 
          do n = n4Dscum + 1, n4Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               status  = nf90_def_var(ncid, avail_hist_fields(n)%vname, &
-!                                lprecision, dimidcz, varid)
-                                lprecision, dimidcz(1:4), varid) ! ferret
-               call ice_check_nc(status, subname// ' ERROR: defining variable '//avail_hist_fields(n)%vname, &
-                                 file=__FILE__, line=__LINE__)
-               call ice_write_hist_attrs(ncid,varid,avail_hist_fields(n),ns)
-            endif
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, &
+                  ! dimidcz, ns)
+                  dimidcz(1:4),ns) ! ferret
+             endif
          enddo  ! num_avail_hist_fields_4Df
 
          !-----------------------------------------------------------------
@@ -1260,28 +1166,46 @@
       end subroutine ice_write_hist
 
 !=======================================================================
+! Defines a (time-dependent) history var in the history file
+! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+!  and are compressed and chunked for 'hdf5'
 
-      subroutine ice_write_hist_attrs(ncid, varid, hfield, ns)
+      subroutine ice_hist_field_def(ncid, hfield, lprecision, dimids, ns)
 
-      use ice_kinds_mod
+      use ice_history_shared, only: history_deflate, history_chunksize, history_format, ice_hist_field, &
+         history_precision, hist_avg
       use ice_calendar, only: histfreq, histfreq_n, write_ic
-      use ice_history_shared, only: ice_hist_field, history_precision, &
-          hist_avg
-#ifdef USE_NETCDF
-      use netcdf
-#endif
 
-      integer (kind=int_kind), intent(in) :: ncid     ! netcdf file id
-      integer (kind=int_kind), intent(in) :: varid    ! netcdf variable id
-      type (ice_hist_field)  , intent(in) :: hfield   ! history file info
-      integer (kind=int_kind), intent(in) :: ns       ! history stream
+      integer(kind=int_kind), intent(in) :: ncid, dimids(:), lprecision, ns
+      type(ice_hist_field), intent(in) :: hfield
 
-      ! local variables
+      !local vars
+      integer(kind=int_kind) :: chunks(size(dimids)), i, status, varid
 
-      integer (kind=int_kind) :: status
-      character(len=*), parameter :: subname = '(ice_write_hist_attrs)'
+      character(len=*), parameter :: subname = '(ice_hist_field_def)'
 
 #ifdef USE_NETCDF
+      status = nf90_def_var(ncid, hfield%vname, lprecision, dimids, varid)
+      call ice_check_nc(status, subname//' ERROR: defining var '//trim(hfield%vname),file=__FILE__,line=__LINE__)
+
+      if (history_format=='hdf5' .and. size(dimids)>1) then
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then
+            chunks(1)=history_chunksize(1)
+            chunks(2)=history_chunksize(2)
+            do i = 3, size(dimids)
+               chunks(i) = 0
+            enddo
+            status = nf90_def_var_chunking(ncid, varid, NF90_CHUNKED, chunksizes=chunks)
+            call ice_check_nc(status, subname//' ERROR chunking var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
+         endif
+      endif
+
+      if (history_format=='hdf5' .and. history_deflate/=0) then
+         status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
+         call ice_check_nc(status, subname//' ERROR deflating var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
+      endif
+
+      ! add attributes
       status = nf90_put_att(ncid,varid,'units', hfield%vunit)
       call ice_check_nc(status, subname// ' ERROR: defining units for '//hfield%vname, &
                         file=__FILE__, line=__LINE__)
@@ -1346,16 +1270,12 @@
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', file=__FILE__, line=__LINE__)
 #endif
 
-      end subroutine ice_write_hist_attrs
+      end subroutine ice_hist_field_def
 
 !=======================================================================
+! Defines missing_value and _FillValue attributes
 
       subroutine ice_write_hist_fill(ncid,varid,vname,precision)
-
-      use ice_kinds_mod
-#ifdef USE_NETCDF
-      use netcdf
-#endif
 
       integer (kind=int_kind), intent(in) :: ncid   ! netcdf file id
       integer (kind=int_kind), intent(in) :: varid  ! netcdf var id
@@ -1388,6 +1308,59 @@
 #endif
 
       end subroutine ice_write_hist_fill
+
+!=======================================================================
+! Defines a coordinate var in the history file
+! coordinates have short_name, long_name and units attributes,
+!  and are compressed for 'hdf5' when more than one dimensional
+
+      subroutine ice_hist_coord_def(ncid, coord, lprecision, dimids, varid)
+
+      use ice_history_shared, only: history_deflate, history_format, history_chunksize
+
+      integer(kind=int_kind), intent(in) :: ncid, dimids(:), lprecision
+      type(coord_attributes), intent(in) :: coord
+      integer(kind=int_kind), intent(inout) :: varid
+
+      !local vars
+      integer(kind=int_kind) ::chunks(size(dimids)), i, status
+
+      character(len=*), parameter :: subname = '(ice_hist_coord_def)'
+
+#ifdef USE_NETCDF
+      status = nf90_def_var(ncid, coord%short_name, lprecision, dimids, varid)
+      call ice_check_nc(status, subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
+
+      if (history_format=='hdf5' .and. size(dimids)>1) then
+         if (dimids(1)==imtid .and. dimids(2)==jmtid) then
+            chunks(1)=history_chunksize(1)
+            chunks(2)=history_chunksize(2)
+            do i = 3, size(dimids)
+               chunks(i) = 0
+            enddo
+            status = nf90_def_var_chunking(ncid, varid, NF90_CHUNKED, chunksizes=chunks)
+            call ice_check_nc(status, subname//' ERROR chunking var '//trim(coord%short_name), file=__FILE__, line=__LINE__)
+         endif
+      endif
+
+      if (history_format=='hdf5' .and. history_deflate/=0) then
+         status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
+         call ice_check_nc(status, subname//' ERROR deflating var '//trim(coord%short_name), file=__FILE__, line=__LINE__)
+      endif
+
+      status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
+      call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
+                        file=__FILE__, line=__LINE__)
+      status = nf90_put_att(ncid, varid, 'units', trim(coord%units))
+      call ice_check_nc(status, subname// ' ERROR: defining units for '//coord%short_name, &
+                        file=__FILE__, line=__LINE__)
+
+#else
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+            file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine ice_hist_coord_def
 
 !=======================================================================
 

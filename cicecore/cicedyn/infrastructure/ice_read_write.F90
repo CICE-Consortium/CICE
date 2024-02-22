@@ -1241,7 +1241,7 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= missingvalue)
          asum = sum   (work_g1, mask = work_g1 /= missingvalue)
@@ -1442,7 +1442,7 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          do n=1,ncat
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
@@ -1654,7 +1654,7 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          do n = 1, nfreq
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
@@ -2589,13 +2589,13 @@
 #ifdef USE_NETCDF
       if (status /= nf90_noerr) then
          if (present(file) .and. present(line)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file, line=line)
          elseif (present(file)) then
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg), &
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg), &
                            file=file)
          else
-            call abort_ice(subname//trim(nf90_strerror(status))//', '//trim(abort_msg))
+            call abort_ice(subname//' '//trim(nf90_strerror(status))//', '//trim(abort_msg))
          endif
       endif
 #else

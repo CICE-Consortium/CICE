@@ -1,0 +1,2 @@
+restart_format = 'pnetcdf2'
+history_format = 'pnetcdf2'

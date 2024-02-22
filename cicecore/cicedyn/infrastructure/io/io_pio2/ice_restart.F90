@@ -10,10 +10,7 @@
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
       use ice_kinds_mod
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64, lenstr, &
-          restart_coszen
+      use ice_restart_shared
       use ice_pio
       use pio
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -31,6 +28,8 @@
 
       type(io_desc_t)       :: iodesc2d
       type(io_desc_t)       :: iodesc3d_ncat
+
+      integer (kind=int_kind) :: dimid_ni, dimid_nj
 
 !=======================================================================
 
@@ -55,7 +54,9 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status, iotype
+      integer (kind=int_kind) :: status
+
+      logical (kind=log_kind), save :: first_call = .true.
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -76,15 +77,21 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
       end if
 
-      iotype = PIO_IOTYPE_NETCDF
-      if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
-      call ice_pio_init(mode='read', filename=trim(filename), File=File, iotype=iotype)
+! tcraig, including fformat here causes some problems when restart_format=hdf5
+!         and reading non hdf5 files with spack built PIO.  Excluding the fformat
+!         argument here defaults the PIO format to cdf1 which then reads
+!         any netcdf format file fine.
+      call ice_pio_init(mode='read', filename=trim(filename), File=File, &
+!          fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+                                         rearr=trim(restart_rearranger), &
+           iotasks=restart_iotasks, root=restart_root, stride=restart_stride, &
+           debug=first_call)
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
       call ice_pio_initdecomp(iodesc=iodesc2d, precision=8)
-      call ice_pio_initdecomp(ndim3=ncat  , iodesc=iodesc3d_ncat,remap=.true., precision=8)
+      call ice_pio_initdecomp(ndim3=ncat, iodesc=iodesc3d_ncat, remap=.true., precision=8)
 
       if (use_restart_time) then
          ! for backwards compatibility, check nyr, month, and sec as well
@@ -133,6 +140,8 @@
          npt = npt - istep0
       endif
 
+      first_call = .false.
+
       end subroutine init_restart_read
 
 !=======================================================================
@@ -172,16 +181,15 @@
       character(len=char_len_long) :: filename
 
       integer (kind=int_kind) :: &
-         dimid_ni, dimid_nj, dimid_ncat, &
-         dimid_nilyr, dimid_nslyr, dimid_naero
+         dimid_ncat, dimid_nilyr, dimid_nslyr, dimid_naero
 
       integer (kind=int_kind), allocatable :: dims(:)
-
-      integer (kind=int_kind) :: iotype
 
       integer (kind=int_kind) :: k, n       ! loop index
 
       character (len=3) :: nchar, ncharb
+
+      logical (kind=log_kind), save :: first_call = .true.
 
       character(len=*), parameter :: subname = '(init_restart_write)'
 
@@ -222,11 +230,11 @@
          close(nu_rst_pointer)
       endif
 
-      iotype = PIO_IOTYPE_NETCDF
-      if (restart_format == 'pio_pnetcdf') iotype = PIO_IOTYPE_PNETCDF
       File%fh=-1
       call ice_pio_init(mode='write',filename=trim(filename), File=File, &
-           clobber=.true., cdf64=lcdf64, iotype=iotype)
+           clobber=.true., fformat=trim(restart_format), rearr=trim(restart_rearranger), &
+           iotasks=restart_iotasks, root=restart_root, stride=restart_stride, &
+           debug=first_call)
 
       call pio_seterrorhandling(File, PIO_RETURN_ERROR)
 
@@ -674,6 +682,8 @@
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
       endif
 
+      first_call = .false.
+
       end subroutine init_restart_write
 
 !=======================================================================
@@ -907,14 +917,44 @@
 
       subroutine define_rest_field(File, vname, dims)
 
+#ifndef USE_PIO1
+      use netcdf, only: NF90_CHUNKED
+      use pio_nf, only: pio_def_var_chunking !PIO <2.6.0 was missing this in the pio module
+#endif
       type(file_desc_t)      , intent(in)  :: File
       character (len=*)      , intent(in)  :: vname
       integer (kind=int_kind), intent(in)  :: dims(:)
 
+      integer (kind=int_kind) :: chunks(size(dims)), i, status
+
       character(len=*), parameter :: subname = '(define_rest_field)'
 
-      call ice_pio_check(pio_def_var(File,trim(vname),pio_double,dims,vardesc), &
-           subname//' ERROR: def_var '//trim(vname),file=__FILE__,line=__LINE__)
+
+      status = pio_def_var(File,trim(vname),pio_double,dims,vardesc)
+      call ice_pio_check(status, &
+         subname//' ERROR defining restart field '//trim(vname))
+
+#ifndef USE_PIO1
+      if (restart_format=='hdf5' .and. restart_deflate/=0) then
+         status = pio_def_var_deflate(File, vardesc, shuffle=0, deflate=1, deflate_level=restart_deflate)
+         call ice_pio_check(status, &
+            subname//' ERROR: deflating restart field '//trim(vname),file=__FILE__,line=__LINE__)
+      endif
+
+      if (restart_format=='hdf5' .and. size(dims)>1) then
+         if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
+            chunks(1)=restart_chunksize(1)
+            chunks(2)=restart_chunksize(2)
+            do i = 3, size(dims)
+               chunks(i) = 0
+            enddo
+
+            status = pio_def_var_chunking(File, vardesc, NF90_CHUNKED, chunks)
+            call ice_pio_check(status, subname//' ERROR: chunking restart field '//trim(vname),&
+               file=__FILE__,line=__LINE__)
+         endif
+      endif
+#endif
 
       end subroutine define_rest_field
 
