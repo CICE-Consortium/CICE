@@ -110,9 +110,6 @@
       ! time coord
       TYPE(coord_attributes) :: time_coord
 
-      ! 8 coordinate variables: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT
-      INTEGER (kind=int_kind), PARAMETER :: ncoord = 8
-
       ! 4 vertices in each grid cell
       INTEGER (kind=int_kind), PARAMETER :: nverts = 4
 
@@ -276,39 +273,42 @@
       ! define information for required time-invariant variables
       !-----------------------------------------------------------------
 
-      ind = 0
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLON', &
-                       'T grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lont_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('TLAT', &
-                       'T grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latt_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULON', &
-                       'U grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ULAT', &
-                       'U grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latu_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLON', &
-                       'N grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lonn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('NLAT', &
-                       'N grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'latn_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELON', &
-                       'E grid center longitude', 'degrees_east')
-      coord_bounds(ind) = 'lone_bounds'
-      ind = ind + 1
-      var_coord(ind) = coord_attributes('ELAT', &
-                       'E grid center latitude',  'degrees_north')
-      coord_bounds(ind) = 'late_bounds'
+      do ind = 1, ncoord
+         select case (ind)
+            case(n_tlon)
+               var_coord(ind) = coord_attributes('TLON', &
+                                'T grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lont_bounds'
+            case(n_tlat)
+               var_coord(ind) = coord_attributes('TLAT', &
+                                'T grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latt_bounds'
+            case(n_ulon)
+               var_coord(ind) = coord_attributes('ULON', &
+                                'U grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lonu_bounds'
+            case(n_ulat)
+               var_coord(ind) = coord_attributes('ULAT', &
+                                'U grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latu_bounds'
+            case(n_nlon)
+               var_coord(ind) = coord_attributes('NLON', &
+                                'N grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lonn_bounds'
+            case(n_nlat)
+               var_coord(ind) = coord_attributes('NLAT', &
+                                'N grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'latn_bounds'
+            case(n_elon)
+               var_coord(ind) = coord_attributes('ELON', &
+                                'E grid center longitude', 'degrees_east')
+               coord_bounds(ind) = 'lone_bounds'
+            case(n_elat)
+               var_coord(ind) = coord_attributes('ELAT', &
+                                'E grid center latitude',  'degrees_north')
+               coord_bounds(ind) = 'late_bounds'
+         end select
+      end do
 
       var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
       var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
@@ -418,16 +418,18 @@
       dimid2(2) = jmtid
 
       do i = 1, ncoord
-         call ice_hist_coord_def(File, var_coord(i), lprecision, dimid2, varid)
-         call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
-         if (var_coord(i)%short_name == 'ULAT') then
-            call ice_pio_check(pio_put_att(File,varid,'comment', &
-                 trim('Latitude of NE corner of T grid cell')), &
-                 subname//' ERROR: defining att comment',file=__FILE__,line=__LINE__)
-         endif
-         if (f_bounds) then
-            call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
-                 subname//' ERROR: defining att bounds '//trim(coord_bounds(i)),file=__FILE__,line=__LINE__)
+         if (icoord(i)) then
+            call ice_hist_coord_def(File, var_coord(i), lprecision, dimid2, varid)
+            call ice_write_hist_fill(File,varid,var_coord(i)%short_name,history_precision)
+            if (var_coord(i)%short_name == 'ULAT') then
+               call ice_pio_check(pio_put_att(File,varid,'comment', &
+                    trim('Latitude of NE corner of T grid cell')), &
+                    subname//' ERROR: defining att comment',file=__FILE__,line=__LINE__)
+            endif
+            if (f_bounds) then
+               call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
+                    subname//' ERROR: defining att bounds '//trim(coord_bounds(i)),file=__FILE__,line=__LINE__)
+            endif
          endif
       enddo
 
@@ -706,38 +708,40 @@
       allocate(workr2(nx_block,ny_block,nblocks))
 
       do i = 1,ncoord
-         call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
-              subname//' ERROR: getting '//var_coord(i)%short_name ,file=__FILE__,line=__LINE__)
-         SELECT CASE (var_coord(i)%short_name)
-            CASE ('TLON')
-              ! Convert T grid longitude from -180 -> 180 to 0 to 360
-                 workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
-            CASE ('TLAT')
-              workd2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
-            CASE ('ULON')
-              workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
-            CASE ('ULAT')
-              workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
-            CASE ('NLON')
-              workd2(:,:,:) = nlon(:,:,1:nblocks)*rad_to_deg
-            CASE ('NLAT')
-              workd2(:,:,:) = nlat(:,:,1:nblocks)*rad_to_deg
-            CASE ('ELON')
-              workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
-            CASE ('ELAT')
-              workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
-         END SELECT
-         if (history_precision == 8) then
-            call pio_write_darray(File, varid, iodesc2d, &
-                 workd2, status, fillval=spval_dbl)
-         else
-            workr2 = workd2
-            call pio_write_darray(File, varid, iodesc2d, &
-                 workr2, status, fillval=spval)
-         endif
+         if(icoord(i)) then
+            call ice_pio_check(pio_inq_varid(File, var_coord(i)%short_name, varid), &
+                 subname//' ERROR: getting '//var_coord(i)%short_name ,file=__FILE__,line=__LINE__)
+            SELECT CASE (var_coord(i)%short_name)
+               CASE ('TLON')
+                 ! Convert T grid longitude from -180 -> 180 to 0 to 360
+                    workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
+               CASE ('TLAT')
+                 workd2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
+               CASE ('ULON')
+                 workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
+               CASE ('ULAT')
+                 workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
+               CASE ('NLON')
+                 workd2(:,:,:) = nlon(:,:,1:nblocks)*rad_to_deg
+               CASE ('NLAT')
+                 workd2(:,:,:) = nlat(:,:,1:nblocks)*rad_to_deg
+               CASE ('ELON')
+                 workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
+               CASE ('ELAT')
+                 workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
+            END SELECT
+            if (history_precision == 8) then
+               call pio_write_darray(File, varid, iodesc2d, &
+                    workd2, status, fillval=spval_dbl)
+            else
+               workr2 = workd2
+               call pio_write_darray(File, varid, iodesc2d, &
+                    workr2, status, fillval=spval)
+            endif
 
-         call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
-                            file=__FILE__,line=__LINE__)
+            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+                               file=__FILE__,line=__LINE__)
+         endif
       enddo
 
       ! Extra dimensions (NCAT, NFSD, VGRD*)

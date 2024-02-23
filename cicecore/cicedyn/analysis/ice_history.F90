@@ -447,6 +447,14 @@
       if (f_Tsnz (1:1) /= 'x')                          f_VGRDs = .true.
       if (tr_fsd)                                       f_NFSD  = .true.
 
+      call broadcast_scalar (f_tlon, master_task)
+      call broadcast_scalar (f_tlat, master_task)
+      call broadcast_scalar (f_ulon, master_task)
+      call broadcast_scalar (f_ulat, master_task)
+      call broadcast_scalar (f_nlon, master_task)
+      call broadcast_scalar (f_nlat, master_task)
+      call broadcast_scalar (f_elon, master_task)
+      call broadcast_scalar (f_elat, master_task)
       call broadcast_scalar (f_tmask, master_task)
       call broadcast_scalar (f_umask, master_task)
       call broadcast_scalar (f_nmask, master_task)
@@ -1972,6 +1980,21 @@
 
       ! floe size distribution
        call init_hist_fsd_4Df
+
+      !-----------------------------------------------------------------
+      ! fill icoord array with namelist values
+      !-----------------------------------------------------------------
+
+       icoord=.true.
+
+       icoord(n_tlon   ) = f_tlon
+       icoord(n_tlat   ) = f_tlat
+       icoord(n_ulon   ) = f_ulon
+       icoord(n_ulat   ) = f_ulat
+       icoord(n_nlon   ) = f_nlon
+       icoord(n_nlat   ) = f_nlat
+       icoord(n_elon   ) = f_elon
+       icoord(n_elat   ) = f_elat
 
       !-----------------------------------------------------------------
       ! fill igrd array with namelist values
