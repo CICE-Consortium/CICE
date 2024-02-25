@@ -211,7 +211,14 @@
       nstreams = 0
 
 #ifdef CESMCOUPLED
-      ! calendar_type set by coupling
+   ! calendar_type set by coupling
+   ! set use_leap_years for consistency
+   if (calendar_type == trim(ice_calendar_gregorian)) then
+      use_leap_years = .true.
+   else 
+      use_leap_years = .false.
+   endif
+
 #else
       calendar_type = ''
       if (use_leap_years) then
