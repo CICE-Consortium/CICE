@@ -675,10 +675,8 @@ contains
     else
       if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
     end if
-    ! Set use_leap_years as some CICE calls use this instead of the calendar type
-    call ESMF_TimeGet( currTime, calkindflag=esmf_caltype, rc=rc )
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (esmf_caltype == ESMF_CALKIND_GREGORIAN) use_leap_years = .true.
+
+    
 
 #else
 
@@ -793,7 +791,7 @@ contains
     call cice_init2()
     call t_stopf ('cice_init2')
     !---------------------------------------------------------------------------
-    ! use EClock to reset calendar information on initial start
+    ! use EClock to reset calendar information
     !---------------------------------------------------------------------------
 
     ! - on initial run
@@ -846,6 +844,13 @@ contains
     year_init = (idate0/10000)
     month_init= (idate0-year_init*10000)/100           ! integer month of basedate
     day_init  = idate0-year_init*10000-month_init*100 
+
+    !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
+    if (calendar_type == ice_calendar_gregorian) then
+      use_leap_years = .true.
+    else
+      use_leap_years = .false. ! no_leap calendars
+    endif
 
     call calendar()     ! update calendar info
 
