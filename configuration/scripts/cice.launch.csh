@@ -89,7 +89,7 @@ mpirun -np ${ntasks} -hostfile \$PBS_NODEFILE \${EXTRA_OMPI_SETTINGS} ./cice >&!
 EOFR
 
 #=======
-else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal*) then
+else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal* || ${ICE_MACHCOMP} =~ carpenter*) then
 cat >> ${jobfile} << EOFR
 aprun -q -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
