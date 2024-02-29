@@ -1655,7 +1655,7 @@
              "none", c1, c0,         &
              ns1, f_sidmassevapsubl)
 
-         call define_hist_field(n_sndmasssubl,"sndmassubl","kg m-2 s-1",tstr2D, tcstr,  &
+         call define_hist_field(n_sndmasssubl,"sndmasssubl","kg m-2 s-1",tstr2D, tcstr,  &
              "snow mass change from evaporation and sublimation", &
              "none", c1, c0,         &
              ns1, f_sndmasssubl)
@@ -3080,7 +3080,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = evaps(i,j,iblk)*rhos
+                 worka(i,j) = evaps(i,j,iblk)
               endif
            enddo
            enddo
@@ -3092,7 +3092,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*fsnow(i,j,iblk)*rhos
+                 worka(i,j) = aice(i,j,iblk)*fsnow(i,j,iblk)
               endif
            enddo
            enddo
