@@ -83,7 +83,7 @@
    if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
       nmode0 = shr_pio_getioformat(inst_name)
    else
-      nmode=0
+      nmode0 = 0
    endif
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
