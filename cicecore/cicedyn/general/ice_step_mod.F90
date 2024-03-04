@@ -828,26 +828,26 @@
                                    nt_strata     = nt_strata(:,:),   &
                                    Tf            = Tf(i,j,iblk))
 
-         if (present(offset)) then
+            if (present(offset)) then
 
-      !-----------------------------------------------------------------
-      ! Compute thermodynamic area and volume tendencies.
-      !-----------------------------------------------------------------
+            !-----------------------------------------------------------------
+            ! Compute thermodynamic area and volume tendencies.
+            !-----------------------------------------------------------------
 
-         if (present(daidt)) daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
-         if (present(dvidt)) dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
-         if (present(dvsdt)) dvsdt(i,j,iblk) = (vsno(i,j,iblk) - dvsdt(i,j,iblk)) / dt
-         if (tr_iage) then
-            if (offset > c0) then                 ! thermo
-               if (trcr(i,j,nt_iage,iblk) > c0) &
-               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                - dagedt(i,j,iblk) - offset) / dt
-            else                                  ! dynamics
-               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                - dagedt(i,j,iblk)) / dt
-            endif
-         endif ! tr_iage
-         endif ! present(offset)
+               if (present(daidt)) daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
+               if (present(dvidt)) dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
+               if (present(dvsdt)) dvsdt(i,j,iblk) = (vsno(i,j,iblk) - dvsdt(i,j,iblk)) / dt
+               if (present(dagedt) .and. tr_iage) then
+                  if (offset > c0) then                 ! thermo
+                     if (trcr(i,j,nt_iage,iblk) > c0) &
+                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                      - dagedt(i,j,iblk) - offset) / dt
+                  else                                  ! dynamics
+                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                      - dagedt(i,j,iblk)) / dt
+                  endif
+               endif ! tr_iage
+            endif ! present(offset)
 
          enddo ! i
          enddo ! j
