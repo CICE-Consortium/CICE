@@ -307,7 +307,7 @@
 
             ! clean up, update tendency diagnostics
             offset = c0
-            call update_state (dt=dt_dyn, daidtd=daidtd, dvidt=dvidtd, dvsdt=dvsdtd, &
+            call update_state (dt=dt_dyn, daidt=daidtd, dvidt=dvidtd, dvsdt=dvsdtd, &
                                dagedt=dagedtd, offset=offset)
 
          enddo
