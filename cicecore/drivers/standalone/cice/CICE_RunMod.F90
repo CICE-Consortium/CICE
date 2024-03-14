@@ -146,7 +146,7 @@
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
-          daidtt, daidtd, dvidtt, dvidtd, dvsdtd, dagedtt, dagedtd
+          daidtt, daidtd, dvidtt, dvidtd, dvsdtt, dvsdtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
@@ -265,8 +265,8 @@
 
          ! clean up, update tendency diagnostics
          offset = dt
-         call update_state (dt=dt, daidt=daidtt, dvidt=dvidtt, dagedt=dagedtt, &
-                            offset=offset)
+         call update_state (dt=dt, daidt=daidtt, dvidt=dvidtt, dvsdt=dvsdtt, &
+                            dagedt=dagedtt, offset=offset)
 
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
@@ -332,7 +332,7 @@
                call step_snow (dt, iblk)
             enddo
             !$OMP END PARALLEL DO
-            call update_state (dt) ! clean up
+            call update_state (dt=dt) ! clean up
          endif
 
          !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)

@@ -320,6 +320,7 @@
          dsnow,  & ! change in snow thickness (m/step-->cm/day)
          daidtt, & ! ice area tendency thermo.   (s^-1)
          dvidtt, & ! ice volume tendency thermo. (m/s)
+         dvsdtt, & ! snow volume tendency thermo. (m/s)
          dagedtt,& ! ice age tendency thermo.    (s/s)
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
@@ -532,6 +533,7 @@
          dsnow      (nx_block,ny_block,max_blocks), & ! change in snow thickness (m/step-->cm/day)
          daidtt     (nx_block,ny_block,max_blocks), & ! ice area tendency thermo.   (s^-1)
          dvidtt     (nx_block,ny_block,max_blocks), & ! ice volume tendency thermo. (m/s)
+         dvsdtt     (nx_block,ny_block,max_blocks), & ! snow volume tendency thermo. (m/s)
          dagedtt    (nx_block,ny_block,max_blocks), & ! ice age tendency thermo.    (s/s)
          mlt_onset  (nx_block,ny_block,max_blocks), & ! day of year that sfc melting begins
          frz_onset  (nx_block,ny_block,max_blocks), & ! day of year that freezing begins (congel or frazil)
@@ -920,7 +922,7 @@
 
       subroutine init_history_therm
 
-      use ice_state, only: aice, vice, trcr
+      use ice_state, only: aice, vice, vsno, trcr
       use ice_arrays_column, only: &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_pond, Cdn_atm_rdg, &
@@ -967,6 +969,7 @@
       meltl  (:,:,:) = c0
       daidtt (:,:,:) = aice(:,:,:) ! temporary initial area
       dvidtt (:,:,:) = vice(:,:,:) ! temporary initial volume
+      dvsdtt (:,:,:) = vsno(:,:,:) ! temporary initial volume
       if (tr_iage) then
          dagedtt(:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       else
