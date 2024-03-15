@@ -766,7 +766,7 @@
       real (kind=dbl_kind), dimension(:,:,:), intent(inout), optional :: &
          daidt, & ! change in ice area per time step
          dvidt, & ! change in ice volume per time step
-         dvsdt, & ! change in snow  volume per time step
+         dvsdt, & ! change in snow volume per time step
          dagedt   ! change in ice age per time step
 
       real (kind=dbl_kind), intent(in), optional :: &
