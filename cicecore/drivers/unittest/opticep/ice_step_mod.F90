@@ -752,7 +752,7 @@
 !
 ! authors: Elizabeth Hunke, LANL
 
-      subroutine update_state (dt, daidt, dvidt, dagedt, offset)
+      subroutine update_state (dt, daidt, dvidt, dvsdt, dagedt, offset)
 
       use ice_domain_size, only: ncat
 !     use ice_grid, only: tmask
@@ -768,6 +768,7 @@
       real (kind=dbl_kind), dimension(:,:,:), intent(inout), optional :: &
          daidt, & ! change in ice area per time step
          dvidt, & ! change in ice volume per time step
+         dvsdt, & ! change in snow volume per time step
          dagedt   ! change in ice age per time step
 
       real (kind=dbl_kind), intent(in), optional :: &
@@ -829,25 +830,26 @@
                                    nt_strata     = nt_strata(:,:),   &
                                    Tf            = Tf(i,j,iblk))
 
-         if (present(offset)) then
+            if (present(offset)) then
 
-      !-----------------------------------------------------------------
-      ! Compute thermodynamic area and volume tendencies.
-      !-----------------------------------------------------------------
+            !-----------------------------------------------------------------
+            ! Compute thermodynamic area and volume tendencies.
+            !-----------------------------------------------------------------
 
-         daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
-         dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
-         if (tr_iage) then
-            if (offset > c0) then                 ! thermo
-               if (trcr(i,j,nt_iage,iblk) > c0) &
-               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                - dagedt(i,j,iblk) - offset) / dt
-            else                                  ! dynamics
-               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                - dagedt(i,j,iblk)) / dt
-            endif
-         endif ! tr_iage
-         endif ! present(offset)
+               if (present(daidt)) daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
+               if (present(dvidt)) dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
+               if (present(dvsdt)) dvsdt(i,j,iblk) = (vsno(i,j,iblk) - dvsdt(i,j,iblk)) / dt
+               if (tr_iage .and. present(dagedt)) then
+                  if (offset > c0) then                 ! thermo
+                     if (trcr(i,j,nt_iage,iblk) > c0) &
+                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                      - dagedt(i,j,iblk) - offset) / dt
+                  else                                  ! dynamics
+                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                      - dagedt(i,j,iblk)) / dt
+                  endif
+               endif ! tr_iage
+            endif ! present(offset)
 
          enddo ! i
          enddo ! j

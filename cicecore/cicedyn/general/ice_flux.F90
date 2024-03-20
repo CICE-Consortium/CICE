@@ -107,6 +107,7 @@
          strintyE, & ! divergence of internal ice stress, y at E points (N/m^2)
          daidtd  , & ! ice area tendency due to transport   (1/s)
          dvidtd  , & ! ice volume tendency due to transport (m/s)
+         dvsdtd  , & ! snow volume tendency due to transport (m/s)
          dagedtd , & ! ice age tendency due to transport (s/s)
          dardg1dt, & ! rate of area loss by ridging ice (1/s)
          dardg2dt, & ! rate of area gain by new ridges (1/s)
@@ -319,6 +320,7 @@
          dsnow,  & ! change in snow thickness (m/step-->cm/day)
          daidtt, & ! ice area tendency thermo.   (s^-1)
          dvidtt, & ! ice volume tendency thermo. (m/s)
+         dvsdtt, & ! snow volume tendency thermo. (m/s)
          dagedtt,& ! ice age tendency thermo.    (s/s)
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
@@ -419,6 +421,7 @@
          strintyU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
          daidtd     (nx_block,ny_block,max_blocks), & ! ice area tendency due to transport   (1/s)
          dvidtd     (nx_block,ny_block,max_blocks), & ! ice volume tendency due to transport (m/s)
+         dvsdtd     (nx_block,ny_block,max_blocks), & ! snow volume tendency due to transport (m/s)
          dagedtd    (nx_block,ny_block,max_blocks), & ! ice age tendency due to transport (s/s)
          dardg1dt   (nx_block,ny_block,max_blocks), & ! rate of area loss by ridging ice (1/s)
          dardg2dt   (nx_block,ny_block,max_blocks), & ! rate of area gain by new ridges (1/s)
@@ -530,6 +533,7 @@
          dsnow      (nx_block,ny_block,max_blocks), & ! change in snow thickness (m/step-->cm/day)
          daidtt     (nx_block,ny_block,max_blocks), & ! ice area tendency thermo.   (s^-1)
          dvidtt     (nx_block,ny_block,max_blocks), & ! ice volume tendency thermo. (m/s)
+         dvsdtt     (nx_block,ny_block,max_blocks), & ! snow volume tendency thermo. (m/s)
          dagedtt    (nx_block,ny_block,max_blocks), & ! ice age tendency thermo.    (s/s)
          mlt_onset  (nx_block,ny_block,max_blocks), & ! day of year that sfc melting begins
          frz_onset  (nx_block,ny_block,max_blocks), & ! day of year that freezing begins (congel or frazil)
@@ -918,7 +922,7 @@
 
       subroutine init_history_therm
 
-      use ice_state, only: aice, vice, trcr
+      use ice_state, only: aice, vice, vsno, trcr
       use ice_arrays_column, only: &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_pond, Cdn_atm_rdg, &
@@ -965,6 +969,7 @@
       meltl  (:,:,:) = c0
       daidtt (:,:,:) = aice(:,:,:) ! temporary initial area
       dvidtt (:,:,:) = vice(:,:,:) ! temporary initial volume
+      dvsdtt (:,:,:) = vsno(:,:,:) ! temporary initial volume
       if (tr_iage) then
          dagedtt(:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       else
@@ -1022,7 +1027,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, trcr, strength, divu, shear, vort
+      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear, vort
       use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
@@ -1061,6 +1066,7 @@
       opening (:,:,:) = c0
       daidtd  (:,:,:) = aice(:,:,:) ! temporary initial area
       dvidtd  (:,:,:) = vice(:,:,:) ! temporary initial volume
+      dvsdtd  (:,:,:) = vsno(:,:,:) ! temporary initial volume
       if (tr_iage) &
          dagedtd (:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       fmU     (:,:,:) = c0

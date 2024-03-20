@@ -66,7 +66,7 @@
           floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_calendar, only: dt, dt_dyn, write_ic, &
+      use ice_calendar, only: dt, write_ic, &
           init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
@@ -244,6 +244,7 @@
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
       call dealloc_grid         ! deallocate temporary grid arrays
+
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
       endif
