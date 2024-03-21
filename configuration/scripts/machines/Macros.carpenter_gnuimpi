@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for ERDC carpenter, gnu compiler
+# Macros file for NAVYDSRC narwhal, gnu compiler
 #==============================================================================
 
 CPP        := ftn -E
@@ -31,10 +31,10 @@ endif
 
 #SCC   := gcc
 #SFC   := gfortran
-SCC   := cc
-SFC   := ftn
-MPICC := cc
-MPIFC := ftn
+SCC   := mpicc
+SFC   := mpif90
+MPICC := mpicc
+MPIFC := mpif90
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)

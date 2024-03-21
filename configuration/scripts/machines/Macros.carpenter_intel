@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for NAVYDSRC narwhal, intel compiler
+# Macros file for ERDC carpenter, intel compiler
 #==============================================================================
 
 CPP        := fpp

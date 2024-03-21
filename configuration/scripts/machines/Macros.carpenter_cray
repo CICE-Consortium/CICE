@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for NAVYDSRC narwhal, cray compiler
+# Macros file for ERDC carpenter, cray compiler
 #==============================================================================
 
 CPP        := ftn -e P

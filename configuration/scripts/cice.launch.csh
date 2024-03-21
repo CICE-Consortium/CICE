@@ -89,10 +89,30 @@ mpirun -np ${ntasks} -hostfile \$PBS_NODEFILE \${EXTRA_OMPI_SETTINGS} ./cice >&!
 EOFR
 
 #=======
-else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal* || ${ICE_MACHCOMP} =~ carpenter*) then
+else if (${ICE_MACHCOMP} =~ onyx* || ${ICE_MACHCOMP} =~ narwhal*) then
 cat >> ${jobfile} << EOFR
 aprun -q -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
+
+#=======
+else if (${ICE_MACHCOMP} =~ carpenter*) then 
+if (${ICE_COMMDIR} =~ serial*) then
+cat >> ${jobfile} << EOFR
+./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+
+if (${ICE_ENVNAME} =~ intelimpi* || ${ICE_ENVNAME} =~ gnuimpi*) then
+cat >> ${jobfile} << EOFR
+mpiexec -n ${ntasks} -ppn ${taskpernodelimit} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+else
+cat >> ${jobfile} << EOFR
+mpiexec --cpu-bind depth -n ${ntasks} -ppn ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
+endif
+
+endif
 
 #=======
 else if (${ICE_MACHCOMP} =~ cori* || ${ICE_MACHCOMP} =~ perlmutter*) then
