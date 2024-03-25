@@ -1232,11 +1232,6 @@ above.  In addition, ``history_format`` as well as other history namelist
 options control the specific file format as well as features related to 
 IO performance, see :ref:`iooverview`.
 
-CICE Model history output data can be written as instantaneous or average data as specified
-by the ``hist_avg`` namelist array and is customizable by stream. Characters
-can be added to the ``history_filename`` to distinguish the streams. This can be changed
-by modifying ``hist_suffix`` to something other than "x".
-
 The data written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
 The files are written to binary or netCDF files prepended by ``history_file``
@@ -1263,20 +1258,29 @@ collected in their own history modules (**ice\_history\_bgc.F90**,
 **ice\_history\_drag.F90**, **ice\_history\_mechred.F90**,
 **ice\_history\_pond.F90**).
 
-The history modules allow output at different frequencies. Five output
-frequencies (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously during a run.
-The same variable can be output at different frequencies (say daily and
-monthly) via its namelist flag, `f\_` :math:`\left<{var}\right>`, which
-is a character string corresponding to ``histfreq`` or ‘x’ for none.
-(Grid variable flags are logicals, since they are written to all
-files, no matter what the frequency is.) If there are no namelist flags
+The history modules allow output at different frequencies, ``hist_freq``. Five output
+options (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously
+during a run, and each stream must have a unique value for ``hist_freq``.  In other words, ``d``
+cannot be used by two different streams.  Each stream has an associated frequency
+set by ``histfreq_n``.  The frequency is
+relative to a reference date specified by the corresponding entry in ``histfreq_base``.
+Each stream can be instantaneous or time averaged
+data over the frequency internal.  The ``hist_avg`` namelist turns on time averaging
+for each stream individually.
+The same model variable can be written to multiple history streams (say daily and
+monthly) via its namelist flag, `f\_` :math:`\left<{var}\right>`.  The valid
+values for the character string `f\_` :math:`\left<{var}\right>` is the ``hist_freq``
+values or 'x' for none.  For example, ``f_aice = 'md'`` will write aice to the
+monthly and daily streams.
+Grid variable history output flags are logicals and written to all stream files if
+turned on.  If there are no namelist flags
 with a given ``histfreq`` value, or if an element of ``histfreq_n`` is 0, then
-no file will be written at that frequency. The output period can be
-discerned from the filenames or the ``hist_suffix`` can be used.  Each history stream will be either instantaneous
-or averaged as specified by the corresponding entry in the ``hist_avg`` namelist array, and the frequency
-will be relative to a reference date specified by the corresponding entry in ``histfreq_base``.
-More information about how the frequency is
-computed is found in :ref:`timemanager`.
+no file will be written at that frequency. The history filenames are set in
+the subroutine **construct_filename** in **ice_history_shared.F90**.  The stream 
+filename is a function of the output frequency, and the ``hist_avg`` and ``hist_suffix``
+values.  In cases where two streams produce the same identical filename, the model will
+abort.  Use the namelist ``hist_suffix`` to make stream filenames unique.
+More information about how the frequency is computed is found in :ref:`timemanager`.
 Also, some
 Earth Sytem Models require the history file time axis to be centered in the averaging
 interval. The flag ``hist_time_axis`` will allow the user to chose ``begin``, ``middle``,
@@ -1321,11 +1325,6 @@ appended with the frequency in files after the first one. In the example
 above, ``meltb`` is called ``meltb`` in the monthly file (for backward
 compatibility with the default configuration) and ``meltb_h`` in the
 6-hourly file.
-
-Using the same frequency twice in ``histfreq`` will have unexpected
-consequences and currently will cause the code to abort. It is not
-possible at the moment to output averages once a month and also once
-every 3 months, for example.
 
 If ``write_ic`` is set to true in **ice\_in**, a snapshot of the same set
 of history fields at the start of the run will be written to the history
