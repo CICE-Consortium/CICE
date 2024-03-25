@@ -277,14 +277,14 @@ the namelist variable ``ns_boundary_type``, ‘tripole’ for the U-fold and
 ‘tripoleT’ for the T-fold grid.
 
 In the U-fold tripole grid, the poles have U-index
-:math:`nx_global/2` and :math:`nx_global` on the top U-row of the
-physical grid, and points with U-index :math:`i` and :math:`nx_global-i`
+:math:`nx\_global/2` and :math:`nx\_global` on the top U-row of the
+physical grid, and points with U-index :math:`i` and :math:`nx\_global-i`
 are coincident. Let the fold have U-row index :math:`n` on the global
 grid; this will also be the T-row index of the T-row to the south of the
 fold. There are ghost (halo) T- and U-rows to the north, beyond the
 fold, on the logical grid. The point with index i along the ghost T-row
 of index :math:`n+1` physically coincides with point
-:math:`nx_global-i+1` on the T-row of index :math:`n`. The
+:math:`nx\_global-i+1` on the T-row of index :math:`n`. The
 ghost U-row of index :math:`n+1` physically coincides with the U-row of
 index :math:`n-1`.  In the schematics below, symbols A-H represent
 grid points from 1:nx_global at a given j index and the setup of the
@@ -310,15 +310,15 @@ tripole seam is depicted within a few rows of the seam.
 
 
 In the T-fold tripole grid, the poles have T-index :math:`1` and and
-:math:`nx_global/2+1` on the top T-row of the physical grid, and
-points with T-index :math:`i` and :math:`nx_global-i+2` are
+:math:`nx\_global/2+1` on the top T-row of the physical grid, and
+points with T-index :math:`i` and :math:`nx\_global-i+2` are
 coincident. Let the fold have T-row index :math:`n` on the global grid.
 It is usual for the northernmost row of the physical domain to be a
 U-row, but in the case of the T-fold, the U-row of index :math:`n` is
 “beyond” the fold; although it is not a ghost row, it is not physically
 independent, because it coincides with U-row :math:`n-1`, and it
 therefore has to be treated like a ghost row. Points i on U-row
-:math:`n` coincides with :math:`nx_global-i+1` on U-row
+:math:`n` coincides with :math:`nx\_global-i+1` on U-row
 :math:`n-1`. There are still ghost T- and U-rows :math:`n+1` to the
 north of U-row :math:`n`. Ghost T-row :math:`n+1` coincides with T-row
 :math:`n-1`, and ghost U-row :math:`n+1` coincides with U-row
@@ -1104,7 +1104,7 @@ next time step. The subcycling time step (:math:`\Delta
 t_e`) is thus
 
 .. math::
-   dte = dt_dyn/ndte.
+   dte = dt\_dyn/ndte.
 
 A second parameter, :math:`E_\circ` (``elasticDamp``), defines the elastic wave
 damping timescale :math:`T`, described in Section :ref:`dynam`, as
