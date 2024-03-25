@@ -938,7 +938,7 @@
          call broadcast_scalar(histfreq_base(n),  master_task)
          call broadcast_scalar(dumpfreq(n),       master_task)
          call broadcast_scalar(dumpfreq_base(n),  master_task)
-         call broadcast_scalar(hist_suffix(n),       master_task)
+         call broadcast_scalar(hist_suffix(n),    master_task)
       enddo
       call broadcast_array(hist_avg,              master_task)
       call broadcast_array(histfreq_n,            master_task)

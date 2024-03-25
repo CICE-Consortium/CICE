@@ -93,7 +93,7 @@
       character (len=8) :: cdate
       character (len=char_len_long) :: title, cal_units, cal_att
       character (len=char_len) :: time_period_freq = 'none'
-      character (len=char_len_long) :: ncfile(max_nstrm)
+      character (len=char_len_long) :: ncfile
 
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid, lprecision
 
@@ -156,15 +156,15 @@
           file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-        call construct_filename(ncfile(ns),'nc',ns)
+        call construct_filename(ncfile,'nc',ns)
 
         ! add local directory path name to ncfile
         if (write_ic) then
-          ncfile(ns) = trim(incond_dir)//ncfile(ns)
+          ncfile = trim(incond_dir)//ncfile
         else
-          ncfile(ns) = trim(history_dir)//ncfile(ns)
+          ncfile = trim(history_dir)//ncfile
         endif
-        filename = ncfile(ns)
+        filename = ncfile
       end if
       call broadcast_scalar(filename, master_task)
 
@@ -1252,7 +1252,7 @@
       call pio_closefile(File)
       if (my_task == master_task) then
          write(nu_diag,*) ' '
-         write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
+         write(nu_diag,*) 'Finished writing ',trim(ncfile)
       endif
 
       first_call = .false.

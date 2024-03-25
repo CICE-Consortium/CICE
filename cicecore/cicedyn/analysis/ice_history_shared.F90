@@ -57,7 +57,7 @@
          history_rearranger      ! history file rearranger, box or subset for pio
 
       character (len=char_len), public :: &
-         hist_suffix(max_nstrm)  ! appended to 'h' in filename when not 'x'
+         hist_suffix(max_nstrm)  ! appended to history_file in filename
 
       integer (kind=int_kind), public :: &
          history_iotasks     , & ! iotasks, root, stride defines io pes for pio
@@ -757,18 +757,22 @@
                               dt
       use ice_restart_shared, only: lenstr
 
-      character (char_len_long), intent(inout) :: ncfile
-      character (len=2), intent(in) :: suffix
+      character (len=*), intent(inout) :: ncfile
+      character (len=*), intent(in) :: suffix
       integer (kind=int_kind), intent(in) :: ns
 
       integer (kind=int_kind) :: iyear, imonth, iday, isec
-      character (len=1) :: cstream
+      integer (kind=int_kind) :: n
+      character (len=char_len) :: cstream
+      character (len=char_len_long), save :: ncfile_last(max_nstrm) = 'UnDefineD'
       character(len=*), parameter :: subname = '(construct_filename)'
 
         iyear = myear
         imonth = mmonth
         iday = mday
         isec = int(msec - dt,int_kind)
+        cstream = ''
+        if (hist_suffix(ns) /= 'x') cstream = hist_suffix(ns)
 
         ! construct filename
         if (write_ic) then
@@ -792,9 +796,6 @@
                  iday = iday - 1
               endif
            endif
-
-           cstream = ''
-           if (hist_suffix(ns) /= 'x') cstream = hist_suffix(ns)
 
            if (hist_avg(ns)) then    ! write averaged data
               if (histfreq(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep
@@ -830,6 +831,25 @@
            endif
 
         endif
+
+        ! Check whether the filename is already in use.
+        ! Same filename in multiple history streams leads to files being overwritten (not good).
+        ! The current filename convention means we just have to check latest filename, 
+        ! not all filenames ever generated because of use of current model date/time in filename.
+
+        ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug ncfile= ',ns,trim(ncfile)
+        do n = 1,max_nstrm
+           ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug nfile_last= ',n,trim(ncfile_last(n))
+           if (ncfile == ncfile_last(n)) then
+              write(nu_diag,*) subname,' history stream = ',ns
+              write(nu_diag,*) subname,' history filename = ',trim(ncfile)
+              write(nu_diag,*) subname,' filename in use for stream ',n
+              write(nu_diag,*) subname,' filename for stream ',trim(ncfile_last(n))
+              write(nu_diag,*) subname,' Use namelist hist_suffix so history filenames are unique'
+              call abort_ice(subname//' ERROR: history filename already used for another history stream '//trim(ncfile))
+           endif
+        enddo
+        ncfile_last(ns) = ncfile
 
       end subroutine construct_filename
 
@@ -891,7 +911,7 @@
       if(present(mask_ice_free_points)) l_mask_ice_free_points = mask_ice_free_points
 
       if (histfreq(ns) == 'x') then
-         call abort_ice(subname//'ERROR: define_hist_fields has histfreq x')
+         call abort_ice(subname//' ERROR: define_hist_fields has histfreq x')
       endif
 
       if (ns == 1) id(:) = 0
@@ -901,7 +921,7 @@
          if (vhistfreq(ns1:ns1) == histfreq(ns)) then
 
             if (ns1 > 1 .and. index(vhistfreq(1:ns1-1),'x') /= 0) then
-               call abort_ice(subname//'ERROR: history frequency variable f_' // vname // ' can''t contain ''x'' along with active frequencies')
+               call abort_ice(subname//' ERROR: history frequency variable f_' // vname // ' can''t contain ''x'' along with active frequencies')
             endif
 
             num_avail_hist_fields_tot = num_avail_hist_fields_tot + 1
@@ -931,7 +951,7 @@
                   write(nu_diag,*) subname,' num_avail_hist_fields_tot = ',num_avail_hist_fields_tot
                   write(nu_diag,*) subname,' max_avail_hist_fields     = ',max_avail_hist_fields
                endif
-               call abort_ice(subname//'ERROR: Need in computation of max_avail_hist_fields')
+               call abort_ice(subname//' ERROR: Need in computation of max_avail_hist_fields')
             endif
 
             if (num_avail_hist_fields_tot /= &
@@ -947,7 +967,7 @@
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' num_avail_hist_fields_tot = ',num_avail_hist_fields_tot
                endif
-               call abort_ice(subname//'ERROR: in num_avail_hist_fields')
+               call abort_ice(subname//' ERROR: in num_avail_hist_fields')
             endif
 
             id(ns) = num_avail_hist_fields_tot
