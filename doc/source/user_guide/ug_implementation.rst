@@ -1232,45 +1232,45 @@ above.  In addition, ``history_format`` as well as other history namelist
 options control the specific file format as well as features related to 
 IO performance, see :ref:`iooverview`.
 
-The data written at the period(s) given by ``histfreq`` and
+The data is written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
-The files are written to binary or netCDF files prepended by ``history_file``
-in **ice_in**. These settings for history files are set in the 
+The files are written to binary or netCDF files prepended by the ``history_file``
+and ``history_suffix``
+namelist setting. The settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
-If ``history_file`` = ‘iceh’ then the 
-filenames will have the form **iceh.[timeID].nc** or **iceh.[timeID].da**,
-depending on the output file format chosen.  With binary files, a separate header
+The history filenames will have a form like
+**history_file//history_suffix[_freq].[timeID].[nc,da]**
+depending on the namelist options chosen.  With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields\_nml** section of **ice\_in** 
 (see :ref:`tabnamelist`).
 The user may add (or subtract) variables not already available in the
 namelist by following the instructions in section :ref:`addhist`. 
 
-The history module has been divided into several
+The history implementation has been divided into several
 modules based on the desired formatting and on the variables
 themselves. Parameters, variables and routines needed by multiple
 modules is in **ice\_history\_shared.F90**, while the primary routines
 for initializing and accumulating all of the history variables are in
 **ice\_history.F90**. These routines call format-specific code in the
-**io\_binary**, **io\_netcdf** and **io\_pio** directories. History
+**io\_binary**, **io\_netcdf** and **io\_pio2** directories. History
 variables specific to certain components or parameterizations are
 collected in their own history modules (**ice\_history\_bgc.F90**,
 **ice\_history\_drag.F90**, **ice\_history\_mechred.F90**,
 **ice\_history\_pond.F90**).
 
-The history modules allow output at different frequencies, ``hist_freq``. Five output
-options (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously
-during a run, and each stream must have a unique value for ``hist_freq``.  In other words, ``d``
+The history modules allow output at different frequencies. Five output
+options (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously for ``histfreq``
+during a run, and each stream must have a unique value for ``histfreq``.  In other words, ``d``
 cannot be used by two different streams.  Each stream has an associated frequency
 set by ``histfreq_n``.  The frequency is
 relative to a reference date specified by the corresponding entry in ``histfreq_base``.
 Each stream can be instantaneous or time averaged
 data over the frequency internal.  The ``hist_avg`` namelist turns on time averaging
 for each stream individually.
-The same model variable can be written to multiple history streams (say daily and
-monthly) via its namelist flag, `f\_` :math:`\left<{var}\right>`.  The valid
-values for the character string `f\_` :math:`\left<{var}\right>` is the ``hist_freq``
-values or 'x' for none.  For example, ``f_aice = 'md'`` will write aice to the
+The same model variable can be written to multiple history streams (ie. daily ``d`` and
+monthly ``m``) via its namelist flag, `f\_` :math:`\left<{var}\right>`, while ``x``
+turns that history variable off.  For example, ``f_aice = 'md'`` will write aice to the
 monthly and daily streams.
 Grid variable history output flags are logicals and written to all stream files if
 turned on.  If there are no namelist flags
@@ -1303,7 +1303,9 @@ For example, in the namelist:
 
 Here, ``hi`` will be written to a file on every timestep, ``hs`` will be
 written once every 6 hours, ``aice`` once a month, ``meltb`` once a month AND
-once every 6 hours, and ``Tsfc`` and ``iage`` will not be written.
+once every 6 hours, and ``Tsfc`` and ``iage`` will not be written.  All streams
+are time averaged over the interval although because one stream has ``histfreq=1`` and
+``histfreq_n=1``, that is equivalent to instantaneous output each model timestep.
 
 From an efficiency standpoint, it is best to set unused frequencies in
 ``histfreq`` to ‘x’. Having output at all 5 frequencies takes nearly 5 times
