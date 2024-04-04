@@ -102,7 +102,7 @@
       real (kind=dbl_kind)  :: ltime2
       character (char_len) :: title, cal_units, cal_att
       character (char_len) :: time_period_freq = 'none'
-      character (char_len_long) :: ncfile(max_nstrm)
+      character (char_len_long) :: ncfile
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
       integer (kind=int_kind) :: ind,boundid, lprecision
@@ -139,13 +139,13 @@
 
       if (my_task == master_task) then
 
-         call construct_filename(ncfile(ns),'nc',ns)
+         call construct_filename(ncfile,'nc',ns)
 
          ! add local directory path name to ncfile
          if (write_ic) then
-            ncfile(ns) = trim(incond_dir)//ncfile(ns)
+            ncfile = trim(incond_dir)//ncfile
          else
-            ncfile(ns) = trim(history_dir)//ncfile(ns)
+            ncfile = trim(history_dir)//ncfile
          endif
 
          ! create file
@@ -161,8 +161,8 @@
            call abort_ice(subname//' ERROR: history_format not allowed for '//trim(history_format), &
               file=__FILE__, line=__LINE__)
          endif
-         status = nf90_create(ncfile(ns), iflag, ncid)
-         call ice_check_nc(status, subname// ' ERROR: creating history ncfile '//ncfile(ns), &
+         status = nf90_create(ncfile, iflag, ncid)
+         call ice_check_nc(status, subname// ' ERROR: creating history ncfile '//ncfile, &
                            file=__FILE__, line=__LINE__)
 
          !-----------------------------------------------------------------
@@ -1160,7 +1160,7 @@
          call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
                            file=__FILE__, line=__LINE__)
          write(nu_diag,*) ' '
-         write(nu_diag,*) 'Finished writing ',trim(ncfile(ns))
+         write(nu_diag,*) 'Finished writing ',trim(ncfile)
       endif
 
 #else
