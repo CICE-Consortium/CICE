@@ -1773,9 +1773,11 @@ contains
                 end do
              end do
           else
-             do i = ilo, ihi
-                n = n+1
-                dataPtr1d(n) = input(i,j,index,iblk)
+             do j = jlo, jhi
+                do i = ilo, ihi
+                   n = n+1
+                   dataPtr1d(n) = input(i,j,index,iblk)
+                end do
              end do
           end if
        end do
