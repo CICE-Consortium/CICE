@@ -7,7 +7,8 @@ module ice_prescribed_mod
   ! Ice/ocean fluxes are set to zero, and ice dynamics are not calculated.
   ! Regridding and data cycling capabilities are included.
 
-  use ESMF
+  use ESMF, only : ESMF_Clock, ESMF_Mesh, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF, only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_Finalize, ESMF_END_ABORT
 
 #ifndef CESMCOUPLED
 
@@ -23,6 +24,7 @@ contains
     type(ESMF_Mesh)        , intent(in)  :: mesh
     integer                , intent(out) :: rc
     ! do nothing
+    rc = ESMF_SUCCESS
   end subroutine ice_prescribed_init
 
 #else
