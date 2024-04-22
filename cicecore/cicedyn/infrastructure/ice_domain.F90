@@ -90,6 +90,7 @@
     integer (int_kind) :: &
        nprocs                ! num of processors
 
+        
 !***********************************************************************
 
  contains
@@ -101,7 +102,7 @@
 !  This routine reads in domain information and calls the routine
 !  to set up the block decomposition.
 
-   use ice_distribution, only: processor_shape
+   use ice_distribution, only: processor_shape, proc_decomposition
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
@@ -112,7 +113,8 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      nml_error          ! namelist read error flag
+      nml_error, &          ! namelist read error flag
+      nprocs_x, nprocs_y    ! procs decomposed into blocks
 
    character(len=char_len)      :: nml_name ! text namelist name
    character(len=char_len_long) :: tmpstr2 ! for namelist check
@@ -216,21 +218,24 @@
    call broadcast_scalar(maskhalo_bound,    master_task)
    call broadcast_scalar(add_mpi_barriers,  master_task)
    call broadcast_scalar(debug_blocks,      master_task)
-   if (my_task == master_task) then
-     if (max_blocks < 1) then
-       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
-                    ((ny_global-1)/block_size_y + 1) - 1) / nprocs + 1
-       max_blocks=max(1,max_blocks)
-       write(nu_diag,'(/,a52,i6,/)') &
-         '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
-     endif
-   endif
    call broadcast_scalar(max_blocks,        master_task)
    call broadcast_scalar(block_size_x,      master_task)
    call broadcast_scalar(block_size_y,      master_task)
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
 
+   ! Automatically determine max_blocks if not set.
+   if (my_task == master_task) then
+      if (max_blocks < 1) then
+         call proc_decomposition(nprocs, nprocs_x, nprocs_y)
+         max_blocks=((nx_global-1)/block_size_x/nprocs_x+1) * &
+                     ((ny_global-1)/block_size_y/nprocs_y+1)
+         max_blocks=max(1,max_blocks)
+         write(nu_diag,'(/,a52,i6,/)') &
+            '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+      endif
+   endif
+   
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
