@@ -1,0 +1,62 @@
+#==============================================================================
+# Makefile macros for NCAR derecho, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise -march=core-avx2
+
+FIXEDFLAGS := -fixed -132
+FREEFLAGS  := -free
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -march=core-avx2
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -link_mpi=dbg -stand f08
+#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays -link_mpi=dbg
+else
+  FFLAGS     += -O2
+endif
+
+SCC   := icx
+SFC   := ifort
+MPICC := mpicc
+MPIFC := mpif90
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs
+
+#PNETCDF_PATH := $(PNETCDF)
+
+#INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF)/lib
+
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf -lgptl
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true)
+   LDFLAGS += -qopenmp
+   CFLAGS += -qopenmp
+   FFLAGS += -qopenmp
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   SLIBS   := $(SLIBS) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   SLIBS   := $(SLIBS) -lpiof -lpioc
+endif
+

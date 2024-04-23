@@ -31,16 +31,17 @@
       subroutine CICE_Finalize
 
       use ice_restart_shared, only: runid
-      use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total
+      use ice_timers, only: ice_timer_stop, ice_timer_print_all, &
+                            timer_total, timer_stats
 
       character(len=*), parameter :: subname = '(CICE_Finalize)'
 
-      !-------------------------------------------------------------------
-      ! stop timers and print timer info
-      !-------------------------------------------------------------------
+   !-------------------------------------------------------------------
+   ! stop timers and print timer info
+   !-------------------------------------------------------------------
 
       call ice_timer_stop(timer_total)        ! stop timing entire run
-      call ice_timer_print_all(stats=.false.) ! print timing information
+      call ice_timer_print_all(stats=timer_stats) ! print timing information
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -55,9 +56,9 @@
 !echmod      if (nu_diag /= 6) close (nu_diag) ! diagnostic output
       call release_all_fileunits
 
-      !-------------------------------------------------------------------
-      ! quit MPI
-      !-------------------------------------------------------------------
+   !-------------------------------------------------------------------
+   ! quit MPI
+   !-------------------------------------------------------------------
 
 #ifndef coupled
 #ifndef CICE_DMI

@@ -237,15 +237,15 @@ In the VP approach, equation :eq:`momsys` is discretized implicitly using a Back
 and stresses are not computed explicitly:
 
 .. math::
-  \begin{align}
+  \begin{aligned}
   m\frac{(u^{n}-u^{n-1})}{\Delta t} &= \frac{\partial \sigma_{1j}^n}{\partial x_j}
   - \tau_{w,x}^n + \tau_{b,x}^n +  mfv^n
    + r_{x}^n,
   \\
   m\frac{(v^{n}-v^{n-1})}{\Delta t} &= \frac{\partial \sigma^{n} _{2j}}{\partial x_j}
-  - \tau_{w,y}^n + \tau_{b,y}^n   -mfu^{n}
+  - \tau_{w,y}^n + \tau_{b,y}^n -  mfu^{n}
    + r_{y}^n
-  \end{align}
+  \end{aligned}
   :label: u_sit
 
 where :math:`r = (r_x,r_y)` contains all terms that do not depend on the velocities :math:`u^n, v^n` (namely the sea surface tilt and the wind stress).
@@ -284,7 +284,7 @@ Parameters for the FGMRES linear solver and the preconditioner can be controlled
 Surface stress terms
 ********************
 
-The formulation for the wind stress is described in `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_. Below, some details about the ice-ocean stress and the seabed stress are given. 
+The formulation for the wind stress is described in `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_. Below, some details about the ice-ocean stress and the seabed stress are given. 
 
 Ice-Ocean stress
 ~~~~~~~~~~~~~~~~
@@ -297,7 +297,7 @@ The Hibler-Bryan form for the ice-ocean stress :cite:`Hibler87`
 is included in **ice\_dyn\_shared.F90** but is currently commented out,
 pending further testing.
 
-.. _seabed-stress:
+.. _seabedstress:
 
 Seabed stress
 ~~~~~~~~~~~~~
@@ -382,7 +382,7 @@ The value of :math:`k_1` can be changed at runtime using the namelist variable `
 
 This more sophisticated grounding parameterization computes the seabed stress based
 on the probability of contact between the ice thickness distribution
-(ITD) and the seabed. Multi-thickness category models such as CICE typically use a
+(ITD) and the seabed :cite:`Dupont22`. Multi-thickness category models such as CICE typically use a
 few thickness categories (5-10). This crude representation of the ITD
 does not resolve the tail of the ITD, which is crucial for grounding
 events.
@@ -449,8 +449,8 @@ Rheology
 ********
 
 For convenience we formulate the stress tensor :math:`\bf \sigma` in
-terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}`,
-:math:`\sigma_2=\sigma_{11}-\sigma_{22}`, and introduce the
+terms of :math:`\sigma_1=\sigma_{11}+\sigma_{22}` (``stressp``),
+:math:`\sigma_2=\sigma_{11}-\sigma_{22}` (``stressm``), and introduce the
 divergence, :math:`D_D`, and the horizontal tension and shearing
 strain rates, :math:`D_T` and :math:`D_S` respectively:
 
@@ -468,8 +468,16 @@ where
 .. math::
    \dot{\epsilon}_{ij} = {1\over 2}\left({{\partial u_i}\over{\partial x_j}} + {{\partial u_j}\over{\partial x_i}}\right)
 
-CICE can output the internal ice pressure which is an important field to support navigation in ice-infested water.
-The internal ice pressure (``sigP``) is the average of the normal stresses multiplied by :math:`-1` and
+Note that :math:`\sigma_1` and :math:`\sigma_2` are not to be confused with the normalized principal stresses,
+:math:`\sigma_{n,1}` and :math:`\sigma_{n,2}` (``sig1`` and ``sig2``), which are defined as:
+
+.. math::
+   \sigma_{n,1}, \sigma_{n,2} = \frac{1}{P} \left( \frac{\sigma_1}{2} \pm \sqrt{\left(\frac{\sigma_2}{2}\right)^2 + \sigma_{12}^2} \right)
+
+where :math:`P` is the ice strength.
+
+In addition to the normalized principal stresses, CICE can output the internal ice pressure which is an important field to support navigation in ice-infested water.
+The internal ice pressure (``sigP``) is the average of the normal stresses (:math:`\sigma_{11}`, :math:`\sigma_{22}`) multiplied by :math:`-1` and
 is therefore simply equal to :math:`-\sigma_1/2`.
 
 .. _stress-vp:
@@ -507,7 +515,7 @@ where
 When the deformation :math:`\Delta` tends toward zero, the viscosities tend toward infinity. To avoid this issue, :math:`\Delta` needs to be limited and is replaced by :math:`\Delta^*` in equation :eq:`zeta`. Two methods for limiting :math:`\Delta` (or for capping the viscosities) are available in the code. If the namelist parameter ``capping_method`` is set to ``max``, :math:`\Delta^*=max(\Delta, \Delta_{min})` :cite:`Hibler79` while with ``capping_method`` set to ``sum``, the smoother formulation  :math:`\Delta^*=(\Delta + \Delta_{min})` of :cite:`Kreyscher00` is used. 
 
 The ice strength :math:`P` is a function of the ice thickness distribution as
-described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_.
+described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_.
  
 Two other modifications to the standard VP rheology of :cite:`Hibler79` are available.
 First, following the approach of :cite:`Konig10` (see also :cite:`Lemieux16`), the

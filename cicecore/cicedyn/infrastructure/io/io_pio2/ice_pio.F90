@@ -27,6 +27,7 @@
 
   public ice_pio_init
   public ice_pio_initdecomp
+  public ice_pio_check
 
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem
@@ -43,10 +44,11 @@
 !    Initialize the io subsystem
 !    2009-Feb-17 - J. Edwards - initial version
 
-   subroutine ice_pio_init(mode, filename, File, clobber, cdf64, iotype)
+   subroutine ice_pio_init(mode, filename, File, clobber, fformat, &
+                           rearr, iotasks, root, stride, debug)
 
 #ifdef CESMCOUPLED
-   use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype
+   use shr_pio_mod, only: shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #else
 #ifdef GPTL
    use perf_mod, only : t_initf
@@ -58,31 +60,33 @@
    character(len=*)     , intent(in),    optional :: filename
    type(file_desc_t)    , intent(inout), optional :: File
    logical              , intent(in),    optional :: clobber
-   logical              , intent(in),    optional :: cdf64
-   integer              , intent(in),    optional :: iotype
+   character(len=*)     , intent(in),    optional :: fformat
+   character(len=*)     , intent(in),    optional :: rearr
+   integer              , intent(in),    optional :: iotasks
+   integer              , intent(in),    optional :: root
+   integer              , intent(in),    optional :: stride
+   logical              , intent(in),    optional :: debug
 
    ! local variables
 
    integer (int_kind) :: &
       nml_error          ! namelist read error flag
 
-   integer :: nprocs
-   integer :: istride
-   integer :: basetask
-   integer :: numiotasks
-   integer :: rearranger
-   integer :: pio_iotype
-   logical :: exists
-   logical :: lclobber
-   logical :: lcdf64
-   integer :: status
-   integer :: nmode
+   integer :: nprocs , lstride, lroot, liotasks, rearranger
+   integer :: pio_iotype, status, nmode0, nmode
+   logical :: lclobber, exists, ldebug
    character(len=*), parameter :: subname = '(ice_pio_init)'
-   logical, save :: first_call = .true.
 
 #ifdef CESMCOUPLED
    ice_pio_subsystem => shr_pio_getiosys(inst_name)
    pio_iotype =  shr_pio_getiotype(inst_name)
+   if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
+      nmode0 = shr_pio_getioformat(inst_name)
+   else
+      nmode0 = 0
+   endif
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 #else
 
 #ifdef GPTL
@@ -92,106 +96,159 @@
 #endif
 
    !--- initialize type of io
-   !pio_iotype = PIO_IOTYPE_PNETCDF
-   !pio_iotype = PIO_IOTYPE_NETCDF4C
-   !pio_iotype = PIO_IOTYPE_NETCDF4P
-   pio_iotype = PIO_IOTYPE_NETCDF
-   if (present(iotype)) then
-      pio_iotype = iotype
+   ldebug = .false.
+   if (present(debug)) then
+      ldebug = debug
    endif
 
-   !--- initialize ice_pio_subsystem
+   if (present(fformat)) then
+      if (fformat(1:3) == 'cdf') then
+         pio_iotype = PIO_IOTYPE_NETCDF
+      elseif (fformat(1:3) == 'hdf') then
+         pio_iotype = PIO_IOTYPE_NETCDF4P
+      elseif (fformat(1:7) == 'pnetcdf') then
+         pio_iotype = PIO_IOTYPE_PNETCDF
+      else
+         call abort_ice(subname//' ERROR: format not allowed for '//trim(fformat), &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      if (fformat == 'cdf2' .or. fformat == 'pnetcdf2') then
+         nmode0 = PIO_64BIT_OFFSET
+      elseif (fformat == 'cdf5' .or. fformat == 'pnetcdf5') then
+         nmode0 = PIO_64BIT_DATA
+      else
+         nmode0 = 0
+      endif
+   else
+      pio_iotype = PIO_IOTYPE_NETCDF
+      nmode0 = 0
+   endif
+
+   if (present(rearr)) then
+      if (rearr == 'box' .or. rearr == 'default') then
+         rearranger = PIO_REARR_BOX
+      elseif (rearr == 'subset') then
+         rearranger = PIO_REARR_SUBSET
+      else
+         call abort_ice(subname//' ERROR: rearr not allowed for '//trim(rearr), &
+            file=__FILE__, line=__LINE__)
+      endif
+   else
+      rearranger = PIO_REARR_BOX
+   endif
+
    nprocs = get_num_procs()
-   istride = 4
-   basetask = min(1,nprocs-1)
-   numiotasks = max((nprocs-basetask)/istride,1)
-!--tcraig this should work better but it causes pio2.4.4 to fail for reasons unknown
-!   numiotasks = 1 + (nprocs-basetask-1)/istride
-   rearranger = PIO_REARR_BOX
-   if (my_task == master_task) then
+   lstride = 4
+   lroot = min(1,nprocs-1)
+!  Adjustments for PIO2 iotask issue, https://github.com/NCAR/ParallelIO/issues/1986
+!   liotasks = max(1,(nprocs-lroot)/lstride)  ! very conservative
+   liotasks = max(1,nprocs/lstride - lroot/lstride)  ! less conservative (note integer math)
+!   liotasks = 1 + (nprocs-lroot-1)/lstride   ! optimal
+
+   if (present(iotasks)) then
+      if (iotasks /= -99) liotasks=iotasks
+   endif
+   if (present(root)) then
+      if (root /= -99) lroot=root
+   endif
+   if (present(stride)) then
+      if (stride /= -99) lstride=stride
+   endif
+
+   if (liotasks < 1 .or. lroot < 0 .or. lstride < 1) then
+      call abort_ice(subname//' ERROR: iotasks, root, stride incorrect ', &
+         file=__FILE__, line=__LINE__)
+   endif
+
+   ! adjust to fit in nprocs, preserve root and stride as much as possible
+   lroot = min(lroot,nprocs-1)   ! lroot <= nprocs-1
+!  Adjustments for PIO2 iotask issue, https://github.com/NCAR/ParallelIO/issues/1986
+!   liotasks = max(1,min(liotasks, (nprocs-lroot)/lstride))  ! very conservative
+   liotasks = max(1,min(liotasks,nprocs/lstride - lroot/lstride))  ! less conservative (note integer math)
+!   liotasks = max(1,min(liotasks, 1 + (nprocs-lroot-1)/lstride))  ! optimal
+
+   !--- initialize ice_pio_subsystem
+
+   if (ldebug .and. my_task == master_task) then
       write(nu_diag,*) subname,' nprocs     = ',nprocs
-      write(nu_diag,*) subname,' istride    = ',istride
-      write(nu_diag,*) subname,' basetask   = ',basetask
-      write(nu_diag,*) subname,' numiotasks = ',numiotasks
       write(nu_diag,*) subname,' pio_iotype = ',pio_iotype
+      write(nu_diag,*) subname,' iotasks    = ',liotasks
+      write(nu_diag,*) subname,' baseroot   = ',lroot
+      write(nu_diag,*) subname,' stride     = ',lstride
+      write(nu_diag,*) subname,' nmode      = ',nmode0
    end if
 
-   call pio_init(my_task, MPI_COMM_ICE, numiotasks, master_task, istride, &
-                 rearranger, ice_pio_subsystem, base=basetask)
-   !--- initialize rearranger options
-   !pio_rearr_opt_comm_type = integer (PIO_REARR_COMM_[P2P,COLL])
-   !pio_rearr_opt_fcd = integer, flow control (PIO_REARR_COMM_FC_[2D_ENABLE,1D_COMP2IO,1D_IO2COMP,2D_DISABLE])
-   !pio_rearr_opt_c2i_enable_hs = logical
-   !pio_rearr_opt_c2i_enable_isend = logical
-   !pio_rearr_opt_c2i_max_pend_req = integer
-   !pio_rearr_opt_i2c_enable_hs = logical
-   !pio_rearr_opt_i2c_enable_isend = logical
-   !pio_rearr_opt_c2i_max_pend_req = integer
-   !ret = pio_set_rearr_opts(ice_pio_subsystem, pio_rearr_opt_comm_type,&
-   !              pio_rearr_opt_fcd,&
-   !              pio_rearr_opt_c2i_enable_hs, pio_rearr_opt_c2i_enable_isend,&
-   !              pio_rearr_opt_c2i_max_pend_req,&
-   !              pio_rearr_opt_i2c_enable_hs, pio_rearr_opt_i2c_enable_isend,&
-   !              pio_rearr_opt_i2c_max_pend_req)
-   !if(ret /= PIO_NOERR) then
-   !   call abort_ice(subname//'ERROR: aborting in pio_set_rearr_opts')
-   !end if
+   call pio_init(my_task, MPI_COMM_ICE, liotasks, master_task, lstride, &
+                 rearranger, ice_pio_subsystem, base=lroot)
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 
 #endif
 
    if (present(mode) .and. present(filename) .and. present(File)) then
 
       if (trim(mode) == 'write') then
-         lclobber = .false.
-         if (present(clobber)) lclobber=clobber
 
-         lcdf64 = .false.
-         if (present(cdf64)) lcdf64=cdf64
+         lclobber = .false.
+         if (present(clobber)) then
+            lclobber=clobber
+         endif
 
          if (File%fh<0) then
             ! filename not open
             inquire(file=trim(filename),exist=exists)
             if (exists) then
                if (lclobber) then
-                  nmode = pio_clobber
-                  if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+                  nmode = ior(PIO_CLOBBER,nmode0)
                   status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check(status, subname//' ERROR: Failed to overwrite file '//trim(filename), &
+                       file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' create file ',trim(filename)
                   end if
                else
                   nmode = pio_write
                   status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+                  call ice_pio_check( status,  subname//' ERROR: Failed to open file '//trim(filename), &
+                       file=__FILE__,line=__LINE__)
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,' open file ',trim(filename)
                   end if
                endif
             else
-               nmode = pio_noclobber
-               if (lcdf64) nmode = ior(nmode,PIO_64BIT_OFFSET)
+               nmode = ior(PIO_NOCLOBBER,nmode0)
                status = pio_createfile(ice_pio_subsystem, File, pio_iotype, trim(filename), nmode)
+               call ice_pio_check( status, subname//' ERROR: Failed to create file '//trim(filename), &
+                    file=__FILE__,line=__LINE__)
                if (my_task == master_task) then
                   write(nu_diag,*) subname,' create file ',trim(filename)
                end if
             endif
-         else
-            ! filename is already open, just return
+         ! else: filename is already open, just return
          endif
       end if
 
       if (trim(mode) == 'read') then
          inquire(file=trim(filename),exist=exists)
          if (exists) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' opening file for reading '//trim(filename)
+            endif
             status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
+            call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename), &
+             file=__FILE__,line=__LINE__)
          else
             if(my_task==master_task) then
-               write(nu_diag,*) 'ice_pio_ropen ERROR: file invalid ',trim(filename)
+               write(nu_diag,*) subname//' ERROR: file not found '//trim(filename)
             end if
-            call abort_ice(subname//'ERROR: aborting with invalid file')
+            call abort_ice(subname//' ERROR: aborting with invalid file '//trim(filename))
          endif
       end if
 
    end if
+
+   call pio_seterrorhandling(ice_pio_subsystem, PIO_INTERNAL_ERROR)
 
    end subroutine ice_pio_init
 
@@ -464,6 +521,40 @@
       deallocate(dof4d)
 
    end subroutine ice_pio_initdecomp_4d
+
+
+!================================================================================
+
+   ! PIO Error handling
+   ! Author: Anton Steketee, ACCESS-NRI
+
+   subroutine ice_pio_check(status, abort_msg, file, line)
+      integer(kind=int_kind), intent (in) :: status
+      character (len=*)     , intent (in) :: abort_msg
+      character (len=*)     , intent (in), optional :: file
+      integer(kind=int_kind), intent (in), optional :: line
+
+      ! local variables
+
+      character(len=pio_max_name) :: err_msg
+      integer(kind=int_kind)      :: strerror_status
+      character(len=*), parameter :: subname = '(ice_pio_check)'
+
+      if (status /= PIO_NOERR) then
+#ifdef USE_PIO1
+         err_msg = ''
+#else
+         strerror_status = pio_strerror(status, err_msg)
+#endif
+         if (present(file) .and. present(line)) then
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file, line=line)
+         elseif (present(file)) then
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg), file=file)
+         else
+            call abort_ice(subname//trim(err_msg)//', '//trim(abort_msg))
+         endif
+      endif
+   end subroutine ice_pio_check
 
 !================================================================================
 

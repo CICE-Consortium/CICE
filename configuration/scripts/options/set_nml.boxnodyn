@@ -43,6 +43,7 @@ tr_pond_lvl  = .false.
 tr_aero      = .false.
 kitd = 0
 ktherm = 1
+hi_min = 0.1d0
 kdyn  =  1
 revised_evp = .false.
 kstrength = 1

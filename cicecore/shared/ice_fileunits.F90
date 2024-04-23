@@ -28,7 +28,8 @@
       implicit none
       private
       public :: init_fileunits, get_fileunit, flush_fileunit, &
-                release_fileunit, release_all_fileunits
+                release_fileunit, release_all_fileunits, &
+                goto_nml
 
       character (len=char_len), public :: &
          diag_type               ! 'stdout' or 'file'
@@ -80,10 +81,8 @@
       integer (kind=int_kind), public :: &
          nu_diag = ice_stdout  ! diagnostics output file, unit number may be overwritten
 
-#ifdef CESMCOUPLED
       logical (kind=log_kind), public :: &
          nu_diag_set = .false. ! flag to indicate whether nu_diag is already set
-#endif
 
       integer (kind=int_kind), public :: &
          ice_IOUnitsMinUnit = 11, & ! do not use unit numbers below
@@ -321,6 +320,56 @@
 #endif
 
       end subroutine flush_fileunit
+
+!=======================================================================
+
+!=======================================================
+
+      subroutine goto_nml(iunit, nml, status)
+        ! Search to namelist group within ice_in file.
+        ! for compilers that do not allow optional namelists
+
+        ! passed variables
+        integer(kind=int_kind), intent(in) :: &
+             iunit ! namelist file unit
+
+        character(len=*), intent(in) :: &
+             nml ! namelist to search for
+
+        integer(kind=int_kind), intent(out) :: &
+             status ! status of subrouine
+
+        ! local variables
+        character(len=char_len) :: &
+             file_str, & ! string in file
+             nml_str     ! namelist string to test
+
+        integer(kind=int_kind) :: &
+             i, n ! dummy integers
+
+
+        ! rewind file
+        rewind(iunit)
+
+        ! define test string with ampersand
+        nml_str = '&' // trim(adjustl(nml))
+
+        ! search for the record containing the namelist group we're looking for
+        do
+           read(iunit, '(a)', iostat=status) file_str
+           if (status /= 0) then
+              exit ! e.g. end of file
+           else
+              if (index(adjustl(file_str), nml_str) == 1) then
+                 exit ! i.e. found record we're looking for
+              end if
+           end if
+        end do
+
+        ! backspace to namelist name in file
+        backspace(iunit)
+
+      end subroutine goto_nml
 
 !=======================================================================
 

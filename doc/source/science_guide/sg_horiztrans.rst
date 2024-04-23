@@ -11,7 +11,7 @@ thickness category :math:`n`. Equation :eq:`transport-ai` describes
 the conservation of ice area under horizontal transport. It is obtained
 from Equation :eq:`transport-g` by discretizing :math:`g` and neglecting the
 second and third terms on the right-hand side, which are treated
-separately (As described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_).
+separately (As described in the `Icepack Documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_).
 
 There are similar conservation equations for ice volume
 (Equation :eq:`transport-vi`), snow volume (Equation :eq:`transport-vs`), ice
@@ -39,7 +39,7 @@ remapping scheme of :cite:`Dukowicz00` as modified for sea ice by
 
 - The upwind scheme uses velocity points at the East and North face (i.e. :math:`uvelE=u` at the E point and :math:`vvelN=v` at  the N point) of a T gridcell.  As such, the prognostic C grid velocity components (:math:`uvelE` and :math:`vvelN`) can be passed directly to the upwind transport scheme.  If the upwind scheme is used with the B grid, the B grid velocities, :math:`uvelU` and :math:`vvelU` (respectively :math:`u` and :math:`v` at the U point) are interpolated to the E and N points first.  (Note however that the upwind scheme does not transport all potentially available tracers.)
 
-- The remapping scheme uses :math:`uvelU` and :math:`vvelU` if l_fixed_area is false and :math:`uvelE` and :math:`vvelN` if l_fixed_area is true.  l_fixed_area is hardcoded to false by default and further described below.  As such, the B grid velocities (:math:`uvelU` and :math:`vvelU`) are used directly in the remapping scheme, while the C grid velocities (:math:`uvelE` and :math:`vvelN`) are interpolated to U points first.  If l_fixed_area is changed to true, then the reverse is true.  The C grid velocities are used directly and the B grid velocities are interpolated.
+- Remapping is naturally a B-grid transport scheme as the corner (U point) velocity components :math:`uvelU` and :math:`vvelU` are used to calculate departure points. Nevertheless, the remapping scheme can also be used with the C grid by first interpolating :math:`uvelE` and :math:`vvelN` to the U points.
 
 The remapping scheme has several desirable features:
 
@@ -98,7 +98,7 @@ below.
 
 After the transport calculation, the sum of ice and open water areas within a 
 grid cell may not add up to 1. The mechanical deformation parameterization in 
-`Icepack <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`_ 
+`Icepack <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_ 
 corrects this issue by ridging the ice and creating open water 
 such that the ice and open water areas again add up to 1.
 
@@ -477,9 +477,16 @@ Remote Sensing Center (Norway), who applied an earlier version of the
 CICE remapping scheme to an ocean model. The implementation in CICE
 is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
-but not both of the grid cells that share the edge. Since this option
-has yet to be fully tested in CICE, the current default is
-`l\_fixed\_area` = false.
+but not both of the grid cells that share the edge.
+
+The default value for the B grid is `l\_fixed\_area` = false. However, 
+idealized tests with the C grid have shown that prognostic fields such 
+as sea ice concentration exhibit a checkerboard pattern with 
+`l\_fixed\_area` = false. The logical `l\_fixed\_area` is therefore set 
+to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
+are in this case calculated with the C grid velocity components :math:`uvelE` 
+and :math:`vvelN`.
+
 
 We made one other change in the scheme of :cite:`Dukowicz00` for
 locating triangles. In their paper, departure points are defined by

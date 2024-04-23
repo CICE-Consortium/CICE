@@ -40,6 +40,15 @@
              global_maxval,   &
              global_minval
 
+   real (kind=dbl_kind), parameter :: &
+      bigdbl  = 1.0e36_dbl_kind
+
+   real (kind=real_kind), parameter :: &
+      bigreal = 1.0e36_real_kind
+
+   real (kind=int_kind), parameter :: &
+      bigint  = 9999999
+
 !-----------------------------------------------------------------------
 !
 !  generic interfaces for module procedures
@@ -181,7 +190,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -189,25 +198,45 @@
 
       n = (iblock-1)*nx_block*ny_block
 
-      do j=jb,je
-      do i=ib,ie
-         n = n + 1
-         ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
-            work(n,1) = 0._dbl_kind
-         else
-            if (present(mMask)) then
-               work(n,1) = array(i,j,iblock)*mMask(i,j,iblock)
-            else if (present(lMask)) then
-               if (lMask(i,j,iblock)) then
-                  work(n,1) = array(i,j,iblock)
-               endif
-            else
+      if (present(mMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = array(i,j,iblock)*mMask(i,j,iblock)
+         end do
+         end do
+      elseif (present(lMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            if (lMask(i,j,iblock)) then
                work(n,1) = array(i,j,iblock)
             endif
-         endif
-      end do
-      end do
+         end do
+         end do
+      else
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = array(i,j,iblock)
+         enddo
+         enddo
+      endif
+
+      if (maxiglob >= 0) then
+         ! eliminate redundant points at je
+         ! set n to (ib,je) index
+         n = (iblock-1)*nx_block*ny_block
+         n = n + (je-1-jb+1)*(ie-ib+1)
+         j=je
+         do i=ib,ie
+            n = n + 1
+            if (this_block%i_glob(i) > maxiglob) then
+               work(n,1) = 0._dbl_kind
+            endif
+         end do
+      endif
+
    end do
 
    call compute_sums_dbl(work,sums,communicator,numProcs)
@@ -317,7 +346,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -325,25 +354,45 @@
 
       n = (iblock-1)*nx_block*ny_block
 
-      do j=jb,je
-      do i=ib,ie
-         n = n + 1
-         ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
-            work(n,1) = 0._dbl_kind
-         else
-            if (present(mMask)) then
-               work(n,1) = real(array(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
-            else if (present(lMask)) then
-               if (lMask(i,j,iblock)) then
-                  work(n,1) = real(array(i,j,iblock),dbl_kind)
-               endif
-            else
+      if (present(mMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = real(array(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
+         end do
+         end do
+      elseif (present(lMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            if (lMask(i,j,iblock)) then
                work(n,1) = real(array(i,j,iblock),dbl_kind)
             endif
-         endif
-      end do
-      end do
+         end do
+         end do
+      else
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = real(array(i,j,iblock),dbl_kind)
+         enddo
+         enddo
+      endif
+
+      if (maxiglob >= 0) then
+         ! eliminate redundant points at je
+         ! set n to (ib,je) index
+         n = (iblock-1)*nx_block*ny_block
+         n = n + (je-1-jb+1)*(ie-ib+1)
+         j=je
+         do i=ib,ie
+            n = n + 1
+            if (this_block%i_glob(i) > maxiglob) then
+               work(n,1) = 0._dbl_kind
+            endif
+         end do
+      endif
+
    end do
 
    call compute_sums_dbl(work,sums,communicator,numProcs)
@@ -445,7 +494,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -456,7 +505,7 @@
       do j=jb,je
       do i=ib,ie
          ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+         if (maxiglob >= 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
 !            blockSum = blockSum + 0_int_kind
          else
             if (present(mMask)) then
@@ -798,7 +847,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -806,25 +855,45 @@
 
       n = (iblock-1)*nx_block*ny_block
 
-      do j=jb,je
-      do i=ib,ie
-         n = n + 1
-         ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
-            work(n,1) = 0._dbl_kind
-         else
-            if (present(mMask)) then
-               work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock)
-            else if (present(lMask)) then
-               if (lMask(i,j,iblock)) then
-                  work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)
-               endif
-            else
+      if (present(mMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock)
+         end do
+         end do
+      elseif (present(lMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            if (lMask(i,j,iblock)) then
                work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)
             endif
-         endif
-      end do
-      end do
+         end do
+         end do
+      else
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = array1(i,j,iblock)*array2(i,j,iblock)
+         enddo
+         enddo
+      endif
+
+      if (maxiglob >= 0) then
+         ! eliminate redundant points at je
+         ! set n to (ib,je) index
+         n = (iblock-1)*nx_block*ny_block
+         n = n + (je-1-jb+1)*(ie-ib+1)
+         j=je
+         do i=ib,ie
+            n = n + 1
+            if (this_block%i_glob(i) > maxiglob) then
+               work(n,1) = 0._dbl_kind
+            endif
+         end do
+      endif
+
    end do
 
    call compute_sums_dbl(work,sums,communicator,numProcs)
@@ -936,7 +1005,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -944,25 +1013,45 @@
 
       n = (iblock-1)*nx_block*ny_block
 
-      do j=jb,je
-      do i=ib,ie
-         n = n + 1
-         ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
-            work(n,1) = 0._dbl_kind
-         else
-            if (present(mMask)) then
-               work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
-            else if (present(lMask)) then
-               if (lMask(i,j,iblock)) then
-                  work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock),dbl_kind)
-               endif
-            else
+      if (present(mMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock)*mMask(i,j,iblock),dbl_kind)
+         end do
+         end do
+      elseif (present(lMask)) then
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            if (lMask(i,j,iblock)) then
                work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock),dbl_kind)
             endif
-         endif
-      end do
-      end do
+         end do
+         end do
+      else
+         do j=jb,je
+         do i=ib,ie
+            n = n + 1
+            work(n,1) = real(array1(i,j,iblock)*array2(i,j,iblock),dbl_kind)
+         enddo
+         enddo
+      endif
+
+      if (maxiglob >= 0) then
+         ! eliminate redundant points at je
+         ! set n to (ib,je) index
+         n = (iblock-1)*nx_block*ny_block
+         n = n + (je-1-jb+1)*(ie-ib+1)
+         j=je
+         do i=ib,ie
+            n = n + 1
+            if (this_block%i_glob(i) > maxiglob) then
+               work(n,1) = 0._dbl_kind
+            endif
+         end do
+      endif
+
    end do
 
    call compute_sums_dbl(work,sums,communicator,numProcs)
@@ -1066,7 +1155,7 @@
          if (Nrow .and. this_block%tripoleTFlag) then
             maxiglob = 0 ! entire u-row on T-fold grid
          elseif (Nrow .or. this_block%tripoleTFlag) then
-            maxiglob = nx_global/2 ! half T-row on T-fold and u-row on u-fold
+            maxiglob = nx_global/2 ! half T-row on T-fold or half u-row on u-fold
          else
             maxiglob = -1 ! nothing to do for T-row on u-fold
          endif
@@ -1077,7 +1166,7 @@
       do j=jb,je
       do i=ib,ie
          ! eliminate redundant points
-         if (maxiglob > 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
+         if (maxiglob >= 0 .and. j == je .and. this_block%i_glob(i) > maxiglob) then
 !            blockSum = blockSum + 0_int_kind
          else
             if (present(mMask)) then
@@ -1166,8 +1255,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0.0_dbl_kind)
-   globalMaxval = -HUGE(0.0_dbl_kind)
+   localMaxval  = -bigdbl
+   globalMaxval = -bigdbl
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1184,7 +1273,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0.0_dbl_kind)
+      blockMaxval = -bigdbl
 
       if (present(lMask)) then
          do j=jb,je
@@ -1273,8 +1362,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0.0_real_kind)
-   globalMaxval = -HUGE(0.0_real_kind)
+   localMaxval  = -bigreal
+   globalMaxval = -bigreal
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1291,7 +1380,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0.0_real_kind)
+      blockMaxval = -bigreal
 
       if (present(lMask)) then
          do j=jb,je
@@ -1380,8 +1469,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMaxval  = -HUGE(0_int_kind)
-   globalMaxval = -HUGE(0_int_kind)
+   localMaxval  = -bigint
+   globalMaxval = -bigint
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1398,7 +1487,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMaxval = -HUGE(0_int_kind)
+      blockMaxval = -bigint
 
       if (present(lMask)) then
          do j=jb,je
@@ -1711,8 +1800,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0.0_dbl_kind)
-   globalMinval = HUGE(0.0_dbl_kind)
+   localMinval  = bigdbl
+   globalMinval = bigdbl
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1729,7 +1818,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0.0_dbl_kind)
+      blockMinval = bigdbl
 
       if (present(lMask)) then
          do j=jb,je
@@ -1818,8 +1907,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0.0_real_kind)
-   globalMinval = HUGE(0.0_real_kind)
+   localMinval  = bigreal
+   globalMinval = bigreal
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1836,7 +1925,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0.0_real_kind)
+      blockMinval = bigreal
 
       if (present(lMask)) then
          do j=jb,je
@@ -1925,8 +2014,8 @@
 
 !-----------------------------------------------------------------------
 
-   localMinval  = HUGE(0_int_kind)
-   globalMinval = HUGE(0_int_kind)
+   localMinval  = bigint
+   globalMinval = bigint
 
    call ice_distributionGet(dist, &
                             numLocalBlocks = numBlocks, &
@@ -1943,7 +2032,7 @@
       jb = this_block%jlo
       je = this_block%jhi
 
-      blockMinval = HUGE(0_int_kind)
+      blockMinval = bigint
 
       if (present(lMask)) then
          do j=jb,je

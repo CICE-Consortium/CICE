@@ -177,14 +177,14 @@ the tracer dependencies (weights), which are tracked using the arrays
 ``trcr_base`` (a dependency mask), ``n_trcr_strata`` (the number of
 underlying tracer layers), and ``nt_strata`` (indices of underlying layers). 
 Additional information about tracers can be found in the
-`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/index.html>`__.
+`Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/developer_guide/index.html>`__.
 
 To add a tracer, follow these steps using one of the existing tracers as
 a pattern.
 
   1)  **icepack\_tracers.F90** and **icepack\_[tracer].F90**: declare tracers,
       add flags and indices, and create physics routines as described in the
-      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/developer_guide/dg_adding_tracers.html>`__
+      `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/developer_guide/dg_adding_tracers.html>`__
 
   2)  **ice_arrays_column.F90**: declare arrays
 
@@ -233,6 +233,6 @@ a pattern.
        configuration in **configuration/scripts/options**.
 
   12)  If strict conservation is necessary, add diagnostics as noted for
-       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/master/science_guide/index.html>`__.
+       topo ponds in the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`__.
 
   13)  Update documentation, including **cice_index.rst** and **ug_case_settings.rst**

@@ -21,23 +21,25 @@ module ice_comp_nuopc
 
   use ice_import_export  , only : ice_import, ice_export, ice_advertise_fields, ice_realize_fields
   use ice_domain_size    , only : nx_global, ny_global
-  use ice_grid           , only : grid_type, init_grid2
+  use ice_grid           , only : grid_format, init_grid2
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
-  use ice_calendar       , only : force_restart_now, write_ic, init_calendar
-  use ice_calendar       , only : idate, mday, mmonth, myear, year_init
+  use ice_calendar       , only : force_restart_now, write_ic
+  use ice_calendar       , only : idate, idate0,  mday, mmonth, myear, year_init, month_init, day_init
   use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
-  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian, use_leap_years
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
-  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file
+  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, restart_format, restart_chunksize
   use ice_history        , only : accum_hist
+  use ice_history_shared , only : history_format, history_chunksize
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
   use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
+  use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit, wtime
 #ifdef CESMCOUPLED
   use shr_const_mod
   use shr_orb_mod        , only : shr_orb_decl, shr_orb_params, SHR_ORB_UNDEF_REAL, SHR_ORB_UNDEF_INT
@@ -87,11 +89,12 @@ module ice_comp_nuopc
 
   type(ESMF_Mesh)              :: ice_mesh
 
-  integer                      :: nthrds   ! Number of threads to use in this component
-
+  integer                      :: nthrds       ! Number of threads to use in this component
+  integer                      :: nu_timer = 6 ! Simple timer log, unused except by UFS
   integer                      :: dbug = 0
   logical                      :: profile_memory = .false.
   logical                      :: mastertask
+  logical                      :: runtimelog = .false.
   integer                      :: start_ymd          ! Start date (YYYYMMDD)
   integer                      :: start_tod          ! start time of day (s)
   integer                      :: curr_ymd           ! Current date (YYYYMMDD)
@@ -245,6 +248,8 @@ contains
     character(len=*), parameter :: subname=trim(modName)//':(InitializeAdvertise) '
     !--------------------------------
 
+    call ufs_settimer(wtime)
+
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldName", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
@@ -304,6 +309,12 @@ contains
     end if
     write(logmsg,'(i6)') dbug
     call ESMF_LogWrite('CICE_cap: dbug = '//trim(logmsg), ESMF_LOGMSG_INFO)
+
+    call NUOPC_CompAttributeGet(gcomp, name="RunTimeLog", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) runtimelog=(trim(cvalue)=="true")
+    write(logmsg,*) runtimelog
+    call ESMF_LogWrite('CICE_cap:RunTimeLog = '//trim(logmsg), ESMF_LOGMSG_INFO)
 
     !----------------------------------------------------------------------------
     ! generate local mpi comm
@@ -487,6 +498,7 @@ contains
     ! Set the nu_diag_set flag so it's not reset later
 
     call shr_file_setLogUnit (shrlogunit)
+    call ufs_file_setLogUnit('./log.ice.timer',nu_timer,runtimelog)
 
     call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, &
          isPresent=isPresent, isSet=isSet, rc=rc)
@@ -598,7 +610,7 @@ contains
     if (tfrz_option_driver  /= tfrz_option) then
        write(errmsg,'(a)') trim(subname)//'WARNING: tfrz_option from driver '//trim(tfrz_option_driver)//&
             ' is overwriting tfrz_option from cice namelist '//trim(tfrz_option)
-       write(nu_diag,*) trim(errmsg)
+       if (mastertask) write(nu_diag,*) trim(errmsg)
        call icepack_warnings_flush(nu_diag)
        call icepack_init_parameters(tfrz_option_in=tfrz_option_driver)
     endif
@@ -613,7 +625,7 @@ contains
        if (atmiter_conv_driver /= atmiter_conv) then
           write(errmsg,'(a,d13.5,a,d13.5)') trim(subname)//'WARNING: atmiter_ from driver ',&
                atmiter_conv_driver,' is overwritting atmiter_conv from cice namelist ',atmiter_conv
-          write(nu_diag,*) trim(errmsg)
+          if(mastertask) write(nu_diag,*) trim(errmsg)
           call icepack_warnings_flush(nu_diag)
           call icepack_init_parameters(atmiter_conv_in=atmiter_conv_driver)
        end if
@@ -633,6 +645,38 @@ contains
             ' must be the same as natmiter from cice namelist ',natmiter
        call abort_ice(trim(errmsg))
     endif
+
+    ! Netcdf output created by PIO
+    call NUOPC_CompAttributeGet(gcomp, name="pio_typename", value=cvalue, &
+         isPresent=isPresent, isSet=isSet, rc=rc)
+    if (chkerr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) then
+      if (trim(history_format)/='cdf1' .and. mastertask) then
+         write(nu_diag,*) trim(subname)//history_format//'WARNING: history_format from cice_namelist ignored'
+         write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
+      endif
+      if (trim(restart_format)/='cdf1' .and. mastertask) then
+         write(nu_diag,*) trim(subname)//restart_format//'WARNING: restart_format from cice_namelist ignored'
+         write(nu_diag,*) trim(subname)//'WARNING: using '//trim(cvalue)//' from ICE_modelio'
+      endif
+
+      ! The only reason to set these is to detect in ice_history_write if the chunk/deflate settings are ok.
+      select case (trim(cvalue))
+      case ('netcdf4p')
+         history_format='hdf5'
+         restart_format='hdf5'
+      case ('netcdf4c')
+         if (mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename = netcdf4c is superseded, use netcdf4p'
+         history_format='hdf5'
+         restart_format='hdf5'
+      case default !pio_typename=netcdf or pnetcdf
+         ! do nothing
+      end select
+    else
+      if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
+    end if
+
+    
 
 #else
 
@@ -684,7 +728,7 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Initialize the cice mesh and the cice mask
-       if (trim(grid_type) == 'setmask') then
+       if (trim(grid_format) == 'meshnc') then
           ! In this case cap code determines the mask file
           call ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc=rc)
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -699,7 +743,7 @@ contains
     end if
 
     call t_stopf ('cice_init_total')
-
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeAdvertise time: ',runtimelog,wtime)
   end subroutine InitializeAdvertise
 
   !===============================================================================
@@ -735,6 +779,7 @@ contains
     rc = ESMF_SUCCESS
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
+    call ufs_settimer(wtime)
     !----------------------------------------------------------------------------
     ! Second cice initialization phase -after initializing grid info
     !----------------------------------------------------------------------------
@@ -746,7 +791,7 @@ contains
     call cice_init2()
     call t_stopf ('cice_init2')
     !---------------------------------------------------------------------------
-    ! use EClock to reset calendar information on initial start
+    ! use EClock to reset calendar information
     !---------------------------------------------------------------------------
 
     ! - on initial run
@@ -762,7 +807,7 @@ contains
        if (ref_ymd /= start_ymd .or. ref_tod /= start_tod) then
           if (my_task == master_task) then
              write(nu_diag,*) trim(subname),': ref_ymd ',ref_ymd, ' must equal start_ymd ',start_ymd
-             write(nu_diag,*) trim(subname),': ref_ymd ',ref_tod, ' must equal start_ymd ',start_tod
+             write(nu_diag,*) trim(subname),': ref_tod',ref_tod, ' must equal start_tod ',start_tod
           end if
        end if
 
@@ -793,6 +838,19 @@ contains
        endif
 
     end if
+
+    !  - start time from ESMF clock. Used to set history time units
+    idate0    = start_ymd
+    year_init = (idate0/10000)
+    month_init= (idate0-year_init*10000)/100           ! integer month of basedate
+    day_init  = idate0-year_init*10000-month_init*100 
+
+    !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
+    if (calendar_type == ice_calendar_gregorian) then
+      use_leap_years = .true.
+    else
+      use_leap_years = .false. ! no_leap calendars
+    endif
 
     call calendar()     ! update calendar info
 
@@ -912,6 +970,7 @@ contains
 
     call flush_fileunit(nu_diag)
 
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'InitializeRealize time: ',runtimelog,wtime)
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -957,6 +1016,8 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time since last step: ',runtimelog,wtime)
+    call ufs_settimer(wtime)
 
     call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
@@ -1177,6 +1238,9 @@ contains
 
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
 
+    if (mastertask) call ufs_logtimer(nu_timer,msec,'ModelAdvance time: ',runtimelog,wtime)
+    call ufs_settimer(wtime)
+
   end subroutine ModelAdvance
 
   !===============================================================================
@@ -1321,6 +1385,7 @@ contains
     !--------------------------------
 
     rc = ESMF_SUCCESS
+    call ufs_settimer(wtime)
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
     if (my_task == master_task) then
        write(nu_diag,F91)
@@ -1328,6 +1393,8 @@ contains
        write(nu_diag,F91)
     end if
     if (dbug > 5) call ESMF_LogWrite(subname//' done', ESMF_LOGMSG_INFO)
+
+    if(mastertask) call ufs_logtimer(nu_timer,msec,'ModelFinalize time: ',runtimelog,wtime)
 
   end subroutine ModelFinalize
 

@@ -27,3 +27,4 @@ tr_bgc_PON      = .true.
 tr_bgc_hum      = .true.
 tr_bgc_DON      = .true.
 tr_bgc_Fe       = .true.
+tfrz_option     = "mushy"

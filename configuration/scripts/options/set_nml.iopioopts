@@ -1,0 +1,10 @@
+history_format = 'cdf2'
+history_rearranger = 'subset'
+history_iotasks = 1024
+history_root   = 0
+history_stride = 2
+restart_format = 'pnetcdf5'
+restart_rearranger = 'subset'
+restart_iotasks = 1024
+restart_root   = 1024
+restart_stride = 8

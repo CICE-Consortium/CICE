@@ -18,7 +18,7 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
-      use icepack_intfc, only: icepack_configure
+      use icepack_intfc, only: icepack_configure, icepack_init_radiation
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
           icepack_query_tracer_indices, icepack_query_tracer_sizes
@@ -79,8 +79,8 @@
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, alloc_forcing, get_wave_spec
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_data, faero_default, faero_optics, alloc_forcing_bgc
-      use ice_grid, only: init_grid1, init_grid2, alloc_grid
+          faero_data, faero_default, alloc_forcing_bgc
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
@@ -170,14 +170,12 @@
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
       call calc_timesteps       ! update timestep counter if not using npt_unit="1"
+      call icepack_init_radiation ! initialize icepack shortwave tables
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(subname, &
           file=__FILE__,line= __LINE__)
-
-      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical
-                                                   !property tables
 
       ! Initialize shortwave components using swdn from previous timestep
       ! if restarting. These components will be scaled to current forcing
@@ -215,6 +213,7 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
+      call dealloc_grid         ! deallocate temporary grid arrays
       if (write_ic) call accum_hist(dt) ! write initial conditions
 
       end subroutine cice_init
@@ -231,7 +230,7 @@
       use ice_domain_size, only: ncat, n_aero, nfsd
       use ice_dyn_eap, only: read_restart_eap
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: sss
+      use ice_flux, only: sss, Tf
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, &
@@ -427,7 +426,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata,     &
+                                   Tf            = Tf(i,j,iblk))
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0

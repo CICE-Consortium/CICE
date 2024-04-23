@@ -23,7 +23,7 @@ coupled with other earth system model components, routines external to the
 CICE model prepare and execute data exchanges with an external “flux coupler”.
 
 Icepack is implemented in CICE as a git submodule, and it is documented at 
-https://cice-consortium-icepack.readthedocs.io/en/master/index.html. 
+https://cice-consortium-icepack.readthedocs.io/en/main/index.html. 
 Development and testing of CICE and Icepack may be done together,
 but the repositories are independent.
 This document describes the remainder of the CICE model. The CICE code is 

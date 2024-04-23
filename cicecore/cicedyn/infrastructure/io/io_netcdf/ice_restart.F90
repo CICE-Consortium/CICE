@@ -15,9 +15,11 @@
 #ifdef USE_NETCDF
       use netcdf
 #endif
+      use ice_read_write, only: ice_check_nc
       use ice_restart_shared, only: &
           restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lcdf64, lenstr, restart_coszen
+          runid, use_restart_time, lenstr, restart_coszen, restart_format, &
+          restart_chunksize, restart_deflate
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -28,10 +30,12 @@
       implicit none
       private
       public :: init_restart_write, init_restart_read, &
-                read_restart_field, write_restart_field, final_restart, &
-                query_field
+         read_restart_field, write_restart_field, final_restart, &
+         query_field
 
-      integer (kind=int_kind) :: ncid
+      integer (kind=int_kind) :: ncid , &
+         dimid_ni,   & ! netCDF identifiers
+         dimid_nj
 
 !=======================================================================
 
@@ -54,7 +58,7 @@
       character(len=char_len_long) :: &
          filename, filename0
 
-      integer (kind=int_kind) :: status, status1
+      integer (kind=int_kind) :: status
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -76,39 +80,43 @@
          write(nu_diag,*) 'Using restart dump=', trim(filename)
 
          status = nf90_open(trim(filename), nf90_nowrite, ncid)
-         if (status /= nf90_noerr) call abort_ice(subname// &
-            'ERROR: reading restart ncfile '//trim(filename))
+         call ice_check_nc(status, subname//' ERROR: open '//trim(filename), file=__FILE__, line=__LINE__)
 
          if (use_restart_time) then
-            status1 = nf90_noerr
+            ! for backwards compatibility, check nyr, month, and sec as well
             status = nf90_get_att(ncid, nf90_global, 'istep1', istep0)
-            if (status /= nf90_noerr) status1 = status
-!            status = nf90_get_att(ncid, nf90_global, 'time', time)
-!            status = nf90_get_att(ncid, nf90_global, 'time_forc', time_forc)
+            call ice_check_nc(status, subname//" ERROR: reading restart step ",file=__FILE__,line=__LINE__)
+
             status = nf90_get_att(ncid, nf90_global, 'myear', myear)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
-            if (status /= nf90_noerr) status1 = status
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'nyr', myear)
+               call ice_check_nc(status, subname//" ERROR: reading restart year ",file=__FILE__,line=__LINE__)
+            endif
+
             status = nf90_get_att(ncid, nf90_global, 'mmonth', mmonth)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
-            if (status /= nf90_noerr) status1 = status
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'month', mmonth)
+               call ice_check_nc(status, subname//" ERROR: reading restart month ",file=__FILE__,line=__LINE__)
+            endif
+
             status = nf90_get_att(ncid, nf90_global, 'mday', mday)
-            if (status /= nf90_noerr) status1 = status
+            call ice_check_nc(status, subname//" ERROR: reading restart day ",file=__FILE__,line=__LINE__)
+
             status = nf90_get_att(ncid, nf90_global, 'msec', msec)
-            if (status /= nf90_noerr) status = nf90_get_att(ncid, nf90_global, 'sec', msec)
-            if (status /= nf90_noerr) status1 = status
-            if (status1 /= nf90_noerr) call abort_ice(subname// &
-               'ERROR: reading restart time '//trim(filename))
+            if (status /= nf90_noerr) then
+               status = nf90_get_att(ncid, nf90_global, 'sec', msec)
+               call ice_check_nc(status, subname//" ERROR: reading restart sec ",file=__FILE__,line=__LINE__)
+            endif
+
          endif ! use namelist values if use_restart_time = F
 
       endif
 
       call broadcast_scalar(istep0,master_task)
-!      call broadcast_scalar(time,master_task)
       call broadcast_scalar(myear,master_task)
       call broadcast_scalar(mmonth,master_task)
       call broadcast_scalar(mday,master_task)
       call broadcast_scalar(msec,master_task)
-!      call broadcast_scalar(time_forc,master_task)
 
       istep1 = istep0
 
@@ -117,7 +125,7 @@
          npt = npt - istep0
       endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -144,7 +152,7 @@
       ! local variables
 
       logical (kind=log_kind) :: &
-         solve_zsal, skl_bgc, z_tracers, tr_fsd, &
+         skl_bgc, z_tracers, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
          tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
@@ -164,8 +172,7 @@
       integer (kind=int_kind), allocatable :: dims(:)
 
       integer (kind=int_kind) :: &
-        dimid_ni,   & ! netCDF identifiers
-        dimid_nj,   & !
+
         dimid_ncat, & !
         iflag,      & ! netCDF creation flag
         status        ! status variable from netCDF routine
@@ -176,7 +183,7 @@
 
 #ifdef USE_NETCDF
       call icepack_query_parameters( &
-         solve_zsal_out=solve_zsal, skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
+         skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
       call icepack_query_tracer_sizes( &
          nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
@@ -211,19 +218,31 @@
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
 
-         iflag = 0
-         if (lcdf64) iflag = nf90_64bit_offset
+         if (restart_format == 'cdf1') then
+           iflag = nf90_clobber
+         elseif (restart_format == 'cdf2') then
+           iflag = ior(nf90_clobber,nf90_64bit_offset)
+         elseif (restart_format == 'cdf5') then
+           iflag = ior(nf90_clobber,nf90_64bit_data)
+         elseif (restart_format == 'hdf5') then
+           iflag = ior(nf90_clobber,nf90_netcdf4)
+         else
+           call abort_ice(subname//' ERROR: restart_format not allowed for '//trim(restart_format), &
+              file=__FILE__, line=__LINE__)
+         endif
          status = nf90_create(trim(filename), iflag, ncid)
-         if (status /= nf90_noerr) call abort_ice(subname// &
-            'ERROR: creating restart ncfile '//trim(filename))
+         call ice_check_nc(status, subname//' ERROR: creating '//trim(filename), file=__FILE__, line=__LINE__)
 
          status = nf90_put_att(ncid,nf90_global,'istep1',istep1)
-!         status = nf90_put_att(ncid,nf90_global,'time',time)
-!         status = nf90_put_att(ncid,nf90_global,'time_forc',time_forc)
+         call ice_check_nc(status, subname//' ERROR: writing att istep', file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid,nf90_global,'myear',myear)
+         call ice_check_nc(status, subname//' ERROR: writing att year', file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid,nf90_global,'mmonth',mmonth)
+         call ice_check_nc(status, subname//' ERROR: writing att month', file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid,nf90_global,'mday',mday)
+         call ice_check_nc(status, subname//' ERROR: writing att day', file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid,nf90_global,'msec',msec)
+         call ice_check_nc(status, subname//' ERROR: writing att sec', file=__FILE__, line=__LINE__)
 
          nx = nx_global
          ny = ny_global
@@ -232,13 +251,16 @@
             ny = ny_global + 2*nghost
          endif
          status = nf90_def_dim(ncid,'ni',nx,dimid_ni)
+         call ice_check_nc(status, subname//' ERROR: writing dim ni', file=__FILE__, line=__LINE__)
          status = nf90_def_dim(ncid,'nj',ny,dimid_nj)
+         call ice_check_nc(status, subname//' ERROR: writing dim nj', file=__FILE__, line=__LINE__)
 
          status = nf90_def_dim(ncid,'ncat',ncat,dimid_ncat)
+         call ice_check_nc(status, subname//' ERROR: writing dim ncat', file=__FILE__, line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! 2D restart fields
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! 2D restart fields
+         !-----------------------------------------------------------------
 
          allocate(dims(2))
 
@@ -376,13 +398,11 @@
             endif
          endif  !nbtrcr
 
-         if (solve_zsal) call define_rest_field(ncid,'sss',dims)
-
          deallocate(dims)
 
-      !-----------------------------------------------------------------
-      ! 3D restart fields (ncat)
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! 3D restart fields (ncat)
+         !-----------------------------------------------------------------
 
          allocate(dims(3))
 
@@ -483,12 +503,10 @@
               enddo
             endif
          endif   !skl_bgc
-         if (solve_zsal) &
-            call define_rest_field(ncid,'Rayleigh',dims)
 
-      !-----------------------------------------------------------------
-      ! 4D restart fields, written as layers of 3D
-      !-----------------------------------------------------------------
+         !-----------------------------------------------------------------
+         ! 4D restart fields, written as layers of 3D
+         !-----------------------------------------------------------------
 
          do k=1,nilyr
             write(nchar,'(i3.3)') k
@@ -536,126 +554,119 @@
             enddo
          endif
 
-         if (solve_zsal) then
-         do k = 1, nblyr
-            write(nchar,'(i3.3)') k
-            call define_rest_field(ncid,'zSalinity'//trim(nchar),dims)
-         enddo
-         endif
-
          if (z_tracers) then
             if (tr_zaero) then
-             do n = 1, n_zaero
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-               write(nchar,'(i3.3)') k
-               call define_rest_field(ncid,'zaero'//trim(ncharb)//trim(nchar),dims)
-              enddo !k
-             enddo  !n
+               do n = 1, n_zaero
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'zaero'//trim(ncharb)//trim(nchar),dims)
+                 enddo !k
+              enddo  !n
             endif   !tr_zaero
             if (tr_bgc_Nit) then
-              do k = 1, nblyr+3
-               write(nchar,'(i3.3)') k
-               call define_rest_field(ncid,'bgc_Nit'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_Nit'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_N) then
-             do n = 1, n_algae
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-               write(nchar,'(i3.3)') k
-               call define_rest_field(ncid,'bgc_N'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
+               do n = 1, n_algae
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_N'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
             endif
             if (tr_bgc_C) then
-            ! do n = 1, n_algae
-            !  write(ncharb,'(i3.3)') n
-            !  do k = 1, nblyr+3
-            !     write(nchar,'(i3.3)') k
-            !     call define_rest_field(ncid,'bgc_C'//trim(ncharb)//trim(nchar),dims)
-            !  enddo
-            ! enddo
-             do n = 1, n_doc
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_DOC'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
-             do n = 1, n_dic
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_DIC'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
+            !   do n = 1, n_algae
+            !      write(ncharb,'(i3.3)') n
+            !      do k = 1, nblyr+3
+            !         write(nchar,'(i3.3)') k
+            !         call define_rest_field(ncid,'bgc_C'//trim(ncharb)//trim(nchar),dims)
+            !      enddo
+            !   enddo
+               do n = 1, n_doc
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_DOC'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
+               do n = 1, n_dic
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_DIC'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
             endif
             if (tr_bgc_chl) then
-             do n = 1, n_algae
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_chl'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
+               do n = 1, n_algae
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_chl'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
             endif
             if (tr_bgc_Am) then
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_Am'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_Am'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_Sil) then
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_Sil'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_Sil'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_hum) then
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_hum'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_hum'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_DMS) then
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_DMSPp'//trim(nchar),dims)
-                 call define_rest_field(ncid,'bgc_DMSPd'//trim(nchar),dims)
-                 call define_rest_field(ncid,'bgc_DMS'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_DMSPp'//trim(nchar),dims)
+                  call define_rest_field(ncid,'bgc_DMSPd'//trim(nchar),dims)
+                  call define_rest_field(ncid,'bgc_DMS'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_PON) then
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_PON'//trim(nchar),dims)
-              enddo
+               do k = 1, nblyr+3
+                  write(nchar,'(i3.3)') k
+                  call define_rest_field(ncid,'bgc_PON'//trim(nchar),dims)
+               enddo
             endif
             if (tr_bgc_DON) then
-             do n = 1, n_don
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_DON'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
+               do n = 1, n_don
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_DON'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
             endif
             if (tr_bgc_Fe ) then
-             do n = 1, n_fed
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_Fed'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
-             do n = 1, n_fep
-              write(ncharb,'(i3.3)') n
-              do k = 1, nblyr+3
-                 write(nchar,'(i3.3)') k
-                 call define_rest_field(ncid,'bgc_Fep'//trim(ncharb)//trim(nchar),dims)
-              enddo
-             enddo
+               do n = 1, n_fed
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_Fed'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
+               do n = 1, n_fep
+                  write(ncharb,'(i3.3)') n
+                  do k = 1, nblyr+3
+                     write(nchar,'(i3.3)') k
+                     call define_rest_field(ncid,'bgc_Fep'//trim(ncharb)//trim(nchar),dims)
+                  enddo
+               enddo
             endif
             do k = 1, nbtrcr
                write(nchar,'(i3.3)') k
@@ -665,12 +676,13 @@
 
          deallocate(dims)
          status = nf90_enddef(ncid)
+         call ice_check_nc(status, subname//' ERROR: enddef', file=__FILE__, line=__LINE__)
 
          write(nu_diag,*) 'Writing ',filename(1:lenstr(filename))
       endif ! master_task
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(filename_spec), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(filename_spec), &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -689,74 +701,74 @@
       use ice_read_write, only: ice_read_nc
 
       integer (kind=int_kind), intent(in) :: &
-           nu            , & ! unit number (not used for netcdf)
-           ndim3         , & ! third dimension
-           nrec              ! record number (0 for sequential access)
+         nu            , & ! unit number (not used for netcdf)
+         ndim3         , & ! third dimension
+         nrec              ! record number (0 for sequential access)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(inout) :: &
-           work              ! input array (real, 8-byte)
+         work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
-           atype             ! format for output array
-                             ! (real/integer, 4-byte/8-byte)
+         atype             ! format for output array
+                           ! (real/integer, 4-byte/8-byte)
 
       logical (kind=log_kind), intent(in) :: &
-           diag              ! if true, write diagnostic output
+         diag              ! if true, write diagnostic output
 
       character (len=*), intent(in)  :: vname
 
       integer (kind=int_kind), optional, intent(in) :: &
-           field_loc, &      ! location of field on staggered grid
-           field_type        ! type of field (scalar, vector, angle)
+         field_loc, &      ! location of field on staggered grid
+         field_type        ! type of field (scalar, vector, angle)
 
       ! local variables
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+         work2              ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
 #ifdef USE_NETCDF
-         if (present(field_loc)) then
-            if (ndim3 == ncat) then
-               if (restart_ext) then
-                  call ice_read_nc(ncid,1,vname,work,diag, &
-                     field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
-               else
-                  call ice_read_nc(ncid,1,vname,work,diag,field_loc,field_type)
-               endif
-            elseif (ndim3 == 1) then
-               if (restart_ext) then
-                  call ice_read_nc(ncid,1,vname,work2,diag, &
-                     field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
-               else
-                  call ice_read_nc(ncid,1,vname,work2,diag,field_loc,field_type)
-               endif
-               work(:,:,1,:) = work2(:,:,:)
+      if (present(field_loc)) then
+         if (ndim3 == ncat) then
+            if (restart_ext) then
+               call ice_read_nc(ncid,1,vname,work,diag, &
+                  field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
             else
-               write(nu_diag,*) 'ndim3 not supported ',ndim3
+               call ice_read_nc(ncid,1,vname,work,diag,field_loc,field_type)
             endif
+         elseif (ndim3 == 1) then
+            if (restart_ext) then
+               call ice_read_nc(ncid,1,vname,work2,diag, &
+                  field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
+            else
+               call ice_read_nc(ncid,1,vname,work2,diag,field_loc,field_type)
+            endif
+            work(:,:,1,:) = work2(:,:,:)
          else
-            if (ndim3 == ncat) then
-               if (restart_ext) then
-                  call ice_read_nc(ncid, 1, vname, work, diag, restart_ext=restart_ext)
-               else
-                  call ice_read_nc(ncid, 1, vname, work, diag)
-               endif
-            elseif (ndim3 == 1) then
-               if (restart_ext) then
-                  call ice_read_nc(ncid, 1, vname, work2, diag, restart_ext=restart_ext)
-               else
-                  call ice_read_nc(ncid, 1, vname, work2, diag)
-               endif
-               work(:,:,1,:) = work2(:,:,:)
-            else
-               write(nu_diag,*) 'ndim3 not supported ',ndim3
-            endif
+            write(nu_diag,*) 'ndim3 not supported ',ndim3
          endif
+      else
+         if (ndim3 == ncat) then
+            if (restart_ext) then
+               call ice_read_nc(ncid, 1, vname, work, diag, restart_ext=restart_ext)
+            else
+               call ice_read_nc(ncid, 1, vname, work, diag)
+            endif
+         elseif (ndim3 == 1) then
+            if (restart_ext) then
+               call ice_read_nc(ncid, 1, vname, work2, diag, restart_ext=restart_ext)
+            else
+               call ice_read_nc(ncid, 1, vname, work2, diag)
+            endif
+            work(:,:,1,:) = work2(:,:,:)
+         else
+            write(nu_diag,*) 'ndim3 not supported ',ndim3
+         endif
+      endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -774,54 +786,59 @@
       use ice_read_write, only: ice_write_nc
 
       integer (kind=int_kind), intent(in) :: &
-           nu            , & ! unit number
-           ndim3         , & ! third dimension
-           nrec              ! record number (0 for sequential access)
+         nu            , & ! unit number
+         ndim3         , & ! third dimension
+         nrec              ! record number (0 for sequential access)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,ndim3,max_blocks), intent(in) :: &
-           work              ! input array (real, 8-byte)
+         work              ! input array (real, 8-byte)
 
       character (len=4), intent(in) :: &
-           atype             ! format for output array
-                             ! (real/integer, 4-byte/8-byte)
+         atype             ! format for output array
+                           ! (real/integer, 4-byte/8-byte)
 
       logical (kind=log_kind), intent(in) :: &
-           diag              ! if true, write diagnostic output
+         diag              ! if true, write diagnostic output
 
       character (len=*), intent(in)  :: vname
 
       ! local variables
 
       integer (kind=int_kind) :: &
-        varid, &      ! variable id
-        status        ! status variable from netCDF routine
+         varid         , & ! variable id
+         status            ! status variable from netCDF routine
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: &
-           work2              ! input array (real, 8-byte)
+         work2             ! input array (real, 8-byte)
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
 #ifdef USE_NETCDF
+      varid = -99
+      if (my_task == master_task) then
+         ! ncid is only valid on master
          status = nf90_inq_varid(ncid,trim(vname),varid)
-         if (ndim3 == ncat) then
-            if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
-            else
-               call ice_write_nc(ncid, 1, varid, work, diag, varname=trim(vname))
-            endif
-         elseif (ndim3 == 1) then
-            work2(:,:,:) = work(:,:,1,:)
-            if (restart_ext) then
-               call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
-            else
-               call ice_write_nc(ncid, 1, varid, work2, diag, varname=trim(vname))
-            endif
+         call ice_check_nc(status, subname//' ERROR: inq varid '//trim(vname), file=__FILE__, line=__LINE__)
+      endif
+      if (ndim3 == ncat) then
+         if (restart_ext) then
+            call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
          else
-            write(nu_diag,*) 'ndim3 not supported',ndim3
+            call ice_write_nc(ncid, 1, varid, work, diag, varname=trim(vname))
          endif
+      elseif (ndim3 == 1) then
+         work2(:,:,:) = work(:,:,1,:)
+         if (restart_ext) then
+            call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
+         else
+            call ice_write_nc(ncid, 1, varid, work2, diag, varname=trim(vname))
+         endif
+      else
+         write(nu_diag,*) 'ndim3 not supported',ndim3
+      endif
 
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -834,20 +851,22 @@
 
       subroutine final_restart()
 
-      use ice_calendar, only: istep1, idate
+      use ice_calendar, only: istep1, myear, mmonth, mday, msec
 
       integer (kind=int_kind) :: status
 
       character(len=*), parameter :: subname = '(final_restart)'
 
 #ifdef USE_NETCDF
-      status = nf90_close(ncid)
-
-      if (my_task == master_task) &
-         write(nu_diag,*) 'Restart read/written ',istep1,idate
-
+      if (my_task == master_task) then
+         ! ncid is only valid on master
+         status = nf90_close(ncid)
+         call ice_check_nc(status, subname//' ERROR: closing', file=__FILE__, line=__LINE__)
+         write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+            'Restart read/written ',istep1,myear,'-',mmonth,'-',mday,'-',msec
+      endif
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -866,15 +885,34 @@
 
       integer (kind=int_kind) :: varid
 
-      integer (kind=int_kind) :: &
-        status        ! status variable from netCDF routine
+      integer (kind=int_kind) :: chunks(size(dims)), status, i
 
       character(len=*), parameter :: subname = '(define_rest_field)'
 
 #ifdef USE_NETCDF
+
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
+      call ice_check_nc(status, subname//' ERROR: def var '//trim(vname), file=__FILE__, line=__LINE__)
+
+      if (restart_format=='hdf5' .and. size(dims)>1) then
+         if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
+            chunks(1)=restart_chunksize(1)
+            chunks(2)=restart_chunksize(2)
+            do i = 3, size(dims)
+               chunks(i) = 0
+            enddo
+            status = nf90_def_var_chunking(ncid, varid, NF90_CHUNKED, chunksizes=chunks)
+            call ice_check_nc(status, subname//' ERROR: chunking var '//trim(vname), file=__FILE__, line=__LINE__)
+         endif
+      endif
+
+      if (restart_format=='hdf5' .and. restart_deflate/=0) then
+         status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=restart_deflate)
+         call ice_check_nc(status, subname//' ERROR deflating var '//trim(vname), file=__FILE__, line=__LINE__)
+      endif
+
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 
@@ -903,7 +941,7 @@
       endif
       call broadcast_scalar(query_field,master_task)
 #else
-      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined for '//trim(ice_ic), &
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
 #endif
 

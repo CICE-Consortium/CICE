@@ -124,6 +124,9 @@ else if (${ICE_IOTYPE} =~ pio*) then
 else
   set IODIR = io_binary
 endif
+if (${ICE_SNICARHC} == 'false') then
+  setenv ICE_CPPDEFS "${ICE_CPPDEFS} -DNO_SNICARHC"
+endif
 
 ### List of source code directories (in order of importance).
 cat >! Filepath << EOF

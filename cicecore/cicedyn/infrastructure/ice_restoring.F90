@@ -88,7 +88,7 @@
 
    if ((ew_boundary_type == 'open' .or. &
         ns_boundary_type == 'open') .and. .not.(restart_ext)) then
-      if (my_task == master_task) write (nu_diag,*) 'ERROR: restart_ext=F and open boundaries'
+      if (my_task == master_task) write (nu_diag,*) ' ERROR: restart_ext=F and open boundaries'
       call abort_ice(error_message=subname//'open boundary and restart_ext=F', &
          file=__FILE__, line=__LINE__)
    endif
