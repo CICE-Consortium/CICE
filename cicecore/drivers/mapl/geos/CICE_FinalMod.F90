@@ -73,7 +73,7 @@
       use ice_restart, only: final_restart
       use ice_restart_shared, only: &
           restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lcdf64, lenstr, restart_coszen
+          runid, use_restart_time, lenstr, restart_coszen
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
           write_restart_lvl, write_restart_pond_lvl, &
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &

@@ -111,12 +111,12 @@
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
-      use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
+      use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
-          daidtt, daidtd, dvidtt, dvidtd, dagedtt, dagedtd
+          daidtt, daidtd, dvidtt, dvidtd, dvsdtt, dvsdtd, dagedtt, dagedtd
       use ice_history, only: accum_hist
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
@@ -204,7 +204,8 @@
 
          ! clean up, update tendency diagnostics
          offset = dt
-         call update_state (dt, daidtt, dvidtt, dagedtt, offset)
+         call update_state (dt=dt, daidt=daidtt, dvidt=dvidtt, dvsdt=dvsdtt, &
+                   dagedt=dagedtt, offset=offset)
 
          call ice_timer_stop(timer_thermo) ! thermodynamics
          call ice_timer_stop(timer_column) ! column physics
@@ -245,7 +246,8 @@
 
             ! clean up, update tendency diagnostics
             offset = c0
-            call update_state (dt_dyn, daidtd, dvidtd, dagedtd, offset)
+            call update_state (dt=dt_dyn, daidt=daidtd, dvidt=dvidtd, dvsdt=dvsdtd, &
+                          dagedt=dagedtd, offset=offset)
 
          enddo
          !if (debug_model) then
@@ -312,7 +314,6 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
          endif
@@ -357,7 +358,7 @@
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+          albicen, albsnon, albpndn, apeffn, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
@@ -373,7 +374,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
@@ -556,8 +557,6 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -603,7 +602,6 @@
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
-                            fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio (:,:,1:nbtrcr,iblk),            &
                             Qref_iso =Qref_iso (:,:,:,iblk),         &
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
@@ -635,7 +633,7 @@
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+          albicen, albsnon, albpndn, apeffn, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
@@ -651,7 +649,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
@@ -796,8 +794,6 @@
             alvdr_ai  (i,j,iblk) = alvdr  (i,j,iblk)
             alidr_ai  (i,j,iblk) = alidr  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
 
       !-----------------------------------------------------------------
@@ -841,8 +837,6 @@
                alidr   (i,j,iblk) = alidr   (i,j,iblk) * ar
                alvdf   (i,j,iblk) = alvdf   (i,j,iblk) * ar
                alidf   (i,j,iblk) = alidf   (i,j,iblk) * ar
-               fzsal   (i,j,iblk) = fzsal   (i,j,iblk) * ar
-               fzsal_g (i,j,iblk) = fzsal_g (i,j,iblk) * ar
                fswthru_uvrdr (i,j,iblk) = fswthru_uvrdr (i,j,iblk) * ar
                fswthru_uvrdf (i,j,iblk) = fswthru_uvrdf (i,j,iblk) * ar
                fswthru_pardr (i,j,iblk) = fswthru_pardr (i,j,iblk) * ar
@@ -867,8 +861,6 @@
                alidr   (i,j,iblk) = c0 
                alvdf   (i,j,iblk) = c0 
                alidf   (i,j,iblk) = c0 
-               fzsal   (i,j,iblk) = c0 
-               fzsal_g (i,j,iblk) = c0 
                fswthru_uvrdr (i,j,iblk) = c0 
                fswthru_uvrdf (i,j,iblk) = c0
                fswthru_pardr (i,j,iblk) = c0
@@ -893,7 +885,7 @@
           fhocn_ai, fresh_ai, fsalt_ai, fsalt, &
           fhocn, strairxT, strairyT
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
@@ -1029,7 +1021,7 @@
       use ice_calendar, only: istep1, calendar, advance_timestep
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
-      use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
+      use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
@@ -1193,7 +1185,7 @@
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
           fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+          albicen, albsnon, albpndn, apeffn, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
@@ -1209,7 +1201,7 @@
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
-          fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai, &
+          flux_bio, flux_bio_ai, &
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
