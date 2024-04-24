@@ -8,7 +8,7 @@ module CICE_InitMod
   use icepack_intfc, only: icepack_aggregate
   use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
   use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
-  use icepack_intfc, only: icepack_init_snow
+  use icepack_intfc, only: icepack_init_snow, icepack_init_radiation
   use icepack_intfc, only: icepack_configure
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
@@ -135,6 +135,7 @@ contains
     use ice_dyn_evp          , only: init_evp
     !use ice_dyn_shared       , only: kdyn, init_dyn
     use ice_dyn_shared       , only: kdyn
+    use ice_grid             , only: dealloc_grid
     use ice_dyn_vp           , only: init_vp
     use ice_flux             , only: init_coupler_flux, init_history_therm
     use ice_flux             , only: init_history_dyn, init_flux_atm, init_flux_ocn
@@ -216,6 +217,7 @@ contains
     call init_diags           ! initialize diagnostic output points
     call init_history_therm   ! initialize thermo history variables
     call init_history_dyn     ! initialize dynamic history variables
+    call icepack_init_radiation ! initialize icepack shortwave tables
 
     call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
     call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
@@ -258,6 +260,8 @@ contains
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
+
+    call dealloc_grid         ! deallocate temporary grid arrays
 
   end subroutine cice_init2
 
