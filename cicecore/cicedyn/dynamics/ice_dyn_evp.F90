@@ -418,18 +418,41 @@
       !-----------------------------------------------------------------
 
       call stack_fields(tmass, aice_init, cdn_ocn, fld3)
+      call ice_timer_start(timer_bound)
       call ice_HaloUpdate (fld3,             halo_info, &
                            field_loc_center, field_type_scalar)
-      call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+      call ice_timer_stop(timer_bound)
+      call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
 #ifdef GEOSCOUPLED
-      call ice_HaloUpdate (fld4,             halo_info, &
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         call stack_fields(uocn, ss_tltx, fld2)
+         call ice_timer_start(timer_bound)
+         call ice_HaloUpdate (fld2,           halo_info, &
+                              field_loc_Eface, field_type_vector)
+         call ice_timer_stop(timer_bound)
+         call unstack_fields(fld2, uocn, ss_tltx)
+         call stack_fields(vocn, ss_tlty, fld2)
+         call ice_timer_start(timer_bound)
+         call ice_HaloUpdate (fld2,           halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call ice_timer_stop(timer_bound)
+         call unstack_fields(fld2, vocn, ss_tlty)
+      else
+         call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+         call ice_timer_start(timer_bound)
+         call ice_HaloUpdate (fld4,             halo_info, &
                            field_loc_NEcorner, field_type_vector)
+         call ice_timer_stop(timer_bound)
+         call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
+      endif
 #else
+      call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
+      call ice_timer_start(timer_bound)
       call ice_HaloUpdate (fld4,             halo_info, &
                            field_loc_center, field_type_vector)
-#endif
-      call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
+      call ice_timer_stop(timer_bound)
       call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
+#endif
 
       call grid_average_X2Y('S', tmass    , 'T'          , umass   , 'U')
       call grid_average_X2Y('S', aice_init, 'T'          , aiU     , 'U')
