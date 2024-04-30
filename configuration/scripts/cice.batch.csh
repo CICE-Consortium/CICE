@@ -48,6 +48,31 @@ cat >> ${jobfile} << EOFB
 ###PBS -m be
 EOFB
 
+else if (${ICE_MACHINE} =~ gadi*) then
+if (${queue} =~ *sr) then #sapphire rapids
+  @ memuse = ( $ncores * 481 / 100 )
+else if (${queue} =~ *bw) then #broadwell
+  @ memuse = ( $ncores * 457 / 100 )
+else if (${queue} =~ *sl) then 
+  @ memuse = ( $ncores * 6 )
+else #normal queues
+  @ memuse = ( $ncores * 395 / 100 )
+endif
+cat >> ${jobfile} << EOFB
+#PBS -q ${queue}
+#PBS -P ${ICE_MACHINE_PROJ}
+#PBS -N ${ICE_CASENAME}
+#PBS -l storage=gdata/${ICE_MACHINE_PROJ}+scratch/${ICE_MACHINE_PROJ}+gdata/ik11
+#PBS -l ncpus=${ncores}
+#PBS -l mem=${memuse}gb
+#PBS -l walltime=${batchtime}
+#PBS -j oe 
+#PBS -W umask=003
+#PBS -o ${ICE_CASEDIR}
+source /etc/profile.d/modules.csh
+module use `echo ${MODULEPATH} | sed 's/:/ /g'` #copy the users modules
+EOFB
+
 else if (${ICE_MACHINE} =~ gust*) then
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}

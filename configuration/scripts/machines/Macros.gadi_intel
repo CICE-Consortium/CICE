@@ -1,0 +1,73 @@
+#==============================================================================
+# Makefile macros for NCI Gadi, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DREPRODUCIBLE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise -Wno-unused-variable -Wno-unused-parameter
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+
+NCI_INTEL_FLAGS := -r8 -i4 -traceback -w -fpe0 -ftz -convert big_endian -assume byterecl -check noarg_temp_created
+NCI_REPRO_FLAGS := -fp-model precise -fp-model source -align all
+
+ifeq ($(ICE_BLDDEBUG), true)
+    NCI_DEBUG_FLAGS := -g3 -O0 -debug all -check all -no-vec -assume nobuffered_io
+    FFLAGS          := $(NCI_INTEL_FLAGS) $(NCI_REPRO_FLAGS) $(NCI_DEBUG_FLAGS)
+    CPPDEFS         := $(CPPDEFS) -DDEBUG=$(DEBUG)
+else
+  NCI_OPTIM_FLAGS := -g3 -O2 -axCORE-AVX2 -debug all -check none -qopt-report=5 -qopt-report-annotate -assume buffered_io
+  FFLAGS          := $(NCI_INTEL_FLAGS) $(NCI_REPRO_FLAGS) $(NCI_OPTIM_FLAGS)
+endif
+
+SCC   := icx 
+SFC   := ifort
+MPICC := mpicc
+MPIFC := mpifort
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+SLIBS := $(SLIBS)
+INCLDIR := $(INCLDIR)
+
+# if spack modules loaded, use them. otherwise use system modules
+ifndef SPACK_NETCDF_FORTRAN_ROOT  
+   SLIBS += -L$(NETCDF)/lib -lnetcdf -lnetcdff
+   INCLDIR += -I$(NETCDF)/include
+else
+   SLIBS += -L$(SPACK_NETCDF_C_ROOT)/lib64 -lnetcdf
+   SLIBS += -L$(SPACK_NETCDF_FORTRAN_ROOT)/lib  -lnetcdff
+   INCLDIR += -I$(SPACK_NETCDF_C_ROOT)/include
+   INCLDIR += -I$(SPACK_NETCDF_FORTRAN_ROOT)/include
+endif
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO_LIBDIR)
+   SLIBS   += -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+  ifndef SPACK_PARALLELIO_ROOT
+    SLIBS += -L$(PARALLELIO_ROOT)/lib -lpioc -lpiof
+  else
+   SLIBS += -L$(SPACK_PARALLELIO_ROOT)/lib -lpioc -lpiof  
+   INCLDIR += -I $(SPACK_PARALLELIO_ROOT)/include
+  endif
+   
+  SLIBS += $(SLIBS) -L$(OMPI_BASE)/lib -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh 
+   
+endif
