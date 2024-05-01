@@ -1,6 +1,5 @@
 name: GHActions
 
-
 # This workflow is triggered on pushes, pull-requeust, and releases
 # ghactions* branch names will trigger this to support development testing
 # To Do: get it working with bash and ubuntu
@@ -48,9 +47,9 @@ jobs:
           sudo xcode-select -r
           sudo xcode-select -s /Library/Developer/CommandLineTools
           sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
-          echo "xcrun --show-sdk-path: $(xcrun -sdk macosx --show-sdk-path)"
+          echo "xcrun --show-sdk-path: $(xcrun --show-sdk-path)"
           echo "xcode-select -p: $(xcode-select -p)"
-          export SDKROOT=$(xcrun -sdk macos --show-sdk-path)
+          export SDKROOT=$(xcrun --show-sdk-path)
       - name: system info
         shell: /bin/bash {0}
         run: |
