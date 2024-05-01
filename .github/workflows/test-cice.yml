@@ -50,6 +50,7 @@ jobs:
           sudo ln -s /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/* /usr/local/include/
           echo "xcrun --show-sdk-path: $(xcrun -sdk macosx --show-sdk-path)"
           echo "xcode-select -p: $(xcode-select -p)"
+          export SDKROOT=$(xcrun -sdk macos --show-sdk-path)
       - name: system info
         shell: /bin/bash {0}
         run: |
