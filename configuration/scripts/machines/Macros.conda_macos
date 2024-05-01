@@ -47,7 +47,8 @@ SDKPATH = $(shell xcrun --show-sdk-path)
 ifeq ($(strip $(SDKPATH)),)
   CFLAGS_HOST := 
 else
-  CFLAGS_HOST = -isysroot $(SDKPATH)
+  CFLAGS_HOST := -isysroot $(SDKPATH)
+  CFLAGS += -isysroot $(SDKPATH)
   LD += -L$(SDKPATH)/usr/lib
 endif
 

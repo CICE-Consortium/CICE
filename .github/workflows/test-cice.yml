@@ -50,6 +50,7 @@ jobs:
           echo "xcrun --show-sdk-path: $(xcrun --show-sdk-path)"
           echo "xcode-select -p: $(xcode-select -p)"
           export SDKROOT=$(xcrun --show-sdk-path)
+          echo "SDKROOT: $SDKROOT"
       - name: system info
         shell: /bin/bash {0}
         run: |
