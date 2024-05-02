@@ -237,8 +237,10 @@
       max_blocks=((nx_global-1)/block_size_x/nprocs_x+1) * &
                   ((ny_global-1)/block_size_y/nprocs_y+1)
       max_blocks=max(1,max_blocks)
-      write(nu_diag,'(/,a52,i6,/)') &
-         '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+      if (my_task == master_task) then
+         write(nu_diag,'(/,a52,i6,/)') &
+            '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+      endif
    endif
    
    
