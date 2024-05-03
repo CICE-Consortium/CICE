@@ -370,6 +370,7 @@ domain_nml
    "``maskhalo_bound``", "logical", "mask unused halo cells for boundary updates", "``.false.``"
    "``max_blocks``", "integer", "maximum number of blocks per MPI task for memory allocation", "-1"
    "``nprocs``", "integer", "number of processors to use", "-1"
+   "", "``-1``", "find number of processors automatically", ""
    "``ns_boundary_type``", "``cyclic``", "periodic boundary conditions in y-direction", "``open``"
    "", "``open``", "Dirichlet boundary conditions in y", ""
    "", "``tripole``", "U-fold tripole boundary conditions in y", ""
