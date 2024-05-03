@@ -224,9 +224,9 @@
    call broadcast_scalar(ny_global,         master_task)
 
    ! Set nprocs if not set in namelist
-   if (nprocs .eq. -1) then
+   if (nprocs == -1) then
       nprocs = get_num_procs()
-   else if (nprocs .ne. get_num_procs()) then
+   else if (nprocs /= get_num_procs()) then
       write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
       call abort_ice(subname//' ERROR: Input nprocs not same as system request', file=__FILE__, line=__LINE__)
    endif
