@@ -19,7 +19,7 @@
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_init_itd, icepack_init_itd_hist
       use icepack_intfc, only: icepack_init_fsd_bounds, icepack_init_wave
-      use icepack_intfc, only: icepack_init_snow
+      use icepack_intfc, only: icepack_init_snow, icepack_init_radiation
       use icepack_intfc, only: icepack_configure
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
@@ -86,8 +86,8 @@
       use ice_forcing, only: init_forcing_ocn, init_forcing_atmo, &
           get_forcing_atmo, get_forcing_ocn, get_wave_spec, init_snowtable
       use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          faero_default, faero_optics, alloc_forcing_bgc, fiso_default
-      use ice_grid, only: init_grid1, init_grid2, alloc_grid
+          faero_default, alloc_forcing_bgc, fiso_default
+      use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
       use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
@@ -196,15 +196,13 @@
       call init_history_therm   ! initialize thermo history variables
       call init_history_dyn     ! initialize dynamic history variables
       call calc_timesteps       ! update timestep counter if not using npt_unit="1"
+      call icepack_init_radiation ! initialize icepack shortwave tables
 
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_zaero_out=tr_zaero)
       call icepack_query_tracer_flags(tr_iso_out=tr_iso, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
-
-      if (tr_aero .or. tr_zaero) call faero_optics !initialize aerosol optical
-                                                   !property tables
 
       ! Initialize shortwave components using swdn from previous timestep
       ! if restarting. These components will be scaled to current forcing
@@ -261,6 +259,7 @@
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
 
+      call dealloc_grid         ! deallocate temporary grid arrays
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
       endif
@@ -293,7 +292,8 @@
           restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
-          restart_zsal, restart_bgc
+          restart_bgc
+      use ice_flux, only: Tf
       use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
@@ -304,7 +304,7 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
           tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal
+          skl_bgc, z_tracers
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
@@ -320,7 +320,7 @@
           file=__FILE__, line=__LINE__)
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-           z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
+           z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
@@ -466,8 +466,6 @@
       if (trim(runtype) == 'continue') then
          if (tr_brine) &
              restart_hbrine = .true.
-         if (solve_zsal) &
-             restart_zsal = .true.
          if (skl_bgc .or. z_tracers) &
              restart_bgc = .true.
       endif
@@ -477,7 +475,7 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
+      if (skl_bgc .or. z_tracers) then ! biogeochemistry
          if (tr_fsd) then
             write (nu_diag,*) 'FSD implementation incomplete for use with BGC'
             call icepack_warnings_flush(nu_diag)
@@ -510,7 +508,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata,     &
+                                   Tf            = Tf(i,j,iblk))
          else
             ! tcraig, reset all tracer values on land to zero
             trcrn(i,j,:,:,iblk) = c0

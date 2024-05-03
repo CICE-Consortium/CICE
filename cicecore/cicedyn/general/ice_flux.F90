@@ -107,6 +107,7 @@
          strintyE, & ! divergence of internal ice stress, y at E points (N/m^2)
          daidtd  , & ! ice area tendency due to transport   (1/s)
          dvidtd  , & ! ice volume tendency due to transport (m/s)
+         dvsdtd  , & ! snow volume tendency due to transport (m/s)
          dagedtd , & ! ice age tendency due to transport (s/s)
          dardg1dt, & ! rate of area loss by ridging ice (1/s)
          dardg2dt, & ! rate of area gain by new ridges (1/s)
@@ -259,8 +260,7 @@
          alvdf_init, & ! visible, diffuse  (fraction)
          alidf_init    ! near-ir, diffuse  (fraction)
 
-      real (kind=dbl_kind), &
-         dimension(:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          albcnt       ! counter for zenith angle
 
        ! out to ocean
@@ -291,6 +291,9 @@
          update_ocn_f, & ! if true, update fresh water and salt fluxes
          l_mpond_fresh   ! if true, include freshwater feedback from meltponds
                          ! when running in ice-ocean or coupled configuration
+
+      character (char_len), public :: &
+         cpl_frazil      ! type of coupling for frazil ice, 'fresh_ice_correction','internal','external'
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          meltsn      , & ! snow melt in category n (m)
@@ -339,6 +342,7 @@
          dsnow,  & ! change in snow thickness (m/step-->cm/day)
          daidtt, & ! ice area tendency thermo.   (s^-1)
          dvidtt, & ! ice volume tendency thermo. (m/s)
+         dvsdtt, & ! snow volume tendency thermo. (m/s)
          dagedtt,& ! ice age tendency thermo.    (s/s)
          mlt_onset, &! day of year that sfc melting begins
          frz_onset, &! day of year that freezing begins (congel or frazil)
@@ -388,6 +392,7 @@
          vatmT   , & ! vatm on T grid (m/s)
          rside   , & ! fraction of ice that melts laterally
          fside   , & ! lateral heat flux (W/m^2)
+         wlat    , & ! lateral heat rate (m/s)
          fsw     , & ! incoming shortwave radiation (W/m^2)
          coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
@@ -438,6 +443,7 @@
          strintyU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
          daidtd     (nx_block,ny_block,max_blocks), & ! ice area tendency due to transport   (1/s)
          dvidtd     (nx_block,ny_block,max_blocks), & ! ice volume tendency due to transport (m/s)
+         dvsdtd     (nx_block,ny_block,max_blocks), & ! snow volume tendency due to transport (m/s)
          dagedtd    (nx_block,ny_block,max_blocks), & ! ice age tendency due to transport (s/s)
          dardg1dt   (nx_block,ny_block,max_blocks), & ! rate of area loss by ridging ice (1/s)
          dardg2dt   (nx_block,ny_block,max_blocks), & ! rate of area gain by new ridges (1/s)
@@ -553,6 +559,7 @@
          dsnow      (nx_block,ny_block,max_blocks), & ! change in snow thickness (m/step-->cm/day)
          daidtt     (nx_block,ny_block,max_blocks), & ! ice area tendency thermo.   (s^-1)
          dvidtt     (nx_block,ny_block,max_blocks), & ! ice volume tendency thermo. (m/s)
+         dvsdtt     (nx_block,ny_block,max_blocks), & ! snow volume tendency thermo. (m/s)
          dagedtt    (nx_block,ny_block,max_blocks), & ! ice age tendency thermo.    (s/s)
          mlt_onset  (nx_block,ny_block,max_blocks), & ! day of year that sfc melting begins
          frz_onset  (nx_block,ny_block,max_blocks), & ! day of year that freezing begins (congel or frazil)
@@ -566,7 +573,8 @@
          uatmT      (nx_block,ny_block,max_blocks), & ! uatm on T grid
          vatmT      (nx_block,ny_block,max_blocks), & ! vatm on T grid
          rside      (nx_block,ny_block,max_blocks), & ! fraction of ice that melts laterally
-         fside      (nx_block,ny_block,max_blocks), & ! lateral melt rate (W/m^2)
+         fside      (nx_block,ny_block,max_blocks), & ! lateral melt flux (W/m^2)
+         wlat       (nx_block,ny_block,max_blocks), & ! lateral melt rate (m/s)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
          coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
@@ -955,7 +963,7 @@
 
       subroutine init_history_therm
 
-      use ice_state, only: aice, vice, trcr
+      use ice_state, only: aice, vice, vsno, trcr
       use ice_arrays_column, only: &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_pond, Cdn_atm_rdg, &
@@ -1002,6 +1010,7 @@
       meltl  (:,:,:) = c0
       daidtt (:,:,:) = aice(:,:,:) ! temporary initial area
       dvidtt (:,:,:) = vice(:,:,:) ! temporary initial volume
+      dvsdtt (:,:,:) = vsno(:,:,:) ! temporary initial volume
       if (tr_iage) then
          dagedtt(:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       else
@@ -1059,7 +1068,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, trcr, strength
+      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear, vort
       use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
@@ -1078,6 +1087,9 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
+      divu    (:,:,:) = c0
+      shear   (:,:,:) = c0
+      vort    (:,:,:) = c0
       taubxU  (:,:,:) = c0
       taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
@@ -1095,6 +1107,7 @@
       opening (:,:,:) = c0
       daidtd  (:,:,:) = aice(:,:,:) ! temporary initial area
       dvidtd  (:,:,:) = vice(:,:,:) ! temporary initial volume
+      dvsdtd  (:,:,:) = vsno(:,:,:) ! temporary initial volume
       if (tr_iage) &
          dagedtd (:,:,:) = trcr(:,:,nt_iage,:) ! temporary initial age
       fmU     (:,:,:) = c0
@@ -1164,7 +1177,6 @@
                                faero_ocn,          &
                                alvdr,    alidr,    &
                                alvdf,    alidf,    &
-                               fzsal,    fzsal_g,  &
                                flux_bio,           &
                                fsurf,    fcondtop, &
                                Uref,     wind,     &
@@ -1228,11 +1240,6 @@
           fsurf   , & ! surface heat flux               (W/m**2)
           fcondtop    ! top surface conductive flux     (W/m**2)
 
-      ! zsalinity fluxes
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
-          fzsal   , & ! salt flux to ocean with prognositic salinity (kg/m2/s)
-          fzsal_g     ! Gravity drainage salt flux to ocean (kg/m2/s)
-
       ! isotopes
       real (kind=dbl_kind), dimension(nx_block,ny_block,icepack_max_iso), &
           optional, intent(inout) :: &
@@ -1285,8 +1292,6 @@
             alidr   (i,j) = alidr   (i,j) * ar
             alvdf   (i,j) = alvdf   (i,j) * ar
             alidf   (i,j) = alidf   (i,j) * ar
-            fzsal   (i,j) = fzsal   (i,j) * ar
-            fzsal_g (i,j) = fzsal_g (i,j) * ar
             flux_bio (i,j,:) = flux_bio (i,j,:) * ar
             faero_ocn(i,j,:) = faero_ocn(i,j,:) * ar
             if (present(Qref_iso )) Qref_iso (i,j,:) = Qref_iso (i,j,:) * ar
@@ -1317,8 +1322,6 @@
             alidr   (i,j) = c0
             alvdf   (i,j) = c0
             alidf   (i,j) = c0
-            fzsal   (i,j) = c0
-            fzsal_g (i,j) = c0
             flux_bio (i,j,:) = c0
             faero_ocn(i,j,:) = c0
             if (present(Qref_iso )) Qref_iso (i,j,:) = c0

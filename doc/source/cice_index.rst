@@ -5,11 +5,12 @@
 Index of primary variables and parameters 
 ==========================================
 
-This index defines many of the symbols used frequently in the CICE model
-code.  Namelist variables are partly included here but also documented
-elsewhere, see Section :ref:`tabnamelist`. All
-quantities in the code are expressed in MKS units (temperatures may take
+This index defines many (but not all) of the symbols used frequently in the CICE model
+code.  All quantities in the code are expressed in MKS units (temperatures may take
 either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
+
+Namelist variables are partly included here, but they are fully documented in 
+section :ref:`tabnamelist`. 
 
 .. csv-table:: *Alphabetical Index*
    :header: " ", " ", " "
@@ -115,6 +116,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "cosw", "cosine of the turning angle in water", "1."
    "coszen", "cosine of the zenith angle", ""
    "Cp", "proportionality constant for potential energy", "kg/m\ :math:`^2`/s\ :math:`^2`"
+   "cpl_frazil", ":math:`\bullet` type of frazil ice coupling", ""
    "cp_air", "specific heat of air", "1005.0 J/kg/K"
    "cp_ice", "specific heat of fresh ice", "2106. J/kg/K"
    "cp_ocn", "specific heat of sea water", "4218. J/kg/K"
@@ -185,7 +187,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "dtei", "1/dte, where dte is the EVP subcycling time step", "1/s"
    "dump_file", "output file for restart dump", ""
    "dumpfreq", "dump frequency for restarts, y, m, d, h or 1", ""
-   "dumpfreq_base", "reference date for restart output", ""
+   "dumpfreq_base", "reference date for restart output, zero or init", ""
    "dumpfreq_n", "restart output frequency", ""
    "dump_last", "if true, write restart on last time step of simulation", ""
    "dwavefreq", "widths of wave frequency bins", "1/s"
@@ -314,14 +316,22 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "highfreq", "high-frequency atmo coupling", "F"
    "hin_old", "ice thickness prior to growth/melt", "m"
    "hin_max", "category thickness limits", "m"
-   "hist_avg", "if true, write averaged data instead of snapshots", "T"
-   "histfreq", "units of history output frequency: y, m, w, d or 1", ""
-   "histfreq_base", "reference date for history output", ""
-   "histfreq_n", "integer output frequency in histfreq units", ""
+   "hist_avg", "if true, write averaged data instead of snapshots", "T,T,T,T,T"
+   "histfreq", "units of history output frequency: y, m, w, d or 1", "m,x,x,x,x"
+   "histfreq_base", "reference date for history output, zero or init", ""
+   "histfreq_n", "integer output frequency in histfreq units", "1,1,1,1,1"
+   "history_chunksize", "history chunksizes in x,y directions (_format='hdf5' only)", "0,0"
+   "history_deflate", "compression level for history (_format='hdf5' only)", "0"
    "history_dir", "path to history output files", ""
    "history_file", "history output file prefix", ""
    "history_format", "history file format", ""
+   "history_iotasks", "history output total number of tasks used", ""
    "history_precision", "history output precision: 4 or 8 byte", "4"
+   "history_rearranger", "history output io rearranger method", ""
+   "history_root", "history output io root task id", ""
+   "history_stride", "history output io task stride", ""
+   "hist_time_axis", "history file time axis interval location: begin, middle, end", "end"
+   "hist_suffix", "suffix to `history_file` in filename. x means no suffix", "x,x,x,x,x"
    "hm", "land/boundary mask, thickness (T-cell)", ""
    "hmix", "ocean mixed layer depth", "20. m"
    "hour", "hour of the year", ""
@@ -383,7 +393,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "kice", "thermal conductivity of fresh ice (:cite:`Bitz99`)", "2.03 W/m/deg"
    "kitd", "type of itd conversions (0 = delta function, 1 = linear remap)", "1"
    "kmt_file", "input file for land mask info", ""
-   "kmt_type", "file, default or boxislands", "file"
+   "kmt_type", "file, default, channel, wall, or boxislands", "file"
    "krdg_partic", "ridging participation function", "1"
    "krdg_redist", "ridging redistribution function", "1"
    "krgdn", "mean ridge thickness per thickness of ridging ice", ""
@@ -503,8 +513,6 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "ocn_data_type", "source of surface temperature, salinity data", ""
    "omega", "angular velocity of Earth", "7.292\ :math:`\times`\ 10\ :math:`^{-5}` rad/s"
    "opening", "rate of ice opening due to divergence and shear", "1/s"
-   "optics_file", "optics filename associated with modal aerosols", ""
-   "optics_file_fieldname", "optics file fieldname that is read", ""
    "**P**", "", ""
    "p001", "1/1000", ""
    "p01", "1/100", ""
@@ -575,9 +583,15 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "restart", "if true, initialize ice state from file", "T"
    "restart_age", "if true, read age restart file", ""
    "restart_bgc", "if true, read bgc restart file", ""
+   "restart_chunksize", "restart chunksizes in x,y directions (_format='hdf5' only)", "0,0"
+   "restart_deflate", "compression level for restart (_format='hdf5' only)", "0"
    "restart_dir", "path to restart/dump files", ""
    "restart_file", "restart file prefix", ""
    "restart_format", "restart file format", ""
+   "restart_iotasks", "restart output total number of tasks used", ""
+   "restart_rearranger", "restart output io rearranger method", ""
+   "restart_root", "restart output io root task id", ""
+   "restart_stride", "restart output io task stride", ""
    "restart_[tracer]", "if true, read tracer restart file", ""
    "restart_ext", "if true, read/write halo cells in restart file", ""
    "restart_coszen", "if true, read/write coszen in restart file", ""
@@ -619,8 +633,9 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "shcoef", "transfer coefficient for sensible heat", ""
    "shear", "strain rate II component", "1/s"
    "shlat", "southern latitude of artificial mask edge", "30\ :math:`^\circ`\ N"
-   "shortwave", "flag for shortwave parameterization (‘ccsm3’ or ‘dEdd’)", ""
-   "sig1(2)", "principal stress components (diagnostic)", ""
+   "shortwave", "flag for shortwave parameterization (‘ccsm3’ or ‘dEdd’ or 'dEdd_snicar_ad')", ""
+   "sig1(2)", "principal stress components :math:`\sigma_{n,1}`, :math:`\sigma_{n,2}` (diagnostic)", ""
+   "sigP", "internal ice pressure", "N/m"
    "sil", "silicate concentration", "mmol/m\ :math:`^3`"
    "sinw", "sine of the turning angle in water", "0."
    "Sinz", "ice salinity profile", "ppt"
@@ -660,8 +675,8 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "strax(y)", "wind stress components from data", "N/m\ :math:`^2`"
    "strength", "ice strength", "N/m"
    "stress12", "internal ice stress, :math:`\sigma_{12}`", "N/m"
-   "stressm", "internal ice stress, :math:`\sigma_{11}-\sigma_{22}`", "N/m"
-   "stressp", "internal ice stress, :math:`\sigma_{11}+\sigma_{22}`", "N/m"
+   "stressm", "internal ice stress, :math:`\sigma_{11}-\sigma_{22}` (:math:`\sigma_2` in the doc)", "N/m"
+   "stressp", "internal ice stress, :math:`\sigma_{11}+\sigma_{22}` (:math:`\sigma_1` in the doc)", "N/m"
    "strintx(y)U", "divergence of internal ice stress, x(y)", "N/m\ :math:`^2`"
    "strocnx(y)U", "ice–ocean stress in the x(y)-direction (U-cell)", "N/m\ :math:`^2`"
    "strocnx(y)T", "ice–ocean stress, x(y)-dir. (T-cell)", "N/m\ :math:`^2`"
@@ -688,6 +703,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "Timelt", "melting temperature of ice top surface", "0. C"
    "Tinz", "Internal ice temperature", "C"
    "TLAT", "latitude of cell center", "radians"
+   "Tliquidus_max", "maximum liquidus temperature of mush", "0. C"
    "TLON", "longitude of cell center", "radians"
    "tmask", "land/boundary mask, thickness (T-cell)", ""
    "tmass", "total mass of ice and snow", "kg/m\ :math:`^2`"
@@ -741,6 +757,7 @@ either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
    "visc_method", "method for calculating viscosities (‘avg_strength’ or ‘avg_zeta’)", "avg_zeta"
    "vocn", "ocean current in the y-direction", "m/s"
    "vonkar", "von Karman constant", "0.4"
+   "vort", "vorticity", "1/s"
    "vraftn", "volume of rafted ice", "m"
    "vrdgn", "volume of ridged ice", "m"
    "vredistrn", "redistribution function: fraction of new ridge volume", ""

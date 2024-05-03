@@ -15,7 +15,7 @@ More information can be found by following the DOI link to zenodo.
 If you use CICE, please cite the version number of the code you
 are using or modifying.
 
-If using code from the CICE-Consortium repository ``master`` branch
+If using code from the CICE-Consortium repository ``main`` branch
 that includes modifications
 that have not yet been released with a version number, then in
 addition to the most recent version number, the hash at time of

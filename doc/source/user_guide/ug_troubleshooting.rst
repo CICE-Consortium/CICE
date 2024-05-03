@@ -13,9 +13,6 @@ Directory Structure
 ---------------------
 
 In November, 2022, the cicedynB directory was renamed to cicedyn.
-A soft link was temporarily added to preserve the ability to use
-cicedynB as a path when compiling CICE in other build systems.  This
-soft link will be removed in the future.
 
 .. _setup:
 
@@ -106,7 +103,7 @@ parameterizations are used, the code should be able to execute from
 these files. However if different physics is used (for instance, mushy
 thermo instead of BL99), the code may still fail. To convert a v4.1
 restart file, consult section 5.2 in the `CICE v5 documentation 
-<https://github.com/CICE-Consortium/CICE-svn-trunk/blob/master/cicedoc/cicedoc.pdf>`_.
+<https://github.com/CICE-Consortium/CICE-svn-trunk/blob/main/cicedoc/cicedoc.pdf>`_.
 
 If restart files are taking a long time to be written serially (i.e.,
 not using PIO), see the next section.
@@ -228,7 +225,7 @@ Interpretation of albedos
 
 More information about interpretation of albedos can 
 be found in the 
-`Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/master/user_guide/index.html>`_.
+`Icepack documentation  <https://cice-consortium-icepack.readthedocs.io/en/main/user_guide/index.html>`_.
 
 
 VP dynamics results

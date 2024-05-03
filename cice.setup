@@ -1189,7 +1189,7 @@ source ./cice.settings
 set bldstat = 0
 if (\${dobuild} == true) then
    if (\${doreuse} == true) then
-     set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}"
+     set ciceexe = "../ciceexe.\${ICE_TARGET}.\${ICE_ENVNAME}.\${ICE_COMMDIR}.\${ICE_BLDDEBUG}.\${ICE_THREADED}.\${ICE_IOTYPE}.\${ICE_SNICARHC}"
      ./cice.build --exe \${ciceexe}
      set bldstat = \${status}
      if !(-e \${ciceexe}) cp -p \${ICE_RUNDIR}/cice \${ciceexe}

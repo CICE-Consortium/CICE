@@ -109,7 +109,7 @@
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
           stack_fields, unstack_fields, iceTmask, iceUmask, &
-          fld2, fld3, fld4
+          fld2, fld3, fld4, dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -118,10 +118,10 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
           tarear, uarear, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
@@ -195,6 +195,7 @@
             rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
             divu (i,j,iblk) = c0
             shear(i,j,iblk) = c0
+            vort(i,j,iblk)  = c0
             e11(i,j,iblk) = c0
             e12(i,j,iblk) = c0
             e22(i,j,iblk) = c0
@@ -433,6 +434,7 @@
                               arlx1i,               denom1,               &
                               uvel      (:,:,iblk), vvel      (:,:,iblk), &
                               dxT       (:,:,iblk), dyT       (:,:,iblk), &
+                              dxU       (:,:,iblk), dyU       (:,:,iblk), &
                               dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
                               cxm       (:,:,iblk), cym       (:,:,iblk), &
@@ -448,6 +450,7 @@
                               stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
                               stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                               shear     (:,:,iblk), divu      (:,:,iblk), &
+                              vort      (:,:,iblk),                       &
                               e11       (:,:,iblk), e12       (:,:,iblk), &
                               e22       (:,:,iblk),                       &
                               s11       (:,:,iblk), s12       (:,:,iblk), &
@@ -1162,6 +1165,7 @@
                               arlx1i,     denom1,         &
                               uvel,       vvel,           &
                               dxT,        dyT,            &
+                              dxU,        dyU,            &
                               dxhy,       dyhx,           &
                               cxp,        cyp,            &
                               cxm,        cym,            &
@@ -1175,6 +1179,7 @@
                               stress12_1, stress12_2,     &
                               stress12_3, stress12_4,     &
                               shear,      divu,           &
+                              vort,                       &
                               e11,        e12,            &
                               e22,                        &
                               s11,        s12,            &
@@ -1206,6 +1211,8 @@
          vvel     , & ! y-component of velocity (m/s)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
+         dxU      , & ! width of U-cell through the middle (m)
+         dyU      , & ! height of U-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
          dyhx     , & ! 0.5*(HTN - HTS)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -1226,6 +1233,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
+         vort     , & ! vorticity (1/s)
          e11      , & ! components of strain rate tensor (1/s)
          e12      , & !
          e22      , & !
@@ -1255,6 +1263,7 @@
          divune, divunw, divuse, divusw            , & ! divergence
          tensionne, tensionnw, tensionse, tensionsw, & ! tension
          shearne, shearnw, shearse, shearsw        , & ! shearing
+         dvdxn, dvdxs, dudye, dudyw                , & ! for vorticity calc
          ssigpn, ssigps, ssigpe, ssigpw            , &
          ssigmn, ssigms, ssigme, ssigmw            , &
          ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1356,6 +1365,13 @@
             shear(i,j) = p25*tarear(i,j)*sqrt( &
                  (tensionne + tensionnw + tensionse + tensionsw)**2 &
                 +  (shearne +   shearnw +   shearse +   shearsw)**2)
+
+            ! vorticity
+            dvdxn = dyU(i,j)*vvel(i,j) - dyU(i-1,j)*vvel(i-1,j)
+            dvdxs = dyU(i,j-1)*vvel(i,j-1) - dyU(i-1,j-1)*vvel(i-1,j-1)
+            dudye = dxU(i,j)*uvel(i,j) - dxU(i,j-1)*uvel(i,j-1)
+            dudyw = dxU(i-1,j)*uvel(i-1,j) - dxU(i-1,j-1)*uvel(i-1,j-1)
+            vort(i,j) = p5*tarear(i,j)*(dvdxn + dvdxs - dudye - dudyw)
 
             divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
             rdg_conv(i,j)  = -min(p25*(alpharne + alpharnw &

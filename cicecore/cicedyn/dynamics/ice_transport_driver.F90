@@ -37,9 +37,6 @@
                      ! 'upwind' => 1st order donor cell scheme
                      ! 'remap' => remapping scheme
 
-      logical, parameter :: &
-         l_fixed_area = .false. ! if true, prescribe area flux across each edge
-
 ! NOTE: For remapping, hice and hsno are considered tracers.
 !       ntrace is not equal to ntrcr!
 
@@ -81,6 +78,7 @@
       use ice_state, only: trcr_depend
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_advect
       use ice_transport_remap, only: init_remap
+      use ice_grid, only: grid_ice
 
       integer (kind=int_kind) ::       &
          k, nt, nt1     ! tracer indices
@@ -91,7 +89,7 @@
          nt_alvl  , nt_vlvl  ,                       &
          nt_apnd  , nt_hpnd  , nt_ipnd   , nt_fsd  , &
          nt_smice , nt_smliq , nt_rhos   , nt_rsnw , &
-         nt_isosno, nt_isoice, nt_bgc_Nit, nt_bgc_S
+         nt_isosno, nt_isoice, nt_bgc_Nit
 
       character(len=*), parameter :: subname = '(init_transport)'
 
@@ -104,8 +102,7 @@
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, nt_rhos_out=nt_rhos, &
-         nt_rsnw_out=nt_rsnw, &
-         nt_bgc_Nit_out=nt_bgc_Nit, nt_bgc_S_out=nt_bgc_S, &
+         nt_rsnw_out=nt_rsnw, nt_bgc_Nit_out=nt_bgc_Nit, &
          nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -228,15 +225,12 @@
             if (nt-k==nt_bgc_Nit) &
                write(nu_diag,1000) 'nt_bgc_Nit  ',nt,depend(nt),tracer_type(nt),&
                                                   has_dependents(nt)
-            if (nt-k==nt_bgc_S) &
-               write(nu_diag,1000) 'nt_bgc_S    ',nt,depend(nt),tracer_type(nt),&
-                                                  has_dependents(nt)
          enddo
          write(nu_diag,*) ' '
       endif ! master_task
  1000 format (1x,a,2x,i6,2x,i6,2x,i4,4x,l4)
 
-      if (trim(advection)=='remap') call init_remap    ! grid quantities
+      if (trim(advection)=='remap') call init_remap ! grid quantities
 
       call ice_timer_stop(timer_advect)  ! advection
 
@@ -545,19 +539,17 @@
           call horizontal_remap (dt,             ntrace,         &
                                  uvel   (:,:,:), vvel   (:,:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
-                                 l_fixed_area,                   &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
-                                 l_dp_midpt,     grid_ice,       &
+                                 l_dp_midpt,                     &
                                  uvelE  (:,:,:), vvelN  (:,:,:))
       else
           call horizontal_remap (dt,             ntrace,         &
                                  uvel   (:,:,:), vvel   (:,:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
-                                 l_fixed_area,                   &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
-                                 l_dp_midpt,     grid_ice)
+                                 l_dp_midpt)
       endif
 
       !-------------------------------------------------------------------
@@ -721,6 +713,7 @@
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, bound_state, trcr_base, &
           n_trcr_strata, nt_strata, uvelE, vvelN
+      use ice_flux, only: Tf
       use ice_grid, only: HTE, HTN, tarea, tmask, grid_ice
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
           timer_bound, timer_advect
@@ -846,7 +839,7 @@
                              ntrcr,               narr,                 &
                              trcr_depend(:),      trcr_base(:,:),       &
                              n_trcr_strata(:),    nt_strata(:,:),       &
-                             tmask(:,:,    iblk),                       &
+                             tmask(:,:,    iblk), Tf    (:,:,iblk),     &
                              aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk))
@@ -1651,7 +1644,7 @@
                                 trcr_base,               &
                                 n_trcr_strata,           &
                                 nt_strata,               &
-                                tmask,                   &
+                                tmask,         Tf,       &
                                 aicen,         trcrn,    &
                                 vicen,         vsnon,    &
                                 aice0,         works)
@@ -1678,6 +1671,7 @@
          tmask (nx_block,ny_block)
 
       real (kind=dbl_kind), intent (in) :: &
+         Tf    (nx_block,ny_block), &
          works (nx_block,ny_block,narr)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat), intent(out) :: &
@@ -1754,7 +1748,8 @@
                                          trcr_base     = trcr_base(:,:),   &
                                          n_trcr_strata = n_trcr_strata(:), &
                                          nt_strata     = nt_strata(:,:),   &
-                                         trcrn         = trcrn(i,j,:,n))
+                                         trcrn         = trcrn(i,j,:,n),   &
+                                         Tf            = Tf(i,j))
 
             ! tcraig, don't let land points get non-zero Tsfc
             if (.not.tmask(i,j)) then

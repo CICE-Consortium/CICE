@@ -301,7 +301,7 @@
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_flux, only: coszen
+      use ice_flux, only: coszen, Tf
 #ifdef GEOSCOUPLED
       use ice_grid, only: tmask, opmask, grid_type, grid_ice, grid_average_X2Y
 #else
@@ -722,7 +722,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata,     &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo
@@ -758,7 +759,7 @@
           max_blocks
       use ice_dyn_shared, only: iceUmask
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
-          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, Tf, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -1090,7 +1091,8 @@
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &
-                                   nt_strata     = nt_strata)
+                                   nt_strata     = nt_strata,     &
+                                   Tf            = Tf(i,j,iblk))
 
          aice_init(i,j,iblk) = aice(i,j,iblk)
       enddo

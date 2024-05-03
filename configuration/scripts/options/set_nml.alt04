@@ -10,6 +10,7 @@ tr_pond_topo = .false.
 tr_pond_lvl  = .true.
 tr_aero      = .true.
 kitd = 0
+hi_min = 0.1d0
 ktherm = 1
 sw_redist = .true.
 sw_frac = 0.9d0

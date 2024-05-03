@@ -437,7 +437,7 @@ contains
 
     use ice_grid      , only : tlon, tlat, hm, tarea, ULON, ULAT, HTN, HTE, ANGLE, ANGLET
     use ice_grid      , only : uarea, uarear, tarear!, tinyarea
-    use ice_grid      , only : dxT, dyT, dxU, dyU, dyhx, dxhy, cyp, cxp, cym, cxm
+    use ice_grid      , only : dxT, dyT, dxU, dyU
     use ice_grid      , only : makemask
     use ice_boundary  , only : ice_HaloUpdate
     use ice_domain    , only : blocks_ice, nblocks, halo_info, distrb_info
@@ -535,12 +535,6 @@ contains
              dyT   (i,j,iblk) = 1.e36_dbl_kind
              dxU   (i,j,iblk) = 1.e36_dbl_kind
              dyU   (i,j,iblk) = 1.e36_dbl_kind
-             dxhy  (i,j,iblk) = 1.e36_dbl_kind
-             dyhx  (i,j,iblk) = 1.e36_dbl_kind
-             cyp   (i,j,iblk) = 1.e36_dbl_kind
-             cxp   (i,j,iblk) = 1.e36_dbl_kind
-             cym   (i,j,iblk) = 1.e36_dbl_kind
-             cxm   (i,j,iblk) = 1.e36_dbl_kind
           enddo
        enddo
     enddo
@@ -559,7 +553,7 @@ contains
 
     ! Check CICE mesh
 
-    use ice_constants, only : c1,c0,c360
+    use ice_constants, only : c1,c0,c180,c360
     use ice_grid     , only : tlon, tlat, hm
 
     ! input/output parameters
@@ -583,7 +577,7 @@ contains
     real(dbl_kind)               :: diff_lon
     real(dbl_kind)               :: diff_lat
     real(dbl_kind)               :: rad_to_deg
-    real(dbl_kind)               :: tmplon, eps_imesh
+    real(dbl_kind)               :: eps_imesh
     logical                      :: isPresent, isSet
     logical                      :: mask_error
     integer                      :: mask_internal
@@ -637,19 +631,19 @@ contains
              lon(n) = tlon(i,j,iblk)*rad_to_deg
              lat(n) = tlat(i,j,iblk)*rad_to_deg
 
-             tmplon = lon(n)
-             if(tmplon < c0)tmplon = tmplon + c360
-
              ! error check differences between internally generated lons and those read in
-             diff_lon = abs(mod(lonMesh(n) - tmplon,360.0))
-             if (diff_lon > eps_imesh ) then
-                write(6,100)n,lonMesh(n),tmplon, diff_lon
-                !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+             diff_lon = mod(abs(lonMesh(n) - lon(n)),360.0)
+             if (diff_lon > c180) then
+               diff_lon = diff_lon - c360
+             endif
+             if (abs(diff_lon) > eps_imesh ) then
+                write(6,100)n,lonMesh(n),lon(n), diff_lon
+                call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
              diff_lat = abs(latMesh(n) - lat(n))
              if (diff_lat > eps_imesh) then
                 write(6,101)n,latMesh(n),lat(n), diff_lat
-                !call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+                call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
              end if
           enddo
        enddo
@@ -668,13 +662,13 @@ contains
     n=0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
        do j = jlo, jhi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
           do i = ilo, ihi
-             ilo = this_block%ilo
-             ihi = this_block%ihi
-             n = n+1
+             n = n + 1
              mask_internal = nint(hm(i,j,iblk),kind=dbl_kind)
              mask_file = model_mask(n)
              if (mask_internal /= mask_file) then

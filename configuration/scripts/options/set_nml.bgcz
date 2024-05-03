@@ -28,3 +28,4 @@ tr_bgc_DON      = .true.
 tr_bgc_Fe       = .true. 
 # modal_aero      = .true.
 # dEdd_algae      = .true.
+tfrz_option     = 'mushy'

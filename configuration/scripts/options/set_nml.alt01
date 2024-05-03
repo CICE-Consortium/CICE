@@ -22,4 +22,4 @@ albedo_type = 'constant'
 calc_Tsfc = .true.
 atm_data_type = 'default'
 highfreq = .true.
-tfrz_option = 'minus1p8'
+tfrz_option = 'constant'

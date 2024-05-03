@@ -52,7 +52,7 @@
       use ice_fileunits, only: nu_diag
       use ice_flux, only: fmU
       use ice_global_reductions, only: global_sum
-      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, uarear
+      use ice_grid, only: dxT, dyT, uarear
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
@@ -120,19 +120,9 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c1, &
           field_loc_center, field_type_scalar
-      use ice_domain, only: blocks_ice, halo_info
+      use ice_domain, only: blocks_ice
       use ice_calendar, only: dt_dyn
       use ice_dyn_shared, only: init_dyn_shared
-!      use ice_grid, only: tarea
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      type (block) :: &
-         this_block           ! block information for current block
 
       call init_dyn_shared(dt_dyn)
 
@@ -167,7 +157,8 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
       use ice_domain_size, only: max_blocks, ncat
-      use ice_dyn_shared, only: deformations, iceTmask, iceUmask
+      use ice_dyn_shared, only: deformations, iceTmask, iceUmask, &
+          cxp, cyp, cxm, cym
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
@@ -176,10 +167,10 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_grid, only: tmask, umask, dxT, dyT, cxp, cyp, cxm, cym, &
+      use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
           tarear, grid_type, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
@@ -530,9 +521,10 @@
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
                             dxT       (:,:,iblk), dyT       (:,:,iblk), &
+                            dxU       (:,:,iblk), dyU       (:,:,iblk), &
                             cxp       (:,:,iblk), cyp       (:,:,iblk), &
                             cxm       (:,:,iblk), cym       (:,:,iblk), &
-                            tarear    (:,:,iblk),                       &
+                            tarear    (:,:,iblk), vort      (:,:,iblk), &
                             shear     (:,:,iblk), divu      (:,:,iblk), &
                             rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk))
       enddo
@@ -686,9 +678,8 @@
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_domain_size, only: max_blocks
       use ice_flux, only:   fmU, TbU
-      use ice_grid, only: dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-           uarear
-      use ice_dyn_shared, only: DminTarea
+      use ice_grid, only: dxT, dyT, uarear
+      use ice_dyn_shared, only: DminTarea, dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_state, only: uvel, vvel, strength
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
@@ -1221,20 +1212,16 @@
 
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltane        , zetax2   (i,j,1), &
-                              etax2   (i,j,1), rep_prs  (i,j,1), &
-                              capping)
+                              etax2   (i,j,1), rep_prs  (i,j,1))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltanw        , zetax2   (i,j,2), &
-                              etax2   (i,j,2), rep_prs  (i,j,2), &
-                              capping)
+                              etax2   (i,j,2), rep_prs  (i,j,2))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltasw        , zetax2   (i,j,3), &
-                              etax2   (i,j,3), rep_prs  (i,j,3), &
-                              capping)
+                              etax2   (i,j,3), rep_prs  (i,j,3))
          call visc_replpress (strength(i,j)  , DminTarea(i,j)  , &
                               Deltase        , zetax2   (i,j,4), &
-                              etax2   (i,j,4), rep_prs  (i,j,4), &
-                              capping)
+                              etax2   (i,j,4), rep_prs  (i,j,4))
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -2502,7 +2489,7 @@
                                    vector2_x , vector2_y) &
                result(dot_product)
 
-      use ice_domain, only: distrb_info
+      use ice_domain, only: distrb_info, ns_boundary_type
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: bfbflag
 
@@ -2552,8 +2539,14 @@
       enddo
       !$OMP END PARALLEL DO
 
-      ! Use local summation result unless bfbflag is active
-      if (bfbflag == 'off') then
+      ! Use faster local summation result for several bfbflag settings.
+      ! The local implementation sums over each block, sums over local
+      ! blocks, and calls global_sum on a scalar and should be just as accurate as
+      ! bfbflag = 'off', 'lsum8', and 'lsum4' without the extra copies and overhead
+      ! in the more general array global_sum.  But use the array global_sum
+      ! if bfbflag is more strict or for tripole grids (requires special masking)
+      if (ns_boundary_type /= 'tripole' .and. ns_boundary_type /= 'tripoleT' .and. &
+         (bfbflag == 'off' .or. bfbflag == 'lsum8' .or. bfbflag == 'lsum4')) then
          dot_product = global_sum(sum(dot), distrb_info)
       else
          dot_product = global_sum(prod, distrb_info, field_loc_NEcorner)
@@ -2751,6 +2744,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: maskhalo_dyn, halo_info
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_dyn_shared, only: dxhy, dyhx, cxp, cyp, cxm, cym
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
@@ -3120,7 +3114,7 @@
                   j = indxUj(ij, iblk)
 
                   workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_y(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO
@@ -3151,8 +3145,8 @@
 
       use ice_boundary, only: ice_HaloUpdate
       use ice_domain, only: maskhalo_dyn, halo_info
-      use ice_fileunits, only: bfbflag
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+      use ice_dyn_shared, only: dyhx, dxhy, cxp, cyp, cxm, cym
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks,4), intent(in) :: &
          zetax2   , & ! zetax2 = 2*zeta (bulk viscosity)
@@ -3343,21 +3337,17 @@
                               workspace_x , workspace_y)
 
             ! Update workspace with boundary values
-            ! NOTE: skipped for efficiency since this is just a preconditioner
-            ! unless bfbflag is active
-            if (bfbflag /= 'off') then
-               call stack_fields(workspace_x, workspace_y, fld2)
-               call ice_timer_start(timer_bound)
-               if (maskhalo_dyn) then
-                  call ice_HaloUpdate (fld2,               halo_info_mask, &
-                                       field_loc_NEcorner, field_type_vector)
-               else
-                  call ice_HaloUpdate (fld2,               halo_info, &
-                                       field_loc_NEcorner, field_type_vector)
-               endif
-               call ice_timer_stop(timer_bound)
-               call unstack_fields(fld2, workspace_x, workspace_y)
+            call stack_fields(workspace_x, workspace_y, fld2)
+            call ice_timer_start(timer_bound)
+            if (maskhalo_dyn) then
+               call ice_HaloUpdate (fld2,               halo_info_mask, &
+                                    field_loc_NEcorner, field_type_vector)
+            else
+               call ice_HaloUpdate (fld2,               halo_info, &
+                                    field_loc_NEcorner, field_type_vector)
             endif
+            call ice_timer_stop(timer_bound)
+            call unstack_fields(fld2, workspace_x, workspace_y)
 
             !$OMP PARALLEL DO PRIVATE(iblk)
             do iblk = 1, nblocks
@@ -3528,7 +3518,7 @@
                   j = indxUj(ij, iblk)
 
                   workspace_x(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_x(i, j, iblk, it)
-                  workspace_y(i, j, iblk) = workspace_x(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
+                  workspace_y(i, j, iblk) = workspace_y(i, j, iblk) + rhs_hess(it) * arnoldi_basis_y(i, j, iblk, it)
                enddo ! ij
             enddo
             !$OMP END PARALLEL DO

@@ -14,7 +14,8 @@ FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none
 
 # Additional flags for the Fortran compiler when compiling in debug mode
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+#  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=zero,overflow
 else
   FFLAGS   += -O2
 endif
@@ -22,8 +23,10 @@ endif
 # C and Fortran compilers and MPI wrappers
 SCC   := clang
 SFC   := gfortran
-MPICC := mpicc
-MPIFC := mpifort
+#MPICC := mpicc
+#MPIFC := mpifort
+MPICC := clang
+MPIFC := gfortran
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
@@ -37,7 +40,7 @@ endif
 LD:= $(FC)
 
 # Location of the compiled Fortran modules (NetCDF)
-MODDIR  += -I$(CONDA_PREFIX)/include
+MODDIR  += -I$(CONDA_PREFIX)/include -I$(CONDA_PREFIX)/lib
 
 # Location of the system C header files (required on recent macOS to compile makdep)
 SDKPATH = $(shell xcrun --show-sdk-path)
@@ -49,12 +52,16 @@ else
 endif
 
 # Libraries to be passed to the linker
-SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack
+SLIBS   := -L$(CONDA_PREFIX)/lib -lnetcdf -lnetcdff -llapack -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi
 
 # Necessary flag to compile with OpenMP support
 ifeq ($(ICE_THREADED), true)
    LDFLAGS += -fopenmp
    CFLAGS  += -fopenmp
    FFLAGS  += -fopenmp
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   SLIBS   := $(SLIBS) -lpiof -lpioc
 endif
 

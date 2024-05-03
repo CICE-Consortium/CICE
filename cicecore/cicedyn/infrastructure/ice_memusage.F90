@@ -74,7 +74,8 @@ subroutine ice_memusage_init(iunit)
       write(iunit,'(A,l4)')    subname//' Initset conversion flag is ',initset
       write(iunit,'(A,f16.2)') subname//' 8 MB memory   alloc in MB is ',(mrss1-mrss0)*mb_blk
       write(iunit,'(A,f16.2)') subname//' 8 MB memory dealloc in MB is ',(mrss1-mrss2)*mb_blk
-      write(iunit,'(A,f16.2)') subname//' Memory block size conversion in bytes is ',mb_blk*1024_dbl_kind*1024.0_dbl_kind
+      write(iunit,'(A,f16.2)') subname//' Memory block size conversion in bytes is ', &
+                               mb_blk*1024_dbl_kind*1024.0_dbl_kind
    endif
 
 end subroutine ice_memusage_init

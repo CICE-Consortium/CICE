@@ -1,0 +1,3 @@
+grid_type = 'tripole'
+ew_boundary_type = 'cyclic'
+ns_boundary_type = 'tripoleT'

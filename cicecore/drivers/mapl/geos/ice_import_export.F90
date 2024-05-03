@@ -360,7 +360,7 @@ contains
                    strairyT(i,j,iblk) = c0 
                    ssh(i,j,iblk)      = c0 
                 endif
-                if(grid_ice == 'B') then
+                if(trim(grid_ice) == 'B') then
                    if(umask(i,j,iblk)) then
                      uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind)
                      vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind)
@@ -368,7 +368,7 @@ contains
                      uocn(i,j,iblk) = c0
                      vocn(i,j,iblk) = c0
                    endif
-                elseif(grid_ice == 'C') then
+                elseif(trim(grid_ice) == 'C') then
                    if(emask(i,j,iblk)) then
                      uocn(i,j,iblk) = real(uoc(i1,j1), kind=dbl_kind)
                    else
@@ -401,7 +401,7 @@ contains
        jhi = this_block%jhi
        do j = jlo, jhi
        do i = ilo, ihi
-           if(grid_ice == 'B') then
+           if(trim(grid_ice) == 'B') then
              if(umask(i,j,iblk)) then
                 ss_tltx(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)-ssh(i,j+1,iblk)  &
                                        +ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
@@ -413,7 +413,7 @@ contains
                 ss_tltx(i,j,iblk) = c0
                 ss_tlty(i,j,iblk) = c0
              endif
-           elseif(grid_ice == 'C') then
+           elseif(trim(grid_ice) == 'C') then
              if(emask(i,j,iblk)) then
                 ss_tltx(i,j,iblk) = (ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
                                      /dxE(i,j,iblk)

@@ -58,7 +58,7 @@
 
       integer (kind=int_kind) :: k,n,nn,nrec,nbits
       character (char_len) :: title
-      character (char_len_long) :: ncfile(max_nstrm), hdrfile
+      character (char_len_long) :: ncfile, hdrfile
 
       integer (kind=int_kind) :: icategory,i_aice
 
@@ -85,26 +85,26 @@
 
       if (my_task == master_task) then
 
-        call construct_filename(ncfile(ns),'da',ns)
+        call construct_filename(ncfile,'da',ns)
 
         ! add local directory path name to ncfile
         if (write_ic) then
-          ncfile(ns) = trim(incond_dir)//ncfile(ns)
+          ncfile = trim(incond_dir)//ncfile
         else
-          ncfile(ns) = trim(history_dir)//ncfile(ns)
+          ncfile = trim(history_dir)//ncfile
         endif
-        hdrfile = trim(ncfile(ns))//'.hdr'
+        hdrfile = trim(ncfile)//'.hdr'
 
         !-----------------------------------------------------------------
         ! create history files
         !-----------------------------------------------------------------
-        call ice_open(nu_history, ncfile(ns), nbits) ! direct access
+        call ice_open(nu_history, ncfile, nbits) ! direct access
         open(nu_hdr,file=hdrfile,form='formatted',status='unknown') ! ascii
 
         title  = 'sea ice model: CICE'
         write (nu_hdr, 999) 'source',title,' '
 
-        write (nu_hdr, 999) 'file name contains model date',trim(ncfile(ns)),' '
+        write (nu_hdr, 999) 'file name contains model date',trim(ncfile),' '
 #ifdef CESMCOUPLED
         write (nu_hdr, 999) 'runid',runid,' '
 #endif
@@ -157,8 +157,10 @@
             write (nu_hdr, 995) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vcomment)
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg         &
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns)     &
+                .or. write_ic                                   &
                 .or. n==n_divu(ns)      .or. n==n_shear(ns)     &  ! snapshots
+                .or. n==n_vort(ns)                              &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
                 .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
@@ -186,7 +188,7 @@
             write (nu_hdr, 994) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -210,7 +212,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -234,7 +236,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -258,7 +260,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -282,7 +284,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -307,7 +309,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -333,7 +335,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -359,7 +361,7 @@
             write (nu_hdr, 993) nrec,trim(avail_hist_fields(n)%vname), &
                trim(avail_hist_fields(n)%vdesc),trim(avail_hist_fields(n)%vunit),nn,k
 
-            if (histfreq(ns) == '1' .or. .not. hist_avg) then
+            if (histfreq(ns) == '1' .or. .not. hist_avg(ns) .or. write_ic) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
                   'time_rep','instantaneous'
             else
@@ -389,7 +391,7 @@
         close (nu_hdr)     ! header file
         close (nu_history) ! data file
         write (nu_diag,*) ' '
-        write (nu_diag,*) 'Finished writing ',trim(ncfile(ns))
+        write (nu_diag,*) 'Finished writing ',trim(ncfile)
       endif
 
       end subroutine ice_write_hist
