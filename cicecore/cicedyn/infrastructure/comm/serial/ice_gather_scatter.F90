@@ -1002,12 +1002,12 @@
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
-      do n=1,nblocks_tot
+     do n=1,nblocks_tot
+       if (dst_dist%blockLocation(n) /= 0 .and. &
+           dst_dist%blockLocalID(n) > 0) then
+
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-         if (dst_block > 0) then
-
          ! north edge
          do j = this_block%jhi+1,ny_block
          do i = 1, nx_block
@@ -1033,8 +1033,8 @@
          enddo
          enddo
 
-         endif
-      enddo
+       endif
+     enddo
    endif
 
 !-----------------------------------------------------------------------
@@ -1250,12 +1250,12 @@
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
-      do n=1,nblocks_tot
+     do n=1,nblocks_tot
+       if (dst_dist%blockLocation(n) /= 0 .and. &
+           dst_dist%blockLocalID(n) > 0) then
+
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-         if (dst_block > 0) then
-
          ! north edge
          do j = this_block%jhi+1,ny_block
          do i = 1, nx_block
@@ -1281,8 +1281,8 @@
          enddo
          enddo
 
-         endif
-      enddo
+       endif
+     enddo
    endif
 
 !-----------------------------------------------------------------------
@@ -1498,12 +1498,12 @@
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
-      do n=1,nblocks_tot
+     do n=1,nblocks_tot
+       if (dst_dist%blockLocation(n) /= 0 .and. &
+           dst_dist%blockLocalID(n) > 0) then
+
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-         if (dst_block > 0) then
-
          ! north edge
          do j = this_block%jhi+1,ny_block
          do i = 1, nx_block

@@ -301,6 +301,10 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1, work_g2
 
+      integer (kind=int_kind) :: &
+         max_blocks_min, & ! min value of max_blocks across procs
+         max_blocks_max    ! max value of max_blocks across procs
+
       real (kind=dbl_kind) :: &
          rad_to_deg
 
@@ -390,9 +394,15 @@
       ! write additional domain information
       !-----------------------------------------------------------------
 
+      max_blocks_min = global_minval(max_blocks, distrb_info)
+      max_blocks_max = global_maxval(max_blocks, distrb_info)
       if (my_task == master_task) then
-        write(nu_diag,'(a26,i6)') '  Block size:  nx_block = ',nx_block
-        write(nu_diag,'(a26,i6)') '               ny_block = ',ny_block
+        write(nu_diag,*        ) ''
+        write(nu_diag,'(2a)'   ) subname,' Block size:'
+        write(nu_diag,'(2a,i8)') subname,'   nx_block        = ',nx_block
+        write(nu_diag,'(2a,i8)') subname,'   ny_block        = ',ny_block
+        write(nu_diag,'(2a,i8)') subname,'   min(max_blocks) = ',max_blocks_min
+        write(nu_diag,'(2a,i8)') subname,'   max(max_blocks) = ',max_blocks_max
       endif
 
       end subroutine init_grid1

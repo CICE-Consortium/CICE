@@ -1,6 +1,7 @@
 # Test         Grid    PEs        Sets    BFB-compare
 restart        gx3     4x2x25x29x4   dslenderX2
 restart        gx1     64x1x16x16x10 dwghtfile
+restart        gx1     32x2x10x12x32 dsectcart,short
 restart        gbox180 16x1x6x6x60   dspacecurve,debugblocks
 decomp         gx3     4x2x25x29x5   none
 decomp         gx3     4x2x25x29x5   dynpicard,reprosum
@@ -27,6 +28,7 @@ restart        gx3     8x1x25x29x4   drakeX2,thread         restart_gx3_4x2x25x2
 
 smoke        gx3     4x2x25x29x4   debug,run2day,dslenderX2
 smoke        gx1     64x1x16x16x10 debug,run2day,dwghtfile
+smoke        gx1     32x2x10x12x32 debug,run2day,dsectcart
 smoke        gbox180 16x1x6x6x60   debug,run2day,dspacecurve,debugblocks
 smoke        gx3     1x1x25x58x8   debug,run2day,droundrobin,thread     smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day
 smoke        gx3     20x1x5x116x1  debug,run2day,dslenderX1,thread      smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day

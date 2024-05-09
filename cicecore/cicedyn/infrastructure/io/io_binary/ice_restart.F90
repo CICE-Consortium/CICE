@@ -12,6 +12,7 @@
       use ice_restart_shared, only: &
           restart, restart_ext, restart_dir, restart_file, pointer_file, &
           runid, runtype, use_restart_time, lenstr
+      use ice_communicate, only: my_task, master_task
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_fileunits, only: nu_dump, nu_dump_eap, nu_dump_FY, nu_dump_age
       use ice_fileunits, only: nu_dump_lvl, nu_dump_pond, nu_dump_hbrine
@@ -48,7 +49,6 @@
 
       use ice_calendar, only: istep0, istep1, timesecs, npt, myear, &
           set_date_from_timesecs
-      use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
 
@@ -381,7 +381,6 @@
 
       use ice_calendar, only: msec, mmonth, mday, myear, istep1, &
                               timesecs
-      use ice_communicate, only: my_task, master_task
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
 
@@ -721,7 +720,9 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
-         write(nu_diag,*) 'vname ',trim(vname)
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' read vname ',trim(vname)
+         endif
          if (present(field_loc)) then
             do n=1,ndim3
                if (restart_ext) then
@@ -782,6 +783,9 @@
 
       character(len=*), parameter :: subname = '(write_restart_field)'
 
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' write vname ',trim(vname)
+         endif
          do n=1,ndim3
             work2(:,:,:) = work(:,:,n,:)
             if (restart_ext) then
@@ -801,7 +805,6 @@
       subroutine final_restart()
 
       use ice_calendar, only: istep1, timesecs
-      use ice_communicate, only: my_task, master_task
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
