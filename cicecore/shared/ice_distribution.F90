@@ -1664,13 +1664,13 @@
 
       if (bfree(globalID)) then
       if (workPerBlock(globalID) /= 0) then
-            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
-            localID = newDistrb%blockCnt(processor)
-            newDistrb%blockLocation(globalID) = processor
-            newDistrb%blockLocalID (globalID) = localID
-            cnt = cnt + 1
-            totblocks = totblocks-1
-            bfree(globalID) = .false.
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
+         newDistrb%blockLocation(globalID) = processor
+         newDistrb%blockLocalID (globalID) = localID
+         cnt = cnt + 1
+         totblocks = totblocks-1
+         bfree(globalID) = .false.
       else  ! no work - eliminate block from distribution
          bfree(globalID) = .false.
          newDistrb%blockLocation(globalID) = 0
