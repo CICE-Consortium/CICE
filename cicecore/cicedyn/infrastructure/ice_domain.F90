@@ -101,7 +101,7 @@
 !  This routine reads in domain information and calls the routine
 !  to set up the block decomposition.
 
-   use ice_distribution, only: processor_shape
+   use ice_distribution, only: processor_shape, proc_decomposition
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
@@ -112,7 +112,8 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      nml_error          ! namelist read error flag
+      nml_error, &          ! namelist read error flag
+      nprocs_x, nprocs_y    ! procs decomposed into blocks
 
    character(len=char_len)      :: nml_name ! text namelist name
    character(len=char_len_long) :: tmpstr2 ! for namelist check
@@ -216,21 +217,36 @@
    call broadcast_scalar(maskhalo_bound,    master_task)
    call broadcast_scalar(add_mpi_barriers,  master_task)
    call broadcast_scalar(debug_blocks,      master_task)
-   if (my_task == master_task) then
-     if (max_blocks < 1) then
-       max_blocks=( ((nx_global-1)/block_size_x + 1) *         &
-                    ((ny_global-1)/block_size_y + 1) - 1) / nprocs + 1
-       max_blocks=max(1,max_blocks)
-       write(nu_diag,'(/,a52,i6,/)') &
-         '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
-     endif
-   endif
    call broadcast_scalar(max_blocks,        master_task)
    call broadcast_scalar(block_size_x,      master_task)
    call broadcast_scalar(block_size_y,      master_task)
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
 
+   ! Set nprocs if not set in namelist
+#ifdef CESMCOUPLED
+   nprocs = get_num_procs()
+#else
+   if (nprocs < 0) then
+      nprocs = get_num_procs()
+   else if (nprocs /= get_num_procs()) then
+      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
+      call abort_ice(subname//' ERROR: Input nprocs not same as system (e.g MPI) request', file=__FILE__, line=__LINE__)
+   endif
+#endif
+
+   ! Determine max_blocks if not set
+   if (max_blocks < 1) then
+      call proc_decomposition(nprocs, nprocs_x, nprocs_y)
+      max_blocks=((nx_global-1)/block_size_x/nprocs_x+1) * &
+                  ((ny_global-1)/block_size_y/nprocs_y+1)
+      max_blocks=max(1,max_blocks)
+      if (my_task == master_task) then
+         write(nu_diag,'(/,a52,i6,/)') &
+            '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
+      endif
+   endif
+   
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -242,16 +258,6 @@
       !*** domain size zero or negative
       !***
       call abort_ice(subname//' ERROR: Invalid domain: size < 1', file=__FILE__, line=__LINE__) ! no domain
-   else if (nprocs /= get_num_procs()) then
-      !***
-      !*** input nprocs does not match system (eg MPI) request
-      !***
-#if (defined CESMCOUPLED)
-      nprocs = get_num_procs()
-#else
-      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
-      call abort_ice(subname//' ERROR: Input nprocs not same as system request', file=__FILE__, line=__LINE__)
-#endif
    else if (nghost < 1) then
       !***
       !*** must have at least 1 layer of ghost cells
