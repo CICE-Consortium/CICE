@@ -205,13 +205,6 @@
 
    endif
 
-   if (my_task == master_task) then
-#if (defined CESMCOUPLED)
-      nprocs = get_num_procs()
-#else
-      if (nprocs < 0) nprocs = get_num_procs()
-#endif
-   endif
    call broadcast_scalar(nprocs,            master_task)
    call broadcast_scalar(processor_shape,   master_task)
    call broadcast_scalar(distribution_type, master_task)
@@ -230,7 +223,12 @@
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
 
-   ! Set nprocs if not set in namelist
+!----------------------------------------------------------------------
+!
+! Set nprocs if not explicitly set to valid value in namelist
+!
+!----------------------------------------------------------------------
+
 #ifdef CESMCOUPLED
    nprocs = get_num_procs()
 #else
@@ -242,18 +240,6 @@
    endif
 #endif
 
-   ! Determine max_blocks if not set
-   if (max_blocks < 1) then
-      call proc_decomposition(nprocs, nprocs_x, nprocs_y)
-      max_blocks=((nx_global-1)/block_size_x/nprocs_x+1) * &
-                  ((ny_global-1)/block_size_y/nprocs_y+1)
-      max_blocks=max(1,max_blocks)
-      if (my_task == master_task) then
-         write(nu_diag,'(/,a52,i6,/)') &
-            '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
-      endif
-   endif
-   
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -265,12 +251,6 @@
       !*** domain size zero or negative
       !***
       call abort_ice(subname//' ERROR: Invalid domain: size < 1', file=__FILE__, line=__LINE__) ! no domain
-   else if (nprocs /= get_num_procs()) then
-      !***
-      !*** input nprocs does not match system (eg MPI) request
-      !***
-      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
-      call abort_ice(subname//' ERROR: Input nprocs not same as system request', file=__FILE__, line=__LINE__)
    else if (nghost < 1) then
       !***
       !*** must have at least 1 layer of ghost cells
