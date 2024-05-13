@@ -718,8 +718,8 @@
                               field_loc_Eface, field_type_vector)
          call ice_timer_stop(timer_bound)
 
-         call grid_average_X2Y('S', uvelE, 'E', uvel, 'U')
-         call grid_average_X2Y('S', vvelN, 'N', vvel, 'U')
+         call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
+         call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
          uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
          vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
       endif
@@ -1084,8 +1084,8 @@
                                  field_loc_Eface, field_type_vector, &
                                  vvelE)
 
-            call grid_average_X2Y('S', uvelE, 'E', uvel, 'U')
-            call grid_average_X2Y('S', vvelN, 'N', vvel, 'U')
+            call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
+            call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
 
             uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
             vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
@@ -1275,8 +1275,8 @@
                                  field_loc_Nface, field_type_vector, &
                                  uvelN, vvelN)
 
-            call grid_average_X2Y('S', uvelE, 'E', uvel, 'U')
-            call grid_average_X2Y('S', vvelN, 'N', vvel, 'U')
+            call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
+            call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
 
             uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
             vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
