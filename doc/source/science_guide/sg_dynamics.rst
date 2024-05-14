@@ -35,11 +35,11 @@ For clarity, the two components of Equation :eq:`vpmom` are
    \begin{aligned}
    m{\partial u\over\partial t} &= {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} +
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left + (U_w-u\right)\cos\theta \mp \left(V_w-v\right)\sin\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[ + \left(U_w-u\right)\cos\theta \mp \left(V_w-v\right)\sin\theta\right]
      -C_bu +mfv - mg{\partial H_\circ\over\partial x}, \\
    m{\partial v\over\partial t} &= {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} +
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left \pm (U_w-u\right)\sin\theta + \left(V_w-v\right)\cos\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[ \pm \left(U_w-u\right)\sin\theta + \left(V_w-v\right)\cos\theta\right]
      -C_bv-mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
    :label: momsys
 
@@ -195,7 +195,7 @@ implicit solvers and there is an additional term for the pseudo-time iteration. 
     =  {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
     + {\tau_{ax}} \\
       & - {mg{\partial H_\circ\over\partial x} }
-    + {\tt vrel} {\left(U_w\cos\theta \mp V_w\sin\theta\right)},
+    + {\tt vrel} {\left(+U_w\cos\theta \mp V_w\sin\theta\right)},
     :label: umomr
 
 .. math::
@@ -204,7 +204,7 @@ implicit solvers and there is an additional term for the pseudo-time iteration. 
     =  {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
     + {\tau_{ay}} \\
      & - {mg{\partial H_\circ\over\partial y} }
-    + {\tt vrel}{\left(\pm U_w\sin\theta+V_w\cos\theta\right)},
+    + {\tt vrel}{\left( \pm U_w\sin\theta+V_w\cos\theta\right)},
     :label: vmomr
 
 where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution.
