@@ -35,7 +35,7 @@ For clarity, the two components of Equation :eq:`vpmom` are
    \begin{aligned}
    m{\partial u\over\partial t} &= {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} +
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[ + \left(U_w-u\right)\cos\theta \mp \left(V_w-v\right)\sin\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta \mp \left(V_w-v\right)\sin\theta\right]
      -C_bu +mfv - mg{\partial H_\circ\over\partial x}, \\
    m{\partial v\over\partial t} &= {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} +
      a_i c_w \rho_w
@@ -124,7 +124,7 @@ variables used in the code.
    - \underbrace{\left(mf \pm {\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
     =  &\underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
-     &+ {\tt vrel}\underbrace{\left(+U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
+     &+ {\tt vrel}\underbrace{\left(U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
    :label: umom
 
 .. math::
@@ -140,7 +140,7 @@ where :math:`{\tt vrel}\ \cdot\ {\tt waterx(y)}= {\tt taux(y)}` and the definiti
 As :math:`u` and :math:`v` are collocated on the B grid, :math:`u^{l}` and :math:`v^{l}` are respectively :math:`u^{k+1}` and :math:`v^{k+1}` such that this system of equations can be solved as follows. Define
 
 .. math::
-   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(+ U_w\cos\theta \mp V_w\sin\theta\right) + {m\over\Delta t_e}u^k
+   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta \mp V_w\sin\theta\right) + {m\over\Delta t_e}u^k
    :label: cevpuhat
 
 .. math::
@@ -195,7 +195,7 @@ implicit solvers and there is an additional term for the pseudo-time iteration. 
     =  {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
     + {\tau_{ax}} \\
       & - {mg{\partial H_\circ\over\partial x} }
-    + {\tt vrel} {\left(+U_w\cos\theta \mp V_w\sin\theta\right)},
+    + {\tt vrel} {\left(U_w\cos\theta \mp V_w\sin\theta\right)},
     :label: umomr
 
 .. math::
@@ -215,7 +215,7 @@ With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bou
    - \underbrace{\left(mf \pm {\tt vrel} \sin\theta\right)}_{\tt ccb} & v^{l}
     = \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
-    & + {\tt vrel}\underbrace{\left(+U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
+    & + {\tt vrel}\underbrace{\left(U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
    :label: umomr2
 
 .. math::
