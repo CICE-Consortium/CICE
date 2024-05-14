@@ -369,6 +369,7 @@ domain_nml
    "``maskhalo_remap``", "logical", "mask unused halo cells for transport", "``.false.``"
    "``maskhalo_bound``", "logical", "mask unused halo cells for boundary updates", "``.false.``"
    "``max_blocks``", "integer", "maximum number of blocks per MPI task for memory allocation", "-1"
+   "", "``-1``", "find number of blocks per MPI task automatically", ""
    "``nprocs``", "integer", "number of MPI tasks to use", "-1"
    "", "``-1``", "find number of MPI tasks automatically", ""
    "``ns_boundary_type``", "``cyclic``", "periodic boundary conditions in y-direction", "``open``"
