@@ -215,7 +215,7 @@ With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bou
    - \underbrace{\left(mf \pm {\tt vrel} \sin\theta\right)}_{\tt ccb} & v^{l}
     = \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
-    & + {\tt vrel}\underbrace{\left(U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
+    & + {\tt vrel}\underbrace{\left(+U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
    :label: umomr2
 
 .. math::
