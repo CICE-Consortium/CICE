@@ -35,11 +35,11 @@ For clarity, the two components of Equation :eq:`vpmom` are
    \begin{aligned}
    m{\partial u\over\partial t} &= {\partial\sigma_{1j}\over\partial x_j} + \tau_{ax} +
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta - \left(V_w-v\right)\sin\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\cos\theta \mp \left(V_w-v\right)\sin\theta\right]
      -C_bu +mfv - mg{\partial H_\circ\over\partial x}, \\
    m{\partial v\over\partial t} &= {\partial\sigma_{2j}\over\partial x_j} + \tau_{ay} +
      a_i c_w \rho_w
-     \left|{\bf U}_w - {\bf u}\right| \left[\left(U_w-u\right)\sin\theta + \left(V_w-v\right)\cos\theta\right]
+     \left|{\bf U}_w - {\bf u}\right| \left[ \pm \left(U_w-u\right)\sin\theta + \left(V_w-v\right)\cos\theta\right]
      -C_bv-mfu - mg{\partial H_\circ\over\partial y}. \end{aligned}
    :label: momsys
 
@@ -121,18 +121,18 @@ variables used in the code.
 
 .. math::
    \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1}
-   - \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
+   - \underbrace{\left(mf \pm {\tt vrel}\sin\theta\right)}_{\tt ccb}v^{l}
     =  &\underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
-     &+ {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
+     &+ {\tt vrel}\underbrace{\left(U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t_e}u^k,
    :label: umom
 
 .. math::
-    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
+    \underbrace{\left(mf \pm {\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
    + \underbrace{\left({m\over\Delta t_e}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca}v^{k+1}
     =  &\underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
     + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey} \\
-     &+ {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t_e}v^k,
+     &+ {\tt vrel}\underbrace{\left( \pm U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t_e}v^k,
    :label: vmom
 
 where :math:`{\tt vrel}\ \cdot\ {\tt waterx(y)}= {\tt taux(y)}` and the definitions of :math:`u^{l}` and :math:`v^{l}` vary depending on the grid.
@@ -140,19 +140,19 @@ where :math:`{\tt vrel}\ \cdot\ {\tt waterx(y)}= {\tt taux(y)}` and the definiti
 As :math:`u` and :math:`v` are collocated on the B grid, :math:`u^{l}` and :math:`v^{l}` are respectively :math:`u^{k+1}` and :math:`v^{k+1}` such that this system of equations can be solved as follows. Define
 
 .. math::
-   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta - V_w\sin\theta\right) + {m\over\Delta t_e}u^k
+   \hat{u} = F_u + \tau_{ax} - mg{\partial H_\circ\over\partial x} + {\tt vrel} \left(U_w\cos\theta \mp V_w\sin\theta\right) + {m\over\Delta t_e}u^k
    :label: cevpuhat
 
 .. math::
-   \hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,
+   \hat{v} = F_v + \tau_{ay} - mg{\partial H_\circ\over\partial y} + {\tt vrel} \left(\pm U_w\sin\theta + V_w\cos\theta\right) + {m\over\Delta t_e}v^k,
    :label: cevpvhat
 
 where :math:`{\bf F} = \nabla\cdot\sigma^{k+1}`. Then
 
 .. math::
    \begin{aligned}
-   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\ + C_b \right)u^{k+1} - \left(mf + {\tt vrel}\sin\theta\right) v^{k+1} &= \hat{u}  \\
-   \left(mf + {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta + C_b \right)v^{k+1} &= \hat{v}.\end{aligned}
+   \left({m\over\Delta t_e} +{\tt vrel}\cos\theta\ + C_b \right)u^{k+1} - \left(mf \pm {\tt vrel}\sin\theta\right) v^{k+1} &= \hat{u}  \\
+   \left(mf \pm {\tt vrel}\sin\theta\right) u^{k+1} + \left({m\over\Delta t_e} +{\tt vrel}\cos\theta + C_b \right)v^{k+1} &= \hat{v}.\end{aligned}
 
 Solving simultaneously for :math:`u^{k+1}` and :math:`v^{k+1}`,
 
@@ -168,7 +168,7 @@ where
    :label: cevpa
 
 .. math::
-   b = mf + {\tt vrel}\sin\theta.
+   b = mf \pm {\tt vrel}\sin\theta.
    :label: cevpb
 
 Note that the time discretization and solution method for the EAP is exactly the same as for the B grid EVP. More details on the EAP model are given in Section :ref:`stress-eap`.
@@ -191,20 +191,20 @@ implicit solvers and there is an additional term for the pseudo-time iteration. 
 
 .. math::
     {\beta^*(u^{k+1}-u^k)\over\Delta t_e} + {m(u^{k+1}-u^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)} u^{k+1}
-    - & {\left(mf+{\tt vrel}\sin\theta\right)} v^{l}
+    - & {\left(mf \pm {\tt vrel}\sin\theta\right)} v^{l}
     =  {{\partial\sigma_{1j}^{k+1}\over\partial x_j}}
     + {\tau_{ax}} \\
       & - {mg{\partial H_\circ\over\partial x} }
-    + {\tt vrel} {\left(U_w\cos\theta-V_w\sin\theta\right)},
+    + {\tt vrel} {\left(U_w\cos\theta \mp V_w\sin\theta\right)},
     :label: umomr
 
 .. math::
     {\beta^*(v^{k+1}-v^k)\over\Delta t_e} + {m(v^{k+1}-v^n)\over\Delta t} + {\left({\tt vrel} \cos\theta + C_b \right)}v^{k+1}
-    + & {\left(mf+{\tt vrel}\sin\theta\right)} u^{l}
+    + & {\left(mf \pm {\tt vrel}\sin\theta\right)} u^{l}
     =  {{\partial\sigma_{2j}^{k+1}\over\partial x_j}}
     + {\tau_{ay}} \\
      & - {mg{\partial H_\circ\over\partial y} }
-    + {\tt vrel}{\left(U_w\sin\theta+V_w\cos\theta\right)},
+    + {\tt vrel}{\left( \pm U_w\sin\theta+V_w\cos\theta\right)},
     :label: vmomr
 
 where :math:`\beta^*` is a numerical parameter and :math:`u^n, v^n` are the components of the previous time level solution.
@@ -212,18 +212,18 @@ With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bou
 
 .. math::
    \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta\ + C_b \right)}_{\tt cca} u^{k+1}
-   - \underbrace{\left(mf+{\tt vrel} \sin\theta\right)}_{\tt ccb} & v^{l}
+   - \underbrace{\left(mf \pm {\tt vrel} \sin\theta\right)}_{\tt ccb} & v^{l}
     = \underbrace{{\partial\sigma_{1j}^{k+1}\over\partial x_j}}_{\tt strintx}
     + \underbrace{\tau_{ax} - mg{\partial H_\circ\over\partial x} }_{\tt forcex} \\
-    & + {\tt vrel}\underbrace{\left(U_w\cos\theta-V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
+    & + {\tt vrel}\underbrace{\left(U_w\cos\theta \mp V_w\sin\theta\right)}_{\tt waterx}  + {m\over\Delta t}(\beta u^k + u^n),
    :label: umomr2
 
 .. math::
-    \underbrace{\left(mf+{\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
+    \underbrace{\left(mf \pm {\tt vrel}\sin\theta\right)}_{\tt ccb} u^{l}
    + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca} & v^{k+1}
     = \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
     + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey} \\
-    & + {\tt vrel}\underbrace{\left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
+    & + {\tt vrel}\underbrace{\left( \pm U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
    :label: vmomr2
 
 At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` for the B or the C grids are obtained in the same manner as for the standard EVP approach (see Section :ref:`evp-momentum` for details).
@@ -292,6 +292,8 @@ Ice-Ocean stress
 At the end of each (thermodynamic) time step, the
 ice–ocean stress must be constructed from :math:`{\tt taux(y)}` and the terms
 containing :math:`{\tt vrel}` on the left hand side of the equations.
+The water stress calculation has a hemispheric dependence on the sign of the
+:math:`\pm {\tt vrel}\sin\theta` term.
 
 The Hibler-Bryan form for the ice-ocean stress :cite:`Hibler87`
 is included in **ice\_dyn\_shared.F90** but is currently commented out,

@@ -132,8 +132,7 @@ coefficient, :math:`\rho_w` is the density of seawater, and
 necessary if the top ocean model layers are not able to resolve the
 Ekman spiral in the boundary layer. If the top layer is sufficiently
 thin compared to the typical depth of the Ekman spiral, then
-:math:`\theta=0` is a good approximation. Here we assume that the top
-layer is thin enough.
+:math:`\theta=0` is a good approximation. 
 
 Please see the `Icepack documentation <https://cice-consortium-icepack.readthedocs.io/en/main/science_guide/index.html>`_ for additional information about 
 atmospheric and oceanic forcing and other data exchanged between the 
