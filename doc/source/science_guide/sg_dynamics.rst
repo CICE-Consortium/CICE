@@ -223,7 +223,7 @@ With :math:`\beta=\beta^* \Delta t \left(  m \Delta t_e \right)^{-1}` :cite:`Bou
    + \underbrace{\left((\beta+1){m\over\Delta t}+{\tt vrel} \cos\theta + C_b \right)}_{\tt cca} & v^{k+1}
     = \underbrace{{\partial\sigma_{2j}^{k+1}\over\partial x_j}}_{\tt strinty}
     + \underbrace{\tau_{ay} - mg{\partial H_\circ\over\partial y} }_{\tt forcey} \\
-    & + {\tt vrel}\underbrace{\pm \left(U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
+    & + {\tt vrel}\underbrace{\left( \pm U_w\sin\theta+V_w\cos\theta\right)}_{\tt watery}  + {m\over\Delta t}(\beta v^k + v^n),
    :label: vmomr2
 
 At this point, the solutions :math:`u^{k+1}` and :math:`v^{k+1}` for the B or the C grids are obtained in the same manner as for the standard EVP approach (see Section :ref:`evp-momentum` for details).
