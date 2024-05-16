@@ -50,7 +50,7 @@ logical function ice_memusage_allocErr(istat, errstr)
    character(*),parameter  :: subname = '(ice_memusage_allocErr)'
 
    ice_memusage_allocErr = .false.
-   if (istat > 0) then
+   if (istat /= 0) then
       ice_memusage_allocErr = .true.
       if (present(errstr)) then
          write(nu_diag,*) 'ERROR: '//trim(errstr)

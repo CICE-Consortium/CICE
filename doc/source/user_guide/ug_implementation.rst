@@ -215,8 +215,10 @@ four subdomains.
 The user sets the ``NTASKS`` and ``NTHRDS`` settings in **cice.settings** 
 and chooses a block size, ``block_size_x`` :math:`\times`\ ``block_size_y``,
 and decomposition information ``distribution_type``, ``processor_shape``, 
-and ``distribution_type`` in **ice_in**. ``max_blocks`` is computed
-automatically if set to a value of -1, but it can also be set by the user.
+and ``distribution_wgt`` in **ice_in**. If ``max_blocks=-1``, the model
+will calculate the number of blocks needed for each task.  ``max_blocks``
+can also be set by the user, although this may use extra memory and the
+model will abort if ``max_blocks`` is set too small for the decomposition.
 This information is used to determine how the blocks are
 distributed across the processors, and how the processors are
 distributed across the grid domain. The model is parallelized over blocks

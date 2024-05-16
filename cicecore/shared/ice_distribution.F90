@@ -933,11 +933,6 @@
    end do
 
    newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
-   if (newDistrb%numLocalBlocks < 0) then
-      call abort_ice(subname//'ERROR: processors left with no blocks', &
-         file=__FILE__, line=__LINE__)
-      return
-   endif
 
    ! set local blockGlobalID array
    allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
