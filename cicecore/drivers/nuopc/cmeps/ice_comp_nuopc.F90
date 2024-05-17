@@ -919,6 +919,12 @@ contains
           end if
        enddo
        deallocate(lfieldnamelist)
+       call State_SetScalar(dble(0), flds_scalar_index_nx, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call State_SetScalar(dble(0), flds_scalar_index_ny, exportState, &
+            flds_scalar_name, flds_scalar_num, rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
        ! *******************
        ! *** RETURN HERE ***
        ! *******************
