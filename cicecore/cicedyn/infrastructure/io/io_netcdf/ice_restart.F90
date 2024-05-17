@@ -221,9 +221,19 @@
          if (restart_format == 'cdf1') then
            iflag = nf90_clobber
          elseif (restart_format == 'cdf2') then
+#ifdef NO_CDF2
+           call abort_ice(subname//' ERROR: restart_format cdf2 not available '//trim(restart_format), &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_offset)
+#endif
          elseif (restart_format == 'cdf5') then
+#ifdef NO_CDF5
+           call abort_ice(subname//' ERROR: restart_format cdf5 not available '//trim(restart_format), &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_data)
+#endif
          elseif (restart_format == 'hdf5') then
            iflag = ior(nf90_clobber,nf90_netcdf4)
          else

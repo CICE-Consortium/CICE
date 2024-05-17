@@ -33,6 +33,8 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
    "ESMF_INTERFACE", "Turns on ESMF support in a subset of driver code.  Also USE_ESMF_LIB and USE_ESMF_METADATA"
    "FORTRANUNDERSCORE", "Used in ice_shr_reprosum86.c to support Fortran-C interfaces.  This should generally be turned on at all times.  There are other CPPs (FORTRANDOUBULEUNDERSCORE, FORTRANCAPS, etc) in ice_shr_reprosum.c that are generally not used in CICE but could be useful if problems arise in the Fortran-C interfaces"
    "GPTL", "Turns on GPTL initialization if needed for PIO"
+   "NO_CDF2", "Turns off support for netcdf cdf2 (nf90_64bit_offset)"
+   "NO_CDF5", "Turns off support for netcdf cdf5 (nf90_64bit_data)"
    "NO_F2003", "Turns off some Fortran 2003 features"
    "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
    "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
