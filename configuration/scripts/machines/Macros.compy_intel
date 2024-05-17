@@ -3,7 +3,7 @@
 #==============================================================================
 
 CPP        := fpp
-CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_HDF5 ${ICE_CPPDEFS}
 CFLAGS     := -c -O2 -fp-model precise   -xHost
 
 FIXEDFLAGS := -132
