@@ -223,7 +223,12 @@
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
 
-   ! Set nprocs if not set in namelist
+!----------------------------------------------------------------------
+!
+! Set nprocs if not explicitly set to valid value in namelist
+!
+!----------------------------------------------------------------------
+
 #ifdef CESMCOUPLED
    nprocs = get_num_procs()
 #else
@@ -235,18 +240,6 @@
    endif
 #endif
 
-   ! Determine max_blocks if not set
-   if (max_blocks < 1) then
-      call proc_decomposition(nprocs, nprocs_x, nprocs_y)
-      max_blocks=((nx_global-1)/block_size_x/nprocs_x+1) * &
-                  ((ny_global-1)/block_size_y/nprocs_y+1)
-      max_blocks=max(1,max_blocks)
-      if (my_task == master_task) then
-         write(nu_diag,'(/,a52,i6,/)') &
-            '(ice_domain): max_block < 1: max_block estimated to ',max_blocks
-      endif
-   endif
-   
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -321,6 +314,7 @@
    use ice_boundary, only: ice_HaloCreate
    use ice_distribution, only: create_distribution, create_local_block_ids, ice_distributionGet
    use ice_domain_size, only: max_blocks, nx_global, ny_global
+   use ice_global_reductions, only: global_sum, global_maxval
 
    real (dbl_kind), dimension(nx_global,ny_global), intent(in) :: &
       KMTG           ,&! global topography
@@ -608,9 +602,9 @@
       work_per_block = 0
    end where
    if (my_task == master_task) then
-      write(nu_diag,*) 'ice_domain work_unit, max_work_unit = ',work_unit, max_work_unit
-      write(nu_diag,*) 'ice_domain nocn = ',minval(nocn),maxval(nocn),sum(nocn)
-      write(nu_diag,*) 'ice_domain work_per_block = ',minval(work_per_block),maxval(work_per_block),sum(work_per_block)
+      write(nu_diag,'(2a,4i9)') subname,' work_unit      = ',work_unit, max_work_unit
+      write(nu_diag,'(2a,4i9)') subname,' nocn           = ',minval(nocn),maxval(nocn),sum(nocn)
+      write(nu_diag,'(2a,4i9)') subname,' work_per_block = ',minval(work_per_block),maxval(work_per_block),sum(work_per_block)
    endif
    deallocate(nocn)
 
@@ -634,8 +628,42 @@
 
    call create_local_block_ids(blocks_ice, distrb_info)
 
-   ! write out block distribution
-   ! internal check of icedistributionGet as part of verification process
+!----------------------------------------------------------------------
+!
+!  check block sizes and max_blocks
+!
+!----------------------------------------------------------------------
+
+   if (associated(blocks_ice)) then
+      nblocks = size(blocks_ice)
+   else
+      nblocks = 0
+   endif
+
+   tblocks_tmp = global_sum(nblocks, distrb_info)
+   nblocks_max = global_maxval(nblocks, distrb_info)
+
+   if (my_task == master_task) then
+      write(nu_diag,'(2a,i8)') subname,' total number of blocks is', tblocks_tmp
+   endif
+
+   if (nblocks > max_blocks) then
+      write(nu_diag,'(2a,2i6)') subname,' ERROR: nblocks, max_blocks = ',nblocks,max_blocks
+      write(nu_diag,'(2a,2i6)') subname,' ERROR: max_blocks too small: increase to', nblocks_max
+      call abort_ice(subname//' ERROR max_blocks too small', file=__FILE__, line=__LINE__)
+   else if (nblocks_max < max_blocks) then
+      if (my_task == master_task) then
+          write(nu_diag,'(2a,2i6)') subname,' NOTE: max_blocks too large: decrease to', nblocks_max
+      endif
+   endif
+
+!----------------------------------------------------------------------
+!
+! write out block distribution
+! internal check of icedistributionGet as part of verification process
+!
+!----------------------------------------------------------------------
+
    if (debug_blocks) then
 
       call flush_fileunit(nu_diag)
@@ -710,38 +738,6 @@
          write(nu_diag,*) ' '
          write(nu_diag,'(2a)') subname,' ice_distributionGet checks pass'
          write(nu_diag,*) ' '
-      endif
-   endif
-
-   if (associated(blocks_ice)) then
-      nblocks = size(blocks_ice)
-   else
-      nblocks = 0
-   endif
-   nblocks_max = 0
-   tblocks_tmp = 0
-   do n=0,distrb_info%nprocs - 1
-      nblocks_tmp = nblocks
-      call broadcast_scalar(nblocks_tmp, n)
-      nblocks_max = max(nblocks_max,nblocks_tmp)
-      tblocks_tmp = tblocks_tmp + nblocks_tmp
-   end do
-
-   if (my_task == master_task) then
-      write(nu_diag,*) &
-          'ice: total number of blocks is', tblocks_tmp
-   endif
-
-   if (nblocks_max > max_blocks) then
-      write(outstring,*) ' ERROR: num blocks exceed max: increase max to', nblocks_max
-      call abort_ice(subname//trim(outstring), file=__FILE__, line=__LINE__)
-   else if (nblocks_max < max_blocks) then
-      write(outstring,*) 'WARNING: ice no. blocks too large: decrease max to', nblocks_max
-      if (my_task == master_task) then
-          write(nu_diag,*) ' ********WARNING***********'
-          write(nu_diag,*) subname,trim(outstring)
-          write(nu_diag,*) ' **************************'
-          write(nu_diag,*) ' '
       endif
    endif
 

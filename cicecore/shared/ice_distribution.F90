@@ -15,6 +15,7 @@
    use ice_blocks, only: nblocks_x, nblocks_y, nblocks_tot, debug_blocks
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
+   use ice_memusage, only: ice_memusage_allocErr
 
    implicit none
    private
@@ -33,8 +34,6 @@
          blockGlobalID       ! global block id for each local block
 
       integer (int_kind), dimension(:), pointer ::  blockCnt
-      integer (int_kind), dimension(:,:), pointer :: blockIndex
-
    end type
 
    public :: create_distribution, &
@@ -123,7 +122,8 @@
 
    case default
 
-      call abort_ice(subname//'ERROR: ice distribution: unknown distribution type')
+      call abort_ice(subname//'ERROR: ice distribution: unknown distribution type', &
+         file=__FILE__, line=__LINE__)
 
    end select
 
@@ -153,7 +153,8 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      n, bcount              ! dummy counters
+      n, bcount,         &! dummy counters
+      istat               ! status flag for deallocate
 
    character(len=*),parameter :: subname='(create_local_block_ids)'
 
@@ -168,9 +169,6 @@
       if (distribution%blockLocation(n) == my_task+1) bcount = bcount + 1
    end do
 
-
-   if (bcount > 0) allocate(block_ids(bcount))
-
 !-----------------------------------------------------------------------
 !
 !  now fill array with proper block ids
@@ -178,6 +176,8 @@
 !-----------------------------------------------------------------------
 
    if (bcount > 0) then
+      allocate(block_ids(bcount), stat=istat)
+      if (ice_memusage_allocErr(istat,subname//'alloc block_ids')) return
       do n=1,size(distribution%blockLocation)
          if (distribution%blockLocation(n) == my_task+1) then
             block_ids(distribution%blockLocalID(n)) = n
@@ -315,7 +315,8 @@
    end do proc_loop
 
    if (nprocs_x == 0) then
-      call abort_ice(subname//'ERROR: Unable to find 2d processor config')
+      call abort_ice(subname//'ERROR: Unable to find 2d processor config', &
+         file=__FILE__, line=__LINE__)
    endif
 
    if (my_task == master_task) then
@@ -364,11 +365,16 @@
 !----------------------------------------------------------------------
 
    deallocate(distribution%blockLocation, stat=istat)
-   deallocate(distribution%blockLocalID , stat=istat)
-   deallocate(distribution%blockGlobalID, stat=istat)
-   deallocate(distribution%blockCnt , stat=istat)
-   deallocate(distribution%blockindex , stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blockLocation')) return
 
+   deallocate(distribution%blockLocalID , stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blockLocalID')) return
+
+   deallocate(distribution%blockGlobalID, stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blockGlobalID')) return
+
+   deallocate(distribution%blockCnt     , stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blockCnt')) return
 
 !-----------------------------------------------------------------------
 
@@ -383,19 +389,19 @@
 !  This routine extracts information from a distribution.
 
    type (distrb), intent(in) :: &
-      distribution           ! input distribution for which information
-                             !  is requested
+      distribution        ! input distribution for which information
+                          !  is requested
 
-      integer (int_kind), intent(out), optional ::   &
-         nprocs          ,&! number of processors in this dist
-         communicator      ,&! communicator to use in this dist
-         numLocalBlocks      ! number of blocks distributed to this
-                             !   local processor
+   integer (int_kind), intent(out), optional ::   &
+      nprocs            ,&! number of processors in this dist
+      communicator      ,&! communicator to use in this dist
+      numLocalBlocks      ! number of blocks distributed to this
+                          !   local processor
 
-      integer (int_kind), dimension(:), optional :: &
-         blockLocation     ,&! processor location for all blocks
-         blockLocalID      ,&! local  block id for all blocks
-         blockGlobalID       ! global block id for each local block
+   integer (int_kind), dimension(:), optional :: &
+      blockLocation     ,&! processor location for all blocks
+      blockLocalID      ,&! local  block id for all blocks
+      blockGlobalID       ! global block id for each local block
 
    character(len=*),parameter :: subname='(ice_distributionGet)'
 
@@ -414,7 +420,8 @@
       if (associated(distribution%blockLocation)) then
          blockLocation = distribution%blockLocation
       else
-         call abort_ice(subname//'ERROR: blockLocation not allocated')
+         call abort_ice(subname//'ERROR: blockLocation not allocated', &
+            file=__FILE__, line=__LINE__)
          return
       endif
    endif
@@ -423,7 +430,8 @@
       if (associated(distribution%blockLocalID)) then
          blockLocalID = distribution%blockLocalID
       else
-         call abort_ice(subname//'ERROR: blockLocalID not allocated')
+         call abort_ice(subname//'ERROR: blockLocalID not allocated', &
+            file=__FILE__, line=__LINE__)
          return
       endif
    endif
@@ -432,7 +440,8 @@
       if (associated(distribution%blockGlobalID)) then
          blockGlobalID = distribution%blockGlobalID
       else
-         call abort_ice(subname//'ERROR: blockGlobalID not allocated')
+         call abort_ice(subname//'ERROR: blockGlobalID not allocated', &
+            file=__FILE__, line=__LINE__)
          return
       endif
    endif
@@ -471,7 +480,8 @@
 !-----------------------------------------------------------------------
 
    if (blockID < 0 .or. blockID > nblocks_tot) then
-      call abort_ice(subname//'ERROR: invalid block id')
+      call abort_ice(subname//'ERROR: invalid block id', &
+         file=__FILE__, line=__LINE__)
       return
    endif
 
@@ -515,7 +525,8 @@
 !-----------------------------------------------------------------------
 
    if (localID < 0 .or. localID > distribution%numLocalBlocks) then
-      call abort_ice(subname//'ERROR: invalid local id')
+      call abort_ice(subname//'ERROR: invalid local id', &
+         file=__FILE__, line=__LINE__)
       return
    endif
 
@@ -533,7 +544,7 @@
 
 !***********************************************************************
 
- function create_distrb_cart(nprocs, workPerBlock) result(newDistrb)
+ function create_distrb_cart(nprocs, workPerBlock, max_blocks_calc) result(newDistrb)
 
 !  This function creates a distribution of blocks across processors
 !  using a 2-d Cartesian distribution.
@@ -542,11 +553,14 @@
       nprocs            ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
-      workPerBlock        ! amount of work per block
+      workPerBlock      ! amount of work per block
+
+   logical (log_kind), optional :: &
+      max_blocks_calc   ! compute max_blocks (default true)
 
    type (distrb) :: &
-      newDistrb           ! resulting structure describing Cartesian
-                          !  distribution of blocks
+      newDistrb         ! resulting structure describing Cartesian
+                        !  distribution of blocks
 
 !----------------------------------------------------------------------
 !
@@ -555,23 +569,30 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i, j,                  &! dummy loop indices
+      i, j, n,               &! dummy loop indices
       istat,                 &! status flag for allocation
       iblock, jblock,        &!
       is, ie, js, je,        &! start, end block indices for each proc
       processor,             &! processor position in cartesian decomp
       globalID,              &! global block ID
       localID,               &! block location on this processor
-      nprocsX,             &! num of procs in x for global domain
-      nprocsY,             &! num of procs in y for global domain
+      nprocsX,               &! num of procs in x for global domain
+      nprocsY,               &! num of procs in y for global domain
       numBlocksXPerProc,     &! num of blocks per processor in x
       numBlocksYPerProc,     &! num of blocks per processor in y
       numBlocksPerProc        ! required number of blocks per processor
 
-   character(len=char_len) :: &
-      numBlocksPerProc_str    ! required number of blocks per processor (as string)
+   logical (log_kind) :: &
+      lmax_blocks_calc        ! local max_blocks_calc setting
 
    character(len=*),parameter :: subname='(create_distrb_cart)'
+
+!----------------------------------------------------------------------
+
+   lmax_blocks_calc = .true.
+   if (present(max_blocks_calc)) then
+      lmax_blocks_calc = max_blocks_calc
+   endif
 
 !----------------------------------------------------------------------
 !
@@ -591,27 +612,18 @@
 
    call proc_decomposition(nprocs, nprocsX, nprocsY)
 
-
 !----------------------------------------------------------------------
 !
 !  allocate space for decomposition
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_cart: error allocating blockLocation or blockLocalID')
-      return
-   endif
-
-   allocate (newDistrb%blockCnt(nprocs))
-   newDistrb%blockCnt(:) = 0
-
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
 !----------------------------------------------------------------------
 !
@@ -622,17 +634,10 @@
    numBlocksXPerProc = (nblocks_x-1)/nprocsX + 1
    numBlocksYPerProc = (nblocks_y-1)/nprocsY + 1
 
-   ! Check if max_blocks is too small
-   numBlocksPerProc = numBlocksXPerProc * numBlocksYPerProc
-   if (numBlocksPerProc > max_blocks) then
-      write(numBlocksPerProc_str, '(i2)') numBlocksPerProc
-      call abort_ice(subname//'ERROR: max_blocks too small (need at least '//trim(numBlocksPerProc_str)//')')
-      return
-   endif
-
+   newDistrb%blockCnt(:) = 0
    do j=1,nprocsY
    do i=1,nprocsX
-      processor = (j-1)*nprocsX + i    ! number the processors
+      processor = (j-1)*nprocsX + i      ! number the processors
                                          ! left to right, bot to top
 
       is = (i-1)*numBlocksXPerProc + 1   ! starting block in i
@@ -642,16 +647,14 @@
       je =  j   *numBlocksYPerProc       ! ending   block in j
       if (je > nblocks_y) je = nblocks_y
 
-      localID        = 0  ! initialize counter for local index
       do jblock = js,je
       do iblock = is,ie
          globalID = (jblock - 1)*nblocks_x + iblock
          if (workPerBlock(globalID) /= 0) then
-            localID = localID + 1
+            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+            localID = newDistrb%blockCnt(processor)
             newDistrb%blockLocation(globalID) = processor
             newDistrb%blockLocalID (globalID) = localID
-            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
-            newDistrb%blockIndex(processor,localID) = globalID
          else  ! no work - eliminate block from distribution
             newDistrb%blockLocation(globalID) = 0
             newDistrb%blockLocalID (globalID) = 0
@@ -659,64 +662,25 @@
       end do
       end do
 
-      ! if this is the local processor, set number of local blocks
-      if (my_task == processor - 1) then
-         newDistrb%numLocalBlocks = localID
-      endif
-
    end do
    end do
 
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_cart: error allocating blockGlobalID')
-         return
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
       endif
+   enddo
 
-      do j=1,nprocsY
-      do i=1,nprocsX
-         processor = (j-1)*nprocsX + i
-
-         if (processor == my_task + 1) then
-            is = (i-1)*numBlocksXPerProc + 1   ! starting block in i
-            ie =  i   *numBlocksXPerProc       ! ending   block in i
-            if (ie > nblocks_x) ie = nblocks_x
-            js = (j-1)*numBlocksYPerProc + 1   ! starting block in j
-            je =  j   *numBlocksYPerProc       ! ending   block in j
-            if (je > nblocks_y) je = nblocks_y
-
-            localID        = 0  ! initialize counter for local index
-            do jblock = js,je
-            do iblock = is,ie
-               globalID = (jblock - 1)*nblocks_x + iblock
-               if (workPerBlock(globalID) /= 0) then
-                  localID = localID + 1
-                  newDistrb%blockGlobalID (localID) = globalID
-               endif
-            end do
-            end do
-
-         endif
-
-      end do
-      end do
-
-   else
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_cart: error allocating blockGlobalID')
-         return
+   ! set/check max_blocks
+   if (lmax_blocks_calc) then
+      if (max_blocks < 0) then
+         max_blocks = newDistrb%numLocalBlocks
       endif
    endif
 
@@ -750,22 +714,23 @@
 !
 !----------------------------------------------------------------------
 
-   integer (int_kind) ::    &
-      i,j,n              ,&! dummy loop indices
-      pid                ,&! dummy for processor id
-      istat              ,&! status flag for allocates
-      localBlock         ,&! local block position on processor
-      numOcnBlocks       ,&! number of ocean blocks
-      maxWork            ,&! max amount of work in any block
-      nprocsX          ,&! num of procs in x for global domain
-      nprocsY            ! num of procs in y for global domain
+   integer (int_kind) ::  &
+      i, j, n,            &! dummy loop indices
+      processor,          &! dummy for processor id
+      istat,              &! status flag for allocates
+      globalID,           &! global block ID
+      localID,            &! block location on this processor
+      numOcnBlocks,       &! number of ocean blocks
+      maxWork,            &! max amount of work in any block
+      nprocsX,            &! num of procs in x for global domain
+      nprocsY              ! num of procs in y for global domain
 
    integer (int_kind), dimension(:), allocatable :: &
-      priority           ,&! priority for moving blocks
-      workTmp            ,&! work per row or column for rake algrthm
+      priority,           &! priority for moving blocks
+      workTmp,            &! work per row or column for rake algrthm
       procTmp              ! temp processor id for rake algrthm
 
-   type (distrb) :: dist  ! temp hold distribution
+   type (distrb) :: dist   ! temp hold distribution
 
    character(len=*),parameter :: subname='(create_distrb_rake)'
 
@@ -775,7 +740,8 @@
 !
 !----------------------------------------------------------------------
 
-   dist = create_distrb_cart(nprocs, workPerBlock)
+   ! ignore max_block calc in create_distrb_cart and recompute below
+   dist = create_distrb_cart(nprocs, workPerBlock, max_blocks_calc=.false.)
 
 !----------------------------------------------------------------------
 !
@@ -792,11 +758,7 @@
          write(nu_diag,*) subname,' 1d rake on entire distribution'
 
       allocate(priority(nblocks_tot), stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error allocating priority')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'alloc priority')) return
 
       !*** initialize priority array
 
@@ -812,11 +774,7 @@
       end do
 
       allocate(workTmp(nprocs), procTmp(nprocs), stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error allocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'alloc procTmp')) return
 
       workTmp(:) = 0
       do i=1,nprocs
@@ -832,11 +790,7 @@
                                  priority, dist)
 
       deallocate(workTmp, procTmp, stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error deallocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'dealloc procTmp')) return
 
 !----------------------------------------------------------------------
 !
@@ -857,11 +811,7 @@
 !----------------------------------------------------------------------
 
       allocate(priority(nblocks_tot), stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error allocating priority')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'alloc priority')) return
 
       !*** set highest priority such that eastern-most blocks
       !*** and blocks with the least amount of work are
@@ -880,20 +830,16 @@
       end do
 
       allocate(workTmp(nprocsX), procTmp(nprocsX), stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error allocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'alloc procTmp')) return
 
       do j=1,nprocsY
 
          workTmp(:) = 0
          do i=1,nprocsX
-            pid = (j-1)*nprocsX + i
-            procTmp(i) = pid
+            processor = (j-1)*nprocsX + i
+            procTmp(i) = processor
             do n=1,nblocks_tot
-               if (dist%blockLocation(n) == pid) then
+               if (dist%blockLocation(n) == processor) then
                   workTmp(i) = workTmp(i) + workPerBlock(n)
                endif
             end do
@@ -904,11 +850,7 @@
       end do
 
       deallocate(workTmp, procTmp, stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error deallocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'dealloc procTmp')) return
 
 !----------------------------------------------------------------------
 !
@@ -931,20 +873,16 @@
       end do
 
       allocate(workTmp(nprocsY), procTmp(nprocsY), stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error allocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'alloc procTmp')) return
 
       do i=1,nprocsX
 
          workTmp(:) = 0
          do j=1,nprocsY
-            pid = (j-1)*nprocsX + i
-            procTmp(j) = pid
+            processor = (j-1)*nprocsX + i
+            procTmp(j) = processor
             do n=1,nblocks_tot
-               if (dist%blockLocation(n) == pid) then
+               if (dist%blockLocation(n) == processor) then
                   workTmp(j) = workTmp(j) + workPerBlock(n)
                endif
             end do
@@ -956,11 +894,7 @@
       end do
 
       deallocate(workTmp, procTmp, priority, stat=istat)
-      if (istat > 0) then
-         call abort_ice( &
-            'create_distrb_rake: error deallocating procTmp')
-         return
-      endif
+      if (ice_memusage_allocErr(istat,subname//'dealloc procTmp')) return
 
    endif  ! 1d or 2d rake
 
@@ -976,76 +910,46 @@
 
    allocate(newDistrb%blockLocation(nblocks_tot), &
             newDistrb%blockLocalID(nblocks_tot), stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_rake: error allocating blockLocation or blockLocalID')
-      return
-   endif
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
    newDistrb%blockCnt(:) = 0
 
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
-
-   allocate(procTmp(nprocs), stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_rake: error allocating procTmp')
-      return
-   endif
-
-   procTmp = 0
    do n=1,nblocks_tot
-      pid = dist%blockLocation(n)  ! processor id
-      newDistrb%blockLocation(n) = pid
+      globalID = n
+      processor = dist%blockLocation(globalID)  ! processor id
+      newDistrb%blockLocation(globalID) = processor
 
-      if (pid > 0) then
-         procTmp(pid) = procTmp(pid) + 1
-         if (procTmp(pid) > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
-         newDistrb%blockLocalID (n) = procTmp(pid)
-         newDistrb%blockIndex(pid,procTmp(pid)) = n
+      if (processor > 0) then
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
+         newDistrb%blockLocation(globalID) = processor
+         newDistrb%blockLocalID (globalID) = localID
       else
-         newDistrb%blockLocalID (n) = 0
+         newDistrb%blockLocation(globalID) = 0
+         newDistrb%blockLocalID (globalID) = 0
       endif
    end do
 
-   newDistrb%blockCnt(:) = procTmp(:)
-   newDistrb%numLocalBlocks = procTmp(my_task+1)
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   if (minval(procTmp) < 1) then
-      call abort_ice(subname//'ERROR: processors left with no blocks')
-      return
-   endif
-
-   deallocate(procTmp, stat=istat)
-
-   if (istat > 0) then
-      call abort_ice(subname//'ERROR: allocating last procTmp')
-      return
-   endif
-
-   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-            stat=istat)
-
-   if (istat > 0) then
-      call abort_ice(subname//'ERROR: allocating blockGlobalID')
-      return
-   endif
-
-   localBlock = 0
-   do n=1,nblocks_tot
-      if (newDistrb%blockLocation(n) == my_task+1) then
-         localBlock = localBlock + 1
-         newDistrb%blockGlobalID(localBlock) = n
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
       endif
-   end do
+   enddo
 
-!----------------------------------------------------------------------
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
+   endif
 
+   ! destroy cart distribution
    call ice_distributionDestroy(dist)
 
 !----------------------------------------------------------------------
@@ -1061,7 +965,7 @@
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
-      nprocs            ! number of processors in this distribution
+      nprocs              ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
       workPerBlock        ! amount of work per block
@@ -1077,14 +981,11 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i, j,                  &! dummy loop indices
+      i, j, n,               &! dummy loop indices
       istat,                 &! status flag for allocation
       processor,             &! processor position in cartesian decomp
       globalID,              &! global block ID
       localID                 ! block location on this processor
-
-   integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp           ! temp processor id
 
    character(len=*),parameter :: subname='(create_distrb_roundrobin)'
 
@@ -1110,15 +1011,12 @@
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_roundrobin: error allocating blockLocation or blockLocalID')
-      return
-   endif
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
 
 !----------------------------------------------------------------------
 !
@@ -1126,67 +1024,42 @@
 !
 !----------------------------------------------------------------------
 
-   allocate(proc_tmp(nprocs))
    processor = 0
    globalID = 0
-   proc_tmp = 0
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
 
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
-
+   ! compute decomposition
    do j=1,nblocks_y
    do i=1,nblocks_x
-
       globalID = globalID + 1
-
       if (workPerBlock(globalID) /= 0) then
          processor = mod(processor,nprocs) + 1
-         proc_tmp(processor) = proc_tmp(processor) + 1
-         localID = proc_tmp(processor)
-         if (localID > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
          newDistrb%blockLocation(globalID) = processor
          newDistrb%blockLocalID (globalID) = localID
-         newDistrb%blockIndex(processor,localID) = globalID
       else  ! no work - eliminate block from distribution
          newDistrb%blockLocation(globalID) = 0
          newDistrb%blockLocalID (globalID) = 0
       endif
+   enddo
+   enddo
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   end do
-   end do
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
+      endif
+   enddo
 
-   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
-   newDistrb%blockCnt(:) = proc_tmp(:)
-   deallocate(proc_tmp)
-
-!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
-!      my_task,newDistrb%numLocalBlocks
-
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
-
-   globalID = 0
-
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_roundrobin: error allocating numLocalBlocks')
-      return
-   endif
-
-      processor = my_task + 1
-      do localID = 1,newDistrb%numLocalBlocks
-         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
-                                             localID)
-      enddo
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
 
 !----------------------------------------------------------------------
@@ -1202,7 +1075,7 @@
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
-      nprocs            ! number of processors in this distribution
+      nprocs              ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
       workPerBlock        ! amount of work per block
@@ -1219,14 +1092,13 @@
 
    integer (int_kind) :: &
       n, i, j, ic, jc, id, jd, cnt,  &! dummy loop indices
-      istat,                 &! status flag for allocation
-      processor,             &! processor position in cartesian decomp
-      nblocklist,            &! number of blocks in blocklist
-      globalID,              &! global block ID
-      localID                 ! block location on this processor
+      istat,            &! status flag for allocation
+      processor,        &! processor position in cartesian decomp
+      nblocklist,       &! number of blocks in blocklist
+      globalID,         &! global block ID
+      localID            ! block location on this processor
 
    integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp,         &! temp processor id
       blocklist          ! temp block ordered list
    integer (int_kind), dimension(:,:), allocatable :: &
       blockchk           ! temp block check array
@@ -1255,10 +1127,12 @@
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
 
 !----------------------------------------------------------------------
 !
@@ -1271,18 +1145,15 @@
 !
 !----------------------------------------------------------------------
 
-   allocate(proc_tmp(nprocs))
-   allocate(blocklist(nblocks_tot))
-   allocate(blockchk(nblocks_x,nblocks_y))
+   allocate(blocklist(nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blocklist')) return
+   allocate(blockchk(nblocks_x,nblocks_y), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockchk')) return
    nblocklist = 0
    blocklist = 0
    blockchk = 0
    processor = 0
    globalID = 0
-   proc_tmp = 0
-
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
 
    jc = nblocks_y/2
    ic = nblocks_x/2
@@ -1354,10 +1225,12 @@
 
    if (nblocklist /= nblocks_x*nblocks_y .or. &
        maxval(blockchk) /= 1 .or. minval(blockchk) /= 1) then
-     call abort_ice(subname//'ERROR: blockchk invalid')
+     call abort_ice(subname//'ERROR: blockchk invalid', &
+         file=__FILE__, line=__LINE__)
      return
    endif
-   deallocate(blockchk)
+   deallocate(blockchk, stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blockchk')) return
 
 !----------------------------------------------------------------------
 !
@@ -1365,54 +1238,41 @@
 !
 !----------------------------------------------------------------------
 
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
+
    do n = 1,nblocklist
-
-     globalID = blocklist(n)
-
-     if (workPerBlock(globalID) /= 0) then
-       processor = mod(processor,nprocs) + 1
-       proc_tmp(processor) = proc_tmp(processor) + 1
-       localID = proc_tmp(processor)
-       if (localID > max_blocks) then
-          call abort_ice(subname//'ERROR: max_blocks too small')
-          return
-       endif
-       newDistrb%blockLocation(globalID) = processor
-       newDistrb%blockLocalID (globalID) = localID
-       newDistrb%blockIndex(processor,localID) = globalID
-     else  ! no work - eliminate block from distribution
-       newDistrb%blockLocation(globalID) = 0
-       newDistrb%blockLocalID (globalID) = 0
-     endif
-
+      globalID = blocklist(n)
+      if (workPerBlock(globalID) /= 0) then
+         processor = mod(processor,nprocs) + 1
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
+         newDistrb%blockLocation(globalID) = processor
+         newDistrb%blockLocalID (globalID) = localID
+      else  ! no work - eliminate block from distribution
+         newDistrb%blockLocation(globalID) = 0
+         newDistrb%blockLocalID (globalID) = 0
+      endif
    end do
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
-   newDistrb%blockCnt(:) = proc_tmp(:)
-   deallocate(proc_tmp)
-   deallocate(blocklist)
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
+      endif
+   enddo
 
-!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
-!      my_task,newDistrb%numLocalBlocks
-
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
-
-   globalID = 0
-
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-
-      processor = my_task + 1
-      do localID = 1,newDistrb%numLocalBlocks
-         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
-                                             localID)
-      enddo
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
+
+   deallocate(blocklist, stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc blocklist')) return
 
 !----------------------------------------------------------------------
 
@@ -1427,7 +1287,7 @@
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
-      nprocs            ! number of processors in this distribution
+      nprocs              ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
       workPerBlock        ! amount of work per block
@@ -1449,9 +1309,6 @@
       processor,             &! processor position in cartesian decomp
       globalID,              &! global block ID
       localID                 ! block location on this processor
-
-   integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp           ! temp processor id
 
    logical (log_kind) ::  up   ! direction of pe counting
 
@@ -1479,10 +1336,12 @@
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
 
 !----------------------------------------------------------------------
 !
@@ -1492,93 +1351,75 @@
 !
 !----------------------------------------------------------------------
 
-   allocate(proc_tmp(nprocs))
    processor = 0
-   proc_tmp = 0
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
    up = .true.
-
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
 
    if (my_task == master_task) &
       write(nu_diag,*) subname,' workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
    if (minval(workPerBlock) < 0 .or. maxval(workPerBlock) > 12) then
       write(nu_diag,*) subname,' workPerBlock = ',minval(workPerBlock),maxval(workPerBlock)
-      call abort_ice(subname//'ERROR: workPerBlock incorrect')
+      call abort_ice(subname//'ERROR: workPerBlock incorrect', &
+         file=__FILE__, line=__LINE__)
       return
    endif
 
    ! do not distribution blocks with work=0
-   do n=maxval(workPerBlock),1,-1
-   cnt = 0
-   do j=1,nblocks_y
-   do i=1,nblocks_x
-
-      if (mod(j,2) == 1) then
-         globalID = (j-1)*nblocks_x + i
-      else
-         globalID = (j-1)*nblocks_x + nblocks_x - i + 1
-      endif
-
-      if (workPerBlock(globalID) == 0) then  ! no work - eliminate block from distribution
-         newDistrb%blockLocation(globalID) = 0
-         newDistrb%blockLocalID (globalID) = 0
-      elseif (workPerBlock(globalID) == n) then
-         cnt = cnt + 1
-!         processor = mod(processor,nprocs) + 1
-         if (up) then
-            processor = processor + 1
+   do n = maxval(workPerBlock),1,-1
+      cnt = 0
+      do j=1,nblocks_y
+      do i=1,nblocks_x
+         if (mod(j,2) == 1) then
+            globalID = (j-1)*nblocks_x + i
          else
-            processor = processor - 1
+            globalID = (j-1)*nblocks_x + nblocks_x - i + 1
          endif
-         if (processor > nprocs) then
-            up = .false.
-            processor = nprocs
-         elseif (processor < 1) then
-            up = .true.
-            processor = 1
+         if (workPerBlock(globalID) == 0) then  ! no work - eliminate block from distribution
+            newDistrb%blockLocation(globalID) = 0
+            newDistrb%blockLocalID (globalID) = 0
+         elseif (workPerBlock(globalID) == n) then
+            cnt = cnt + 1
+            if (up) then
+               processor = processor + 1
+            else
+               processor = processor - 1
+            endif
+            if (processor > nprocs) then
+               up = .false.
+               processor = nprocs
+            elseif (processor < 1) then
+               up = .true.
+               processor = 1
+            endif
+            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+            localID = newDistrb%blockCnt(processor)
+            newDistrb%blockLocation(globalID) = processor
+            newDistrb%blockLocalID (globalID) = localID
          endif
-         proc_tmp(processor) = proc_tmp(processor) + 1
-         localID = proc_tmp(processor)
-         if (localID > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
-         newDistrb%blockLocation(globalID) = processor
-         newDistrb%blockLocalID (globalID) = localID
-         newDistrb%blockIndex(processor,localID) = globalID
+      end do
+      end do
+!      write(nu_diag,*) subname,'n cnt = ',n,cnt
+   end do
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
+
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
       endif
+   enddo
 
-   end do
-   end do
-!   write(nu_diag,*) 'create_distrb_wghtfile n cnt = ',n,cnt
-   end do
-
-   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
-   newDistrb%blockCnt(:) = proc_tmp(:)
-   deallocate(proc_tmp)
-
-!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
-!      my_task,newDistrb%numLocalBlocks
-
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
-
-   globalID = 0
-
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-
-      processor = my_task + 1
-      do localID = 1,newDistrb%numLocalBlocks
-         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
-                                             localID)
-      enddo
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
+
+!   write(nu_diag,*) subname,'my_task,newDistrb%numLocalBlocks',&
+!      my_task,newDistrb%numLocalBlocks
 
 !----------------------------------------------------------------------
 
@@ -1593,7 +1434,7 @@
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
-      nprocs            ! number of processors in this distribution
+      nprocs              ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
       workPerBlock        ! amount of work per block
@@ -1609,18 +1450,15 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i, j,                  &! dummy loop indices
+      i, j, n,               &! dummy loop indices
       istat,                 &! status flag for allocation
       mblocks,               &! estimate of max blocks per pe
       processor,             &! processor position in cartesian decomp
       globalID,              &! global block ID
       localID                 ! block location on this processor
 
-   integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp           ! temp processor id
-
    logical (log_kind), dimension(:), allocatable :: &
-      bfree              ! map of assigned blocks
+      bfree              ! map of assigned blocks, true = free
 
    integer (int_kind) :: cnt, blktogether, i2
    integer (int_kind) :: totblocks, nchunks
@@ -1650,15 +1488,12 @@
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_sectrobin: error allocating blockLocation or blockLocalID')
-      return
-   endif
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
 
 !----------------------------------------------------------------------
 !
@@ -1666,15 +1501,12 @@
 !
 !----------------------------------------------------------------------
 
-   allocate(proc_tmp(nprocs))
    processor = 0
    globalID = 0
-   proc_tmp = 0
-
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
-
-   allocate(bfree(nblocks_x*nblocks_y))
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
+   allocate(bfree(nblocks_x*nblocks_y), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc bfree')) return
    bfree=.true.
 
    totblocks = 0
@@ -1696,12 +1528,13 @@
 
    blktogether = max(1,nint(float(totblocks)/float(6*nprocs)))
 
-!   write(nu_diag,*) 'ice_distrb_sectrobin totblocks = ',totblocks,nblocks_y*nblocks_x
+!   write(nu_diag,*) subname,'totblocks = ',totblocks,nblocks_y*nblocks_x
 
    !------------------------------
    ! southern group of blocks
    !   weave back and forth in i vs j
    !   go south to north, low - high pes
+   !   keepgoing to false to stop distribution
    !------------------------------
 
    processor=1
@@ -1720,24 +1553,18 @@
          cnt = 0
          if (processor == 1) keepgoing = .false.
       endif
-!      write(nu_diag,'(a,6i7,l2)') 'tcx ',i,j,globalID,cnt,blktogether,processor,keepgoing
+!      write(nu_diag,'(a,6i7,l2)') subname,i,j,globalID,cnt,blktogether,processor,keepgoing
 
       if (keepgoing) then
          if (bfree(globalID)) then
          if (workPerBlock(globalID) /= 0) then
-            proc_tmp(processor) = proc_tmp(processor) + 1
-            localID = proc_tmp(processor)
-            if (localID > max_blocks) then
-               call abort_ice(subname//'ERROR: max_blocks too small')
-               return
-            endif
+            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+            localID = newDistrb%blockCnt(processor)
             newDistrb%blockLocation(globalID) = processor
             newDistrb%blockLocalID (globalID) = localID
-            newDistrb%blockIndex(processor,localID) = globalID
             cnt = cnt + 1
             totblocks = totblocks-1
             bfree(globalID) = .false.
-
          else  ! no work - eliminate block from distribution
             bfree(globalID) = .false.
             newDistrb%blockLocation(globalID) = 0
@@ -1748,12 +1575,13 @@
    end do
    end do
 
-!   write(nu_diag,*) 'ice_distrb_sectrobin totblocks left after southern = ',totblocks
+!   write(nu_diag,*) subname,'totblocks left after southern = ',totblocks
 
    !------------------------------
    ! northern group of blocks
    !   weave back and forth in i vs j
    !   go north to south, high - low pes
+   !   keepgoing to false to stop distribution
    !------------------------------
 
    processor=nprocs
@@ -1776,19 +1604,13 @@
       if (keepgoing) then
          if (bfree(globalID)) then
          if (workPerBlock(globalID) /= 0) then
-            proc_tmp(processor) = proc_tmp(processor) + 1
-            localID = proc_tmp(processor)
-            if (localID > max_blocks) then
-               call abort_ice(subname//'ERROR: max_blocks too small')
-               return
-            endif
+            newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+            localID = newDistrb%blockCnt(processor)
             newDistrb%blockLocation(globalID) = processor
             newDistrb%blockLocalID (globalID) = localID
-            newDistrb%blockIndex(processor,localID) = globalID
             cnt = cnt + 1
-            totblocks = totblocks - 1
+            totblocks = totblocks-1
             bfree(globalID) = .false.
-
          else  ! no work - eliminate block from distribution
             bfree(globalID) = .false.
             newDistrb%blockLocation(globalID) = 0
@@ -1799,12 +1621,13 @@
    end do
    end do
 
-!   write(nu_diag,*) 'ice_distrb_sectrobin totblocks left after northern = ',totblocks
+!   write(nu_diag,*) subname,'totblocks left after northern = ',totblocks
 
    !------------------------------
    ! central group of blocks
    !   weave back and forth in i vs j
    !   go north to south, low - high / low - high pes
+   !   distribute rest of blocks in 2 chunks per proc
    !------------------------------
 
    nchunks = 2*nprocs
@@ -1820,35 +1643,29 @@
       endif
       globalID = (j-1)*nblocks_x + i2
       if (totblocks > 0) then
-      do while (proc_tmp(processor) >= mblocks .or. cnt >= blktogether)
-         nchunks = nchunks - 1
-         if (nchunks == 0) then
-            blktogether = 1
-         else
-            blktogether = max(1,nint(float(totblocks)/float(nchunks)))
-         endif
-         cnt = 0
-         processor = mod(processor,nprocs) + 1
-      enddo
+         do while (newDistrb%blockCnt(processor) >= mblocks .or. cnt >= blktogether)
+            nchunks = nchunks - 1
+            if (nchunks == 0) then
+               blktogether = 1
+            else
+               blktogether = max(1,nint(float(totblocks)/float(nchunks)))
+            endif
+            cnt = 0
+            processor = mod(processor,nprocs) + 1
+         enddo
       endif
 
-!      write(nu_diag,*) 'ice_distrb_sectrobin central ',i,j,totblocks,cnt,nchunks,blktogether,processor
+!      write(nu_diag,*) subname,'central ',i,j,totblocks,cnt,nchunks,blktogether,processor
 
       if (bfree(globalID)) then
       if (workPerBlock(globalID) /= 0) then
-         proc_tmp(processor) = proc_tmp(processor) + 1
-         localID = proc_tmp(processor)
-         if (localID > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
          newDistrb%blockLocation(globalID) = processor
          newDistrb%blockLocalID (globalID) = localID
-         newDistrb%blockIndex(processor,localID) = globalID
          cnt = cnt + 1
          totblocks = totblocks-1
          bfree(globalID) = .false.
-
       else  ! no work - eliminate block from distribution
          bfree(globalID) = .false.
          newDistrb%blockLocation(globalID) = 0
@@ -1858,34 +1675,25 @@
    end do
    end do
 
-   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
-   newDistrb%blockCnt(:) = proc_tmp(:)
-   deallocate(proc_tmp)
-   deallocate(bfree)
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
+      endif
+   enddo
 
-   globalID = 0
-
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_sectrobin: error allocating numLocalBlocks')
-      return
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
 
-      processor = my_task + 1
-      do localID = 1,newDistrb%numLocalBlocks
-         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
-                                             localID)
-      enddo
-   endif
+   deallocate(bfree, stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc bfree')) return
 
 !----------------------------------------------------------------------
 
@@ -1900,7 +1708,7 @@
 !  standalone CAM mode.
 
    integer (int_kind), intent(in) :: &
-      nprocs            ! number of processors in this distribution
+      nprocs              ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
       workPerBlock        ! amount of work per block
@@ -1923,9 +1731,6 @@
       localID,               &! block location on this processor
       blktogether,           &! number of blocks together
       cnt                     ! counter
-
-   integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp           ! temp processor id
 
    integer (int_kind) :: n
 
@@ -1953,26 +1758,18 @@
 !
 !----------------------------------------------------------------------
 
-   allocate (newDistrb%blockLocation(nblocks_tot), &
-             newDistrb%blockLocalID (nblocks_tot), stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_sectcart: error allocating blockLocation or blockLocalID')
-      return
-   endif
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
 
-   allocate (newDistrb%blockCnt(nprocs))
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
+
 !----------------------------------------------------------------------
 !
 !  distribute blocks linearly across processors in quadrants
 !
 !----------------------------------------------------------------------
-
-   allocate(proc_tmp(nprocs))
-   proc_tmp = 0
-
-   allocate(newDistrb%blockIndex(nprocs,max_blocks))
-   newDistrb%blockIndex(:,:) = 0
 
    blktogether = max(1,nint(float(nblocks_x*nblocks_y)/float(4*nprocs)))
 
@@ -1981,9 +1778,13 @@
    ! --- phase 2 is north to south, east to west on the right half of the domain
 
    if (mod(nblocks_x,2) /= 0) then
-      call abort_ice(subname//'ERROR: nblocks_x not divisible by 2')
+      call abort_ice(subname//'ERROR: nblocks_x not divisible by 2', &
+         file=__FILE__, line=__LINE__)
       return
    endif
+
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
 
    do n=1,2
    processor = 1
@@ -2007,15 +1808,10 @@
       cnt = cnt + 1
 
       if (workPerBlock(globalID) /= 0) then
-         proc_tmp(processor) = proc_tmp(processor) + 1
-         localID = proc_tmp(processor)
-         if (localID > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
          newDistrb%blockLocation(globalID) = processor
          newDistrb%blockLocalID (globalID) = localID
-         newDistrb%blockIndex(processor,localID) = globalID
       else  ! no work - eliminate block from distribution
          newDistrb%blockLocation(globalID) = 0
          newDistrb%blockLocalID (globalID) = 0
@@ -2024,36 +1820,21 @@
    end do
    end do
    end do
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   newDistrb%numLocalBlocks = proc_tmp(my_task+1)
-   newDistrb%blockCnt(:) = proc_tmp(:)
-   deallocate(proc_tmp)
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
+      endif
+   enddo
 
-!   write(nu_diag,*) 'my_task,newDistrb%numLocalBlocks',&
-!      my_task,newDistrb%numLocalBlocks
-
-!----------------------------------------------------------------------
-!
-!  now store the local info
-!
-!----------------------------------------------------------------------
-
-   globalID = 0
-
-   if (newDistrb%numLocalBlocks > 0) then
-      allocate (newDistrb%blockGlobalID(newDistrb%numLocalBlocks), &
-                stat=istat)
-   if (istat > 0) then
-      call abort_ice( &
-         'create_distrb_sectcart: error allocating numLocalBlocks')
-      return
-   endif
-
-      processor = my_task + 1
-      do localID = 1,newDistrb%numLocalBlocks
-         newDistrb%blockGlobalID (localID) = newDistrb%blockIndex(processor,&
-                                             localID)
-      enddo
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
 
 !----------------------------------------------------------------------
@@ -2062,7 +1843,7 @@
 
 !**********************************************************************
 
- function create_distrb_spacecurve(nprocs,work_per_block)
+ function create_distrb_spacecurve(nprocs,work_per_block) result(newDistrb)
 
 !  This function distributes blocks across processors in a
 !  load-balanced manner using space-filling curves
@@ -2071,14 +1852,14 @@
    use ice_spacecurve
 
    integer (int_kind), intent(in) :: &
-      nprocs                ! number of processors in this distribution
+      nprocs            ! number of processors in this distribution
 
    integer (int_kind), dimension(:), intent(in) :: &
-      work_per_block        ! amount of work per block
+      work_per_block    ! amount of work per block
 
    type (distrb) :: &
-      create_distrb_spacecurve  ! resulting structure describing
-                                ! load-balanced distribution of blocks
+      newDistrb         ! resulting structure describing Cartesian
+                        !  distribution of blocks
 
 !----------------------------------------------------------------------
 !
@@ -2087,16 +1868,18 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      i,j,n              ,&! dummy loop indices
-      pid                ,&! dummy for processor id
+      i, j, n,            &! dummy loop indices
+      istat,              &! status flag for allocation
+      processor,          &! processor position in cartesian decomp
+      globalID,           &! global block ID
       localID              ! local block position on processor
 
    integer (int_kind), dimension(:),allocatable :: &
         idxT_i,idxT_j      ! Temporary indices for SFC
 
    integer (int_kind), dimension(:,:),allocatable :: &
-        Mesh             ,&!   !arrays to hold Space-filling curve
-        Mesh2            ,&!
+        Mesh,             &!   !arrays to hold Space-filling curve
+        Mesh2,            &!
         Mesh3              !
 
    integer (int_kind) :: &
@@ -2111,11 +1894,6 @@
    integer (int_kind) :: subNum, sfcNum
    logical            :: foundx
 
-   integer (int_kind), dimension(:), allocatable :: &
-      proc_tmp             ! temp processor id for rake algrthm
-
-   type (distrb) :: dist   ! temp hold distribution
-
    character(len=*),parameter :: subname='(create_distrb_spacecurve)'
 
    !------------------------------------------------------
@@ -2126,9 +1904,38 @@
    !------------------------------------------------------
 
    if((.not. IsFactorable(nblocks_y)) .or. (.not. IsFactorable(nblocks_x))) then
-     create_distrb_spacecurve = create_distrb_cart(nprocs, work_per_block)
+     newDistrb = create_distrb_cart(nprocs, work_per_block)
      return
    endif
+
+!----------------------------------------------------------------------
+!
+!  create communicator for this distribution
+!
+!----------------------------------------------------------------------
+
+   call create_communicator(newDistrb%communicator, nprocs)
+
+!----------------------------------------------------------------------
+!
+!  try to find best processor arrangement
+!
+!----------------------------------------------------------------------
+
+   newDistrb%nprocs = nprocs
+
+!----------------------------------------------------------------------
+!
+!  allocate space for decomposition
+!
+!----------------------------------------------------------------------
+
+   allocate(newDistrb%blockLocation(nblocks_tot), &
+            newDistrb%blockLocalID (nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockLocation or blockLocalID')) return
+
+   allocate(newDistrb%blockCnt(nprocs), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc blockCnt')) return
 
    !-----------------------------------------------
    ! Factor the numbers of blocks in each dimension
@@ -2156,36 +1963,16 @@
    sb_x = ProdFactor(xdim)
    sb_y = ProdFactor(ydim)
 
-   call create_communicator(dist%communicator, nprocs)
-
-   dist%nprocs = nprocs
-
-   !----------------------------------------------------------------------
-   !
-   !  allocate space for decomposition
-   !
-   !----------------------------------------------------------------------
-
-   allocate (dist%blockLocation(nblocks_tot), &
-             dist%blockLocalID (nblocks_tot))
-
-   dist%blockLocation=0
-   dist%blockLocalID =0
-
-   allocate (dist%blockCnt(nprocs))
-   dist%blockCnt(:) = 0
-
-   allocate(dist%blockIndex(nprocs,max_blocks))
-   dist%blockIndex(:,:) = 0
-
    !----------------------------------------------------------------------
    !  Create the array to hold the SFC and indices into it
    !----------------------------------------------------------------------
 
-   allocate(Mesh(curveSize,curveSize))
-   allocate(Mesh2(nblocks_x,nblocks_y))
-   allocate(Mesh3(nblocks_x,nblocks_y))
-   allocate(idxT_i(nblocks_tot),idxT_j(nblocks_tot))
+   allocate(Mesh(curveSize,curveSize),  &
+            Mesh2(nblocks_x,nblocks_y), &
+            Mesh3(nblocks_x,nblocks_y), &
+            idxT_i(nblocks_tot),        &
+            idxT_j(nblocks_tot), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc meshes')) return
 
    Mesh  = 0
    Mesh2 = 0
@@ -2266,7 +2053,7 @@
    !
    ! First region gets nblocksL+1 blocks per partition
    ! Second region gets nblocksL blocks per partition
-!   if(debug_blocks) write(nu_diag,*) 'nprocs,extra,nblocks,nblocksL,s1: ', &
+!   if(debug_blocks) write(nu_diag,*) subname,'nprocs,extra,nblocks,nblocksL,s1: ', &
 !                nprocs,extra,nblocks,nblocksL,s1
 
    !-----------------------------------------------------------
@@ -2285,7 +2072,7 @@
            ! ------------------------------------
            ii=ii-1
            tmp1 = ii/(nblocksL+1)
-           dist%blockLocation(n) = tmp1+1
+           newDistrb%blockLocation(n) = tmp1+1
         else
            ! ------------------------------------
            ! If on the second region of curve
@@ -2293,7 +2080,7 @@
            ! ------------------------------------
            ii=ii-s1-1
            tmp1 = ii/nblocksL
-           dist%blockLocation(n) = extra + tmp1 + 1
+           newDistrb%blockLocation(n) = extra + tmp1 + 1
         endif
       endif
    enddo
@@ -2303,54 +2090,52 @@
    !  Reset the dist data structure
    !----------------------------------------------------------------------
 
-   allocate(proc_tmp(nprocs))
-   proc_tmp = 0
+   globalID = 0
+   newDistrb%numLocalBlocks = 0
+   newDistrb%blockCnt(:) = 0
 
    do n=1,nblocks_tot
-      pid = dist%blockLocation(n)
-      !!!dist%blockLocation(n) = pid
-
-      if(pid>0) then
-        proc_tmp(pid) = proc_tmp(pid) + 1
-        if (proc_tmp(pid) > max_blocks) then
-            call abort_ice(subname//'ERROR: max_blocks too small')
-            return
-         endif
-        dist%blockLocalID(n) = proc_tmp(pid)
-        dist%blockIndex(pid,proc_tmp(pid)) = n
-      else
-        dist%blockLocalID(n) = 0
+      globalID = n
+      processor = newDistrb%blockLocation(globalID)
+      if (processor > 0) then
+         newDistrb%blockCnt(processor) = newDistrb%blockCnt(processor) + 1
+         localID = newDistrb%blockCnt(processor)
+         newDistrb%blockLocalID (globalID) = localID
+      else  ! no work - eliminate block from distribution
+         newDistrb%blockLocation(globalID) = 0
+         newDistrb%blockLocalID (globalID) = 0
       endif
    enddo
 
-   dist%numLocalBlocks = proc_tmp(my_task+1)
-   dist%blockCnt(:) = proc_tmp(:)
+   newDistrb%numLocalBlocks = newDistrb%blockCnt(my_task+1)
 
-   if (dist%numLocalBlocks > 0) then
-      allocate (dist%blockGlobalID(dist%numLocalBlocks))
-      dist%blockGlobalID = 0
+   ! set local blockGlobalID array
+   allocate(newDistrb%blockGlobalID(newDistrb%numLocalBlocks), stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'alloc numLocalBlocks')) return
+   do n = 1,nblocks_tot
+      if (my_task+1 == newDistrb%blockLocation(n)) then
+         localID = newDistrb%blockLocalID(n)
+         newDistrb%blockGlobalID (localID) = n
+      endif
+   enddo
+
+   ! set/check max_blocks
+   if (max_blocks < 0) then
+      max_blocks = newDistrb%numLocalBlocks
    endif
-   localID = 0
-   do n=1,nblocks_tot
-      if (dist%blockLocation(n) == my_task+1) then
-         localID = localID + 1
-         dist%blockGlobalID(localID) = n
-      endif
-   enddo
 
 !   if (debug_blocks) then
-!      if (my_task == master_task) write(nu_diag,*) 'dist%blockLocation:= ',dist%blockLocation
-!      write(nu_diag,*) 'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
-!                nblocks_tot,nblocks,proc_tmp(my_task+1)
+!      if (my_task == master_task) write(nu_diag,*) subname,'dist%blockLocation:= ',dist%blockLocation
+!      write(nu_diag,*) subname,'IAM: ',my_task,' SpaceCurve: Number of blocks {total,local} :=', &
+!                nblocks_tot,nblocks,newDistrb%numLocalBlocks
 !   endif
+
    !---------------------------------
    ! Deallocate temporary arrays
    !---------------------------------
-   deallocate(proc_tmp)
-   deallocate(Mesh,Mesh2,Mesh3)
-   deallocate(idxT_i,idxT_j)
 
-   create_distrb_spacecurve = dist  ! return the result
+   deallocate(Mesh,Mesh2,Mesh3,idxT_i,idxT_j, stat=istat)
+   if (ice_memusage_allocErr(istat,subname//'dealloc meshes')) return
 
 !----------------------------------------------------------------------
 
@@ -2374,11 +2159,11 @@
 !  ensure a block does not stray too far from its neighbors.
 
    integer (int_kind), intent(in), dimension(:) :: &
-      blockWork          ,&! amount of work per block
+      blockWork,          &! amount of work per block
       procID               ! global processor number
 
    integer (int_kind), intent(inout), dimension(:) :: &
-      procWork           ,&! amount of work per processor
+      procWork,           &! amount of work per processor
       priority             ! priority for moving a given block
 
    type (distrb), intent(inout) :: &
@@ -2394,7 +2179,7 @@
       i, n,                  &! dummy loop indices
       np1,                   &! n+1 corrected for cyclical wrap
       iproc, inext,          &! processor ids for current and next
-      nprocs, numBlocks,   &! number of blocks, processors
+      nprocs, numBlocks,     &! number of blocks, processors
       lastPriority,          &! priority for most recent block
       minPriority,           &! minimum priority
       lastLoc,               &! location for most recent block

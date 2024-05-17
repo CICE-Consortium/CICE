@@ -684,7 +684,7 @@ EOF
         set thrd  = `echo ${pesx} | cut -d x -f 2`
         set blckx = `echo ${pesx} | cut -d x -f 3`
         set blcky = `echo ${pesx} | cut -d x -f 4`
-        set mblck = 0
+        set mblck = -1
         if (${task} == 0 || ${thrd} == 0 || ${blckx} == 0 || ${blcky} == 0) then
           echo "${0}: ERROR in -p argument, cannot have zeros"
           exit -1
@@ -696,7 +696,7 @@ EOF
           set thrd = `echo ${pesx} | cut -d x -f 2`
           set blckx = 0
           set blcky = 0
-          set mblck = 0
+          set mblck = -1
           if (${task} == 0 || ${thrd} == 0) then
             echo "${0}: ERROR in -p argument, cannot have zeros"
             exit -1
@@ -708,7 +708,7 @@ EOF
             set thrd = 1
             set blckx = 0
             set blcky = 0
-            set mblck = 0
+            set mblck = -1
             if (${task} == 0) then
               echo "${0}: ERROR in -p argument, cannot have zeros"
               exit -1
@@ -757,7 +757,7 @@ EOF
 
     # update pesx based on use defined settings and machine limits to reflect actual value
     set pesx = ${task}x${thrd}x${blckx}x${blcky}x${mblck}
-    if (${mblck} == 0) then
+    if (${mblck} <= 0) then
       set pesx = ${task}x${thrd}x${blckx}x${blcky}
     endif
     if (${blckx} == 0 || ${blcky} == 0) then

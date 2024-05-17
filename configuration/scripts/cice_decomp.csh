@@ -167,7 +167,8 @@ setenv ICE_DECOMP_NXGLOB $nxglob
 setenv ICE_DECOMP_NYGLOB $nyglob
 setenv ICE_DECOMP_BLCKX  $blckx
 setenv ICE_DECOMP_BLCKY  $blcky
-setenv ICE_DECOMP_MXBLCKS $mxblcks
+# tcraig, do not override max blocks value of -1
+#setenv ICE_DECOMP_MXBLCKS $mxblcks
 setenv ICE_DECOMP_DECOMP $decomp
 setenv ICE_DECOMP_DSHAPE $dshape
 

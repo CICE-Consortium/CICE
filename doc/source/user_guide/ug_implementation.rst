@@ -213,22 +213,24 @@ ghost cells, and the same numbering system is applied to each of the
 four subdomains.
 
 The user sets the ``NTASKS`` and ``NTHRDS`` settings in **cice.settings** 
-and chooses a block size ``block_size_x`` :math:`\times`\ ``block_size_y``, 
-``max_blocks``, and decomposition information ``distribution_type``, ``processor_shape``, 
-and ``distribution_type`` in **ice_in**. That information is used to
-determine how the blocks are
-distributed across the processors, and how the processors are
-distributed across the grid domain. The model is parallelized over blocks
+and chooses a block size, ``block_size_x`` :math:`\times`\ ``block_size_y``,
+and decomposition information ``distribution_type``, ``processor_shape``, 
+and ``distribution_wgt`` in **ice_in**. 
+This information is used to determine how the blocks are
+distributed across the processors. The model is parallelized over blocks
 for both MPI and OpenMP.  Some suggested combinations for these
 parameters for best performance are given in Section :ref:`performance`.
 The script **cice.setup** computes some default decompositions and layouts
-but the user can overwrite the defaults by manually changing the values in 
-`ice_in`.  At runtime, the model will print decomposition
+but the user can override the defaults by manually changing the values in 
+`ice_in`.  The number of blocks per processor can vary, and this is computed
+internally when the namelist ``max_blocks=-1``.  ``max_blocks``
+can also be set by the user, although this may use extra memory and the
+model will abort if ``max_blocks`` is set too small for the decomposition.
+At runtime, the model will print decomposition
 information to the log file, and if the block size or max blocks is 
 inconsistent with the task and thread size, the model will abort.  The 
 code will also print a warning if the maximum number of blocks is too large. 
-Although this is not fatal, it does use extra memory.  If ``max_blocks`` is
-set to -1, the code will compute a tentative ``max_blocks`` on the fly.
+Although this is not fatal, it does use extra memory.
 
 A loop at the end of routine *create_blocks* in module
 **ice_blocks.F90** will print the locations for all of the blocks on
