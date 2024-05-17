@@ -36,6 +36,7 @@ can be found in :ref:`cicecpps`.  The following CPPs are available.
    "NO_CDF2", "Turns off support for netcdf cdf2 (nf90_64bit_offset)"
    "NO_CDF5", "Turns off support for netcdf cdf5 (nf90_64bit_data)"
    "NO_F2003", "Turns off some Fortran 2003 features"
+   "NO_HDF2", "Turns off support for netcdf hdf5 (netcdf4 including chunking and compression)"
    "NO_I8", "Converts integer*8 to integer*4.  This could have adverse affects for certain algorithms including the ddpdd implementation associated with the ``bfbflag``"
    "NO_R16", "Converts real*16 to real*8.  This could have adverse affects for certain algorithms including the lsum16 implementation associated with the ``bfbflag``"
    "NO_SNICARHC", "Does not compile hardcoded (HC) 5 band snicar tables tables needed by ``shortwave=dEdd_snicar_ad``. May reduce compile time."

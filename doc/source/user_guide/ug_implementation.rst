@@ -1220,7 +1220,10 @@ and (https://github.com/NCAR/ParallelIO).
 netCDF requires CICE compilation with a netCDF library built externally.  
 PIO requires CICE compilation with a PIO and netCDF library built externally.  
 Both netCDF and PIO can be built with many options which may require additional libraries
-such as MPI, hdf5, or pnetCDF.
+such as MPI, hdf5, or pnetCDF.  There are CPPs that will deprecate cdf2,
+cdf5, and hdf5 support should the netcdf library be built without those features.
+Those CPPs are ``NO_CDF2``, ``NO_CDF5``, and ``NO_HDF5``.  Those can be added
+to the Macros machine file explicity when needed.
 
 .. _history:
 
