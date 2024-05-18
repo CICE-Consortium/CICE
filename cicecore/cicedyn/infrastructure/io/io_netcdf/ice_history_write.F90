@@ -152,11 +152,26 @@
          if (history_format == 'cdf1') then
            iflag = nf90_clobber
          elseif (history_format == 'cdf2') then
+#ifdef NO_CDF2
+           call abort_ice(subname//' ERROR: history_format cdf2 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_offset)
+#endif
          elseif (history_format == 'cdf5') then
+#ifdef NO_CDF5
+           call abort_ice(subname//' ERROR: history_format cdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_data)
+#endif
          elseif (history_format == 'hdf5') then
+#ifdef NO_HDF5
+           call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_netcdf4)
+#endif
          else
            call abort_ice(subname//' ERROR: history_format not allowed for '//trim(history_format), &
               file=__FILE__, line=__LINE__)
@@ -1192,6 +1207,12 @@
       status = nf90_def_var(ncid, hfield%vname, lprecision, dimids, varid)
       call ice_check_nc(status, subname//' ERROR: defining var '//trim(hfield%vname),file=__FILE__,line=__LINE__)
 
+#ifdef NO_HDF5
+      if (history_format=='hdf5') then
+          call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+      endif
+#else
       if (history_format=='hdf5' .and. size(dimids)>1) then
          if (dimids(1)==imtid .and. dimids(2)==jmtid) then
             chunks(1)=history_chunksize(1)
@@ -1208,6 +1229,7 @@
          status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_check_nc(status, subname//' ERROR deflating var '//trim(hfield%vname), file=__FILE__, line=__LINE__)
       endif
+#endif
 
       ! add attributes
       status = nf90_put_att(ncid,varid,'units', hfield%vunit)
@@ -1335,6 +1357,12 @@
       status = nf90_def_var(ncid, coord%short_name, lprecision, dimids, varid)
       call ice_check_nc(status, subname//' ERROR: defining coord '//coord%short_name,file=__FILE__,line=__LINE__)
 
+#ifdef NO_HDF5
+      if (history_format=='hdf5') then
+           call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+      endif
+#else
       if (history_format=='hdf5' .and. size(dimids)>1) then
          if (dimids(1)==imtid .and. dimids(2)==jmtid) then
             chunks(1)=history_chunksize(1)
@@ -1351,6 +1379,7 @@
          status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=history_deflate)
          call ice_check_nc(status, subname//' ERROR deflating var '//trim(coord%short_name), file=__FILE__, line=__LINE__)
       endif
+#endif
 
       status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
       call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &

@@ -221,11 +221,26 @@
          if (restart_format == 'cdf1') then
            iflag = nf90_clobber
          elseif (restart_format == 'cdf2') then
+#ifdef NO_CDF2
+           call abort_ice(subname//' ERROR: restart_format cdf2 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_offset)
+#endif
          elseif (restart_format == 'cdf5') then
+#ifdef NO_CDF5
+           call abort_ice(subname//' ERROR: restart_format cdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_64bit_data)
+#endif
          elseif (restart_format == 'hdf5') then
+#ifdef NO_HDF5
+           call abort_ice(subname//' ERROR: restart_format hdf5 not available ', &
+              file=__FILE__, line=__LINE__)
+#else
            iflag = ior(nf90_clobber,nf90_netcdf4)
+#endif
          else
            call abort_ice(subname//' ERROR: restart_format not allowed for '//trim(restart_format), &
               file=__FILE__, line=__LINE__)
@@ -894,6 +909,12 @@
       status = nf90_def_var(ncid,trim(vname),nf90_double,dims,varid)
       call ice_check_nc(status, subname//' ERROR: def var '//trim(vname), file=__FILE__, line=__LINE__)
 
+#ifdef NO_HDF5
+      if (restart_format=='hdf5') then
+         call abort_ice(subname//' ERROR: restart_format hdf5 not available ', &
+            file=__FILE__, line=__LINE__)
+      endif
+#else
       if (restart_format=='hdf5' .and. size(dims)>1) then
          if (dims(1)==dimid_ni .and. dims(2)==dimid_nj) then
             chunks(1)=restart_chunksize(1)
@@ -910,6 +931,7 @@
          status=nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, deflate_level=restart_deflate)
          call ice_check_nc(status, subname//' ERROR deflating var '//trim(vname), file=__FILE__, line=__LINE__)
       endif
+#endif
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &

@@ -49,6 +49,7 @@ The Consortium has tested the following compilers at some point,
 - Intel ifort 2021.6.0
 - Intel ifort 2021.8.0
 - Intel ifort 2021.9.0
+- Intel ifort 2021.10.0
 - Intel ifort 2022.2.1
 - PGI 16.10.0
 - PGI 19.9-0
@@ -86,6 +87,7 @@ The Consortium has tested the following MPI implementations and versions,
 - MPICH 8.1.14
 - MPICH 8.1.21
 - MPICH 8.1.25
+- MPICH 8.1.26
 - Intel MPI 18.0.1
 - Intel MPI 18.0.4
 - Intel MPI 2019 Update 6
