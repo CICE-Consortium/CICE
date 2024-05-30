@@ -22,6 +22,8 @@ The directory structure under configure/scripts is as follows.
 |        **cice.run.setup.csh**    sets up the run scripts
 |        **cice.settings**         defines environment, model configuration and run settings
 |        **cice.test.setup.csh**   creates configurations for testing the model
+|        **ciceplots.csh**         general script to generate timeseries and 2d CICE plots
+|        **ciceplots2d.py**        python script to generate 2d CICE plots
 |        **ice_in**                namelist input data
 |        **machines/**             machine specific files to set env and Macros
 |        **makdep.c**              determines module dependencies
@@ -31,8 +33,7 @@ The directory structure under configure/scripts is as follows.
 |        **parse_settings.sh**     replaces settings with command-line configuration
 |        **setup_run_dirs.csh**    creates the case run directories
 |        **set_version_number.csh** updates the model version number from the **cice.setup** command line
-|        **timeseries.csh**        generates PNG timeseries plots from output files, using GNUPLOT
-|        **timeseries.py**         generates PNG timeseries plots from output files, using Python
+|        **timeseries.py**         python script to generate timeseries plots from CICE log file
 |        **tests/**                scripts for configuring and running basic tests
 
 .. _dev_strategy:

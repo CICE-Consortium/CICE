@@ -838,7 +838,7 @@ EOF
     endif
 
     # from basic script dir to case
-    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh timeseries.csh timeseries.py)
+    foreach file (cice.build cice.settings Makefile ice_in makdep.c setup_run_dirs.csh ciceplots.csh ciceplots2d.py timeseries.py)
       if !(-e ${ICE_SCRIPTS}/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1

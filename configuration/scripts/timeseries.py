@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 This script generates timeseries plots of CICE diagnostic output.
@@ -51,16 +51,16 @@ def get_data(logfile,field):
     logger.debug('Extracting data for {}'.format(field))
 
     # Build the regular expression to extract the data
-    field_regex = field.replace('(','\(').replace('^','\^').replace(')','\)')
-    number_regex = '[-+]?\d+\.?\d+([eE][-+]?\d+)?'
-    my_regex = '^{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
+    field_regex = field.replace('(','\\(').replace('^','\\^').replace(')','\\)')
+    number_regex = r'[-+]?\d+\.?\d+([eE][-+]?\d+)?'
+    my_regex = r'^{}\s+=\s+({})\s+({})'.format(field_regex,number_regex,number_regex)
 
     dtg = []
     arctic = []
     antarctic = []
     with open(logfile) as f:
         for line in f.readlines():
-            m1 = re.search('istep1:\s+(\d+)\s+idate:\s+(\d+)\s+sec:\s+(\d+)', line)
+            m1 = re.search(r'istep1:\s+(\d+)\s+idate:\s+(\d+)\s+sec:\s+(\d+)', line)
             if m1:
                 # Extract the current date-time group from the file
                 date = m1.group(2)
@@ -83,6 +83,11 @@ def get_data(logfile,field):
                 antarctic.append(float(m.group(3)))
                 logger.debug('    Arctic = {}, Antarctic = {}'.format(arctic[-1], antarctic[-1]))
 
+    # remove first few elements of dtg
+    if len(dtg) > len(arctic):
+       stind = len(dtg) - len(arctic)
+       dtg = dtg[stind:]
+
     return dtg, arctic, antarctic, expon
 
 def latexit(string):
@@ -90,15 +95,17 @@ def latexit(string):
     return (s.replace(')','$)',1))[::-1]
 
 def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, arctic_base=None, \
-                    antarctic_base=None, base_dir=None, grid=False):
+                    antarctic_base=None, base_dir=None, grid=False, casename=None, base_casename=None):
     '''
     Plot the timeseries data from the CICE log file
     '''
 
     import re
-    casename = re.sub(r"/logs", "", os.path.abspath(log).rstrip('/')).split('/')[-1]
+    if casename is None:
+        casename = re.sub(r"/logs", "", os.path.abspath(log).rstrip('/')).split('/')[-1]
     if base_dir:
-        base_casename = re.sub(r"/logs", "", os.path.abspath(base_dir).rstrip('/')).split('/')[-1]
+        if base_casename is None:
+            base_casename = re.sub(r"/logs", "", os.path.abspath(base_dir).rstrip('/')).split('/')[-1]
 
     # Load the plotting libraries, but set the logging level for matplotlib
     # to WARNING so that matplotlib debugging info is not printed when running
@@ -108,7 +115,8 @@ def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, ar
     import matplotlib.dates as mdates
     import matplotlib.ticker as ticker
 
-    fig = plt.figure(figsize=(12,8))
+#    fig = plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(6,4))
     ax = fig.add_axes([0.05,0.08,0.9,0.9])
     
     # Add the arctic data to the plot
@@ -132,55 +140,54 @@ def plot_timeseries(log, field, dtg, arctic, antarctic, expon, dtg_base=None, ar
     ax.xaxis.set_minor_locator(mdates.MonthLocator())
 
     # Add a text box that prints the test case name and the baseline case name (if given)
-    try:
-        text_field = "Test/Case: {}\nBaseline: {}".format(casename,base_casename)
-        from matplotlib.offsetbox import AnchoredText
-        anchored_text = AnchoredText(text_field,loc=2)
-        ax.add_artist(anchored_text)
-    except:
-        text_field = "Test/Case: {}".format(casename)
-        from matplotlib.offsetbox import AnchoredText
-        anchored_text = AnchoredText(text_field,loc=2)
-        ax.add_artist(anchored_text)
+    if base_casename is None:
+        text_field = "{}".format(casename)
+    else:
+        text_field = "{}\n{}".format(casename,base_casename)
 
-    ax.legend(loc='upper right')
+    from matplotlib.offsetbox import AnchoredText
+    anchored_text = AnchoredText(text_field,loc='upper left')
+    anchored_text.patch.set_alpha(0.5)
+    ax.add_artist(anchored_text)
+
+    ax.legend(loc='upper right',framealpha=0.5)
 
     # Add grid lines if the `--grid` argument was passed at the command line.
     if grid:
         ax.grid(ls='--')
 
     # Reduce the number of ticks on the y axis
-    nbins = 10
-    try:  
-        minval = min( \
-                     min(min(arctic), min(antarctic)), \
-                     min(min(arctic_base), min(antarctic_base)))
-        maxval = max( \
-                     max(max(arctic), max(antarctic)), \
-                     max(max(arctic_base), max(antarctic_base)))
-    except:
-        minval = min(min(arctic), min(antarctic))
-        maxval = max(max(arctic), max(antarctic))
-    step = (maxval-minval)/nbins
-    ax.yaxis.set_ticks(np.arange(minval, maxval+step, step))
+#    nbins = 10
+#    try:  
+#        minval = min( \
+#                     min(min(arctic), min(antarctic)), \
+#                     min(min(arctic_base), min(antarctic_base)))
+#        maxval = max( \
+#                     max(max(arctic), max(antarctic)), \
+#                     max(max(arctic_base), max(antarctic_base)))
+#    except:
+#        minval = min(min(arctic), min(antarctic))
+#        maxval = max(max(arctic), max(antarctic))
+#    step = (maxval-minval)/nbins
+#    ax.yaxis.set_ticks(np.arange(minval, maxval+step, step))
 
     # Format the y-axis tick labels, based on whether or not the values in the log file
     # are in scientific notation or float notation.
     if expon:
-        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3e'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1e'))
     else:
-        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.5f'))
+        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.3f'))
 
     # Rotate and right align the x labels
     for tick in ax.get_xticklabels():
-        tick.set_rotation(45)
+        tick.set_rotation(30)
 
     # Create an output file and save the figure
     field_tmp = field.split('(')[0].rstrip()
     try:
-        outfile = '{}_{}_base-{}.png'.format(field_tmp.replace(' ','_'), casename,base_casename)
+        outfile = '{}_{}_base-{}.png'.format(field_tmp.replace(' ','_'),casename.replace(' ','_'),base_casename.replace(' ','_'))
     except:
-        outfile = '{}_{}.png'.format(field_tmp.replace(' ','_'), casename)
+        outfile = '{}_{}.png'.format(field_tmp.replace(' ','_'), casename.replace(' ','_'))
     logger.info('Saving file to {}'.format(outfile))
     plt.savefig(outfile,dpi=300,bbox_inches='tight')
 
@@ -204,6 +211,10 @@ def main():
                               dataset, if desired.  A specific log file or case directory can \
                               be passed.  If a directory is passed, the most recent log file \
                               will be used.')
+    parser.add_argument('--case', dest='casename', help='User specified casename for plots.', \
+                        action='store')
+    parser.add_argument('--basecase', dest='base_casename', help='User specified base casename \
+                        for plots.', action='store')
     parser.add_argument('-v', '--verbose', dest='verbose', help='Print debug output?', \
                         action='store_true')
     parser.add_argument('--area', dest='area', help='Create a plot for total ice area?', \
@@ -227,6 +238,8 @@ def main():
     parser.set_defaults(snow_volume=False)
     parser.set_defaults(speed=False)
     parser.set_defaults(grid=False)
+    parser.set_defaults(casename=None)
+    parser.set_defaults(base_casename=None)
 
     args = parser.parse_args()
 
@@ -268,7 +281,7 @@ def main():
         logger.debug('{} is a file'.format(args.log_dir))
         log = args.log_dir
         log_dir = args.log_dir.rsplit('/',1)[0]
-    logger.info('Log file = {}'.format(log))
+
     if args.base_dir:
         if os.path.isdir(args.base_dir):
             base_log = find_logfile(args.base_dir)
@@ -277,6 +290,9 @@ def main():
             base_log = args.base_dir
             base_dir = args.base_dir.rsplit('/',1)[0]
         logger.info('Base Log file = {}'.format(base_log))
+
+    logger.info('casename = {}'.format(args.casename))
+    logger.info('Log file = {}'.format(log))
 
     # Loop through each field and create the plot
     for field in fieldlist:
@@ -290,9 +306,11 @@ def main():
         # Plot the data
         if args.base_dir:
             plot_timeseries(log_dir, field, dtg, arctic, antarctic, expon, dtg_base, \
-                            arctic_base, antarctic_base, base_dir, grid=args.grid)
+                            arctic_base, antarctic_base, base_dir, grid=args.grid, \
+                            casename=args.casename, base_casename=args.base_casename)
         else:
-            plot_timeseries(log_dir, field, dtg, arctic, antarctic, expon, grid=args.grid)
+            plot_timeseries(log_dir, field, dtg, arctic, antarctic, expon, grid=args.grid, \
+                            casename=args.casename)
 
 if __name__ == "__main__":
     main()

@@ -2276,6 +2276,9 @@
       enddo
 
       if (.not.exists) then
+         write(nu_diag,*) subname,' atm_data_dir = ',trim(atm_data_dir)
+         write(nu_diag,*) subname,' atm_data_type_prefix = ',trim(atm_data_type_prefix)
+         write(nu_diag,*) subname,' atm_data_version = ',trim(atm_data_version)
          call abort_ice(error_message=subname//' could not find forcing file')
       endif
 

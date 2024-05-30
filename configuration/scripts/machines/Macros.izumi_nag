@@ -3,7 +3,7 @@
 #==============================================================================
 
 CPP        := /usr/bin/cpp
-CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 $(ICE_CPPDEFS)
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 -DNO_CDF5 $(ICE_CPPDEFS)
 CFLAGS     := -c
 
 FIXEDFLAGS := -fixed
