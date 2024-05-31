@@ -845,12 +845,13 @@ A few notes about the conda configuration:
     mpirun -np ${ntasks} --oversubscribe ./cice >&! \$ICE_RUNLOG_FILE
   
 - It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
-- The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
+- If needed, the conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
 - To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
 
   .. code-block:: bash
   
     cd ~/cice-dirs/cases/case1
+    conda env create -f configuration/scripts/machines/environment.yml --force
     conda activate cice
     python timeseries.py ~/cice-dirs/cases/case1/logs
     conda deactivate  # to deactivate the environment
@@ -955,58 +956,49 @@ in shell startup files or otherwise at users discretion:
 
 .. _timeseries:
 
-Timeseries Plotting
+Plotting Tools
 -------------------
 
-The CICE scripts include two scripts that will generate timeseries figures from a 
-diagnostic output file, a Python version (``timeseries.py``) and a csh version 
-(``timeseries.csh``).  Both scripts create the same set of plots, but the Python 
-script has more capabilities, and it's likely that the csh
-script will be removed in the future.  
+CICE includes a couple of simple scripts to generate plots.  The ``timeseries.py``
+scripts generates northern and southern hemisphere timeseries plots for several
+fields from the CICE log file.  The ``ciceplots2d.py`` script generates some
+two-dimensional plots from CICE history files as global and polar projections.
+The script ``ciceplots.csh`` is a general script that sets up the inputs for the
+python plotting tools and calls them.  Both python tools produce png files.
 
-To use the ``timeseries.py`` script, the following requirements must be met:
+To use the python scripts, the following python packages are required:
 
-* Python v2.7 or later
-* numpy Python package
-* matplotlib Python package
-* datetime Python package
+* Python3
+* numpy
+* matplotlib
+* re
+* datetime
+* netcdf4
+* basemap, basemap-data, basemap-data-hires
 
-See :ref:`CodeValidation` for additional information about how to setup the Python 
-environment, but we recommend using ``pip`` as follows: ::
+The easist way to install the package is via the cice env file provided with CICE via conda:
 
-  pip install --user numpy
-  pip install --user matplotlib
-  pip install --user datetime
+  .. code-block:: bash
 
-When creating a case or test via ``cice.setup``, the ``timeseries.csh`` and 
-``timeseries.py`` scripts are automatically copied to the case directory.  
-Alternatively, the plotting scripts can be found in ``./configuration/scripts``, and can be
-run from any directory.
+    conda env create -f configuration/scripts/machines/environment.yml --force
+    conda activate cice
 
-The Python script can be passed a directory, a specific log file, or no directory at all:
+Then edit the ``ciceplots.csh`` script and run it.  ``ciceplots.csh`` also demonstrates
+how to call each python script separately.
 
-  - If a directory is passed, the script will look either in that directory or in 
-    directory/logs for a filename like cice.run*.  As such, users can point the script
-    to either a case directory or the ``logs`` directory directly.  The script will use 
-    the file with the most recent creation time.
-  - If a specific file is passed the script parses that file, assuming that the file
-    matches the same form of cice.run* files.
-  - If nothing is passed, the script will look for log files or a ``logs`` directory in the 
-    directory from where the script was run.
+When creating a case or test via ``cice.setup``, these three plotting scripts
+are automatically copied to the case directory.
+Alternatively, the plotting scripts can be found in ``./configuration/scripts`` and can
+be run as needed.
 
-For example:
+Briefly, the ``timeseries.py`` script has a few options but can be called as follows:
 
-Run the timeseries script on the desired case. ::
+  .. code-block:: bash
 
-$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+    ./timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00 --grid --case CICE6.0.1
 
-or ::
-
-$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/logs
-    
-The output figures are placed in the directory where the ``timeseries.py`` script is run.
-
-The plotting script will plot the following variables by default, but you can also select 
+The timeseries script parses the log file, so the temporal resolution is based on the log output frequency.
+The timeseries plotting script will plot the following variables by default, but you can also select
 specific plots to create via the optional command line arguments.
 
   - total ice area (:math:`km^2`)
@@ -1015,30 +1007,14 @@ specific plots to create via the optional command line arguments.
   - total snow volume (:math:`m^3`)
   - RMS ice speed (:math:`m/s`)
 
-For example, to plot only total ice volume and total snow volume ::
+The ``ciceplots2d.py`` script is called as follows:
 
-$ python timeseries.py /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/ --volume --snw_vol
+  .. code-block:: bash
 
-To generate plots for all of the cases within a suite with a testid, create and run a script such as  ::
+    ./ciceplots2d.py aice /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/history/iceh.2005-09.nc CICE6.0.1 "Sept 2005 Mean" 2005Sep
 
-     #!/bin/csh
-     foreach dir (`ls -1  | grep testid`)
-       echo $dir
-       python timeseries.py $dir
-     end
-
-Plots are only made for a single output file at a time.  The ability to plot output from 
-a series of cice.run* files is not currently possible, but may be added in the future.
-However, using the ``--bdir`` option will plot two datasets (from log files) on the
-same figure.
-
-For the latest help information for the script, run ::
-
-$ python timeseries.py -h
-
-The ``timeseries.csh`` script works basically the same way as the Python version, however it
-does not include all of the capabilities present in the Python version.  
-
-To use the C-Shell version of the script, ::
-
-$ ./timeseries.csh /p/work1/turner/CICE_RUNS/conrad_intel_smoke_col_1x1_diag1_run1year.t00/
+In the example above, a global, northern hemisphere, and southern hemisphere plot would be created
+for the aice field from iceh.2005-09.nc file.  Titles on the plot would reference CICE6.0.1 and
+"Sept 2005 Mean" and the png files would contain the string 2005Sep as well as the field name and region.
+The two-dimensional plots are generated using the scatter feature from matplotlib, so they are fairly
+primitive.
