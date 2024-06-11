@@ -7,33 +7,15 @@ module ice_prescribed_mod
   ! Ice/ocean fluxes are set to zero, and ice dynamics are not calculated.
   ! Regridding and data cycling capabilities are included.
 
-  use ESMF, only : ESMF_Clock, ESMF_Mesh, ESMF_SUCCESS, ESMF_FAILURE
+  use ESMF, only : ESMF_GridComp, ESMF_Clock, ESMF_Mesh, ESMF_SUCCESS, ESMF_FAILURE
   use ESMF, only : ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU, ESMF_Finalize, ESMF_END_ABORT
-
-#ifndef CESMCOUPLED
-
-  use ice_kinds_mod
-  implicit none
-  private ! except
-  public  :: ice_prescribed_init      ! initialize input data stream
-  logical(kind=log_kind), parameter, public :: prescribed_ice = .false.     ! true if prescribed ice
-contains
-  ! This is a stub routine for now
-  subroutine ice_prescribed_init(clock, mesh, rc)
-    type(ESMF_Clock)       , intent(in)  :: clock
-    type(ESMF_Mesh)        , intent(in)  :: mesh
-    integer                , intent(out) :: rc
-    ! do nothing
-    rc = ESMF_SUCCESS
-  end subroutine ice_prescribed_init
-
-#else
 
   use ice_kinds_mod
   use shr_nl_mod       , only : shr_nl_find_group_name
   use dshr_strdata_mod , only : shr_strdata_type, shr_strdata_print
   use dshr_strdata_mod , only : shr_strdata_init_from_inline, shr_strdata_advance
   use dshr_methods_mod , only : dshr_fldbun_getfldptr
+  use dshr_mod         , only : dshr_pio_init
   use ice_broadcast
   use ice_communicate   , only : my_task, master_task, MPI_COMM_ICE
   use ice_fileunits
@@ -43,7 +25,7 @@ contains
   use ice_blocks        , only : nx_block, ny_block, block, get_block
   use ice_domain        , only : nblocks, distrb_info, blocks_ice
   use ice_grid          , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
-  use ice_calendar      , only : idate, calendar_type
+  use ice_calendar      , only : idate, msec, calendar_type
   use ice_arrays_column , only : hin_max
   use ice_read_write
   use ice_exit          , only: abort_ice
@@ -74,13 +56,17 @@ contains
 contains
 !===============================================================================
 
-  subroutine ice_prescribed_init(clock, mesh, rc)
+  subroutine ice_prescribed_init(gcomp, clock, mesh, rc)
 
     ! Prescribed ice initialization
 
-    include 'mpif.h'
+#ifndef SERIAL_REMOVE_MPI
+    !TODO: add 1d character array to cicecore/cicedyn/infrastructure/comm/mpi/ice_broadcast.F90
+    use mpi   ! MPI Fortran module
+#endif
 
     ! input/output parameters
+    type(ESMF_GridComp)    , intent(in)  :: gcomp
     type(ESMF_Clock)       , intent(in)  :: clock
     type(ESMF_Mesh)        , intent(in)  :: mesh
     integer                , intent(out) :: rc
@@ -93,6 +79,7 @@ contains
     character(len=char_len_long)     :: stream_dataFiles(nFilesMaximum)
     character(len=char_len_long)     :: stream_varname
     character(len=char_len_long)     :: stream_mapalgo
+    character(len=char_len_long)     :: stream_taxmode
     integer(kind=int_kind)           :: stream_yearfirst   ! first year in stream to use
     integer(kind=int_kind)           :: stream_yearlast    ! last year in stream to use
     integer(kind=int_kind)           :: stream_yearalign   ! align stream_year_first
@@ -110,6 +97,7 @@ contains
          stream_varname ,               &
          stream_datafiles,              &
          stream_mapalgo,                &
+         stream_taxmode,                &
          stream_yearalign,              &
          stream_yearfirst ,             &
          stream_yearlast
@@ -125,6 +113,7 @@ contains
     stream_meshfile     = ' '
     stream_datafiles(:) = ' '
     stream_mapalgo      = 'bilinear'
+    stream_taxmode      = 'cycle'
 
     ! read namelist on master task
     if (my_task == master_task) then
@@ -155,6 +144,7 @@ contains
        call broadcast_scalar(stream_yearlast  , master_task)
        call broadcast_scalar(stream_meshfile  , master_task)
        call broadcast_scalar(stream_mapalgo   , master_task)
+       call broadcast_scalar(stream_taxmode   , master_task)
        call broadcast_scalar(stream_varname   , master_task)
        call mpi_bcast(stream_dataFiles, len(stream_datafiles(1))*NFilesMaximum, MPI_CHARACTER, 0, MPI_COMM_ICE, ierr)
 
@@ -172,11 +162,17 @@ contains
           write(nu_diag,F00) '  stream_meshfile  = ',trim(stream_meshfile)
           write(nu_diag,F00) '  stream_varname   = ',trim(stream_varname)
           write(nu_diag,F00) '  stream_mapalgo   = ',trim(stream_mapalgo)
+          write(nu_diag,F00) '  stream_taxmode   = ',trim(stream_taxmode)
           do n = 1,nFile
              write(nu_diag,F00) '  stream_datafiles   = ',trim(stream_dataFiles(n))
           end do
           write(nu_diag,*) ' '
        endif
+
+#ifndef CESMCOUPLED
+       !CESM does this elsewhere
+       call dshr_pio_init(gcomp, sdat, nu_diag, rc)
+#endif
 
        ! initialize sdat
        call shr_strdata_init_from_inline(sdat,               &
@@ -189,13 +185,13 @@ contains
             stream_lev_dimname  = 'null',                    &
             stream_mapalgo      = trim(stream_mapalgo),      &
             stream_filenames    = stream_datafiles(1:nfile), &
-            stream_fldlistFile  = (/'ice_cov'/),             &
-            stream_fldListModel = (/'ice_cov'/),             &
+            stream_fldlistFile  = (/trim(stream_varname)/),  &
+            stream_fldListModel = (/trim(stream_varname)/),  &
             stream_yearFirst    = stream_yearFirst,          &
             stream_yearLast     = stream_yearLast,           &
             stream_yearAlign    = stream_yearAlign ,         &
             stream_offset       = 0,                         &
-            stream_taxmode      = 'cycle',                   &
+            stream_taxmode      = trim(stream_taxmode),      &
             stream_dtlimit      = 1.5_dbl_kind,              &
             stream_tintalgo     = 'linear',                  &
             rc                  = rc)
@@ -211,6 +207,11 @@ contains
           hin_max(1) = 999._dbl_kind
        end if
 
+#ifndef CESMCOUPLED
+       ! If need initial cice values for coupling
+       call ice_prescribed_run(idate, msec)
+#endif
+    
     end if  ! end of if prescribed ice mode
 
   end subroutine ice_prescribed_init
@@ -488,7 +489,5 @@ contains
     call init_flux_ocn
 
   end subroutine ice_prescribed_phys
-
-#endif
 
 end module ice_prescribed_mod
