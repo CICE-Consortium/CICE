@@ -189,16 +189,16 @@
       ! in from atmosphere when coupling to GEOS
       real (kind=dbl_kind), & 
          dimension (:,:,:,:), allocatable, public :: &
-         evapn_f,  & !
-         dflatndts_f,  & 
-         dfsurfndts_f   !   
+         evapn_f,      & ! evaporation/sublimation (kg m-2 s-1)
+         dflatndts_f,  & ! derivative of latent flux w.r.t. Ts
+         dfsurfndts_f    ! derivative of surface flux w.r.t. Ts
 
       real (kind=dbl_kind), & 
          dimension (:,:,:), allocatable, public :: &
-         druvr     , & !
-         dfuvr     , & ! 
-         drpar     , & !
-         dfpar         !   
+         druvr     , & !  vis uvr flux, direct (W m-2)
+         dfuvr     , & !  vis uvr flux, diffuse (W m-2)
+         drpar     , & !  vis par flux, direct (W m-2)
+         dfpar         !  vis par flux, diffuse (W m-2)
 #endif
 
 
