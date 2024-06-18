@@ -246,6 +246,8 @@ contains
              sst   (i,j,iblk)         = afld(i,j,10,iblk) - Tffresh
              sss   (i,j,iblk)         = afld(i,j,11,iblk)
              frzmlt(i,j,iblk)         = afld(i,j,12,iblk)
+             fsw   (i,j,iblk)         = swvdr(i,j,iblk) + swvdf(i,j,iblk) &
+                                      + swidr(i,j,iblk) + swidf(i,j,iblk)
           end do
        end do
     end do
