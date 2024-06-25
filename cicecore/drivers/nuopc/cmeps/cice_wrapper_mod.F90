@@ -72,7 +72,7 @@ contains
     real(dbl_kind),    intent(in)    :: hour
     character(len=char_len)          :: filename
     integer(int_kind)                :: nunit
-    write(filename,'(a,i3.3)')'log.ice.f',int(hour)
+    write(filename,'(a,i4.4)')'log.ice.f',int(hour)
     open(newunit=nunit,file=trim(filename))
     write(nunit,'(a)')'completed: cice'
     write(nunit,'(a,f10.3)')'forecast hour:',hour
