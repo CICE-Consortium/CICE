@@ -2,7 +2,7 @@ module cice_wrapper_mod
 
 #ifdef CESMCOUPLED
   use perf_mod      , only : t_startf, t_stopf, t_barrierf
-  use shr_file_mod  , only : shr_file_getlogunit, shr_file_setlogunit
+  use shr_log_mod  , only : shr_log_getlogunit, shr_log_setlogunit
 
   use ice_kinds_mod , only : dbl_kind, int_kind, char_len, char_len_long
 
