@@ -23,7 +23,7 @@ module ice_shr_methods
   use ice_kinds_mod, only : r8 => dbl_kind, cl=>char_len_long, cs=>char_len
   use ice_exit     , only : abort_ice
 #ifdef CESMCOUPLED
-  use shr_file_mod , only : shr_file_setlogunit, shr_file_getLogUnit
+  use shr_log_mod , only : shr_log_setlogunit
 #endif
 
   implicit none
@@ -165,7 +165,7 @@ contains
     endif
 
 #ifdef CESMCOUPLED
-    call shr_file_setLogUnit (logunit)
+    call shr_log_setLogUnit (logunit)
 #endif
 
   end subroutine set_component_logging
