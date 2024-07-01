@@ -82,12 +82,12 @@ contains
 
   ! Define stub routines that do nothing - they are just here to avoid
   ! having cppdefs in the main program
-  subroutine shr_file_setLogUnit(nunit)
+  subroutine shr_log_setLogUnit(nunit)
     integer, intent(in) :: nunit
-  end subroutine shr_file_setLogUnit
-  subroutine shr_file_getLogUnit(nunit)
+  end subroutine shr_log_setLogUnit
+  subroutine shr_log_getLogUnit(nunit)
     integer, intent(in) :: nunit
-  end subroutine shr_file_getLogUnit
+  end subroutine shr_log_getLogUnit
   subroutine t_startf(string)
     character(len=*) :: string
   end subroutine t_startf
