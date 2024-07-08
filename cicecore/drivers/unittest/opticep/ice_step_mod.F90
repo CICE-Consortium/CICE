@@ -529,7 +529,7 @@
                       congeln      = congeln     (i,j,:,iblk), &
                       snoice       = snoice      (i,j,  iblk), &
                       snoicen      = snoicen     (i,j,:,iblk), &
-!opt                      dsnow        = dsnow       (i,j,  iblk), &
+                      dsnow        = dsnow       (i,j,  iblk), &
                       dsnown       = dsnown      (i,j,:,iblk), &
 !opt                      meltsliq     = meltsliq    (i,j,  iblk), &
 !opt                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
