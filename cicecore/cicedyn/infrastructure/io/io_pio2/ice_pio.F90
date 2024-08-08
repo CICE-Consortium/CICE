@@ -238,8 +238,7 @@
             status = pio_openfile(ice_pio_subsystem, File, pio_iotype, trim(filename), pio_nowrite)
             if (status /= PIO_NOERR) then
                if (my_task == master_task) then
-                  write(nu_diag,*) subname//' opening '//trim(filename)//' as type '//trim(fformat)//&
-                  ' failed, retrying as type cdf1'
+                  write(nu_diag,*) subname//' opening '//trim(filename)//' as type '//trim(fformat)//' failed, retrying as type cdf1'
                endif
                status = pio_openfile(ice_pio_subsystem, File, PIO_IOTYPE_NETCDF, trim(filename), pio_nowrite)
                call ice_pio_check( status, subname//' ERROR: Failed to open file '//trim(filename), &
