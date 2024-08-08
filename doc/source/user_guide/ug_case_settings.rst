@@ -673,6 +673,8 @@ forcing_nml
    "``calc_strair``", "``.false.``", "read wind stress and speed from files", "``.true.``"
    "", "``.true.``", "calculate wind stress and speed", ""
    "``calc_Tsfc``", "logical", "calculate surface temperature", "``.true.``"
+   "``congel_freeze``", "``one-step``", "immediately freeze congelation ice", "``two-step``"
+   "", "``two-step``", "delayed freezing of congelation ice", ""
    "``cpl_frazil``", "``external``", "frazil water/salt fluxes are handled outside of Icepack", "``fresh_ice_correction``"
    "", "``fresh_ice_correction``", "correct fresh-ice frazil water/salt fluxes for mushy physics", ""
    "", "``internal``", "send full frazil water/salt fluxes for mushy physics", ""

@@ -270,6 +270,7 @@
     fbot_xfer_type  = 'constant'
     update_ocn_f    = .false.
     l_mpond_fresh   = .false.
+    congel_freeze   = 'two-step'
     tfrz_option     = 'mushy'
     saltflux_option = 'constant'
     ice_ref_salinity = 4.0
