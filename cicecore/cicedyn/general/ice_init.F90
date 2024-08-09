@@ -3021,8 +3021,7 @@
          enddo
 
          if (tmask(i,j,iblk)) &
-            call icepack_aggregate(ncat  = ncat,                  &
-                                   aicen = aicen(i,j,:,iblk),     &
+            call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
                                    vsnon = vsnon(i,j,:,iblk),     &
@@ -3031,7 +3030,6 @@
                                    vice  = vice (i,j,  iblk),     &
                                    vsno  = vsno (i,j,  iblk),     &
                                    aice0 = aice0(i,j,  iblk),     &
-                                   ntrcr = ntrcr,                 &
                                    trcr_depend   = trcr_depend(:),   &
                                    trcr_base     = trcr_base(:,:),   &
                                    n_trcr_strata = n_trcr_strata(:), &
@@ -3510,7 +3508,6 @@
                                       Sprofile = salinz(i,j,:),         &
                                       Tprofile = Tmltz(i,j,:),          &
                                       Tsfc  = Tsfc,                     &
-                                      nilyr = nilyr,     nslyr = nslyr, &
                                       qin   = qin(:),    qsn = qsn(:))
 
                ! surface temperature
