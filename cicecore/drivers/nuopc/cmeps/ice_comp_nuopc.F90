@@ -885,7 +885,7 @@ contains
     ! Prescribed ice initialization
     !-----------------------------------------------------------------
 
-    call ice_prescribed_init(clock, ice_mesh, rc)
+    call ice_prescribed_init(gcomp, clock, ice_mesh, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #ifdef CESMCOUPLED
