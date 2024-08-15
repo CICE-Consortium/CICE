@@ -2,7 +2,7 @@ module cice_wrapper_mod
 
 #ifdef CESMCOUPLED
   use perf_mod      , only : t_startf, t_stopf, t_barrierf
-  use shr_file_mod  , only : shr_file_getlogunit, shr_file_setlogunit
+  use shr_log_mod  , only : shr_log_getlogunit, shr_log_setlogunit
 
   use ice_kinds_mod , only : dbl_kind, int_kind, char_len, char_len_long
 
@@ -82,12 +82,12 @@ contains
 
   ! Define stub routines that do nothing - they are just here to avoid
   ! having cppdefs in the main program
-  subroutine shr_file_setLogUnit(nunit)
+  subroutine shr_log_setLogUnit(nunit)
     integer, intent(in) :: nunit
-  end subroutine shr_file_setLogUnit
-  subroutine shr_file_getLogUnit(nunit)
+  end subroutine shr_log_setLogUnit
+  subroutine shr_log_getLogUnit(nunit)
     integer, intent(in) :: nunit
-  end subroutine shr_file_getLogUnit
+  end subroutine shr_log_getLogUnit
   subroutine t_startf(string)
     character(len=*) :: string
   end subroutine t_startf

@@ -27,6 +27,7 @@ restart        gx3     8x2        alt06
 restart        gx3     8x3        alt07
 restart        gx3    16x2        snicar
 restart        gx3    12x2        snicartest
+restart        gx3     8x2        congel
 restart        gx3     8x3        saltflux
 restart        gx3    18x2        debug,maskhalo
 restart        gx3     6x2        alt01,debug,short
@@ -37,6 +38,7 @@ smoke          gx3     4x4        alt04,debug,short
 smoke          gx3     4x4        alt05,debug,short
 smoke          gx3     8x2        alt06,debug,short
 smoke          gx3     8x3        alt07,debug,short
+smoke          gx3     8x2        congel,debug,short
 smoke          gx3    16x2        snicar,debug,short
 smoke          gx3    12x2        snicartest,debug,short
 smoke          gx3     10x2       debug,diag1,run5day,gx3sep2

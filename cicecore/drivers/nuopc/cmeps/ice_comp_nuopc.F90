@@ -38,7 +38,7 @@ module ice_comp_nuopc
   use icepack_intfc      , only : icepack_init_orbit, icepack_init_parameters, icepack_query_orbit
   use icepack_intfc      , only : icepack_query_tracer_flags, icepack_query_parameters
   use cice_wrapper_mod   , only : t_startf, t_stopf, t_barrierf
-  use cice_wrapper_mod   , only : shr_file_getlogunit, shr_file_setlogunit
+  use cice_wrapper_mod   , only : shr_log_getlogunit, shr_log_setlogunit
   use cice_wrapper_mod   , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit, wtime
 #ifdef CESMCOUPLED
   use shr_const_mod
@@ -497,7 +497,7 @@ contains
     ! Note that sets the nu_diag module variable in ice_fileunits
     ! Set the nu_diag_set flag so it's not reset later
 
-    call shr_file_setLogUnit (shrlogunit)
+    call shr_log_setLogUnit (shrlogunit)
     call ufs_file_setLogUnit('./log.ice.timer',nu_timer,runtimelog)
 
     call NUOPC_CompAttributeGet(gcomp, name="diro", value=cvalue, &
@@ -1067,8 +1067,8 @@ contains
     ! Reset shr logging to my log file
     !--------------------------------
 
-    call shr_file_getLogUnit (shrlogunit)
-    call shr_file_setLogUnit (nu_diag)
+    call shr_log_getLogUnit (shrlogunit)
+    call shr_log_setLogUnit (nu_diag)
 
     !--------------------------------
     ! Query the Component for its clock, importState and exportState
@@ -1207,7 +1207,7 @@ contains
     end if
 
     ! reset shr logging to my original values
-    call shr_file_setLogUnit (shrlogunit)
+    call shr_log_setLogUnit (shrlogunit)
 
     !--------------------------------
     ! stop timers and print timer info
