@@ -348,6 +348,7 @@
     tr_bgc_DON      = .false.
     tr_bgc_Fe       = .false. 
     grid_o          = 0.006
+    grid_o_t        = 0.006
     l_sk            = 20.0
     grid_oS         = 0.0
     l_skS           = 0.028
@@ -429,7 +430,7 @@
     fr_graze_s         = 0.5
     fr_graze_e         = 0.5
     fr_mort2min        = 0.9
-    fr_dFe             = 0.9
+    fr_dFe             = 1.0
     k_nitrif           = 0.046
     t_iron_conv        = 3065.0
     max_loss           = 0.9
@@ -440,7 +441,7 @@
     t_sk_ox            = 12.0
     algaltype_diatoms  = 0.0
     algaltype_sp       = 0.0
-    algaltype_phaeo    = 0.5
+    algaltype_phaeo    = 0.0
     nitratetype        = -1.0
     ammoniumtype       = 0.0
     silicatetype       = -1.0
@@ -452,12 +453,12 @@
     dontype_protein    = 0.0
     fedtype_1          = 0.0
     feptype_1          = 0.5
-    zaerotype_bc1      = 0.0
-    zaerotype_bc2      = 0.0
-    zaerotype_dust1    = 0.0
-    zaerotype_dust2    = 0.0
-    zaerotype_dust3    = 0.0
-    zaerotype_dust4    = 0.0
+    zaerotype_bc1      = -1.0
+    zaerotype_bc2      = -1.0
+    zaerotype_dust1    = -1.0
+    zaerotype_dust2    = -1.0
+    zaerotype_dust3    = -1.0
+    zaerotype_dust4    = -1.0
     ratio_C2N_diatoms  = 7.0
     ratio_C2N_sp       = 7.0
     ratio_C2N_phaeo    = 7.0

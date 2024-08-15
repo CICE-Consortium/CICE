@@ -26,9 +26,6 @@ tr_bgc_Fe       = .true.
 # modal_aero      = .true.
 # dEdd_algae      = .true.
 tfrz_option     = 'mushy'
-highfreq        = .true.
-natmiter        = 10
-oceanmixed_ice  = .false.
 #
 nslyr           = 5
 tr_snow         = .true.
