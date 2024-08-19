@@ -326,6 +326,22 @@
          frz_onset, &! day of year that freezing begins (congel or frazil)
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
 
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         flpnd,  & ! pond flushing rate due to ice permeability (m/step)
+         expnd,  & ! exponential pond drainage rate (m/step)
+         frpnd,  & ! pond drainage rate due to freeboard constraint (m/step)
+         rfpnd,  & ! runoff rate due to rfrac (m/step)
+         ilpnd,  & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         mipnd,  & ! pond 'drainage' due to ice melting (m / step)
+         rdpnd     ! pond 'drainage' due to ridging (m)
+
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         flpndn, & ! category pond flushing rate due to ice permeability (m/step)
+         expndn, & ! category exponential pond drainage rate (m/step)
+         frpndn, & ! category pond drainage rate due to freeboard constraint (m/step)
+         rfpndn, & ! category runoff rate due to rfrac (m/step)
+         ilpndn    ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+
       real (kind=dbl_kind), &
          dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
@@ -392,7 +408,11 @@
 
       use ice_grid, only : grid_ice
 
+      logical (kind=log_kind) :: tr_pond
+
       integer (int_kind) :: ierr
+
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
 
       allocate( &
          strax      (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
@@ -619,6 +639,24 @@
          stressmU   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
          stress12U  (nx_block,ny_block,max_blocks), & ! sigma12
          stat=ierr)
+      if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
+
+      if (tr_pond) &
+         allocate( &
+         flpnd      (nx_block,ny_block,max_blocks), & ! pond flushing rate due to ice permeability (m/step)
+         expnd      (nx_block,ny_block,max_blocks), & ! exponential pond drainage rate (m/step) 
+         frpnd      (nx_block,ny_block,max_blocks), & ! pond drainage rate due to freeboard constraint (m/step)
+         rfpnd      (nx_block,ny_block,max_blocks), & ! runoff rate due to rfrac (m/step)
+         ilpnd      (nx_block,ny_block,max_blocks), & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         mipnd      (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ice melting (m / step)
+         rdpnd      (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ridging (m)
+         flpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond flushing rate due to ice permeability (m/step)
+         expndn     (nx_block,ny_block,ncat,max_blocks), & ! category exponential pond drainage rate (m/step) 
+         frpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond drainage rate due to freeboard constraint (m/step)
+         rfpndn     (nx_block,ny_block,ncat,max_blocks), & ! category runoff rate due to rfrac (m/step)
+         ilpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         stat=ierr)
+
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
       end subroutine alloc_flux
@@ -931,6 +969,7 @@
 
       logical (kind=log_kind) :: &
           formdrag, &
+          tr_pond,  &
           tr_iage
 
       integer (kind=int_kind) :: &
@@ -946,6 +985,7 @@
 
       call icepack_query_parameters(formdrag_out=formdrag)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage)
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
       call icepack_query_tracer_indices(nt_iage_out=nt_iage)
       call icepack_query_parameters( dragio_out=dragio, &
          vonkar_out=vonkar, zref_out=zref, iceruf_out=iceruf)
@@ -991,6 +1031,22 @@
       snowfrac (:,:,:) = c0
       frazil_diag (:,:,:) = c0
 
+      ! Extra pond diagnostics
+      if (tr_pond) then
+         flpnd(:,:,:) = c0
+         expnd(:,:,:) = c0
+         frpnd(:,:,:) = c0
+         rfpnd(:,:,:) = c0
+         ilpnd(:,:,:) = c0
+         mipnd(:,:,:) = c0
+         rdpnd(:,:,:) = c0
+         flpndn(:,:,:,:) = c0
+         expndn(:,:,:,:) = c0
+         frpndn(:,:,:,:) = c0
+         rfpndn(:,:,:,:) = c0
+         ilpndn(:,:,:,:) = c0
+      endif
+
       ! drag coefficients are computed prior to the atmo_boundary call,
       ! during the thermodynamics section
       Cdn_ocn(:,:,:) = dragio
@@ -1027,7 +1083,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear, vort
+      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear
       use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
@@ -1048,7 +1104,6 @@
       sig2    (:,:,:) = c0
       divu    (:,:,:) = c0
       shear   (:,:,:) = c0
-      vort    (:,:,:) = c0
       taubxU  (:,:,:) = c0
       taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
