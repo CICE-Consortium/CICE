@@ -236,6 +236,8 @@
           meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
           send_i2x_per_cat, fswthrun_ai, dsnow
+      use ice_flux, only: flpnd, expnd, frpnd, rfpnd, ilpnd
+      use ice_flux, only: flpndn, expndn, frpndn, rfpndn, ilpndn
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
@@ -265,6 +267,8 @@
 #endif
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
+         iglob(nx_block), & ! global indices
+         jglob(ny_block), & ! global indices
          i, j           , & ! horizontal indices
          n              , & ! thickness category index
          k, kk              ! indices for aerosols
@@ -275,8 +279,7 @@
          nt_isosno, nt_isoice, nt_rsnw, nt_smice, nt_smliq, nt_fsd
 
       logical (kind=log_kind) :: &
-         tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, &
-         tr_pond_lvl, tr_pond_topo, calc_Tsfc, snwgrain
+         tr_iage, tr_FY, tr_iso, tr_aero, calc_Tsfc, snwgrain
 
       real (kind=dbl_kind) :: &
          puny               ! a very small number
@@ -301,8 +304,7 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
-         tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
-         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo)
+         tr_aero_out=tr_aero )
       call icepack_query_tracer_indices( &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
@@ -353,6 +355,8 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
+      iglob = this_block%i_glob
+      jglob = this_block%j_glob
 
       do j = jlo, jhi
       do i = ilo, ihi
@@ -538,11 +542,21 @@
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
-                      yday=yday, prescribed_ice=prescribed_ice, &
                       afsdn        = trcrn       (i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk), &
                       nfsd         = nfsd, &
                       floe_rad_c = floe_rad_c(:),          &
                       floe_binwidth = floe_binwidth(:) )
+                      flpnd        = flpnd       (i,j,  iblk), &
+                      expnd        = expnd       (i,j,  iblk), &
+                      frpnd        = frpnd       (i,j,  iblk), &
+                      rfpnd        = rfpnd       (i,j,  iblk), &
+                      ilpnd        = ilpnd       (i,j,  iblk), &
+                      flpndn       = flpndn      (i,j,:,iblk), &
+                      expndn       = expndn      (i,j,:,iblk), &
+                      frpndn       = frpndn      (i,j,:,iblk), &
+                      rfpndn       = rfpndn      (i,j,:,iblk), &
+                      ilpndn       = ilpndn      (i,j,:,iblk), &
+                      yday=yday, prescribed_ice=prescribed_ice)
 
       !-----------------------------------------------------------------
       ! handle per-category i2x fields, no merging
@@ -623,7 +637,7 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           fsalt, Tf, sss, salinz, fhocn, rsiden, wlat, &
-          meltl, frazil_diag
+          meltl, frazil_diag,mipnd
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: tmask
@@ -736,7 +750,8 @@
                       d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
                       d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
                       floe_rad_c = floe_rad_c(:),          &
-                      floe_binwidth = floe_binwidth(:) )
+                      floe_binwidth = floe_binwidth(:),    &
+                      mipnd      = mipnd(i,j, iblk))
          endif ! tmask
 
       enddo                     ! i
@@ -832,26 +847,26 @@
                                    nt_strata     = nt_strata(:,:),   &
                                    Tf            = Tf(i,j,iblk))
 
-            if (present(offset)) then
+         if (present(offset)) then
 
-            !-----------------------------------------------------------------
-            ! Compute thermodynamic area and volume tendencies.
-            !-----------------------------------------------------------------
+      !-----------------------------------------------------------------
+      ! Compute thermodynamic area and volume tendencies.
+      !-----------------------------------------------------------------
 
-               if (present(daidt)) daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
-               if (present(dvidt)) dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
-               if (present(dvsdt)) dvsdt(i,j,iblk) = (vsno(i,j,iblk) - dvsdt(i,j,iblk)) / dt
-               if (present(dagedt) .and. tr_iage) then
-                  if (offset > c0) then                 ! thermo
-                     if (trcr(i,j,nt_iage,iblk) > c0) &
-                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                      - dagedt(i,j,iblk) - offset) / dt
-                  else                                  ! dynamics
-                     dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
-                                      - dagedt(i,j,iblk)) / dt
-                  endif
-               endif ! tr_iage
-            endif ! present(offset)
+         if (present(daidt)) daidt(i,j,iblk) = (aice(i,j,iblk) - daidt(i,j,iblk)) / dt
+         if (present(dvidt)) dvidt(i,j,iblk) = (vice(i,j,iblk) - dvidt(i,j,iblk)) / dt
+         if (present(dvsdt)) dvsdt(i,j,iblk) = (vsno(i,j,iblk) - dvsdt(i,j,iblk)) / dt
+         if (tr_iage .and. present(dagedt)) then
+            if (offset > c0) then                 ! thermo
+               if (trcr(i,j,nt_iage,iblk) > c0) &
+               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                - dagedt(i,j,iblk) - offset) / dt
+            else                                  ! dynamics
+               dagedt(i,j,iblk) = (trcr(i,j,nt_iage,iblk) &
+                                - dagedt(i,j,iblk)) / dt
+            endif
+         endif ! tr_iage
+         endif ! present(offset)
 
          enddo ! i
          enddo ! j
@@ -1058,9 +1073,10 @@
 
       use ice_arrays_column, only: hin_max, first_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
+      use ice_grid, only: TLAT, TLON
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
-          dvirdgdt, opening, fpond, fresh, fhocn, &
+          dvirdgdt, opening, fpond, fresh, fhocn, rdpnd, &
           aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt, &
           dvirdgndt, araftn, vraftn, fsalt, Tf
       use ice_flux_bgc, only: flux_bio, faero_ocn, fiso_ocn
@@ -1085,7 +1101,9 @@
 
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         i, j,            & ! horizontal indices
+         iglob(nx_block), & ! global indices
+         jglob(ny_block), & ! global indices
+         i, j, n,         & ! horizontal indices
          ntrcr,           & !
          nbtrcr             !
 
@@ -1108,6 +1126,8 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
+      iglob = this_block%i_glob
+      jglob = this_block%j_glob
 
       do j = jlo, jhi
       do i = ilo, ihi
@@ -1154,7 +1174,16 @@
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
                          flux_bio  = flux_bio (i,j,1:nbtrcr,iblk), &
-                         Tf        = Tf(i,j,iblk))
+                         Tf        = Tf(i,j,iblk),          &
+                         rdpnd     = rdpnd(i,j,iblk))
+
+      if ((iglob(i) == 162 .and. jglob(j) == 387).or. &
+          (iglob(i) == 177 .and. jglob(j) == 442).or. &
+          (iglob(i) == 405 .and. jglob(j) == 465).or. &
+          (iglob(i) == 507 .and. jglob(j) == 122)) then
+         print *,"TLAT,TLON",TLAT(i,j,iblk),TLON(i,j,iblk)
+         print *,'rdpnd',rdpnd(i,j,iblk)
+      endif
 
          endif ! tmask
 

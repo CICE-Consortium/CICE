@@ -44,7 +44,7 @@
       private
       public :: init_thermo_vertical, init_shortwave, &
                 init_age, init_FY, init_lvl, init_fsd, &
-                init_meltponds_lvl, init_meltponds_topo, &
+                init_meltponds_lvl, init_meltponds_topo, init_meltponds_sealvl, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
                 count_tracers, init_isotope, init_snowtracers
 
@@ -554,6 +554,26 @@
       dhsn(:,:,:) = c0
 
       end subroutine init_meltponds_lvl
+
+!=======================================================================
+
+!  Initialize melt ponds.
+
+      subroutine init_meltponds_sealvl(apnd, hpnd, ipnd, dhsn)
+
+      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+         apnd , & ! melt pond area fraction
+         hpnd , & ! melt pond depth
+         ipnd , & ! melt pond refrozen lid thickness
+         dhsn     ! depth difference for snow on sea ice and pond ice
+      character(len=*),parameter :: subname='(init_meltponds_sealvl)'
+
+      apnd(:,:,:) = c0
+      hpnd(:,:,:) = c0
+      ipnd(:,:,:) = c0
+      dhsn(:,:,:) = c0
+
+      end subroutine init_meltponds_sealvl
 
 !=======================================================================
 
@@ -1713,7 +1733,7 @@
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_snow
-      logical (kind=log_kind) :: tr_iso, tr_pond_lvl, tr_pond_topo
+      logical (kind=log_kind) :: tr_iso, tr_pond_lvl, tr_pond_topo, tr_pond_sealvl
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
@@ -1797,7 +1817,7 @@
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
-         tr_pond_lvl_out=tr_pond_lvl, &
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_sealvl_out=tr_pond_lvl, &
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
          tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
@@ -1855,6 +1875,10 @@
           if (tr_pond_lvl) then
               ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
               nt_ipnd = ntrcr      ! on level-ice ponds (if frzpnd='hlid')
+          endif
+          if (tr_pond_sealvl) then
+              ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
+              nt_ipnd = ntrcr      ! on sea level ponds (if frzpnd='hlid')
           endif
           if (tr_pond_topo) then
               ntrcr = ntrcr + 1    !
