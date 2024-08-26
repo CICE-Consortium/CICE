@@ -55,27 +55,6 @@
          nitratetype        , ammoniumtype       , silicatetype,  &
          dmspptype          , dmspdtype          , humtype
 
-      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
-         dictype
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         algaltype   ! tau_min for both retention and release
-
-      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
-         doctype
-
-      real (kind=dbl_kind), dimension(icepack_max_don) :: &
-         dontype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         fedtype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         feptype
-
-      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
-         zaerotype
-
       real (kind=dbl_kind) :: &
           grid_o, l_sk, grid_o_t, initbio_frac, &
           frazil_scav, grid_oS, l_skS, &
@@ -1419,6 +1398,16 @@
       ! biogeochemistry
       !-----------------------------------------------------------------
 
+      ! deprecate skl bgc (Aug 2024)
+      ! no skl code removed yet
+      if (skl_bgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: skl_bgc is not validate and temporarily DEPRECATED'
+            write(nu_diag,*) 'ERROR: if you would like to use skl_bgc, please contact the Consortium'
+            abort_flag = 102
+         endif
+      endif
+
       if (.not. tr_brine) then
          if (solve_zbgc) then
             if (my_task == master_task) then
@@ -2399,6 +2388,27 @@
          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
          tr_bgc_hum
 
+      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
+         dictype
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         algaltype   ! tau_min for both retention and release
+
+      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
+         doctype
+
+      real (kind=dbl_kind), dimension(icepack_max_don) :: &
+         dontype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         fedtype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         feptype
+
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+         zaerotype
+
       real (kind=dbl_kind) :: &
          initbio_frac, &
          frazil_scav
@@ -2501,13 +2511,29 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory')
 
-      R_C2N(1) = ratio_C2N_diatoms
-      R_C2N(2) = ratio_C2N_sp
-      R_C2N(3) = ratio_C2N_phaeo
+      R_C2N(1)     = ratio_C2N_diatoms
+      R_C2N(2)     = ratio_C2N_sp
+      R_C2N(3)     = ratio_C2N_phaeo
 
-      R_chl2N(1) = ratio_chl2N_diatoms
-      R_chl2N(2) = ratio_chl2N_sp
-      R_chl2N(3) = ratio_chl2N_phaeo
+      R_chl2N(1)   = ratio_chl2N_diatoms
+      R_chl2N(2)   = ratio_chl2N_sp
+      R_chl2N(3)   = ratio_chl2N_phaeo
+
+      algaltype(1) = algaltype_diatoms
+      algaltype(2) = algaltype_sp
+      algaltype(3) = algaltype_phaeo
+      dictype(:)   = -c1
+      doctype(1)   = doctype_s
+      doctype(2)   = doctype_l
+      dontype(1)   = dontype_protein
+      fedtype(1)   = fedtype_1
+      feptype(1)   = feptype_1
+      zaerotype(1) = zaerotype_bc1
+      zaerotype(2) = zaerotype_bc2
+      zaerotype(3) = zaerotype_dust1
+      zaerotype(4) = zaerotype_dust2
+      zaerotype(5) = zaerotype_dust3
+      zaerotype(6) = zaerotype_dust4
 
       !-----------------------------------------------------------------
       ! assign tracer dependencies
@@ -2837,6 +2863,7 @@
          write(nu_diag,1000) ' frazil_scav               = ', frazil_scav
 
       endif  ! skl_bgc or solve_bgc
+      call flush_fileunit(nu_diag)
       endif  ! master_task
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
@@ -2896,6 +2923,10 @@
       !--------
 
       bgc_tracer_type(nlt_bgc) = bgctype
+
+      if (my_task == master_task) then
+         write(nu_diag,*) subname,'bgc_tracer_type',nlt_bgc,bgc_tracer_type(nlt_bgc)
+      endif
 
       if (nk > 1) then ! include vertical bgc in snow
          do k = nk, nk+1
