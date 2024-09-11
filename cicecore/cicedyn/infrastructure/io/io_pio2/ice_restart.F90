@@ -741,6 +741,8 @@
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
 
+      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+
       if (ndim3 == ncat .and. ndims == 3) then
          call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
 #ifdef CESMCOUPLED
@@ -767,8 +769,6 @@
 
       call ice_pio_check(status, &
            subname//" ERROR: reading var "//trim(vname),file=__FILE__,line=__LINE__)
-
-      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (diag) then
          if (ndim3 > 1) then
