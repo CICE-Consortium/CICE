@@ -1053,7 +1053,7 @@
       tr_bgc_N        = .true.   !
 
       ! brine height parameter
-      phi_snow        = -0.3_dbl_kind      ! snow porosity
+      phi_snow        = -1.0_dbl_kind      ! snow porosity
 
       ! skl biology parameters
       bgc_flux_type   = 'Jin2006'! type of ocean-ice poston velocity ('constant')
@@ -1061,7 +1061,7 @@
       ! z biology parameters
       grid_o             = 0.006           ! for bottom flux
       grid_o_t           = 0.006           ! for top flux
-      l_sk               = 20.0_dbl_kind   ! characteristic diffusive scale (m)
+      l_sk               = 2.0_dbl_kind    ! characteristic diffusive scale (m)
       initbio_frac       = c1              ! fraction of ocean trcr concentration in bio trcrs
       frazil_scav        = 0.8_dbl_kind    ! increase in initial bio tracer from ocean scavenging
       ratio_Si2N_diatoms = 1.8_dbl_kind    ! algal Si to N (mol/mol)
@@ -1081,7 +1081,7 @@
       ratio_Fe2DOC_l     = 0.033_dbl_kind  ! Fe to C of DOC (nmol/umol) lipids
       fr_resp            = 0.05_dbl_kind   ! frac of algal growth lost due to respiration
       tau_min            = 3600.0_dbl_kind ! rapid mobile to stationary exchanges (s)
-      tau_max            = 7776000_dbl_kind! long time mobile to stationary exchanges (s)
+      tau_max            = 604800._dbl_kind! long time mobile to stationary exchanges (s)
       algal_vel          = 1.0e-7_dbl_kind ! 0.5 cm/d(m/s) Lavoie 2005  1.5 cm/day
       R_dFe2dust         = 0.035_dbl_kind  !  g/g (3.5% content) Tagliabue 2009
       dustFe_sol         = 0.005_dbl_kind  ! solubility fraction
