@@ -11,6 +11,7 @@ restart        gx3    14x2        gx3ncarbulk,alt06,histall,iobinary,precision8
 restart        gx3    14x2        gx3ncarbulk,alt07,histall,iobinary,precision8
 #restart        gx3    32x1        gx3ncarbulk,bgcz,histall,iobinary,precision8
 #restart        gx3    16x2        gx3ncarbulk,bgczm,histall,iobinary
+restart        gx3    16x2        gx3ncarbulk,zaero,histall,iobinary
 restart        gx3    14x2        gx3ncarbulk,isotope,histall,iobinary,precision8
 restart        gx3    16x2        gx3ncarbulk,fsd12,histall,iobinary
 restart        gx3     8x4        gx3ncarbulk,debug,histall,iobinary,precision8,histinst
