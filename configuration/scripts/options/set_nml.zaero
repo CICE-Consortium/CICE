@@ -1,3 +1,4 @@
+nblyr        = 7
 n_aero       = 0
 n_zaero      = 3
 tr_brine     = .true.
