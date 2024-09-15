@@ -349,10 +349,10 @@
     tr_bgc_Fe       = .false. 
     grid_o          = 0.006
     grid_o_t        = 0.006
-    l_sk            = 20.0
+    l_sk            = 2.0
     grid_oS         = 0.0
     l_skS           = 0.028
-    phi_snow        = -0.3
+    phi_snow        = -1.0
     initbio_frac    = 1.0
     frazil_scav     = 0.8  
     ratio_Si2N_diatoms = 1.8                         
@@ -372,7 +372,7 @@
     ratio_Fe2DOC_l     = 0.033
     fr_resp            = 0.05
     tau_min            = 3600.0
-    tau_max            = 7776000.0
+    tau_max            = 604800.0
     algal_vel          = 0.0000001
     R_dFe2dust         = 0.035
     dustFe_sol         = 0.005
