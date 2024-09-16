@@ -55,27 +55,6 @@
          nitratetype        , ammoniumtype       , silicatetype,  &
          dmspptype          , dmspdtype          , humtype
 
-      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
-         dictype
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         algaltype   ! tau_min for both retention and release
-
-      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
-         doctype
-
-      real (kind=dbl_kind), dimension(icepack_max_don) :: &
-         dontype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         fedtype
-
-      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
-         feptype
-
-      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
-         zaerotype
-
       real (kind=dbl_kind) :: &
           grid_o, l_sk, grid_o_t, initbio_frac, &
           frazil_scav, grid_oS, l_skS, &
@@ -109,6 +88,7 @@
           max_loss           , max_dfe_doc1       , fr_resp_s          ,  &
           y_sk_DMS           , t_sk_conv          , t_sk_ox            ,  &
           algaltype_diatoms  , algaltype_sp       , algaltype_phaeo    ,  &
+          dictype_1          ,                                            &
           doctype_s          , doctype_l          , dontype_protein    ,  &
           fedtype_1          , feptype_1          , zaerotype_bc1      ,  &
           zaerotype_bc2      , zaerotype_dust1    , zaerotype_dust2    ,  &
@@ -149,7 +129,7 @@
       !-----------------------------------------------------------------
 
       call icepack_query_parameters(depressT_out=depressT)
-      call icepack_init_thermo(nilyr=nilyr, sprofile=sprofile)
+      call icepack_init_thermo(sprofile=sprofile)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -345,7 +325,6 @@
 
             if (tmask(i,j,iblk)) then
                call icepack_step_radiation (dt=dt,                             &
-                          swgrid=swgrid(:), igrid=igrid(:),                    &
                           fbri=fbri(:),                                        &
                           aicen=aicen(i,j,:,iblk),                             &
                           vicen=vicen(i,j,:,iblk),                             &
@@ -656,10 +635,10 @@
       if (tr_fsd) then
 
          ! initialize floe size distribution the same in every column and category
-         call icepack_init_fsd(nfsd, ice_ic, &
-            floe_rad_c,    &  ! fsd size bin centre in m (radius)
-            floe_binwidth, &  ! fsd size bin width in m (radius)
-            afsd)             ! floe size distribution
+         call icepack_init_fsd(ice_ic = ice_ic, &
+            floe_rad_c    = floe_rad_c,    &  ! fsd size bin centre in m (radius)
+            floe_binwidth = floe_binwidth, &  ! fsd size bin width in m (radius)
+            afsd          = afsd)             ! floe size distribution
 
          do iblk = 1, max_blocks
             do j = 1, ny_block
@@ -670,7 +649,7 @@
                enddo    ! k
                enddo    ! n
 
-               call icepack_cleanup_fsd (ncat, nfsd, afsdn) ! renormalize
+               call icepack_cleanup_fsd (afsdn = afsdn) ! renormalize
 
                do n = 1, ncat
                do k = 1, nfsd
@@ -811,9 +790,7 @@
                     algalN=algalN(i,j,:,iblk), doc=doc  (i,j,:,iblk), dic=dic(i,j,:,iblk), &
                     don=don      (i,j,:,iblk), fed=fed  (i,j,:,iblk), fep=fep(i,j,:,iblk), &
                     hum=hum      (i,j,  iblk), nit=nit  (i,j,  iblk), sil=sil(i,j,  iblk), &
-                    zaeros=zaeros(i,j,:,iblk), &
-                    max_dic = icepack_max_dic, max_don  = icepack_max_don, &
-                    max_fe  = icepack_max_fe,  max_aero = icepack_max_aero)
+                    zaeros=zaeros(i,j,:,iblk))
             enddo  ! i
             enddo  ! j
 
@@ -841,10 +818,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            call icepack_load_ocean_bio_array(max_nbtrcr=icepack_max_nbtrcr,     &
-                         max_algae=icepack_max_algae, max_don=icepack_max_don,   &
-                         max_doc=icepack_max_doc,     max_fe=icepack_max_fe,     &
-                         max_dic=icepack_max_dic,     max_aero=icepack_max_aero, &
+            call icepack_load_ocean_bio_array( &
                          nit =nit (i,j,  iblk), amm=amm(i,j,  iblk), sil   =sil   (i,j,  iblk), &
                          dmsp=dmsp(i,j,  iblk), dms=dms(i,j,  iblk), algalN=algalN(i,j,:,iblk), &
                          doc =doc (i,j,:,iblk), don=don(i,j,:,iblk), dic   =dic   (i,j,:,iblk), &
@@ -881,8 +855,7 @@
                    trcrn_bgc(k-ntrcr_o,n) = trcrn(i,j,k,n,iblk)
                 enddo
                 enddo
-            call icepack_init_bgc(ncat=ncat, nblyr=nblyr, nilyr=nilyr, ntrcr_o=ntrcr_o,  &
-                         cgrid=cgrid, igrid=igrid, ntrcr=ntrcr, nbtrcr=nbtrcr,           &
+            call icepack_init_bgc( &
                          sicen=sicen(:,:), trcrn=trcrn_bgc(:,:), sss=sss(i,j, iblk), &
                          ocean_bio_all=ocean_bio_all(i,j,:,iblk))
             enddo  ! i
@@ -926,8 +899,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__,line= __LINE__)
 
-      call icepack_init_hbrine(bgrid=bgrid, igrid=igrid, cgrid=cgrid, icgrid=icgrid, &
-            swgrid=swgrid, nblyr=nblyr, nilyr=nilyr, phi_snow=phi_snow)
+      call icepack_init_hbrine(phi_snow=phi_snow)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -1032,6 +1004,7 @@
         algaltype_diatoms  , algaltype_sp       , algaltype_phaeo    ,  &
         nitratetype        , ammoniumtype       , silicatetype       ,  &
         dmspptype          , dmspdtype          , humtype            ,  &
+        dictype_1          ,                                            &
         doctype_s          , doctype_l          , dontype_protein    ,  &
         fedtype_1          , feptype_1          , zaerotype_bc1      ,  &
         zaerotype_bc2      , zaerotype_dust1    , zaerotype_dust2    ,  &
@@ -1080,17 +1053,17 @@
       tr_bgc_N        = .true.   !
 
       ! brine height parameter
-      phi_snow        = p5       ! snow porosity
+      phi_snow        = -1.0_dbl_kind      ! snow porosity
 
       ! skl biology parameters
       bgc_flux_type   = 'Jin2006'! type of ocean-ice poston velocity ('constant')
 
       ! z biology parameters
-      grid_o          = c5           ! for bottom flux
-      grid_o_t        = c5           ! for top flux
-      l_sk            = 7.0_dbl_kind ! characteristic diffusive scale (m)
-      initbio_frac    = c1           ! fraction of ocean trcr concentration in bio trcrs
-      frazil_scav     = c1           ! increase in initial bio tracer from ocean scavenging
+      grid_o             = 0.006           ! for bottom flux
+      grid_o_t           = 0.006           ! for top flux
+      l_sk               = 2.0_dbl_kind    ! characteristic diffusive scale (m)
+      initbio_frac       = c1              ! fraction of ocean trcr concentration in bio trcrs
+      frazil_scav        = 0.8_dbl_kind    ! increase in initial bio tracer from ocean scavenging
       ratio_Si2N_diatoms = 1.8_dbl_kind    ! algal Si to N (mol/mol)
       ratio_Si2N_sp      = c0              ! diatoms, small plankton, phaeocystis
       ratio_Si2N_phaeo   = c0
@@ -1099,118 +1072,119 @@
       ratio_S2N_phaeo    = 0.03_dbl_kind
       ratio_Fe2C_diatoms = 0.0033_dbl_kind ! algal Fe to C  (umol/mol)
       ratio_Fe2C_sp      = 0.0033_dbl_kind
-      ratio_Fe2C_phaeo   = p1
+      ratio_Fe2C_phaeo   = 0.1_dbl_kind
       ratio_Fe2N_diatoms = 0.023_dbl_kind  ! algal Fe to N  (umol/mol)
       ratio_Fe2N_sp      = 0.023_dbl_kind
       ratio_Fe2N_phaeo   = 0.7_dbl_kind
       ratio_Fe2DON       = 0.023_dbl_kind  ! Fe to N of DON (nmol/umol)
-      ratio_Fe2DOC_s     = p1              ! Fe to C of DOC (nmol/umol) saccharids
+      ratio_Fe2DOC_s     = 0.1_dbl_kind    ! Fe to C of DOC (nmol/umol) saccharids
       ratio_Fe2DOC_l     = 0.033_dbl_kind  ! Fe to C of DOC (nmol/umol) lipids
       fr_resp            = 0.05_dbl_kind   ! frac of algal growth lost due to respiration
-      tau_min            = 5200.0_dbl_kind ! rapid mobile to stationary exchanges (s)
-      tau_max            = 1.73e5_dbl_kind ! long time mobile to stationary exchanges (s)
-      algal_vel          = 1.11e-8_dbl_kind! 0.5 cm/d(m/s) Lavoie 2005  1.5 cm/day
+      tau_min            = 3600.0_dbl_kind ! rapid mobile to stationary exchanges (s)
+      tau_max            = 604800._dbl_kind! long time mobile to stationary exchanges (s)
+      algal_vel          = 1.0e-7_dbl_kind ! 0.5 cm/d(m/s) Lavoie 2005  1.5 cm/day
       R_dFe2dust         = 0.035_dbl_kind  !  g/g (3.5% content) Tagliabue 2009
       dustFe_sol         = 0.005_dbl_kind  ! solubility fraction
       chlabs_diatoms     = 0.03_dbl_kind   ! chl absorption (1/m/(mg/m^3))
       chlabs_sp          = 0.01_dbl_kind
       chlabs_phaeo       = 0.05_dbl_kind
-      alpha2max_low_diatoms = 0.8_dbl_kind ! light limitation (1/(W/m^2))
-      alpha2max_low_sp      = 0.67_dbl_kind
-      alpha2max_low_phaeo   = 0.67_dbl_kind
-      beta2max_diatoms   = 0.018_dbl_kind  ! light inhibition (1/(W/m^2))
-      beta2max_sp        = 0.0025_dbl_kind
-      beta2max_phaeo     = 0.01_dbl_kind
-      mu_max_diatoms     = 1.2_dbl_kind    ! maximum growth rate (1/day)
-      mu_max_sp          = 0.851_dbl_kind
-      mu_max_phaeo       = 0.851_dbl_kind
-      grow_Tdep_diatoms  = 0.06_dbl_kind ! Temperature dependence of growth (1/C)
-      grow_Tdep_sp       = 0.06_dbl_kind
-      grow_Tdep_phaeo    = 0.06_dbl_kind
-      fr_graze_diatoms   = 0.01_dbl_kind ! Fraction grazed
-      fr_graze_sp        = p1
-      fr_graze_phaeo     = p1
-      mort_pre_diatoms   = 0.007_dbl_kind! Mortality (1/day)
+      alpha2max_low_diatoms = 0.30_dbl_kind ! light limitation (1/(W/m^2))
+      alpha2max_low_sp      = 0.20_dbl_kind
+      alpha2max_low_phaeo   = 0.17_dbl_kind
+      beta2max_diatoms   = 0.001_dbl_kind  ! light inhibition (1/(W/m^2))
+      beta2max_sp        = 0.001_dbl_kind
+      beta2max_phaeo     = 0.04_dbl_kind
+      mu_max_diatoms     = 1.44_dbl_kind   ! maximum growth rate (1/day)
+      mu_max_sp          = 0.41_dbl_kind
+      mu_max_phaeo       = 0.63_dbl_kind
+      grow_Tdep_diatoms  = 0.063_dbl_kind  ! Temperature dependence of growth (1/C)
+      grow_Tdep_sp       = 0.063_dbl_kind
+      grow_Tdep_phaeo    = 0.063_dbl_kind
+      fr_graze_diatoms   = 0.19_dbl_kind   ! Fraction grazed
+      fr_graze_sp        = 0.19_dbl_kind
+      fr_graze_phaeo     = 0.19_dbl_kind
+      mort_pre_diatoms   = 0.007_dbl_kind  ! Mortality (1/day)
       mort_pre_sp        = 0.007_dbl_kind
       mort_pre_phaeo     = 0.007_dbl_kind
-      mort_Tdep_diatoms  = 0.03_dbl_kind ! T dependence of mortality (1/C)
+      mort_Tdep_diatoms  = 0.03_dbl_kind   ! T dependence of mortality (1/C)
       mort_Tdep_sp       = 0.03_dbl_kind
       mort_Tdep_phaeo    = 0.03_dbl_kind
-      k_exude_diatoms    = c0            ! algal exudation (1/d)
+      k_exude_diatoms    = c0              ! algal exudation (1/d)
       k_exude_sp         = c0
       k_exude_phaeo      = c0
-      K_Nit_diatoms      = c1            ! nitrate half saturation (mmol/m^3)
+      K_Nit_diatoms      = c1              ! nitrate half saturation (mmol/m^3)
       K_Nit_sp           = c1
       K_Nit_phaeo        = c1
-      K_Am_diatoms       = 0.3_dbl_kind  ! ammonium half saturation (mmol/m^3)
+      K_Am_diatoms       = 0.3_dbl_kind    ! ammonium half saturation (mmol/m^3)
       K_Am_sp            = 0.3_dbl_kind
       K_Am_phaeo         = 0.3_dbl_kind
-      K_Sil_diatoms      = 4.0_dbl_kind  ! silicate half saturation (mmol/m^3)
+      K_Sil_diatoms      = 4.0_dbl_kind    ! silicate half saturation (mmol/m^3)
       K_Sil_sp           = c0
       K_Sil_phaeo        = c0
-      K_Fe_diatoms       = c1            ! iron half saturation (nM)
+      K_Fe_diatoms       = c1              ! iron half saturation (nM)
       K_Fe_sp            = 0.2_dbl_kind
-      K_Fe_phaeo         = p1
-      f_don_protein      = 0.6_dbl_kind  ! fraction of spilled grazing to proteins
-      kn_bac_protein     = 0.03_dbl_kind ! Bacterial degredation of DON (1/d)
-      f_don_Am_protein   = 0.25_dbl_kind ! fraction of remineralized DON to ammonium
-      f_doc_s            = 0.4_dbl_kind  ! fraction of mortality to DOC
-      f_doc_l            = 0.4_dbl_kind
-      f_exude_s          = c1            ! fraction of exudation to DOC
+      K_Fe_phaeo         = 0.1_dbl_kind
+      f_don_protein      = 0.6_dbl_kind    ! fraction of spilled grazing to proteins
+      kn_bac_protein     = 0.2_dbl_kind    ! Bacterial degredation of DON (1/d)
+      f_don_Am_protein   = c1              ! fraction of remineralized DON to ammonium
+      f_doc_s            = 0.5_dbl_kind    ! fraction of mortality to DOC
+      f_doc_l            = 0.5_dbl_kind
+      f_exude_s          = c1              ! fraction of exudation to DOC
       f_exude_l          = c1
-      k_bac_s            = 0.03_dbl_kind ! Bacterial degredation of DOC (1/d)
+      k_bac_s            = 0.03_dbl_kind   ! Bacterial degredation of DOC (1/d)
       k_bac_l            = 0.03_dbl_kind
-      T_max              = c0            ! maximum temperature (C)
-      fsal               = c1            ! Salinity limitation (ppt)
-      op_dep_min         = p1            ! Light attenuates for optical depths exceeding min
-      fr_graze_s         = p5            ! fraction of grazing spilled or slopped
-      fr_graze_e         = p5            ! fraction of assimilation excreted
-      fr_mort2min        = p5            ! fractionation of mortality to Am
-      fr_dFe             = 0.3_dbl_kind  ! fraction of remineralized nitrogen
-                                         ! (in units of algal iron)
-      k_nitrif           = c0            ! nitrification rate (1/day)
+      T_max              = c0              ! maximum temperature (C)
+      fsal               = c1              ! Salinity limitation (ppt)
+      op_dep_min         = 0.1_dbl_kind    ! Light attenuates for optical depths exceeding min
+      fr_graze_s         = 0.5_dbl_kind    ! fraction of grazing spilled or slopped
+      fr_graze_e         = 0.5_dbl_kind    ! fraction of assimilation excreted
+      fr_mort2min        = 0.9_dbl_kind    ! fractionation of mortality to Am
+      fr_dFe             = c1              ! fraction of remineralized nitrogen
+                                           ! (in units of algal iron)
+      k_nitrif           = 0.046_dbl_kind  ! nitrification rate (1/day)
       t_iron_conv        = 3065.0_dbl_kind ! desorption loss pFe to dFe (day)
-      max_loss           = 0.9_dbl_kind ! restrict uptake to % of remaining value
-      max_dfe_doc1       = 0.2_dbl_kind ! max ratio of dFe to saccharides in the ice
-                                         !(nM Fe/muM C)
-      fr_resp_s          = 0.75_dbl_kind ! DMSPd fraction of respiration loss as DMSPd
-      y_sk_DMS           = p5            ! fraction conversion given high yield
-      t_sk_conv          = 3.0_dbl_kind  ! Stefels conversion time (d)
-      t_sk_ox            = 10.0_dbl_kind ! DMS oxidation time (d)
-      algaltype_diatoms  = c0            ! ------------------
-      algaltype_sp       = p5            !
-      algaltype_phaeo    = p5            !
-      nitratetype        = -c1           ! mobility type between
-      ammoniumtype       = c1            ! stationary <-->  mobile
-      silicatetype       = -c1           !
-      dmspptype          = p5            !
-      dmspdtype          = -c1           !
-      humtype            = c1            !
-      doctype_s          = p5            !
-      doctype_l          = p5            !
-      dontype_protein    = p5            !
-      fedtype_1          = p5            !
-      feptype_1          = p5            !
-      zaerotype_bc1      = c1            !
-      zaerotype_bc2      = c1            !
-      zaerotype_dust1    = c1            !
-      zaerotype_dust2    = c1            !
-      zaerotype_dust3    = c1            !
-      zaerotype_dust4    = c1            !--------------------
-      ratio_C2N_diatoms  = 7.0_dbl_kind  ! algal C to N ratio (mol/mol)
+      max_loss           = 0.9_dbl_kind    ! restrict uptake to % of remaining value
+      max_dfe_doc1       = 0.2_dbl_kind    ! max ratio of dFe to saccharides in the ice
+                                           !(nM Fe/muM C)
+      fr_resp_s          = 0.9_dbl_kind    ! DMSPd fraction of respiration loss as DMSPd
+      y_sk_DMS           = 0.7_dbl_kind    ! fraction conversion given high yield
+      t_sk_conv          = 5.0_dbl_kind    ! Stefels conversion time (d)
+      t_sk_ox            = 12.0_dbl_kind   ! DMS oxidation time (d)
+      algaltype_diatoms  = c0              ! ------------------
+      algaltype_sp       = c0              !
+      algaltype_phaeo    = c0              !
+      nitratetype        = -c1             ! mobility type between
+      ammoniumtype       = c0              ! stationary <-->  mobile
+      silicatetype       = -c1             !
+      dmspptype          = 0.5_dbl_kind    !
+      dmspdtype          = c0              !
+      humtype            = c0              !
+      dictype_1          = -c1             !
+      doctype_s          = c0              !
+      doctype_l          = c0              !
+      dontype_protein    = c0              !
+      fedtype_1          = c0              !
+      feptype_1          = 0.5_dbl_kind    !
+      zaerotype_bc1      = -c1             !
+      zaerotype_bc2      = -c1             !
+      zaerotype_dust1    = -c1             !
+      zaerotype_dust2    = -c1             !
+      zaerotype_dust3    = -c1             !
+      zaerotype_dust4    = -c1             !--------------------
+      ratio_C2N_diatoms  = 7.0_dbl_kind    ! algal C to N ratio (mol/mol)
       ratio_C2N_sp       = 7.0_dbl_kind
       ratio_C2N_phaeo    = 7.0_dbl_kind
-      ratio_chl2N_diatoms= 2.1_dbl_kind  ! algal chlorophyll to N ratio (mg/mmol)
+      ratio_chl2N_diatoms= 2.1_dbl_kind    ! algal chlorophyll to N ratio (mg/mmol)
       ratio_chl2N_sp     = 1.1_dbl_kind
       ratio_chl2N_phaeo  = 0.84_dbl_kind
-      F_abs_chl_diatoms  = 2.0_dbl_kind  ! scales absorbed radiation for dEdd
+      F_abs_chl_diatoms  = 2.0_dbl_kind    ! scales absorbed radiation for dEdd
       F_abs_chl_sp       = 4.0_dbl_kind
       F_abs_chl_phaeo    = 5.0
-      ratio_C2N_proteins = 7.0_dbl_kind  ! ratio of C to N in proteins (mol/mol)
+      ratio_C2N_proteins = 5.0_dbl_kind    ! ratio of C to N in proteins (mol/mol)
 
-      ! z salinity  parameters
-      grid_oS         = c5            ! for bottom flux
-      l_skS           = 7.0_dbl_kind  ! characteristic diffusive scale (m)
+      ! z salinity parameters
+      grid_oS            = c0              ! for bottom flux
+      l_skS              = 0.028_dbl_kind  ! characteristic diffusive scale (m)
 
       !-----------------------------------------------------------------
       ! read from input file
@@ -1372,6 +1346,7 @@
       call broadcast_scalar(dmspptype          ,  master_task)
       call broadcast_scalar(dmspdtype          ,  master_task)
       call broadcast_scalar(humtype            ,  master_task)
+      call broadcast_scalar(dictype_1          ,  master_task)
       call broadcast_scalar(doctype_s          ,  master_task)
       call broadcast_scalar(doctype_l          ,  master_task)
       call broadcast_scalar(dontype_protein    ,  master_task)
@@ -1422,6 +1397,16 @@
       !-----------------------------------------------------------------
       ! biogeochemistry
       !-----------------------------------------------------------------
+
+      ! deprecate skl bgc (Aug 2024)
+      ! no skl code removed yet
+      if (skl_bgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: skl_bgc is not validate and temporarily DEPRECATED'
+            write(nu_diag,*) 'ERROR: if you would like to use skl_bgc, please contact the Consortium'
+            abort_flag = 102
+         endif
+      endif
 
       if (.not. tr_brine) then
          if (solve_zbgc) then
@@ -1659,16 +1644,113 @@
       ! set values in icepack
       !-----------------------------------------------------------------
 
-      call icepack_init_parameters( &
-          ktherm_in=ktherm, shortwave_in=shortwave, &
-          skl_bgc_in=skl_bgc, z_tracers_in=z_tracers, scale_bgc_in=scale_bgc, &
-          dEdd_algae_in=dEdd_algae, &
-          solve_zbgc_in=solve_zbgc, &
-          bgc_flux_type_in=bgc_flux_type, grid_o_in=grid_o, l_sk_in=l_sk, &
-          initbio_frac_in=initbio_frac, &
-          grid_oS_in=grid_oS, l_skS_in=l_skS, &
-          phi_snow_in=phi_snow, frazil_scav_in = frazil_scav, &
-          modal_aero_in=modal_aero)
+      call icepack_init_parameters(ktherm_in=ktherm, shortwave_in=shortwave, &
+           scale_bgc_in=scale_bgc, skl_bgc_in=skl_bgc, z_tracers_in=z_tracers, &
+           dEdd_algae_in=dEdd_algae, solve_zbgc_in=solve_zbgc, &
+           bgc_flux_type_in=bgc_flux_type, grid_o_in=grid_o, l_sk_in=l_sk, &
+           initbio_frac_in=initbio_frac, frazil_scav_in=frazil_scav, &
+           grid_oS_in=grid_oS, l_skS_in=l_skS, phi_snow_in=phi_snow, &
+           algal_vel_in=algal_vel, R_dFe2dust_in=R_dFe2dust, &
+           dustFe_sol_in=dustFe_sol, T_max_in=T_max, fsal_in=fsal, &
+           op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, &
+           fr_graze_e_in=fr_graze_e, fr_mort2min_in=fr_mort2min, &
+           fr_dFe_in=fr_dFe, k_nitrif_in=k_nitrif, t_iron_conv_in=t_iron_conv, &
+           max_loss_in=max_loss, max_dfe_doc1_in=max_dfe_doc1, fr_resp_in=fr_resp, &
+           fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, &
+           t_sk_ox_in=t_sk_ox, modal_aero_in=modal_aero)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      call icepack_init_parameters ( &
+        ratio_Si2N_diatoms_in = ratio_Si2N_diatoms, &
+        ratio_Si2N_sp_in      = ratio_Si2N_sp, &
+        ratio_Si2N_phaeo_in   = ratio_Si2N_phaeo, &
+        ratio_S2N_diatoms_in  = ratio_S2N_diatoms, &
+        ratio_S2N_sp_in       = ratio_S2N_sp, &
+        ratio_S2N_phaeo_in    = ratio_S2N_phaeo, &
+        ratio_Fe2C_diatoms_in = ratio_Fe2C_diatoms, &
+        ratio_Fe2C_sp_in      = ratio_Fe2C_sp, &
+        ratio_Fe2C_phaeo_in   = ratio_Fe2C_phaeo, &
+        ratio_Fe2N_diatoms_in = ratio_Fe2N_diatoms, &
+        ratio_Fe2N_sp_in      = ratio_Fe2N_sp, &
+        ratio_Fe2N_phaeo_in   = ratio_Fe2N_phaeo, &
+        ratio_C2N_diatoms_in  = ratio_C2N_diatoms, &
+        ratio_C2N_sp_in       = ratio_C2N_sp, &
+        ratio_C2N_phaeo_in    = ratio_C2N_phaeo, &
+        ratio_chl2N_diatoms_in = ratio_chl2N_diatoms, &
+        ratio_chl2N_sp_in     = ratio_chl2N_sp, &
+        ratio_chl2N_phaeo_in  = ratio_chl2N_phaeo, &
+        F_abs_chl_diatoms_in  = F_abs_chl_diatoms, &
+        F_abs_chl_sp_in       = F_abs_chl_sp, &
+        F_abs_chl_phaeo_in    = F_abs_chl_phaeo, &
+        ratio_Fe2DON_in       = ratio_Fe2DON, &
+        ratio_C2N_proteins_in = ratio_C2N_proteins, &
+        ratio_Fe2DOC_s_in     = ratio_Fe2DOC_s, &
+        ratio_Fe2DOC_l_in     = ratio_Fe2DOC_l, &
+        chlabs_diatoms_in     = chlabs_diatoms, &
+        chlabs_sp_in          = chlabs_sp, &
+        chlabs_phaeo_in       = chlabs_phaeo, &
+        alpha2max_low_diatoms_in = alpha2max_low_diatoms, &
+        alpha2max_low_sp_in   = alpha2max_low_sp, &
+        alpha2max_low_phaeo_in = alpha2max_low_phaeo, &
+        beta2max_diatoms_in   = beta2max_diatoms, &
+        beta2max_sp_in        = beta2max_sp, &
+        beta2max_phaeo_in     = beta2max_phaeo, &
+        mu_max_diatoms_in     = mu_max_diatoms, &
+        mu_max_sp_in          = mu_max_sp, &
+        mu_max_phaeo_in       = mu_max_phaeo, &
+        grow_Tdep_diatoms_in  = grow_Tdep_diatoms, &
+        grow_Tdep_sp_in       = grow_Tdep_sp, &
+        grow_Tdep_phaeo_in    = grow_Tdep_phaeo, &
+        fr_graze_diatoms_in   = fr_graze_diatoms, &
+        fr_graze_sp_in        = fr_graze_sp, &
+        fr_graze_phaeo_in     = fr_graze_phaeo, &
+        mort_pre_diatoms_in   = mort_pre_diatoms, &
+        mort_pre_sp_in        = mort_pre_sp, &
+        mort_pre_phaeo_in     = mort_pre_phaeo, &
+        mort_Tdep_diatoms_in  = mort_Tdep_diatoms, &
+        mort_Tdep_sp_in       = mort_Tdep_sp, &
+        mort_Tdep_phaeo_in    = mort_Tdep_phaeo, &
+        k_exude_diatoms_in    = k_exude_diatoms, &
+        k_exude_sp_in         = k_exude_sp, &
+        k_exude_phaeo_in      = k_exude_phaeo, &
+        K_Nit_diatoms_in      = K_Nit_diatoms, &
+        K_Nit_sp_in           = K_Nit_sp, &
+        K_Nit_phaeo_in        = K_Nit_phaeo, &
+        K_Am_diatoms_in       = K_Am_diatoms, &
+        K_Am_sp_in            = K_Am_sp, &
+        K_Am_phaeo_in         = K_Am_phaeo, &
+        K_Sil_diatoms_in      = K_Sil_diatoms, &
+        K_Sil_sp_in           = K_Sil_sp, &
+        K_Sil_phaeo_in        = K_Sil_phaeo, &
+        K_Fe_diatoms_in       = K_Fe_diatoms, &
+        K_Fe_sp_in            = K_Fe_sp, &
+        K_Fe_phaeo_in         = K_Fe_phaeo, &
+        f_doc_s_in            = f_doc_s, &
+        f_doc_l_in            = f_doc_l, &
+        f_don_protein_in      = f_don_protein, &
+        kn_bac_protein_in     = kn_bac_protein, &
+        f_don_Am_protein_in   = f_don_Am_protein, &
+        f_exude_s_in          = f_exude_s, &
+        f_exude_l_in          = f_exude_l, &
+        k_bac_s_in            = k_bac_s, &
+        k_bac_l_in            = k_bac_l, &
+        algaltype_diatoms_in  = algaltype_diatoms, &
+        algaltype_sp_in       = algaltype_sp, &
+        algaltype_phaeo_in    = algaltype_phaeo, &
+        dictype_1_in          = dictype_1, &
+        doctype_s_in          = doctype_s, &
+        doctype_l_in          = doctype_l, &
+        dontype_protein_in    = dontype_protein, &
+        fedtype_1_in          = fedtype_1, &
+        feptype_1_in          = feptype_1, &
+        zaerotype_bc1_in      = zaerotype_bc1, &
+        zaerotype_bc2_in      = zaerotype_bc2, &
+        zaerotype_dust1_in    = zaerotype_dust1, &
+        zaerotype_dust2_in    = zaerotype_dust2, &
+        zaerotype_dust3_in    = zaerotype_dust3, &
+        zaerotype_dust4_in    = zaerotype_dust4)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
@@ -2237,7 +2319,7 @@
 
       use ice_state, only: trcr_base, trcr_depend, n_trcr_strata, &
           nt_strata
-      use ice_arrays_column, only: R_C2N, R_chl2N, R_C2N_DON, R_Si2N, trcrn_sw
+      use ice_arrays_column, only: R_C2N, R_chl2N, trcrn_sw
 
       integer (kind=int_kind) :: &
          nbtrcr,        nbtrcr_sw,     nt_fbri,       &
@@ -2306,6 +2388,27 @@
          tr_bgc_DON,    tr_bgc_Fe,    tr_zaero,     &
          tr_bgc_hum
 
+      real (kind=dbl_kind), dimension(icepack_max_dic) :: &
+         dictype
+
+      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
+         algaltype   ! tau_min for both retention and release
+
+      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
+         doctype
+
+      real (kind=dbl_kind), dimension(icepack_max_don) :: &
+         dontype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         fedtype
+
+      real (kind=dbl_kind), dimension(icepack_max_fe) :: &
+         feptype
+
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+         zaerotype
+
       real (kind=dbl_kind) :: &
          initbio_frac, &
          frazil_scav
@@ -2324,46 +2427,6 @@
 
       logical (kind=log_kind) :: &
          skl_bgc, z_tracers, dEdd_algae
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         F_abs_chl          ! to scale absorption in Dedd
-
-       real (kind=dbl_kind),  dimension(icepack_max_algae) :: &
-         R_S2N      , & ! algal S to N (mole/mole)
-         ! Marchetti et al 2006, 3 umol Fe/mol C for iron limited Pseudo-nitzschia
-         R_Fe2C     , & ! algal Fe to carbon (umol/mmol)
-         R_Fe2N         ! algal Fe to N (umol/mmol)
-
-      real (kind=dbl_kind), dimension(icepack_max_don) :: &
-         R_Fe2DON       ! Fe to N of DON (nmol/umol)
-
-      real (kind=dbl_kind), dimension(icepack_max_doc) :: &
-         R_Fe2DOC       ! Fe to C of DOC (nmol/umol)
-
-      real (kind=dbl_kind), dimension(icepack_max_algae) :: &
-         chlabs           , & ! chla absorption 1/m/(mg/m^3)
-         alpha2max_low    , & ! light limitation (1/(W/m^2))
-         beta2max         , & ! light inhibition (1/(W/m^2))
-         mu_max           , & ! maximum growth rate (1/d)
-         grow_Tdep        , & ! T dependence of growth (1/C)
-         fr_graze         , & ! fraction of algae grazed
-         mort_pre         , & ! mortality (1/day)
-         mort_Tdep        , & ! T dependence of mortality (1/C)
-         k_exude          , & ! algal carbon  exudation rate (1/d)
-         K_Nit            , & ! nitrate half saturation (mmol/m^3)
-         K_Am             , & ! ammonium half saturation (mmol/m^3)
-         K_Sil            , & ! silicon half saturation (mmol/m^3)
-         K_Fe                 ! iron half saturation  or micromol/m^3
-
-      real (kind=dbl_kind), dimension(icepack_max_DON) :: &
-         f_don            , & ! fraction of spilled grazing to DON
-         kn_bac           , & ! Bacterial degredation of DON (1/d)
-         f_don_Am             ! fraction of remineralized DON to Am
-
-      real (kind=dbl_kind), dimension(icepack_max_DOC) :: &
-         f_doc            , & ! fraction of mort_N that goes to each doc pool
-         f_exude          , & ! fraction of exuded carbon to each DOC pool
-         k_bac                ! Bacterial degredation of DOC (1/d)
 
       integer (kind=int_kind) :: &
          k, mm    , & ! loop index
@@ -2443,151 +2506,34 @@
       !-----------------------------------------------------------------
 
       allocate(          &
-         R_C2N_DON(icepack_max_don), & ! carbon to nitrogen mole ratio of DON pool
-         R_C2N(icepack_max_algae),   & ! algal C to N (mole/mole)
+         R_C2N  (icepack_max_algae), & ! algal C to N (mole/mole)
          R_chl2N(icepack_max_algae), & ! 3 algal chlorophyll to N (mg/mmol)
-         R_Si2N(icepack_max_algae),  & ! silica to nitrogen mole ratio for algal groups
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory')
 
-      R_Si2N(1) = ratio_Si2N_diatoms
-      R_Si2N(2) = ratio_Si2N_sp
-      R_Si2N(3) = ratio_Si2N_phaeo
+      R_C2N(1)     = ratio_C2N_diatoms
+      R_C2N(2)     = ratio_C2N_sp
+      R_C2N(3)     = ratio_C2N_phaeo
 
-      R_S2N(1) = ratio_S2N_diatoms
-      R_S2N(2) = ratio_S2N_sp
-      R_S2N(3) = ratio_S2N_phaeo
-
-      R_Fe2C(1) = ratio_Fe2C_diatoms
-      R_Fe2C(2) = ratio_Fe2C_sp
-      R_Fe2C(3) = ratio_Fe2C_phaeo
-
-      R_Fe2N(1) = ratio_Fe2N_diatoms
-      R_Fe2N(2) = ratio_Fe2N_sp
-      R_Fe2N(3) = ratio_Fe2N_phaeo
-
-      R_C2N(1) = ratio_C2N_diatoms
-      R_C2N(2) = ratio_C2N_sp
-      R_C2N(3) = ratio_C2N_phaeo
-
-      R_chl2N(1) = ratio_chl2N_diatoms
-      R_chl2N(2) = ratio_chl2N_sp
-      R_chl2N(3) = ratio_chl2N_phaeo
-
-      F_abs_chl(1) = F_abs_chl_diatoms
-      F_abs_chl(2) = F_abs_chl_sp
-      F_abs_chl(3) = F_abs_chl_phaeo
-
-      R_Fe2DON(1) = ratio_Fe2DON
-      R_C2N_DON(1) = ratio_C2N_proteins
-
-      R_Fe2DOC(1) = ratio_Fe2DOC_s
-      R_Fe2DOC(2) = ratio_Fe2DOC_l
-      R_Fe2DOC(3) = c0
-
-      chlabs(1) = chlabs_diatoms
-      chlabs(2) = chlabs_sp
-      chlabs(3) = chlabs_phaeo
-
-      alpha2max_low(1) = alpha2max_low_diatoms
-      alpha2max_low(2) = alpha2max_low_sp
-      alpha2max_low(3) = alpha2max_low_phaeo
-
-      beta2max(1) = beta2max_diatoms
-      beta2max(2) = beta2max_sp
-      beta2max(3) = beta2max_phaeo
-
-      mu_max(1) = mu_max_diatoms
-      mu_max(2) = mu_max_sp
-      mu_max(3) = mu_max_phaeo
-
-      grow_Tdep(1) = grow_Tdep_diatoms
-      grow_Tdep(2) = grow_Tdep_sp
-      grow_Tdep(3) = grow_Tdep_phaeo
-
-      fr_graze(1) = fr_graze_diatoms
-      fr_graze(2) = fr_graze_sp
-      fr_graze(3) = fr_graze_phaeo
-
-      mort_pre(1) = mort_pre_diatoms
-      mort_pre(2) = mort_pre_sp
-      mort_pre(3) = mort_pre_phaeo
-
-      mort_Tdep(1) = mort_Tdep_diatoms
-      mort_Tdep(2) = mort_Tdep_sp
-      mort_Tdep(3) = mort_Tdep_phaeo
-
-      k_exude(1) = k_exude_diatoms
-      k_exude(2) = k_exude_sp
-      k_exude(3) = k_exude_phaeo
-
-      K_Nit(1) = K_Nit_diatoms
-      K_Nit(2) = K_Nit_sp
-      K_Nit(3) = K_Nit_phaeo
-
-      K_Am(1) = K_Am_diatoms
-      K_Am(2) = K_Am_sp
-      K_Am(3) = K_Am_phaeo
-
-      K_Sil(1) = K_Sil_diatoms
-      K_Sil(2) = K_Sil_sp
-      K_Sil(3) = K_Sil_phaeo
-
-      K_Fe(1) = K_Fe_diatoms
-      K_Fe(2) = K_Fe_sp
-      K_Fe(3) = K_Fe_phaeo
-
-      f_don(1) = f_don_protein
-      kn_bac(1) = kn_bac_protein
-      f_don_Am(1) = f_don_Am_protein
-
-      f_doc(1) = f_doc_s
-      f_doc(2) = f_doc_l
-
-      f_exude(1) = f_exude_s
-      f_exude(2) = f_exude_l
-      k_bac(1) = k_bac_s
-      k_bac(2) = k_bac_l
-
-      dictype(:) = -c1
+      R_chl2N(1)   = ratio_chl2N_diatoms
+      R_chl2N(2)   = ratio_chl2N_sp
+      R_chl2N(3)   = ratio_chl2N_phaeo
 
       algaltype(1) = algaltype_diatoms
       algaltype(2) = algaltype_sp
       algaltype(3) = algaltype_phaeo
-
-      doctype(1) = doctype_s
-      doctype(2) = doctype_l
-
-      dontype(1) = dontype_protein
-
-      fedtype(1) = fedtype_1
-      feptype(1) = feptype_1
-
+      dictype(:)   = -c1
+      doctype(1)   = doctype_s
+      doctype(2)   = doctype_l
+      dontype(1)   = dontype_protein
+      fedtype(1)   = fedtype_1
+      feptype(1)   = feptype_1
       zaerotype(1) = zaerotype_bc1
       zaerotype(2) = zaerotype_bc2
       zaerotype(3) = zaerotype_dust1
       zaerotype(4) = zaerotype_dust2
       zaerotype(5) = zaerotype_dust3
       zaerotype(6) = zaerotype_dust4
-
-      call icepack_init_zbgc ( &
-!opt         R_S2N_in=R_S2N, R_Fe2C_in=R_Fe2C, R_Fe2N_in=R_Fe2N, R_C2N_in=R_C2N, &
-!opt         R_chl2N_in=R_chl2N, F_abs_chl_in=F_abs_chl, R_Fe2DON_in=R_Fe2DON, R_Fe2DOC_in=R_Fe2DOC, &
-!opt         mort_Tdep_in=mort_Tdep, k_exude_in=k_exude, &
-!opt         K_Nit_in=K_Nit, K_Am_in=K_Am, K_sil_in=K_Sil, K_Fe_in=K_Fe, &
-!opt         f_don_in=f_don, kn_bac_in=kn_bac, f_don_Am_in=f_don_Am, f_exude_in=f_exude, k_bac_in=k_bac, &
-!opt         fr_resp_in=fr_resp, algal_vel_in=algal_vel, R_dFe2dust_in=R_dFe2dust, &
-!opt         dustFe_sol_in=dustFe_sol, T_max_in=T_max, fr_mort2min_in=fr_mort2min, fr_dFe_in=fr_dFe, &
-!opt         op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, fr_graze_e_in=fr_graze_e, &
-!opt         k_nitrif_in=k_nitrif, t_iron_conv_in=t_iron_conv, max_loss_in=max_loss, max_dfe_doc1_in=max_dfe_doc1, &
-!opt         fr_resp_s_in=fr_resp_s, y_sk_DMS_in=y_sk_DMS, t_sk_conv_in=t_sk_conv, t_sk_ox_in=t_sk_ox, &
-!opt         mu_max_in=mu_max, R_Si2N_in=R_Si2N, R_C2N_DON_in=R_C2N_DON, chlabs_in=chlabs, &
-!opt         alpha2max_low_in=alpha2max_low, beta2max_in=beta2max, grow_Tdep_in=grow_Tdep, &
-!opt         fr_graze_in=fr_graze, mort_pre_in=mort_pre, f_doc_in=f_doc,fsal_in=fsal)
-             )
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-          file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! assign tracer dependencies
@@ -2875,7 +2821,11 @@
       call icepack_init_zbgc( &
 !opt         zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
 !opt         zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
-          )
+      )
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       call icepack_init_tracer_indices( &
          bio_index_o_in=bio_index_o, bio_index_in=bio_index)
       call icepack_warnings_flush(nu_diag)
@@ -2914,6 +2864,7 @@
          write(nu_diag,1000) ' frazil_scav               = ', frazil_scav
 
       endif  ! skl_bgc or solve_bgc
+      call flush_fileunit(nu_diag)
       endif  ! master_task
 
  1000    format (a30,2x,f9.2)  ! a30 to align formatted, unformatted statements
@@ -2973,6 +2924,10 @@
       !--------
 
       bgc_tracer_type(nlt_bgc) = bgctype
+
+      if (my_task == master_task) then
+         write(nu_diag,*) subname,'bgc_tracer_type',nlt_bgc,bgc_tracer_type(nlt_bgc)
+      endif
 
       if (nk > 1) then ! include vertical bgc in snow
          do k = nk, nk+1

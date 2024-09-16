@@ -521,7 +521,6 @@
                                       Sprofile=salinz(i,j,:),         &
                                       Tprofile=Tmltz(i,j,:),          &
                                       Tsfc=Tsfc,                      &
-                                      nilyr=nilyr,       nslyr=nslyr, &
                                       qin=qin(:),        qsn=qsn(:))
 
                ! surface temperature
