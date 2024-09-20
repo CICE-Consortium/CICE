@@ -545,7 +545,7 @@
                       afsdn        = trcrn       (i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk), &
                       nfsd         = nfsd, &
                       floe_rad_c = floe_rad_c(:),          &
-                      floe_binwidth = floe_binwidth(:) )
+                      floe_binwidth = floe_binwidth(:),    & 
                       flpnd        = flpnd       (i,j,  iblk), &
                       expnd        = expnd       (i,j,  iblk), &
                       frpnd        = frpnd       (i,j,  iblk), &
