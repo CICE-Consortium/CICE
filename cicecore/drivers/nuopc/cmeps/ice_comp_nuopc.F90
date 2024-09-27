@@ -404,6 +404,7 @@ contains
     ! Determine attributes - also needed in realize phase to get grid information
     !----------------------------------------------------------------------------
 
+
     ! Get orbital values
     ! Note that these values are obtained in a call to init_orbit in ice_shortwave.F90
     ! if CESMCOUPLED is not defined
@@ -1520,11 +1521,14 @@ contains
     else
        orb_year = orb_iyear
     end if
+
     if (orb_year .ne. prev_orb_year) then
        lprint = mastertask
-       prev_orb_year = orb_year
+       ! this prevents the orbital print happening before the log file is opened.
+       if (.not. first_time) prev_orb_year = orb_year
     endif
     eccen = orb_eccen
+
     call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, lprint)
 
     if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &
