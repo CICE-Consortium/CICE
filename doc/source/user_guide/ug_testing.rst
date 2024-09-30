@@ -1107,11 +1107,13 @@ You can also setup a conda env with the same utitities
 
 To run the validation test, setup a baseline run with the original baseline model and then 
 a perturbation run based on recent model changes.  Use ``--set qc`` in both runs in addition
-to other settings needed.  Then use the QC script to compare history output,
+to other settings needed.  Then use the QC script to compare history output.  The QC script should
+be run from the ``configuration/scripts/tests/QC`` directory because other files from that
+directory are required for the script.
 
 .. code-block:: bash
 
-  cp configuration/scripts/tests/QC/cice.t-test.py .
+  cd configuration/scripts/tests/QC
   ./cice.t-test.py /path/to/baseline/history /path/to/test/history
 
 The script will produce output similar to:

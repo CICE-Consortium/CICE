@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for NCAR derecho, intel compiler
+# Makefile macros for NCAR derecho, inteloneapi compiler
 #==============================================================================
 
 CPP        := fpp
@@ -12,11 +12,12 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
-#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -link_mpi=dbg -stand f08
-#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays -link_mpi=dbg
+# -check uninit is needed on the ld step but it still throws errors in 2023.* and 2024.0.*, likely compiler bug
+  FFLAGS     += -O0 -g  -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  LDFLAGS    += -check uninit
 else
-  FFLAGS     += -O2
+  FFLAGS     += -O1
 endif
 
 SCC   := icx
