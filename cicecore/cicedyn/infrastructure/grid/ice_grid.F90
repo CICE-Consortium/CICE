@@ -685,7 +685,7 @@
       if (trim(bathymetry_format) == 'default') then
          call get_bathymetry(use_bathymetry, bathymetry_file, bathymetry, kmt)
       elseif (trim(bathymetry_format) == 'pop') then
-         call get_bathymetry_popfile
+         call get_bathymetry_popfile(use_bathymetry, bathymetry_file, bathymetry, kmt)
       else
          call abort_ice(subname//' ERROR: bathymetry_format value must be default or pop', &
             file=__FILE__, line=__LINE__)
@@ -4432,112 +4432,6 @@
       deallocate (work_g2)
 
       end subroutine gridbox_verts
-
-!=======================================================================
-! with use_bathymetry = false, vertical depth profile generated for max KMT
-! with use_bathymetry = true, expects to read in pop vert_grid file
-
-      subroutine get_bathymetry_popfile
-
-      integer (kind=int_kind) :: &
-         i, j, k, iblk      ! loop indices
-
-      integer (kind=int_kind) :: &
-         ntmp, nlevel   , & ! number of levels (max KMT)
-         k1             , & ! levels
-         ierr           , & ! error tag
-         fid                ! fid unit number
-
-      real (kind=dbl_kind), dimension(:),allocatable :: &
-         depth          , & ! total depth, m
-         thick              ! layer thickness, cm -> m
-
-      logical (kind=log_kind) :: &
-         calc_dragio
-
-      character(len=*), parameter :: subname = '(get_bathymetry_popfile)'
-
-      ntmp = maxval(nint(KMT))
-      nlevel = global_maxval(ntmp,distrb_info)
-
-      if (my_task==master_task) then
-         write(nu_diag,*) subname,' KMT max = ',nlevel
-      endif
-
-      allocate(depth(nlevel),thick(nlevel))
-      thick = -999999.
-      depth = -999999.
-
-      if (use_bathymetry) then
-
-         write (nu_diag,*) subname,' Bathymetry file = ', trim(bathymetry_file)
-         if (my_task == master_task) then
-            call get_fileunit(fid)
-            open(fid,file=bathymetry_file,form='formatted',iostat=ierr)
-            if (ierr/=0) call abort_ice(subname//' open error', file=__FILE__, line=__LINE__)
-            do k = 1,nlevel
-               read(fid,*,iostat=ierr) thick(k)
-               if (ierr/=0) call abort_ice(subname//' read error', file=__FILE__, line=__LINE__)
-            enddo
-            call release_fileunit(fid)
-         endif
-
-         call broadcast_array(thick,master_task)
-
-      else
-
-         ! create thickness profile
-         k1 = min(5,nlevel)
-         do k = 1,k1
-            thick(k) = max(10000._dbl_kind/float(nlevel),500._dbl_kind)
-         enddo
-         do k = k1+1,nlevel
-            thick(k) = min(thick(k-1)*1.2_dbl_kind,20000._dbl_kind)
-         enddo
-
-      endif
-
-      ! convert thick from cm to m
-      thick = thick / 100._dbl_kind
-
-      ! convert to total depth
-      depth(1) = thick(1)
-      do k = 2, nlevel
-         depth(k) = depth(k-1) + thick(k)
-         if (depth(k) < 0.) call abort_ice(subname//' negative depth error', file=__FILE__, line=__LINE__)
-      enddo
-
-      if (my_task==master_task) then
-         do k = 1,nlevel
-           write(nu_diag,'(2a,i6,2f13.7)') subname,'   k, thick(m), depth(m) = ',k,thick(k),depth(k)
-         enddo
-      endif
-
-      bathymetry = 0._dbl_kind
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            k = nint(kmt(i,j,iblk))
-            if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error', file=__FILE__, line=__LINE__)
-            if (k > 0) bathymetry(i,j,iblk) = depth(k)
-         enddo
-         enddo
-      enddo
-
-      ! For consistency, set thickness_ocn_layer1 in Icepack if 'calc_dragio' is active
-      call icepack_query_parameters(calc_dragio_out=calc_dragio)
-      if (calc_dragio) then
-         call icepack_init_parameters(thickness_ocn_layer1_in=thick(1))
-      endif
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      deallocate(depth,thick)
-
-      end subroutine get_bathymetry_popfile
-
-
 
 !=======================================================================
 
