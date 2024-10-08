@@ -1177,14 +1177,6 @@
                          Tf        = Tf(i,j,iblk),          &
                          rdpnd     = rdpnd(i,j,iblk))
 
-      if ((iglob(i) == 162 .and. jglob(j) == 387).or. &
-          (iglob(i) == 177 .and. jglob(j) == 442).or. &
-          (iglob(i) == 405 .and. jglob(j) == 465).or. &
-          (iglob(i) == 507 .and. jglob(j) == 122)) then
-         print *,"TLAT,TLON",TLAT(i,j,iblk),TLON(i,j,iblk)
-         print *,'rdpnd',rdpnd(i,j,iblk)
-      endif
-
          endif ! tmask
 
       enddo ! i
