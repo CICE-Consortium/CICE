@@ -2474,7 +2474,7 @@
       character (char_len), intent(in) :: &
          varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
          work_g            ! output array (real, 8-byte)
 
       logical (kind=log_kind) :: &
