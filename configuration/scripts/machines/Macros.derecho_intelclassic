@@ -1,5 +1,5 @@
 #==============================================================================
-# Makefile macros for NCAR derecho, intel compiler
+# Makefile macros for NCAR derecho, intelclassic compiler
 #==============================================================================
 
 CPP        := fpp
