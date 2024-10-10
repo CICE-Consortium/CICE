@@ -135,6 +135,7 @@ ${ICE_SANDBOX}/cicecore/cicedyn/dynamics
 ${ICE_SANDBOX}/cicecore/cicedyn/general
 ${ICE_SANDBOX}/cicecore/cicedyn/analysis
 ${ICE_SANDBOX}/cicecore/cicedyn/infrastructure
+${ICE_SANDBOX}/cicecore/cicedyn/infrastructure/grid
 ${ICE_SANDBOX}/cicecore/cicedyn/infrastructure/io/$IODIR
 ${ICE_SANDBOX}/cicecore/cicedyn/infrastructure/comm/${ICE_COMMDIR}
 ${ICE_SANDBOX}/cicecore/shared
