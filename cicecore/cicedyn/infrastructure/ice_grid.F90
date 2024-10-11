@@ -1113,9 +1113,8 @@
 
       deallocate(work_g1)
 
-      if (my_task == master_task) then
-         call ice_close_nc(fid_grid)
-      endif
+      call ice_close_nc(fid_grid)
+
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
@@ -1412,18 +1411,14 @@
 ! tarea, uarea, narea, earea (m^2)
 
       subroutine mom_mosaic_grid
-
-#ifdef USE_NETCDF
-         use netcdf
-#endif
    
       integer (kind=int_kind) :: &
          i, j, iblk, &
          im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom mosaic
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
          fid_grid, &            ! file id for netCDF grid file
-         varid, &
-         status                ! status flag
+         varid, &               ! netcdf varid
+         status                 ! status flag
 
       logical (kind=log_kind) :: diag
 
@@ -1449,7 +1444,6 @@
          file=__FILE__, line=__LINE__)
 
       deg_to_rad = pi/c180
-
 
       !-----------------------------------------------------------------
       ! lat, lon, angle
@@ -1506,7 +1500,7 @@
                           field_loc_NEcorner, field_type_scalar)
       latt_bounds(4,:,:,:) = work1(:,:,:)
 
-     work_mom(:,:) = work_mom(:,:) * deg_to_rad       ! convert to rad
+      work_mom(:,:) = work_mom(:,:) * deg_to_rad       ! convert to rad
 
       ! populate all LAT fields
       im1 = 2 ! middle of first col
