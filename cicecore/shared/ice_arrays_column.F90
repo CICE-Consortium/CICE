@@ -80,6 +80,10 @@
          dhsn, &      ! depth difference for snow on sea ice and pond ice
          ffracn       ! fraction of fsurfn used to melt ipond
 
+      ! icepack_meltpond_sealvl.F90
+      real (kind=dbl_kind), public, dimension (:,:,:,:), allocatable :: &
+         pndasp       ! pond aspect is 2D with sealvl ponds
+
       ! icepack_shortwave.F90
       ! category albedos
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -304,6 +308,7 @@
          meltsliq     (nx_block,ny_block,max_blocks), & ! snow melt mass (kg/m^2)
          meltsliqn    (nx_block,ny_block,ncat,max_blocks), & ! snow melt mass in category n (kg/m^2)
          dhsn         (nx_block,ny_block,ncat,max_blocks), & ! depth difference for snow on sea ice and pond ice
+         pndasp       (nx_block,ny_block,ncat,max_blocks), & ! pond aspect
          ffracn       (nx_block,ny_block,ncat,max_blocks), & ! fraction of fsurfn used to melt ipond
          alvdrn       (nx_block,ny_block,ncat,max_blocks), & ! visible direct albedo           (fraction)
          alidrn       (nx_block,ny_block,ncat,max_blocks), & ! near-ir direct albedo           (fraction)
