@@ -683,8 +683,6 @@ contains
       if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
     end if
 
-    
-
 #else
 
     ! Read the cice namelist as part of the call to cice_init1
@@ -850,7 +848,7 @@ contains
     idate0    = start_ymd
     year_init = (idate0/10000)
     month_init= (idate0-year_init*10000)/100           ! integer month of basedate
-    day_init  = idate0-year_init*10000-month_init*100 
+    day_init  = idate0-year_init*10000-month_init*100
 
     !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
     if (calendar_type == ice_calendar_gregorian) then
@@ -892,7 +890,7 @@ contains
     ! Prescribed ice initialization
     !-----------------------------------------------------------------
 
-    call ice_prescribed_init(clock, ice_mesh, rc)
+    call ice_prescribed_init(gcomp, clock, ice_mesh, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #ifdef CESMCOUPLED

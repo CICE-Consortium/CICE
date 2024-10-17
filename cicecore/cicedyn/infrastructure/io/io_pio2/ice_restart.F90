@@ -64,6 +64,8 @@
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
+            write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+                 trim(pointer_file)//'.',myear,'-',mmonth,'-',mday,'-',msec
             open(nu_rst_pointer,file=pointer_file)
             read(nu_rst_pointer,'(a)') filename0
             filename = trim(filename0)
@@ -163,7 +165,7 @@
 
       logical (kind=log_kind) :: &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-         tr_pond_topo, tr_pond_lvl, tr_pond_sealvl, tr_brine, tr_snow, &
+         tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
          tr_bgc_Sil, tr_bgc_DMS, &
          tr_bgc_chl, tr_bgc_Am,  &
@@ -193,7 +195,6 @@
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
-         tr_pond_sealvl_out=tr_pond_sealvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
          tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
@@ -215,14 +216,14 @@
                restart_dir(1:lenstr(restart_dir)), &
                restart_file(1:lenstr(restart_file)),'.', &
                myear,'-',mmonth,'-',mday,'-',msec
-         write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-               'rpointer.ice.',myear,'-',mmonth,'-',mday,'-',msec
       end if
 
       if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
       if (my_task == master_task) then
+         write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+              trim(pointer_file)//'.',myear,'-',mmonth,'-',mday,'-',msec
          open(nu_rst_pointer,file=pointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
@@ -336,7 +337,7 @@
          call define_rest_field(File,'a12_4',dims)
       endif
 
-      if (tr_pond_lvl .or. tr_pond_sealvl) then
+      if (tr_pond_lvl) then
          call define_rest_field(File,'fsnow',dims)
       endif
 
@@ -428,7 +429,7 @@
          call define_rest_field(File,'ipnd',dims)
       end if
 
-      if (tr_pond_lvl .or. tr_pond_sealvl) then
+      if (tr_pond_lvl) then
          call define_rest_field(File,'apnd',dims)
          call define_rest_field(File,'hpnd',dims)
          call define_rest_field(File,'ipnd',dims)
@@ -743,6 +744,7 @@
 
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
+      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (ndim3 == ncat .and. ndims == 3) then
          call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
@@ -770,8 +772,6 @@
 
       call ice_pio_check(status, &
            subname//" ERROR: reading var "//trim(vname),file=__FILE__,line=__LINE__)
-
-      call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (diag) then
          if (ndim3 > 1) then
