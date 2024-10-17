@@ -9,6 +9,9 @@
       use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
+#ifdef CESMCOUPLED
+      use ice_fileunits,  only: inst_suffix
+#endif
       use ice_kinds_mod
       use ice_restart_shared
       use ice_pio
@@ -46,7 +49,6 @@
                               mday, msec, npt
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
-
       character(len=char_len_long), intent(in), optional :: ice_ic
 
       ! local variables
@@ -57,13 +59,19 @@
       integer (kind=int_kind) :: status
 
       logical (kind=log_kind), save :: first_call = .true.
-
+      logical :: exist
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
+#ifdef CESMCOUPLED
+            write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+                 'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
+            inquire(file=pointer_file, exist=exist)
+            if (.not. exist) pointer_file = 'rpointer.ice'//trim(inst_suffix)
+#endif
             open(nu_rst_pointer,file=pointer_file)
             read(nu_rst_pointer,'(a)') filename0
             filename = trim(filename0)
@@ -220,6 +228,10 @@
 
       ! write pointer (path/file)
       if (my_task == master_task) then
+#ifdef CESMCOUPLED
+            write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+                 'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
+#endif
          open(nu_rst_pointer,file=pointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
@@ -740,7 +752,6 @@
 
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
-
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (ndim3 == ncat .and. ndims == 3) then
