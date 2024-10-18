@@ -2474,7 +2474,7 @@
       character (char_len), intent(in) :: &
          varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
          work_g            ! output array (real, 8-byte)
 
       logical (kind=log_kind) :: &
@@ -2485,13 +2485,15 @@
       character(len=*), parameter :: subname = '(ice_read_global_nc)'
 
 #ifdef USE_NETCDF
-! netCDF file diagnostics:
+      ! netCDF file diagnostics:
       integer (kind=int_kind) :: &
-         varid,          & ! netcdf id for field
-         status            ! status output from netcdf routines
+         varid,  &         ! netcdf id for field
+         status, &         ! status output from netcdf routines
+         ndims,  &         ! number of variable dimensions
+         dimids(NF90_MAX_VAR_DIMS) , & !ids of dimensions
+         dimlen            ! size of dimension
 !        ndim, nvar,     & ! sizes of netcdf file
 !        id,             & ! dimension index
-!        dimlen            ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum  ! min, max values and sum of input array
@@ -2529,13 +2531,36 @@
 
          if (orca_halogrid) then
             status = nf90_get_var( fid, varid, work_g3, &
-                                   start=(/1,1,nrec/), count=(/nx_global+2,ny_global+1,1/))
+                                    start=(/1,1,nrec/), count=(/nx_global+2,ny_global+1,1/))
             call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
                               file=__FILE__, line=__LINE__)
             work_g=work_g3(2:nx_global+1,1:ny_global)
          else
-            status = nf90_get_var( fid, varid, work_g, &
-                                   start=(/1,1,nrec/), count=(/nx_global,ny_global,1/))
+            ! Check var size
+            status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                              file=__FILE__, line=__LINE__)
+            if ( ndims > 2 ) then
+               call abort_ice(subname//' ERROR: '//trim(varname)//' cannot have more than 2 dimensions', &
+                              file=__FILE__, line=__LINE__)
+            endif
+            status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
+            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                              file=__FILE__, line=__LINE__)
+            if ( dimlen /= size(work_g,1) ) then
+               call abort_ice(subname//' ERROR: x dim of '//trim(varname)//' wrong size, check nx_global', &
+                              file=__FILE__, line=__LINE__)
+            endif
+            status = nf90_inquire_dimension(fid, dimids(2), len=dimlen)
+            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                              file=__FILE__, line=__LINE__)
+            if ( dimlen /= size(work_g,2) ) then
+               call abort_ice(subname//' ERROR: y dim of '//trim(varname)//' wrong size, check ny_global', &
+                              file=__FILE__, line=__LINE__)
+            endif
+
+            ! Get the data
+            status = nf90_get_var( fid, varid, work_g, start=(/1,1,nrec/))
             call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
                               file=__FILE__, line=__LINE__)
          endif
