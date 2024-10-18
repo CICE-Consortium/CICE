@@ -169,6 +169,10 @@
       logical (kind=log_kind), private :: &
          l_readCenter ! If anglet exist in grid file read it otherwise calculate it
 
+      character (len=char_len), private :: &
+         mask_fieldname !field/var name for the mask variable (in nc files)
+
+
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
                           grid_average_X2Y_userwghts, &
@@ -359,16 +363,18 @@
             if ( my_task==master_task ) then
                status = nf90_inq_varid(fid_kmt, 'kmt', varid)
                if (status == nf90_noerr) then
-                  fieldname = 'kmt'
+                  mask_fieldname = 'kmt'
                else 
                   status = nf90_inq_varid(fid_kmt, 'mask', varid)
                   call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
                                     ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
-                  fieldname = 'mask'
+                  mask_fieldname = 'mask'
                endif
             endif
 #endif
-            call ice_read_global_nc(fid_kmt,1,fieldname,work_g2,.true.)
+            call broadcast_scalar(mask_fieldname, master_task)
+
+            call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
             call ice_close_nc(fid_kmt)
 
          else
@@ -779,8 +785,8 @@
       hm (:,:,:) = c0
 
       call ice_read(nu_kmt,1,kmt,'ida4',diag, &
-                     field_loc=field_loc_center, &
-                     field_type=field_type_scalar)
+                    field_loc=field_loc_center, &
+                    field_type=field_type_scalar)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -806,7 +812,7 @@
 
 !=======================================================================
 
-! POP displaced pole grid and land mask (or tripole).
+! POP displaced pole grid (or tripole).
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
 ! (2) ULON  (radians)    \\
@@ -878,26 +884,16 @@
 !=======================================================================
 
 ! POP/MOM land mask.
-! Land mask record number and field is kmt or mask.
+! Land mask field is kmt or mask, saved in mask_fieldname.
 
       subroutine kmtmask_nc
-
-#ifdef USE_NETCDF
-      use netcdf
-#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_grid,  &            ! file id for netCDF grid file
-         fid_kmt,   &            ! file id for netCDF kmt file
-         varid,     &
-         status
+         fid_kmt                ! file id for netCDF kmt file
       
       logical (kind=log_kind) :: diag
-
-      character (char_len) :: &
-         fieldname, varname              ! field name in netCDF file
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
@@ -907,36 +903,19 @@
 
       character(len=*), parameter :: subname = '(kmtmask_nc)'
 
-#ifdef USE_NETCDF
-
       diag = .true.       ! write diagnostic info
+
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
 
       call ice_open_nc(kmt_file,fid_kmt)
       
-      if ( my_task==master_task ) then
-         status = nf90_inq_varid(fid_kmt, 'kmt', varid)
-         if (status == nf90_noerr) then
-            fieldname = 'kmt'
-         else 
-            fieldname = 'mask'
-            status = nf90_inq_varid(fid_kmt, 'mask', varid)
-            call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
-                              ' contain "kmt" or "mask" variable?', &
-                              file=__FILE__, line=__LINE__)
-         endif
-      endif
-
-      call broadcast_scalar(fieldname,master_task)
-
-      
-      call ice_read_nc(fid_kmt,1,fieldname,work1,diag, &
+      call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
                         field_loc=field_loc_center, &
                         field_type=field_type_scalar)
 
       call ice_close_nc(fid_kmt)
 
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -947,16 +926,11 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            kmt(i,j,iblk) = work1(i,j,iblk)
             if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
-#else
-      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
-            file=__FILE__, line=__LINE__)
-#endif
 
       end subroutine kmtmask_nc
 
