@@ -172,7 +172,6 @@
       character (len=char_len), private :: &
          mask_fieldname !field/var name for the mask variable (in nc files)
 
-
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
                           grid_average_X2Y_userwghts, &
