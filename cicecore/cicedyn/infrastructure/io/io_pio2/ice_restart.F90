@@ -59,7 +59,9 @@
       integer (kind=int_kind) :: status
 
       logical (kind=log_kind), save :: first_call = .true.
-      logical :: exist
+#ifdef CESMCOUPLED
+      logical :: file_exist
+#endif
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then
@@ -69,8 +71,8 @@
 #ifdef CESMCOUPLED
             write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
                  'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
-            inquire(file=pointer_file, exist=exist)
-            if (.not. exist) pointer_file = 'rpointer.ice'//trim(inst_suffix)
+            inquire(file=pointer_file, file_exist=exist)
+            if (.not. file_exist) pointer_file = 'rpointer.ice'//trim(inst_suffix)
 #endif
             open(nu_rst_pointer,file=pointer_file)
             read(nu_rst_pointer,'(a)') filename0
