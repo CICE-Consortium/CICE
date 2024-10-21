@@ -71,7 +71,7 @@
 #ifdef CESMCOUPLED
             write(pointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
                  'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
-            inquire(file=pointer_file, file_exist=exist)
+            inquire(file=pointer_file, exist=file_exist)
             if (.not. file_exist) pointer_file = 'rpointer.ice'//trim(inst_suffix)
 #endif
             open(nu_rst_pointer,file=pointer_file)
