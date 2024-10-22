@@ -56,12 +56,23 @@ EOFB
 else if (${ICE_MACHINE} =~ gadi*) then
 if (${queue} =~ *sr) then #sapphire rapids
   @ memuse = ( $ncores * 481 / 100 )
+  set corespernode = 52
 else if (${queue} =~ *bw) then #broadwell
   @ memuse = ( $ncores * 457 / 100 )
+  set corespernode = 28
 else if (${queue} =~ *sl) then 
   @ memuse = ( $ncores * 6 )
+  set corespernode = 32
 else #normal queues
   @ memuse = ( $ncores * 395 / 100 )
+  set corespernode = 48
+endif
+if (${ncores} > ${corespernode}) then
+  # need to use a whole number of nodes
+  @ ncores = ( ( $ncores + $corespernode - 1 ) / $corespernode ) * $corespernode
+endif
+if (${runlength} <= 0) then
+  set batchtime = "00:30:00"
 endif
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}
