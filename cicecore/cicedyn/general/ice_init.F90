@@ -1228,8 +1228,6 @@
          write(nu_diag,*) ' '
       endif
 
-      
-
       if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'NOTE: runtype=continue, setting restart=.true.'
@@ -1273,7 +1271,7 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
-
+   
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
           history_format /= 'cdf5'        .and. &
@@ -1838,7 +1836,7 @@
 
       if (orca_halogrid) then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: orca_halogrid has been deprecated, remove from namelist'
+            write(nu_diag,*) subname//' ERROR: orca_halogrid has been deprecated'
          endif
          abort_list = trim(abort_list)//":63"
       endif
