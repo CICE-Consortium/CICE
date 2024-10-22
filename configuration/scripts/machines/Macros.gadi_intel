@@ -13,11 +13,11 @@ NCI_INTEL_FLAGS := -r8 -i4 -traceback -w -fpe0 -ftz -convert big_endian -assume 
 NCI_REPRO_FLAGS := -fp-model precise -fp-model source -align all
 
 ifeq ($(ICE_BLDDEBUG), true)
-    NCI_DEBUG_FLAGS := -g3 -O0 -debug all -check all -no-vec -assume nobuffered_io
+    NCI_DEBUG_FLAGS := -O0 -debug all -check all -no-vec -assume nobuffered_io
     FFLAGS          := $(NCI_INTEL_FLAGS) $(NCI_REPRO_FLAGS) $(NCI_DEBUG_FLAGS)
     CPPDEFS         := $(CPPDEFS) -DDEBUG=$(DEBUG)
 else
-  NCI_OPTIM_FLAGS := -g3 -O2 -axCORE-AVX2 -debug all -check none -qopt-report=5 -qopt-report-annotate -assume buffered_io
+  NCI_OPTIM_FLAGS := -O2 -axCORE-AVX2 -debug all -check none -qopt-report=5 -qopt-report-annotate -assume buffered_io
   FFLAGS          := $(NCI_INTEL_FLAGS) $(NCI_REPRO_FLAGS) $(NCI_OPTIM_FLAGS)
 endif
 
