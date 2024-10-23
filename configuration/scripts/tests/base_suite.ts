@@ -79,7 +79,7 @@ restart        gx3     8x2        isotope
 smoke          gx3     4x1        snwitdrdg,snwgrain,icdefault,debug
 smoke          gx3     4x1        snw30percent,icdefault,debug
 restart        gx3     8x2        snwitdrdg,icdefault,snwgrain
-restart        gx3     4x4        gx3ncarbulk,iobinary,short
+restart        gx3     4x4        gx3ncarbulk,iobinary,medium
 restart        gx3     4x4        cdf64,histall,precision8,short
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
