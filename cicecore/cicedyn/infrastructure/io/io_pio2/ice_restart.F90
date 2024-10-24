@@ -55,13 +55,10 @@
 
       character(len=char_len_long) :: &
          filename, filename0
-      
+
       integer (kind=int_kind) :: status
 
       logical (kind=log_kind), save :: first_call = .true.
-#ifdef CESMCOUPLED
-      logical :: file_exist
-#endif
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then
