@@ -54,7 +54,7 @@
       ! local variables
 
       character(len=char_len_long) :: &
-         filename, filename0, lpointer_file
+         filename, filename0
       
       integer (kind=int_kind) :: status
 
@@ -68,19 +68,11 @@
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
-#ifdef CESMCOUPLED
-            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-                 trim(pointer_file)//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
-            inquire(file=lpointer_file, exist=file_exist)
-            if (.not. file_exist) lpointer_file = trim(pointer_file)//trim(inst_suffix)
-#else
-            lpointer_file = pointer_file
-#endif
-            open(nu_rst_pointer,file=lpointer_file)
+            open(nu_rst_pointer,file=pointer_file)
             read(nu_rst_pointer,'(a)') filename0
             filename = trim(filename0)
             close(nu_rst_pointer)
-            write(nu_diag,*) 'Read ',lpointer_file(1:lenstr(pointer_file))
+            write(nu_diag,*) 'Read ',pointer_file(1:lenstr(pointer_file))
          endif
          call broadcast_scalar(filename, master_task)
       endif
