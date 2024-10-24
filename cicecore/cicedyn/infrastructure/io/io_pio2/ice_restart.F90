@@ -59,6 +59,7 @@
       integer (kind=int_kind) :: status
 
       logical (kind=log_kind), save :: first_call = .true.
+
       character(len=*), parameter :: subname = '(init_restart_read)'
 
       if (present(ice_ic)) then
