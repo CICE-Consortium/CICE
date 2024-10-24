@@ -224,7 +224,7 @@
       if (my_task == master_task) then
 #ifdef CESMCOUPLED
             write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-                 trim(pointer_file)//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
+                 'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
 #else
             lpointer_file = pointer_file
 #endif
