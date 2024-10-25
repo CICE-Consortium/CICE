@@ -224,7 +224,7 @@
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
       use ice_calendar, only: yday
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
+      use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: frzmlt, sst, Tf, strocnxT_iavg, strocnyT_iavg, rsiden, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, wlat, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
@@ -269,7 +269,7 @@
 
       integer (kind=int_kind) :: &
          ntrcr, nt_apnd, nt_hpnd, nt_ipnd, nt_alvl, nt_vlvl, nt_Tsfc, &
-         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno, &
+         nt_iage, nt_FY, nt_qice, nt_sice, nt_aero, nt_qsno, nt_fsd, &
          nt_isosno, nt_isoice, nt_rsnw, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
@@ -304,7 +304,7 @@
       call icepack_query_tracer_indices( &
          nt_apnd_out=nt_apnd, nt_hpnd_out=nt_hpnd, nt_ipnd_out=nt_ipnd, &
          nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, nt_Tsfc_out=nt_Tsfc, &
-         nt_iage_out=nt_iage, nt_FY_out=nt_FY, &
+         nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_fsd_out=nt_fsd, &
          nt_qice_out=nt_qice, nt_sice_out=nt_sice, &
          nt_aero_out=nt_aero, nt_qsno_out=nt_qsno, &
          nt_rsnw_out=nt_rsnw, nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
@@ -412,6 +412,7 @@
                       ipnd         = trcrn       (i,j,nt_ipnd,:,iblk),                   &
                       iage         = trcrn       (i,j,nt_iage,:,iblk),                   &
                       FY           = trcrn       (i,j,nt_FY  ,:,iblk),                   &
+                      afsdn        = trcrn       (i,j,nt_fsd:nt_fsd+nfsd-1,:,iblk),      &
 !opt                      rsnwn        = rsnwn       (:,:),        &
 !opt                      smicen       = smicen      (:,:),        &
 !opt                      smliqn       = smliqn      (:,:),        &
@@ -611,7 +612,7 @@
 
       use ice_arrays_column, only: hin_max, ocean_bio, wave_sig_ht, &
           wave_spectrum, wavefreq, dwavefreq, &
-          first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
+          first_ice, bgrid, cgrid, igrid, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
       use ice_calendar, only: yday
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
@@ -724,9 +725,7 @@
 !opt                      d_afsd_latg= d_afsd_latg(i,j,:,iblk),&
 !opt                      d_afsd_newi= d_afsd_newi(i,j,:,iblk),&
 !opt                      d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
-!opt                      d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
-!opt                      floe_rad_c = floe_rad_c(:),          &
-!opt                      floe_binwidth = floe_binwidth(:))
+!opt                      d_afsd_weld= d_afsd_weld(i,j,:,iblk))
                       )
          endif ! tmask
 
@@ -864,7 +863,7 @@
       subroutine step_dyn_wave (dt)
 
       use ice_arrays_column, only: wave_spectrum, &
-          d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
+          d_afsd_wave, wavefreq, dwavefreq
       use ice_domain_size, only: ncat, nfsd, nfreq
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
@@ -912,8 +911,6 @@
                                            aice        = aice           (i,j,    iblk), &
                                            vice        = vice           (i,j,    iblk), &
                                            aicen       = aicen          (i,j,:,  iblk), &
-                                           floe_rad_l  = floe_rad_l     (:),            &
-                                           floe_rad_c  = floe_rad_c     (:),            &
                                            wave_spectrum = wave_spectrum(i,j,:,  iblk), &
                                            wavefreq    = wavefreq       (:),            &
                                            dwavefreq   = dwavefreq      (:),            &
