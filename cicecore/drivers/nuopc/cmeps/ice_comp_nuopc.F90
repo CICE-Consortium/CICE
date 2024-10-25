@@ -411,6 +411,7 @@ contains
     ! Determine attributes - also needed in realize phase to get grid information
     !----------------------------------------------------------------------------
 
+
     ! Get orbital values
     ! Note that these values are obtained in a call to init_orbit in ice_shortwave.F90
     ! if CESMCOUPLED is not defined
@@ -683,7 +684,7 @@ contains
       if(mastertask) write(nu_diag,*) trim(subname)//'WARNING: pio_typename from driver needs to be set for netcdf output to work'
     end if
 
-    
+
 
 #else
 
@@ -850,7 +851,7 @@ contains
     idate0    = start_ymd
     year_init = (idate0/10000)
     month_init= (idate0-year_init*10000)/100           ! integer month of basedate
-    day_init  = idate0-year_init*10000-month_init*100 
+    day_init  = idate0-year_init*10000-month_init*100
 
     !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
     if (calendar_type == ice_calendar_gregorian) then
@@ -892,7 +893,7 @@ contains
     ! Prescribed ice initialization
     !-----------------------------------------------------------------
 
-    call ice_prescribed_init(clock, ice_mesh, rc)
+    call ice_prescribed_init(gcomp, clock, ice_mesh, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
 #ifdef CESMCOUPLED
@@ -1445,8 +1446,9 @@ contains
     type(ESMF_Time)              :: CurrTime ! current time
     integer                      :: year     ! model year at current time
     integer                      :: orb_year ! orbital year for current orbital computation
+    integer, save                :: prev_orb_year=0 ! orbital year for previous orbital computation
     logical                      :: lprint
-    logical                      :: first_time = .true.
+    logical, save                :: first_time = .true.
     character(len=*) , parameter :: subname = "(cice_orbital_init)"
     !-------------------------------------------------------------------------------
 
@@ -1528,24 +1530,24 @@ contains
           return  ! bail out
        endif
     end if
-
+    lprint = .false.
     if (trim(orb_mode) == trim(orb_variable_year)) then
        call ESMF_ClockGet(clock, CurrTime=CurrTime, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_TimeGet(CurrTime, yy=year, rc=rc)
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        orb_year = orb_iyear + (year - orb_iyear_align)
-       lprint = mastertask
     else
        orb_year = orb_iyear
-       if (first_time) then
-          lprint = mastertask
-       else
-          lprint = .false.
-       end if
     end if
 
+    if (orb_year .ne. prev_orb_year) then
+       lprint = mastertask
+       ! this prevents the orbital print happening before the log file is opened.
+       if (.not. first_time) prev_orb_year = orb_year
+    endif
     eccen = orb_eccen
+
     call shr_orb_params(orb_year, eccen, orb_obliq, orb_mvelp, obliqr, lambm0, mvelpp, lprint)
 
     if ( eccen  == SHR_ORB_UNDEF_REAL .or. obliqr == SHR_ORB_UNDEF_REAL .or. &

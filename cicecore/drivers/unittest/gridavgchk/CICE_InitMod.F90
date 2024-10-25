@@ -66,7 +66,7 @@
           floe_binwidth, c_fsd_range
       use ice_state, only: alloc_state
       use ice_flux_bgc, only: alloc_flux_bgc
-      use ice_calendar, only: dt, dt_dyn, write_ic, &
+      use ice_calendar, only: dt, write_ic, &
           init_calendar, advance_timestep, calc_timesteps
       use ice_communicate, only: init_communicate, my_task, master_task
       use ice_diagnostics, only: init_diags
@@ -144,9 +144,9 @@
 
       call init_thermo_vertical ! initialize vertical thermodynamics
 
-      call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
+      call icepack_init_itd(hin_max=hin_max)  ! ice thickness distribution
       if (my_task == master_task) then
-         call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
+         call icepack_init_itd_hist(hin_max=hin_max, c_hi_range=c_hi_range) ! output
       endif
 
       call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -154,13 +154,12 @@
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
-      if (tr_fsd) call icepack_init_fsd_bounds (nfsd, & ! floe size distribution
-         floe_rad_l,    &  ! fsd size lower bound in m (radius)
-         floe_rad_c,    &  ! fsd size bin centre in m (radius)
-         floe_binwidth, &  ! fsd size bin width in m (radius)
-         c_fsd_range,   &  ! string for history output
+      if (tr_fsd) call icepack_init_fsd_bounds ( &
+         floe_rad_l = floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_c = floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth = floe_binwidth, &  ! fsd size bin width in m (radius)
+         c_fsd_range = c_fsd_range,   &  ! string for history output
          write_diags=(my_task == master_task))  ! write diag on master only
-
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -244,6 +243,7 @@
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
       call dealloc_grid         ! deallocate temporary grid arrays
+
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
       endif
@@ -478,8 +478,7 @@
       do j = 1, ny_block
       do i = 1, nx_block
          if (tmask(i,j,iblk)) then
-            call icepack_aggregate(ncat  = ncat,                  &
-                                   aicen = aicen(i,j,:,iblk),     &
+            call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
                                    vsnon = vsnon(i,j,:,iblk),     &
@@ -488,7 +487,6 @@
                                    vice  = vice (i,j,  iblk),     &
                                    vsno  = vsno (i,j,  iblk),     &
                                    aice0 = aice0(i,j,  iblk),     &
-                                   ntrcr = ntrcr,                 &
                                    trcr_depend   = trcr_depend,   &
                                    trcr_base     = trcr_base,     &
                                    n_trcr_strata = n_trcr_strata, &

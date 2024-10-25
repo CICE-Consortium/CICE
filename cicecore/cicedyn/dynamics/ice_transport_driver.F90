@@ -1739,8 +1739,7 @@
             i = indxi(ij)
             j = indxj(ij)
 
-            call icepack_compute_tracers(ntrcr         = ntrcr,            &
-                                         trcr_depend   = trcr_depend(:),   &
+            call icepack_compute_tracers(trcr_depend   = trcr_depend(:),   &
                                          atrcrn        = work (ij,narrays+1:narrays+ntrcr), &
                                          aicen         = aicen(i,j,n),     &
                                          vicen         = vicen(i,j,n),     &

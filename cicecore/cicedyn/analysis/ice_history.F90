@@ -2325,9 +2325,11 @@
       ! increment field
       !---------------------------------------------------------------
 
+#ifndef __INTEL_LLVM_COMPILER
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt,sicen, &
       !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
+#endif
 
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -3637,7 +3639,9 @@
          call accum_hist_snow (iblk)
 
       enddo                     ! iblk
+#ifndef __INTEL_LLVM_COMPILER
       !$OMP END PARALLEL DO
+#endif
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &

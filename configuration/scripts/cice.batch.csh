@@ -34,12 +34,17 @@ cat >> ${jobfile} << EOFB
 EOFB
 
 else if (${ICE_MACHINE} =~ derecho*) then
+set memstr = ""
+if (${ncores} <= 8 && ${runlength} <= 1 && ${batchmem} <= 20) then
+  set queue = "develop"
+  set memstr = ":mem=${batchmem}GB"
+endif
 cat >> ${jobfile} << EOFB
 #PBS -q ${queue}
 #PBS -l job_priority=regular
 #PBS -N ${ICE_CASENAME}
 #PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}${memstr}
 #PBS -l walltime=${batchtime}
 #PBS -j oe
 #PBS -W umask=022

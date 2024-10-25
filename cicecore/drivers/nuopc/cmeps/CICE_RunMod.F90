@@ -191,14 +191,12 @@
          call init_history_bgc
          call ice_timer_stop(timer_diags)   ! diagnostics/history
 
-#ifdef CESMCOUPLED
          if (prescribed_ice) then  ! read prescribed ice
             call t_barrierf('cice_run_presc_BARRIER',MPI_COMM_ICE)
             call t_startf ('cice_run_presc')
             call ice_prescribed_run(idate, msec)
             call t_stopf ('cice_run_presc')
          endif
-#endif
 
          call step_prep
 

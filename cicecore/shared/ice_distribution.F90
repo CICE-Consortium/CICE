@@ -41,7 +41,7 @@
              ice_distributionGetBlockLoc, &
              ice_distributionGetBlockID, &
              create_local_block_ids, &
-             proc_decomposition 
+             proc_decomposition
 
    character (char_len), public :: &
        processor_shape       ! 'square-pop' (approx) POP default config
