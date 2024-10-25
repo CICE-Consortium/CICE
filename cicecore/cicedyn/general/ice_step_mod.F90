@@ -928,7 +928,7 @@
 
             if (wave_spec_type.eq.'alt') then
             call icepack_step_wavefracture_alt (wave_spec_type, &
-                                            dt, ncat, nfsd, nfreq,         &
+                                            dt,            nfreq,          &
                                             aice           (i,j,    iblk), &
                                             vice           (i,j,    iblk), &
                                             aicen          (i,j,:,  iblk), &
@@ -939,7 +939,7 @@
                                             d_afsd_wave    (i,j,:,  iblk))
             else
              call icepack_step_wavefracture (wave_spec_type, &
-                                            dt, ncat, nfsd, nfreq,         &
+                                            dt,            nfreq,          &
                                             aice           (i,j,    iblk), &
                                             vice           (i,j,    iblk), &
                                             aicen          (i,j,:,  iblk), &
