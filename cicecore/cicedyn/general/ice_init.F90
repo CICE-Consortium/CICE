@@ -1271,7 +1271,6 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
-   
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
           history_format /= 'cdf5'        .and. &
