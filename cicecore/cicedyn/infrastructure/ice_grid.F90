@@ -949,71 +949,23 @@
 !=======================================================================
 
 ! POP/MOM land mask.
-<<<<<<< HEAD
-! Land mask record number is 1 and field is kmt or mask.
-
-      subroutine kmt_nc
-=======
 ! Land mask field is kmt or mask, saved in mask_fieldname.
 
       subroutine kmtmask_nc
->>>>>>> kmt_read_tidy
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-<<<<<<< HEAD
-         fid_grid,  &            ! file id for netCDF grid file
-         fid_kmt,   &              ! file id for netCDF kmt file
-         varid,     &
-         status
-      
-      logical (kind=log_kind) :: diag
-
-      character (char_len) :: &
-         fieldname, varname              ! field name in netCDF file
-
-=======
          fid_kmt                ! file id for netCDF kmt file
       
       logical (kind=log_kind) :: diag
 
->>>>>>> kmt_read_tidy
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
       type (block) :: &
          this_block           ! block information for current block          
 
-<<<<<<< HEAD
-      character(len=*), parameter :: subname = '(kmt_nc)'
-
-#ifdef USE_NETCDF
-
-      diag = .true.       ! write diagnostic info
-
-      call ice_open_nc(kmt_file,fid_kmt)
-      
-      if ( my_task==master_task ) then
-         status = nf90_inq_varid(fid_kmt, 'kmt', varid)
-         if (status == nf90_noerr) then
-            fieldname = 'kmt'
-         else 
-            fieldname = 'mask'
-            status = nf90_inq_varid(fid_kmt, 'mask', varid)
-            call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
-                              ' contain "kmt" or "mask" variable?', &
-                              file=__FILE__, line=__LINE__)
-         endif
-      endif
-      
-      call ice_read_nc(fid_kmt,1,fieldname,work1,diag, &
-                        field_loc=field_loc_center, &
-                        field_type=field_type_scalar)
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-=======
       character(len=*), parameter :: subname = '(kmtmask_nc)'
 
       diag = .true.       ! write diagnostic info
@@ -1029,7 +981,6 @@
 
       call ice_close_nc(fid_kmt)
 
->>>>>>> kmt_read_tidy
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -1040,26 +991,13 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-<<<<<<< HEAD
-            kmt(i,j,iblk) = work1(i,j,iblk)
-=======
->>>>>>> kmt_read_tidy
             if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
-<<<<<<< HEAD
-#else
-      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
-            file=__FILE__, line=__LINE__)
-#endif
-
-      end subroutine kmt_nc
-=======
 
       end subroutine kmtmask_nc
->>>>>>> kmt_read_tidy
 
 !=======================================================================
 
@@ -1108,11 +1046,7 @@
       call ice_open_nc(grid_file,fid_grid)
 
       diag = .true.       ! write diagnostic info
-<<<<<<< HEAD
-
-=======
    
->>>>>>> kmt_read_tidy
       !-----------------------------------------------------------------
       ! lat, lon, angle
       !-----------------------------------------------------------------
