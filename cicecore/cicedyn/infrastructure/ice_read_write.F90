@@ -2485,14 +2485,14 @@
       character(len=*), parameter :: subname = '(ice_read_global_nc)'
 
 #ifdef USE_NETCDF
-! netCDF file diagnostics:
+      ! netCDF file diagnostics:
       integer (kind=int_kind) :: &
          varid,  &         ! netcdf id for field
          status, &         ! status output from netcdf routines
-         ndims,  &         ! number of variable dimensions
+         ndim,  &         ! number of variable dimensions
          dimids(NF90_MAX_VAR_DIMS) , & !ids of dimensions
          dimlen            ! size of dimension
-!        ndim, nvar,     & ! sizes of netcdf file
+!        nvar,     & ! sizes of netcdf file
 !        id,             & ! dimension index
 
       real (kind=dbl_kind) :: &
@@ -2536,14 +2536,15 @@
                               file=__FILE__, line=__LINE__)
             work_g=work_g3(2:nx_global+1,1:ny_global)
          else
-            ! Check var size
-            status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
+            ! Check var size : is var 2d ?
+            status = nf90_inquire_variable(fid, varid, ndims=ndim, dimids=dimids)
             call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
                               file=__FILE__, line=__LINE__)
-            if ( ndims > 2 ) then
+            if ( ndim > 2 ) then
                call abort_ice(subname//' ERROR: '//trim(varname)//' cannot have more than 2 dimensions', &
                               file=__FILE__, line=__LINE__)
             endif
+            ! Is work_g the same size as the variable?
             status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
             call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
                               file=__FILE__, line=__LINE__)
