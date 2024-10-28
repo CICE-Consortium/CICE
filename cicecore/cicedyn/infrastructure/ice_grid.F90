@@ -22,9 +22,6 @@
 
       module ice_grid
 
-#ifdef USE_NETCDF
-      use netcdf
-#endif
       use ice_kinds_mod
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
@@ -304,8 +301,7 @@
 
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
-         fid_kmt , &     ! file id for netCDF kmt file
-         status, varid
+         fid_kmt      ! file id for netCDF kmt file
 
       character (char_len) :: &
          fieldname       ! field name in netCDF file
@@ -350,7 +346,7 @@
                         file=__FILE__, line=__LINE__)
       endif
 
-      if (trim(grid_format)='mom_mosaic' .and. ns_boundary_type == 'tripoleT') then
+      if (trim(grid_format) == 'mom_mosaic' .and. ns_boundary_type == 'tripoleT') then
          call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "&
                         "for grid_format='mom_mosaic' tripole needs tripole ns_boundary_type", &
                         file=__FILE__, line=__LINE__)
@@ -676,20 +672,17 @@
       call ice_timer_stop(timer_bound)
 
       !-----------------------------------------------------------------
-      ! Calculate ANGLET to be compatible with POP ocean model
-      ! First, ensure that -pi <= ANGLE <= pi
+      ! Ensure that -pi <= ANGLE <= pi
       !-----------------------------------------------------------------
 
-      if (trim(grid_format) /= 'mom_mosaic') then
-         out_of_range = .false.
-         where (ANGLE < -pi .or. ANGLE > pi) out_of_range = .true.
-         if (count(out_of_range) > 0) then
-            write(nu_diag,*) subname,' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
-            call abort_ice (subname//' ANGLE out of expected range', &
-               file=__FILE__, line=__LINE__)
-         endif
+      out_of_range = .false.
+      where (ANGLE < -pi .or. ANGLE > pi) out_of_range = .true.
+      if (count(out_of_range) > 0) then
+         write(nu_diag,*) subname,' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
+         call abort_ice (subname//' ANGLE out of expected range', &
+            file=__FILE__, line=__LINE__)
       endif
-
+      
       if (l_readCenter) then
          out_of_range = .false.
          where (ANGLET < -pi .or. ANGLET > pi) out_of_range = .true.
@@ -763,11 +756,20 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
-      if (.not. (l_readCenter)) then
-         call Tlatlon        ! get lat, lon on the T grid
-      endif
+      
+      !----------------------------------------------------------------
+      ! Coordinates for all T/N/E cells
+      !----------------------------------------------------------------
+      
       if (trim(grid_format) /= 'mom_mosaic') then 
+         if (.not. (l_readCenter)) then
+            call Tlatlon        ! get lat, lon on the T grid
+         endif
          call NElatlon          ! get lat, lon on the N, E grid
+
+         ! corners for CF-compliant output
+         call gridbox_corners
+         call gridbox_edges
       endif
 
       !-----------------------------------------------------------------
@@ -782,14 +784,8 @@
          call abort_ice(subname//' ERROR: bathymetry_format value must be default or pop', &
             file=__FILE__, line=__LINE__)
       endif
-
-      !----------------------------------------------------------------
-      ! Corner coordinates for CF compliant history files
-      !----------------------------------------------------------------
-      if (trim(grid_format) /= 'mom_mosaic') then 
-         call gridbox_corners
-         call gridbox_edges
-      endif
+      call gridbox_corners
+      call gridbox_edges
 
       !-----------------------------------------------------------------
       ! Compute global index (used for unpacking messages from coupler)
@@ -1012,6 +1008,11 @@
 
       subroutine popgrid_nc
 
+#ifdef USE_NETCDF
+      use netcdf, only : nf90_inq_varid , nf90_inq_dimid, &
+                         nf90_inquire_dimension, nf90_get_var,  nf90_noerr
+#endif
+
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
@@ -1076,7 +1077,7 @@
       ! if grid file includes anglet then read instead
       fieldname='anglet'
       if (my_task == master_task) then
-         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         status = nf90_inq_varid(fid_grid, fieldname , varid)
          if (status /= nf90_noerr) then
             write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
          else
@@ -1135,6 +1136,10 @@
       subroutine latlongrid
 
       use ice_scam, only : scmlat, scmlon, single_column
+#ifdef USE_NETCDF
+      use netcdf, only : nf90_inq_varid , nf90_inq_dimid, &
+                         nf90_inquire_dimension, nf90_get_var
+#endif
 
       integer (kind=int_kind) :: &
          i, j, iblk
@@ -1404,20 +1409,17 @@
 #endif
 !=======================================================================
 
-! Create the CICE grid from the MOM mosaic grid file and land mask.
-! CICE Fields and units are: \\
-! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    \\
-! HTN, HTE   (m)         \\
-! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)         \\
+! Create the CICE grid from the MOM mosaic grid file.
+! CICE Fields and units are: 
+! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    
+! HTN, HTE   (m)         
+! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)         
 ! ANGLE, ANGLET (radians)
 ! tarea, uarea, narea, earea (m^2)
 
       subroutine mom_mosaic_grid
    
       integer (kind=int_kind) :: &
-         i, j, iblk, &
-         im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom mosaic
-         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
          fid_grid, &            ! file id for netCDF grid file
          varid, &               ! netcdf varid
          status                 ! status flag
@@ -1428,300 +1430,67 @@
          fieldname              ! field name in netCDF file
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1, work_g2, work_g3, work_g4, work_mom, G_ULAT, G_TLAT
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-      
-      real (kind=dbl_kind) :: &
-         deg_to_rad , pi 
-
+         G_TLON, work_gE, G_ULON, work_gN, work_mom, G_ULAT, G_TLAT
+       
       character(len=*), parameter :: subname = '(mom_mosaic_grid)'
 
 #ifdef USE_NETCDF
-      call icepack_query_parameters(pi_out=pi)
       
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      deg_to_rad = pi/c180
-
       !-----------------------------------------------------------------
       ! lat, lon, angle
       !-----------------------------------------------------------------
       call ice_open_nc(grid_file,fid_grid)
 
       if (my_task == master_task) then
-         allocate(work_g1(nx_global,ny_global))
-         allocate(work_g2(nx_global,ny_global))
-         allocate(work_g3(nx_global,ny_global))
-         allocate(work_g4(nx_global,ny_global))
-      else
-         allocate(work_g1(1,1))
-         allocate(work_g2(1,1))
-         allocate(work_g3(1,1))
-         allocate(work_g4(1,1))
-      endif
-      
-      if (my_task == master_task) then
          allocate(work_mom(nx_global*2+1, ny_global*2+1))
+         allocate(work_gE(nx_global,ny_global))
+         allocate(work_gN(nx_global,ny_global))
+         allocate(G_ULAT(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
+         allocate(G_TLAT(nx_global+1,ny_global+1)) !1 bigger to include top and right
+         allocate(G_TLON(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
+         allocate(G_ULON(nx_global+1,ny_global+1)) !1 bigger to include top and right
       else
          allocate(work_mom(1, 1))
+         allocate(work_gE(1,1))
+         allocate(work_gN(1,1))
+         allocate(G_ULAT(1,1)) 
+         allocate(G_TLAT(1,1))
+         allocate(G_TLON(1,1)) 
+         allocate(G_ULON(1,1))
       endif
-
+     
       ! populate all LAT fields
       fieldname='y'       
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      !-------------------------------------------------------------
-      ! Get lat bounds of grid boxes for each block as follows:
-      ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
-      !-------------------------------------------------------------
-      ! gridbox_verts uses some interpolation, instead we read from file
-      ! mom mosaic has every corner point from bottom left to top right
-      ! and two cells per model cell
-      if (my_task == master_task) then
-         im1 = 1 ! left hand edge of first coll
-         im2 = 3 ! right hand edge of first col
-         do i = 1, nx_global
-            jm1 = 1 ! bottom edge of first row
-            jm2 = 3 ! top edge of first row
-            do j = 1, ny_global
-               work_g1(i,j) = work_mom(im1, jm1)
-               work_g4(i,j) = work_mom(im1, jm2)
-               work_g2(i,j) = work_mom(im2, jm1)
-               work_g3(i,j) = work_mom(im2, jm2)
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
-            enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
-         enddo
-      endif
-
-      call scatter_global(work1, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      latt_bounds(1,:,:,:) = work1(:,:,:)  
-      call scatter_global(work1, work_g2, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      latt_bounds(2,:,:,:) = work1(:,:,:)
-      call scatter_global(work1, work_g3, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      latt_bounds(3,:,:,:) = work1(:,:,:)              
-      call scatter_global(work1, work_g4, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      latt_bounds(4,:,:,:) = work1(:,:,:)
-
-      work_mom(:,:) = work_mom(:,:) * deg_to_rad       ! convert to rad
-
-      if (my_task == master_task) then
-         allocate(G_ULAT(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
-         allocate(G_TLAT(nx_global+1,ny_global+1)) !1 bigger to include top and right
-      else
-         allocate(G_ULAT(1,1)) 
-         allocate(G_TLAT(1,1))
-      endif
-      ! populate all LAT fields
-
-      if (my_task == master_task) then
-
-         ! fill first row & col of G_ULAT
-         do i =1 , nx_global
-            G_ULAT(i,1) = work_mom(2*i-1, 1)
-         enddo
-         do j=2 , ny_global
-            G_ULAT(1,j) = work_mom(1 , 2*j-1)
-         enddo
-
-         im1 = 2 ! middle of first col
-         im2 = 3 ! right hand edge of first col
-         do i = 1, nx_global
-            jm1 = 2 ! middle of first row
-            jm2 = 3 ! top edge of first row
-            do j = 1, ny_global
-               G_TLAT(i,j) = work_mom(im1, jm1) ! TLAT
-               work_g4(i,j) = work_mom(im1, jm2) ! NLAT
-               work_g2(i,j) = work_mom(im2, jm1) ! ELAT
-               G_ULAT(i+1,j+1) = work_mom(im2, jm2) ! ULAT
-               ! G_ULAT(i+1, j+1) = work_mom(im2, jm2) ! ULAT
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
-            enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
-         enddo
-
-         ! fill last row & col of G_TLAT
-         if (trim(ns_boundary_type) == 'tripole') then
-            do i = 1, nx_global
-               G_TLAT(i,ny_global+1) = G_TLAT(nx_global+1-i, ny_global)
-            enddo
-            G_TLAT(nx_global+1,1:ny_global+1) = G_TLAT(1,1:ny_global+1)
-            ! G_TLAT(nx_global+1, ny_global+1)=G_TLAT(nx_global,ny_global)
-         endif
-         ! TO-DO: fix other cases
-      endif
+      call mosaic_corners(work_mom, &
+                          G_ULAT, G_TLAT, work_gE, work_gN, &
+                          ULAT, TLAT, ELAT, NLAT, &
+                          latt_bounds)
       
-      call scatter_global(TLAT, G_TLAT, master_task, distrb_info, &
-                          field_loc_center, field_type_scalar)
-      call ice_HaloExtrapolate(TLAT, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
-      call scatter_global(ULAT, G_ULAT(2:nx_global, 2:ny_global), &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      call ice_HaloExtrapolate(ULAT, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
-      call scatter_global(NLAT, work_g4, master_task, distrb_info, &
-                          field_loc_Nface, field_type_scalar)
-      call ice_HaloExtrapolate(NLAT, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
-      call scatter_global(ELAT, work_g2, master_task, distrb_info, &
-                          field_loc_Eface, field_type_scalar)
-      call ice_HaloExtrapolate(ELAT, distrb_info, &
-                               ew_boundary_type, ns_boundary_type)
-
-
-
       ! populate all LON fields
       fieldname='x'       
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      !-------------------------------------------------------------
-      ! Get lon bounds of grid boxes for each block as follows:
-      ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
-      !-------------------------------------------------------------
-      if (my_task == master_task) then
-         im1 = 1 ! left hand edge of first col
-         im2 = 3 ! right hand edge of first col
-         do i = 1, nx_global
-            jm1 = 1 ! bottom edge of first row
-            jm2 = 3 ! top edge of first row
-            do j = 1, ny_global
-               work_g1(i,j) = work_mom(im1, jm1)
-               work_g4(i,j) = work_mom(im1, jm2)
-               work_g2(i,j) = work_mom(im2, jm1)
-               work_g3(i,j) = work_mom(im2, jm2)
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
-            enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
-         enddo
-      endif
-      call scatter_global(work1, work_g1, master_task, distrb_info, &
-                        field_loc_NEcorner, field_type_scalar)
-      lont_bounds(1,:,:,:) = work1(:,:,:)  
-      call scatter_global(work1, work_g2, master_task, distrb_info, &
-                        field_loc_NEcorner, field_type_scalar)
-      lont_bounds(2,:,:,:) = work1(:,:,:)
-      call scatter_global(work1, work_g3, master_task, distrb_info, &
-                        field_loc_NEcorner, field_type_scalar)
-      lont_bounds(3,:,:,:) = work1(:,:,:)              
-      call scatter_global(work1, work_g4, master_task, distrb_info, &
-                        field_loc_NEcorner, field_type_scalar)
-      lont_bounds(4,:,:,:) = work1(:,:,:)
-
-      ! convert to rad
-      work_mom(:,:) = work_mom(:,:) * deg_to_rad
-
-      deallocate(work_g1)
-      deallocate(work_g3)
-      if (my_task == master_task) then
-         allocate(work_g1(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
-         allocate(work_g3(nx_global+1,ny_global+1)) !1 bigger to include top and right
-      else
-         allocate(work_g1(1,1)) 
-         allocate(work_g3(1,1))
-      endif
-
-      if (my_task == master_task) then
-         ! fill first row & col of G_ULON
-         do i =1 , nx_global
-            work_g3(i,1) = work_mom(2*i-1, 1)
-         enddo
-         do j=2 , ny_global
-            work_g3(1,j) = work_mom(1 , 2*j-1)
-         enddo
-
-         im1 = 2 ! middle of first col
-         im2 = 3 ! right hand edge of first col
-         do i = 1, nx_global
-            jm1 = 2 ! middle of first row
-            jm2 = 3 ! top edge of first row
-            do j = 1, ny_global
-               work_g1(i,j) = work_mom(im1, jm1) ! T
-               work_g4(i,j) = work_mom(im1, jm2) ! N
-               work_g2(i,j) = work_mom(im2, jm1) ! E
-               work_g3(i+1,j+1) = work_mom(im2, jm2) ! U
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
-            enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
-         enddo
-
-         ! fill last row & col of G_TLON
-         if (trim(ns_boundary_type) == 'tripole') then
-            do i = 1, nx_global
-               work_g1(i,ny_global+1) = work_g1(nx_global+1-i, ny_global)
-            enddo
-            work_g1(nx_global+1,1:ny_global+1) = work_g1(1,1:ny_global+1)
-            ! G_TLAT(nx_global+1, ny_global+1)=G_TLAT(nx_global,ny_global)
-         endif
-         ! TO-DO: fix other cases
-      endif
-      call scatter_global(TLON, work_g1(1:nx_global,1:ny_global), master_task, distrb_info, &
-                        field_loc_center, field_type_scalar)
-      call ice_HaloExtrapolate(TLON, distrb_info, &
-                              ew_boundary_type, ns_boundary_type)
-      call scatter_global(ULON, work_g3(2:nx_global+1,2:ny_global+1), &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      call ice_HaloExtrapolate(ULON, distrb_info, &
-                              ew_boundary_type, ns_boundary_type)
-      call scatter_global(NLON, work_g4, master_task, distrb_info, &
-                        field_loc_Nface, field_type_scalar)
-      call ice_HaloExtrapolate(NLON, distrb_info, &
-                              ew_boundary_type, ns_boundary_type)
-      call scatter_global(ELON, work_g2, master_task, distrb_info, &
-                        field_loc_Eface, field_type_scalar)
-      call ice_HaloExtrapolate(ELON, distrb_info, &
-                              ew_boundary_type, ns_boundary_type)
-
+      call mosaic_corners(work_mom, &
+                          G_ULON, G_TLON, work_gE, work_gN, &
+                          ULON, TLON, ELON, NLON, &
+                          lont_bounds)
 
       ! populate angle fields, angle is u-points, angleT is t-points 
       ! even though mom_mosaic files contain angle_dx, mom6 calculates internally
-      call grid_rotation_angle(work_g3, G_ULAT, work_g1(1:nx_global,1:ny_global), work_g4) ! anglet
-      call grid_rotation_angle(work_g1, G_TLAT, work_g3(2:nx_global+1,2:ny_global+1), work_g2) ! angle
+      call grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_gN) ! anglet
+      call scatter_global(ANGLET, work_gN, master_task, distrb_info, &
+                           field_loc_center, field_type_angle)
+      call grid_rotation_angle(G_TLON, G_TLAT, G_ULON(2:nx_global+1,2:ny_global+1), work_gE) ! angle
+      call scatter_global(ANGLE, work_gE, master_task, distrb_info, &
+                           field_loc_NEcorner, field_type_angle)
 
       deallocate(G_ULAT)
       deallocate(G_TLAT)
-      ! fieldname='angle_dx'
-      ! call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
-      ! if (my_task == master_task) then
-      !    im1 = 2 ; im2 = 3 
-      !    do i = 1, nx_global
-      !       jm1 = 2 ; jm2 = 3 
-      !       do j = 1, ny_global
-      !          work_g1(i,j) = work_mom(im1, jm1)     ! T
-      !          work_g2(i,j) = work_mom(im2, jm2)     ! U
-      !          jm1 = jm1 + 2; jm2 = jm2 + 2
-      !       enddo
-      !       im1 = im1 + 2 ; im2 = im2 + 2
-      !    enddo
-      ! endif
+      deallocate(G_TLON)
+      deallocate(work_gE)
+      deallocate(G_ULON)
+      deallocate(work_gN)
 
-      call scatter_global(ANGLE, work_g2, master_task, distrb_info, &
-                           field_loc_NEcorner, field_type_angle)
-      call scatter_global(ANGLET, work_g4, master_task, distrb_info, &
-                           field_loc_center, field_type_angle)
-      ! to-do : check/remove
-      ! fix ANGLE: roundoff error due to single precision
-      ! where (ANGLE >  pi) ANGLE =  pi
-      ! where (ANGLE < -pi) ANGLE = -pi
-      deallocate(work_g1)
-      deallocate(work_g2)
-      deallocate(work_g3)
-      deallocate(work_g4)
       !-----------------------------------------------------------------
       ! cell dimensions
       ! primary_grid_lengths uses some interpolation, instead we read from file
@@ -1778,7 +1547,145 @@
 
       end subroutine mom_mosaic_grid
 
+      subroutine mosaic_corners(work_mom, &
+                                G_U, G_T, G_E, G_N, &
+                                U, T, E, N, &
+                                bounds)
+
+      ! mom moasic has four cells for every model cell
+      ! we need to select the correct ones to get lat & lon
+      ! we include left/bottom edges for U-points, and top/right edges for T-points
+      ! and close per ew_boundary_type & ns_boundary_type
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom 
+
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: G_U, G_T, G_E, G_N
+
+      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: U, T, E, N ! local grids
+
+      real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds !latt_bounds or lont_bounds
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work_bounds
+
+      real (kind=dbl_kind) :: deg_to_rad , pi 
+
+      integer (kind=int_kind) :: &
+         i, j, &
+         im1, im2, jm1, jm2  ! i & j for mom mosaic
+
+      character(len=*), parameter :: subname = '(mosaic_corners)'
+
+      call icepack_query_parameters(pi_out=pi)
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      deg_to_rad = pi/c180
+
+      if (my_task == master_task) then
+
+         ! fill first row & col of G_ULAT/LON
+         do i =1, nx_global
+            G_U(i,1) = work_mom(2*i-1, 1)
+         enddo
+         do j=2, ny_global
+            G_U(1,j) = work_mom(1, 2*j-1)
+         enddo
+
+         im1 = 2 ; im2 = 3 ! middle of first col ; right hand edge of first col
+         do i = 1, nx_global
+            jm1 = 2 ; jm2 = 3 ! middle of first row ; top edge of first row
+            do j = 1, ny_global
+               G_T(i,j) = work_mom(im1, jm1)     ! TLAT
+               G_N(i,j) = work_mom(im1, jm2)     ! NLAT
+               G_E(i,j) = work_mom(im2, jm1)     ! ELAT
+               G_U(i+1,j+1) = work_mom(im2, jm2) ! ULAT
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+            im1 = im1 + 2 ; im2 = im2 + 2
+         enddo
+
+         ! fill last row of G_TLON/LAT
+         select case (trim(ns_boundary_type))
+            case ('tripole')
+               do i = 1, nx_global
+                  G_T(i,ny_global+1) = G_T(nx_global+1-i, ny_global)
+               enddo
+            case ('cyclic')
+               G_T(:,ny_global+1) = G_T(:,1)
+            case ('open')
+               do i = 1, nx_global
+                  G_T(i,ny_global+1) = 2 * G_T(i, ny_global) - G_T(i, ny_global-1)
+               enddo
+         end select
+
+         ! fill last col
+         select case (trim(ew_boundary_type))
+            case('cyclic')
+               G_T(nx_global+1,1:ny_global+1) = G_T(1,1:ny_global+1)
+            case('open')
+               do j=1, ny_global
+                  G_T(nx_global,j+1) = 2 * G_T(nx_global, j) - G_T(nx_global, j-1)
+               enddo
+         end select
+
+      endif
+
+      ! Get bounds of grid boxes for each block as follows:
+      ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
+      call scatter_global(work_bounds, G_U(1:nx_global, 1:ny_global), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(1,:,:,:) = work_bounds(:,:,:)  
+      call scatter_global(work_bounds, G_U(2:nx_global+1, 1:ny_global), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(2,:,:,:) = work_bounds(:,:,:)
+      call scatter_global(work_bounds, G_U(2:nx_global+1, 2:ny_global+1), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(3,:,:,:) = work_bounds(:,:,:)              
+      call scatter_global(work_bounds, G_U(1:nx_global, 2:ny_global+1), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(4,:,:,:) = work_bounds(:,:,:)
+
+      ! convert to rad
+      G_T = G_T * deg_to_rad   
+      G_U = G_U * deg_to_rad   
+      G_N = G_N * deg_to_rad   
+      G_E = G_E * deg_to_rad 
+
+      ! distribute to processors
+      call scatter_global(T, G_T(1:nx_global, 1:ny_global), &
+                          master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(T, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call scatter_global(U, G_U(2:nx_global+1, 2:ny_global+1), &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(U, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call scatter_global(N, G_N, master_task, distrb_info, &
+                         field_loc_Nface, field_type_scalar)
+      call ice_HaloExtrapolate(N, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call scatter_global(E, G_E, master_task, distrb_info, &
+                          field_loc_Eface, field_type_scalar)
+      call ice_HaloExtrapolate(E, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+  
+
+      end subroutine mosaic_corners
+
       subroutine mosaic_dx(work_mom)
+
+      ! mom_mosaic has four cells for every model cell, 
+      ! we just need to sum the correct sidelengths to get dy
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
 
@@ -1875,6 +1782,9 @@
       end subroutine mosaic_dx
 
       subroutine mosaic_dy(work_mom)
+
+      ! mom_mosaic has four cells for every model cell, 
+      ! we just need to sum the correct sidelengths to get dy
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
 
@@ -1976,9 +1886,7 @@
 
       ! mom_mosaic has four cells for every model cell, we just need to sum these
       ! to get model cell areas
-      ! REF: https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_grid_initialize.F90#L288C1-L295C16
-      ! why is MOM not useing this for earea & uarea ? 
-      ! https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_grid_initialize.F90#L1251C1-L1263C16
+      ! earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
 
@@ -2139,48 +2047,50 @@
       end subroutine mosaic_area
 
       !  create angles in the same way mom creates the angle
-      !  base on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
+      !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
       !  the angle is between logical north on the grid and true north.
       subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
       
-      !global lat/lons/angles
-      real (kind=dbl_kind), dimension(:,:), intent(in) :: lon_cnr, lat_cnr, lon_cen
-      real (kind=dbl_kind), dimension(:,:), intent(out) :: angle
+         !global lat/lons/angles
+         real (kind=dbl_kind), dimension(:,:), intent(in) :: lon_cnr, lat_cnr, lon_cen
+         real (kind=dbl_kind), dimension(:,:), intent(out) :: angle
 
-      
-      real (kind=dbl_kind)   :: lon_scale  ! The trigonometric scaling factor converting changes in longitude
-                              ! to equivalent distances in latitudes [nondim]
-      real (kind=dbl_kind)   :: len_lon    ! The periodic range of longitudes, usually 360 degrees [degrees_E].
-      real (kind=dbl_kind)   :: lon_adj
-      real (kind=dbl_kind)   :: pi !, pi_720deg ! One quarter the conversion factor from degrees to radians [radian degree-1]
-      real (kind=dbl_kind)   :: lonB(2,2)  ! The longitude of a point, shifted to have about the same value [degrees_E].
-      integer (kind=int_kind) :: i, j, iblk, m, n 
-      character(len=*), parameter :: subname = '(mom_mosaic_grid)'
+         
+         real (kind=dbl_kind)   :: lon_scale  ! The trigonometric scaling factor converting changes in longitude
+                                 ! to equivalent distances in latitudes [nondim]
+         real (kind=dbl_kind)   :: len_lon    ! The periodic range of longitudes, usually 360 degrees [degrees_E].
+         real (kind=dbl_kind)   :: lon_adj
+         real (kind=dbl_kind)   :: pi ! One quarter the conversion factor from degrees to radians [radian degree-1]
+         real (kind=dbl_kind)   :: lonB(2,2)  ! The longitude of a point, shifted to have about the same value [degrees_E].
+         integer (kind=int_kind) :: i, j, iblk, m, n 
+         character(len=*), parameter :: subname = '(mom_mosaic_grid)'
 
-      call icepack_query_parameters(pi_out=pi)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+         call icepack_query_parameters(pi_out=pi)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
 
-      if (my_task == master_task) then
-         len_lon = maxval(lon_cnr)-minval(lon_cnr) ! 2*pi 
+         if (my_task == master_task) then
+            len_lon = maxval(lon_cnr)-minval(lon_cnr) ! 2*pi 
 
-         do j=1,ny_global 
-            do i=1,nx_global
-               ! TO-DO: revisit (needs bottom left corner ???)
-               lon_adj = lon_cen(i,j)-p5*len_lon
-               do n=1,2 ; do m=1,2
-                  ! shift lon corner points to be similar range to centre point
-                  ! e.g. upper limit of 0 might be shifted to 2*pi
-                  lonB(m,n) = modulo(lon_cnr(i+m-1,j+n-1)-lon_adj, len_lon) &
-                                    + lon_adj
-               enddo ; enddo
-               lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
-               angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
-                           (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
-            enddo 
-         enddo
-      endif
+            write(nu_diag, *) "Range of lon (rad) = " 
+            write(nu_diag, *) len_lon
+
+            do j=1,ny_global 
+               do i=1,nx_global
+                  lon_adj = lon_cen(i,j)-p5*len_lon
+                  do n=1,2 ; do m=1,2
+                     ! shift lon corner points to be similar range to centre point
+                     ! e.g. upper limit of 0 might be shifted to 2*pi
+                     lonB(m,n) = modulo(lon_cnr(i+m-1,j+n-1)-lon_adj, len_lon) &
+                                       + lon_adj
+                  enddo ; enddo
+                  lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
+                  angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
+                              (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
+               enddo 
+            enddo
+         endif
 
       end subroutine grid_rotation_angle
 
