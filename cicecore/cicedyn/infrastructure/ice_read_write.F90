@@ -2455,42 +2455,34 @@
          ! Read global array
          !--------------------------------------------------------------
 
-         if (orca_halogrid) then
-            status = nf90_get_var( fid, varid, work_g3, &
-                                   start=(/1,1,nrec/), count=(/nx_global+2,ny_global+1,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            work_g=work_g3(2:nx_global+1,1:ny_global)
-         else
-            ! Check var size : is var 2d ?
-            status = nf90_inquire_variable(fid, varid, ndims=ndim, dimids=dimids)
-            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            if ( ndim > 2 ) then
-               call abort_ice(subname//' ERROR: '//trim(varname)//' cannot have more than 2 dimensions', &
-                              file=__FILE__, line=__LINE__)
-            endif
-            ! Is work_g the same size as the variable?
-            status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
-            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            if ( dimlen /= size(work_g,1) ) then
-               call abort_ice(subname//' ERROR: x dim of '//trim(varname)//' wrong size, check nx_global', &
-                              file=__FILE__, line=__LINE__)
-            endif
-            status = nf90_inquire_dimension(fid, dimids(2), len=dimlen)
-            call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            if ( dimlen /= size(work_g,2) ) then
-               call abort_ice(subname//' ERROR: y dim of '//trim(varname)//' wrong size, check ny_global', &
-                              file=__FILE__, line=__LINE__)
-            endif
-
-            ! Get the data
-            status = nf90_get_var( fid, varid, work_g, start=(/1,1,nrec/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
+         ! Check var size : is var 2d ?
+         status = nf90_inquire_variable(fid, varid, ndims=ndim, dimids=dimids)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( ndim > 2 ) then
+            call abort_ice(subname//' ERROR: '//trim(varname)//' cannot have more than 2 dimensions', &
+                           file=__FILE__, line=__LINE__)
          endif
+         ! Is work_g the same size as the variable?
+         status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( dimlen /= size(work_g,1) ) then
+            call abort_ice(subname//' ERROR: x dim of '//trim(varname)//' wrong size, check nx_global', &
+                           file=__FILE__, line=__LINE__)
+         endif
+         status = nf90_inquire_dimension(fid, dimids(2), len=dimlen)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( dimlen /= size(work_g,2) ) then
+            call abort_ice(subname//' ERROR: y dim of '//trim(varname)//' wrong size, check ny_global', &
+                           file=__FILE__, line=__LINE__)
+         endif
+
+         ! Get the data
+         status = nf90_get_var( fid, varid, work_g, start=(/1,1,nrec/))
+         call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
       endif                     ! my_task = master_task
 
       !-------------------------------------------------------------------
