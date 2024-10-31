@@ -158,10 +158,10 @@
           file=__FILE__,line= __LINE__)
 
       if (tr_fsd) call icepack_init_fsd_bounds ( &
-         floe_rad_l = floe_rad_l,    &  ! fsd size lower bound in m (radius)
-         floe_rad_c = floe_rad_c,    &  ! fsd size bin centre in m (radius)
-         floe_binwidth = floe_binwidth, &  ! fsd size bin width in m (radius)
-         c_fsd_range = c_fsd_range,   &  ! string for history output
+         floe_rad_l_out = floe_rad_l,    &  ! fsd size lower bound in m (radius)
+         floe_rad_c_out = floe_rad_c,    &  ! fsd size bin centre in m (radius)
+         floe_binwidth_out = floe_binwidth, &  ! fsd size bin width in m (radius)
+         c_fsd_range_out = c_fsd_range,   &  ! string for history output
          write_diags=(my_task == master_task))  ! write diag on master only
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -198,6 +198,8 @@
       ! in prep_radiation.
       if (trim(runtype) == 'continue' .or. restart) &
          call init_shortwave    ! initialize radiative transfer
+
+      if (write_ic) call accum_hist(dt) ! write initial conditions
 
 !      call advance_timestep()
 
@@ -238,8 +240,6 @@
       call init_flux_atm        ! initialize atmosphere fluxes sent to coupler
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
-      if (write_ic) call accum_hist(dt) ! write initial conditions
-
       call dealloc_grid         ! deallocate temporary grid arrays
       if (my_task == master_task) then
          call ice_memusage_print(nu_diag,subname//':end')
@@ -274,7 +274,7 @@
           restart_iso, read_restart_iso, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
-          restart_zsal, restart_bgc
+          restart_bgc
       use ice_restart_driver, only: restartfile
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
@@ -285,7 +285,7 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
           tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal
+          skl_bgc, z_tracers
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
@@ -301,7 +301,7 @@
           file=__FILE__, line=__LINE__)
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-           z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
+           z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
@@ -447,8 +447,6 @@
       if (trim(runtype) == 'continue') then
          if (tr_brine) &
              restart_hbrine = .true.
-         if (solve_zsal) &
-             restart_zsal = .true.
          if (skl_bgc .or. z_tracers) &
              restart_bgc = .true.
       endif
@@ -458,7 +456,7 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
+      if (skl_bgc .or. z_tracers) then ! biogeochemistry
          if (tr_fsd) then
             write (nu_diag,*) 'FSD implementation incomplete for use with BGC'
             call icepack_warnings_flush(nu_diag)
