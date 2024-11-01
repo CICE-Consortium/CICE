@@ -2695,7 +2695,8 @@
           kmt_type  /=  'channel_onenorth' .and. &
           kmt_type  /=  'wall'    .and. &
           kmt_type  /=  'default' .and. &
-          kmt_type  /=  'boxislands') then
+          kmt_type  /=  'boxislands' .and. &
+          kmt_type /= 'none' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":27"
       endif

@@ -84,6 +84,8 @@ module ice_import_export
     integer :: ungridded_ubound = 0
   end type fld_list_type
 
+  real(dbl_kind), allocatable :: mesh_areas(:)
+
   ! area correction factors for fluxes send and received from mediator
   real(dbl_kind), allocatable :: mod2med_areacor(:) ! ratios of model areas to input mesh areas
   real(dbl_kind), allocatable :: med2mod_areacor(:) ! ratios of input mesh areas to model areas
@@ -231,6 +233,8 @@ contains
     ! ice states
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_imask' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_ifrac' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_areacor' )
+    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_mesharea' )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_t'     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_vice'  )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_vsno'  )
@@ -324,7 +328,7 @@ contains
     integer                     :: i, j, iblk, n
     integer                     :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
     type(block)                 :: this_block         ! block information for current block
-    real(dbl_kind), allocatable :: mesh_areas(:)
+   !  real(dbl_kind), allocatable :: mesh_areas(:)
     real(dbl_kind), allocatable :: model_areas(:)
     real(dbl_kind), pointer     :: dataptr(:)
     real(dbl_kind)              :: max_mod2med_areacor
@@ -395,22 +399,22 @@ contains
        med2mod_areacor(:) = 1._dbl_kind
        n = 0
        do iblk = 1, nblocks
-          this_block = get_block(blocks_ice(iblk),iblk)
-          ilo = this_block%ilo
-          ihi = this_block%ihi
-          jlo = this_block%jlo
-          jhi = this_block%jhi
-          do j = jlo, jhi
-             do i = ilo, ihi
-                n = n+1
-                model_areas(n) = tarea(i,j,iblk)/(radius*radius)
-                mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
-                med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+            do i = ilo, ihi
+               n = n+1
+               model_areas(n) = tarea(i,j,iblk)/(radius*radius)
+               mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
+               med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
              enddo
           enddo
        enddo
        deallocate(model_areas)
-       deallocate(mesh_areas)
+      !  deallocate(mesh_areas)
     end if
 
     min_mod2med_areacor = minval(mod2med_areacor)
@@ -1064,6 +1068,12 @@ contains
 
     ! Create a temporary field
     allocate(tempfld(nx_block,ny_block,nblocks))
+
+    call state_setexport_mesh(exportState, 'Si_areacor', input=mod2med_areacor, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    call state_setexport_mesh(exportState, 'Si_mesharea', input=mesh_areas, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Fractions and mask
     call state_setexport(exportState, 'Si_ifrac', input=ailohi, rc=rc)
@@ -1880,6 +1890,39 @@ contains
     end if
 
   end subroutine state_setexport_3d
+
+  !===============================================================================
+  subroutine state_setexport_mesh(state, fldname, input, rc)
+
+   ! ----------------------------------------------
+   ! Map mesh input array to export state field
+   ! ----------------------------------------------
+
+   ! input/output variables
+   type(ESMF_State)               , intent(inout) :: state
+   character(len=*)               , intent(in)    :: fldname
+   real(kind=dbl_kind)            , intent(in)    :: input(:)
+   integer                        , intent(out)   :: rc
+
+   ! local variables
+   real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
+   real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
+   
+   character(len=*), parameter  :: subname='(ice_import_export:state_setexport_mesh)'
+   ! ----------------------------------------------
+
+   rc = ESMF_SUCCESS
+
+   ! check that fieldname exists
+   if (.not. State_FldChk(state, trim(fldname))) return
+
+   ! get field pointer
+   call state_getfldptr(state, trim(fldname), dataPtr1d, rc)
+   if (ChkErr(rc,__LINE__,u_FILE_u)) return
+   
+   dataPtr1d = input 
+
+ end subroutine state_setexport_mesh
 
   !===============================================================================
   subroutine State_GetFldPtr_1d(State, fldname, fldptr, rc)
