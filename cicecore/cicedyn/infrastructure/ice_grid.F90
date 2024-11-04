@@ -548,6 +548,7 @@
 
       if (trim(kmt_type) =='none') then
          kmt(:,:,:) = c1
+         hm(:,:,:)  = c1 
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
          case('mom_mosaic') 
@@ -1624,9 +1625,9 @@
                G_T(nx_global+1,:) = G_T(1,:)
                G_N(nx_global+1,:) = G_N(1,:)
             case('open')
-               do j=1, ny_global
-                  G_T(nx_global,j+1) = 2 * G_T(nx_global, j) - G_T(nx_global, j-1)
-                  G_N(nx_global,j+1) = 2 * G_N(nx_global, j) - G_N(nx_global, j-1)
+               do j=1, ny_global+1
+                  G_T(nx_global+1,j) = 2 * G_T(nx_global, j) - G_T(nx_global-1, j)
+                  G_N(nx_global+1,j) = 2 * G_N(nx_global, j) - G_N(nx_global-1, j)
                enddo
          end select
 
@@ -1744,7 +1745,7 @@
       subroutine mosaic_dx(work_mom)
 
       ! mom_mosaic has four cells for every model cell, 
-      ! we just need to sum the correct sidelengths to get dy
+      ! we just need to sum the correct sidelengths to get dx
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
 
@@ -1755,7 +1756,7 @@
          i, j , &
          im1, im2, jm1, jm2, im3, jm3  ! i & j for mom mosaic
 
-      character(len=*), parameter :: subname = '(mosaic_dy)'
+      character(len=*), parameter :: subname = '(mosaic_dx)'
 
       if (my_task == master_task) then
          allocate(G_dxT(nx_global,ny_global))
@@ -1797,9 +1798,6 @@
          im2 = c2*nx_global 
          if (trim(ew_boundary_type) == 'cyclic') then
             im3 = 1
-         ! else
-            ! ???????
-            ! it looks like we can assume cycle, non cyclic is handled during scatter ?
          endif
          jm1 = 2 ! middle of first row
          jm2 = 3 ! top of first row

@@ -732,7 +732,8 @@ contains
 
        ! Read in the ice mesh on the cice distribution
        ice_mesh = ESMF_MeshCreate(filename=trim(ice_meshfile), fileformat=ESMF_FILEFORMAT_ESMFMESH, &
-            elementDistGrid=ice_distgrid, addUserArea = .true. , rc=rc)
+            elementDistGrid=ice_distgrid, &!addUserArea = .true. , 
+            rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        ! Initialize the cice mesh and the cice mask
