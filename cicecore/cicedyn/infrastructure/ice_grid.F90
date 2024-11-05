@@ -433,10 +433,8 @@
 
          end select
 
-      else   ! rectangular grid
-
+      else  
          work_g2(:,:) = c1
-
       endif
 
       call broadcast_array(work_g1, master_task)   ! ULAT
@@ -606,7 +604,6 @@
                uarea(i,j,iblk) = dxU(i,j,iblk)*dyU(i,j,iblk)
                narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
                earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
-
             enddo
             enddo
          enddo
@@ -1590,6 +1587,8 @@
          i, j, &
          im1, im2, jm1, jm2  ! i & j for mom mosaic
 
+      character(len=*), parameter :: subname = '(mosaic_corners_global)'
+
       if (my_task == master_task) then
 
          ! fill first row & col of G_ULAT/LON
@@ -1634,8 +1633,8 @@
          ! fill last row 
          im1 = 1 ; im2 = 2
          do i = 1, nx_global+1
+            G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global+1) 
             G_N(i,ny_global + 1) = work_mom(im2, 2*ny_global+1)     
-            G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global) 
             im1 = im1 + 2 
          enddo
          select case (trim(ns_boundary_type))
@@ -1660,16 +1659,18 @@
 
       subroutine mosaic_bounds(G_corners, bounds)
 
-      ! with an global array of corners, subset and distribute
+      ! with an global array of corners point, subset and distribute 
+      ! into the cice bounds variables
       
       real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
-
       real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds 
 
       ! local vars
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work_bounds
+
+      character(len=*), parameter :: subname = '(mosaic_bounds)'
 
       ! Get bounds of grid boxes for each block as follows:
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
@@ -1694,7 +1695,7 @@
 
       subroutine mosaic_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )               
          
-      ! with a global array of points in degrees, convert to rad and scatter to workers
+      ! with a global array of corner points in degrees, convert to rad and scatter to workers
       
       real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N 
          ! global grids
@@ -1703,7 +1704,7 @@
 
       real (kind=dbl_kind) :: deg_to_rad , pi 
 
-      character(len=*), parameter :: subname = '(mosaic_corners)'
+      character(len=*), parameter :: subname = '(mosaic_corners_scatter)'
 
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
@@ -1773,42 +1774,42 @@
       if (my_task == master_task) then
          work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
 
-         im1 = 1 ! left most column
-         im2 = 2 ! right column of first T - cell
+         im1 = 1 ; im2 = 2 ! left ; right coloum of first t-cell
          im3 = 3 ! left column of second T-cell, (ie right column of U-cell)
          do i = 1, nx_global - 1
-            jm1 = 2 ! middle of first row
-            jm2 = 3 ! top of first row
+            jm1 = 2 ; jm2 = 3 ! middle , top of first row
             do j = 1, ny_global
                G_dxT(i,j) = work_mom(im1, jm1) + work_mom(im2, jm1)     !dxT
                G_dxN(i,j) = work_mom(im1, jm2) + work_mom(im2, jm2)     !dxN
                G_dxE(i,j) = work_mom(im2, jm1) + work_mom(im3, jm1)     !dxE
                G_dxU(i,j) = work_mom(im2, jm2) + work_mom(im3, jm2)     !dxU
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
             enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
-            im3 = im3 + 2
+            im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
          enddo
 
-         ! cycle around last column
-         i = nx_global
-         im1 = c2*nx_global - 1 
-         im2 = c2*nx_global 
-         if (trim(ew_boundary_type) == 'cyclic') then
-            im3 = 1
-         endif
-         jm1 = 2 ! middle of first row
-         jm2 = 3 ! top of first row
+         ! fill the last col
+         jm1 = 2 ; jm2 = 3 ! middle , top of first row
          do j = 1, ny_global
-            G_dxT(i,j) = work_mom(im1, jm1) + work_mom(im2, jm1)     !dxT
-            G_dxN(i,j) = work_mom(im1, jm2) + work_mom(im2, jm2)     !dxN
-            G_dxE(i,j) = work_mom(im2, jm1) + work_mom(im3, jm1)     !dxE
-            G_dxU(i,j) = work_mom(im2, jm2) + work_mom(im3, jm2)     !dxU
-            jm1 = jm1 + 2
-            jm2 = jm2 + 2
+            G_dxT(nx_global,j) = work_mom(2*nx_global - 1, jm1) + work_mom(2*nx_global, jm1)     !dxT
+            G_dxN(nx_global,j) = work_mom(2*nx_global - 1, jm2) + work_mom(2*nx_global, jm2)     !dxN
+            jm1 = jm1 + 2 ; jm2 = jm2 + 2
          enddo
+         jm1 = 2 ; jm2 = 3 ! middle , top of first row
+         if (trim(ew_boundary_type) == 'cyclic') then 
+            jm1 = 2 ; jm2 = 3 ! middle , top of first row
+            do j = 1, ny_global
+               G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
+               G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+         else if (trim(ew_boundary_type) == 'open') then 
+            do j = 1, ny_global
+               G_dxE(nx_global,j) = 4*work_mom(2*nx_global, jm1) - 2*work_mom(2*nx_global-1, jm1)     !dxE
+               G_dxU(nx_global,j) = 4*work_mom(2*nx_global, jm2) - 2*work_mom(2*nx_global-1, jm2)     !dxU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+         endif
 
          if (save_ghte_ghtn) then
             do j = 1, ny_global
@@ -1829,7 +1830,6 @@
                            field_loc_center, field_type_scalar)
       call scatter_global(dxU, G_dxU, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_scalar)      
-
 
       deallocate(G_dxT)
       deallocate(G_dxE)
@@ -1869,47 +1869,47 @@
       if (my_task == master_task) then
          work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
 
-         im1 = 2 ! middle of first column
-         im2 = 3 ! right edge of first T - cell
+         im1 = 2 ; im2 = 3 ! middle , right edge of first T-cell
 
          do i = 1, nx_global
-            jm1 = 1 ! first row
-            jm2 = 2 ! second row
-            jm3 = 3 ! third row, (ie top half of U-cell)
+            jm1 = 1 ; jm2 = 2 ; jm3 = 3 
             do j = 1, ny_global - 1
                G_dyT(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2)     !dyT
                G_dyN(i,j) = work_mom(im1, jm2) + work_mom(im1, jm3)     !dyN
                G_dyE(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2)     !dyE
                G_dyU(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3)     !dyU
-               jm1 = jm1 + 2
-               jm2 = jm2 + 2
-               jm3 = jm3 + 2
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
             enddo
-            im1 = im1 + 2
-            im2 = im2 + 2
+            im1 = im1 + 2 ; im2 = im2 + 2
          enddo
 
-         ! close the tripole
-         j = ny_global
-         jm1 = 2*ny_global - 1 ! bottom of last row
-         jm2 = 2*ny_global ! top of last row
-         
-         im1 = 2 ! middle of first column
-         im2 = 3 ! right edge of first T - cell
-         if (trim(ns_boundary_type)  == 'tripole') then
-            im3 = nx_global*2+2 !last edge+1
-         !  else ??????
-         endif
-            
+         ! fill the top row
+         im1 = 2 ; im2 = 3 ! middle , right edge of first column
          do i = 1, nx_global
-            G_dyT(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2)     !dyT
-            G_dyE(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2)     !dyE
-            ! ns boundary closure 
-            G_dyN(i,j) = work_mom(im1, jm2) + work_mom(im3-im1, jm2)     !dyN
-            G_dyU(i,j) = work_mom(im2, jm2) + work_mom(im3-im2, jm2)     !dyU
-            im1 = im1 + 2
-            im2 = im2 + 2
+            G_dyT(i,ny_global) = work_mom(im1, 2*ny_global - 1) + work_mom(im1, 2*ny_global)     !dyT
+            G_dyE(i,ny_global) = work_mom(im2, 2*ny_global - 1) + work_mom(im2, 2*ny_global)     !dyE
+            im1 = im1 + 2 ; im2 = im2 + 2
          enddo
+         im1 = 2 ; im2 = 3
+         if (trim(ns_boundary_type)  == 'tripole') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)     !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)     !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         else if (trim(ns_boundary_type) == 'cyclic') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)     !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)     !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         else if (trim(ns_boundary_type) == 'open') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)     !dyN
+               G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)     !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         endif
 
          if (save_ghte_ghtn) then
             do j = 1, ny_global
@@ -1941,9 +1941,9 @@
    
       subroutine mosaic_area(work_mom)
 
-      ! mom_mosaic has four cells for every model cell, we just need to sum these
+      ! mom_mosaic has four cells for every model cell, we need to sum these
       ! to get model cell areas
-      ! earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
+      ! however, earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
 
@@ -1956,7 +1956,7 @@
          this_block           ! block information for current block
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         G_tarea, G_uarea!, G_earea, G_narea
+         G_tarea, G_uarea 
       
       character(len=*), parameter :: subname = '(mosaic_area)'
 
@@ -1980,32 +1980,21 @@
       if (my_task == master_task) then
          allocate(G_tarea(nx_global,ny_global))
          allocate(G_uarea(nx_global,ny_global))
-         ! allocate(G_earea(nx_global,ny_global))
-         ! allocate(G_narea(nx_global,ny_global))
       else
          allocate(G_tarea(1,1))
          allocate(G_uarea(1,1))
-         ! allocate(G_earea(1,1))
-         ! allocate(G_narea(1,1))
       endif
 
       ! load tarea and uarea
       if (my_task == master_task) then
-         im1 = 1 ! left-half of first column
-         im2 = 2 ! right half of first col
+         im1 = 1 ; im2 = 2 ! left/right -half of first column
          im3 = 3 ! right of first U - cell
-
          do i = 1, nx_global - 1 
-            jm1 = 1 ! bottom-half of first row
-            jm2 = 2 ! top-half row of first row
+            jm1 = 1 ; jm2 = 2 ! bottom/top -half of first row
             jm3 = 3 ! top of first U - cell
             do j = 1, ny_global - 1
                G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
                               + work_mom(im2, jm1) + work_mom(im2, jm2)     
-               ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(im1, jm3) &
-               !                + work_mom(im2, jm2) + work_mom(im2, jm3)     
-               ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-               !                + work_mom(im3, jm1) + work_mom(im3, jm2)     
                G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
                               + work_mom(im3, jm2) + work_mom(im3, jm3)     
                jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
@@ -2013,101 +2002,75 @@
             im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
          enddo
 
-         ! cycle around last column
-         ! assume cyclic in ew_boundary ; non-cyclic is handled during scatter
-         i = nx_global  
-         im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1           
+         ! fill last column
          jm1 = 1 ; jm2 = 2 ; jm3 = 3 
-         do j = 1, ny_global - 1
-            G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                           + work_mom(im2, jm1) + work_mom(im2, jm2)     
-            ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(im1, jm3) &
-            !                + work_mom(im2, jm2) + work_mom(im2, jm3)     
-            ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-            !                + work_mom(im3, jm1) + work_mom(im3, jm2)     
-            G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                           + work_mom(im3, jm2) + work_mom(im3, jm3)     
-            jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
-         enddo
-
-         if (trim(ns_boundary_type) == 'tripole') then
-            j = ny_global 
+         im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1              
+            do j = 1, ny_global - 1
+               G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                    + work_mom(im2, jm1) + work_mom(im2, jm2)   
+               if (trim(ew_boundary_type) == 'cyclic') then
+                  G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                       + work_mom(im3, jm2) + work_mom(im3, jm3) 
+               else if (trim(ew_boundary_type) == 'open') then
+                  G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
+                                       - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
+               endif
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
+            enddo
+         
+            ! fill last row
             jm1 = ny_global*2 - 1 ; jm2 = ny_global*2 
             im1 = 1 ; im2 = 2 ; im3 = 3 
             do i = 1, nx_global -1 
-               G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                              + work_mom(im2, jm1) + work_mom(im2, jm2)     
-               ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-               !                + work_mom(im3, jm1) + work_mom(im3, jm2)     
-               
-               ! close the tripole
-               ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(2*nx_global+1-im1, jm2) &
-               !              + work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2)     
-               G_uarea(i,j) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
-                           + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2)     
+               G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                    + work_mom(im2, jm1) + work_mom(im2, jm2)     
+               if (trim(ns_boundary_type) == 'tripole') then
+                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
+                                       + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2) 
+               else if (trim(ns_boundary_type) == 'cyclic') then
+                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                       + work_mom(im3, jm2) + work_mom(im3, jm3)
+               else if (trim(ns_boundary_type) == 'open') then
+                  G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
+                                       - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
+               endif
                im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
             enddo
 
-            ! the missing corner
-            i = nx_global ; j = ny_global
-            im1 = nx_global*2-1 ; im2 = nx_global*2 ; im3 = 1
-            jm1 = ny_global*2-1 ; jm2 = ny_global*2
-            G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                           + work_mom(im2, jm1) + work_mom(im2, jm2)           
-            ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-            !                + work_mom(im3, jm1) + work_mom(im3, jm2) 
-            ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(1, jm2) &
-            !                + work_mom(im2, jm2) + work_mom(2, jm2) 
-            G_uarea(i,j) = work_mom(im2, jm2) + work_mom(1, jm2) &
-                           + work_mom(im3, jm2) + work_mom(nx_global*2, jm2) 
-         else 
-            !  ns_boundary_type is 'cyclic'
-            j = ny_global ; jm1 = ny_global*2 - 1 ; jm2 = ny_global*2 ; jm3 = 1
-            im1 = 1 ; im2 = 2 ; im3 = 3 
-            do i = 1, nx_global-1 
-               G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                              + work_mom(im2, jm1) + work_mom(im2, jm2)     
-               ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-               !                + work_mom(im3, jm1) + work_mom(im3, jm2)     
-               
-               ! close the tripole
-               ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(1, jm2) &
-               !                + work_mom(im2, jm2) + work_mom(2, jm2)     
-               G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                              + work_mom(im3, jm2) + work_mom(im3, jm3)    
-               im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
-            enddo
-
-            ! the missing corner
-            i = nx_global ; j = ny_global
-            im1 = nx_global*2-1 ; im2 = nx_global*2 ; im3 = 1
-            jm1 = ny_global*2-1 ; jm2 = ny_global*2 ; jm3 = 1
-            G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                           + work_mom(im2, jm1) + work_mom(im2, jm2)           
-            ! G_earea(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2) &
-            !                + work_mom(im3, jm1) + work_mom(im3, jm2) 
-            ! G_narea(i,j) = work_mom(im1, jm2) + work_mom(1, jm2) &
-            !                + work_mom(im2, jm2) + work_mom(2, jm2) 
-            G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                              + work_mom(im3, jm2) + work_mom(im3, jm3)
-         endif
+            ! the top right corner
+            im1 = nx_global*2-1 ; im2 = nx_global*2 
+            jm1 = ny_global*2-1 ; jm2 = ny_global*2  
+            G_tarea(nx_global,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                         + work_mom(im2, jm1) + work_mom(im2, jm2)  
+            if (trim(ns_boundary_type) == 'tripole') then
+               G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
+            else if (trim(ns_boundary_type) == 'cyclic' & 
+                     .and. trim(ew_boundary_type) == 'cyclic') then
+               G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
+                                            + work_mom(im2, 1) + work_mom(1, 1)
+            else if (trim(ns_boundary_type) == 'cyclic' & 
+                     .and. trim(ew_boundary_type) == 'open') then
+               G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
+                                            - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
+            else if (trim(ns_boundary_type) == 'open' & 
+                     .and. trim(ew_boundary_type) == 'cyclic') then
+               G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
+                                            - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
+            else if (trim(ns_boundary_type) == 'open' & 
+                     .and. trim(ew_boundary_type) == 'open') then
+               G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
+                                    - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
+            endif
          
       endif
 
       call scatter_global(tarea, G_tarea, master_task, distrb_info, &
                          field_loc_center, field_type_scalar)
-      ! call scatter_global(narea, work_g4, master_task, distrb_info, &
-      !                    field_loc_Nface, field_type_scalar)
-      ! call scatter_global(earea, work_g2, master_task, distrb_info, &
-      !                    field_loc_Eface, field_type_scalar)
       call scatter_global(uarea, G_uarea, master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-
       deallocate(G_tarea)
       deallocate(G_uarea)
-      ! deallocate(G_earea)
-      ! deallocate(G_narea)
-
+      
       end subroutine mosaic_area
 
       !  create angles in the same way mom creates the angle
@@ -2129,7 +2092,7 @@
          real (kind=dbl_kind)   :: lon_adj
          real (kind=dbl_kind)   :: lonB(2,2)  ! The longitude of a point, shifted to have about the same value [degrees_E].
          integer (kind=int_kind) :: i, j, m, n 
-         character(len=*), parameter :: subname = '(mom_mosaic_grid)'
+         character(len=*), parameter :: subname = '(grid_rotation_angle)'
 
          if (my_task == master_task) then
             len_lon = maxval(lon_cnr)-minval(lon_cnr) ! 2*pi 
