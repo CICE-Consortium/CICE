@@ -1199,10 +1199,6 @@
       call broadcast_scalar(sw_frac,              master_task)
       call broadcast_scalar(sw_dtemp,             master_task)
 
-#ifdef CESMCOUPLED
-      pointer_file = trim(pointer_file) // trim(inst_suffix)
-#endif
-
       !-----------------------------------------------------------------
       ! update defaults
       !-----------------------------------------------------------------
