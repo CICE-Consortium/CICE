@@ -172,6 +172,10 @@
       character (len=char_len), private :: &
          mask_fieldname !field/var name for the mask variable (in nc files)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> access/remove_orca_grid
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
                           grid_average_X2Y_userwghts, &
@@ -698,6 +702,16 @@
             file=__FILE__, line=__LINE__)
       endif
       
+      if (l_readCenter) then
+         out_of_range = .false.
+         where (ANGLET < -pi .or. ANGLET > pi) out_of_range = .true.
+         if (count(out_of_range) > 0) then
+            write(nu_diag,*) subname,' angle = ',minval(ANGLET),maxval(ANGLET),count(out_of_range)
+            call abort_ice (subname//' ANGLET out of expected range', &
+               file=__FILE__, line=__LINE__)
+         endif
+      endif
+
       if (l_readCenter) then
          out_of_range = .false.
          where (ANGLET < -pi .or. ANGLET > pi) out_of_range = .true.

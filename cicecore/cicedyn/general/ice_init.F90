@@ -1199,10 +1199,6 @@
       call broadcast_scalar(sw_frac,              master_task)
       call broadcast_scalar(sw_dtemp,             master_task)
 
-#ifdef CESMCOUPLED
-      pointer_file = trim(pointer_file) // trim(inst_suffix)
-#endif
-
       !-----------------------------------------------------------------
       ! update defaults
       !-----------------------------------------------------------------
@@ -1271,6 +1267,7 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
+      
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
           history_format /= 'cdf5'        .and. &
