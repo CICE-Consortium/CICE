@@ -63,7 +63,7 @@
           diag_file, print_global, print_points, latpnt, lonpnt, &
           debug_model, debug_model_step, debug_model_task, &
           debug_model_i, debug_model_j, debug_model_iblk
-      use ice_domain, only: close_boundaries
+      use ice_domain, only: close_boundaries, orca_halogrid
       use ice_domain_size, only: &
           ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
           n_iso, n_aero, n_zaero, n_algae, &
@@ -174,7 +174,6 @@
       logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: numin, numax  ! unit number limits
       logical (kind=log_kind) :: lcdf64  ! deprecated, backwards compatibility
-      logical (kind=log_kind) :: orca_halogrid !deprecated
 
       integer (kind=int_kind) :: rplvl, rptopo
       real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity, Tocnfrz
@@ -383,7 +382,7 @@
       grid_atm     = 'A'          ! underlying atm forcing/coupling grid
       grid_ocn     = 'A'          ! underlying atm forcing/coupling grid
       gridcpl_file = 'unknown_gridcpl_file'
-      orca_halogrid = .false.     ! orca haloed grid - deprecated
+      orca_halogrid = .false.     ! orca haloed grid
       bathymetry_file   = 'unknown_bathymetry_file'
       bathymetry_format = 'default'
       use_bathymetry    = .false.
@@ -1267,7 +1266,7 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
-      
+
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
           history_format /= 'cdf5'        .and. &
@@ -1828,20 +1827,6 @@
             endif
             abort_list = trim(abort_list)//":62"
          endif
-      endif
-
-      if (orca_halogrid) then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: orca_halogrid has been deprecated'
-         endif
-         abort_list = trim(abort_list)//":63"
-      endif
-
-      if (trim(grid_type) == 'cpom_grid') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//" ERROR: grid_type = 'cpom_grid' has been deprecated"
-         endif
-         abort_list = trim(abort_list)//":64"
       endif
 
       ice_IOUnitsMinUnit = numin
@@ -2594,6 +2579,7 @@
             if (trim(kmt_type) == 'file') &
                write(nu_diag,1031) ' kmt_file         = ', trim(kmt_file)
          endif
+         write(nu_diag,1011) ' orca_halogrid    = ', orca_halogrid
 
          write(nu_diag,1011) ' conserv_check    = ', conserv_check
 
@@ -2692,15 +2678,16 @@
           kmt_type  /=  'channel_onenorth' .and. &
           kmt_type  /=  'wall'    .and. &
           kmt_type  /=  'default' .and. &
-          kmt_type  /=  'boxislands' .and. &
-          kmt_type /= 'none' ) then
+          kmt_type  /=  'boxislands'.and. &
+          kmt_type  /=  'none' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":27"
       endif
 
       if (grid_type  /=  'column'      .and. &
           grid_type  /=  'rectangular' .and. &
-          kmt_type /= 'file' .and. kmt_type /= 'none') then
+          kmt_type   /=  'file' .and. &
+          kmt_type   /= 'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: need kmt file, kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":28"
       endif

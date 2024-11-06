@@ -5,7 +5,7 @@ smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
 restart        gx3     8x2        debug
 restart        gx3     8x2        debug,gx3nc
-smoke          gx3     8x2        diag24,run1year,long
+smoke          gx3     8x2        diag24,run1year,medium
 smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
@@ -14,17 +14,21 @@ smoke          gx3     1x8        diag1,run5day,evp1d
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
-restart        gx3     4x4        medium
+restart        gx3     4x4        short
 restart        gx3     4x4        gx3nc,short
-restart        gx3    10x4        maskhalo,medium
+restart        gx3    10x4        maskhalo,short
 restart        gx3     6x2        alt01
 restart        gx3     8x2        alt02
 restart        gx3     4x2        alt03
 restart        gx3    12x2        alt03,maskhalo,droundrobin
 restart        gx3     4x4        alt04
-restart        gx3     4x4        alt05,medium
+restart        gx3     4x4        alt05,short
 restart        gx3     8x2        alt06
+restart        gx3     8x3        alt07
 restart        gx3    16x2        snicar
+restart        gx3    12x2        snicartest
+restart        gx3     8x2        congel
+restart        gx3     8x3        saltflux,short
 restart        gx3    18x2        debug,maskhalo
 restart        gx3     6x2        alt01,debug,short
 restart        gx3     8x2        alt02,debug,short
@@ -76,7 +80,7 @@ smoke          gx3     4x1        snwitdrdg,snwgrain,icdefault,debug
 smoke          gx3     4x1        snw30percent,icdefault,debug
 restart        gx3     8x2        snwitdrdg,icdefault,snwgrain
 restart        gx3     4x4        gx3ncarbulk,iobinary,medium
-restart        gx3     4x4        cdf64,histall,precision8,medium
+restart        gx3     4x4        cdf64,histall,precision8,short
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
