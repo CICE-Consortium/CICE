@@ -526,13 +526,10 @@
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
             case('mom_mosaic') 
-               ! call kmtmask_nc
                call mom_mosaic_grid ! derive cice grid from mom_mosaic nc file
             case ('nc') 
-               ! call kmtmask_nc
                call popgrid_nc      ! read POP grid lengths from nc file
             case default
-               ! call kmtmask        ! read kmt directly
                call popgrid         ! read POP grid lengths directly
          end select
 #ifdef CESMCOUPLED
@@ -549,13 +546,11 @@
          hm(:,:,:)  = c1 
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-         case('mom_mosaic') 
-            call kmtmask_nc
-         case ('nc') 
-            call kmtmask_nc
-         case default
-            call kmtmask        ! read kmt directly
-         end select
+            case('mom_mosaic', 'nc') 
+               call kmtmask_nc
+            case default
+               call kmtmask        
+            end select
       endif !the other types are handled by rectgrid
 
       !-----------------------------------------------------------------
