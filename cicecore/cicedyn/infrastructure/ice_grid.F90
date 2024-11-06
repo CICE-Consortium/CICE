@@ -172,10 +172,6 @@
       character (len=char_len), private :: &
          mask_fieldname !field/var name for the mask variable (in nc files)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> access/remove_orca_grid
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
                           grid_average_X2Y_userwghts, &
@@ -1434,8 +1430,8 @@
 
       end subroutine latlongrid
 #endif
-!=======================================================================
 
+!=======================================================================
 ! Create the CICE grid from the MOM mosaic grid file.
 ! CICE Fields and units are: 
 ! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    
@@ -1535,7 +1531,6 @@
 
       !-----------------------------------------------------------------
       ! cell dimensions
-      ! primary_grid_lengths uses some interpolation, instead we read from file
       !-----------------------------------------------------------------
       fieldname='dx'
       ! dx uses the cells in x, edges in y, reallocate work_mom to this size
@@ -1587,7 +1582,7 @@
       subroutine mosaic_corners_global(work_mom, G_U, G_T, G_E, G_N)                   
 
       ! mom mosaic has four cells for every model cell
-      ! we need to select the correct ones to get lat & lon
+      ! we need to select the correct edges to get lat & lon for a model cell
       ! we include left/bottom edges for U-points, and top/right edges for T-points
       ! and close per ew_boundary_type & ns_boundary_type
 
@@ -1605,21 +1600,13 @@
 
       if (my_task == master_task) then
 
-         ! fill first row & col of G_ULAT/LON
-         do i =1, nx_global
-            G_U(i,1) = work_mom(2*i-1, 1)
-         enddo
-         do j=2, ny_global
-            G_U(1,j) = work_mom(1, 2*j-1)
-         enddo
-
          im1 = 1 ; im2 = 2  ! lh , middle  hand edge of first col
          do i = 1, nx_global
             jm1 = 1; jm2 = 2 ! bottom, middle of first row
             do j = 1, ny_global
-               G_U(i,j) = work_mom(im1, jm1) 
-               G_N(i,j) = work_mom(im2, jm1)     
-               G_E(i,j) = work_mom(im1, jm2)     
+               G_U(i,j) = work_mom(im1, jm1)     ! ULAT/LON
+               G_N(i,j) = work_mom(im2, jm1)     ! NLAT/LON
+               G_E(i,j) = work_mom(im1, jm2)     ! ELAT/LON
                G_T(i,j) = work_mom(im2, jm2)     ! TLAT/LON
                jm1 = jm1 + 2 ; jm2 = jm2 + 2
             enddo
@@ -1671,9 +1658,10 @@
 
       end subroutine mosaic_corners_global
 
+
       subroutine mosaic_bounds(G_corners, bounds)
 
-      ! with an global array of corners point, subset and distribute 
+      ! with an global array of corner point, subset and distribute 
       ! into the cice bounds variables
       
       real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
@@ -1756,6 +1744,7 @@
                                ew_boundary_type, ns_boundary_type)
 
       end subroutine mosaic_corners_scatter
+
 
       subroutine mosaic_dx(work_mom)
 
@@ -1852,6 +1841,7 @@
 
       end subroutine mosaic_dx
 
+
       subroutine mosaic_dy(work_mom)
 
       ! mom_mosaic has four cells for every model cell, 
@@ -1884,7 +1874,6 @@
          work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
 
          im1 = 2 ; im2 = 3 ! middle , right edge of first T-cell
-
          do i = 1, nx_global
             jm1 = 1 ; jm2 = 2 ; jm3 = 3 
             do j = 1, ny_global - 1
@@ -2087,45 +2076,47 @@
       
       end subroutine mosaic_area
 
-      !  create angles in the same way mom creates the angle
+
+      subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
+      !  create angles in the same way mom6 creates the angle
       !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
       !  the angle is between logical north on the grid and true north.
-      subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
       
          ! global lat/lons/angles
-         real (kind=dbl_kind), dimension(:,:), intent(in) :: &
-            lon_cnr, & ! array of lon corner points
-            lat_cnr, & ! array of lat corner points
-            lon_cen ! arrat of lon centre points (i.e. the location the angle is calculated for)
-         real (kind=dbl_kind), dimension(:,:), intent(out) :: angle
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+         lon_cnr, & ! array of lon corner points
+         lat_cnr, & ! array of lat corner points
+         lon_cen ! array of lon centre points (i.e. the location the angle is calculated for)
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: angle
 
-         ! local vars
-         real (kind=dbl_kind)   :: lon_scale  ! The trigonometric scaling factor converting changes in longitude
-                                 ! to equivalent distances in latitudes [nondim]
-         real (kind=dbl_kind)   :: len_lon    ! The periodic range of longitudes, usually 360 degrees [degrees_E].
-         real (kind=dbl_kind)   :: lon_adj
-         real (kind=dbl_kind)   :: lonB(2,2)  ! The longitude of a point, shifted to have about the same value [degrees_E].
-         integer (kind=int_kind) :: i, j, m, n 
-         character(len=*), parameter :: subname = '(grid_rotation_angle)'
+      ! local vars
+      real (kind=dbl_kind)   :: &
+         lon_scale, &  ! The trigonometric scaling factor converting changes in longitude to equivalent distances in latitudes [nondim]
+         len_lon, &
+         lon_adj, &
+         lonB(2,2)  
+      integer (kind=int_kind) :: i, j, m, n
+      
+      character(len=*), parameter :: subname = '(grid_rotation_angle)'
 
-         if (my_task == master_task) then
-            len_lon = maxval(lon_cnr)-minval(lon_cnr) ! 2*pi 
+      if (my_task == master_task) then
+         len_lon = maxval(lon_cnr)-minval(lon_cnr)  ! The periodic range of longitudes, usually 2pi.
 
-            do j=1,ny_global 
-               do i=1,nx_global
-                  lon_adj = lon_cen(i,j)-p5*len_lon
-                  do n=1,2 ; do m=1,2
-                     ! shift lon corner points to be similar range to centre point
-                     ! e.g. upper limit of 0 might be shifted to 2*pi
-                     lonB(m,n) = modulo(lon_cnr(i+m-1,j+n-1)-lon_adj, len_lon) &
-                                       + lon_adj
-                  enddo ; enddo
-                  lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
-                  angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
-                              (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
-               enddo 
-            enddo
-         endif
+         do j=1,ny_global 
+            do i=1,nx_global
+               lon_adj = lon_cen(i,j)-p5*len_lon
+               do n=1,2 ; do m=1,2
+                  ! shift 4 lon corner points to be similar range to centre point
+                  ! e.g. upper limit of 0 might be shifted to 2*pi
+                  lonB(m,n) = modulo(lon_cnr(i+m-1,j+n-1)-lon_adj, len_lon) &
+                                    + lon_adj
+               enddo ; enddo
+               lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
+               angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
+                           (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
+            enddo 
+         enddo
+      endif
 
       end subroutine grid_rotation_angle
 
