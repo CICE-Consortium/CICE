@@ -53,7 +53,7 @@
                 grid_neighbor_min, grid_neighbor_max
 
       character (len=char_len_long), public :: &
-         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
+         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf or 'mom_mosaic'=mom mosaic (supergrid) netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
@@ -2003,62 +2003,62 @@
          ! fill last column
          jm1 = 1 ; jm2 = 2 ; jm3 = 3 
          im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1              
-            do j = 1, ny_global - 1
-               G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                    + work_mom(im2, jm1) + work_mom(im2, jm2)   
-               if (trim(ew_boundary_type) == 'cyclic') then
-                  G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                                       + work_mom(im3, jm2) + work_mom(im3, jm3) 
-               else if (trim(ew_boundary_type) == 'open') then
-                  G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
-                                       - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
-               endif
-               jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
-            enddo
-         
-            ! fill last row
-            jm1 = ny_global*2 - 1 ; jm2 = ny_global*2 
-            im1 = 1 ; im2 = 2 ; im3 = 3 
-            do i = 1, nx_global -1 
-               G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                    + work_mom(im2, jm1) + work_mom(im2, jm2)     
-               if (trim(ns_boundary_type) == 'tripole') then
-                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
-                                       + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2) 
-               else if (trim(ns_boundary_type) == 'cyclic') then
-                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                                       + work_mom(im3, jm2) + work_mom(im3, jm3)
-               else if (trim(ns_boundary_type) == 'open') then
-                  G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
-                                       - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
-               endif
-               im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
-            enddo
-
-            ! the top right corner
-            im1 = nx_global*2-1 ; im2 = nx_global*2 
-            jm1 = ny_global*2-1 ; jm2 = ny_global*2  
-            G_tarea(nx_global,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                         + work_mom(im2, jm1) + work_mom(im2, jm2)  
-            if (trim(ns_boundary_type) == 'tripole') then
-               G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
-            else if (trim(ns_boundary_type) == 'cyclic' & 
-                     .and. trim(ew_boundary_type) == 'cyclic') then
-               G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
-                                            + work_mom(im2, 1) + work_mom(1, 1)
-            else if (trim(ns_boundary_type) == 'cyclic' & 
-                     .and. trim(ew_boundary_type) == 'open') then
-               G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
-                                            - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
-            else if (trim(ns_boundary_type) == 'open' & 
-                     .and. trim(ew_boundary_type) == 'cyclic') then
-               G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
-                                            - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
-            else if (trim(ns_boundary_type) == 'open' & 
-                     .and. trim(ew_boundary_type) == 'open') then
-               G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
-                                    - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
+         do j = 1, ny_global - 1
+            G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)   
+            if (trim(ew_boundary_type) == 'cyclic') then
+               G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                    + work_mom(im3, jm2) + work_mom(im3, jm3) 
+            else if (trim(ew_boundary_type) == 'open') then
+               G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
+                                    - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
             endif
+            jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
+         enddo
+      
+         ! fill last row
+         jm1 = ny_global*2 - 1 ; jm2 = ny_global*2 
+         im1 = 1 ; im2 = 2 ; im3 = 3 
+         do i = 1, nx_global -1 
+            G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)     
+            if (trim(ns_boundary_type) == 'tripole') then
+               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
+                                    + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2) 
+            else if (trim(ns_boundary_type) == 'cyclic') then
+               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
+            else if (trim(ns_boundary_type) == 'open') then
+               G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
+                                    - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
+            endif
+            im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
+         enddo
+
+         ! the top right corner
+         im1 = nx_global*2-1 ; im2 = nx_global*2 
+         jm1 = ny_global*2-1 ; jm2 = ny_global*2  
+         G_tarea(nx_global,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                       + work_mom(im2, jm1) + work_mom(im2, jm2)  
+         if (trim(ns_boundary_type) == 'tripole') then
+            G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
+         else if (trim(ns_boundary_type) == 'cyclic' & 
+                  .and. trim(ew_boundary_type) == 'cyclic') then
+            G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
+                                          + work_mom(im2, 1) + work_mom(1, 1)
+         else if (trim(ns_boundary_type) == 'cyclic' & 
+                  .and. trim(ew_boundary_type) == 'open') then
+            G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
+                                          - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
+         else if (trim(ns_boundary_type) == 'open' & 
+                  .and. trim(ew_boundary_type) == 'cyclic') then
+            G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
+                                          - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
+         else if (trim(ns_boundary_type) == 'open' & 
+                  .and. trim(ew_boundary_type) == 'open') then
+            G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
+                                 - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
+         endif
          
       endif
 
