@@ -498,8 +498,6 @@
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
          return
 #endif
-      elseif (trim(grid_type) == 'cpom_grid') then
-         call cpomgrid          ! cpom model orca1 type grid
       else
          call rectgrid          ! regular rectangular grid
       endif
@@ -643,9 +641,7 @@
       !-----------------------------------------------------------------
       ! Compute ANGLE on T-grid
       !-----------------------------------------------------------------
-      if (trim(grid_type) == 'cpom_grid') then
-         ANGLET(:,:,:) = ANGLE(:,:,:)
-      else if (.not. (l_readCenter)) then
+      if (.not. (l_readCenter)) then
          ANGLET = c0
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
@@ -675,7 +671,7 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
-      endif ! cpom_grid
+      endif 
 
       if (trim(grid_type) == 'regional' .and. &
           (.not. (l_readCenter))) then
@@ -1833,112 +1829,6 @@
 
       end subroutine grid_boxislands_kmt
 
-!=======================================================================
-
-! CPOM displaced pole grid and land mask. \\
-! Grid record number, field and units are: \\
-! (1) ULAT  (degrees)    \\
-! (2) ULON  (degrees)    \\
-! (3) HTN   (m)          \\
-! (4) HTE   (m)          \\
-! (7) ANGLE (radians)    \\
-!
-! Land mask record number and field is (1) KMT.
-!
-! author: Adrian K. Turner, CPOM, UCL, 09/08/06
-
-      subroutine cpomgrid
-
-      integer (kind=int_kind) :: &
-           i, j, iblk,           &
-           ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      logical (kind=log_kind) :: diag
-
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      real (kind=dbl_kind) :: &
-         rad_to_deg
-
-      type (block) :: &
-           this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(cpomgrid)'
-
-      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      call ice_open(nu_grid,grid_file,64)
-      call ice_open(nu_kmt,kmt_file,32)
-
-      diag = .true.       ! write diagnostic info
-
-      ! topography
-      call ice_read(nu_kmt,1,work1,'ida4',diag)
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            kmt(i,j,iblk) = work1(i,j,iblk)
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      allocate(work_g1(nx_global,ny_global))
-
-      ! lat, lon, cell dimensions, angles
-      call ice_read_global(nu_grid,1,work_g1, 'rda8',diag)
-      call scatter_global(ULAT, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      call ice_read_global(nu_grid,2,work_g1, 'rda8',diag)
-      call scatter_global(ULON, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      call ice_read_global(nu_grid,3,work_g1,  'rda8',diag)
-      work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
-
-      call ice_read_global(nu_grid,4,work_g1,  'rda8',diag)
-      work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
-
-      call ice_read_global(nu_grid,7,work_g1,'rda8',diag)
-      call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      ! fix units
-      ULAT  = ULAT  / rad_to_deg
-      ULON  = ULON  / rad_to_deg
-
-      deallocate(work_g1)
-
-      if (my_task == master_task) then
-         close (nu_grid)
-         close (nu_kmt)
-      endif
-
-      write(nu_diag,*) subname," min/max HTN: ", minval(HTN), maxval(HTN)
-      write(nu_diag,*) subname," min/max HTE: ", minval(HTE), maxval(HTE)
-
-      end subroutine cpomgrid
 
 !=======================================================================
 
