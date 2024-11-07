@@ -834,6 +834,7 @@ contains
        myear = (idate/10000)                     ! integer year of basedate
        mmonth= (idate-myear*10000)/100           ! integer month of basedate
        mday  =  idate-myear*10000-mmonth*100     ! day of month of basedate
+       msec  = start_tod                         ! start from basedate
 
        if (my_task == master_task) then
           write(nu_diag,*) trim(subname),' curr_ymd = ',curr_ymd
