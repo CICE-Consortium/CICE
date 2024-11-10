@@ -307,7 +307,7 @@ grid_nml
    "``grid_file``", "string", "name of grid file to be read", "'unknown_grid_file'"
    "``grid_format``", "``bin``", "read direct access grid and kmt files", "``bin``"
    "", "``nc``", "read grid and kmt files", ""
-   "", "``mom_mosaic``", "read grid in mom mosaic format and kmt files", ""
+   "", "``mom_nc``", "read grid in mom (supergrid) format and kmt files", ""
    "``grid_ice``", "``B``", "use B grid structure with T at center and U at NE corner", "``B``"
    "", "``C``", "use C grid structure with T at center, U at E edge, V at N edge", ""
    "``grid_ocn``", "``A``", "ocn forcing/coupling grid, all fields on T grid", "``A``"
