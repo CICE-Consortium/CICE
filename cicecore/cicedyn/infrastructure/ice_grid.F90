@@ -312,7 +312,8 @@
       integer (kind=int_kind) :: &
          max_blocks_min, & ! min value of max_blocks across procs
          max_blocks_max, &    ! max value of max_blocks across procs
-         i, j, im, jm 
+         i, j, im, jm  , &
+         ierr
 
       real (kind=dbl_kind) :: &
          rad_to_deg
@@ -328,8 +329,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      allocate(work_g1(nx_global,ny_global))
-      allocate(work_g2(nx_global,ny_global))
+      allocate( &
+         work_g1(nx_global,ny_global), &
+         work_g2(nx_global,ny_global), &
+         stat=ierr &
+      )
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! check tripole flags here
       ! can't check in init_data because ns_boundary_type is not yet read
@@ -361,10 +366,11 @@
             case ('mom_nc') 
 
                if (my_task == master_task) then
-                  allocate(work_mom(nx_global*2+1, ny_global*2+1))
+                  allocate(work_mom(nx_global*2+1, ny_global*2+1), stat=ierr)
                else
-                  allocate(work_mom(1, 1))
+                  allocate(work_mom(1, 1), stat=ierr)
                endif
+               if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
                
                fieldname='y'                ! use mom y field to fill cice ULAT 
                call ice_open_nc(grid_file,fid_grid)
@@ -379,7 +385,9 @@
                   enddo
                   im = im + 2 
                enddo
-               deallocate(work_mom)
+
+               deallocate(work_mom, stat=ierr)
+               if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
             case('nc') 
 
@@ -446,8 +454,8 @@
 
       call init_domain_distribution(work_g2, work_g1, grid_ice)  ! KMT, ULAT
 
-      deallocate(work_g1)
-      deallocate(work_g2)
+      deallocate(work_g1, work_g2, stat = ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! write additional domain information
@@ -487,8 +495,9 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         i, j, iblk,      &
+         ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, &
@@ -526,7 +535,7 @@
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
             case('mom_nc') 
-               call mom_grid ! derive cice grid from mom supergrid nc file
+               call mom_grid        ! derive cice grid from mom supergrid nc file
             case ('nc') 
                call popgrid_nc      ! read POP grid lengths from nc file
             case default
@@ -810,21 +819,24 @@
       !-----------------------------------------------------------------
 
       if (my_task==master_task) then
-         allocate(work_g1(nx_global,ny_global))
+         allocate(work_g1(nx_global,ny_global), stat=ierr)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
          do j=1,ny_global
          do i=1,nx_global
             work_g1(i,j) = real((j-1)*nx_global + i,kind=dbl_kind)
          enddo
          enddo
       else
-         allocate(work_g1(1,1)) ! to save memory
+         allocate(work_g1(1,1), stat=ierr) ! to save memory
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       endif
 
       call scatter_global(rndex_global, work_g1,  &
                           master_task,  distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine init_grid2
 
@@ -906,6 +918,8 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
+      integer (int_kind) :: ierr
+
       character(len=*), parameter :: subname = '(popgrid)'
 
       call ice_open(nu_grid,grid_file,64)
@@ -916,7 +930,8 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      allocate(work_g1(nx_global,ny_global))
+      allocate(work_g1(nx_global,ny_global), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)   ! ULAT
       call gridbox_verts(work_g1,latt_bounds)
@@ -948,7 +963,8 @@
       call ice_read_global(nu_grid,4,work_g1,'rda8',.true.)   ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          close (nu_grid)
@@ -1034,7 +1050,8 @@
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_grid            ! file id for netCDF grid file
+         fid_grid , &           ! file id for netCDF grid file
+         ierr
 
       logical (kind=log_kind) :: diag
 
@@ -1066,7 +1083,8 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      allocate(work_g1(nx_global,ny_global))
+      allocate(work_g1(nx_global,ny_global), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
@@ -1132,7 +1150,8 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       call ice_close_nc(fid_grid)
 
@@ -1441,7 +1460,7 @@
       integer (kind=int_kind) :: &
          fid_grid, &            ! file id for netCDF grid file
          varid, &               ! netcdf varid
-         status                 ! status flag
+         ierr
 
       logical (kind=log_kind) :: diag
 
@@ -1460,22 +1479,22 @@
       !-----------------------------------------------------------------
 
       if (my_task == master_task) then
-         allocate(work_mom(nx_global*2+1, ny_global*2+1))
-         allocate(work_gE(nx_global+1,ny_global+1))
-         allocate(work_gN(nx_global+1,ny_global+1))
-         allocate(G_ULAT(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
-         allocate(G_TLAT(nx_global+1,ny_global+1)) !1 bigger to include top and right
-         allocate(G_TLON(nx_global+1,ny_global+1)) !1 bigger to include left and bottom
-         allocate(G_ULON(nx_global+1,ny_global+1)) !1 bigger to include top and right
+         allocate( &
+            work_mom(nx_global*2+1, ny_global*2+1), &
+            work_gE(nx_global+1,ny_global+1)      , &
+            work_gN(nx_global+1,ny_global+1)      , &
+            G_ULAT(nx_global+1,ny_global+1)       , & !1 bigger to include left and bottom
+            G_TLAT(nx_global+1,ny_global+1)       , & !1 bigger to include top and right
+            G_TLON(nx_global+1,ny_global+1)       , & !1 bigger to include left and bottom
+            G_ULON(nx_global+1,ny_global+1)       , &  !1 bigger to include top and right
+            stat = ierr &
+         )
       else
-         allocate(work_mom(1, 1))
-         allocate(work_gE(1,1))
-         allocate(work_gN(1,1))
-         allocate(G_ULAT(1,1)) 
-         allocate(G_TLAT(1,1))
-         allocate(G_TLON(1,1)) 
-         allocate(G_ULON(1,1))
+         allocate(work_mom(1,1), work_gE(1,1), work_gN(1,1), &
+            G_ULAT(1,1), G_TLAT(1,1), G_TLON(1,1), G_ULON(1,1), &
+            stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
      
       ! populate all LAT fields
       fieldname='y'       
@@ -1501,13 +1520,14 @@
       call mom_corners_scatter(G_ULON, G_TLON, work_gE, work_gN, &
                                   ULON, TLON, ELON, NLON)
 
-      deallocate(work_gE)
-      deallocate(work_gN)
+      deallocate(work_gE, work_gN, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
       if (my_task == master_task) then
-         allocate(work_g1(nx_global, ny_global))       !array for angle field
+         allocate(work_g1(nx_global, ny_global), stat=ierr)       !array for angle field
       else         
-         allocate(work_g1(1, 1))
+         allocate(work_g1(1, 1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! populate angle fields, angle is u-points, angleT is t-points 
       ! even though mom supergrid files contain angle_dx, mom6 calculates internally
@@ -1518,53 +1538,58 @@
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_angle)
 
-      deallocate(work_g1)
-      deallocate(G_ULAT)
-      deallocate(G_TLAT)
-      deallocate(G_TLON)
-      deallocate(G_ULON)
+      deallocate(work_g1, G_ULAT, G_TLAT, G_TLON, G_ULON, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! cell dimensions
       !-----------------------------------------------------------------
       fieldname='dx'
       ! dx uses the cells in x, edges in y, reallocate work_mom to this size
-      deallocate(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
       if (my_task == master_task) then
-         allocate(work_mom(nx_global*2, ny_global*2+1))
+         allocate(work_mom(nx_global*2, ny_global*2+1), stat=ierr)
       else
-         allocate(work_mom(1, 1))
+         allocate(work_mom(1, 1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
       call mom_dx(work_mom)
-      deallocate(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       fieldname='dy'
       ! dy uses the edges in x, cells in y, reallocate work_mom to this size
       if (my_task == master_task) then
-         allocate(work_mom(nx_global*2+1, ny_global*2))
+         allocate(work_mom(nx_global*2+1, ny_global*2), stat=ierr)
       else
-         allocate(work_mom(1, 1))
+         allocate(work_mom(1, 1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
       call mom_dy(work_mom)
-      deallocate(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
 
       !-----------------------------------------------------------------
       ! cell areas
       !-----------------------------------------------------------------
       fieldname = 'area'
       if (my_task == master_task) then
-         allocate(work_mom(nx_global*2, ny_global*2))
+         allocate(work_mom(nx_global*2, ny_global*2), stat=ierr)
       else
-         allocate(work_mom(1, 1))
+         allocate(work_mom(1, 1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
       call mom_area(work_mom)
-      deallocate(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc', file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! fin
@@ -1753,21 +1778,23 @@
 
       integer (kind=int_kind) :: &
          i, j , &
-         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom supergrid
+         im1, im2, jm1, jm2, im3, jm3 , &  ! i & j for mom supergrid
+         ierr
 
       character(len=*), parameter :: subname = '(mom_dx)'
 
       if (my_task == master_task) then
-         allocate(G_dxT(nx_global,ny_global))
-         allocate(G_dxN(nx_global,ny_global))
-         allocate(G_dxE(nx_global,ny_global))
-         allocate(G_dxU(nx_global,ny_global))
+         allocate( &
+            G_dxT(nx_global,ny_global), & 
+            G_dxN(nx_global,ny_global), &
+            G_dxE(nx_global,ny_global), &
+            G_dxU(nx_global,ny_global), &
+            stat=ierr &
+         )
       else
-         allocate(G_dxT(1,1))
-         allocate(G_dxE(1,1))
-         allocate(G_dxU(1,1))
-         allocate(G_dxN(1,1))
+         allocate(G_dxT(1,1), G_dxE(1,1), G_dxU(1,1), G_dxN(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
@@ -1829,10 +1856,8 @@
       call scatter_global(dxU, G_dxU, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_scalar)      
 
-      deallocate(G_dxT)
-      deallocate(G_dxE)
-      deallocate(G_dxU)
-      deallocate(G_dxN)
+      deallocate(G_dxT, G_dxE, G_dxU, G_dxN, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine mom_dx
 
@@ -1849,21 +1874,23 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom supergrid
+         im1, im2, jm1, jm2, im3, jm3 , &  ! i & j for mom supergrid
+         ierr
 
       character(len=*), parameter :: subname = '(mom_dy)'
 
       if (my_task == master_task) then
-         allocate(G_dyT(nx_global,ny_global))
-         allocate(G_dyN(nx_global,ny_global))
-         allocate(G_dyE(nx_global,ny_global))
-         allocate(G_dyU(nx_global,ny_global))
+         allocate( &
+            G_dyT(nx_global,ny_global), &
+            G_dyN(nx_global,ny_global), &
+            G_dyE(nx_global,ny_global), &
+            G_dyU(nx_global,ny_global), &
+            stat=ierr &
+         )
       else
-         allocate(G_dyT(1,1))
-         allocate(G_dyE(1,1))
-         allocate(G_dyU(1,1))
-         allocate(G_dyN(1,1))
+         allocate(G_dyT(1,1), G_dyE(1,1), G_dyU(1,1), G_dyN(1,1), stat=ierr )
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
@@ -1929,11 +1956,9 @@
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
             field_loc_NEcorner, field_type_scalar)    
       
-      deallocate(G_dyT)
-      deallocate(G_dyN)
-      deallocate(G_dyE)
-      deallocate(G_dyU)
-      
+      deallocate(G_dyT, G_dyN, G_dyE, G_dyU)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
       end subroutine mom_dy
 
    
@@ -1948,8 +1973,9 @@
       integer (kind=int_kind) :: &
          i, j, iblk, &
          im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom supergrid
-         ilo,ihi,jlo,jhi     ! beginning and end of physical domain
-      
+         ilo,ihi,jlo,jhi , &    ! beginning and end of physical domain
+         ierr
+
       type (block) :: &
          this_block           ! block information for current block
 
@@ -1976,12 +2002,15 @@
       enddo
 
       if (my_task == master_task) then
-         allocate(G_tarea(nx_global,ny_global))
-         allocate(G_uarea(nx_global,ny_global))
+         allocate( &
+            G_tarea(nx_global,ny_global), &
+            G_uarea(nx_global,ny_global), &
+            stat=ierr &
+         )
       else
-         allocate(G_tarea(1,1))
-         allocate(G_uarea(1,1))
+         allocate(G_tarea(1,1), G_uarea(1,1), stat=ierr )
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! load tarea and uarea
       if (my_task == master_task) then
@@ -2066,8 +2095,8 @@
                          field_loc_center, field_type_scalar)
       call scatter_global(uarea, G_uarea, master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      deallocate(G_tarea)
-      deallocate(G_uarea)
+      deallocate(G_tarea, G_uarea, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
       
       end subroutine mom_area
 
@@ -2617,7 +2646,8 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         ip1     ! i+1
+         ip1 , &     ! i+1
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -2625,10 +2655,11 @@
       character(len=*), parameter :: subname = '(primary_grid_lengths_HTN)'
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! HTN, dxU = average of 2 neighbor HTNs in i
 
@@ -2703,7 +2734,8 @@
       call scatter_global(dxE, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine primary_grid_lengths_HTN
 
@@ -2722,7 +2754,8 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1     ! i-1
+         im1, &     ! i-1
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -2730,10 +2763,11 @@
       character(len=*), parameter :: subname = '(primary_grid_lengths_HTE)'
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! HTE, dyU = average of 2 neighbor HTE in j
 
@@ -2812,7 +2846,8 @@
 
       dyE(:,:,:) = HTE(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       end subroutine primary_grid_lengths_HTE
 
@@ -2871,7 +2906,8 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind) :: &
          puny
@@ -2901,7 +2937,8 @@
       !-----------------------------------------------------------------
 
       bm = c0
-      allocate(uvmCD(nx_block,ny_block,max_blocks))
+      allocate(uvmCD(nx_block,ny_block,max_blocks), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -3006,7 +3043,8 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-      deallocate(uvmCD)
+      deallocate(uvmCD, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       end subroutine makemask
 
@@ -4561,8 +4599,9 @@
       subroutine gridbox_corners
 
       integer (kind=int_kind) :: &
-          i,j,iblk,icorner,& ! index counters
-          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+         i,j,iblk,icorner,& ! index counters
+         ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -4622,10 +4661,11 @@
       !----------------------------------------------------------------
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       work1(:,:,:) = latu_bounds(2,:,:,:)
 !     work_g2 = c0
@@ -4715,13 +4755,15 @@
                           field_loc_NEcorner, field_type_scalar)
       lonu_bounds(4,:,:,:) = work1(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       !----------------------------------------------------------------
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
@@ -4735,7 +4777,8 @@
             lonu_bounds(icorner,:,:,iblk) = work_g2(:,:)
          enddo
       enddo
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       end subroutine gridbox_corners
 
@@ -4752,8 +4795,9 @@
       subroutine gridbox_edges
 
       integer (kind=int_kind) :: &
-          i,j,iblk,icorner,& ! index counters
-          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+         i,j,iblk,icorner,& ! index counters
+         ilo,ihi,jlo,jhi , &   ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -4826,10 +4870,11 @@
       !----------------------------------------------------------------
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       ! latn_bounds
 
@@ -5011,13 +5056,15 @@
                           field_loc_NEcorner, field_type_scalar)
       lone_bounds(3,:,:,:) = work1(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       !----------------------------------------------------------------
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
@@ -5031,7 +5078,7 @@
             lone_bounds(icorner,:,:,iblk) = work_g2(:,:)
          enddo
       enddo
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
 
       end subroutine gridbox_edges
 
@@ -5053,7 +5100,8 @@
           vbounds
 
       integer (kind=int_kind) :: &
-          i,j                 ! index counters
+         i,j , &                ! index counters
+         ierr
 
       real (kind=dbl_kind) :: &
           rad_to_deg
@@ -5072,10 +5120,11 @@
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------
       ! Get coordinates of grid boxes for each block as follows:
@@ -5149,7 +5198,8 @@
                           field_loc_NEcorner, field_type_scalar)
       vbounds(4,:,:,:) = work1(:,:,:)
 
-      deallocate (work_g2)
+      deallocate (work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine gridbox_verts
 
@@ -5266,7 +5316,8 @@
          write(nu_diag,*) subname,' KMT max = ',nlevel
       endif
 
-      allocate(depth(nlevel),thick(nlevel))
+      allocate(depth(nlevel),thick(nlevel), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       thick = -999999.
       depth = -999999.
 
@@ -5335,7 +5386,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      deallocate(depth,thick)
+      deallocate(depth,thick, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine get_bathymetry_popfile
 
