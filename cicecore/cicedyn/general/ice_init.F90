@@ -1948,6 +1948,7 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Grid, Discretization'
          write(nu_diag,*) '--------------------------------'
+         write(nu_diag,1030) ' grid_format         = ',trim(grid_format)
          tmpstr2 = ' '
          if (trim(grid_type) == 'rectangular')    tmpstr2 = ' : internally defined, rectangular grid'
          if (trim(grid_type) == 'regional')       tmpstr2 = ' : user-defined, regional grid'
