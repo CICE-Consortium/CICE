@@ -53,7 +53,7 @@
                 grid_neighbor_min, grid_neighbor_max
 
       character (len=char_len_long), public :: &
-         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf or 'mom_mosaic'=mom mosaic (supergrid) netcdf)
+         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf or 'mom_nc'=mom (supergrid) netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
@@ -346,9 +346,9 @@
                         file=__FILE__, line=__LINE__)
       endif
 
-      if (trim(grid_format) == 'mom_mosaic' .and. ns_boundary_type == 'tripoleT') then
+      if (trim(grid_format) == 'mom_nc' .and. ns_boundary_type == 'tripoleT') then
          call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "&
-                        "for grid_format='mom_mosaic' tripole needs tripole ns_boundary_type", &
+                        "for grid_format='mom_nc' tripole needs tripole ns_boundary_type", &
                         file=__FILE__, line=__LINE__)
       endif
 
@@ -358,7 +358,7 @@
 
          ! Fill ULAT
          select case(trim(grid_format))
-            case ('mom_mosaic') 
+            case ('mom_nc') 
 
                if (my_task == master_task) then
                   allocate(work_mom(nx_global*2+1, ny_global*2+1))
@@ -403,7 +403,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_mosaic', 'nc') 
+            case ('mom_nc', 'nc') 
             
             ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -525,8 +525,8 @@
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
-            case('mom_mosaic') 
-               call mom_mosaic_grid ! derive cice grid from mom_mosaic nc file
+            case('mom_nc') 
+               call mom_grid ! derive cice grid from mom supergrid nc file
             case ('nc') 
                call popgrid_nc      ! read POP grid lengths from nc file
             case default
@@ -546,7 +546,7 @@
          hm(:,:,:)  = c1 
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-            case('mom_mosaic', 'nc') 
+            case('mom_nc', 'nc') 
                call kmtmask_nc
             case default
                call kmtmask        
@@ -584,7 +584,7 @@
       ! at halos.
       !-----------------------------------------------------------------
 
-      if (trim(grid_format) /= 'mom_mosaic') then 
+      if (trim(grid_format) /= 'mom_nc') then 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
@@ -781,7 +781,7 @@
       ! Coordinates for all T/N/E cells
       !----------------------------------------------------------------
       
-      if (trim(grid_format) /= 'mom_mosaic') then 
+      if (trim(grid_format) /= 'mom_nc') then 
          if (.not. (l_readCenter)) then
             call Tlatlon        ! get lat, lon on the T grid
          endif
@@ -1427,7 +1427,7 @@
 #endif
 
 !=======================================================================
-! Create the CICE grid from the MOM mosaic grid file.
+! Create the CICE grid from the MOM supergrid netcdf file.
 ! CICE Fields and units are: 
 ! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    
 ! HTN, HTE   (m)         
@@ -1436,7 +1436,7 @@
 ! tarea, uarea, narea, earea (m^2)
 ! lont_bounds, latt_bounds, etc (degrees)
 
-      subroutine mom_mosaic_grid
+      subroutine mom_grid
    
       integer (kind=int_kind) :: &
          fid_grid, &            ! file id for netCDF grid file
@@ -1451,7 +1451,7 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          G_TLON, work_gE, G_ULON, work_gN, work_mom, G_ULAT, G_TLAT, work_g1
        
-      character(len=*), parameter :: subname = '(mom_mosaic_grid)'
+      character(len=*), parameter :: subname = '(mom_grid)'
 
       call ice_open_nc(grid_file,fid_grid)
 
@@ -1480,25 +1480,25 @@
       ! populate all LAT fields
       fieldname='y'       
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      call mosaic_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
+      call mom_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
       ! create bounds fields for cf-compliant output
-      call mosaic_bounds(G_ULAT, latt_bounds) ! u points define corners for t-cells
-      call mosaic_bounds(G_TLAT, latu_bounds)
-      call mosaic_bounds(work_gN, late_bounds)
-      call mosaic_bounds(work_gE, latn_bounds)
+      call mom_bounds(G_ULAT, latt_bounds) ! u points define corners for t-cells
+      call mom_bounds(G_TLAT, latu_bounds)
+      call mom_bounds(work_gN, late_bounds)
+      call mom_bounds(work_gE, latn_bounds)
       !distribute global array to local 
-      call mosaic_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
+      call mom_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
                           ULAT, TLAT, ELAT, NLAT)
       
       ! populate all LON fields
       fieldname='x'       
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      call mosaic_corners_global(work_mom, G_ULON, G_TLON, work_gE, work_gN)
-      call mosaic_bounds(G_ULON, lont_bounds)
-      call mosaic_bounds(G_TLON, lonu_bounds)
-      call mosaic_bounds(work_gN, lone_bounds)
-      call mosaic_bounds(work_gE, lonn_bounds)
-      call mosaic_corners_scatter(G_ULON, G_TLON, work_gE, work_gN, &
+      call mom_corners_global(work_mom, G_ULON, G_TLON, work_gE, work_gN)
+      call mom_bounds(G_ULON, lont_bounds)
+      call mom_bounds(G_TLON, lonu_bounds)
+      call mom_bounds(work_gN, lone_bounds)
+      call mom_bounds(work_gE, lonn_bounds)
+      call mom_corners_scatter(G_ULON, G_TLON, work_gE, work_gN, &
                                   ULON, TLON, ELON, NLON)
 
       deallocate(work_gE)
@@ -1510,7 +1510,7 @@
       endif
 
       ! populate angle fields, angle is u-points, angleT is t-points 
-      ! even though mom_mosaic files contain angle_dx, mom6 calculates internally
+      ! even though mom supergrid files contain angle_dx, mom6 calculates internally
       call grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
       call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                            field_loc_center, field_type_angle)
@@ -1537,7 +1537,7 @@
       endif
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      call mosaic_dx(work_mom)
+      call mom_dx(work_mom)
       deallocate(work_mom)
 
       fieldname='dy'
@@ -1549,7 +1549,7 @@
       endif
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      call mosaic_dy(work_mom)
+      call mom_dy(work_mom)
       deallocate(work_mom)
 
       !-----------------------------------------------------------------
@@ -1563,7 +1563,7 @@
       endif
 
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
-      call mosaic_area(work_mom)
+      call mom_area(work_mom)
       deallocate(work_mom)
 
       !-----------------------------------------------------------------
@@ -1572,26 +1572,26 @@
       call ice_close_nc(fid_grid)
       l_readCenter = .true.       ! we have read t quantities 
 
-      end subroutine mom_mosaic_grid
+      end subroutine mom_grid
 
-      subroutine mosaic_corners_global(work_mom, G_U, G_T, G_E, G_N)                   
+      subroutine mom_corners_global(work_mom, G_U, G_T, G_E, G_N)                   
 
-      ! mom mosaic has four cells for every model cell
+      ! mom supergrid has four cells for every model cell
       ! we need to select the correct edges to get lat & lon for a model cell
       ! we include left/bottom edges for U-points, and top/right edges for T-points
       ! and close per ew_boundary_type & ns_boundary_type
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom 
-         ! mosaic array of x or y
+         ! supergrid array of x or y
 
       real (kind=dbl_kind), dimension(:,:), intent(out) :: G_U, G_T, G_E, G_N 
          ! global grids 
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1, im2, jm1, jm2  ! i & j for mom mosaic
+         im1, im2, jm1, jm2  ! i & j for mom supergrid
 
-      character(len=*), parameter :: subname = '(mosaic_corners_global)'
+      character(len=*), parameter :: subname = '(mom_corners_global)'
 
       if (my_task == master_task) then
 
@@ -1651,10 +1651,10 @@
 
       endif
 
-      end subroutine mosaic_corners_global
+      end subroutine mom_corners_global
 
 
-      subroutine mosaic_bounds(G_corners, bounds)
+      subroutine mom_bounds(G_corners, bounds)
 
       ! with an global array of corner point, subset and distribute 
       ! into the cice bounds variables
@@ -1667,7 +1667,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work_bounds
 
-      character(len=*), parameter :: subname = '(mosaic_bounds)'
+      character(len=*), parameter :: subname = '(mom_bounds)'
 
       ! Get bounds of grid boxes for each block as follows:
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
@@ -1688,9 +1688,9 @@
                          field_loc_NEcorner, field_type_scalar)
       bounds(4,:,:,:) = work_bounds(:,:,:)
 
-      end subroutine mosaic_bounds
+      end subroutine mom_bounds
 
-      subroutine mosaic_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )               
+      subroutine mom_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )               
          
       ! with a global array of corner points in degrees, convert to rad and scatter to workers
       
@@ -1701,7 +1701,7 @@
 
       real (kind=dbl_kind) :: deg_to_rad , pi 
 
-      character(len=*), parameter :: subname = '(mosaic_corners_scatter)'
+      character(len=*), parameter :: subname = '(mom_corners_scatter)'
 
       call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
@@ -1738,12 +1738,12 @@
       call ice_HaloExtrapolate(E, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
 
-      end subroutine mosaic_corners_scatter
+      end subroutine mom_corners_scatter
 
 
-      subroutine mosaic_dx(work_mom)
+      subroutine mom_dx(work_mom)
 
-      ! mom_mosaic has four cells for every model cell, 
+      ! mom supergrid has four cells for every model cell, 
       ! we just need to sum the correct sidelengths to get dx
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
@@ -1753,9 +1753,9 @@
 
       integer (kind=int_kind) :: &
          i, j , &
-         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom mosaic
+         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom supergrid
 
-      character(len=*), parameter :: subname = '(mosaic_dx)'
+      character(len=*), parameter :: subname = '(mom_dx)'
 
       if (my_task == master_task) then
          allocate(G_dxT(nx_global,ny_global))
@@ -1834,12 +1834,12 @@
       deallocate(G_dxU)
       deallocate(G_dxN)
 
-      end subroutine mosaic_dx
+      end subroutine mom_dx
 
 
-      subroutine mosaic_dy(work_mom)
+      subroutine mom_dy(work_mom)
 
-      ! mom_mosaic has four cells for every model cell, 
+      ! mom sueprgrid has four cells for every model cell, 
       ! we just need to sum the correct sidelengths to get dy
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
@@ -1849,9 +1849,9 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom mosaic
+         im1, im2, jm1, jm2, im3, jm3  ! i & j for mom supergrid
 
-      character(len=*), parameter :: subname = '(mosaic_dy)'
+      character(len=*), parameter :: subname = '(mom_dy)'
 
       if (my_task == master_task) then
          allocate(G_dyT(nx_global,ny_global))
@@ -1934,12 +1934,12 @@
       deallocate(G_dyE)
       deallocate(G_dyU)
       
-      end subroutine mosaic_dy
+      end subroutine mom_dy
 
    
-      subroutine mosaic_area(work_mom)
+      subroutine mom_area(work_mom)
 
-      ! mom_mosaic has four cells for every model cell, we need to sum these
+      ! mom sueprgrid has four cells for every model cell, we need to sum these
       ! to get model cell areas
       ! however, earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
 
@@ -1947,7 +1947,7 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
-         im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom mosaic
+         im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom supergrid
          ilo,ihi,jlo,jhi     ! beginning and end of physical domain
       
       type (block) :: &
@@ -1956,7 +1956,7 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          G_tarea, G_uarea 
       
-      character(len=*), parameter :: subname = '(mosaic_area)'
+      character(len=*), parameter :: subname = '(mom_area)'
 
       ! calculate narea and earea
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2069,7 +2069,7 @@
       deallocate(G_tarea)
       deallocate(G_uarea)
       
-      end subroutine mosaic_area
+      end subroutine mom_area
 
 
       subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
