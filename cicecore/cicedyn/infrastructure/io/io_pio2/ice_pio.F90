@@ -536,10 +536,18 @@
 
    subroutine ice_pio_finalize()
 
-      integer(kind=int_kind)      :: ierr
+      integer(kind=int_kind)      :: status
       character(len=*), parameter :: subname = '(ice_pio_finalize)'
 
-      call pio_finalize(ice_pio_subsystem,ierr)
+      status = PIO_NOERR
+#ifndef CESMCOUPLED
+      call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
+      call pio_finalize(ice_pio_subsystem,status)
+      call ice_pio_check( status, subname//' ERROR: Failed to finalize ', &
+         file=__FILE__,line=__LINE__)
+! do not call this, ice_pio_subsystem does not exist anymore
+!      call pio_seterrorhandling(ice_pio_subsystem, PIO_INTERNAL_ERROR)
+#endif
 
    end subroutine ice_pio_finalize
 
