@@ -905,6 +905,7 @@
       call PIO_freeDecomp(File,iodesc2d)
       call PIO_freeDecomp(File,iodesc3d_ncat)
       call pio_closefile(File)
+      call ice_pio_finalize()
 
       if (my_task == master_task) then
          write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &

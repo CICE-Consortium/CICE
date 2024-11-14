@@ -27,6 +27,7 @@
 
   public ice_pio_init
   public ice_pio_initdecomp
+  public ice_pio_finalize
   public ice_pio_check
 
 #ifdef CESMCOUPLED
@@ -528,6 +529,19 @@
 
    end subroutine ice_pio_initdecomp_4d
 
+
+!================================================================================
+
+   ! PIO Finalize
+
+   subroutine ice_pio_finalize()
+
+      integer(kind=int_kind)      :: ierr
+      character(len=*), parameter :: subname = '(ice_pio_finalize)'
+
+      call pio_finalize(ice_pio_subsystem,ierr)
+
+   end subroutine ice_pio_finalize
 
 !================================================================================
 
