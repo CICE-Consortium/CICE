@@ -1255,6 +1255,12 @@
          write(nu_diag,*) 'Finished writing ',trim(ncfile)
       endif
 
+      !-----------------------------------------------------------------
+      ! clean up PIO
+      !-----------------------------------------------------------------
+
+      call ice_pio_finalize()
+
       first_call = .false.
 
       end subroutine ice_write_hist
