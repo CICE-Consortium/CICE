@@ -529,7 +529,7 @@
                       snoice       = snoice      (i,j,  iblk), &
                       snoicen      = snoicen     (i,j,:,iblk), &
 !opt                      dsnow        = dsnow       (i,j,  iblk), &
-                      dsnown       = dsnown      (i,j,:,iblk), &
+!opt                      dsnown       = dsnown      (i,j,:,iblk), &
 !opt                      meltsliq     = meltsliq    (i,j,  iblk), &
 !opt                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
                       lmask_n      = lmask_n     (i,j,  iblk), &
