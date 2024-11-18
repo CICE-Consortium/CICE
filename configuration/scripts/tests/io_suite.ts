@@ -1,4 +1,7 @@
 # Test         Grid    PEs        Sets    BFB-compare
+smoke          gx3    32x1        run1year,histhrly,ionetcdf,iocdf2,short
+smoke          gx3    32x1        run1year,histhrly,iopio2,iocdf5,short
+
 # some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
 # iobinary cannot work with JRA55 because netcdf is turned off
 restart        gx3     8x4        gx3ncarbulk,debug,histall,iobinary,precision8

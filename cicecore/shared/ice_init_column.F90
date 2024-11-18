@@ -581,8 +581,7 @@
 
       subroutine init_fsd(floesize)
 
-      use ice_arrays_column, only: floe_rad_c, floe_binwidth, &
-         wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
+      use ice_arrays_column, only: wavefreq, dwavefreq, wave_sig_ht, wave_spectrum, &
          d_afsd_newi, d_afsd_latg, d_afsd_latm, d_afsd_wave, d_afsd_weld
       use ice_domain_size, only: ncat, max_blocks, nfsd
       use ice_init, only: ice_ic
@@ -636,8 +635,6 @@
 
          ! initialize floe size distribution the same in every column and category
          call icepack_init_fsd(ice_ic = ice_ic, &
-            floe_rad_c    = floe_rad_c,    &  ! fsd size bin centre in m (radius)
-            floe_binwidth = floe_binwidth, &  ! fsd size bin width in m (radius)
             afsd          = afsd)             ! floe size distribution
 
          do iblk = 1, max_blocks

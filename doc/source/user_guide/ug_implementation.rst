@@ -129,16 +129,25 @@ This is shown in Figure :ref:`fig-Cgrid`.
    Schematic of CICE CD-grid. 
 
 
-The user has several ways to initialize the grid: *popgrid* reads grid
-lengths and other parameters for a nonuniform grid (including tripole
-and regional grids), and *rectgrid* creates a regular rectangular grid.
-The input files **global_gx3.grid** and **global_gx3.kmt** contain the
+The user has several ways to initialize the grid, which can be read from 
+files or created internally. The *rectgrid* code creates a regular rectangular 
+grid (use the namelist option ``grid_type='rectangular'``). The *popgrid* and *popgrid_nc* 
+code reads grid lengths and other parameters for a nonuniform grid (including tripole
+and regional grids). 
+The input files **grid_gx3.bin** and **kmt_gx3.bin** contain the
 :math:`\left<3^\circ\right>` POP grid and land mask;
-**global_gx1.grid** and **global_gx1.kmt** contain the
-:math:`\left<1^\circ\right>` grid and land mask, and **global_tx1.grid** 
-and **global_tx1.kmt** contain the :math:`\left<1^\circ\right>` POP 
+**grid_gx1.bin** and **kmt_gx1.bin** contain the
+:math:`\left<1^\circ\right>` grid and land mask, and **grid_tx1.bin** 
+and **kmt_tx1.bin** contain the :math:`\left<1^\circ\right>` POP 
 tripole grid and land mask. These are binary unformatted, direct access,
-Big Endian files.
+Big Endian files. 
+
+The are also input files in netcdf format for the **gx3** grid,
+(**grid_gx3.nc** and **kmt_gx3.nc**) which can serve as a template for defining
+other grids. At a minimum the grid file needs to to contain ULAT, ULON, HTN, HTE
+and ANGLE variables. If the variables exist, ANGLET, TLON and TLAT will also be 
+read from a netcdf grid file. The kmt (mask) netcdf file needs a variable named 
+kmt or mask, set to 0 for land and 1 for ocean.
 
 The input grid file for the B-grid and CD-grid is identical.  That file
 contains each cells' HTN, HTE, ULON, ULAT, and kmt value.  From those
