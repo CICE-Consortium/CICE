@@ -18,7 +18,7 @@
           field_loc_noupdate, field_type_noupdate
       use ice_communicate, only: my_task, master_task
       use ice_broadcast, only: broadcast_scalar
-      use ice_domain, only: distrb_info, orca_halogrid
+      use ice_domain, only: distrb_info
       use ice_domain_size, only: max_blocks, nx_global, ny_global, ncat
       use ice_blocks, only: nx_block, ny_block, nghost
       use ice_exit, only: abort_ice
@@ -1143,19 +1143,7 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g2
-
       lnrec = nrec
-
-      if (orca_halogrid .and. .not. present(restart_ext)) then
-         if (my_task == master_task) then
-            allocate(work_g2(nx_global+2,ny_global+1))
-         else
-            allocate(work_g2(1,1))   ! to save memory
-         endif
-         work_g2(:,:) = c0
-      endif
 
       nx = nx_global
       ny = ny_global
@@ -1207,18 +1195,10 @@
          ! Read global array
          !--------------------------------------------------------------
 
-         if (orca_halogrid .and. .not. present(restart_ext)) then
-            status = nf90_get_var( fid, varid, work_g2, &
-                                   start=(/1,1,lnrec/), count=(/nx_global+2,ny_global+1,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                  file=__FILE__, line=__LINE__)
-            work_g1 = work_g2(2:nx_global+1,1:ny_global)
-         else
-            status = nf90_get_var( fid, varid, work_g1, &
-                                   start=(/1,1,lnrec/), count=(/nx,ny,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-         endif
+         status = nf90_get_var( fid, varid, work_g1, &
+                                 start=(/1,1,lnrec/), count=(/nx,ny,1/))
+         call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
 
       endif                     ! my_task = master_task
 
@@ -1271,8 +1251,6 @@
 
 ! echmod:  this should not be necessary if fill/missing are only on land
       where (work > 1.0e+30_dbl_kind) work = c0
-
-      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       work = c0 ! to satisfy intent(out) attribute
@@ -1346,19 +1324,7 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-         work_g2
-
       lnrec = nrec
-
-      if (orca_halogrid .and. .not. present(restart_ext)) then
-         if (my_task == master_task) then
-            allocate(work_g2(nx_global+2,ny_global+1,ncat))
-         else
-            allocate(work_g2(1,1,ncat))   ! to save memory
-         endif
-         work_g2(:,:,:) = c0
-      endif
 
       nx = nx_global
       ny = ny_global
@@ -1408,18 +1374,10 @@
          ! Read global array
          !--------------------------------------------------------------
 
-         if (orca_halogrid .and. .not. present(restart_ext)) then
-            status = nf90_get_var( fid, varid, work_g2, &
-                                   start=(/1,1,1,lnrec/), count=(/nx_global+2,ny_global+1,ncat,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
-         else
-            status = nf90_get_var( fid, varid, work_g1, &
-                                   start=(/1,1,1,lnrec/), count=(/nx,ny,ncat,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-         endif
+         status = nf90_get_var( fid, varid, work_g1, &
+                                 start=(/1,1,1,lnrec/), count=(/nx,ny,ncat,1/))
+         call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
 
       endif                     ! my_task = master_task
 
@@ -1478,7 +1436,6 @@
       endif
 
       deallocate(work_g1)
-      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
@@ -1558,19 +1515,8 @@
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
 #ifdef USE_NETCDF
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-         work_g2
 
       lnrec = nrec
-
-      if (orca_halogrid .and. .not. present(restart_ext)) then
-         if (my_task == master_task) then
-            allocate(work_g2(nx_global+2,ny_global+1,nfreq))
-         else
-            allocate(work_g2(1,1,nfreq))   ! to save memory
-         endif
-         work_g2(:,:,:) = c0
-      endif
 
       nx = nx_global
       ny = ny_global
@@ -1620,18 +1566,10 @@
          ! Read global array
          !--------------------------------------------------------------
 
-         if (orca_halogrid .and. .not. present(restart_ext)) then
-            status = nf90_get_var( fid, varid, work_g2, &
-                                   start=(/1,1,1,lnrec/), count=(/nx_global+2,ny_global+1,nfreq,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            work_g1 = work_g2(2:nx_global+1,1:ny_global,:)
-         else
-            status = nf90_get_var( fid, varid, work_g1, &
-                                   start=(/1,1,1,lnrec/), count=(/nx,ny,nfreq,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-         endif
+         status = nf90_get_var( fid, varid, work_g1, &
+                                 start=(/1,1,1,lnrec/), count=(/nx,ny,nfreq,1/))
+         call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
 
       endif                     ! my_task = master_task
 
@@ -1693,7 +1631,6 @@
       where (work > 1.0e+30_dbl_kind) work = c0
 
       deallocate(work_g1)
-      if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
@@ -2474,7 +2411,7 @@
       character (char_len), intent(in) :: &
          varname           ! field name in netcdf file
 
-      real (kind=dbl_kind), dimension(nx_global,ny_global), intent(out) :: &
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
          work_g            ! output array (real, 8-byte)
 
       logical (kind=log_kind) :: &
@@ -2485,13 +2422,15 @@
       character(len=*), parameter :: subname = '(ice_read_global_nc)'
 
 #ifdef USE_NETCDF
-! netCDF file diagnostics:
+      ! netCDF file diagnostics:
       integer (kind=int_kind) :: &
-         varid,          & ! netcdf id for field
-         status            ! status output from netcdf routines
-!        ndim, nvar,     & ! sizes of netcdf file
+         varid,  &         ! netcdf id for field
+         status, &         ! status output from netcdf routines
+         ndim,  &         ! number of variable dimensions
+         dimids(NF90_MAX_VAR_DIMS) , & !ids of dimensions
+         dimlen            ! size of dimension
+!        nvar,     & ! sizes of netcdf file
 !        id,             & ! dimension index
-!        dimlen            ! size of dimension
 
       real (kind=dbl_kind) :: &
          amin, amax, asum  ! min, max values and sum of input array
@@ -2499,17 +2438,6 @@
 !    character (char_len) :: &
 !        dimname           ! dimension name
 !
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g3
-
-      if (orca_halogrid) then
-         if (my_task == master_task) then
-            allocate(work_g3(nx_global+2,ny_global+1))
-         else
-            allocate(work_g3(1,1))   ! to save memory
-         endif
-         work_g3(:,:) = c0
-      endif
 
       work_g(:,:) = c0
 
@@ -2527,18 +2455,35 @@
          ! Read global array
          !--------------------------------------------------------------
 
-         if (orca_halogrid) then
-            status = nf90_get_var( fid, varid, work_g3, &
-                                   start=(/1,1,nrec/), count=(/nx_global+2,ny_global+1,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
-            work_g=work_g3(2:nx_global+1,1:ny_global)
-         else
-            status = nf90_get_var( fid, varid, work_g, &
-                                   start=(/1,1,nrec/), count=(/nx_global,ny_global,1/))
-            call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
-                              file=__FILE__, line=__LINE__)
+         ! Check var size : is var 2d ?
+         status = nf90_inquire_variable(fid, varid, ndims=ndim, dimids=dimids)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( ndim > 2 ) then
+            call abort_ice(subname//' ERROR: '//trim(varname)//' cannot have more than 2 dimensions', &
+                           file=__FILE__, line=__LINE__)
          endif
+         ! Is work_g the same size as the variable?
+         status = nf90_inquire_dimension(fid, dimids(1), len=dimlen)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( dimlen /= size(work_g,1) ) then
+            call abort_ice(subname//' ERROR: x dim of '//trim(varname)//' wrong size, check nx_global', &
+                           file=__FILE__, line=__LINE__)
+         endif
+         status = nf90_inquire_dimension(fid, dimids(2), len=dimlen)
+         call ice_check_nc(status, subname//' ERROR: Cannot check variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         if ( dimlen /= size(work_g,2) ) then
+            call abort_ice(subname//' ERROR: y dim of '//trim(varname)//' wrong size, check ny_global', &
+                           file=__FILE__, line=__LINE__)
+         endif
+
+         ! Get the data
+         status = nf90_get_var( fid, varid, work_g, start=(/1,1,nrec/))
+         call ice_check_nc(status, subname//' ERROR: Cannot get variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+
       endif                     ! my_task = master_task
 
       !-------------------------------------------------------------------
@@ -2560,8 +2505,6 @@
          asum = sum   (work_g, mask = work_g /= spval_dbl)
          write(nu_diag,*) subname,' min, max, sum = ', amin, amax, asum, trim(varname)
       endif
-
-      if (orca_halogrid) deallocate(work_g3)
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &

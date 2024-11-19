@@ -169,6 +169,10 @@
       logical (kind=log_kind), private :: &
          l_readCenter ! If anglet exist in grid file read it otherwise calculate it
 
+      character (len=char_len), private :: &
+         mask_fieldname !field/var name for the mask variable (in nc files)
+
+
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
                           grid_average_X2Y_userwghts, &
@@ -291,6 +295,11 @@
 
       subroutine init_grid1
 
+#ifdef USE_NETCDF
+      use netcdf, only: nf90_inq_varid , nf90_noerr
+      integer (kind=int_kind) :: status, varid
+#endif
+
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
          fid_kmt         ! file id for netCDF kmt file
@@ -342,19 +351,31 @@
           trim(grid_type) == 'regional'     ) then
 
          if (trim(grid_format) == 'nc') then
-
-            call ice_open_nc(grid_file,fid_grid)
-            call ice_open_nc(kmt_file,fid_kmt)
-
+            
             fieldname='ulat'
+            call ice_open_nc(grid_file,fid_grid)
             call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
-            fieldname='kmt'
-            call ice_read_global_nc(fid_kmt,1,fieldname,work_g2,.true.)
-
-            if (my_task == master_task) then
-               call ice_close_nc(fid_grid)
-               call ice_close_nc(fid_kmt)
+            call ice_close_nc(fid_grid)
+            
+            ! mask variable name might be kmt or mask, check both
+            call ice_open_nc(kmt_file,fid_kmt)
+#ifdef USE_NETCDF
+            if ( my_task==master_task ) then
+               status = nf90_inq_varid(fid_kmt, 'kmt', varid)
+               if (status == nf90_noerr) then
+                  mask_fieldname = 'kmt'
+               else 
+                  status = nf90_inq_varid(fid_kmt, 'mask', varid)
+                  call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
+                                    ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
+                  mask_fieldname = 'mask'
+               endif
             endif
+#endif
+            call broadcast_scalar(mask_fieldname, master_task)
+
+            call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
+            call ice_close_nc(fid_kmt)
 
          else
 
@@ -466,8 +487,10 @@
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
          if (trim(grid_format) == 'nc') then
+            call kmtmask_nc     ! read mask from nc file
             call popgrid_nc     ! read POP grid lengths from nc file
          else
+            call kmtmask        ! read kmt directly
             call popgrid        ! read POP grid lengths directly
          endif
 #ifdef CESMCOUPLED
@@ -475,8 +498,6 @@
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
          return
 #endif
-      elseif (trim(grid_type) == 'cpom_grid') then
-         call cpomgrid          ! cpom model orca1 type grid
       else
          call rectgrid          ! regular rectangular grid
       endif
@@ -607,12 +628,20 @@
              file=__FILE__, line=__LINE__)
       endif
 
+      if (l_readCenter) then
+         out_of_range = .false.
+         where (ANGLET < -pi .or. ANGLET > pi) out_of_range = .true.
+         if (count(out_of_range) > 0) then
+            write(nu_diag,*) subname,' angle = ',minval(ANGLET),maxval(ANGLET),count(out_of_range)
+            call abort_ice (subname//' ANGLET out of expected range', &
+               file=__FILE__, line=__LINE__)
+         endif
+      endif
+
       !-----------------------------------------------------------------
       ! Compute ANGLE on T-grid
       !-----------------------------------------------------------------
-      if (trim(grid_type) == 'cpom_grid') then
-         ANGLET(:,:,:) = ANGLE(:,:,:)
-      else if (.not. (l_readCenter)) then
+      if (.not. (l_readCenter)) then
          ANGLET = c0
 
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
@@ -642,7 +671,7 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
-      endif ! cpom_grid
+      endif 
 
       if (trim(grid_type) == 'regional' .and. &
           (.not. (l_readCenter))) then
@@ -722,21 +751,10 @@
 
 !=======================================================================
 
-! POP displaced pole grid and land mask (or tripole).
-! Grid record number, field and units are: \\
-! (1) ULAT  (radians)    \\
-! (2) ULON  (radians)    \\
-! (3) HTN   (cm)         \\
-! (4) HTE   (cm)         \\
-! (5) HUS   (cm)         \\
-! (6) HUW   (cm)         \\
-! (7) ANGLE (radians)
-!
+! POP land mask
 ! Land mask record number and field is (1) KMT.
-!
-! author: Elizabeth C. Hunke, LANL
 
-      subroutine popgrid
+      subroutine kmtmask
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
@@ -744,18 +762,14 @@
 
       logical (kind=log_kind) :: diag
 
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1
-
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(popgrid)'
+      character(len=*), parameter :: subname = '(kmtmask)'
 
-      call ice_open(nu_grid,grid_file,64)
       call ice_open(nu_kmt,kmt_file,32)
 
       diag = .true.       ! write diagnostic info
@@ -763,13 +777,13 @@
       !-----------------------------------------------------------------
       ! topography
       !-----------------------------------------------------------------
+      kmt(:,:,:) = c0
+      hm (:,:,:) = c0
 
-      call ice_read(nu_kmt,1,work1,'ida4',diag, &
+      call ice_read(nu_kmt,1,kmt,'ida4',diag, &
                     field_loc=field_loc_center, &
                     field_type=field_type_scalar)
 
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -780,12 +794,44 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            kmt(i,j,iblk) = work1(i,j,iblk)
             if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
+      
+      if (my_task == master_task) then
+         close (nu_kmt)
+      endif
+
+      end subroutine kmtmask
+
+!=======================================================================
+
+! POP displaced pole grid (or tripole).
+! Grid record number, field and units are: \\
+! (1) ULAT  (radians)    \\
+! (2) ULON  (radians)    \\
+! (3) HTN   (cm)         \\
+! (4) HTE   (cm)         \\
+! (5) HUS   (cm)         \\
+! (6) HUW   (cm)         \\
+! (7) ANGLE (radians)
+!
+! author: Elizabeth C. Hunke, LANL
+
+      subroutine popgrid
+
+      logical (kind=log_kind) :: diag
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g1
+
+      character(len=*), parameter :: subname = '(popgrid)'
+
+      call ice_open(nu_grid,grid_file,64)
+
+      diag = .true.       ! write diagnostic info
 
       !-----------------------------------------------------------------
       ! lat, lon, angle
@@ -827,10 +873,62 @@
 
       if (my_task == master_task) then
          close (nu_grid)
-         close (nu_kmt)
       endif
 
       end subroutine popgrid
+
+!=======================================================================
+
+! POP/MOM land mask.
+! Land mask field is kmt or mask, saved in mask_fieldname.
+
+      subroutine kmtmask_nc
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
+         fid_kmt                ! file id for netCDF kmt file
+      
+      logical (kind=log_kind) :: diag
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1
+
+      type (block) :: &
+         this_block           ! block information for current block          
+
+      character(len=*), parameter :: subname = '(kmtmask_nc)'
+
+      diag = .true.       ! write diagnostic info
+
+      hm (:,:,:) = c0
+      kmt(:,:,:) = c0
+
+      call ice_open_nc(kmt_file,fid_kmt)
+      
+      call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
+                        field_loc=field_loc_center, &
+                        field_type=field_type_scalar)
+
+      call ice_close_nc(fid_kmt)
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine kmtmask_nc
 
 !=======================================================================
 
@@ -844,8 +942,6 @@
 ! (6) HUW   (cm)         \\
 ! (7) ANGLE (radians)
 !
-! Land mask record number and field is (1) KMT.
-!
 ! author: Elizabeth C. Hunke, LANL
 ! Revised for netcdf input: Ann Keen, Met Office, May 2007
 
@@ -858,8 +954,7 @@
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_grid, &            ! file id for netCDF grid file
-         fid_kmt                ! file id for netCDF kmt file
+         fid_grid            ! file id for netCDF grid file
 
       logical (kind=log_kind) :: diag
 
@@ -872,17 +967,8 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      type (block) :: &
-         this_block           ! block information for current block
-
       integer(kind=int_kind) :: &
-         varid
-      integer (kind=int_kind) :: &
-         status                ! status flag
-
+         varid, status      
 
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
@@ -893,37 +979,9 @@
          file=__FILE__, line=__LINE__)
 
       call ice_open_nc(grid_file,fid_grid)
-      call ice_open_nc(kmt_file,fid_kmt)
 
       diag = .true.       ! write diagnostic info
-      !-----------------------------------------------------------------
-      ! topography
-      !-----------------------------------------------------------------
-
-      fieldname='kmt'
-      call ice_read_nc(fid_kmt,1,fieldname,work1,diag, &
-                       field_loc=field_loc_center, &
-                       field_type=field_type_scalar)
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            kmt(i,j,iblk) = work1(i,j,iblk)
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
+   
       !-----------------------------------------------------------------
       ! lat, lon, angle
       !-----------------------------------------------------------------
@@ -996,10 +1054,8 @@
 
       deallocate(work_g1)
 
-      if (my_task == master_task) then
-         call ice_close_nc(fid_grid)
-         call ice_close_nc(fid_kmt)
-      endif
+      call ice_close_nc(fid_grid)
+
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
           file=__FILE__, line=__LINE__)
@@ -1773,112 +1829,6 @@
 
       end subroutine grid_boxislands_kmt
 
-!=======================================================================
-
-! CPOM displaced pole grid and land mask. \\
-! Grid record number, field and units are: \\
-! (1) ULAT  (degrees)    \\
-! (2) ULON  (degrees)    \\
-! (3) HTN   (m)          \\
-! (4) HTE   (m)          \\
-! (7) ANGLE (radians)    \\
-!
-! Land mask record number and field is (1) KMT.
-!
-! author: Adrian K. Turner, CPOM, UCL, 09/08/06
-
-      subroutine cpomgrid
-
-      integer (kind=int_kind) :: &
-           i, j, iblk,           &
-           ilo,ihi,jlo,jhi      ! beginning and end of physical domain
-
-      logical (kind=log_kind) :: diag
-
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      real (kind=dbl_kind) :: &
-         rad_to_deg
-
-      type (block) :: &
-           this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(cpomgrid)'
-
-      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      call ice_open(nu_grid,grid_file,64)
-      call ice_open(nu_kmt,kmt_file,32)
-
-      diag = .true.       ! write diagnostic info
-
-      ! topography
-      call ice_read(nu_kmt,1,work1,'ida4',diag)
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            kmt(i,j,iblk) = work1(i,j,iblk)
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      allocate(work_g1(nx_global,ny_global))
-
-      ! lat, lon, cell dimensions, angles
-      call ice_read_global(nu_grid,1,work_g1, 'rda8',diag)
-      call scatter_global(ULAT, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      call ice_read_global(nu_grid,2,work_g1, 'rda8',diag)
-      call scatter_global(ULON, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      call ice_read_global(nu_grid,3,work_g1,  'rda8',diag)
-      work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
-
-      call ice_read_global(nu_grid,4,work_g1,  'rda8',diag)
-      work_g1 = work_g1 * m_to_cm
-      call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
-
-      call ice_read_global(nu_grid,7,work_g1,'rda8',diag)
-      call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-
-      ! fix units
-      ULAT  = ULAT  / rad_to_deg
-      ULON  = ULON  / rad_to_deg
-
-      deallocate(work_g1)
-
-      if (my_task == master_task) then
-         close (nu_grid)
-         close (nu_kmt)
-      endif
-
-      write(nu_diag,*) subname," min/max HTN: ", minval(HTN), maxval(HTN)
-      write(nu_diag,*) subname," min/max HTE: ", minval(HTE), maxval(HTE)
-
-      end subroutine cpomgrid
 
 !=======================================================================
 

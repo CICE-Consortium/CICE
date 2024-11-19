@@ -67,7 +67,7 @@
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
-            open(nu_rst_pointer,file=pointer_file)
+            open(nu_rst_pointer,file=pointer_file, status='old')
             read(nu_rst_pointer,'(a)') filename0
             filename = trim(filename0)
             close(nu_rst_pointer)

@@ -5473,8 +5473,6 @@
       logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(wave_spec_data)'
 
-
-
       debug_n_d = .false.  !usually false
 
       call icepack_query_parameters(secday_out=secday)

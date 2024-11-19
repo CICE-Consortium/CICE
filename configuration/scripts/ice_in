@@ -100,7 +100,6 @@
     nilyr        = 7
     nslyr        = 1
     nblyr        = 1
-    orca_halogrid = .false.
 /
 
 &tracer_nml
