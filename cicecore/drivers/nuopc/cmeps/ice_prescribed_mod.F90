@@ -6,7 +6,7 @@ module ice_prescribed_mod
   ! prescribed.  Air/ice fluxes are computed to get surface temperature,
   ! Ice/ocean fluxes are set to zero, and ice dynamics are not calculated.
   ! Regridding and data cycling capabilities are included.
-  
+
   ! Note (8/8/2024): This code is dependent on CDEPS (to input ice data).
   ! In the interests of cleaner code, drivers/nuopc/cmeps now is too.
   ! If problematic, please see https://github.com/CICE-Consortium/CICE/pull/964 for alternatives.
@@ -215,7 +215,7 @@ contains
        ! If need initial cice values for coupling
        call ice_prescribed_run(idate, msec)
 #endif
-    
+
     end if  ! end of if prescribed ice mode
 
   end subroutine ice_prescribed_init
