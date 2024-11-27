@@ -351,12 +351,12 @@
           trim(grid_type) == 'regional'     ) then
 
          if (trim(grid_format) == 'nc') then
-            
+
             fieldname='ulat'
             call ice_open_nc(grid_file,fid_grid)
             call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
             call ice_close_nc(fid_grid)
-            
+
             ! mask variable name might be kmt or mask, check both
             call ice_open_nc(kmt_file,fid_kmt)
 #ifdef USE_NETCDF
@@ -364,7 +364,7 @@
                status = nf90_inq_varid(fid_kmt, 'kmt', varid)
                if (status == nf90_noerr) then
                   mask_fieldname = 'kmt'
-               else 
+               else
                   status = nf90_inq_varid(fid_kmt, 'mask', varid)
                   call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
                                     ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
@@ -671,7 +671,7 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
-      endif 
+      endif
 
       if (trim(grid_type) == 'regional' .and. &
           (.not. (l_readCenter))) then
@@ -799,7 +799,7 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
-      
+
       if (my_task == master_task) then
          close (nu_kmt)
       endif
@@ -888,14 +888,14 @@
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
          fid_kmt                ! file id for netCDF kmt file
-      
+
       logical (kind=log_kind) :: diag
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
 
       type (block) :: &
-         this_block           ! block information for current block          
+         this_block           ! block information for current block
 
       character(len=*), parameter :: subname = '(kmtmask_nc)'
 
@@ -905,7 +905,7 @@
       kmt(:,:,:) = c0
 
       call ice_open_nc(kmt_file,fid_kmt)
-      
+
       call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
                         field_loc=field_loc_center, &
                         field_type=field_type_scalar)
@@ -968,7 +968,7 @@
          work_g1
 
       integer(kind=int_kind) :: &
-         varid, status      
+         varid, status
 
       character(len=*), parameter :: subname = '(popgrid_nc)'
 
@@ -981,7 +981,7 @@
       call ice_open_nc(grid_file,fid_grid)
 
       diag = .true.       ! write diagnostic info
-   
+
       !-----------------------------------------------------------------
       ! lat, lon, angle
       !-----------------------------------------------------------------
