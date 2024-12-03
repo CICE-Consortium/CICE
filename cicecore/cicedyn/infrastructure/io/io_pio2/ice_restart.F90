@@ -9,6 +9,9 @@
       use ice_communicate, only: my_task, master_task
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_restart, nu_rst_pointer
+#ifdef CESMCOUPLED
+      use ice_fileunits,  only: inst_suffix
+#endif
       use ice_kinds_mod
       use ice_restart_shared
       use ice_pio
@@ -46,7 +49,6 @@
                               mday, msec, npt
       use ice_domain_size, only: ncat
       use ice_read_write, only: ice_open
-
       character(len=char_len_long), intent(in), optional :: ice_ic
 
       ! local variables
@@ -64,7 +66,7 @@
          filename = trim(ice_ic)
       else
          if (my_task == master_task) then
-            open(nu_rst_pointer,file=pointer_file)
+            open(nu_rst_pointer,file=pointer_file, status='old')
             read(nu_rst_pointer,'(a)') filename0
             filename = trim(filename0)
             close(nu_rst_pointer)
@@ -174,6 +176,7 @@
       integer (kind=int_kind) :: nbtrcr
 
       character(len=char_len_long) :: filename
+      character(len=char_len_long) :: lpointer_file
 
       integer (kind=int_kind) :: &
          dimid_ncat, dimid_nilyr, dimid_nslyr, dimid_naero
@@ -220,7 +223,13 @@
 
       ! write pointer (path/file)
       if (my_task == master_task) then
-         open(nu_rst_pointer,file=pointer_file)
+#ifdef CESMCOUPLED
+            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+                 'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
+#else
+            lpointer_file = pointer_file
+#endif
+         open(nu_rst_pointer,file=lpointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
       endif
@@ -740,7 +749,6 @@
 
       call ice_pio_check(pio_inq_varndims(File, vardesc, ndims), &
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
-
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
       if (ndim3 == ncat .and. ndims == 3) then
@@ -897,6 +905,7 @@
       call PIO_freeDecomp(File,iodesc2d)
       call PIO_freeDecomp(File,iodesc3d_ncat)
       call pio_closefile(File)
+      call ice_pio_finalize()
 
       if (my_task == master_task) then
          write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &

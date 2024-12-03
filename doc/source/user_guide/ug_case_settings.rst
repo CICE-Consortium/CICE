@@ -337,7 +337,6 @@ grid_nml
    "``nfsd``", "integer", "number of floe size categories", "1"
    "``nilyr``", "integer", "number of vertical layers in ice", "0"
    "``nslyr``", "integer", "number of vertical layers in snow", "0"
-   "``orca_halogrid``", "logical", "use orca haloed grid for data/grid read", "``.false.``"
    "``scale_dxdy``", "logical", "apply dxscale, dyscale to rectgrid", "``false``"
    "``use_bathymetry``", "logical", "use read in bathymetry file for seabedstress option", "``.false.``"
    "", "", "", ""

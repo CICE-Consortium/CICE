@@ -64,8 +64,7 @@
       maskhalo_remap , & ! if true, use masked halo updates for transport
       maskhalo_bound , & ! if true, use masked halo updates for bound_state
       halo_dynbundle , & ! if true, bundle halo update in dynamics
-      landblockelim  , & ! if true, land block elimination is on
-      orca_halogrid      ! if true, input fields are haloed as defined by orca grid
+      landblockelim      ! if true, land block elimination is on
 
 !-----------------------------------------------------------------------
 !
