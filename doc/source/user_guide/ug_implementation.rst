@@ -133,7 +133,7 @@ The user has several ways to initialize the grid, which can be read from
 files or created internally. The *rectgrid* code creates a regular rectangular 
 grid (use the namelist option ``grid_type='rectangular'``). The *popgrid* and *popgrid_nc* 
 code reads grid lengths and other parameters for a nonuniform grid (including tripole
-and regional grids). The *mom_mosaic* code reads grids for a nonuniform grid defined 
+and regional grids). The *mom_grid* code reads grids for a nonuniform grid defined 
 in the mom mosaic (supergrid) format.
 
 For the *popgrid* formats, the input files **grid_gx3.bin** and **kmt_gx3.bin** contain the

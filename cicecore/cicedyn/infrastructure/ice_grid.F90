@@ -1864,7 +1864,7 @@
 
       subroutine mom_dy(work_mom)
 
-      ! mom sueprgrid has four cells for every model cell, 
+      ! mom supergrid has four cells for every model cell, 
       ! we just need to sum the correct sidelengths to get dy
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
@@ -1964,7 +1964,7 @@
    
       subroutine mom_area(work_mom)
 
-      ! mom sueprgrid has four cells for every model cell, we need to sum these
+      ! mom supergrid has four cells for every model cell, we need to sum these
       ! to get model cell areas
       ! however, earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
 
