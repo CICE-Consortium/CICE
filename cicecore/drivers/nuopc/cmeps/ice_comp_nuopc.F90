@@ -1030,7 +1030,9 @@ contains
     character(char_len_long)   :: restart_date
     character(char_len_long)   :: restart_filename
     logical                    :: isPresent, isSet
+#ifndef CESMCOUPLED
     logical                    :: write_restartfh
+#endif
     character(len=*),parameter :: subname=trim(modName)//':(ModelAdvance) '
     character(char_len_long)   :: msgString
     !--------------------------------
