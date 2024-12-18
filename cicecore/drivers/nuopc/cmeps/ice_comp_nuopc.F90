@@ -1303,10 +1303,12 @@ contains
     character(len=256)       :: stop_option    ! Stop option units
     integer                  :: stop_n         ! Number until stop interval
     integer                  :: stop_ymd       ! Stop date (YYYYMMDD)
-    integer                  :: dtime
     type(ESMF_ALARM)         :: stop_alarm
     character(len=128)       :: name
     integer                  :: alarmcount
+#ifndef CESMCOUPLED
+    integer                  :: dtime
+#endif
     character(len=*),parameter :: subname=trim(modName)//':(ModelSetRunClock) '
     !--------------------------------
 
