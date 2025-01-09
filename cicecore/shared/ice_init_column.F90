@@ -540,25 +540,18 @@
 
       subroutine init_meltponds_sealvl(apnd, hpnd, ipnd, dhsn)
 
-      use ice_arrays_column, only : pndasp
-
       real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
          apnd , & ! melt pond area fraction
          hpnd , & ! melt pond depth
          ipnd , & ! melt pond refrozen lid thickness
          dhsn     ! depth difference for snow on sea ice and pond ice
 
-      real(kind=dbl_kind) :: pndaspect
-
       character(len=*),parameter :: subname='(init_meltponds_sealvl)'
-
-      call icepack_query_parameters(pndaspect_out=pndaspect)
 
       apnd(:,:,:) = c0
       hpnd(:,:,:) = c0
       ipnd(:,:,:) = c0
       dhsn(:,:,:) = c0
-      pndasp(:,:,:,:) = pndaspect
 
       end subroutine init_meltponds_sealvl
 
