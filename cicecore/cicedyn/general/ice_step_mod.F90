@@ -217,7 +217,7 @@
 
       subroutine step_therm1 (dt, iblk)
 
-      use ice_arrays_column, only: ffracn, dhsn, pndasp, &
+      use ice_arrays_column, only: ffracn, dhsn, &
           Cdn_ocn, Cdn_ocn_skin, Cdn_ocn_floe, Cdn_ocn_keel, Cdn_atm_ratio, &
           Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_rdg, Cdn_atm_pond, &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
@@ -521,7 +521,6 @@
                       H2_16O_ocn   = H2_16O_ocn  (i,j,  iblk), &
                       H2_18O_ocn   = H2_18O_ocn  (i,j,  iblk), &
                       dhsn         = dhsn        (i,j,:,iblk), &
-                      pndasp_in    = pndasp      (i,j,:,iblk),   &
                       ffracn       = ffracn      (i,j,:,iblk), &
                       meltt        = meltt       (i,j,  iblk), &
                       melttn       = melttn      (i,j,:,iblk), &

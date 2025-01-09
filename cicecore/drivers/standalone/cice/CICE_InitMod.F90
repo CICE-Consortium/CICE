@@ -24,6 +24,7 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
           icepack_query_tracer_indices, icepack_query_tracer_sizes
+      use icepack_intfc, only: icepack_init_sealvlpnd
 
       implicit none
       private
@@ -93,7 +94,7 @@
       use ice_transport_driver, only: init_transport
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_iso, tr_fsd, wave_spec, tr_snow
+         tr_iso, tr_fsd, wave_spec, tr_snow, tr_pond_sealvl
       character(len=char_len) :: snw_aging_table
       character(len=*), parameter :: subname = '(cice_init)'
 
@@ -190,6 +191,13 @@
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
 
+      call icepack_query_tracer_flags(tr_pond_sealvl_out=tr_pond_sealvl)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+          file=__FILE__,line= __LINE__)
+      ! This must be called before init_shortwave
+      if (tr_pond_sealvl) call icepack_init_sealvlpnd   ! sealvl ponds
+
       ! Initialize shortwave components using swdn from previous timestep
       ! if restarting. These components will be scaled to current forcing
       ! in prep_radiation.
@@ -265,11 +273,12 @@
       use ice_grid, only: tmask
       use ice_init, only: ice_ic
       use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
-          init_meltponds_lvl, init_meltponds_topo, &
+          init_meltponds_lvl, init_meltponds_sealvl, init_meltponds_topo, &
           init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
       use ice_restart_column, only: restart_age, read_restart_age, &
           restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
           restart_pond_lvl, read_restart_pond_lvl, &
+          restart_pond_sealvl, read_restart_pond_sealvl, &
           restart_pond_topo, read_restart_pond_topo, &
           restart_snow, read_restart_snow, &
           restart_fsd, read_restart_fsd, &
@@ -286,7 +295,7 @@
          i, j        , & ! horizontal indices
          iblk            ! block index
       logical(kind=log_kind) :: &
-          tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
+          tr_iage, tr_FY, tr_lvl, tr_pond_lvl, tr_pond_sealvl, &
           tr_pond_topo, tr_snow, tr_fsd, tr_iso, tr_aero, tr_brine, &
           skl_bgc, z_tracers
       integer(kind=int_kind) :: &
@@ -307,6 +316,7 @@
            z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_pond_sealvl_out = tr_pond_sealvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
            tr_snow_out=tr_snow, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
@@ -380,6 +390,21 @@
                                        trcrn(:,:,nt_hpnd,:,iblk), &
                                        trcrn(:,:,nt_ipnd,:,iblk), &
                                        dhsn(:,:,:,iblk))
+            enddo ! iblk
+         endif
+      endif
+      ! sealvl melt ponds
+      if (tr_pond_sealvl) then
+         if (trim(runtype) == 'continue') &
+              restart_pond_sealvl = .true.
+         if (restart_pond_sealvl) then
+            call read_restart_pond_sealvl
+         else
+            do iblk = 1, nblocks
+               call init_meltponds_sealvl(trcrn(:,:,nt_apnd,:,iblk), &
+                                          trcrn(:,:,nt_hpnd,:,iblk), &
+                                          trcrn(:,:,nt_ipnd,:,iblk), &
+                                          dhsn(:,:,:,iblk))
             enddo ! iblk
          endif
       endif

@@ -14,7 +14,7 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p01, p2, p3, p5, p75, p166, &
+      use ice_constants, only: c0, c1, c2, c3, c5, c10, c12, p01, p2, p3, p5, p75, p166, &
           cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
@@ -239,7 +239,9 @@
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
-        floediam,       hfrazilmin,      Tliquidus_max,   hi_min
+        floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
+        tscale_pnd_drain
+        
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -267,7 +269,6 @@
 
       namelist /ponds_nml/ &
         hs0,            dpscale,         frzpnd,                        &
-        tscale_pnd_drain, & 
         rfracmin,       rfracmax,        pndaspect,     hs1,            &
         hp1
 
@@ -500,7 +501,7 @@
       rfracmin  = 0.15_dbl_kind   ! minimum retained fraction of meltwater
       rfracmax  = 0.85_dbl_kind   ! maximum retained fraction of meltwater
       pndaspect = 0.8_dbl_kind    ! ratio of pond depth to area fraction
-      tscale_pnd_drain = 0.5
+      tscale_pnd_drain = c10      ! mushy macroscopic drainage timescale (days)
       snwredist = 'none'          ! type of snow redistribution
       snw_aging_table = 'test'    ! snow aging lookup table
       snw_filename    = 'unknown' ! snowtable filename
@@ -1275,7 +1276,7 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
-      
+
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
           history_format /= 'cdf5'        .and. &

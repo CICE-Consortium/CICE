@@ -1081,7 +1081,7 @@
 
       subroutine init_history_dyn
 
-      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear
+      use ice_state, only: aice, vice, vsno, trcr, strength, divu, shear, vort
       use ice_grid,  only: grid_ice
 
       logical (kind=log_kind) :: &
@@ -1102,6 +1102,7 @@
       sig2    (:,:,:) = c0
       divu    (:,:,:) = c0
       shear   (:,:,:) = c0
+      vort    (:,:,:) = c0
       taubxU  (:,:,:) = c0
       taubyU  (:,:,:) = c0
       strength (:,:,:) = c0
@@ -1264,7 +1265,7 @@
       real (kind=dbl_kind) :: &
           ar, &   ! 1/aice
           stefan_boltzmann, &
-          Tffresh
+          Tffresh, puny
 
       integer (kind=int_kind) :: &
           i, j    ! horizontal indices
@@ -1272,7 +1273,7 @@
       character(len=*), parameter :: subname = '(scale_fluxes)'
 
       call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann, &
-         Tffresh_out=Tffresh)
+         Tffresh_out=Tffresh, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1286,6 +1287,9 @@
             fsens   (i,j) = fsens   (i,j) * ar
             flat    (i,j) = flat    (i,j) * ar
             fswabs  (i,j) = fswabs  (i,j) * ar
+            ! Special case where aice_init was zero and aice > 0.
+            if (flwout(i,j) > -puny) & 
+               flwout  (i,j) = -stefan_boltzmann *(Tf(i,j) + Tffresh)**4
             flwout  (i,j) = flwout  (i,j) * ar
             evap    (i,j) = evap    (i,j) * ar
             Tref    (i,j) = Tref    (i,j) * ar

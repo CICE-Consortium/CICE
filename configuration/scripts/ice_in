@@ -122,6 +122,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_pond_sealvl = .false.
+    restart_pond_sealvl = .false.
     tr_snow      = .false.
     restart_snow = .false.
     tr_iso       = .false.
@@ -147,6 +149,7 @@
     Tliquidus_max     = -0.1d0
     hfrazilmin        = 0.05d0
     floediam          = 300.0d0
+    tscale_pnd_drain  = 10.0d0
 /
 
 &dynamics_nml

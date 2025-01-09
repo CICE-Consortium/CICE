@@ -424,7 +424,7 @@
 
       subroutine write_restart_pond_sealvl()
 
-      use ice_arrays_column, only: dhsn, ffracn, pndasp
+      use ice_arrays_column, only: dhsn, ffracn
       use ice_fileunits, only: nu_dump_pond
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
@@ -455,8 +455,6 @@
                                'dhs',ncat,diag)
       call write_restart_field(nu_dump_pond,0,ffracn(:,:,        :,:),'ruf8', &
                                'ffrac',ncat,diag)
-      call write_restart_field(nu_dump_pond,0,pndasp(:,:,        :,:),'ruf8', &
-                               'pndasp',ncat,diag)
 
       end subroutine write_restart_pond_sealvl
 
@@ -469,7 +467,7 @@
 
       subroutine read_restart_pond_sealvl()
 
-      use ice_arrays_column, only: dhsn, ffracn, pndasp
+      use ice_arrays_column, only: dhsn, ffracn
       use ice_fileunits, only: nu_restart_pond
       use ice_flux, only: fsnow
       use ice_state, only: trcrn
@@ -503,8 +501,6 @@
                               'dhs',ncat,diag,field_loc_center,field_type_scalar)
       call read_restart_field(nu_restart_pond,0,ffracn(:,:,        :,:),'ruf8', &
                               'ffrac',ncat,diag,field_loc_center,field_type_scalar)
-      call read_restart_field(nu_restart_pond,0, pndasp(:,:,       :,:),'ruf8', &
-                              'pndasp',1,diag,field_loc_center,field_type_scalar)
 
       end subroutine read_restart_pond_sealvl
 
