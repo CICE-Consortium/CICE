@@ -14,7 +14,7 @@ cp -p -r ${lcovhtmldir} ${lcovrepo}/
 
 cd ${lcovrepo}
 set covp0 = `grep message coverage.json | cut -d : -f 2 | cut -d \" -f 2 | cut -d % -f 1`
-set covp  = `grep -i headerCovTableEntry ${lcovhtmldir}/index.html | grep % | head -1 | cut -d \> -f 2 | cut -d % -f 1`
+set covp  = `grep -i headerCovTableEntry ${lcovhtmldir}/index.html | grep % | head -1 | cut -d \> -f 2 | cut -d \& -f 1`
 set covpi = `echo $covp | cut -d . -f 1`
 
 set lcovhtmlname = "${covpi}%:${report_name}"
