@@ -26,11 +26,6 @@ else
 endif
 endif
 
-#ifneq ($(ICE_BLDDEBUG), true)
-#ifneq ($(ICE_COVERAGE), true)
-#endif
-#endif
-
 SCC   := gcc 
 SFC   := gfortran
 MPICC := mpicc
