@@ -1081,7 +1081,7 @@
       call broadcast_scalar(rfracmin,             master_task)
       call broadcast_scalar(rfracmax,             master_task)
       call broadcast_scalar(pndaspect,            master_task)
-      call broadcast_scalar(tscale_pnd_drain,   master_task)
+      call broadcast_scalar(tscale_pnd_drain,     master_task)
       call broadcast_scalar(snwredist,            master_task)
       call broadcast_scalar(snw_aging_table,      master_task)
       call broadcast_scalar(snw_filename,         master_task)

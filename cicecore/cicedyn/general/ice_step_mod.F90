@@ -737,6 +737,7 @@
                       d_afsd_latg= d_afsd_latg(i,j,:,iblk),&
                       d_afsd_newi= d_afsd_newi(i,j,:,iblk),&
                       d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
+                      d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
                       mipnd      = mipnd(i,j, iblk))
          endif ! tmask
 
