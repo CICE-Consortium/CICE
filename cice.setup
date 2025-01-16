@@ -1173,7 +1173,7 @@ cp ${rundir}/compile/*.{gcno,gcda} ${testname_base}/codecov_output/
 EOF
 
       cat >> ${tsdir}/report_lcov.csh << EOF
-lcov --gcov-tool gcov -c -d ${rundir}/compile -o ${testname_base}/lcov.info
+lcov --gcov-tool gcov -c --rc geninfo_unexecuted_blocks=1 -d ${rundir}/compile -o ${testname_base}/lcov.info
 if (-s ${testname_base}/lcov.info) then
   set lcovalist = "\${lcovalist} -a ${testname_base}/lcov.info"
 endif
