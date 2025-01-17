@@ -13,6 +13,7 @@ module CICE_InitMod
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
+  use icepack_intfc, only: icepack_init_sealvlpnd
 
   implicit none
   private
@@ -97,7 +98,7 @@ contains
     use ice_arrays_column    , only: wavefreq, dwavefreq
 
     logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
-    logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow
+    logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow, tr_pond_sealvl
     character(len=char_len) :: snw_aging_table
     real(kind=dbl_kind), dimension(25) :: wave_spectrum_profile    ! hardwire for now
     character(len=*), parameter :: subname = '(cice_init2)'
@@ -179,6 +180,13 @@ contains
        call icepack_init_wave(nfreq=nfreq, &
             wave_spectrum_profile=wave_spectrum_profile, wavefreq=wavefreq, dwavefreq=dwavefreq)
     end if
+
+    call icepack_query_tracer_flags(tr_pond_sealvl_out=tr_pond_sealvl)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
+       file=__FILE__,line= __LINE__)
+    ! This must be called before init_shortwave
+    if (tr_pond_sealvl) call icepack_init_sealvlpnd   ! sealvl ponds
 
     ! Initialize shortwave components using swdn from previous timestep
     ! if restarting. These components will be scaled to current forcing
