@@ -926,7 +926,7 @@ contains
        if (chkerr(rc,__LINE__,u_FILE_u)) return
        call ESMF_ClockGetAlarm(clock, alarmname="alarm_stop", alarm=alarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call ESMF_AlarmGet(alarm, ringTime=NextAlarm, rc=rc) 
+       call ESMF_AlarmGet(alarm, ringTime=NextAlarm, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     case default
