@@ -137,6 +137,10 @@
          histfreq_base(max_nstrm), & ! history frequency basetime ('zero', 'init')
          calendar_type               ! define calendar type
 
+      ! This is needed for the calendar unit tester
+      data dumpfreq_base / max_nstrm*'init' /
+      data histfreq_base / max_nstrm*'zero' /
+
       ! PRIVATE
 
       integer (kind=int_kind) :: &
