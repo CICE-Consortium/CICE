@@ -136,8 +136,6 @@
          dumpfreq_base(max_nstrm), & ! restart frequency basetime ('zero', 'init')
          histfreq_base(max_nstrm), & ! history frequency basetime ('zero', 'init')
          calendar_type               ! define calendar type
-      data dumpfreq_base / 'init', 'init', 'init', 'init', 'init' /
-      data histfreq_base / 'zero', 'zero', 'zero', 'zero', 'zero' /
 
       ! PRIVATE
 
@@ -440,6 +438,9 @@
                if (mod(istep1, histfreq_n(ns))==0) &
                   write_history(ns)=.true.
             endif
+         case ("g")
+            ! grid file
+            write_history(ns)=.true.
          end select
 
       enddo
