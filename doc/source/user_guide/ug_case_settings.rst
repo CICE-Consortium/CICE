@@ -313,6 +313,7 @@ grid_nml
    "", "``B``", "ocn forcing/coupling grid, thermo fields on T grid, dyn fields on U grid", ""
    "", "``C``", "ocn forcing/coupling grid, thermo fields on T grid, dynu fields on E grid, dynv fields on N grid", ""
    "", "``CD``", "ocn forcing/coupling grid, thermo fields on T grid, dyn fields on N and E grid", ""
+   "``grid_outfile``", "logical", "write one-time grid history file"``.false.``"
    "``grid_type``", "``displaced_pole``", "read from file in *popgrid*", "``rectangular``"
    "", "``rectangular``", "defined in *rectgrid*", ""
    "", "``regional``", "read from file in *popgrid*", ""
