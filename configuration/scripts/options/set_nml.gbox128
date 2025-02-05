@@ -1,3 +1,5 @@
+dxrect        = 3.e5
+dyrect        = 3.e5
 grid_ocn = 'B'
 ice_ic = 'internal'
 grid_type = 'rectangular'

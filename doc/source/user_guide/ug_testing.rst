@@ -239,11 +239,11 @@ Ocean stresses are computed as in :cite:`Hunke01` where they are circular and ce
 in the square domain.  The ice distribution is fixed, with a constant 2 meter ice 
 thickness and a concentration field that varies linearly in the x-direction from ``0``
 to ``1`` and is constant in the y-direction.  No islands are included in this
-configuration.  The test is configured to run on a single processor.
+configuration.
 
 To run the test::
 
-  ./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id> --grid gbox80 --acct <queue manager account> -p 1x1
+  ./cice.setup -m <machine> --test smoke -s box2001 --testid <test_id> --grid gbox80 --acct <queue manager account>
 
 .. _boxslotcyl:
 
