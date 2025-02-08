@@ -11,20 +11,16 @@ FREEFLAGS  := -ffree-form
 FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none -fallow-argument-mismatch
 FFLAGS_NOOPT:= -O0
 
-ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow --std f2008
-#  FFLAGS   += -O0 -g -fcheck=all -finit-real=snan -fimplicit-none -ffpe-trap=invalid,zero,overflow
-  CFLAGS   += -O0
-endif
-
 ifeq ($(ICE_COVERAGE), true)
   FFLAGS   += -O0 -g -fprofile-arcs -ftest-coverage
   CFLAGS   += -O0 -g -coverage
   LDFLAGS  += -g -ftest-coverage -fprofile-arcs
-endif
-
-ifneq ($(ICE_BLDDEBUG), true)
-ifneq ($(ICE_COVERAGE), true)
+else
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS   += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow --std f2008
+#  FFLAGS   += -O0 -g -fcheck=all -finit-real=snan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+  CFLAGS   += -O0
+else
   FFLAGS   += -O2
   CFLAGS   += -O2
 endif
