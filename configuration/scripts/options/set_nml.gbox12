@@ -1,3 +1,5 @@
+dxrect        = 30.e5
+dyrect        = 30.e5
 ice_ic = 'internal'
 grid_type = 'rectangular'
 kmt_type      = 'default'

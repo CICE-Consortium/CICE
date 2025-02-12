@@ -1967,7 +1967,12 @@
          write(nu_diag,1030) '   grid_ocn_dynu  = ',trim(grid_ocn_dynu)
          write(nu_diag,1030) '   grid_ocn_dynv  = ',trim(grid_ocn_dynv)
          write(nu_diag,1030) ' kmt_type         = ',trim(kmt_type)
-         if (trim(grid_type) /= 'rectangular') then
+         if (trim(grid_type) == 'rectangular') then
+            write(nu_diag,1004) 'lon/lat refrect   = ',lonrefrect,latrefrect
+            write(nu_diag,1004) 'dx/dy rect (cm)   = ',dxrect,dyrect
+            write(nu_diag,1010) 'scale_dxdy        = ',scale_dxdy
+            write(nu_diag,1004) 'dx/dy scale       = ',dxscale,dyscale
+         else
             if (use_bathymetry) then
                tmpstr2 = ' : bathymetric input data is used'
             else
@@ -2759,7 +2764,8 @@
 
  1000    format (a20,1x,f13.6,1x,a) ! float
  1002    format (a20,5x,f9.2,1x,a)
- 1003    format (a20,1x,G13.4,1x,a)
+ 1003    format (a20,1x,g13.4,1x,a)
+ 1004    format (a20,1x,2g13.4,1x,a)
  1009    format (a20,1x,d13.6,1x,a)
  1010    format (a20,8x,l6,1x,a)  ! logical
  1011    format (a20,1x,l6)
@@ -3318,23 +3324,9 @@
          ! location of ice
          !---------------------------------------------------------
 
-         if (trim(ice_data_type) == 'box2001') then
+         icells = 0
 
-            ! place ice on left side of domain
-            icells = 0
-            do j = jlo, jhi
-            do i = ilo, ihi
-               if (tmask(i,j)) then
-                  if (ULON(i,j) < -50./rad_to_deg) then
-                     icells = icells + 1
-                     indxi(icells) = i
-                     indxj(icells) = j
-                  endif            ! ULON
-               endif               ! tmask
-            enddo                  ! i
-            enddo                  ! j
-
-         elseif (trim(ice_data_type) == 'boxslotcyl') then
+         if (trim(ice_data_type) == 'boxslotcyl') then
 
             ! Geometric configuration of the slotted cylinder
             diam     = p3 *dxrect*(nx_global-1)
@@ -3366,8 +3358,10 @@
             enddo
             enddo
 
-         elseif (trim(ice_data_type) == 'uniform') then
+         elseif (trim(ice_data_type) == 'uniform' .or. trim(ice_data_type) == 'box2001') then
             ! all cells not land mask are ice
+            ! box2001 used to have a check for west of 50W, this was changed, so now box2001 is 
+            ! the same as uniform.  keep box2001 option for backwards compatibility.
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi

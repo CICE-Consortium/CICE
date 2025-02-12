@@ -673,7 +673,8 @@
          !$OMP END PARALLEL DO
       endif
 
-      if (trim(grid_type) == 'regional' .and. &
+      if ((trim(grid_type) == 'regional' .or. &
+           trim(grid_type) == 'rectangular') .and. &
           (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2329,7 +2330,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -2479,7 +2481,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
