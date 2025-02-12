@@ -45,7 +45,8 @@
         nfreq         ! number of wave frequencies
 
       integer (kind=int_kind), public, parameter :: &
-        max_nstrm =   5           ! max number of history output streams
+        max_nstrm =   6  ! max number of history output streams
+                         ! 5 streams plus 1 one-time grid output file
 
 !=======================================================================
 
