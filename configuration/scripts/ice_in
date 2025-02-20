@@ -86,6 +86,7 @@
     bathymetry_format = 'default'
     use_bathymetry = .false.
     gridcpl_file = 'unknown_gridcpl_file'
+    grid_outfile = .false.
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5

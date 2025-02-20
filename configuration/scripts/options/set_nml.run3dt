@@ -1,7 +1,3 @@
 npt_unit        = '1'
 npt             = 3
 dump_last       = .true.
-histfreq        = '1','x','x','x','x'
-hist_avg        = .false.,.false.,.false.,.false.,.false.
-f_uvel          = '1' 
-f_vvel          = '1' 
