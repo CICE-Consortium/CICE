@@ -95,6 +95,7 @@
       character (len=char_len_long) :: title, cal_units, cal_att
       character (len=char_len) :: time_period_freq = 'none'
       character (len=char_len_long) :: ncfile
+      character (len=512) :: extvars
 
       integer (kind=int_kind) :: icategory,ind,i_aice,boundid, lprecision
 
@@ -156,6 +157,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
+      extvars = ''
       if (my_task == master_task) then
         call construct_filename(ncfile,'nc',ns)
 
@@ -221,8 +223,12 @@
       call ice_pio_check(pio_def_dim(File,'nkaer',nzalyr,kmtida), &
            subname//' ERROR: defining dim nkaer',file=__FILE__,line=__LINE__)
 
-      call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
-           subname//' ERROR: defining dim time',file=__FILE__,line=__LINE__)
+      ! do not write time axis on grid output file
+      timid = -99
+      if (histfreq(ns)/='g') then
+         call ice_pio_check(pio_def_dim(File,'time',PIO_UNLIMITED,timid), &
+              subname//' ERROR: defining dim time',file=__FILE__,line=__LINE__)
+      endif
 
       call ice_pio_check(pio_def_dim(File,'nvertices',nverts,nvertexid), &
            subname//' ERROR: defining dim nvertices',file=__FILE__,line=__LINE__)
@@ -234,41 +240,45 @@
       ! define coordinate variables:  time, time_bounds
       !-----------------------------------------------------------------
 
-      write(cdate,'(i8.8)') idate0
-      write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-            cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-            hh_init,':',mm_init,':',ss_init
+      ! do not write time axis on grid output file
+      if (histfreq(ns)/='g') then
 
-      if (days_per_year == 360) then
-         cal_att='360_day'
-      elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-         cal_att='noleap'
-      elseif (use_leap_years) then
-         cal_att='Gregorian'
-      else
-         call abort_ice(subname//' ERROR: invalid calendar settings')
-      endif
+         write(cdate,'(i8.8)') idate0
+         write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+               hh_init,':',mm_init,':',ss_init
 
-      time_coord = coord_attributes('time', 'time', trim(cal_units), 'T')
-      call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid)
-      call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
-              subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-      if (hist_avg(ns) .and. .not. write_ic) then
-         call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
-              subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
-      endif
+         if (days_per_year == 360) then
+            cal_att='360_day'
+         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+            cal_att='noleap'
+         elseif (use_leap_years) then
+            cal_att='Gregorian'
+         else
+            call abort_ice(subname//' ERROR: invalid calendar settings')
+         endif
 
-      ! Define coord time_bounds if hist_avg is true
-      if (hist_avg(ns) .and. .not. write_ic) then
-         time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units), 'undefined')
-
-         dimid2(1) = boundid
-         dimid2(2) = timid
-
-         call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
+         time_coord = coord_attributes('time', 'time', trim(cal_units), 'T')
+         call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid)
          call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
-              subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-      endif
+                 subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
+         if (hist_avg(ns) .and. .not. write_ic) then
+            call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
+                 subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
+         endif
+
+         ! Define coord time_bounds if hist_avg is true
+         ! bounds inherit attributes
+         if (hist_avg(ns) .and. .not. write_ic) then
+            time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
+
+            dimid2(1) = boundid
+            dimid2(2) = timid
+
+            call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
+         endif
+
+      endif  ! histfreq(ns)/='g'
 
       !-----------------------------------------------------------------
       ! define information for required time-invariant variables
@@ -336,7 +346,7 @@
       var_grd(n_emask)%coordinates = 'ELON ELAT'
 
       var_grd(n_blkmask)%req = coord_attributes('blkmask', &
-                  'ice grid block mask, mytask + iblk/100', '1', 'undefined')
+                  'block id of T grid cells, mytask + iblk/100', '1', 'undefined')
       var_grd(n_blkmask)%coordinates = 'TLON TLAT'
 
       var_grd(n_tarea)%req = coord_attributes('tarea', &
@@ -392,24 +402,17 @@
                   'radians', 'undefined')
       var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
 
-      ! These fields are required for CF compliance
+      ! bounds fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
-      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
-                  'longitude boundaries of T cells', 'degrees_east', 'undefined')
-      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
-                  'latitude boundaries of T cells', 'degrees_north', 'undefined')
-      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
-                  'longitude boundaries of U cells', 'degrees_east', 'undefined')
-      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
-                  'latitude boundaries of U cells', 'degrees_north', 'undefined')
-      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
-                  'longitude boundaries of N cells', 'degrees_east', 'undefined')
-      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
-                  'latitude boundaries of N cells', 'degrees_north', 'undefined')
-      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
-                  'longitude boundaries of E cells', 'degrees_east', 'undefined')
-      var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
-                  'latitude boundaries of E cells', 'degrees_north', 'undefined')
+      ! bounds inherit attributes
+      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
+      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
+      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
+      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
+      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
+      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
+      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
+      var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
@@ -431,6 +434,8 @@
                call ice_pio_check(pio_put_att(File, varid, 'bounds', trim(coord_bounds(i))), &
                     subname//' ERROR: defining att bounds '//trim(coord_bounds(i)),file=__FILE__,line=__LINE__)
             endif
+         else
+            extvars = trim(extvars)//' '//trim(var_coord(i)%short_name)
          endif
       enddo
 
@@ -445,6 +450,8 @@
       do i = 1, nvar_grdz
          if (igrdz(i) .or. histfreq(ns)=='g') then
             call ice_hist_coord_def(File, var_grdz(i), lprecision, dimidex(i:i), varid)
+         else
+            extvars = trim(extvars)//' '//trim(var_grdz(i)%short_name)
          endif
       enddo
 
@@ -454,17 +461,19 @@
             call ice_pio_check(pio_put_att(File, varid, 'coordinates', trim(var_grd(i)%coordinates)), &
                  subname//' ERROR: defining att coordinates '//trim(var_grd(i)%coordinates),file=__FILE__,line=__LINE__)
             call ice_write_hist_fill(File,varid,var_grd(i)%req%short_name,history_precision)
+         else
+            extvars = trim(extvars)//' '//trim(var_grd(i)%req%short_name)
          endif
       enddo
 
-      ! Fields with dimensions (nverts,nx,ny)
+      ! bounds fields with dimensions (nverts,nx,ny)
+      ! bounds inherit attributes
       dimid_nverts(1) = nvertexid
       dimid_nverts(2) = imtid
       dimid_nverts(3) = jmtid
       do i = 1, nvar_verts
          if (f_bounds .or. histfreq(ns)=='g') then
             call ice_hist_coord_def(File, var_nverts(i), lprecision, dimid_nverts, varid)
-            call ice_write_hist_fill(File,varid,var_nverts(i)%short_name,history_precision)
          endif
       enddo
 
@@ -645,6 +654,9 @@
       call ice_pio_check(pio_put_att(File,pio_global,'Conventions',trim(title)), &
            subname//' ERROR: defining att conventions '//trim(title),file=__FILE__,line=__LINE__)
 
+      call ice_pio_check(pio_put_att(File,pio_global,'external_variables',trim(extvars)), &
+           subname//' ERROR: defining att external_variables '//trim(extvars),file=__FILE__,line=__LINE__)
+
       call date_and_time(date=current_date, time=current_time)
       write(start_time,1000) current_date(1:4), current_date(5:6), &
                              current_date(7:8), current_time(1:2), &
@@ -653,6 +665,13 @@
               a,'-',a,'-',a,' at ',a,':',a)
       call ice_pio_check(pio_put_att(File,pio_global,'history',trim(start_time)), &
            subname//' ERROR: defining att history '//trim(start_time),file=__FILE__,line=__LINE__)
+
+      write(start_time,1001) current_date(1:4), current_date(5:6), &
+                             current_date(7:8), current_time(1:2), &
+                             current_time(3:4)
+1001  format(a,'-',a,'-',a,' at ',a,':',a)
+      call ice_pio_check(pio_put_att(File,pio_global,'date_created',trim(start_time)), &
+           subname//' ERROR: defining att date_created '//trim(start_time),file=__FILE__,line=__LINE__)
 
 #ifdef USE_PIO1
       call ice_pio_check(pio_put_att(File,pio_global,'io_flavor','io_pio1 '//trim(history_format)), &
@@ -670,36 +689,35 @@
            subname//' ERROR: ending pio definitions',file=__FILE__,line=__LINE__)
 
       !-----------------------------------------------------------------
-      ! write time variable
+      ! write time and time bounds info
       !-----------------------------------------------------------------
 
-      ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+      ! do not write time axis on grid output file
+      if (histfreq(ns)/='g') then
+         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-      ! Some coupled models require the time axis "stamp" to be in the middle
-      ! or even beginning of averaging interval.
-      if (hist_avg(ns)) then
-         if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
-         if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
-      endif
+         ! Some coupled models require the time axis "stamp" to be in the middle
+         ! or even beginning of averaging interval.
+         if (hist_avg(ns)) then
+            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+         endif
 
-      call ice_pio_check(pio_inq_varid(File,'time',varid), &
-           subname//' ERROR: getting var time',file=__FILE__,line=__LINE__)
-      call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
-           subname//' ERROR: setting var time',file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_inq_varid(File,'time',varid), &
+              subname//' ERROR: getting var time',file=__FILE__,line=__LINE__)
+         call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
+              subname//' ERROR: setting var time',file=__FILE__,line=__LINE__)
 
-      !-----------------------------------------------------------------
-      ! write time_bounds info
-      !-----------------------------------------------------------------
-
-      if (hist_avg(ns) .and. .not. write_ic) then
-         call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
-              subname//' ERROR: getting time_bounds' ,file=__FILE__,line=__LINE__)
-         time_bounds=(/time_beg(ns),time_end(ns)/)
-         bnd_start  = (/1,1/)
-         bnd_length = (/2,1/)
-         call ice_pio_check(pio_put_var(File,varid,ival=time_bounds,start=bnd_start(:),count=bnd_length(:)), &
-              subname//' ERROR: setting time_bounds' ,file=__FILE__,line=__LINE__)
-      endif
+         if (hist_avg(ns) .and. .not. write_ic) then
+            call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
+                 subname//' ERROR: getting time_bounds' ,file=__FILE__,line=__LINE__)
+            time_bounds=(/time_beg(ns),time_end(ns)/)
+            bnd_start  = (/1,1/)
+            bnd_length = (/2,1/)
+            call ice_pio_check(pio_put_var(File,varid,ival=time_bounds,start=bnd_start(:),count=bnd_length(:)), &
+                 subname//' ERROR: setting time_bounds' ,file=__FILE__,line=__LINE__)
+         endif
+      endif  ! histfreq(ns)/='g'
 
       !-----------------------------------------------------------------
       ! write coordinate variables
@@ -1316,8 +1334,10 @@
          endif
       endif
 #endif
-      call ice_pio_check(pio_put_att(File,varid,'long_name',trim(coord%long_name)), &
-            subname//' ERROR: defining att long_name '//coord%long_name,file=__FILE__,line=__LINE__)
+      if (coord%long_name(1:3) /= 'und') then
+         call ice_pio_check(pio_put_att(File,varid,'long_name',trim(coord%long_name)), &
+               subname//' ERROR: defining att long_name '//coord%long_name,file=__FILE__,line=__LINE__)
+      endif
       if (coord%units(1:3) /= 'und') then
          call ice_pio_check(pio_put_att(File, varid, 'units', trim(coord%units)), &
                subname//' ERROR: defining att units '//coord%units,file=__FILE__,line=__LINE__)

@@ -104,6 +104,7 @@
       character (char_len) :: title, cal_units, cal_att
       character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile
+      character (len=512) :: extvars
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
       integer (kind=int_kind) :: ind,boundid, lprecision
@@ -135,6 +136,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
+      extvars = ''
       lprecision = nf90_float
       if (history_precision == 8) lprecision = nf90_double
 
@@ -219,9 +221,13 @@
          call ice_check_nc(status, subname// ' ERROR: defining dim nkaer', &
                            file=__FILE__, line=__LINE__)
 
-         status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
-         call ice_check_nc(status, subname// ' ERROR: defining dim time', &
-                           file=__FILE__, line=__LINE__)
+         ! do not write time axis on grid output file
+         timid = -99
+         if (histfreq(ns)/='g') then
+            status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
+            call ice_check_nc(status, subname// ' ERROR: defining dim time', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
          status = nf90_def_dim(ncid,'nvertices',nverts,nvertexid)
          call ice_check_nc(status, subname// ' ERROR: defining dim nvertices', &
@@ -235,42 +241,46 @@
          ! define coordinate variables: time, time_bounds
          !-----------------------------------------------------------------
 
-         write(cdate,'(i8.8)') idate0
-         write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-               hh_init,':',mm_init,':',ss_init
+         ! do not write time axis on grid output file
+         if (histfreq(ns)/='g') then
 
-         if (days_per_year == 360) then
-            cal_att='360_day'
-         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-            cal_att='noleap'
-         elseif (use_leap_years) then
-            cal_att='Gregorian'
-         else
-            call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
-         endif
+            write(cdate,'(i8.8)') idate0
+            write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+                  cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+                  hh_init,':',mm_init,':',ss_init
 
-         time_coord = coord_attributes('time', 'time', trim(cal_units),'T')
-         call ice_hist_coord_def(ncid, time_coord, nf90_double, (/timid/), varid)
+            if (days_per_year == 360) then
+               cal_att='360_day'
+            elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+               cal_att='noleap'
+            elseif (use_leap_years) then
+               cal_att='Gregorian'
+            else
+               call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
+            endif
 
-         status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
-         call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-         if (hist_avg(ns) .and. .not. write_ic) then
-            status = nf90_put_att(ncid,varid,'bounds','time_bounds')
-            call ice_check_nc(status, subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
-         endif
+            time_coord = coord_attributes('time', 'time', trim(cal_units),'T')
+            call ice_hist_coord_def(ncid, time_coord, nf90_double, (/timid/), varid)
 
-         ! Define coord time_bounds if hist_avg is true
-         if (hist_avg(ns) .and. .not. write_ic) then
-            time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units), 'undefined')
+            status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
+            call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
+            if (hist_avg(ns) .and. .not. write_ic) then
+               status = nf90_put_att(ncid,varid,'bounds','time_bounds')
+               call ice_check_nc(status, subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
+            endif
 
-            dimid(1) = boundid
-            dimid(2) = timid
+            ! Define coord time_bounds if hist_avg is true
+            ! bounds inherit attributes
+            if (hist_avg(ns) .and. .not. write_ic) then
+               time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
 
-            call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
-            status = nf90_put_att(ncid,varid,'calendar',cal_att)
-            call ice_check_nc(status, subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-         endif
+               dimid(1) = boundid
+               dimid(2) = timid
+
+               call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
+            endif
+
+         endif  ! histfreq(ns)/='g'
 
          !-----------------------------------------------------------------
          ! define information for required time-invariant variables
@@ -394,24 +404,17 @@
                      'radians', 'undefined')
          var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
 
-         ! These fields are required for CF compliance
+         ! bounds fields are required for CF compliance
          ! dimensions (nx,ny,nverts)
-         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
-                     'longitude boundaries of T cells', 'degrees_east', 'undefined')
-         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
-                     'latitude boundaries of T cells', 'degrees_north', 'undefined')
-         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
-                     'longitude boundaries of U cells', 'degrees_east', 'undefined')
-         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
-                     'latitude boundaries of U cells', 'degrees_north', 'undefined')
-         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
-                     'longitude boundaries of N cells', 'degrees_east', 'undefined')
-         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
-                     'latitude boundaries of N cells', 'degrees_north', 'undefined')
-         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
-                     'longitude boundaries of E cells', 'degrees_east', 'undefined')
-         var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
-                     'latitude boundaries of E cells', 'degrees_north', 'undefined')
+         ! bounds inherit attributes
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
 
          !-----------------------------------------------------------------
          ! define attributes for time-invariant variables
@@ -436,6 +439,8 @@
                   call ice_check_nc(status, subname// ' ERROR: defining bounds for '//var_coord(i)%short_name, &
                                     file=__FILE__, line=__LINE__)
                endif
+            else
+               extvars = trim(extvars)//' '//trim(var_coord(i)%short_name)
             endif
          enddo
 
@@ -450,6 +455,8 @@
          do i = 1, nvar_grdz
             if (igrdz(i) .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_grdz(i), lprecision, dimidex(i:i), varid)
+            else
+               extvars = trim(extvars)//' '//trim(var_grdz(i)%short_name)
             endif
          enddo
 
@@ -460,17 +467,19 @@
                call ice_check_nc(status, subname// ' ERROR: defining coordinates for '//var_grd(i)%req%short_name, &
                                  file=__FILE__, line=__LINE__)
                call ice_write_hist_fill(ncid,varid,var_grd(i)%req%short_name,history_precision)
+            else
+               extvars = trim(extvars)//' '//trim(var_grd(i)%req%short_name)
             endif
          enddo
 
-         ! Fields with dimensions (nverts,nx,ny)
+         ! bounds fields with dimensions (nverts,nx,ny)
+         ! bounds inherits attributes
          dimid_nverts(1) = nvertexid
          dimid_nverts(2) = imtid
          dimid_nverts(3) = jmtid
          do i = 1, nvar_verts
             if (f_bounds .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_nverts(i), lprecision, dimid_nverts, varid)
-               call ice_write_hist_fill(ncid,varid,var_nverts(i)%short_name,history_precision)
             endif
          enddo
 
@@ -651,6 +660,10 @@
          call ice_check_nc(status, subname// ' ERROR: in global attribute conventions', &
                            file=__FILE__, line=__LINE__)
 
+         status =  nf90_put_att(ncid,nf90_global,'external_variables',trim(extvars))
+         call ice_check_nc(status, subname// ' ERROR: in global attribute external_variables', &
+                           file=__FILE__, line=__LINE__)
+
          call date_and_time(date=current_date, time=current_time)
          write(start_time,1000) current_date(1:4), current_date(5:6), &
                                 current_date(7:8), current_time(1:2), &
@@ -662,7 +675,16 @@
          call ice_check_nc(status, subname// ' ERROR: global attribute history', &
                            file=__FILE__, line=__LINE__)
 
-         status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf')
+         write(start_time,1001) current_date(1:4), current_date(5:6), &
+                                current_date(7:8), current_time(1:2), &
+                                current_time(3:4), current_time(5:8)
+1001     format(a,'-',a,'-',a,' ',a,':',a,':',a)
+
+         status = nf90_put_att(ncid,nf90_global,'date_created',start_time)
+         call ice_check_nc(status, subname// ' ERROR: global attribute date_created', &
+                           file=__FILE__, line=__LINE__)
+
+         status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf '//trim(history_format))
          call ice_check_nc(status, subname// ' ERROR: global attribute io_flavor', &
                            file=__FILE__, line=__LINE__)
 
@@ -675,40 +697,41 @@
                            file=__FILE__, line=__LINE__)
 
          !-----------------------------------------------------------------
-         ! write time variable
+         ! write time variable and time bounds info
          !-----------------------------------------------------------------
 
-         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+         ! do not write time axis on grid output file
+         if (histfreq(ns)/='g') then
 
-         ! Some coupled models require the time axis "stamp" to be in the middle
-         ! or even beginning of averaging interval.
-         if (hist_avg(ns)) then
-            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
-            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
-         endif
+            ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-         status = nf90_inq_varid(ncid,'time',varid)
-         call ice_check_nc(status, subname// ' ERROR: getting time varid', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_var(ncid,varid,ltime2)
-         call ice_check_nc(status, subname// ' ERROR: writing time variable', &
-                           file=__FILE__, line=__LINE__)
+            ! Some coupled models require the time axis "stamp" to be in the middle
+            ! or even beginning of averaging interval.
+            if (hist_avg(ns)) then
+               if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+               if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+            endif
 
-         !-----------------------------------------------------------------
-         ! write time_bounds info
-         !-----------------------------------------------------------------
-
-         if (hist_avg(ns) .and. .not. write_ic) then
-            status = nf90_inq_varid(ncid,'time_bounds',varid)
-            call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
+            status = nf90_inq_varid(ncid,'time',varid)
+            call ice_check_nc(status, subname// ' ERROR: getting time varid', &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
-            call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
+            status = nf90_put_var(ncid,varid,ltime2)
+            call ice_check_nc(status, subname// ' ERROR: writing time variable', &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
-            call ice_check_nc(status, subname// ' ERROR: writing time_end', &
-                              file=__FILE__, line=__LINE__)
-         endif
+
+            if (hist_avg(ns) .and. .not. write_ic) then
+               status = nf90_inq_varid(ncid,'time_bounds',varid)
+               call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
+               call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
+               call ice_check_nc(status, subname// ' ERROR: writing time_end', &
+                                 file=__FILE__, line=__LINE__)
+            endif
+
+         endif  ! histfreq(ns)/='g'
 
       endif                     ! master_task
 
@@ -1382,9 +1405,11 @@
       endif
 #endif
 
-      status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
-      call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
-                        file=__FILE__, line=__LINE__)
+      if (coord%long_name(1:3) /= 'und') then
+         status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
+         call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
+                           file=__FILE__, line=__LINE__)
+      endif
       if (coord%units(1:3) /= 'und') then
          status = nf90_put_att(ncid, varid, 'units', trim(coord%units))
          call ice_check_nc(status, subname// ' ERROR: defining units for '//coord%short_name, &

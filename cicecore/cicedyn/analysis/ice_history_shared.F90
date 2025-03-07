@@ -824,14 +824,14 @@
                        iyear,'.',trim(suffix)
               elseif (histfreq(ns) == 'g') then
                  write(ncfile,'(a,a,a,a)')  &
-                       history_file(1:lenstr(history_file))//trim(cstream),'_grid', &
+                       history_file(1:lenstr(history_file)),'_grid', &
                        '.',trim(suffix)
               endif
 
            else                     ! instantaneous
               if (histfreq(ns) == 'g') then
                  write(ncfile,'(a,a,a,a)')  &
-                       history_file(1:lenstr(history_file))//trim(cstream),'_grid', &
+                       history_file(1:lenstr(history_file)),'_grid', &
                        '.',trim(suffix)
               else
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
