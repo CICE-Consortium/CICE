@@ -669,7 +669,7 @@
       write(start_time,1001) current_date(1:4), current_date(5:6), &
                              current_date(7:8), current_time(1:2), &
                              current_time(3:4)
-1001  format(a,'-',a,'-',a,' at ',a,':',a)
+1001  format(a,'-',a,'-',a,' ',a,':',a)
       call ice_pio_check(pio_put_att(File,pio_global,'date_created',trim(start_time)), &
            subname//' ERROR: defining att date_created '//trim(start_time),file=__FILE__,line=__LINE__)
 
