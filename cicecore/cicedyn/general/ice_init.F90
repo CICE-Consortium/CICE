@@ -167,7 +167,7 @@
         congel_freeze, capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-        sw_redist, calc_dragio, use_smliq_pnd, snwgrain
+        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, geos_heatflux, geos_massflux
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -290,7 +290,7 @@
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
-        oceanmixed_file, atm_data_version
+        oceanmixed_file, atm_data_version,geos_heatflux,geos_massflux
 
       !-----------------------------------------------------------------
       ! default values
@@ -477,6 +477,8 @@
       kridge   = 1             ! -1 = off, 1 = on
       ktransport = 1           ! -1 = off, 1 = on
       calc_Tsfc = .true.       ! calculate surface temperature
+      geos_heatflux = .false.  ! geos heatflux coupling
+      geos_massflux = .false.  ! geos massflux coupling
       update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
       cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
@@ -1120,6 +1122,8 @@
       call broadcast_scalar(rotate_wind,          master_task)
       call broadcast_scalar(calc_strair,          master_task)
       call broadcast_scalar(calc_Tsfc,            master_task)
+      call broadcast_scalar(geos_heatflux,        master_task)
+      call broadcast_scalar(geos_massflux,        master_task)
       call broadcast_scalar(formdrag,             master_task)
       call broadcast_scalar(highfreq,             master_task)
       call broadcast_scalar(natmiter,             master_task)
@@ -1451,15 +1455,6 @@
             endif
             abort_list = trim(abort_list)//":44"
          endif
-      endif
-
-      if (evp_algorithm == 'shared_mem_1d' .and. &
-          grid_type     == 'tripole') then
-          if (my_task == master_task) then
-              write(nu_diag,*) subname//' ERROR: evp_algorithm=shared_mem_1d is not tested for gridtype=tripole'
-              write(nu_diag,*) subname//' ERROR: change evp_algorithm to standard_2d'
-          endif
-          abort_list = trim(abort_list)//":49"
       endif
 
       capping = -9.99e30
@@ -1961,9 +1956,11 @@
          write(nu_diag,1030) ' grid_format         = ',trim(grid_format)
          tmpstr2 = ' '
          if (trim(grid_type) == 'rectangular')    tmpstr2 = ' : internally defined, rectangular grid'
-         if (trim(grid_type) == 'regional')       tmpstr2 = ' : user-defined, regional grid'
-         if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : user-defined grid with rotated north pole'
-         if (trim(grid_type) == 'tripole')        tmpstr2 = ' : user-defined grid with northern hemisphere zipper'
+         if (trim(grid_type) == 'regional')       tmpstr2 = ' : pop grid file, regional grid'
+         if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : pop grid file with rotated north pole'
+         if (trim(grid_type) == 'tripole')        tmpstr2 = ' : pop grid file with northern hemisphere zipper'
+         if (trim(grid_type) == 'geosmom')        tmpstr2 = ' : geos mom grid file'
+         if (trim(grid_type) == 'latlon')         tmpstr2 = ' : cesm latlon domain file'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
          write(nu_diag,1030) ' grid_ice         = ',trim(grid_ice)
          write(nu_diag,1030) '   grid_ice_thrm  = ',trim(grid_ice_thrm)
@@ -2294,6 +2291,8 @@
          write(nu_diag,1010) ' rotate_wind      = ', rotate_wind,' : rotate wind/stress to computational grid'
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
          write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
+         write(nu_diag,1010) ' geos_heatflux    = ', geos_heatflux,' : GEOS heatflux calc based on d(hf)/dTs'
+         write(nu_diag,1010) ' geos_massflux    = ', geos_massflux,' : GEOS mass/enthalpy adjustment'
          if (trim(atmbndy) == 'constant') then
             tmpstr2 = ' : constant-based boundary layer'
          elseif (trim(atmbndy) == 'similarity' .or. &
@@ -2703,8 +2702,8 @@
           grid_type  /=  'tripole'        .and. &
           grid_type  /=  'column'         .and. &
           grid_type  /=  'rectangular'    .and. &
-          grid_type  /=  'cpom_grid'      .and. &
           grid_type  /=  'regional'       .and. &
+          grid_type  /=  'geosmom'        .and. &
           grid_type  /=  'latlon') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"
@@ -2763,8 +2762,8 @@
          atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
-         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, &
-         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, &
+         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, geos_heatflux_in=geos_heatflux, &
+         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, geos_massflux_in=geos_massflux, &
          floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &

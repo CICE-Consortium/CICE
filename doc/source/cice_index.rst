@@ -309,7 +309,7 @@ section :ref:`tabnamelist`.
    "grid_ocn_dynv", "grid for ocn dynamic-v forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_ocn_thrm", "grid for ocn thermodynamic forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_outfile", "write one-time grid history file", ""
-   "grid_type", "‘rectangular’, ‘displaced_pole’, ‘column’ or ‘regional’", ""
+   "grid_type", "grid input file type, ‘rectangular’, ‘displaced_pole’, 'tripole', etc", ""
    "gridcpl_file", "input file for coupling grid info", ""
    "grow_net", "specific biogeochemistry growth rate per grid cell", "s :math:`^{-1}`"
    "Gstar", "piecewise-linear ridging participation function parameter", "0.15"

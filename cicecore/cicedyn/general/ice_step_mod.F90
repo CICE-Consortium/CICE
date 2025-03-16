@@ -60,7 +60,10 @@
 ! saves initial values for aice, aicen, vicen, vsnon
 
       use ice_state, only: aice, aicen, aice_init, aicen_init, &
-          vicen, vicen_init, vsnon, vsnon_init
+         vicen, vicen_init, vsnon, vsnon_init, trcrn, Tsfcn_init
+
+      integer (kind=int_kind) :: &
+         nt_Tsfc   ! Tsfc index in trcrn
 
       character(len=*), parameter :: subname = '(save_init)'
 
@@ -70,10 +73,13 @@
       ! Save the initial ice area and volume in each category.
       !-----------------------------------------------------------------
 
+         call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
+
           aice_init = aice
          aicen_init = aicen
          vicen_init = vicen
          vsnon_init = vsnon
+         Tsfcn_init = trcrn(:,:,nt_Tsfc,:,:)
 
       end subroutine save_init
 
@@ -222,7 +228,8 @@
           Cdn_atm, Cdn_atm_skin, Cdn_atm_floe, Cdn_atm_rdg, Cdn_atm_pond, &
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
-          fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
+          fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf
       use ice_calendar, only: yday
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero, nfsd
       use ice_flux, only: frzmlt, sst, Tf, strocnxT_iavg, strocnyT_iavg, rsiden, fbot, Tbot, Tsnice, &
@@ -232,12 +239,14 @@
           frain, Tair, strairxT, strairyT, fsurf, fcondtop, fsens, &
           flat, fswabs, flwout, evap, evaps, evapi, Tref, Qref, Uref, fresh, fsalt, fhocn, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
+          fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
           meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
+          dfsurfndts_f, dflatndts_f, &
           send_i2x_per_cat, fswthrun_ai, dsnow
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
-      use ice_grid, only: lmask_n, lmask_s, tmask
+      use ice_grid, only: lmask_n, lmask_s, tmask, opmask
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, vsnon_init
 #ifdef CICE_IN_NEMO
@@ -387,7 +396,7 @@
             enddo
          endif ! tr_aero
 
-         if (tmask(i,j,iblk)) then
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
 
          call icepack_step_therm1(dt=dt,                       &
                       aicen_init   = aicen_init  (i,j,:,iblk), &
@@ -484,6 +493,10 @@
                       fswthrun_vdf = fswthrun_vdf (i,j,:,iblk),&
                       fswthrun_idr = fswthrun_idr (i,j,:,iblk),&
                       fswthrun_idf = fswthrun_idf (i,j,:,iblk),&
+                      fswthrun_uvrdr = fswthrun_uvrdr (i,j,:,iblk),&
+                      fswthrun_uvrdf = fswthrun_uvrdf (i,j,:,iblk),&
+                      fswthrun_pardr = fswthrun_pardr (i,j,:,iblk),&
+                      fswthrun_pardf = fswthrun_pardf (i,j,:,iblk),&
                       fswabs       = fswabs      (i,j,  iblk), &
                       flwout       = flwout      (i,j,  iblk), &
                       Sswabsn      = Sswabsn     (i,j,:,:,iblk), &
@@ -504,10 +517,16 @@
                       fswthru_vdf  = fswthru_vdf (i,j,  iblk), &
                       fswthru_idr  = fswthru_idr (i,j,  iblk), &
                       fswthru_idf  = fswthru_idf (i,j,  iblk), &
+                      fswthru_uvrdr  = fswthru_uvrdr (i,j,  iblk), &
+                      fswthru_uvrdf  = fswthru_uvrdf (i,j,  iblk), &
+                      fswthru_pardr  = fswthru_pardr (i,j,  iblk), &
+                      fswthru_pardf  = fswthru_pardf (i,j,  iblk), &
                       flatn_f      = flatn_f     (i,j,:,iblk), &
                       fsensn_f     = fsensn_f    (i,j,:,iblk), &
                       fsurfn_f     = fsurfn_f    (i,j,:,iblk), &
                       fcondtopn_f  = fcondtopn_f (i,j,:,iblk), &
+                      dfsurfdT     = dfsurfndTs_f(i,j,:,iblk), &
+                      dflatdT      = dflatndTs_f (i,j,:,iblk), &
                       faero_atm    = faero_atm   (i,j,1:n_aero,iblk), &
                       faero_ocn    = faero_ocn   (i,j,1:n_aero,iblk), &
                       fiso_atm     = fiso_atm    (i,j,:,iblk), &
@@ -620,7 +639,7 @@
           meltl, frazil_diag
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, opmask
       use ice_state, only: aice, aicen, aice0, trcr_depend, &
           aicen_init, vicen_init, trcrn, vicen, vsnon, &
           trcr_base, n_trcr_strata, nt_strata
@@ -672,7 +691,7 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tmask(i,j,iblk)) then
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
 
          ! significant wave height for FSD
          if (tr_fsd) &
@@ -1260,13 +1279,15 @@
       use ice_arrays_column, only: ffracn, dhsn, &
           fswsfcn, fswintn, fswpenln, Sswabsn, Iswabsn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf,   &
           albicen, albsnon, albpndn, &
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
           swgrid, igrid
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
-      use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
-      use ice_grid, only: TLAT, TLON, tmask
+      use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow, &
+          swuvrdr, swuvrdf, swpardr, swpardf
+      use ice_grid, only: TLAT, TLON, tmask, opmask
       use ice_state, only: aicen, vicen, vsnon, trcrn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_sw
       use ice_communicate, only: my_task
@@ -1367,7 +1388,7 @@
             endif
          enddo
 
-         if (tmask(i,j,iblk)) then
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
 
             call icepack_step_radiation (dt=dt,                               &
                          fbri=fbri(:),                                        &
@@ -1390,6 +1411,8 @@
                          sec=msec,                                             &
                          swvdr    =swvdr    (i,j    ,iblk), swvdf   =swvdf   (i,j    ,iblk), &
                          swidr    =swidr    (i,j    ,iblk), swidf   =swidf   (i,j    ,iblk), &
+                         swuvrdr  =swuvrdr  (i,j    ,iblk), swuvrdf =swuvrdf (i,j    ,iblk), &
+                         swpardr  =swpardr  (i,j    ,iblk), swpardf =swpardf (i,j    ,iblk), &
                          coszen   =coszen   (i,j    ,iblk), fsnow   =fsnow   (i,j    ,iblk), &
                          alvdrn   =alvdrn   (i,j,:  ,iblk), alvdfn  =alvdfn  (i,j,:  ,iblk), &
                          alidrn   =alidrn   (i,j,:  ,iblk), alidfn  =alidfn  (i,j,:  ,iblk), &
@@ -1399,7 +1422,11 @@
                          fswthrun_vdf =fswthrun_vdf (i,j,:  ,iblk), &
                          fswthrun_idr =fswthrun_idr (i,j,:  ,iblk), &
                          fswthrun_idf =fswthrun_idf (i,j,:  ,iblk), &
-                         fswpenln=fswpenln(i,j,:,:,iblk), &
+                         fswthrun_uvrdr =fswthrun_uvrdr (i,j,:  ,iblk), &
+                         fswthrun_uvrdf =fswthrun_uvrdf (i,j,:  ,iblk), &
+                         fswthrun_pardr =fswthrun_pardr (i,j,:  ,iblk), &
+                         fswthrun_pardf =fswthrun_pardf (i,j,:  ,iblk), &
+                         fswpenln =fswpenln (i,j,:,:,iblk), &
                          Sswabsn  =Sswabsn  (i,j,:,:,iblk), Iswabsn =Iswabsn (i,j,:,:,iblk), &
                          albicen  =albicen  (i,j,:  ,iblk), albsnon =albsnon (i,j,:  ,iblk), &
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &

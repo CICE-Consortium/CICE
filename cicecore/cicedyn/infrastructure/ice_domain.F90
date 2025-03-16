@@ -81,6 +81,7 @@
        distribution_wght     ! method for weighting work per block
                              ! 'block' = POP default configuration
                              ! 'blockall' = no land block elimination
+                             ! 'blockfull'= blockall but all blocks get full weight
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &
@@ -95,7 +96,7 @@
 
 !***********************************************************************
 
- subroutine init_domain_blocks
+ subroutine init_domain_blocks(npes, blkx, blky)
 
 !  This routine reads in domain information and calls the routine
 !  to set up the block decomposition.
@@ -104,6 +105,10 @@
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
+
+   integer (int_kind), intent(in), optional :: &
+      npes, blkx, blky  ! set block from outside
+
 !----------------------------------------------------------------------
 !
 !  local variables
@@ -201,6 +206,11 @@
 
       close(nu_nml)
       call release_fileunit(nu_nml)
+
+      ! override if passed in
+      if (present(npes)) nprocs = npes
+      if (present(blkx)) block_size_x = blkx
+      if (present(blky)) block_size_y = blky
 
    endif
 
@@ -476,7 +486,8 @@
        flat = 1
    endif
 
-   if (distribution_wght == 'blockall') landblockelim = .false.
+   if (distribution_wght == 'blockall' ) landblockelim = .false.
+   if (distribution_wght == 'blockfull') landblockelim = .false.
 
    allocate(nocn(nblocks_tot))
 
@@ -579,8 +590,10 @@
 
 #ifdef CICE_IN_NEMO
          ! Keep all blocks even the ones only containing land points
+         ! tcraig, use 'blockfull', get rid of the CPP, keep for backwards compatibility for now
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
+         if (distribution_wght == 'blockfull') nocn(n) = nx_block*ny_block
          if (distribution_wght == 'block' .and. nocn(n) > 0) nocn(n) = nx_block*ny_block
          if (.not. landblockelim) nocn(n) = max(nocn(n),1)
 #endif

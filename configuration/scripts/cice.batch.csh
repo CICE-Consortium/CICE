@@ -274,6 +274,19 @@ cat >> ${jobfile} << EOFB
 ##SBATCH --qos=standby
 EOFB
 
+else if (${ICE_MACHINE} =~ discover*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH -t ${ICE_RUNLENGTH}
+#SBATCH -A ${acct}
+#SBATCH -N ${nnodes}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+###SBATCH --mail-type END,FAIL
+###SBATCH --mail-user=eclare@lanl.gov
+#SBATCH --qos=debug
+EOFB
+
 else if (${ICE_MACHINE} =~ fram*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
