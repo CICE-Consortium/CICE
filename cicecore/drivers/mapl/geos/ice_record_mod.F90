@@ -30,7 +30,7 @@
          trcrn_save     ! tracers
                    ! 1: surface temperature of ice/snow (C)
 
-      contains 
+      contains
 
       subroutine alloc_record_state
         integer (int_kind) :: ntrcr, ierr
@@ -64,7 +64,7 @@
             call abort_ice(error_message=subname//': trcrn_save not allocated', &
             file=__FILE__, line=__LINE__)
 
-            
+
          aicen_save(:,:,:,:) = aicen(:,:,:,:)
          vicen_save(:,:,:,:) = vicen(:,:,:,:)
          vsnon_save(:,:,:,:) = vsnon(:,:,:,:)

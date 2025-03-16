@@ -96,7 +96,7 @@
 
 !***********************************************************************
 
- subroutine init_domain_blocks(npes, blkx, blky)
+ subroutine init_domain_blocks
 
 !  This routine reads in domain information and calls the routine
 !  to set up the block decomposition.
@@ -105,9 +105,6 @@
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
-
-   integer (int_kind), intent(in), optional :: &
-      npes, blkx, blky  ! set block from outside
 
 !----------------------------------------------------------------------
 !
@@ -206,11 +203,6 @@
 
       close(nu_nml)
       call release_fileunit(nu_nml)
-
-      ! override if passed in
-      if (present(npes)) nprocs = npes
-      if (present(blkx)) block_size_x = blkx
-      if (present(blky)) block_size_y = blky
 
    endif
 

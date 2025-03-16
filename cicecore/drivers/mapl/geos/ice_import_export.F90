@@ -11,7 +11,7 @@ module ice_import_export
   use ice_flux           , only : strairxt, strairyt, strocnxT_iavg, strocnyT_iavg
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
-  use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndts_f, dflatndts_f 
+  use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndts_f, dflatndts_f
   use ice_flux           , only : flatn_f, coszen
   use ice_flux           , only : fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
@@ -29,10 +29,10 @@ module ice_import_export
   use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
   use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, ocn_gridcell_frac, hm
-  use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask 
+  use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask
   use ice_grid           , only : grid_type, grid_ice
   use ice_boundary       , only : ice_HaloUpdate
-  use ice_shr_methods    , only : chkerr 
+  use ice_shr_methods    , only : chkerr
   use ice_fileunits      , only : nu_diag, flush_fileunit
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
   use ice_prescribed_mod , only : prescribed_ice
@@ -54,9 +54,9 @@ module ice_import_export
   public  :: ice_export_field
 
   interface ice_export_field
-     module procedure ice_export_field_2d 
-     module procedure ice_export_field_3d 
-  end interface ice_export_field 
+     module procedure ice_export_field_2d
+     module procedure ice_export_field_3d
+  end interface ice_export_field
 
   private :: state_FldChk
 
@@ -137,7 +137,7 @@ contains
 
     rc = ESMF_SUCCESS
 
-  end subroutine ice_import_grid 
+  end subroutine ice_import_grid
   !===============================================================================
 
   subroutine ice_import_thermo1( importState, rc )
@@ -254,7 +254,7 @@ contains
     !$OMP END PARALLEL DO
 
 
-    
+
     !== will change to read in from coupler once Tf from MOM is ready
     !$OMP PARALLEL DO PRIVATE(iblk,i,j)
     do iblk = 1, nblocks
@@ -330,7 +330,7 @@ contains
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
     real(kind=dbl_kind)              :: workx, worky
-    real(kind=dbl_kind)              :: ssh(nx_block,ny_block,max_blocks) 
+    real(kind=dbl_kind)              :: ssh(nx_block,ny_block,max_blocks)
     character(len=*),   parameter    :: subname = 'ice_import_dyna'
     character(len=1024)              :: msgString
     !-----------------------------------------------------
@@ -343,24 +343,24 @@ contains
        jlo = this_block%jlo
        jhi = this_block%jhi
        do j = jlo, jhi
-          j1 = j - nghost 
+          j1 = j - nghost
           do i = ilo, ihi
-             i1 = i - nghost 
+             i1 = i - nghost
                 if(tmask(i,j,iblk)) then
-                   workx  = real(taux(i1, j1), kind=dbl_kind) 
-                   worky  = real(tauy(i1, j1), kind=dbl_kind) 
+                   workx  = real(taux(i1, j1), kind=dbl_kind)
+                   worky  = real(tauy(i1, j1), kind=dbl_kind)
                    strairxT(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
                                       + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
                    strairyT(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
                                       - workx*sin(ANGLET(i,j,iblk))
-                   ! multiply by aice to properly treat free drift 
-                   strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)  
-                   strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)  
+                   ! multiply by aice to properly treat free drift
+                   strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)
+                   strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)
                    ssh(i,j,iblk)      = real(slv(i1,j1), kind=dbl_kind)
                 else
                    strairxT(i,j,iblk) = c0
-                   strairyT(i,j,iblk) = c0 
-                   ssh(i,j,iblk)      = c0 
+                   strairyT(i,j,iblk) = c0
+                   ssh(i,j,iblk)      = c0
                 endif
                 if(trim(grid_ice) == 'B') then
                    if(umask(i,j,iblk)) then
@@ -393,8 +393,8 @@ contains
                          field_loc_center, field_type_scalar)
 
     !*** if  C-grid ice dynamics is on, the following needs to be revised
-    !*** so a query of which dynamics (B- or C-) should be made and branch into 
-    !*** different computation of ss_tlt* terms 
+    !*** so a query of which dynamics (B- or C-) should be made and branch into
+    !*** different computation of ss_tlt* terms
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
@@ -467,9 +467,9 @@ contains
        jlo = this_block%jlo
        jhi = this_block%jhi
        do j = jlo, jhi
-          j1 = j - nghost 
+          j1 = j - nghost
           do i = ilo, ihi
-             i1 = i - nghost 
+             i1 = i - nghost
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
              workx        = strocnxT_iavg(i,j,iblk)                            ! N/m^2
              worky        = strocnyT_iavg(i,j,iblk)                            ! N/m^2
@@ -619,14 +619,14 @@ contains
         file=u_FILE_u, line=__LINE__)
 
     if (trim(fldname) == 'TI') then
-        call arr_setexport_4d(fld,  trcrn(:,:,1,:,:), rc)  
+        call arr_setexport_4d(fld,  trcrn(:,:,1,:,:), rc)
         fld(:,:,:)  = real(Tffresh, kind=real_kind) + fld(:,:,:)    !Kelvin (original ???)
     elseif (trim(fldname) == 'FRSEAICE') then
-        call arr_setexport_4d(fld,  aicen,            rc)  
+        call arr_setexport_4d(fld,  aicen,            rc)
     else
         call ESMF_LogWrite(trim(subname)//": "//trim(fldname)//" not available for export", ESMF_LOGMSG_ERROR)
         rc = ESMF_FAILURE
-        return  
+        return
     endif
 
   end subroutine ice_export_field_3d
@@ -645,17 +645,17 @@ contains
     rc = ESMF_SUCCESS
 
     if (trim(fldname) == 'FRACICE') then
-        call arr_setexport_3d(fld,  aice,        rc)  
+        call arr_setexport_3d(fld,  aice,        rc)
     elseif (trim(fldname) == 'FHOCN') then
-        call arr_setexport_3d(fld,  fhocn_ai,    rc)  
+        call arr_setexport_3d(fld,  fhocn_ai,    rc)
     elseif (trim(fldname) == 'FRESH') then
-        call arr_setexport_3d(fld,  fresh_ai,    rc)  
+        call arr_setexport_3d(fld,  fresh_ai,    rc)
     elseif (trim(fldname) == 'FSALT') then
-        call arr_setexport_3d(fld,  fsalt_ai,    rc)  
+        call arr_setexport_3d(fld,  fsalt_ai,    rc)
     else
         call ESMF_LogWrite(trim(subname)//": "//trim(fldname)//" not available for export", ESMF_LOGMSG_ERROR)
         rc = ESMF_FAILURE
-        return  
+        return
     endif
 
   end subroutine ice_export_field_2d
@@ -713,7 +713,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! set values of output array
-    do k = 1, ncat 
+    do k = 1, ncat
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
           ilo = this_block%ilo
@@ -721,9 +721,9 @@ contains
           jlo = this_block%jlo
           jhi = this_block%jhi
           do j = jlo, jhi
-             j1 = j - nghost 
+             j1 = j - nghost
              do i = ilo, ihi
-                i1 = i - nghost 
+                i1 = i - nghost
                 output(i,j,k,index,iblk)  = real(dataPtr3d(i1,j1,k), kind=dbl_kind)
              end do
           end do
@@ -801,7 +801,7 @@ contains
     ! ----------------------------------------------
 
 
-    do k = 1, ncat 
+    do k = 1, ncat
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
           ilo = this_block%ilo; ihi = this_block%ihi
@@ -885,7 +885,7 @@ contains
     ! get field pointer
     call state_getfldptr(state, trim(fldname), dataPtr3d, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    do k = 1, ncat 
+    do k = 1, ncat
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
           ilo = this_block%ilo; ihi = this_block%ihi
@@ -943,7 +943,7 @@ contains
        do j = jlo, jhi
           j1 = j - nghost
           do i = ilo, ihi
-             i1 = i - nghost  
+             i1 = i - nghost
              dataPtr2d(i1, j1) = input(i,j,iblk)
           end do
        end do

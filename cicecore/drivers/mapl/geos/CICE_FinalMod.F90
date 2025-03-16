@@ -20,7 +20,7 @@
 
       implicit none
       private
-      public :: CICE_Finalize, ice_checkpoint 
+      public :: CICE_Finalize, ice_checkpoint
 
 !=======================================================================
 

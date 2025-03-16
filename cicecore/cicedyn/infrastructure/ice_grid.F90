@@ -552,7 +552,7 @@
          else
             call abort_ice(subname//'ERROR: binary format for GEOS-MOM grid not supported', &
              file=__FILE__, line=__LINE__)
-         endif 
+         endif
 #ifdef CESMCOUPLED
       elseif (trim(grid_type) == 'latlon') then
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)

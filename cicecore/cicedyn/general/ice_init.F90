@@ -3387,7 +3387,7 @@
 
          elseif (trim(ice_data_type) == 'uniform' .or. trim(ice_data_type) == 'box2001') then
             ! all cells not land mask are ice
-            ! box2001 used to have a check for west of 50W, this was changed, so now box2001 is 
+            ! box2001 used to have a check for west of 50W, this was changed, so now box2001 is
             ! the same as uniform.  keep box2001 option for backwards compatibility.
             icells = 0
             do j = jlo, jhi

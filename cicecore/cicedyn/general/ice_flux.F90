@@ -589,8 +589,8 @@
          fsensn_f   (nx_block,ny_block,ncat,max_blocks), & ! sensible heat flux (W m-2)
          flatn_f    (nx_block,ny_block,ncat,max_blocks), & ! latent heat flux (W m-2)
          evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
-         dflatndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Ts 
-         dfsurfndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts 
+         dflatndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Ts
+         dfsurfndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)
          meltbn     (nx_block,ny_block,ncat,max_blocks), & ! bottom melt in category n (m)
@@ -1263,7 +1263,7 @@
             flat    (i,j) = flat    (i,j) * ar
             fswabs  (i,j) = fswabs  (i,j) * ar
             ! Special case where aice_init was zero and aice > 0.
-            if (flwout(i,j) > -puny) & 
+            if (flwout(i,j) > -puny) &
                flwout  (i,j) = -stefan_boltzmann *(Tf(i,j) + Tffresh)**4
             flwout  (i,j) = flwout  (i,j) * ar
             evap    (i,j) = evap    (i,j) * ar

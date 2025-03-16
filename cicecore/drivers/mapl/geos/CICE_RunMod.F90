@@ -345,7 +345,7 @@
          call ice_timer_stop(timer_readwrite)  ! reading/writing
 
       end subroutine ice_step
-    
+
 !=======================================================================
 !
 ! Prepare for coupling
@@ -446,7 +446,7 @@
             alidf(i,j,iblk) = c0
             alvdr(i,j,iblk) = c0
             alidr(i,j,iblk) = c0
-            
+
             fswthru_vdr(i,j,iblk) = c0
             fswthru_vdf(i,j,iblk) = c0
             fswthru_idr(i,j,iblk) = c0
@@ -492,7 +492,7 @@
                + alvdrn(i,j,n,iblk)*aicen(i,j,n,iblk)
             alidr(i,j,iblk) = alidr(i,j,iblk) &
                + alidrn(i,j,n,iblk)*aicen(i,j,n,iblk)
-  
+
             fswthru_vdr(i,j,iblk) = fswthru_vdr(i,j,iblk) &
                + fswthrun_vdr(i,j,n,iblk)*aicen(i,j,n,iblk)
             fswthru_vdf(i,j,iblk) = fswthru_vdf(i,j,iblk) &
@@ -606,7 +606,7 @@
                             fiso_evap=fiso_evap(:,:,:,iblk),         &
                             fiso_ocn =fiso_ocn (:,:,:,iblk),         &
                             Uref=Uref(:,:,iblk), wind=wind(:,:,iblk) )
- 
+
       !-----------------------------------------------------------------
       ! Define ice-ocean bgc fluxes
       !-----------------------------------------------------------------
@@ -679,7 +679,7 @@
       real (kind=dbl_kind) :: &
          cszn        , & ! counter for history averaging
          puny        , & !
-         ar          , &          
+         ar          , &
          stefan_boltzmann, &
          Tffresh     , &
          rhofresh    , & !
@@ -722,7 +722,7 @@
             alidf(i,j,iblk) = c0
             alvdr(i,j,iblk) = c0
             alidr(i,j,iblk) = c0
-            
+
             albice(i,j,iblk) = c0
             albsno(i,j,iblk) = c0
             albpnd(i,j,iblk) = c0
@@ -841,33 +841,33 @@
                fswthru_pardr (i,j,iblk) = fswthru_pardr (i,j,iblk) * ar
                fswthru_pardf (i,j,iblk) = fswthru_pardf (i,j,iblk) * ar
             else
-               fsens   (i,j,iblk) = c0 
-               flat    (i,j,iblk) = c0 
-               fswabs  (i,j,iblk) = c0 
-               flwout  (i,j,iblk) = -stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4 
-               fsurf   (i,j,iblk) = c0 
-               fcondtop(i,j,iblk) = c0 
+               fsens   (i,j,iblk) = c0
+               flat    (i,j,iblk) = c0
+               fswabs  (i,j,iblk) = c0
+               flwout  (i,j,iblk) = -stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4
+               fsurf   (i,j,iblk) = c0
+               fcondtop(i,j,iblk) = c0
                evap    (i,j,iblk) = c0
                Tref    (i,j,iblk) = Tair    (i,j,iblk)
-               Qref    (i,j,iblk) = Qa      (i,j,iblk) 
-               Uref    (i,j,iblk) = wind    (i,j,iblk) 
-               fswthru (i,j,iblk) = c0 
-               fswthru_vdr (i,j,iblk) = c0 
-               fswthru_vdf (i,j,iblk) = c0 
+               Qref    (i,j,iblk) = Qa      (i,j,iblk)
+               Uref    (i,j,iblk) = wind    (i,j,iblk)
+               fswthru (i,j,iblk) = c0
+               fswthru_vdr (i,j,iblk) = c0
+               fswthru_vdf (i,j,iblk) = c0
                fswthru_idr (i,j,iblk) = c0
                fswthru_idf (i,j,iblk) = c0
-               alvdr   (i,j,iblk) = c0 
-               alidr   (i,j,iblk) = c0 
-               alvdf   (i,j,iblk) = c0 
-               alidf   (i,j,iblk) = c0 
-               fswthru_uvrdr (i,j,iblk) = c0 
+               alvdr   (i,j,iblk) = c0
+               alidr   (i,j,iblk) = c0
+               alvdf   (i,j,iblk) = c0
+               alidf   (i,j,iblk) = c0
+               fswthru_uvrdr (i,j,iblk) = c0
                fswthru_uvrdf (i,j,iblk) = c0
                fswthru_pardr (i,j,iblk) = c0
                fswthru_pardf (i,j,iblk) = c0
             endif
 
          enddo
-         enddo 
+         enddo
 
 
          call ice_timer_stop(timer_couple,iblk)   ! atm/ocn coupling
@@ -914,7 +914,7 @@
       real (kind=dbl_kind) :: &
          cszn        , & ! counter for history averaging
          puny        , & !
-         ar          , & !           
+         ar          , & !
          rhofresh    , & !
          netsw           ! flag for shortwave radiation presence
 
@@ -948,7 +948,7 @@
       ! Store grid box mean albedos and fluxes before scaling by aice
       !----------------------------------------------------------------
 
-            fresh_ai  (i,j,iblk) = fresh  (i,j,iblk) 
+            fresh_ai  (i,j,iblk) = fresh  (i,j,iblk)
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
 
@@ -989,8 +989,8 @@
             endif
 
          enddo
-         enddo 
- 
+         enddo
+
       !-----------------------------------------------------------------
       ! Define ice-ocean bgc fluxes
       !-----------------------------------------------------------------
@@ -1096,7 +1096,7 @@
       !-----------------------------------------------------------------
 
          if (restore_ice) call ice_HaloRestore
-      
+
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
@@ -1147,7 +1147,7 @@
       !-----------------------------------------------------------------
       ! thermodynamics and biogeochemistry
       !-----------------------------------------------------------------
-            
+
                call step_therm1     (dt, iblk) ! vertical thermodynamics
                if (debug_model) then
                   plabeld = 'post step_therm1'
@@ -1213,7 +1213,7 @@
 
       integer (kind=int_kind) :: &
          ilo, ihi, jlo, jhi
-           
+
       type (block) :: &
          this_block         ! block information for current block
 
@@ -1283,10 +1283,10 @@
                alvdf   (i,j,iblk) = alvdf   (i,j,iblk) * ar
                alidf   (i,j,iblk) = alidf   (i,j,iblk) * ar
             else
-               alvdr   (i,j,iblk) = c0 
-               alidr   (i,j,iblk) = c0 
-               alvdf   (i,j,iblk) = c0 
-               alidf   (i,j,iblk) = c0 
+               alvdr   (i,j,iblk) = c0
+               alidr   (i,j,iblk) = c0
+               alvdf   (i,j,iblk) = c0
+               alidf   (i,j,iblk) = c0
             endif
          enddo ! i
          enddo ! j

@@ -12,7 +12,7 @@ module CICE_InitMod
   use icepack_intfc, only: icepack_configure
   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
   use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags
-  use icepack_intfc, only: icepack_init_parameters 
+  use icepack_intfc, only: icepack_init_parameters
   use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
 
   implicit none
@@ -37,7 +37,7 @@ contains
     use ice_communicate   , only: init_communicate, my_task, master_task
     use ice_init_column   , only: input_zbgc, count_tracers
     use ice_grid          , only: init_grid1, alloc_grid
-    use ice_calendar      , only: set_time_step 
+    use ice_calendar      , only: set_time_step
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
@@ -50,19 +50,19 @@ contains
        mpi_comm ! communicator for sequential geos
 
     integer (kind=int_kind), intent(in) :: &
-       npes, blkx, blky, dtg ! 
+       npes, blkx, blky, dtg !
 
     real(kind=real_kind), intent(in) :: &
-       k2c, alhl, alhs ! 
+       k2c, alhl, alhs !
 
     character(len=*), parameter :: subname = '(cice_init1)'
     !----------------------------------------------------
     call init_communicate(mpi_comm)     ! initial setup for message passing
 
     call init_fileunits       ! unit numbers
-    call icepack_init_parameters(Tffresh_in = real(k2c, kind=dbl_kind)) 
-    call icepack_init_parameters(Lvap_in    = real(alhl, kind=dbl_kind)) 
-    call icepack_init_parameters(Lsub_in    = real(alhs, kind=dbl_kind)) 
+    call icepack_init_parameters(Tffresh_in = real(k2c, kind=dbl_kind))
+    call icepack_init_parameters(Lvap_in    = real(alhl, kind=dbl_kind))
+    call icepack_init_parameters(Lsub_in    = real(alhs, kind=dbl_kind))
     call icepack_configure()  ! initialize icepack
     call icepack_warnings_flush(nu_diag)
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
@@ -96,7 +96,7 @@ contains
     character(len=*), parameter :: subname = '(cice_delayed_init)'
     !----------------------------------------------------
 
-    call init_grid2           ! finish building grid 
+    call init_grid2           ! finish building grid
 
   end subroutine cice_delayed_init
 
@@ -111,7 +111,7 @@ contains
     !----------------------------------------------------
 
     integer (kind=int_kind), intent(in) :: &
-          yr, mo, dy, hr, mn, sc       
+          yr, mo, dy, hr, mn, sc
 
     call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
 
@@ -152,7 +152,7 @@ contains
 
 
     ! integer (kind=int_kind), intent(in) :: &
-    !      yr, mo, dy, hr, mn, sc       
+    !      yr, mo, dy, hr, mn, sc
 
     logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers
     logical(kind=log_kind) :: tr_iso, tr_fsd, wave_spec, tr_snow
@@ -160,7 +160,7 @@ contains
     character(len=*), parameter :: subname = '(cice_init2)'
     !----------------------------------------------------
 
-    call init_grid2           ! finish building grid 
+    call init_grid2           ! finish building grid
     call init_zbgc            ! vertical biogeochemistry initialization
     !call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
     call init_hist (dt)       ! initialize output history file
