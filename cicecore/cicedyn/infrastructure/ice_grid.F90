@@ -371,7 +371,7 @@
                   allocate(work_mom(1, 1), stat=ierr)
                endif
                if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
-               
+
                fieldname='y'                ! use mom y field to fill cice ULAT 
                call ice_open_nc(grid_file,fid_grid)
                call ice_read_global_nc(fid_grid,1,fieldname,work_mom,.true.)
@@ -395,7 +395,7 @@
                call ice_open_nc(grid_file,fid_grid)
                call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
                call ice_close_nc(fid_grid)
-         
+
             case default 
 
                call ice_open(nu_grid,grid_file,64) 
@@ -412,8 +412,8 @@
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
             case ('mom_nc', 'nc') 
-            
-            ! mask variable name might be kmt or mask, check both
+
+               ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
 #ifdef USE_NETCDF
                if ( my_task==master_task ) then
@@ -701,16 +701,6 @@
          call abort_ice (subname//' ANGLE out of expected range', &
             file=__FILE__, line=__LINE__)
       endif
-      
-      if (l_readCenter) then
-         out_of_range = .false.
-         where (ANGLET < -pi .or. ANGLET > pi) out_of_range = .true.
-         if (count(out_of_range) > 0) then
-            write(nu_diag,*) subname,' angle = ',minval(ANGLET),maxval(ANGLET),count(out_of_range)
-            call abort_ice (subname//' ANGLET out of expected range', &
-               file=__FILE__, line=__LINE__)
-         endif
-      endif
 
       if (l_readCenter) then
          out_of_range = .false.
@@ -785,11 +775,11 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
-      
+
       !----------------------------------------------------------------
       ! Coordinates for all T/N/E cells
       !----------------------------------------------------------------
-      
+
       if (trim(grid_format) /= 'mom_nc') then 
          if (.not. (l_readCenter)) then
             call Tlatlon        ! get lat, lon on the T grid
@@ -1495,9 +1485,9 @@
             stat=ierr)
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
-     
+
       ! populate all LAT fields
-      fieldname='y'       
+      fieldname='y'
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
       call mom_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
       ! create bounds fields for cf-compliant output
@@ -1508,9 +1498,9 @@
       !distribute global array to local 
       call mom_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
                           ULAT, TLAT, ELAT, NLAT)
-      
+
       ! populate all LON fields
-      fieldname='x'       
+      fieldname='x'
       call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
       call mom_corners_global(work_mom, G_ULON, G_TLON, work_gE, work_gN)
       call mom_bounds(G_ULON, lont_bounds)
@@ -1524,7 +1514,7 @@
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
       if (my_task == master_task) then
          allocate(work_g1(nx_global, ny_global), stat=ierr)       !array for angle field
-      else         
+      else
          allocate(work_g1(1, 1), stat=ierr)
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
@@ -1797,9 +1787,7 @@
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-         work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
-
-         im1 = 1 ; im2 = 2 ! left ; right coloum of first t-cell
+         im1 = 1 ; im2 = 2 ! left ; center column of first t-cell
          im3 = 3 ! left column of second T-cell, (ie right column of U-cell)
          do i = 1, nx_global - 1
             jm1 = 2 ; jm2 = 3 ! middle , top of first row
@@ -1822,7 +1810,6 @@
          enddo
          jm1 = 2 ; jm2 = 3 ! middle , top of first row
          if (trim(ew_boundary_type) == 'cyclic') then 
-            jm1 = 2 ; jm2 = 3 ! middle , top of first row
             do j = 1, ny_global
                G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
                G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
@@ -1850,11 +1837,11 @@
                            field_loc_center, field_type_scalar)
       call scatter_global(HTN, G_dxN, master_task, distrb_info, &
                            field_loc_Nface, field_type_scalar)
-      dxN(:,:,:) = HTN(:,:,:)  
+      dxN(:,:,:) = HTN(:,:,:)
       call scatter_global(dxE, G_dxE, master_task, distrb_info, &
                            field_loc_center, field_type_scalar)
       call scatter_global(dxU, G_dxU, master_task, distrb_info, &
-                           field_loc_NEcorner, field_type_scalar)      
+                           field_loc_NEcorner, field_type_scalar)
 
       deallocate(G_dxT, G_dxE, G_dxU, G_dxN, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1888,13 +1875,11 @@
             stat=ierr &
          )
       else
-         allocate(G_dyT(1,1), G_dyE(1,1), G_dyU(1,1), G_dyN(1,1), stat=ierr )
+         allocate(G_dyT(1,1), G_dyE(1,1), G_dyU(1,1), G_dyN(1,1), stat=ierr)
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-         work_mom(:,:) = work_mom(:,:) * m_to_cm       ! convert to cm
-
          im1 = 2 ; im2 = 3 ! middle , right edge of first T-cell
          do i = 1, nx_global
             jm1 = 1 ; jm2 = 2 ; jm3 = 3 
@@ -1911,27 +1896,27 @@
          ! fill the top row
          im1 = 2 ; im2 = 3 ! middle , right edge of first column
          do i = 1, nx_global
-            G_dyT(i,ny_global) = work_mom(im1, 2*ny_global - 1) + work_mom(im1, 2*ny_global)     !dyT
-            G_dyE(i,ny_global) = work_mom(im2, 2*ny_global - 1) + work_mom(im2, 2*ny_global)     !dyE
+            G_dyT(i,ny_global) = work_mom(im1, 2*ny_global - 1) + work_mom(im1, 2*ny_global)                   !dyT
+            G_dyE(i,ny_global) = work_mom(im2, 2*ny_global - 1) + work_mom(im2, 2*ny_global)                   !dyE
             im1 = im1 + 2 ; im2 = im2 + 2
          enddo
          im1 = 2 ; im2 = 3
          if (trim(ns_boundary_type)  == 'tripole') then
             do i = 1, nx_global
-               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)     !dyN
-               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)     !dyU
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)      !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)      !dyU
                im1 = im1 + 2 ; im2 = im2 + 2
             enddo
          else if (trim(ns_boundary_type) == 'cyclic') then
             do i = 1, nx_global
-               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)     !dyN
-               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)     !dyU
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)                              !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)                              !dyU
                im1 = im1 + 2 ; im2 = im2 + 2
             enddo
          else if (trim(ns_boundary_type) == 'open') then
             do i = 1, nx_global
-               G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)     !dyN
-               G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)     !dyU
+               G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)               !dyN
+               G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)               !dyU
                im1 = im1 + 2 ; im2 = im2 + 2
             enddo
          endif
@@ -1955,13 +1940,13 @@
       dyE(:,:,:) = HTE(:,:,:)  
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
             field_loc_NEcorner, field_type_scalar)    
-      
+
       deallocate(G_dyT, G_dyN, G_dyE, G_dyU)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine mom_dy
 
-   
+
       subroutine mom_area(work_mom)
 
       ! mom supergrid has four cells for every model cell, we need to sum these
@@ -1995,8 +1980,8 @@
 
          do j = 1,ny_block
          do i = 1,nx_block
-            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)*cm_to_m*cm_to_m
-            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)*cm_to_m*cm_to_m
+            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
+            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
          enddo
          enddo
       enddo
@@ -2088,7 +2073,7 @@
             G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
                                  - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
          endif
-         
+
       endif
 
       call scatter_global(tarea, G_tarea, master_task, distrb_info, &
@@ -2097,7 +2082,7 @@
                          field_loc_NEcorner, field_type_scalar)
       deallocate(G_tarea, G_uarea, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
-      
+
       end subroutine mom_area
 
 
@@ -2105,8 +2090,8 @@
       !  create angles in the same way mom6 creates the angle
       !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
       !  the angle is between logical north on the grid and true north.
-      
-         ! global lat/lons/angles
+
+      ! global lat/lons/angles
       real (kind=dbl_kind), dimension(:,:), intent(in) :: &
          lon_cnr, & ! array of lon corner points
          lat_cnr, & ! array of lat corner points
@@ -2120,7 +2105,7 @@
          lon_adj, &
          lonB(2,2)  
       integer (kind=int_kind) :: i, j, m, n
-      
+
       character(len=*), parameter :: subname = '(grid_rotation_angle)'
 
       if (my_task == master_task) then
