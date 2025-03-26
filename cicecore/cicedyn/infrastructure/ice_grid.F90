@@ -26,7 +26,7 @@
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
       use ice_constants, only: c0, c1, c1p5, c2, c4, c20, c180, c360, &
-          p5, p25, radius, cm_to_m, m_to_cm, &
+          p5, p25, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_communicate, only: my_task, master_task
@@ -301,7 +301,7 @@
 
       integer (kind=int_kind) :: &
          fid_grid, &     ! file id for netCDF grid file
-         fid_kmt      ! file id for netCDF kmt file
+         fid_kmt         ! file id for netCDF kmt file
 
       character (char_len) :: &
          fieldname       ! field name in netCDF file
@@ -312,8 +312,7 @@
       integer (kind=int_kind) :: &
          max_blocks_min, & ! min value of max_blocks across procs
          max_blocks_max, &    ! max value of max_blocks across procs
-         i, j, im, jm  , &
-         ierr
+         i, j, im, jm, ierr
 
       real (kind=dbl_kind) :: &
          rad_to_deg
@@ -340,20 +339,20 @@
       ! can't check in init_data because ns_boundary_type is not yet read
       ! can't check in init_domain_blocks because grid_type is not accessible due to circular logic
 
-      if (trim(grid_type) == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
+      if (grid_type == 'tripole' .and. ns_boundary_type /= 'tripole' .and. &
           ns_boundary_type /= 'tripoleT') then
          call abort_ice(subname//' ERROR: grid_type tripole needs tripole ns_boundary_type', &
                         file=__FILE__, line=__LINE__)
       endif
 
-      if (trim(grid_type) == 'tripole' .and. (mod(nx_global,2)/=0)) then
+      if (grid_type == 'tripole' .and. (mod(nx_global,2)/=0)) then
          call abort_ice(subname//' ERROR: grid_type tripole requires even nx_global number', &
                         file=__FILE__, line=__LINE__)
       endif
 
-      if (trim(grid_format) == 'mom_nc' .and. ns_boundary_type == 'tripoleT') then
+      if (grid_format == 'mom_nc' .and. ns_boundary_type == 'tripoleT') then
          call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "&
-                        "for grid_format='mom_nc' tripole needs tripole ns_boundary_type", &
+                        "for grid_format='mom_nc'. Use 'tripole' instead.", &
                         file=__FILE__, line=__LINE__)
       endif
 
@@ -699,7 +698,7 @@
       if (count(out_of_range) > 0) then
          write(nu_diag,*) subname,' angle = ',minval(ANGLE),maxval(ANGLE),count(out_of_range)
          call abort_ice (subname//' ANGLE out of expected range', &
-            file=__FILE__, line=__LINE__)
+             file=__FILE__, line=__LINE__)
       endif
 
       if (l_readCenter) then
@@ -1437,7 +1436,7 @@
 
 !=======================================================================
 ! Create the CICE grid from the MOM supergrid netcdf file.
-! CICE Fields and units are: 
+! CICE fields and units are: 
 ! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    
 ! HTN, HTE   (m)         
 ! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)         
@@ -1446,7 +1445,7 @@
 ! lont_bounds, latt_bounds, etc (degrees)
 
       subroutine mom_grid
-   
+
       integer (kind=int_kind) :: &
          fid_grid, &            ! file id for netCDF grid file
          varid, &               ! netcdf varid
@@ -1459,7 +1458,7 @@
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          G_TLON, work_gE, G_ULON, work_gN, work_mom, G_ULAT, G_TLAT, work_g1
-       
+
       character(len=*), parameter :: subname = '(mom_grid)'
 
       call ice_open_nc(grid_file,fid_grid)
@@ -1473,10 +1472,10 @@
             work_mom(nx_global*2+1, ny_global*2+1), &
             work_gE(nx_global+1,ny_global+1)      , &
             work_gN(nx_global+1,ny_global+1)      , &
-            G_ULAT(nx_global+1,ny_global+1)       , & !1 bigger to include left and bottom
-            G_TLAT(nx_global+1,ny_global+1)       , & !1 bigger to include top and right
-            G_TLON(nx_global+1,ny_global+1)       , & !1 bigger to include left and bottom
-            G_ULON(nx_global+1,ny_global+1)       , &  !1 bigger to include top and right
+            G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
+            G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
+            G_TLON(nx_global+1,ny_global+1)       , & !include left and bottom
+            G_ULON(nx_global+1,ny_global+1)       , & !include top and right
             stat = ierr &
          )
       else
@@ -1668,12 +1667,15 @@
 
       end subroutine mom_corners_global
 
+!=======================================================================
 
       subroutine mom_bounds(G_corners, bounds)
 
-      ! with an global array of corner point, subset and distribute 
-      ! into the cice bounds variables
-      
+      ! with an global array of corner points, subset and distribute 
+      ! into a cice bounds variables
+      ! e.g. The tracer coordinates are the corner of the u-cells, 
+      ! so use mom_bounds(G_TLON, lonu_bounds) 
+
       real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
       real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds 
 
@@ -1705,13 +1707,15 @@
 
       end subroutine mom_bounds
 
-      subroutine mom_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )               
-         
+!=======================================================================
+
+      subroutine mom_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )
+
       ! with a global array of corner points in degrees, convert to rad and scatter to workers
-      
+
       real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N 
          ! global grids
-      
+
       real (kind=dbl_kind), dimension(:,:,:), intent(out) :: U, T, E, N ! local grids
 
       real (kind=dbl_kind) :: deg_to_rad , pi 
@@ -1755,11 +1759,11 @@
 
       end subroutine mom_corners_scatter
 
+!=======================================================================
 
       subroutine mom_dx(work_mom)
 
-      ! mom supergrid has four cells for every model cell, 
-      ! we just need to sum the correct sidelengths to get dx
+      ! mom supergrid has four cells for every model cell, sum the sidelengths to get model dx
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
 
@@ -1848,11 +1852,11 @@
 
       end subroutine mom_dx
 
+!=======================================================================
 
       subroutine mom_dy(work_mom)
 
-      ! mom supergrid has four cells for every model cell, 
-      ! we just need to sum the correct sidelengths to get dy
+      ! mom supergrid has four cells for every model cell, sum the sidelengths to get model dy
 
       real (kind=dbl_kind), dimension(:,:) :: work_mom
 
@@ -1946,12 +1950,13 @@
 
       end subroutine mom_dy
 
+!=======================================================================
 
       subroutine mom_area(work_mom)
 
-      ! mom supergrid has four cells for every model cell, we need to sum these
-      ! to get model cell areas
-      ! however, earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
+      ! mom supergrid has four cells for every model cell, sum these
+      ! to get uarea and tarea
+      ! earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
 
@@ -1966,7 +1971,7 @@
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          G_tarea, G_uarea 
-      
+
       character(len=*), parameter :: subname = '(mom_area)'
 
       ! calculate narea and earea
@@ -2085,6 +2090,7 @@
 
       end subroutine mom_area
 
+!=======================================================================
 
       subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
       !  create angles in the same way mom6 creates the angle
