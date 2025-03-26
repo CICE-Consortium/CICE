@@ -5202,7 +5202,6 @@
       use ice_domain, only: nblocks, blocks_ice
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_flux, only: uocn, vocn
-      use ice_grid, only: uvm
 
       ! local parameters
 
@@ -5234,9 +5233,6 @@
                             / real(ny_global,kind=dbl_kind) - p1
          vocn(i,j,iblk) = -p2*real(iglob(i), kind=dbl_kind) &
                             / real(nx_global,kind=dbl_kind) + p1
-
-         uocn(i,j,iblk) = uocn(i,j,iblk) * uvm(i,j,iblk)
-         vocn(i,j,iblk) = vocn(i,j,iblk) * uvm(i,j,iblk)
 
          enddo
          enddo

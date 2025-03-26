@@ -1358,6 +1358,13 @@ directory in **iceh_ic.[timeID].nc(da)**. Several history variables are
 hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
+A one-time grid history file can be turned on with the ``grid_outfile`` namelist
+variable.  If ``grid_outfile`` is true, all the grid variables will be written
+to a history file once at the start of the run.  The grid data will only be written
+for blocks that have not been eliminated by the decomposition.  To generate a one-time
+grid history file without land block elimination, set ``distribution_wght = 'blockall'`` 
+and ``grid_outfile = .true.`` in the namelist.
+
 The normalized principal components of internal ice stress (``sig1``, ``sig2``) are computed
 in *principal_stress* and written to the history file. This calculation
 is not necessary for the simulation; principal stresses are merely

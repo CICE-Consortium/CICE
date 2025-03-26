@@ -1,3 +1,4 @@
+npt_unit       = '1'
 npt = 48
 ice_ic   = 'internal'
 use_leap_years = .false.
