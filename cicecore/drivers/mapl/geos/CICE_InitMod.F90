@@ -37,7 +37,7 @@ contains
     use ice_communicate   , only: init_communicate, my_task, master_task
     use ice_init_column   , only: input_zbgc, count_tracers
     use ice_grid          , only: init_grid1, alloc_grid
-    use ice_calendar      , only: set_time_step
+    !use ice_calendar      , only: set_time_step
     use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
@@ -69,11 +69,12 @@ contains
          file=__FILE__,line= __LINE__)
 
     call input_data           ! namelist variables
-    call set_time_step(dtg)   ! reset time step from coupler
+    !call set_time_step(dtg)   ! reset time step from coupler
     call input_zbgc           ! vertical biogeochemistry namelist
     call count_tracers        ! count tracers
 
-    call init_domain_blocks(npes, blkx, blky) ! set up block decomposition
+    !call init_domain_blocks(npes, blkx, blky) ! set up block decomposition
+    call init_domain_blocks   ! set up block decomposition
     call init_grid1           ! domain distribution
     call alloc_grid           ! allocate grid arrays
     call alloc_arrays_column  ! allocate column arrays
@@ -113,7 +114,8 @@ contains
     integer (kind=int_kind), intent(in) :: &
           yr, mo, dy, hr, mn, sc
 
-    call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
+    !call init_calendar(yr, mo, dy, hr, mn, sc) ! initialize some calendar stuff
+    call init_calendar ! initialize some calendar stuff
 
   end subroutine cice_cal_init
 
@@ -178,9 +180,9 @@ contains
     call init_coupler_flux    ! initialize fluxes exchanged with coupler
     call init_thermo_vertical ! initialize vertical thermodynamics
 
-    call icepack_init_itd(ncat=ncat, hin_max=hin_max)  ! ice thickness distribution
+    call icepack_init_itd(hin_max=hin_max)  ! ice thickness distribution
     if (my_task == master_task) then
-       call icepack_init_itd_hist(ncat=ncat, hin_max=hin_max, c_hi_range=c_hi_range) ! output
+       call icepack_init_itd_hist(hin_max=hin_max, c_hi_range=c_hi_range) ! output
     endif
 
     call icepack_query_tracer_flags(tr_fsd_out=tr_fsd)
@@ -188,7 +190,7 @@ contains
     if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
          file=__FILE__,line= __LINE__)
 
-    if (tr_fsd) call icepack_init_fsd_bounds (nfsd, & ! floe size distribution
+    if (tr_fsd) call icepack_init_fsd_bounds (   &
          floe_rad_l,    &  ! fsd size lower bound in m (radius)
          floe_rad_c,    &  ! fsd size bin centre in m (radius)
          floe_binwidth, &  ! fsd size bin width in m (radius)
@@ -492,7 +494,7 @@ contains
        do j = 1, ny_block
           do i = 1, nx_block
              if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
-                call icepack_aggregate(ncat  = ncat,                  &
+                call icepack_aggregate(             &
                      aicen = aicen(i,j,:,iblk),     &
                      trcrn = trcrn(i,j,:,:,iblk),   &
                      vicen = vicen(i,j,:,iblk),     &
@@ -502,7 +504,6 @@ contains
                      vice  = vice (i,j,  iblk),     &
                      vsno  = vsno (i,j,  iblk),     &
                      aice0 = aice0(i,j,  iblk),     &
-                     ntrcr = ntrcr,                 &
                      trcr_depend   = trcr_depend,   &
                      trcr_base     = trcr_base,     &
                      n_trcr_strata = n_trcr_strata, &

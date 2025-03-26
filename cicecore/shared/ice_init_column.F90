@@ -176,6 +176,7 @@
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
                           alvdr_ai, alidr_ai, alvdf_ai, alidf_ai, &
                           swvdr, swvdf, swidr, swidf, scale_factor, snowfrac, &
+                          swuvrdr, swuvrdf, swpardr, swpardf, &
                           albice, albsno, albpnd, apeff_ai, coszen, fsnow
       use ice_grid, only: tlat, tlon, tmask, opmask
       use ice_restart_shared, only: restart, runtype
@@ -282,6 +283,10 @@
             albpnd(i,j,iblk) = c0
             snowfrac(i,j,iblk) = c0
             apeff_ai(i,j,iblk) = c0
+            swuvrdr(i,j,iblk) = c0
+            swuvrdf(i,j,iblk) = c0
+            swpardr(i,j,iblk) = c0
+            swpardf(i,j,iblk) = c0
 
             do n = 1, ncat
                alvdrn(i,j,n,iblk) = c0
@@ -359,6 +364,8 @@
                           sec=msec,                                             &
                           swvdr=swvdr(i,j,iblk),         swvdf=swvdf(i,j,iblk),&
                           swidr=swidr(i,j,iblk),         swidf=swidf(i,j,iblk),&
+                          swuvrdr=swuvrdr(i,j,iblk), swuvrdf=swuvrdf (i,j,iblk), &
+                          swpardr=swpardr(i,j,iblk), swpardf=swpardf (i,j,iblk), &
                           coszen=coszen(i,j,iblk),       fsnow=fsnow(i,j,iblk),&
                           alvdrn=alvdrn(i,j,:,iblk),     alvdfn=alvdfn(i,j,:,iblk), &
                           alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
@@ -368,6 +375,10 @@
                           fswthrun_vdf=fswthrun_vdf(i,j,:,iblk),               &
                           fswthrun_idr=fswthrun_idr(i,j,:,iblk),               &
                           fswthrun_idf=fswthrun_idf(i,j,:,iblk),               &
+                          fswthrun_uvrdr=fswthrun_uvrdr (i,j,:  ,iblk),        &
+                          fswthrun_uvrdf=fswthrun_uvrdf (i,j,:  ,iblk),        &
+                          fswthrun_pardr=fswthrun_pardr (i,j,:  ,iblk),        &
+                          fswthrun_pardf=fswthrun_pardf (i,j,:  ,iblk),        &
                           fswpenln=fswpenln(i,j,:,:,iblk),                     &
                           Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
                           albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &
