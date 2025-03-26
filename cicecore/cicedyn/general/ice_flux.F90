@@ -609,10 +609,10 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
-         swuvrdr(:,:,:) = c0
-         swuvrdf(:,:,:) = c0
-         swpardr(:,:,:) = c0
-         swpardf(:,:,:) = c0
+      swuvrdr(:,:,:) = c0
+      swuvrdf(:,:,:) = c0
+      swpardr(:,:,:) = c0
+      swpardf(:,:,:) = c0
 
       if (grid_ice == "CD" .or. grid_ice == "C") &
          allocate( &
