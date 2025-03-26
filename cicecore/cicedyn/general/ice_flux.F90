@@ -609,6 +609,11 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
+         swuvrdr(:,:,:) = c0
+         swuvrdf(:,:,:) = c0
+         swpardr(:,:,:) = c0
+         swpardf(:,:,:) = c0
+
       if (grid_ice == "CD" .or. grid_ice == "C") &
          allocate( &
          taubxN     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
@@ -929,6 +934,10 @@
       fswthru_vdf  (:,:,:)   = c0
       fswthru_idr  (:,:,:)   = c0
       fswthru_idf  (:,:,:)   = c0
+      fswthru_uvrdr(:,:,:)   = c0
+      fswthru_uvrdf(:,:,:)   = c0
+      fswthru_pardr(:,:,:)   = c0
+      fswthru_pardf(:,:,:)   = c0
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0

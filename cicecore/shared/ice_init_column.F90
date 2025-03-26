@@ -283,10 +283,6 @@
             albpnd(i,j,iblk) = c0
             snowfrac(i,j,iblk) = c0
             apeff_ai(i,j,iblk) = c0
-            swuvrdr(i,j,iblk) = c0
-            swuvrdf(i,j,iblk) = c0
-            swpardr(i,j,iblk) = c0
-            swpardf(i,j,iblk) = c0
 
             do n = 1, ncat
                alvdrn(i,j,n,iblk) = c0
