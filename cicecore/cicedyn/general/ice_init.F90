@@ -2713,7 +2713,7 @@
       if (grid_type  /=  'column'      .and. &
           grid_type  /=  'rectangular' .and. &
           kmt_type   /=  'file' .and. &
-          kmt_type   /= 'none') then
+          kmt_type   /=  'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: need kmt file, kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":28"
       endif
