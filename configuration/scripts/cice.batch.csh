@@ -355,7 +355,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
 #SBATCH --account=nggps_emc
-#SBATCH --clusters=c3
+#SBATCH --clusters=c5
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
 #SBATCH --ntasks-per-node=${taskpernodelimit}
