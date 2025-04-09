@@ -14,8 +14,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p01, p2, p3, p5, p75, p166, &
-          cm_to_m
+      use ice_constants, only: c0, c1, c2, c3, c5, c12, &
+          p001, p01, p2, p3, p5, p75, p166, cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
@@ -123,7 +123,7 @@
           e_yieldcurve, e_plasticpot, coriolis, &
           ssh_stress, kridge, brlx, arlx,       &
           deltaminEVP, deltaminVP, capping,     &
-          elasticDamp
+          elasticDamp, a_min, m_min
       use ice_dyn_vp, only: &
           maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
           maxits_pgmres, monitor_nonlin, monitor_fgmres, &
@@ -255,7 +255,8 @@
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
         deltaminEVP,    deltaminVP,     capping_method,                 &
-        Cf,             Pstar,          Cstar,          Ktens
+        Cf,             Pstar,          Cstar,          Ktens,          &
+        a_min,          m_min
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,     snw_ssp_table,                 &
@@ -413,6 +414,8 @@
       kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
+      a_min = p001            ! minimum ice area concentration to activate dynamics
+      m_min = p01             ! minimum ice mass to activate dynamics (kg/m^2)
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -1016,6 +1019,8 @@
       call broadcast_scalar(kstrength,            master_task)
       call broadcast_scalar(Pstar,                master_task)
       call broadcast_scalar(Cstar,                master_task)
+      call broadcast_scalar(a_min,                master_task)
+      call broadcast_scalar(m_min,                master_task)
       call broadcast_scalar(krdg_partic,          master_task)
       call broadcast_scalar(krdg_redist,          master_task)
       call broadcast_scalar(mu_rdg,               master_task)
@@ -2033,6 +2038,8 @@
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1020) ' kdyn             = ', kdyn,trim(tmpstr2)
+         write(nu_diag,1003) ' a_min            = ', a_min,' : min ice area concentration to activate dynamics'
+         write(nu_diag,1003) ' m_min            = ', m_min,' : min ice mass to activate dynamics (kg/m2)'
          if (kdyn >= 1) then
             if (kdyn == 1 .or. kdyn == 2) then
                if (revised_evp) then
