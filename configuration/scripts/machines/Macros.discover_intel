@@ -1,0 +1,42 @@
+#==============================================================================
+# Makefile macros for NASA NCCS discover, intel compiler
+#==============================================================================
+
+CPP        := fpp
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise   -xHost
+
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback   -xHost
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+else
+  FFLAGS     += -O2
+endif
+
+SCC := mpiicc
+SFC := mpiifort
+CC := $(SCC)
+FC := $(SFC)
+LD := $(FC)
+
+NETCDF_INCLUDES := $(shell $$BASEDIR/Linux/bin/nf-config --cflags)
+NETCDF_LIBS := $(shell $$BASEDIR/Linux/bin/nf-config --flibs)
+
+INCLDIR := $(INCLDIR)
+INCLDIR += $(NETCDF_INCLUDES)
+
+LIB_NETCDF := $(NETCDF_LIBS)
+#LIB_MPI := $(IMPILIBDIR)
+
+SLIBS   := $(LIB_NETCDF)
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
+endif
+
