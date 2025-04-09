@@ -7,7 +7,9 @@ Index of primary variables and parameters
 
 This index defines many (but not all) of the symbols used frequently in the CICE model
 code.  All quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
+either Celsius or Kelvin units).  Deprecated parameters are listed at the end.  Units are
+as defined inside the model.  Units on history files may be different and are documented
+in history file metadata.
 
 Namelist variables are partly included here, but they are fully documented in 
 section :ref:`tabnamelist`. 
@@ -110,6 +112,8 @@ section :ref:`tabnamelist`.
    "cm_to_m", "cm to meters conversion", "0.01"
    "coldice", "value for constant albedo parameterization", "0.70"
    "coldsnow", "value for constant albedo parameterization", "0.81"
+   "cona", "history units conversion variable, multiplication term", "1.0"
+   "conb", "history units conversion variable, additive term", "0.0"
    "conduct", "conductivity parameterization", ""
    "congel", "basal ice growth", "m"
    "conserv_check", "if true, check conservation", ""
