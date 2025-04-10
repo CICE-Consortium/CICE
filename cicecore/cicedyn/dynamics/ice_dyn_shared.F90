@@ -51,6 +51,8 @@
                         ! shared_mem_1d = 1d without mpi call and refactorization to 1d
 
       real (kind=dbl_kind), public :: &
+         a_min      , & ! minimum ice area concentration to activate dynamics
+         m_min      , & ! minimum ice mass to activate dynamics (kg/m^2)
          elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
 
       ! other EVP parameters
@@ -64,9 +66,7 @@
       real (kind=dbl_kind), parameter, public :: &
          u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
          cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw  = c0           , & ! sin(ocean turning angle)  ! turning angle = 0
-         a_min = p001         , & ! minimum ice area
-         m_min = p01              ! minimum ice mass (kg/m^2)
+         sinw  = c0               ! sin(ocean turning angle)  ! turning angle = 0
 
       real (kind=dbl_kind), public :: &
          revp        , & ! 0 for classic EVP, 1 for revised EVP
