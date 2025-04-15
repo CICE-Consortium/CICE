@@ -332,6 +332,7 @@ grid_nml
    "", "``default``", "ocean/land mask set internally, land in upper left and lower right of domain, ", ""
    "", "``file``", "ocean/land mask setup read from file, see kmt_file", ""
    "", "``wall``", "ocean/land mask set at right edge of domain", ""
+   "", "``none``", "no ocean/land mask set, i.e. no land cells, for idealized testing and development only", ""
    "``latrefrect``","real","lower left corner lat for rectgrid in deg", "71.35"
    "``lonrefrect``","real","lower left corner lon for rectgrid in deg", "-156.5"
    "``nblyr``", "integer", "number of zbgc layers", "0"

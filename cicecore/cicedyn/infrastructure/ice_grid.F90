@@ -611,6 +611,7 @@
             enddo
             enddo
          enddo
+         !$OMP END PARALLEL DO
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -1590,6 +1591,8 @@
 
       end subroutine mom_grid
 
+!=======================================================================
+
       subroutine mom_corners_global(work_mom, G_U, G_T, G_E, G_N)                   
 
       ! mom supergrid has four cells for every model cell
@@ -1992,6 +1995,7 @@
          enddo
          enddo
       enddo
+      !$OMP END PARALLEL DO
 
       if (my_task == master_task) then
          allocate( &
