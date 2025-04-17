@@ -377,7 +377,8 @@
       restart_chunksize(:) = 0    ! chunksize for netcdf4
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
-      grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
+      grid_format  = 'bin'        ! grid format 
+         ! ('bin'=binary or 'pop_nc'=pop netcdf or 'mom_nc'=mom netcdf)
       grid_type    = 'rectangular'! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       grid_ice     = 'B'          ! underlying grid system
@@ -2679,6 +2680,17 @@
          write(nu_diag,*)    ' '
 
       endif                     ! my_task = master_task
+
+      ! For backward compatibility
+      if (grid_format ==  'nc') grid_format = 'pop_nc'
+
+      if (grid_format /=  'pop_nc'        .and. &
+          grid_format /=  'mom_nc'        .and. &
+          grid_format /=  'meshnc'        .and. &
+          grid_format /=  'bin' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_format=',trim(grid_type)
+         abort_list = trim(abort_list)//":67"
+      endif
 
       if (grid_type  /=  'displaced_pole' .and. &
           grid_type  /=  'tripole'        .and. &

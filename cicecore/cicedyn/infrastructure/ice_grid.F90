@@ -53,7 +53,7 @@
                 grid_neighbor_min, grid_neighbor_max
 
       character (len=char_len_long), public :: &
-         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf or 'mom_nc'=mom (supergrid) netcdf)
+         grid_format  , & ! file format ('bin'=binary or 'pop_nc'= pop netcdf or 'mom_nc'=mom (supergrid) netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
@@ -389,7 +389,7 @@
                deallocate(work_mom, stat=ierr)
                if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
-            case('nc') 
+            case('pop_nc') 
 
                fieldname='ulat'
                call ice_open_nc(grid_file,fid_grid)
@@ -411,7 +411,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'nc') 
+            case ('mom_nc', 'pop_nc') 
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -536,7 +536,7 @@
          select case (trim(grid_format))
             case('mom_nc') 
                call mom_grid        ! derive cice grid from mom supergrid nc file
-            case ('nc') 
+            case ('pop_nc') 
                call popgrid_nc      ! read POP grid lengths from nc file
             case default
                call popgrid         ! read POP grid lengths directly
@@ -555,7 +555,7 @@
          hm(:,:,:)  = c1 
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-            case('mom_nc', 'nc') 
+            case('mom_nc', 'pop_nc') 
                call kmtmask_nc
             case default
                call kmtmask        
