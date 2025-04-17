@@ -1,3 +1,3 @@
-grid_format = 'nc'
+grid_format = 'pop_nc'
 grid_file   = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/grid_gx3t.nc'
 kmt_file    = 'ICE_MACHINE_INPUTDATA/CICE_data/grid/gx3/kmt_gx3t.nc'
