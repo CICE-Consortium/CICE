@@ -3,5 +3,4 @@ npt            = 8
 dumpfreq       = 'y'
 dumpfreq_n     = 1
 diagfreq       = 24
-histfreq       = 'm','x','x','x','x'
 

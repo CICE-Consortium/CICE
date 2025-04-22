@@ -1347,6 +1347,13 @@ directory in **iceh_ic.[timeID].nc(da)**. Several history variables are
 hard-coded for instantaneous output regardless of the ``hist_avg`` averaging flag, at
 the frequency given by their namelist flag.
 
+A one-time grid history file can be turned on with the ``grid_outfile`` namelist
+variable.  If ``grid_outfile`` is true, all the grid variables will be written
+to a history file once at the start of the run.  The grid data will only be written
+for blocks that have not been eliminated by the decomposition.  To generate a one-time
+grid history file without land block elimination, set ``distribution_wght = 'blockall'`` 
+and ``grid_outfile = .true.`` in the namelist.
+
 The normalized principal components of internal ice stress (``sig1``, ``sig2``) are computed
 in *principal_stress* and written to the history file. This calculation
 is not necessary for the simulation; principal stresses are merely
@@ -1358,6 +1365,13 @@ representing an average over the sea ice fraction of the grid cell, and
 another that is multiplied by :math:`a_i`, representing an average over
 the grid cell area. Our naming convention attaches the suffix “_ai" to
 the grid-cell-mean variable names.
+
+The units of the variables on the history file may not match internal model units.  For
+netCDF files, variable units are defined in metadata.  History variable conversion from
+internal model units is carried out by the ``cona`` and ``conb`` arguments defined in 
+subroutine **define_hist_field**.  ``cona`` and ``conb`` are multiplicative and additive 
+terms respectively that are hardwired into the source code to convert model units to
+history units.
 
 Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
 Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 

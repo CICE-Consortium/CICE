@@ -4,6 +4,7 @@ nilyr = 1
 ice_ic = 'internal'
 restart_ext = .false.
 dt             = 3600.0
+npt_unit       = '1'
 npt            = 288
 grid_type      = 'rectangular'
 kmt_type       = 'default'

@@ -150,6 +150,7 @@
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
+         grid_outfile,   & ! flag to write out one-time grid history file
          use_bathymetry, & ! flag for reading in bathymetry_file
          save_ghte_ghtn, & ! flag for saving global hte and htn during initialization
          scale_dxdy        ! flag to apply scale factor to vary dx/dy in rectgrid
@@ -673,7 +674,8 @@
          !$OMP END PARALLEL DO
       endif
 
-      if (trim(grid_type) == 'regional' .and. &
+      if ((trim(grid_type) == 'regional' .or. &
+           trim(grid_type) == 'rectangular') .and. &
           (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2329,7 +2331,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -2479,7 +2482,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks

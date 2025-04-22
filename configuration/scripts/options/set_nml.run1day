@@ -4,5 +4,3 @@ dumpfreq       = 'd'
 dumpfreq_n     = 1
 diag_type      = 'stdout'
 print_global   = .true.
-histfreq       = 'd','x','x','x','x'
-f_aice	       = 'd'
