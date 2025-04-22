@@ -242,7 +242,7 @@
           restart_fsd, read_restart_fsd, &
           restart_aero, read_restart_aero, &
           restart_hbrine, read_restart_hbrine, &
-          restart_zsal, restart_bgc
+          restart_bgc
       use ice_restart_driver, only: restartfile, restartfile_v4
       use ice_restart_shared, only: runtype, restart
       use ice_state ! almost everything
@@ -253,7 +253,7 @@
       logical(kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
           tr_pond_topo, tr_fsd, tr_aero, tr_brine, &
-          skl_bgc, z_tracers, solve_zsal
+          skl_bgc, z_tracers
       integer(kind=int_kind) :: &
           ntrcr
       integer(kind=int_kind) :: &
@@ -268,7 +268,7 @@
           file=__FILE__, line=__LINE__)
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-           z_tracers_out=z_tracers, solve_zsal_out=solve_zsal)
+           z_tracers_out=z_tracers)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
            tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
@@ -381,8 +381,6 @@
       if (trim(runtype) == 'continue') then
          if (tr_brine) &
              restart_hbrine = .true.
-         if (solve_zsal) &
-             restart_zsal = .true.
          if (skl_bgc .or. z_tracers) &
              restart_bgc = .true.
       endif
@@ -392,7 +390,7 @@
          if (tr_brine .and. restart_hbrine) call read_restart_hbrine
       endif
 
-      if (solve_zsal .or. skl_bgc .or. z_tracers) then ! biogeochemistry
+      if (skl_bgc .or. z_tracers) then ! biogeochemistry
          if (tr_fsd) then
             write (nu_diag,*) 'FSD implementation incomplete for use with BGC'
             call icepack_warnings_flush(nu_diag)
