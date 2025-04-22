@@ -134,7 +134,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_diagnostics, only: init_mass_diags, runtime_diags
-      use ice_diagnostics_bgc, only: hbrine_diags, zsal_diags, bgc_diags
+      use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
@@ -169,12 +169,12 @@
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, &
           tr_pond_lvl, tr_pond_topo, tr_brine, tr_aero, &
-          calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
+          calc_Tsfc, skl_bgc, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
+           z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
@@ -307,7 +307,6 @@
          call ice_timer_start(timer_diags)  ! diagnostics
          if (mod(istep,diagfreq) == 0) then
             call runtime_diags(dt)          ! log file
-            if (solve_zsal) call zsal_diags
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
          endif
@@ -327,7 +326,7 @@
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_fsd)       call write_restart_fsd
             if (tr_aero)      call write_restart_aero
-            if (solve_zsal .or. skl_bgc .or. z_tracers) &
+            if (skl_bgc .or. z_tracers) &
                               call write_restart_bgc
             if (tr_brine)     call write_restart_hbrine
             if (kdyn == 2)    call write_restart_eap
@@ -347,7 +346,7 @@
       subroutine coupling_prep (iblk)
 
       use ice_arrays_column, only: alvdfn, alidfn, alvdrn, alidrn, &
-          albicen, albsnon, albpndn, apeffn, fzsal_g, fzsal, snowfracn
+          albicen, albsnon, albpndn, apeffn, snowfracn
       use ice_blocks, only: nx_block, ny_block, get_block, block
       use ice_domain, only: blocks_ice
       use ice_calendar, only: dt, nstreams
@@ -361,7 +360,7 @@
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyt, &
           fsens, flat, fswabs, flwout, evap, Tref, Qref, &
           fsurfn_f, flatn_f, scale_fluxes, frzmlt_init, frzmlt
-      use ice_flux_bgc, only: faero_ocn, fzsal_ai, fzsal_g_ai, flux_bio, flux_bio_ai
+      use ice_flux_bgc, only: faero_ocn, flux_bio, flux_bio_ai
       use ice_grid, only: tmask
       use ice_state, only: aicen, aice, aice_init
       use ice_step_mod, only: ocean_mixed_layer
@@ -508,8 +507,6 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fzsal_ai  (i,j,iblk) = fzsal  (i,j,iblk)
-            fzsal_g_ai(i,j,iblk) = fzsal_g(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr
@@ -553,7 +550,6 @@
                             faero_ocn(:,:,:,iblk),                   &
                             alvdr    (:,:,iblk), alidr   (:,:,iblk), &
                             alvdf    (:,:,iblk), alidf   (:,:,iblk), &
-                            fzsal    (:,:,iblk), fzsal_g (:,:,iblk), &
                             flux_bio(:,:,1:nbtrcr,iblk))
 
 !echmod - comment this out for efficiency, if .not. calc_Tsfc
