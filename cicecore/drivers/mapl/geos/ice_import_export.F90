@@ -362,7 +362,19 @@ contains
                    strairyT(i,j,iblk) = c0
                    ssh(i,j,iblk)      = c0
                 endif
-                if(trim(grid_ice) == 'B') then
+                if(trim(grid_ocn) == 'A') then
+                   if(tmask(i,j,iblk)) then
+                     workx = real(uoa(i1,j1), kind=dbl_kind)
+                     worky = real(voa(i1,j1), kind=dbl_kind)
+                     uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
+                                    + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
+                     vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
+                                    - workx*sin(ANGLET(i,j,iblk))
+                   else
+                     uocn(i,j,iblk) = c0
+                     vocn(i,j,iblk) = c0
+                   endif
+                elseif(trim(grid_ice) == 'B') then
                    if(umask(i,j,iblk)) then
                      uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind)
                      vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind)
@@ -403,7 +415,48 @@ contains
        jhi = this_block%jhi
        do j = jlo, jhi
        do i = ilo, ihi
-           if(trim(grid_ice) == 'B') then
+           if(trim(grid_ocn) == 'A') then
+             if(tmask(i,j,iblk)) then
+                slp_L = ssh(I,j,iblk) - ssh(I-1,j,iblk)
+                if(.not. emask(i-1,j,iblk)) slp_L = c0
+                slp_R = ssh(I+1,j,iblk) - ssh(I,j,iblk)
+                if(.not. emask(i,j,iblk)) slp_R = c0
+                slp_C = p5 * (slp_L + slp_R)
+                if ( (slp_L * slp_R) > c0 ) then
+                  ! This limits the slope so that the edge values are bounded by the
+                  ! two cell averages spanning the edge.
+                  u_min = min( ssh(i-1,j,iblk), ssh(i,j,iblk), ssh(i+1,j,iblk) )
+                  u_max = max( ssh(i-1,j,iblk), ssh(i,j,iblk), ssh(i+1,j,iblk) )
+                  slope = sign( min( abs(slp_C), c2*min( ssh(i,j,iblk) - u_min, u_max - ssh(i,j,iblk) ) ), slp_C )
+                else
+                  ! Extrema in the mean values require a PCM reconstruction avoid generating
+                  ! larger extreme values.
+                  slope = c0
+                endif
+                ss_tltx(i,j,iblk) = slope / dxT(i,j,iblk)
+
+                slp_L = ssh(I,j,iblk) - ssh(I,j-1,iblk)
+                if(.not. nmask(i,j-1,iblk)) slp_L = c0
+                slp_R = ssh(I,j+1,iblk) - ssh(I,j,iblk)
+                if(.not. nmask(i,j,iblk)) slp_R = c0
+                slp_C = p5 * (slp_L + slp_R)
+                if ( (slp_L * slp_R) > c0 ) then
+                  ! This limits the slope so that the edge values are bounded by the
+                  ! two cell averages spanning the edge.
+                  u_min = min( ssh(i,j-1,iblk), ssh(i,j,iblk), ssh(i,j+1,iblk) )
+                  u_max = max( ssh(i,j-1,iblk), ssh(i,j,iblk), ssh(i,j+1,iblk) )
+                  slope = sign( min( abs(slp_C), c2*min( ssh(i,j,iblk) - u_min, u_max - ssh(i,j,iblk) ) ), slp_C )
+                else
+                  ! Extrema in the mean values require a PCM reconstruction avoid generating
+                  ! larger extreme values.
+                  slope = c0
+                endif
+                ss_tlty(i,j,iblk) = slope / dyT(i,j,iblk)
+             else
+                ss_tltx(i,j,iblk) = c0
+                ss_tlty(i,j,iblk) = c0
+             endif
+           elseif(trim(grid_ice) == 'B') then
              if(umask(i,j,iblk)) then
                 ss_tltx(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)-ssh(i,j+1,iblk)  &
                                        +ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
