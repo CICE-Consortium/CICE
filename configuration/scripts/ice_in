@@ -198,8 +198,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
-    a_min           = 0.001d0
-    m_min           = 0.01d0
+    dyn_area_min    = 0.001d0
+    dyn_mass_min    = 0.01d0
 /
 
 &shortwave_nml

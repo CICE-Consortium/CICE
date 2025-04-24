@@ -51,8 +51,8 @@
                         ! shared_mem_1d = 1d without mpi call and refactorization to 1d
 
       real (kind=dbl_kind), public :: &
-         a_min      , & ! minimum ice area concentration to activate dynamics
-         m_min      , & ! minimum ice mass to activate dynamics (kg/m^2)
+         dyn_area_min,& ! minimum ice area concentration to activate dynamics
+         dyn_mass_min,& ! minimum ice mass to activate dynamics (kg/m^2)
          elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
 
       ! other EVP parameters
@@ -517,8 +517,8 @@
          !-----------------------------------------------------------------
          ! ice extent mask (T-cells)
          !-----------------------------------------------------------------
-         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > a_min) &
-                                 .and. (Tmass(i,j) > m_min)
+         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > dyn_area_min) &
+                                 .and. (Tmass(i,j) > dyn_mass_min)
 
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
@@ -721,8 +721,8 @@
       do i = ilo, ihi
          iceXmask_old(i,j) = iceXmask(i,j) ! save
          ! ice extent mask (U-cells)
-         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > a_min) &
-                                      .and. (Xmass(i,j) > m_min)
+         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > dyn_area_min) &
+                                      .and. (Xmass(i,j) > dyn_mass_min)
 
          if (iceXmask(i,j)) then
             icellX = icellX + 1
