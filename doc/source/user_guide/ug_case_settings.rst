@@ -497,6 +497,8 @@ dynamics_nml
    "``deltaminVP``", "real", "minimum delta for viscosities", "2e-9"
    "``dim_fgmres``", "integer", "maximum number of Arnoldi iterations for FGMRES solver", "50"
    "``dim_pgmres``", "integer", "maximum number of Arnoldi iterations for PGMRES preconditioner", "5"
+   "``dyn_area_min``", "real", "min ice area concentration to activate dynamics", "0.001"
+   "``dyn_mass_min``", "real", "min ice mass to activate dynamics (kg/m\ :math:`^2`)", "0.01"
    "``e_plasticpot``", "real", "aspect ratio of elliptical plastic potential", "2.0"
    "``e_yieldcurve``", "real", "aspect ratio of elliptical yield curve", "2.0"
    "``elasticDamp``", "real", "elastic damping parameter", "0.36"
