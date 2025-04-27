@@ -352,7 +352,7 @@
       endif
 
       if (grid_format == 'mom_nc' .and. ns_boundary_type == 'tripoleT') then
-         call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "&
+         call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "// &
                         "for grid_format='mom_nc'. Use 'tripole' instead.", &
                         file=__FILE__, line=__LINE__)
       endif
