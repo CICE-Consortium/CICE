@@ -306,7 +306,7 @@ grid_nml
    "", "``CD``", "atm forcing/coupling grid, thermo fields on T grid, dyn fields on N and E grid", ""
    "``grid_file``", "string", "name of grid file to be read", "'unknown_grid_file'"
    "``grid_format``", "``bin``", "read direct access grid and kmt files", "``bin``"
-   "", "``nc``", "read grid and kmt files", ""
+   "", "``pop_nc``", "read grid and kmt files in pop netcdf format", ""
    "", "``mom_nc``", "read grid in mom (supergrid) format and kmt files", ""
    "``grid_ice``", "``B``", "use B grid structure with T at center and U at NE corner", "``B``"
    "", "``C``", "use C grid structure with T at center, U at E edge, V at N edge", ""
