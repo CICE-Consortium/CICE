@@ -14,8 +14,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c10, c12, p01, p2, p3, p5, p75, p166, &
-          cm_to_m
+      use ice_constants, only: c0, c1, c2, c3, c5, c10, c12, &
+          p001, p01, p2, p3, p5, p75, p166, cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
@@ -109,7 +109,7 @@
           grid_file, gridcpl_file, kmt_file, &
           bathymetry_file, use_bathymetry, &
           bathymetry_format, kmt_type, &
-          grid_type, grid_format, &
+          grid_type, grid_format, grid_outfile, &
           grid_ice, grid_ice_thrm, grid_ice_dynu, grid_ice_dynv, &
           grid_ocn, grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, &
           grid_atm, grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
@@ -123,7 +123,7 @@
           e_yieldcurve, e_plasticpot, coriolis, &
           ssh_stress, kridge, brlx, arlx,       &
           deltaminEVP, deltaminVP, capping,     &
-          elasticDamp
+          elasticDamp, dyn_area_min, dyn_mass_min
       use ice_dyn_vp, only: &
           maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
           maxits_pgmres, monitor_nonlin, monitor_fgmres, &
@@ -217,7 +217,7 @@
         ncat,           nilyr,           nslyr,         nblyr,          &
         kcatbound,      gridcpl_file,    dxrect,        dyrect,         &
         dxscale,        dyscale,         lonrefrect,    latrefrect,     &
-        scale_dxdy,                                                     &
+        scale_dxdy,     grid_outfile,                                   &
         close_boundaries, orca_halogrid, grid_ice,      kmt_type,       &
         grid_atm,       grid_ocn
 
@@ -258,7 +258,8 @@
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
         deltaminEVP,    deltaminVP,     capping_method,                 &
-        Cf,             Pstar,          Cstar,          Ktens
+        Cf,             Pstar,          Cstar,          Ktens,          &
+        dyn_area_min,   dyn_mass_min
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,     snw_ssp_table,                 &
@@ -335,6 +336,7 @@
       bfbflag = 'off'        ! off = optimized
       diag_type = 'stdout'
       diag_file = 'ice_diag.d'
+      histfreq(:) = 'x'
       histfreq(1) = '1'      ! output frequency option for different streams
       histfreq(2) = 'h'      ! output frequency option for different streams
       histfreq(3) = 'd'      ! output frequency option for different streams
@@ -386,6 +388,7 @@
       grid_atm     = 'A'          ! underlying atm forcing/coupling grid
       grid_ocn     = 'A'          ! underlying atm forcing/coupling grid
       gridcpl_file = 'unknown_gridcpl_file'
+      grid_outfile = .false.      ! write out one-time grid history file
       orca_halogrid = .false.     ! orca haloed grid - deprecated
       bathymetry_file   = 'unknown_bathymetry_file'
       bathymetry_format = 'default'
@@ -414,6 +417,8 @@
       kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
+      dyn_area_min = p001     ! minimum ice area concentration to activate dynamics
+      dyn_mass_min = p01      ! minimum ice mass to activate dynamics (kg/m^2)
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -966,6 +971,7 @@
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
       call broadcast_scalar(incond_file,          master_task)
+      call broadcast_scalar(version_name,         master_task)
       call broadcast_scalar(dump_last,            master_task)
       call broadcast_scalar(restart_file,         master_task)
       call broadcast_scalar(restart,              master_task)
@@ -998,6 +1004,7 @@
       call broadcast_scalar(grid_atm,             master_task)
       call broadcast_scalar(grid_file,            master_task)
       call broadcast_scalar(gridcpl_file,         master_task)
+      call broadcast_scalar(grid_outfile,         master_task)
       call broadcast_scalar(orca_halogrid,        master_task)
       call broadcast_scalar(bathymetry_file,      master_task)
       call broadcast_scalar(bathymetry_format,    master_task)
@@ -1018,6 +1025,8 @@
       call broadcast_scalar(kstrength,            master_task)
       call broadcast_scalar(Pstar,                master_task)
       call broadcast_scalar(Cstar,                master_task)
+      call broadcast_scalar(dyn_area_min,         master_task)
+      call broadcast_scalar(dyn_mass_min,         master_task)
       call broadcast_scalar(krdg_partic,          master_task)
       call broadcast_scalar(krdg_redist,          master_task)
       call broadcast_scalar(mu_rdg,               master_task)
@@ -2040,6 +2049,8 @@
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1020) ' kdyn             = ', kdyn,trim(tmpstr2)
+         write(nu_diag,1003) ' dyn_area_min     = ', dyn_area_min,' : min ice area concentration to activate dynamics'
+         write(nu_diag,1003) ' dyn_mass_min     = ', dyn_mass_min,' : min ice mass to activate dynamics (kg/m2)'
          if (kdyn >= 1) then
             if (kdyn == 1 .or. kdyn == 2) then
                if (revised_evp) then
@@ -2543,6 +2554,7 @@
          write(nu_diag,*) '===================================== '
          if (trim(runid) /= 'unknown') &
          write(nu_diag,1031) ' runid            = ', trim(runid)
+         write(nu_diag,1031) ' version_name     = ', trim(version_name)
          write(nu_diag,1031) ' runtype          = ', trim(runtype)
          write(nu_diag,1021) ' year_init        = ', year_init
          write(nu_diag,1021) ' month_init       = ', month_init
@@ -2565,11 +2577,12 @@
          write(nu_diag,1031) ' bfbflag          = ', trim(bfbflag)
          write(nu_diag,1021) ' numin            = ', numin
          write(nu_diag,1021) ' numax            = ', numax
-         write(nu_diag,1033) ' histfreq         = ', histfreq(:)
-         write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(:)
-         write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(:)
-         write(nu_diag,1013) ' hist_avg         = ', hist_avg(:)
-         write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(:)
+         write(nu_diag,1011) ' grid_outfile     = ', grid_outfile
+         write(nu_diag,1033) ' histfreq         = ', histfreq(1:max_nstrm-1)
+         write(nu_diag,1023) ' histfreq_n       = ', histfreq_n(1:max_nstrm-1)
+         write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(1:max_nstrm-1)
+         write(nu_diag,1013) ' hist_avg         = ', hist_avg(1:max_nstrm-1)
+         write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(1:max_nstrm-1)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
@@ -2585,9 +2598,9 @@
             write(nu_diag,1039) ' Initial condition will be written in ', &
                                trim(incond_dir)
          endif
-         write(nu_diag,1033) ' dumpfreq         = ', dumpfreq(:)
-         write(nu_diag,1023) ' dumpfreq_n       = ', dumpfreq_n(:)
-         write(nu_diag,1033) ' dumpfreq_base    = ', dumpfreq_base(:)
+         write(nu_diag,1033) ' dumpfreq         = ', dumpfreq(1:max_nstrm-1)
+         write(nu_diag,1023) ' dumpfreq_n       = ', dumpfreq_n(1:max_nstrm-1)
+         write(nu_diag,1033) ' dumpfreq_base    = ', dumpfreq_base(1:max_nstrm-1)
          write(nu_diag,1011) ' dump_last        = ', dump_last
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)

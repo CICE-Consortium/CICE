@@ -7,7 +7,9 @@ Index of primary variables and parameters
 
 This index defines many (but not all) of the symbols used frequently in the CICE model
 code.  All quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
+either Celsius or Kelvin units).  Deprecated parameters are listed at the end.  Units are
+as defined inside the model.  Units on history files may be different and are documented
+in history file metadata.
 
 Namelist variables are partly included here, but they are fully documented in 
 section :ref:`tabnamelist`. 
@@ -27,7 +29,6 @@ section :ref:`tabnamelist`.
    "a4Db", "history field accumulations, 4D categories, vertical bio grid", ""
    "a4Ds", "history field accumulations, 4D categories, vertical snow", ""
    "a4Df", "history field accumulations, 4D categories, fsd", ""
-   "a_min", "minimum area concentration for computing velocity", "0.001"
    "a_rapid_mode", "brine channel diameter", ""
    "add_mpi_barriers", "turns on MPI barriers for communication throttling", ""
    "advection", "type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
@@ -110,6 +111,8 @@ section :ref:`tabnamelist`.
    "cm_to_m", "cm to meters conversion", "0.01"
    "coldice", "value for constant albedo parameterization", "0.70"
    "coldsnow", "value for constant albedo parameterization", "0.81"
+   "cona", "history units conversion variable, multiplication term", "1.0"
+   "conb", "history units conversion variable, additive term", "0.0"
    "conduct", "conductivity parameterization", ""
    "congel", "basal ice growth", "m"
    "conserv_check", "if true, check conservation", ""
@@ -204,6 +207,8 @@ section :ref:`tabnamelist`.
    "dvidtd", "ice volume tendency due to dynamics/transport", "m/s"
    "dvidtt", "ice volume tendency due to thermodynamics", "m/s"
    "dvirdg(n)dt", "ice volume ridging rate (category n)", "m/s"
+   "dyn_area_min", "minimum area concentration for computing velocity", "0.001"
+   "dyn_mass_min", "minimum mass for computing velocity", "0.01 kg/m\ :math:`^2`"
    "**E**", "", ""                       
    "e11, e12, e22", "strain rate tensor components", ""
    "earea", "area of E-cell", "m\ :math:`^2`"
@@ -303,6 +308,7 @@ section :ref:`tabnamelist`.
    "grid_ocn_dynu", "grid for ocn dynamic-u forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_ocn_dynv", "grid for ocn dynamic-v forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_ocn_thrm", "grid for ocn thermodynamic forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
+   "grid_outfile", "write one-time grid history file", ""
    "grid_type", "‘rectangular’, ‘displaced_pole’, ‘column’ or ‘regional’", ""
    "gridcpl_file", "input file for coupling grid info", ""
    "grow_net", "specific biogeochemistry growth rate per grid cell", "s :math:`^{-1}`"
@@ -418,7 +424,6 @@ section :ref:`tabnamelist`.
    "ltripole_grid", "flag to signal use of tripole grid", ""
    "Lvap", "latent heat of vaporization for fresh water", "2.501\ :math:`\times` 10\ :math:`^6` J/kg"
    "**M**", "", ""
-   "m_min", "minimum mass for computing velocity", "0.01 kg/m\ :math:`^2`"
    "m_to_cm", "meters to cm conversion", "100."
    "m1", "constant for lateral melt rate", "1.6\ :math:`\times`\ 10\ :math:`^{-6}` m/s deg\ :math:`^{-m2}`"
    "m2", "constant for lateral melt rate", "1.36"

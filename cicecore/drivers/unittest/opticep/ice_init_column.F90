@@ -51,14 +51,16 @@
       ! namelist parameters needed locally
 
       real (kind=dbl_kind) :: &
-         tau_min            , tau_max            , &
-         nitratetype        , ammoniumtype       , silicatetype,  &
-         dmspptype          , dmspdtype          , humtype
+          tau_min            , tau_max            , &
+          nitratetype        , ammoniumtype       , silicatetype,  &
+          dmspptype          , dmspdtype          , humtype
+
+      real (kind=dbl_kind) :: &
+          grid_oS, l_skS   ! deprecated with zsalinity
 
       real (kind=dbl_kind) :: &
           grid_o, l_sk, grid_o_t, initbio_frac, &
-          frazil_scav, grid_oS, l_skS, &
-          phi_snow, &
+          frazil_scav, phi_snow, &
           ratio_Si2N_diatoms , ratio_Si2N_sp      , ratio_Si2N_phaeo   ,  &
           ratio_S2N_diatoms  , ratio_S2N_sp       , ratio_S2N_phaeo    ,  &
           ratio_Fe2C_diatoms , ratio_Fe2C_sp      , ratio_Fe2C_phaeo   ,  &
@@ -946,8 +948,11 @@
          ktherm
 
       logical (kind=log_kind) :: &
-         solve_zsal, skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
-         modal_aero, restart_zsal
+         skl_bgc, z_tracers, scale_bgc, solve_zbgc, dEdd_algae, &
+         modal_aero
+
+      logical (kind=log_kind) :: &
+         solve_zsal, restart_zsal  ! deprecated with zsalinity
 
       character (char_len) :: &
          bgc_flux_type
@@ -1179,10 +1184,6 @@
       F_abs_chl_phaeo    = 5.0
       ratio_C2N_proteins = 5.0_dbl_kind    ! ratio of C to N in proteins (mol/mol)
 
-      ! z salinity parameters
-      grid_oS            = c0              ! for bottom flux
-      l_skS              = 0.028_dbl_kind  ! characteristic diffusive scale (m)
-
       !-----------------------------------------------------------------
       ! read from input file
       !-----------------------------------------------------------------
@@ -1220,8 +1221,6 @@
       call broadcast_scalar(restart_hbrine,     master_task)
 
       call broadcast_scalar(phi_snow,           master_task)
-      call broadcast_scalar(grid_oS,            master_task)
-      call broadcast_scalar(l_skS,              master_task)
 
       call broadcast_scalar(solve_zbgc,         master_task)
       call broadcast_scalar(skl_bgc,            master_task)
@@ -1377,9 +1376,9 @@
          restart_hbrine =  .false.
       endif
 
-      if (solve_zsal)  then
+      if (solve_zsal .or. restart_zsal)  then
          if (my_task == master_task) then
-            write(nu_diag,*) subname,' ERROR: solve_zsal=T deprecated'
+            write(nu_diag,*) subname,' ERROR: solve_zsal=T, restart_zsal=T deprecated'
          endif
          abort_flag = 101
       endif
@@ -1574,10 +1573,6 @@
          write(nu_diag,1010) ' restart_hbrine            = ', restart_hbrine
          write(nu_diag,1005) ' phi_snow                  = ', phi_snow
          endif
-         write(nu_diag,1010) ' solve_zsal (deprecated)   = ', solve_zsal
-         write(nu_diag,*   ) '     WARNING: zsalinity has been deprecated.  Namelists and interfaces'
-         write(nu_diag,*   ) '              will be removed in a future version'
-
          write(nu_diag,1010) ' skl_bgc                   = ', skl_bgc
          write(nu_diag,1010) ' restart_bgc               = ', restart_bgc
          write(nu_diag,1010) ' tr_bgc_N                  = ', tr_bgc_N
@@ -1646,7 +1641,7 @@
            dEdd_algae_in=dEdd_algae, solve_zbgc_in=solve_zbgc, &
            bgc_flux_type_in=bgc_flux_type, grid_o_in=grid_o, l_sk_in=l_sk, &
            initbio_frac_in=initbio_frac, frazil_scav_in=frazil_scav, &
-           grid_oS_in=grid_oS, l_skS_in=l_skS, phi_snow_in=phi_snow, &
+           phi_snow_in=phi_snow, &
            algal_vel_in=algal_vel, R_dFe2dust_in=R_dFe2dust, &
            dustFe_sol_in=dustFe_sol, T_max_in=T_max, fsal_in=fsal, &
            op_dep_min_in=op_dep_min, fr_graze_s_in=fr_graze_s, &

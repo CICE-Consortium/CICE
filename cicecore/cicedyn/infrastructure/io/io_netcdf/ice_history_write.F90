@@ -39,6 +39,7 @@
         character (len=11)   :: short_name
         character (len=45)   :: long_name
         character (len=30)   :: units
+        character (len=8)    :: axis
       END TYPE coord_attributes
 
       TYPE req_attributes         ! req'd netcdf attributes
@@ -103,6 +104,7 @@
       character (char_len) :: title, cal_units, cal_att
       character (char_len) :: time_period_freq = 'none'
       character (char_len_long) :: ncfile
+      character (len=512) :: extvars
       real (kind=dbl_kind)  :: secday, rad_to_deg
 
       integer (kind=int_kind) :: ind,boundid, lprecision
@@ -134,6 +136,7 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
           file=__FILE__, line=__LINE__)
 
+      extvars = ''
       lprecision = nf90_float
       if (history_precision == 8) lprecision = nf90_double
 
@@ -218,9 +221,13 @@
          call ice_check_nc(status, subname// ' ERROR: defining dim nkaer', &
                            file=__FILE__, line=__LINE__)
 
-         status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
-         call ice_check_nc(status, subname// ' ERROR: defining dim time', &
-                           file=__FILE__, line=__LINE__)
+         ! do not write time axis on grid output file
+         timid = -99
+         if (histfreq(ns)/='g') then
+            status = nf90_def_dim(ncid,'time',NF90_UNLIMITED,timid)
+            call ice_check_nc(status, subname// ' ERROR: defining dim time', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
          status = nf90_def_dim(ncid,'nvertices',nverts,nvertexid)
          call ice_check_nc(status, subname// ' ERROR: defining dim nvertices', &
@@ -234,42 +241,46 @@
          ! define coordinate variables: time, time_bounds
          !-----------------------------------------------------------------
 
-         write(cdate,'(i8.8)') idate0
-         write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-               hh_init,':',mm_init,':',ss_init
+         ! do not write time axis on grid output file
+         if (histfreq(ns)/='g') then
 
-         if (days_per_year == 360) then
-            cal_att='360_day'
-         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-            cal_att='noleap'
-         elseif (use_leap_years) then
-            cal_att='Gregorian'
-         else
-            call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
-         endif
+            write(cdate,'(i8.8)') idate0
+            write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
+                  cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
+                  hh_init,':',mm_init,':',ss_init
 
-         time_coord = coord_attributes('time', 'time', trim(cal_units))
-         call ice_hist_coord_def(ncid, time_coord, nf90_double, (/timid/), varid)
+            if (days_per_year == 360) then
+               cal_att='360_day'
+            elseif (days_per_year == 365 .and. .not.use_leap_years ) then
+               cal_att='noleap'
+            elseif (use_leap_years) then
+               cal_att='Gregorian'
+            else
+               call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
+            endif
 
-         status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
-         call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-         if (hist_avg(ns) .and. .not. write_ic) then
-            status = nf90_put_att(ncid,varid,'bounds','time_bounds')
-            call ice_check_nc(status, subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
-         endif
+            time_coord = coord_attributes('time', 'time', trim(cal_units),'T')
+            call ice_hist_coord_def(ncid, time_coord, nf90_double, (/timid/), varid)
 
-         ! Define coord time_bounds if hist_avg is true
-         if (hist_avg(ns) .and. .not. write_ic) then
-            time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units))
+            status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
+            call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
+            if (hist_avg(ns) .and. .not. write_ic) then
+               status = nf90_put_att(ncid,varid,'bounds','time_bounds')
+               call ice_check_nc(status, subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
+            endif
 
-            dimid(1) = boundid
-            dimid(2) = timid
+            ! Define coord time_bounds if hist_avg is true
+            ! bounds inherit attributes
+            if (hist_avg(ns) .and. .not. write_ic) then
+               time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
 
-            call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
-            status = nf90_put_att(ncid,varid,'calendar',cal_att)
-            call ice_check_nc(status, subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-         endif
+               dimid(1) = boundid
+               dimid(2) = timid
+
+               call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
+            endif
+
+         endif  ! histfreq(ns)/='g'
 
          !-----------------------------------------------------------------
          ! define information for required time-invariant variables
@@ -279,138 +290,131 @@
             select case (ind)
                case(n_tlon)
                   var_coord(ind) = coord_attributes('TLON', &
-                                   'T grid center longitude', 'degrees_east')
+                                   'T grid center longitude', 'degrees_east', 'X')
                   coord_bounds(ind) = 'lont_bounds'
                case(n_tlat)
                   var_coord(ind) = coord_attributes('TLAT', &
-                                   'T grid center latitude',  'degrees_north')
+                                   'T grid center latitude',  'degrees_north', 'Y')
                   coord_bounds(ind) = 'latt_bounds'
                case(n_ulon)
                   var_coord(ind) = coord_attributes('ULON', &
-                                   'U grid center longitude', 'degrees_east')
+                                   'U grid center longitude', 'degrees_east', 'X')
                   coord_bounds(ind) = 'lonu_bounds'
                case(n_ulat)
                   var_coord(ind) = coord_attributes('ULAT', &
-                                   'U grid center latitude',  'degrees_north')
+                                   'U grid center latitude',  'degrees_north', 'Y')
                   coord_bounds(ind) = 'latu_bounds'
                case(n_nlon)
                   var_coord(ind) = coord_attributes('NLON', &
-                                   'N grid center longitude', 'degrees_east')
+                                   'N grid center longitude', 'degrees_east', 'X')
                   coord_bounds(ind) = 'lonn_bounds'
                case(n_nlat)
                   var_coord(ind) = coord_attributes('NLAT', &
-                                   'N grid center latitude',  'degrees_north')
+                                   'N grid center latitude',  'degrees_north', 'Y')
                   coord_bounds(ind) = 'latn_bounds'
                case(n_elon)
                   var_coord(ind) = coord_attributes('ELON', &
-                                   'E grid center longitude', 'degrees_east')
+                                   'E grid center longitude', 'degrees_east', 'X')
                   coord_bounds(ind) = 'lone_bounds'
                case(n_elat)
                   var_coord(ind) = coord_attributes('ELAT', &
-                                   'E grid center latitude',  'degrees_north')
+                                   'E grid center latitude',  'degrees_north', 'Y')
                   coord_bounds(ind) = 'late_bounds'
             end select
          end do
 
-         var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm')
-         var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1')
-         var_grdz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1')
-         var_grdz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1')
-         var_grdz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1')
-         var_grdz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm')
+         var_grdz(1) = coord_attributes('NCAT', 'category maximum thickness', 'm', 'undefined')
+         var_grdz(2) = coord_attributes('VGRDi', 'vertical ice levels', '1', 'undefined')
+         var_grdz(3) = coord_attributes('VGRDs', 'vertical snow levels', '1', 'undefined')
+         var_grdz(4) = coord_attributes('VGRDb', 'vertical ice-bio levels', '1', 'undefined')
+         var_grdz(5) = coord_attributes('VGRDa', 'vertical snow-ice-bio levels', '1', 'undefined')
+         var_grdz(6) = coord_attributes('NFSD', 'category floe size (center)', 'm', 'undefined')
 
          !-----------------------------------------------------------------
          ! define information for optional time-invariant variables
          !-----------------------------------------------------------------
 
          var_grd(n_tmask)%req = coord_attributes('tmask', &
-                     'mask of T grid cells, 0 = land, 1 = ocean', 'unitless')
+                     'mask of T grid cells, 0 = land, 1 = ocean', '1', 'undefined')
          var_grd(n_tmask)%coordinates = 'TLON TLAT'
          var_grd(n_umask)%req = coord_attributes('umask', &
-                     'mask of U grid cells, 0 = land, 1 = ocean', 'unitless')
+                     'mask of U grid cells, 0 = land, 1 = ocean', '1', 'undefined')
          var_grd(n_umask)%coordinates = 'ULON ULAT'
          var_grd(n_nmask)%req = coord_attributes('nmask', &
-                     'mask of N grid cells, 0 = land, 1 = ocean', 'unitless')
+                     'mask of N grid cells, 0 = land, 1 = ocean', '1', 'undefined')
          var_grd(n_nmask)%coordinates = 'NLON NLAT'
          var_grd(n_emask)%req = coord_attributes('emask', &
-                     'mask of E grid cells, 0 = land, 1 = ocean', 'unitless')
+                     'mask of E grid cells, 0 = land, 1 = ocean', '1', 'undefined')
          var_grd(n_emask)%coordinates = 'ELON ELAT'
 
          var_grd(n_tarea)%req = coord_attributes('tarea', &
-                     'area of T grid cells', 'm^2')
+                     'area of T grid cells', 'm^2', 'undefined')
          var_grd(n_tarea)%coordinates = 'TLON TLAT'
          var_grd(n_uarea)%req = coord_attributes('uarea', &
-                     'area of U grid cells', 'm^2')
+                     'area of U grid cells', 'm^2', 'undefined')
          var_grd(n_uarea)%coordinates = 'ULON ULAT'
          var_grd(n_narea)%req = coord_attributes('narea', &
-                     'area of N grid cells', 'm^2')
+                     'area of N grid cells', 'm^2', 'undefined')
          var_grd(n_narea)%coordinates = 'NLON NLAT'
          var_grd(n_earea)%req = coord_attributes('earea', &
-                     'area of E grid cells', 'm^2')
+                     'area of E grid cells', 'm^2', 'undefined')
          var_grd(n_earea)%coordinates = 'ELON ELAT'
 
          var_grd(n_blkmask)%req = coord_attributes('blkmask', &
-                     'block id of T grid cells, mytask + iblk/100', 'unitless')
+                     'block id of T grid cells, mytask + iblk/100', '1', 'undefined')
          var_grd(n_blkmask)%coordinates = 'TLON TLAT'
 
          var_grd(n_dxt)%req = coord_attributes('dxt', &
-                     'T cell width through middle', 'm')
+                     'T cell width through middle', 'm', 'undefined')
          var_grd(n_dxt)%coordinates = 'TLON TLAT'
          var_grd(n_dyt)%req = coord_attributes('dyt', &
-                     'T cell height through middle', 'm')
+                     'T cell height through middle', 'm', 'undefined')
          var_grd(n_dyt)%coordinates = 'TLON TLAT'
          var_grd(n_dxu)%req = coord_attributes('dxu', &
-                     'U cell width through middle', 'm')
+                     'U cell width through middle', 'm', 'undefined')
          var_grd(n_dxu)%coordinates = 'ULON ULAT'
          var_grd(n_dyu)%req = coord_attributes('dyu', &
-                     'U cell height through middle', 'm')
+                     'U cell height through middle', 'm', 'undefined')
          var_grd(n_dyu)%coordinates = 'ULON ULAT'
          var_grd(n_dxn)%req = coord_attributes('dxn', &
-                     'N cell width through middle', 'm')
+                     'N cell width through middle', 'm', 'undefined')
          var_grd(n_dxn)%coordinates = 'NLON NLAT'
          var_grd(n_dyn)%req = coord_attributes('dyn', &
-                     'N cell height through middle', 'm')
+                     'N cell height through middle', 'm', 'undefined')
          var_grd(n_dyn)%coordinates = 'NLON NLAT'
          var_grd(n_dxe)%req = coord_attributes('dxe', &
-                     'E cell width through middle', 'm')
+                     'E cell width through middle', 'm', 'undefined')
          var_grd(n_dxe)%coordinates = 'ELON ELAT'
          var_grd(n_dye)%req = coord_attributes('dye', &
-                     'E cell height through middle', 'm')
+                     'E cell height through middle', 'm', 'undefined')
          var_grd(n_dye)%coordinates = 'ELON ELAT'
 
          var_grd(n_HTN)%req = coord_attributes('HTN', &
-                     'T cell width on North side','m')
+                     'T cell width on North side','m', 'undefined')
          var_grd(n_HTN)%coordinates = 'TLON TLAT'
          var_grd(n_HTE)%req = coord_attributes('HTE', &
-                     'T cell width on East side', 'm')
+                     'T cell width on East side', 'm', 'undefined')
          var_grd(n_HTE)%coordinates = 'TLON TLAT'
          var_grd(n_ANGLE)%req = coord_attributes('ANGLE', &
                      'angle grid makes with latitude line on U grid', &
-                     'radians')
+                     'radians', 'undefined')
          var_grd(n_ANGLE)%coordinates = 'ULON ULAT'
          var_grd(n_ANGLET)%req = coord_attributes('ANGLET', &
                      'angle grid makes with latitude line on T grid', &
-                     'radians')
+                     'radians', 'undefined')
          var_grd(n_ANGLET)%coordinates = 'TLON TLAT'
 
-         ! These fields are required for CF compliance
+         ! bounds fields are required for CF compliance
          ! dimensions (nx,ny,nverts)
-         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
-                     'longitude boundaries of T cells', 'degrees_east')
-         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
-                     'latitude boundaries of T cells', 'degrees_north')
-         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
-                     'longitude boundaries of U cells', 'degrees_east')
-         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
-                     'latitude boundaries of U cells', 'degrees_north')
-         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
-                     'longitude boundaries of N cells', 'degrees_east')
-         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
-                     'latitude boundaries of N cells', 'degrees_north')
-         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
-                     'longitude boundaries of E cells', 'degrees_east')
-         var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
-                     'latitude boundaries of E cells', 'degrees_north')
+         ! bounds inherit attributes
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
 
          !-----------------------------------------------------------------
          ! define attributes for time-invariant variables
@@ -421,7 +425,7 @@
          dimid(3) = timid
 
          do i = 1, ncoord
-            if(icoord(i)) then
+            if(icoord(i) .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_coord(i), lprecision, dimid(1:2), varid)
                call ice_write_hist_fill(ncid,varid,var_coord(i)%short_name,history_precision)
                if (var_coord(i)%short_name == 'ULAT') then
@@ -430,11 +434,13 @@
                   call ice_check_nc(status, subname// ' ERROR: defining comment for '//var_coord(i)%short_name, &
                                     file=__FILE__, line=__LINE__)
                endif
-               if (f_bounds) then
+               if (f_bounds .or. histfreq(ns)=='g') then
                   status = nf90_put_att(ncid, varid, 'bounds', coord_bounds(i))
                   call ice_check_nc(status, subname// ' ERROR: defining bounds for '//var_coord(i)%short_name, &
                                     file=__FILE__, line=__LINE__)
                endif
+            else
+               extvars = trim(extvars)//' '//trim(var_coord(i)%short_name)
             endif
          enddo
 
@@ -447,29 +453,33 @@
          dimidex(6)=fmtid
 
          do i = 1, nvar_grdz
-            if (igrdz(i)) then
+            if (igrdz(i) .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_grdz(i), lprecision, dimidex(i:i), varid)
+            else
+               extvars = trim(extvars)//' '//trim(var_grdz(i)%short_name)
             endif
          enddo
 
          do i = 1, nvar_grd
-            if (igrd(i)) then
+            if (igrd(i) .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_grd(i)%req, lprecision, dimid(1:2), varid)
                status = nf90_put_att(ncid, varid, 'coordinates', var_grd(i)%coordinates)
                call ice_check_nc(status, subname// ' ERROR: defining coordinates for '//var_grd(i)%req%short_name, &
                                  file=__FILE__, line=__LINE__)
                call ice_write_hist_fill(ncid,varid,var_grd(i)%req%short_name,history_precision)
+            else
+               extvars = trim(extvars)//' '//trim(var_grd(i)%req%short_name)
             endif
          enddo
 
-         ! Fields with dimensions (nverts,nx,ny)
+         ! bounds fields with dimensions (nverts,nx,ny)
+         ! bounds inherits attributes
          dimid_nverts(1) = nvertexid
          dimid_nverts(2) = imtid
          dimid_nverts(3) = jmtid
          do i = 1, nvar_verts
-            if (f_bounds) then
+            if (f_bounds .or. histfreq(ns)=='g') then
                call ice_hist_coord_def(ncid, var_nverts(i), lprecision, dimid_nverts, varid)
-               call ice_write_hist_fill(ncid,varid,var_nverts(i)%short_name,history_precision)
             endif
          enddo
 
@@ -596,7 +606,7 @@
          call ice_check_nc(status, subname// ' ERROR: global attribute contents', &
                            file=__FILE__, line=__LINE__)
 
-         write(title,'(2a)') 'Los Alamos Sea Ice Model, ', trim(version_name)
+         write(title,'(2a)') 'CICE Sea Ice Model, ', trim(version_name)
          status = nf90_put_att(ncid,nf90_global,'source',title)
          call ice_check_nc(status, subname// ' ERROR: global attribute source', &
                            file=__FILE__, line=__LINE__)
@@ -645,9 +655,13 @@
                               file=__FILE__, line=__LINE__)
          endif
 
-         title = 'CF-1.0'
-         status =  nf90_put_att(ncid,nf90_global,'conventions',title)
+         title = 'CF-1.8'
+         status =  nf90_put_att(ncid,nf90_global,'Conventions',title)
          call ice_check_nc(status, subname// ' ERROR: in global attribute conventions', &
+                           file=__FILE__, line=__LINE__)
+
+         status =  nf90_put_att(ncid,nf90_global,'external_variables',trim(extvars))
+         call ice_check_nc(status, subname// ' ERROR: in global attribute external_variables', &
                            file=__FILE__, line=__LINE__)
 
          call date_and_time(date=current_date, time=current_time)
@@ -661,7 +675,16 @@
          call ice_check_nc(status, subname// ' ERROR: global attribute history', &
                            file=__FILE__, line=__LINE__)
 
-         status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf')
+         write(start_time,1001) current_date(1:4), current_date(5:6), &
+                                current_date(7:8), current_time(1:2), &
+                                current_time(3:4), current_time(5:8)
+1001     format(a,'-',a,'-',a,' ',a,':',a,':',a)
+
+         status = nf90_put_att(ncid,nf90_global,'date_created',start_time)
+         call ice_check_nc(status, subname// ' ERROR: global attribute date_created', &
+                           file=__FILE__, line=__LINE__)
+
+         status = nf90_put_att(ncid,nf90_global,'io_flavor','io_netcdf '//trim(history_format))
          call ice_check_nc(status, subname// ' ERROR: global attribute io_flavor', &
                            file=__FILE__, line=__LINE__)
 
@@ -674,40 +697,41 @@
                            file=__FILE__, line=__LINE__)
 
          !-----------------------------------------------------------------
-         ! write time variable
+         ! write time variable and time bounds info
          !-----------------------------------------------------------------
 
-         ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
+         ! do not write time axis on grid output file
+         if (histfreq(ns)/='g') then
 
-         ! Some coupled models require the time axis "stamp" to be in the middle
-         ! or even beginning of averaging interval.
-         if (hist_avg(ns)) then
-            if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
-            if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
-         endif
+            ltime2 = timesecs/secday ! hist_time_axis = 'end' (default)
 
-         status = nf90_inq_varid(ncid,'time',varid)
-         call ice_check_nc(status, subname// ' ERROR: getting time varid', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_var(ncid,varid,ltime2)
-         call ice_check_nc(status, subname// ' ERROR: writing time variable', &
-                           file=__FILE__, line=__LINE__)
+            ! Some coupled models require the time axis "stamp" to be in the middle
+            ! or even beginning of averaging interval.
+            if (hist_avg(ns)) then
+               if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
+               if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
+            endif
 
-         !-----------------------------------------------------------------
-         ! write time_bounds info
-         !-----------------------------------------------------------------
-
-         if (hist_avg(ns) .and. .not. write_ic) then
-            status = nf90_inq_varid(ncid,'time_bounds',varid)
-            call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
+            status = nf90_inq_varid(ncid,'time',varid)
+            call ice_check_nc(status, subname// ' ERROR: getting time varid', &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
-            call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
+            status = nf90_put_var(ncid,varid,ltime2)
+            call ice_check_nc(status, subname// ' ERROR: writing time variable', &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
-            call ice_check_nc(status, subname// ' ERROR: writing time_end', &
-                              file=__FILE__, line=__LINE__)
-         endif
+
+            if (hist_avg(ns) .and. .not. write_ic) then
+               status = nf90_inq_varid(ncid,'time_bounds',varid)
+               call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
+               call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
+                                 file=__FILE__, line=__LINE__)
+               status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
+               call ice_check_nc(status, subname// ' ERROR: writing time_end', &
+                                 file=__FILE__, line=__LINE__)
+            endif
+
+         endif  ! histfreq(ns)/='g'
 
       endif                     ! master_task
 
@@ -724,7 +748,7 @@
       !-----------------------------------------------------------------
 
       do i = 1,ncoord
-         if(icoord(i)) then
+         if(icoord(i) .or. histfreq(ns)=='g') then
             call broadcast_scalar(var_coord(i)%short_name,master_task)
             SELECT CASE (var_coord(i)%short_name)
                CASE ('TLON')
@@ -770,7 +794,7 @@
       ! Extra dimensions (NCAT, NFSD, VGRD*)
 
       do i = 1, nvar_grdz
-         if (igrdz(i)) then
+         if (igrdz(i) .or. histfreq(ns)=='g') then
             call broadcast_scalar(var_grdz(i)%short_name,master_task)
             if (my_task == master_task) then
                status = nf90_inq_varid(ncid, var_grdz(i)%short_name, varid)
@@ -801,7 +825,7 @@
       !-----------------------------------------------------------------
 
       do i = 1, nvar_grd
-         if (igrd(i)) then
+         if (igrd(i) .or. histfreq(ns)=='g') then
             call broadcast_scalar(var_grd(i)%req%short_name,master_task)
             SELECT CASE (var_grd(i)%req%short_name)
                CASE ('tmask')
@@ -863,7 +887,7 @@
       ! Write coordinates of grid box vertices
       !----------------------------------------------------------------
 
-      if (f_bounds) then
+      if (f_bounds .or. histfreq(ns)=='g') then
          if (my_task==master_task) then
             allocate(work1_3(nverts,nx_global,ny_global))
          else
@@ -1381,12 +1405,21 @@
       endif
 #endif
 
-      status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
-      call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
-                        file=__FILE__, line=__LINE__)
-      status = nf90_put_att(ncid, varid, 'units', trim(coord%units))
-      call ice_check_nc(status, subname// ' ERROR: defining units for '//coord%short_name, &
-                        file=__FILE__, line=__LINE__)
+      if (coord%long_name(1:3) /= 'und') then
+         status = nf90_put_att(ncid,varid,'long_name',trim(coord%long_name))
+         call ice_check_nc(status, subname// ' ERROR: defining long_name for '//coord%short_name, &
+                           file=__FILE__, line=__LINE__)
+      endif
+      if (coord%units(1:3) /= 'und') then
+         status = nf90_put_att(ncid, varid, 'units', trim(coord%units))
+         call ice_check_nc(status, subname// ' ERROR: defining units for '//coord%short_name, &
+                           file=__FILE__, line=__LINE__)
+      endif
+      if (coord%axis(1:3) /= 'und') then
+         status = nf90_put_att(ncid, varid, 'axis', trim(coord%axis))
+         call ice_check_nc(status, subname// ' ERROR: defining axis for '//coord%short_name, &
+                           file=__FILE__, line=__LINE__)
+      endif
 
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
