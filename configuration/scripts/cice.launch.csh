@@ -127,15 +127,15 @@ endif
 endif
 
 #=======
-else if (${ICE_MACHCOMP} =~ cori* || ${ICE_MACHCOMP} =~ perlmutter*) then
+else if (${ICE_MACHCOMP} =~ cori* || ${ICE_MACHCOMP} =~ perlmutter* || ${ICE_MACHCOMP} =~ blueback*) then
 if (${ICE_COMMDIR} =~ serial*) then
 cat >> ${jobfile} << EOFR
 #./cice >&! \$ICE_RUNLOG_FILE
-srun --cpu-bind=cores ./cice >&! \$ICE_RUNLOG_FILE
+srun --cpu-bind=cores --kill-on-bad-exit ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 else
 cat >> ${jobfile} << EOFR
-srun --cpu-bind=cores ./cice >&! \$ICE_RUNLOG_FILE
+srun --cpu-bind=cores -n ${ntasks} -c ${nthrds} --kill-on-bad-exit ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 

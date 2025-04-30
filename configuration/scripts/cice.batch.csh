@@ -137,6 +137,23 @@ cat >> ${jobfile} << EOFB
 ###PBS -m be
 EOFB
 
+else if (${ICE_MACHINE} =~ blueback*) then
+if (${runlength} > 0) set queue = "standard"
+cat >> ${jobfile} << EOFB
+#SBATCH --job-name=${ICE_CASENAME}
+#SBATCH --account=${acct}
+#SBATCH --qos=${queue}
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks=${ntasks}
+#SBATCH --ntasks-per-node=${taskpernode}
+#SBATCH --constraint standard
+###SBATCH -e filename
+###SBATCH -o filename
+###SBATCH --mail-type FAIL
+###SBATCH --mail-user username@domain.com
+EOFB
+
 else if (${ICE_MACHINE} =~ narwhal*) then
 if (${runlength} <= 0) then
   set batchtime = "00:29:59"
