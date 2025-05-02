@@ -226,6 +226,7 @@
 /
 
 &ponds_nml
+    apnd_sl         = 0.27d0
     hp1             = 0.01
     hs0             = 0.
     hs1             = 0.03
