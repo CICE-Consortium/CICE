@@ -366,13 +366,30 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
-else if (${ICE_MACHINE} =~ gaea*) then
+else if (${ICE_MACHINE} =~ gaeac5*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
 #SBATCH --account=nggps_emc
-#SBATCH --clusters=c3
+#SBATCH --clusters=c5
+#SBATCH --time=${batchtime}
+#SBATCH --nodes=${nnodes}
+#SBATCH --ntasks-per-node=${taskpernodelimit}
+#SBATCH --cpus-per-task=${nthrds}
+#SBATCH -e slurm%j.err
+#SBATCH -o slurm%j.out
+##SBATCH --mail-type FAIL
+##SBATCH --mail-user=xxx@noaa.gov
+EOFB
+
+else if (${ICE_MACHINE} =~ gaeac6*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J ${ICE_CASENAME}
+#SBATCH --partition=batch
+#SBATCH --qos=${queue}
+#SBATCH --account=sfs_emc
+#SBATCH --clusters=c6
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
 #SBATCH --ntasks-per-node=${taskpernodelimit}
