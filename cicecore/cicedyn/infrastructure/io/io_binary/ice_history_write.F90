@@ -109,7 +109,7 @@
         write (nu_hdr, 999) 'runid',runid,' '
 #endif
         if (use_leap_years) then
-           write (nu_hdr, 999) 'calendar','Gregorian',' '
+           write (nu_hdr, 999) 'calendar','proleptic_gregorian',' '
            write (title,'(a,i3,a)') 'This year has ',int(dayyr),' days'
         else
            write (nu_hdr, 999) 'calendar','noleap',' '
