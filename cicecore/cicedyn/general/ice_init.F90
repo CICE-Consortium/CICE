@@ -1222,6 +1222,9 @@
       if (trim(ice_data_dist) == 'default') ice_data_dist = 'uniform'
       if (trim(ice_data_type) == 'default') ice_data_type = 'latsst'
 
+      ! For backward compatibility
+      if (grid_format ==  'nc') grid_format = 'pop_nc'
+
       !-----------------------------------------------------------------
       ! verify inputs
       !-----------------------------------------------------------------
@@ -1953,13 +1956,12 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Grid, Discretization'
          write(nu_diag,*) '--------------------------------'
-         write(nu_diag,1030) ' grid_format         = ',trim(grid_format)
+         write(nu_diag,1030) ' grid_format      = ',trim(grid_format)
          tmpstr2 = ' '
          if (trim(grid_type) == 'rectangular')    tmpstr2 = ' : internally defined, rectangular grid'
-         if (trim(grid_type) == 'regional')       tmpstr2 = ' : pop grid file, regional grid'
-         if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : pop grid file with rotated north pole'
-         if (trim(grid_type) == 'tripole')        tmpstr2 = ' : pop grid file with northern hemisphere zipper'
-         if (trim(grid_type) == 'geosmom')        tmpstr2 = ' : geos mom grid file'
+         if (trim(grid_type) == 'regional')       tmpstr2 = ' : grid file, regional grid'
+         if (trim(grid_type) == 'displaced_pole') tmpstr2 = ' : grid file with rotated north pole'
+         if (trim(grid_type) == 'tripole')        tmpstr2 = ' : grid file with northern hemisphere zipper'
          if (trim(grid_type) == 'latlon')         tmpstr2 = ' : cesm latlon domain file'
          write(nu_diag,1030) ' grid_type        = ',trim(grid_type),trim(tmpstr2)
          write(nu_diag,1030) ' grid_ice         = ',trim(grid_ice)
@@ -2687,11 +2689,9 @@
 
       endif                     ! my_task = master_task
 
-      ! For backward compatibility
-      if (grid_format ==  'nc') grid_format = 'pop_nc'
-
       if (grid_format /=  'pop_nc'        .and. &
           grid_format /=  'mom_nc'        .and. &
+          grid_format /=  'geosnc'        .and. &
           grid_format /=  'meshnc'        .and. &
           grid_format /=  'bin' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_format=',trim(grid_type)
@@ -2703,7 +2703,6 @@
           grid_type  /=  'column'         .and. &
           grid_type  /=  'rectangular'    .and. &
           grid_type  /=  'regional'       .and. &
-          grid_type  /=  'geosmom'        .and. &
           grid_type  /=  'latlon') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_type=',trim(grid_type)
          abort_list = trim(abort_list)//":20"

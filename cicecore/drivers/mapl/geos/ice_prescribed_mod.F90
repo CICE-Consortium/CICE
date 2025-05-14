@@ -38,7 +38,7 @@ contains
   use ice_constants
   use ice_blocks        , only : nx_block, ny_block, block, get_block
   use ice_domain        , only : nblocks, distrb_info, blocks_ice
-  use ice_grid          , only : TLAT, TLON, hm, tmask, tarea, grid_type, ocn_gridcell_frac
+  use ice_grid          , only : TLAT, TLON, hm, tmask, tarea, ocn_gridcell_frac
   use ice_calendar      , only : idate, calendar_type
   use ice_arrays_column , only : hin_max
   use ice_read_write

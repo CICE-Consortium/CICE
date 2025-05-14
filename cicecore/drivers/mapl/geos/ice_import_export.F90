@@ -30,7 +30,7 @@ module ice_import_export
   use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, ocn_gridcell_frac, hm
   use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask
-  use ice_grid           , only : grid_type, grid_ice
+  use ice_grid           , only : grid_ice
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr
   use ice_fileunits      , only : nu_diag, flush_fileunit
