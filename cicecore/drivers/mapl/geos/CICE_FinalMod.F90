@@ -101,12 +101,12 @@
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
           tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
-          calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
+          calc_Tsfc, skl_bgc, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_checkpoint)'
 
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
-           solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
+           z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
@@ -135,7 +135,7 @@
       if (tr_fsd)       call write_restart_fsd
       if (tr_iso)       call write_restart_iso
       if (tr_aero)      call write_restart_aero
-      if (solve_zsal .or. skl_bgc .or. z_tracers) &
+      if (skl_bgc .or. z_tracers) &
                         call write_restart_bgc
       if (tr_brine)     call write_restart_hbrine
       if (kdyn == 2)    call write_restart_eap

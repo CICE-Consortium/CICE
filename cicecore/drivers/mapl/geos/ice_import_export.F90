@@ -2,7 +2,7 @@ module ice_import_export
 
   use ESMF
   use ice_kinds_mod      , only : int_kind, dbl_kind, real_kind, char_len, log_kind
-  use ice_constants      , only : c0, c1, p5, p25, spval_dbl, radius
+  use ice_constants      , only : c0, c1, c2, p5, p25, spval_dbl, radius
   use ice_constants      , only : field_loc_center, field_type_scalar, field_type_vector
   use ice_blocks         , only : block, get_block, nx_block, ny_block, nghost
   use ice_domain         , only : nblocks, blocks_ice, halo_info, distrb_info
@@ -30,7 +30,8 @@ module ice_import_export
   use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, ocn_gridcell_frac, hm
   use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask
-  use ice_grid           , only : grid_ice
+  use ice_grid           , only : dxT, dyT
+  use ice_grid           , only : grid_ice, grid_ocn
   use ice_boundary       , only : ice_HaloUpdate
   use ice_shr_methods    , only : chkerr
   use ice_fileunits      , only : nu_diag, flush_fileunit
@@ -312,12 +313,14 @@ contains
 
   end subroutine ice_import_radiation
 
-  subroutine ice_import_dyna( taux, tauy, slv, uob, vob, uoc, voc, rc )
+  subroutine ice_import_dyna( taux, tauy, slv, uoa, voa, uob, vob, uoc, voc, rc )
 
     ! input/output variables
     real(kind=real_kind) ,     intent(in) :: taux(:,:)
     real(kind=real_kind) ,     intent(in) :: tauy(:,:)
     real(kind=real_kind) ,     intent(in) :: slv(:,:)
+    real(kind=real_kind) ,     intent(in) :: uoa(:,:)
+    real(kind=real_kind) ,     intent(in) :: voa(:,:)
     real(kind=real_kind) ,     intent(in) :: uob(:,:)
     real(kind=real_kind) ,     intent(in) :: vob(:,:)
     real(kind=real_kind) ,     intent(in) :: uoc(:,:)
@@ -330,6 +333,8 @@ contains
     integer                          :: ilo, ihi, jlo, jhi !beginning and end of physical domain
     type(block)                      :: this_block         ! block information for current block
     real(kind=dbl_kind)              :: workx, worky
+    real(kind=dbl_kind)              :: slp_L, slp_R, slp_C
+    real(kind=dbl_kind)              :: u_min, u_max, slope
     real(kind=dbl_kind)              :: ssh(nx_block,ny_block,max_blocks)
     character(len=*),   parameter    :: subname = 'ice_import_dyna'
     character(len=1024)              :: msgString
