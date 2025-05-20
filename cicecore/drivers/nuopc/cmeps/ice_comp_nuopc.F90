@@ -499,7 +499,7 @@ contains
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
        calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = ice_calendar_gregorian
+       calendar_type = ice_calendar_proleptic_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
@@ -859,7 +859,7 @@ contains
     day_init  = idate0-year_init*10000-month_init*100
 
     !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
-    if (calendar_type == ice_calendar_gregorian) then
+    if (calendar_type == ice_calendar_proleptic_gregorian) then
       use_leap_years = .true.
     else
       use_leap_years = .false. ! no_leap calendars
