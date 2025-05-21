@@ -9,9 +9,7 @@
 
       use ice_broadcast
       use ice_kinds_mod
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, lenstr
+      use ice_restart_shared
       use ice_communicate, only: my_task, master_task
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_fileunits, only: nu_dump, nu_dump_eap, nu_dump_FY, nu_dump_age

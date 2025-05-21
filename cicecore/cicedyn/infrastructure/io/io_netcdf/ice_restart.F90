@@ -16,10 +16,7 @@
       use netcdf
 #endif
       use ice_read_write, only: ice_check_nc
-      use ice_restart_shared, only: &
-          restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, restart_format, &
-          restart_chunksize, restart_deflate
+      use ice_restart_shared
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
