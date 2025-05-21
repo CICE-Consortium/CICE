@@ -219,7 +219,7 @@
                myear,'-',mmonth,'-',mday,'-',msec
       end if
 
-      if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
+      filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
       if (my_task == master_task) then
