@@ -363,7 +363,7 @@
 
          ! Fill ULAT
          select case(trim(grid_format))
-            case ('mom_nc') 
+            case ('mom_nc')
 
                if (my_task == master_task) then
                   allocate(work_mom(nx_global*2+1, ny_global*2+1), stat=ierr)
@@ -372,7 +372,7 @@
                endif
                if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-               fieldname='y'                ! use mom y field to fill cice ULAT 
+               fieldname='y'                ! use mom y field to fill cice ULAT
                call ice_open_nc(grid_file,fid_grid)
                call ice_read_global_nc(fid_grid,1,fieldname,work_mom,.true.)
                call ice_close_nc(fid_grid)
@@ -383,23 +383,23 @@
                      work_g1(i,j) = work_mom(im, jm)
                      jm = jm + 2
                   enddo
-                  im = im + 2 
+                  im = im + 2
                enddo
 
                deallocate(work_mom, stat=ierr)
                if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
-            case('pop_nc') 
+            case('pop_nc')
 
                fieldname='ulat'
                call ice_open_nc(grid_file,fid_grid)
                call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
                call ice_close_nc(fid_grid)
 
-            case default 
+            case default
 
-               call ice_open(nu_grid,grid_file,64) 
-               call ice_read_global(nu_grid,1,work_g1,'rda8',.true.) 
+               call ice_open(nu_grid,grid_file,64)
+               call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)
                if (my_task == master_task) close (nu_grid)
 
          end select
@@ -411,7 +411,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'pop_nc') 
+            case ('mom_nc', 'pop_nc')
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -420,7 +420,7 @@
                   status = nf90_inq_varid(fid_kmt, 'kmt', varid)
                   if (status == nf90_noerr) then
                      mask_fieldname = 'kmt'
-                  else 
+                  else
                      status = nf90_inq_varid(fid_kmt, 'mask', varid)
                      call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
                                        ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
@@ -433,7 +433,7 @@
                call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
                call ice_close_nc(fid_kmt)
 
-            case default 
+            case default
 
                call ice_open(nu_kmt, kmt_file, 32) ! KMT
                call ice_read_global(nu_kmt, 1,work_g2,'ida4',.true.)  ! KMT
@@ -441,7 +441,7 @@
 
          end select
 
-      else  
+      else
          work_g2(:,:) = c1
       endif
 
@@ -534,9 +534,9 @@
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
-            case('mom_nc') 
+            case('mom_nc')
                call mom_grid        ! derive cice grid from mom supergrid nc file
-            case ('pop_nc') 
+            case ('pop_nc')
                call popgrid_nc      ! read POP grid lengths from nc file
             case default
                call popgrid         ! read POP grid lengths directly
@@ -552,13 +552,13 @@
 
       if (trim(kmt_type) =='none') then
          kmt(:,:,:) = c1
-         hm(:,:,:)  = c1 
+         hm(:,:,:)  = c1
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-            case('mom_nc', 'pop_nc') 
+            case('mom_nc', 'pop_nc')
                call kmtmask_nc
             case default
-               call kmtmask        
+               call kmtmask
             end select
       endif !the other types are handled by rectgrid
 
@@ -593,7 +593,7 @@
       ! at halos.
       !-----------------------------------------------------------------
 
-      if (trim(grid_format) /= 'mom_nc') then 
+      if (trim(grid_format) /= 'mom_nc') then
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
@@ -782,7 +782,7 @@
       ! Coordinates for all T/N/E cells
       !----------------------------------------------------------------
 
-      if (trim(grid_format) /= 'mom_nc') then 
+      if (trim(grid_format) /= 'mom_nc') then
          if (.not. (l_readCenter)) then
             call Tlatlon        ! get lat, lon on the T grid
          endif
@@ -1439,10 +1439,10 @@
 
 !=======================================================================
 ! Create the CICE grid from the MOM supergrid netcdf file.
-! CICE fields and units are: 
-! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)    
-! HTN, HTE   (m)         
-! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)         
+! CICE fields and units are:
+! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)
+! HTN, HTE   (m)
+! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)
 ! ANGLE, ANGLET (radians)
 ! tarea, uarea, narea, earea (m^2)
 ! lont_bounds, latt_bounds, etc (degrees)
@@ -1490,20 +1490,20 @@
 
       ! populate all LAT fields
       fieldname='y'
-      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
       call mom_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
       ! create bounds fields for cf-compliant output
       call mom_bounds(G_ULAT, latt_bounds) ! u points define corners for t-cells
       call mom_bounds(G_TLAT, latu_bounds)
       call mom_bounds(work_gN, late_bounds)
       call mom_bounds(work_gE, latn_bounds)
-      !distribute global array to local 
+      !distribute global array to local
       call mom_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
                           ULAT, TLAT, ELAT, NLAT)
 
       ! populate all LON fields
       fieldname='x'
-      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
       call mom_corners_global(work_mom, G_ULON, G_TLON, work_gE, work_gN)
       call mom_bounds(G_ULON, lont_bounds)
       call mom_bounds(G_TLON, lonu_bounds)
@@ -1521,7 +1521,7 @@
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-      ! populate angle fields, angle is u-points, angleT is t-points 
+      ! populate angle fields, angle is u-points, angleT is t-points
       ! even though mom supergrid files contain angle_dx, mom6 calculates internally
       call grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
       call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
@@ -1547,7 +1547,7 @@
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
       call mom_dx(work_mom)
       deallocate(work_mom, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1561,7 +1561,7 @@
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
       call mom_dy(work_mom)
       deallocate(work_mom, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1578,7 +1578,7 @@
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag) 
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
       call mom_area(work_mom)
       deallocate(work_mom, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc', file=__FILE__, line=__LINE__)
@@ -1587,24 +1587,24 @@
       ! fin
       !-----------------------------------------------------------------
       call ice_close_nc(fid_grid)
-      l_readCenter = .true.       ! we have read t quantities 
+      l_readCenter = .true.       ! we have read t quantities
 
       end subroutine mom_grid
 
 !=======================================================================
 
-      subroutine mom_corners_global(work_mom, G_U, G_T, G_E, G_N)                   
+      subroutine mom_corners_global(work_mom, G_U, G_T, G_E, G_N)
 
       ! mom supergrid has four cells for every model cell
       ! we need to select the correct edges to get lat & lon for a model cell
       ! we include left/bottom edges for U-points, and top/right edges for T-points
       ! and close per ew_boundary_type & ns_boundary_type
 
-      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom 
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
          ! supergrid array of x or y
 
-      real (kind=dbl_kind), dimension(:,:), intent(out) :: G_U, G_T, G_E, G_N 
-         ! global grids 
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: G_U, G_T, G_E, G_N
+         ! global grids
 
       integer (kind=int_kind) :: &
          i, j, &
@@ -1631,7 +1631,7 @@
          jm1 = 1; jm2 = 2 ! bottom, middle of first row
          do j = 1, ny_global
             G_U(nx_global+1,j) = work_mom(2*nx_global+1, jm1)
-            G_E(nx_global+1,j) = work_mom(2*nx_global+1, jm2)     
+            G_E(nx_global+1,j) = work_mom(2*nx_global+1, jm2)
             jm1 = jm1 + 2 ; jm2 = jm2 + 2
          enddo
          select case (trim(ew_boundary_type))
@@ -1645,16 +1645,16 @@
                enddo
          end select
 
-         ! fill last row 
+         ! fill last row
          im1 = 1 ; im2 = 2
          do i = 1, nx_global+1
-            G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global+1) 
-            G_N(i,ny_global + 1) = work_mom(im2, 2*ny_global+1)     
-            im1 = im1 + 2 
+            G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global+1)
+            G_N(i,ny_global + 1) = work_mom(im2, 2*ny_global+1)
+            im1 = im1 + 2
          enddo
          select case (trim(ns_boundary_type))
             case ('tripole')
-               do i = 1, nx_global+1 
+               do i = 1, nx_global+1
                   G_T(i,ny_global+1) = G_T(nx_global+1-i, ny_global)
                   G_E(i,ny_global+1) = G_E(nx_global+1-i, ny_global)
                enddo
@@ -1676,13 +1676,13 @@
 
       subroutine mom_bounds(G_corners, bounds)
 
-      ! with an global array of corner points, subset and distribute 
+      ! with an global array of corner points, subset and distribute
       ! into a cice bounds variables
-      ! e.g. The tracer coordinates are the corner of the u-cells, 
-      ! so use mom_bounds(G_TLON, lonu_bounds) 
+      ! e.g. The tracer coordinates are the corner of the u-cells,
+      ! so use mom_bounds(G_TLON, lonu_bounds)
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
-      real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds 
+      real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds
 
       ! local vars
 
@@ -1696,7 +1696,7 @@
       call scatter_global(work_bounds, G_corners(1:nx_global, 1:ny_global), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(1,:,:,:) = work_bounds(:,:,:)  
+      bounds(1,:,:,:) = work_bounds(:,:,:)
       call scatter_global(work_bounds, G_corners(2:nx_global+1, 1:ny_global), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
@@ -1704,7 +1704,7 @@
       call scatter_global(work_bounds, G_corners(2:nx_global+1, 2:ny_global+1), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(3,:,:,:) = work_bounds(:,:,:)              
+      bounds(3,:,:,:) = work_bounds(:,:,:)
       call scatter_global(work_bounds, G_corners(1:nx_global, 2:ny_global+1), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
@@ -1718,12 +1718,12 @@
 
       ! with a global array of corner points in degrees, convert to rad and scatter to workers
 
-      real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N 
+      real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N
          ! global grids
 
       real (kind=dbl_kind), dimension(:,:,:), intent(out) :: U, T, E, N ! local grids
 
-      real (kind=dbl_kind) :: deg_to_rad , pi 
+      real (kind=dbl_kind) :: deg_to_rad , pi
 
       character(len=*), parameter :: subname = '(mom_corners_scatter)'
 
@@ -1735,10 +1735,10 @@
       deg_to_rad = pi/c180
 
       ! convert to rad
-      G_T = G_T * deg_to_rad   
-      G_U = G_U * deg_to_rad   
-      G_N = G_N * deg_to_rad   
-      G_E = G_E * deg_to_rad 
+      G_T = G_T * deg_to_rad
+      G_U = G_U * deg_to_rad
+      G_N = G_N * deg_to_rad
+      G_E = G_E * deg_to_rad
 
       ! distribute to processors
       ! subset G_T to active cells by dropping right/top halo
@@ -1784,7 +1784,7 @@
 
       if (my_task == master_task) then
          allocate( &
-            G_dxT(nx_global,ny_global), & 
+            G_dxT(nx_global,ny_global), &
             G_dxN(nx_global,ny_global), &
             G_dxE(nx_global,ny_global), &
             G_dxU(nx_global,ny_global), &
@@ -1818,13 +1818,13 @@
             jm1 = jm1 + 2 ; jm2 = jm2 + 2
          enddo
          jm1 = 2 ; jm2 = 3 ! middle , top of first row
-         if (trim(ew_boundary_type) == 'cyclic') then 
+         if (trim(ew_boundary_type) == 'cyclic') then
             do j = 1, ny_global
                G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
                G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
                jm1 = jm1 + 2 ; jm2 = jm2 + 2
             enddo
-         else if (trim(ew_boundary_type) == 'open') then 
+         else if (trim(ew_boundary_type) == 'open') then
             do j = 1, ny_global
                G_dxE(nx_global,j) = 4*work_mom(2*nx_global, jm1) - 2*work_mom(2*nx_global-1, jm1)     !dxE
                G_dxU(nx_global,j) = 4*work_mom(2*nx_global, jm2) - 2*work_mom(2*nx_global-1, jm2)     !dxU
@@ -1891,7 +1891,7 @@
       if (my_task == master_task) then
          im1 = 2 ; im2 = 3 ! middle , right edge of first T-cell
          do i = 1, nx_global
-            jm1 = 1 ; jm2 = 2 ; jm3 = 3 
+            jm1 = 1 ; jm2 = 2 ; jm3 = 3
             do j = 1, ny_global - 1
                G_dyT(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2)     !dyT
                G_dyN(i,j) = work_mom(im1, jm2) + work_mom(im1, jm3)     !dyN
@@ -1946,9 +1946,9 @@
             field_loc_Nface, field_type_scalar)
       call scatter_global(HTE, G_dyE, master_task, distrb_info, &
             field_loc_center, field_type_scalar)
-      dyE(:,:,:) = HTE(:,:,:)  
+      dyE(:,:,:) = HTE(:,:,:)
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
-            field_loc_NEcorner, field_type_scalar)    
+            field_loc_NEcorner, field_type_scalar)
 
       deallocate(G_dyT, G_dyN, G_dyE, G_dyU)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1975,7 +1975,7 @@
          this_block           ! block information for current block
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         G_tarea, G_uarea 
+         G_tarea, G_uarea
 
       character(len=*), parameter :: subname = '(mom_area)'
 
@@ -2012,44 +2012,44 @@
       if (my_task == master_task) then
          im1 = 1 ; im2 = 2 ! left/right -half of first column
          im3 = 3 ! right of first U - cell
-         do i = 1, nx_global - 1 
+         do i = 1, nx_global - 1
             jm1 = 1 ; jm2 = 2 ! bottom/top -half of first row
             jm3 = 3 ! top of first U - cell
             do j = 1, ny_global - 1
                G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                              + work_mom(im2, jm1) + work_mom(im2, jm2)     
+                              + work_mom(im2, jm1) + work_mom(im2, jm2)
                G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                              + work_mom(im3, jm2) + work_mom(im3, jm3)     
+                              + work_mom(im3, jm2) + work_mom(im3, jm3)
                jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
             enddo
             im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
          enddo
 
          ! fill last column
-         jm1 = 1 ; jm2 = 2 ; jm3 = 3 
-         im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1              
+         jm1 = 1 ; jm2 = 2 ; jm3 = 3
+         im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1
          do j = 1, ny_global - 1
             G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                 + work_mom(im2, jm1) + work_mom(im2, jm2)   
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)
             if (trim(ew_boundary_type) == 'cyclic') then
                G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                                    + work_mom(im3, jm2) + work_mom(im3, jm3) 
+                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
             else if (trim(ew_boundary_type) == 'open') then
                G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
                                     - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
             endif
             jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
          enddo
-      
+
          ! fill last row
-         jm1 = ny_global*2 - 1 ; jm2 = ny_global*2 
-         im1 = 1 ; im2 = 2 ; im3 = 3 
-         do i = 1, nx_global -1 
+         jm1 = ny_global*2 - 1 ; jm2 = ny_global*2
+         im1 = 1 ; im2 = 2 ; im3 = 3
+         do i = 1, nx_global -1
             G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                 + work_mom(im2, jm1) + work_mom(im2, jm2)     
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)
             if (trim(ns_boundary_type) == 'tripole') then
                G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
-                                    + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2) 
+                                    + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2)
             else if (trim(ns_boundary_type) == 'cyclic') then
                G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
                                     + work_mom(im3, jm2) + work_mom(im3, jm3)
@@ -2061,25 +2061,25 @@
          enddo
 
          ! the top right corner
-         im1 = nx_global*2-1 ; im2 = nx_global*2 
-         jm1 = ny_global*2-1 ; jm2 = ny_global*2  
+         im1 = nx_global*2-1 ; im2 = nx_global*2
+         jm1 = ny_global*2-1 ; jm2 = ny_global*2
          G_tarea(nx_global,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
-                                       + work_mom(im2, jm1) + work_mom(im2, jm2)  
+                                       + work_mom(im2, jm1) + work_mom(im2, jm2)
          if (trim(ns_boundary_type) == 'tripole') then
             G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
-         else if (trim(ns_boundary_type) == 'cyclic' & 
+         else if (trim(ns_boundary_type) == 'cyclic' &
                   .and. trim(ew_boundary_type) == 'cyclic') then
             G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
                                           + work_mom(im2, 1) + work_mom(1, 1)
-         else if (trim(ns_boundary_type) == 'cyclic' & 
+         else if (trim(ns_boundary_type) == 'cyclic' &
                   .and. trim(ew_boundary_type) == 'open') then
             G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
                                           - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
-         else if (trim(ns_boundary_type) == 'open' & 
+         else if (trim(ns_boundary_type) == 'open' &
                   .and. trim(ew_boundary_type) == 'cyclic') then
             G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
                                           - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
-         else if (trim(ns_boundary_type) == 'open' & 
+         else if (trim(ns_boundary_type) == 'open' &
                   .and. trim(ew_boundary_type) == 'open') then
             G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
                                  - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
@@ -2115,7 +2115,7 @@
          lon_scale, &  ! The trigonometric scaling factor converting changes in longitude to equivalent distances in latitudes [nondim]
          len_lon, &
          lon_adj, &
-         lonB(2,2)  
+         lonB(2,2)
       integer (kind=int_kind) :: i, j, m, n
 
       character(len=*), parameter :: subname = '(grid_rotation_angle)'
@@ -2123,7 +2123,7 @@
       if (my_task == master_task) then
          len_lon = maxval(lon_cnr)-minval(lon_cnr)  ! The periodic range of longitudes, usually 2pi.
 
-         do j=1,ny_global 
+         do j=1,ny_global
             do i=1,nx_global
                lon_adj = lon_cen(i,j)-p5*len_lon
                do n=1,2 ; do m=1,2
@@ -2135,7 +2135,7 @@
                lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
                angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
                            (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
-            enddo 
+            enddo
          enddo
       endif
 
