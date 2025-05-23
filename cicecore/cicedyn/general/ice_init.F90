@@ -14,8 +14,8 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p01, p2, p3, p5, p75, p166, &
-          cm_to_m
+      use ice_constants, only: c0, c1, c2, c3, c5, c12, &
+          p001, p01, p2, p3, p5, p75, p166, cm_to_m
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
           ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
@@ -123,7 +123,7 @@
           e_yieldcurve, e_plasticpot, coriolis, &
           ssh_stress, kridge, brlx, arlx,       &
           deltaminEVP, deltaminVP, capping,     &
-          elasticDamp
+          elasticDamp, dyn_area_min, dyn_mass_min
       use ice_dyn_vp, only: &
           maxits_nonlin, precond, dim_fgmres, dim_pgmres, maxits_fgmres, &
           maxits_pgmres, monitor_nonlin, monitor_fgmres, &
@@ -255,7 +255,8 @@
         ortho_type,     seabed_stress,  seabed_stress_method,           &
         k1, k2,         alphab,         threshold_hw,                   &
         deltaminEVP,    deltaminVP,     capping_method,                 &
-        Cf,             Pstar,          Cstar,          Ktens
+        Cf,             Pstar,          Cstar,          Ktens,          &
+        dyn_area_min,   dyn_mass_min
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,     snw_ssp_table,                 &
@@ -377,7 +378,8 @@
       restart_chunksize(:) = 0    ! chunksize for netcdf4
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
-      grid_format  = 'bin'        ! file format ('bin'=binary or 'nc'=netcdf)
+      grid_format  = 'bin'        ! grid format
+         ! ('bin'=binary or 'pop_nc'=pop netcdf or 'mom_nc'=mom netcdf)
       grid_type    = 'rectangular'! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
       grid_ice     = 'B'          ! underlying grid system
@@ -413,6 +415,8 @@
       kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
+      dyn_area_min = p001     ! minimum ice area concentration to activate dynamics
+      dyn_mass_min = p01      ! minimum ice mass to activate dynamics (kg/m^2)
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -1016,6 +1020,8 @@
       call broadcast_scalar(kstrength,            master_task)
       call broadcast_scalar(Pstar,                master_task)
       call broadcast_scalar(Cstar,                master_task)
+      call broadcast_scalar(dyn_area_min,         master_task)
+      call broadcast_scalar(dyn_mass_min,         master_task)
       call broadcast_scalar(krdg_partic,          master_task)
       call broadcast_scalar(krdg_redist,          master_task)
       call broadcast_scalar(mu_rdg,               master_task)
@@ -1952,6 +1958,7 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Grid, Discretization'
          write(nu_diag,*) '--------------------------------'
+         write(nu_diag,1030) ' grid_format         = ',trim(grid_format)
          tmpstr2 = ' '
          if (trim(grid_type) == 'rectangular')    tmpstr2 = ' : internally defined, rectangular grid'
          if (trim(grid_type) == 'regional')       tmpstr2 = ' : user-defined, regional grid'
@@ -2033,6 +2040,8 @@
             tmpstr2 = ' : unknown value'
          endif
          write(nu_diag,1020) ' kdyn             = ', kdyn,trim(tmpstr2)
+         write(nu_diag,1003) ' dyn_area_min     = ', dyn_area_min,' : min ice area concentration to activate dynamics'
+         write(nu_diag,1003) ' dyn_mass_min     = ', dyn_mass_min,' : min ice mass to activate dynamics (kg/m2)'
          if (kdyn >= 1) then
             if (kdyn == 1 .or. kdyn == 2) then
                if (revised_evp) then
@@ -2679,6 +2688,17 @@
 
       endif                     ! my_task = master_task
 
+      ! For backward compatibility
+      if (grid_format ==  'nc') grid_format = 'pop_nc'
+
+      if (grid_format /=  'pop_nc'        .and. &
+          grid_format /=  'mom_nc'        .and. &
+          grid_format /=  'meshnc'        .and. &
+          grid_format /=  'bin' ) then
+         if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown grid_format=',trim(grid_type)
+         abort_list = trim(abort_list)//":67"
+      endif
+
       if (grid_type  /=  'displaced_pole' .and. &
           grid_type  /=  'tripole'        .and. &
           grid_type  /=  'column'         .and. &
@@ -2703,14 +2723,16 @@
           kmt_type  /=  'channel_onenorth' .and. &
           kmt_type  /=  'wall'    .and. &
           kmt_type  /=  'default' .and. &
-          kmt_type  /=  'boxislands') then
+          kmt_type  /=  'boxislands'.and. &
+          kmt_type  /=  'none' ) then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: unknown kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":27"
       endif
 
       if (grid_type  /=  'column'      .and. &
           grid_type  /=  'rectangular' .and. &
-          kmt_type   /=  'file') then
+          kmt_type   /=  'file' .and. &
+          kmt_type   /=  'none') then
          if (my_task == master_task) write(nu_diag,*) subname//' ERROR: need kmt file, kmt_type=',trim(kmt_type)
          abort_list = trim(abort_list)//":28"
       endif
@@ -3366,7 +3388,7 @@
 
          elseif (trim(ice_data_type) == 'uniform' .or. trim(ice_data_type) == 'box2001') then
             ! all cells not land mask are ice
-            ! box2001 used to have a check for west of 50W, this was changed, so now box2001 is 
+            ! box2001 used to have a check for west of 50W, this was changed, so now box2001 is
             ! the same as uniform.  keep box2001 option for backwards compatibility.
             icells = 0
             do j = jlo, jhi

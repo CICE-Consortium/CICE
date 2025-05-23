@@ -1,0 +1,74 @@
+#==============================================================================
+# Makefile macros for NavyDSRC blueback, nvhpc compiler
+#==============================================================================
+
+CPP        := nvc -Mcpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DNO_R16 ${ICE_CPPDEFS}
+CFLAGS     := -c -Kieee
+
+FIXEDFLAGS := -Mfixed
+FREEFLAGS  := -Mfree
+FFLAGS     := -Kieee -byteswapio -traceback 
+FFLAGS_NOOPT:= -O0
+
+ifeq ($(ICE_BLDDEBUG), true)
+#  FFLAGS   += -O0 -g -Ktrap=fp -Mbounds -Mchkptr
+#  FFLAGS   += -O0 -g -Ktrap=fp -Mbounds
+#  FFLAGS   += -O0 -Ktrap=fp -Mbounds -Mchkptr
+  # -Ktrap=fp produces an abort in hdf5 ~v1.14 which is fixed in 1.14.4.2
+  FFLAGS   += -O0
+#  FFLAGS   += -O0 -Ktrap=fp
+  CFLAGS   += -O0
+else
+#  FFLAGS   += -O2 -Mnofma -target=zen3
+  FFLAGS   += -O2
+  CFLAGS   += -O2
+endif
+
+#SCC   := nvc
+#SFC   := nvfortran
+#MPICC := mpicc
+#MPIFC := mpif90
+SCC   := cc
+SFC   := ftn
+MPICC := cc
+MPIFC := ftn
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+NETCDF_PATH := $(NETCDF)
+
+#PIO_CONFIG_OPTS:= --enable-filesystem-hints=gpfs 
+
+#INCLDIR := $(INCLDIR)
+
+LIB_NETCDF := $(NETCDF_PATH)/lib
+#LIB_PNETCDF := $(PNETCDF_PATH)/lib
+#LIB_MPI := $(IMPILIBDIR)
+
+#SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff -L$(LIB_PNETCDF) -lpnetcdf
+SLIBS   := -L$(LIB_NETCDF) -lnetcdf -lnetcdff
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -mp 
+   CFLAGS += -mp 
+   FFLAGS += -mp 
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO)/lib
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+   LIB_PIO := $(PIO)/lib
+   SLIBS   := $(SLIBS) -L$(LIB_PIO) -lpiof -lpioc
+endif
+

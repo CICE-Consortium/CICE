@@ -79,7 +79,7 @@ module ice_import_export
   ! Private module data
 
   type fld_list_type
-    character(len=128) :: stdname
+    character(char_len) :: stdname
     integer :: ungridded_lbound = 0
     integer :: ungridded_ubound = 0
   end type fld_list_type
@@ -1409,7 +1409,7 @@ contains
     ! local variables
     integer                :: n
     type(ESMF_Field)       :: field
-    character(len=80)      :: stdname
+    character(char_len)    :: stdname
     character(ESMF_MAXSTR) :: msg
     character(len=*),parameter  :: subname='(ice_import_export:fld_list_realize)'
     ! ----------------------------------------------

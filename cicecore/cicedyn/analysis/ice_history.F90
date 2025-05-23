@@ -2322,7 +2322,7 @@
             timedbl = (timesecs-dt)/(secday)
             time_beg(ns) = real(timedbl,kind=real_kind)
          endif
-      enddo
+      enddo  ! ns
 
       !---------------------------------------------------------------
       ! increment field

@@ -198,6 +198,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
+    dyn_area_min    = 0.001d0
+    dyn_mass_min    = 0.01d0
 /
 
 &shortwave_nml
@@ -335,8 +337,6 @@
     restore_bgc     = .false.
     restart_bgc     = .false.
     scale_bgc       = .false.
-    solve_zsal      = .false.
-    restart_zsal    = .false.
     tr_bgc_Nit      = .false.
     tr_bgc_C        = .false.
     tr_bgc_chl      = .false.
@@ -350,8 +350,6 @@
     grid_o          = 0.006
     grid_o_t        = 0.006
     l_sk            = 2.0
-    grid_oS         = 0.0
-    l_skS           = 0.028
     phi_snow        = -1.0
     initbio_frac    = 1.0
     frazil_scav     = 0.8  
