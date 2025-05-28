@@ -287,7 +287,7 @@ def init_ncout(ncout,nc1,llat,llon):
     # with dimension 'time'
     times          = dsout.createVariable('time','f8',('time',))
     times.units    = nc1['initial_time0_hours'].units
-    times.calendar = 'gregorian'
+    times.calendar = 'proleptic_gregorian'
 
     # loop over nc1 times
     dates = []

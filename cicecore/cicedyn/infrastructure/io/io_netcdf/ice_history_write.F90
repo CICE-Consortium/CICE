@@ -254,7 +254,7 @@
             elseif (days_per_year == 365 .and. .not.use_leap_years ) then
                cal_att='noleap'
             elseif (use_leap_years) then
-               cal_att='Gregorian'
+               cal_att='proleptic_gregorian'
             else
                call abort_ice(subname//' ERROR: invalid calendar settings', file=__FILE__, line=__LINE__)
             endif
