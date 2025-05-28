@@ -384,7 +384,7 @@
       use ice_dyn_shared, only: kdyn
       use ice_read_write, only: ice_open, ice_open_ext
 
-      character(len=char_len_long), intent(in), optional :: filename_spec
+      character(len=*), intent(in), optional :: filename_spec
 
       ! local variables
 

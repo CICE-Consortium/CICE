@@ -108,7 +108,7 @@
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells, valid in halo
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
-         ocn_gridcell_frac   ! only relevant for lat-lon grids
+         ocn_gridcell_frac   ! ocean gridcell fraction
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
       real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
@@ -161,6 +161,7 @@
          umaskCD, & ! land/boundary mask  (U-cell) (1 if at least two surrounding T cells are ocean)
          nmask  , & ! land/boundary mask, (N-cell)
          emask  , & ! land/boundary mask, (E-cell)
+         opmask , & ! land/boundary orphan mask, ocean cells in atmosphere but not ocean/ice
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
@@ -237,6 +238,7 @@
          umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
+         opmask   (nx_block,ny_block,max_blocks), & ! land/boundary orphan mask (atm ocean/ice cell)
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
@@ -250,6 +252,8 @@
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
+
+      ocn_gridcell_frac(:,:,:) = -c1   ! special value to start, will be ignored unless set elsewhere
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -269,7 +273,6 @@
       end subroutine alloc_grid
 
 !=======================================================================
-
 !
 ! DeAllocate space for variables no longer needed after initialization
 !
@@ -287,7 +290,6 @@
       end subroutine dealloc_grid
 
 !=======================================================================
-
 ! Distribute blocks across processors.  The distribution is optimized
 ! based on latitude and topography, contained in the ULAT and KMT arrays.
 !
@@ -301,8 +303,8 @@
 #endif
 
       integer (kind=int_kind) :: &
-         fid_grid, &     ! file id for netCDF grid file
-         fid_kmt         ! file id for netCDF kmt file
+         fid_grid, &    ! file id for netCDF grid file
+         fid_kmt        ! file id for netCDF kmt file
 
       character (char_len) :: &
          fieldname       ! field name in netCDF file
@@ -359,7 +361,7 @@
 
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
-          trim(grid_type) == 'regional'     ) then
+          trim(grid_type) == 'regional') then
 
          ! Fill ULAT
          select case(trim(grid_format))
@@ -389,7 +391,7 @@
                deallocate(work_mom, stat=ierr)
                if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
-            case('pop_nc')
+            case('pop_nc', 'geosnc') 
 
                fieldname='ulat'
                call ice_open_nc(grid_file,fid_grid)
@@ -411,7 +413,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'pop_nc')
+            case ('mom_nc', 'pop_nc', 'geosnc') 
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -475,7 +477,6 @@
       end subroutine init_grid1
 
 !=======================================================================
-
 ! Horizontal grid initialization:
 !
 !     U{LAT,LONG} = true {latitude,longitude} of U points
@@ -500,8 +501,7 @@
          ierr
 
       real (kind=dbl_kind) :: &
-         angle_0, angle_w, angle_s, angle_sw, &
-         pi, pi2, puny
+         angle_0, angle_w, angle_s, angle_sw, pi
 
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
@@ -524,8 +524,8 @@
       !-----------------------------------------------------------------
 
       l_readCenter = .false.
+      call icepack_query_parameters(pi_out=pi)
 
-      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -534,10 +534,12 @@
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
-            case('mom_nc')
-               call mom_grid        ! derive cice grid from mom supergrid nc file
-            case ('pop_nc')
+            case('mom_nc') 
+               call mom_grid        ! derive cice grid from MOM supergrid nc file
+            case ('pop_nc') 
                call popgrid_nc      ! read POP grid lengths from nc file
+            case ('geosnc') 
+               call geosgrid_nc     ! read GEOS MOM grid used from nc file
             case default
                call popgrid         ! read POP grid lengths directly
          end select
@@ -555,12 +557,12 @@
          hm(:,:,:)  = c1
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-            case('mom_nc', 'pop_nc')
-               call kmtmask_nc
+            case('mom_nc', 'pop_nc' ,'geosnc') 
+               call kmtmask('nc')
             case default
-               call kmtmask
-            end select
-      endif !the other types are handled by rectgrid
+               call kmtmask('bin')
+         end select
+      endif ! the other types are handled by rectgrid
 
       !-----------------------------------------------------------------
       ! Diagnose OpenMP thread schedule, force order in output
@@ -833,39 +835,55 @@
       end subroutine init_grid2
 
 !=======================================================================
-
 ! POP land mask
 ! Land mask record number and field is (1) KMT.
 
-      subroutine kmtmask
+      subroutine kmtmask(filetype)
+
+      character(len=*), intent(in) :: &
+         filetype        ! 'nc' or 'bin'
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         ilo,ihi,jlo,jhi ! beginning and end of physical domain
+
+      integer (kind=int_kind) :: &
+         fid_kmt         ! file id for netCDF kmt file
 
       logical (kind=log_kind) :: diag
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+      real (kind=dbl_kind) :: &
+         puny
 
       type (block) :: &
-         this_block           ! block information for current block
+         this_block       ! block information for current block
 
       character(len=*), parameter :: subname = '(kmtmask)'
 
-      call ice_open(nu_kmt,kmt_file,32)
+      call icepack_query_parameters(puny_out=puny)
 
       diag = .true.       ! write diagnostic info
 
-      !-----------------------------------------------------------------
-      ! topography
-      !-----------------------------------------------------------------
       kmt(:,:,:) = c0
       hm (:,:,:) = c0
 
-      call ice_read(nu_kmt,1,kmt,'ida4',diag, &
-                    field_loc=field_loc_center, &
-                    field_type=field_type_scalar)
+      if (filetype == 'bin') then
+         call ice_open(nu_kmt,kmt_file,32)
+         call ice_read(nu_kmt,1,kmt,'ida4',diag, &
+                       field_loc=field_loc_center, &
+                       field_type=field_type_scalar)
+         if (my_task == master_task) then
+            close (nu_kmt)
+         endif
+      elseif (filetype == 'nc') then
+         call ice_open_nc(kmt_file,fid_kmt)
+         call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
+                           field_loc=field_loc_center, &
+                           field_type=field_type_scalar)
+         call ice_close_nc(fid_kmt)
+      else
+         call abort_ice(subname//' ERROR: invalid filetype='//trim(filetype), file=__FILE__, line=__LINE__)
+      endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -877,20 +895,20 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
+            ! force grid cells to land if ocn_gridcell_frac is defined
+            if (ocn_gridcell_frac(i,j,iblk) >= c0 .and. &
+                ocn_gridcell_frac(i,j,iblk) < puny) then
+               kmt(i,j,iblk)  = c0
+            endif
             if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
 
-      if (my_task == master_task) then
-         close (nu_kmt)
-      endif
-
       end subroutine kmtmask
 
 !=======================================================================
-
 ! POP displaced pole grid (or tripole).
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
@@ -965,60 +983,6 @@
       end subroutine popgrid
 
 !=======================================================================
-
-! POP/MOM land mask.
-! Land mask field is kmt or mask, saved in mask_fieldname.
-
-      subroutine kmtmask_nc
-
-      integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_kmt                ! file id for netCDF kmt file
-
-      logical (kind=log_kind) :: diag
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(kmtmask_nc)'
-
-      diag = .true.       ! write diagnostic info
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-
-      call ice_open_nc(kmt_file,fid_kmt)
-
-      call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
-                        field_loc=field_loc_center, &
-                        field_type=field_type_scalar)
-
-      call ice_close_nc(fid_kmt)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      end subroutine kmtmask_nc
-
-!=======================================================================
-
 ! POP displaced pole grid and land mask.
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
@@ -1156,7 +1120,6 @@
 
 #ifdef CESMCOUPLED
 !=======================================================================
-
 ! Read in kmt file that matches CAM lat-lon grid and has single column
 ! functionality
 ! author: Mariana Vertenstein
@@ -1205,7 +1168,6 @@
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
          pi, &
-         puny, &
          scamdata             ! temporary
 
       character(len=*), parameter :: subname = '(lonlatgrid)'
@@ -1218,7 +1180,7 @@
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
 
-      call icepack_query_parameters(pi_out=pi, puny_out=puny)
+      call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1523,10 +1485,10 @@
 
       ! populate angle fields, angle is u-points, angleT is t-points
       ! even though mom supergrid files contain angle_dx, mom6 calculates internally
-      call grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
+      call mom_grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
       call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                            field_loc_center, field_type_angle)
-      call grid_rotation_angle(G_TLON, G_TLAT, G_ULON(2:nx_global+1,2:ny_global+1), work_g1) ! angle
+      call mom_grid_rotation_angle(G_TLON, G_TLAT, G_ULON(2:nx_global+1,2:ny_global+1), work_g1) ! angle
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_angle)
 
@@ -2098,7 +2060,7 @@
 
 !=======================================================================
 
-      subroutine grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
+      subroutine mom_grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
       !  create angles in the same way mom6 creates the angle
       !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
       !  the angle is between logical north on the grid and true north.
@@ -2118,7 +2080,7 @@
          lonB(2,2)
       integer (kind=int_kind) :: i, j, m, n
 
-      character(len=*), parameter :: subname = '(grid_rotation_angle)'
+      character(len=*), parameter :: subname = '(mom_grid_rotation_angle)'
 
       if (my_task == master_task) then
          len_lon = maxval(lon_cnr)-minval(lon_cnr)  ! The periodic range of longitudes, usually 2pi.
@@ -2139,10 +2101,152 @@
          enddo
       endif
 
-      end subroutine grid_rotation_angle
+      end subroutine mom_grid_rotation_angle
 
 !=======================================================================
+! GEOS MOM grid
+! Grid record number, field and units are: \\
+! (1) ULAT  (radians)    \\
+! (2) ULON  (radians)    \\
+! (3) ANGLE (radians)    \\
+! (4) ANGLET (radians)   \\
+! (5) HTN   (cm)         \\
+! (6) HTE   (cm)         \\
+!
+! Land mask record number and field is (1) KMT.
+!
 
+      subroutine geosgrid_nc
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: c0, c1, &
+          field_loc_center, field_loc_NEcorner, &
+          field_type_scalar, field_type_angle
+      use ice_domain_size, only: max_blocks
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
+         fid_grid              ! file id for netCDF grid file
+
+      logical (kind=log_kind) :: diag
+
+      character (char_len) :: &
+         fieldname             ! field name in netCDF file
+
+      real (kind=dbl_kind) :: &
+         pi
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g1
+
+      type (block) :: &
+         this_block            ! block information for current block
+
+      integer(kind=int_kind) :: &
+         varid
+      integer (kind=int_kind) :: &
+         status                ! status flag
+
+      character(len=*), parameter :: subname = '(geosgrid_nc)'
+
+#ifdef USE_NETCDF
+      call icepack_query_parameters(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if   (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      call ice_open_nc(grid_file,fid_grid)
+
+      diag = .true.       ! write diagnostic info
+      l_readCenter = .false.
+
+      !-----------------------------------------------------------------
+      ! lat, lon, angle
+      !-----------------------------------------------------------------
+
+      allocate(work_g1(nx_global,ny_global))
+
+      fieldname='ulat'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
+      call gridbox_verts(work_g1,latt_bounds)
+      call scatter_global(ULAT, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(ULAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      fieldname='ulon'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
+      call gridbox_verts(work_g1,lont_bounds)
+      call scatter_global(ULON, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(ULON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      fieldname='angle'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
+      call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_angle)
+      ! fix ANGLE: roundoff error due to single precision
+      where (ANGLE >  pi) ANGLE =  pi
+      where (ANGLE < -pi) ANGLE = -pi
+
+      ! if grid file includes anglet then read instead
+      fieldname='anglet'
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
+         else
+            write(nu_diag,*) subname//' angleT, TLON and TLAT is read from grid file'
+            l_readCenter = .true.
+         endif
+      endif
+      call broadcast_scalar(l_readCenter,master_task)
+      if (l_readCenter) then
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_angle)
+         where (ANGLET >  pi) ANGLET =  pi
+         where (ANGLET < -pi) ANGLET = -pi
+         fieldname="tlon"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLON, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+         fieldname="tlat"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLAT, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+      endif
+      !-----------------------------------------------------------------
+      ! cell dimensions
+      ! calculate derived quantities from global arrays to preserve
+      ! information on boundaries
+      !-----------------------------------------------------------------
+
+      fieldname='htn'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      fieldname='hte'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+
+      deallocate(work_g1)
+
+      if (my_task == master_task) then
+         call ice_close_nc(fid_grid)
+      endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine geosgrid_nc
+
+!=======================================================================
 ! Regular rectangular grid and mask
 !
 ! author: Elizabeth C. Hunke, LANL
@@ -2500,7 +2604,6 @@
       end subroutine rectgrid_scale_dxdy
 
 !=======================================================================
-
       ! Complex land mask for testing box cases
       ! Requires nx_global, ny_global > 20
       ! Assumes work array has been initialized to 1 (ocean) and north and
@@ -2628,7 +2731,6 @@
 
 
 !=======================================================================
-
 ! Calculate dxU and dxT from HTN on the global grid, to preserve
 ! ghost cell and/or land values that might otherwise be lost. Scatter
 ! dxU, dxT and HTN to all processors.
@@ -2849,7 +2951,6 @@
       end subroutine primary_grid_lengths_HTE
 
 !=======================================================================
-
 !  This subroutine fills ghost cells in global extended grid
 
       subroutine global_ext_halo(array)
@@ -2891,7 +2992,6 @@
       end subroutine global_ext_halo
 
 !=======================================================================
-
 ! Sets the boundary values for the T cell land mask (hm) and
 ! makes the logical land masks for T and U cells (tmask, umask)
 ! and N and E cells (nmask, emask).
@@ -2970,6 +3070,8 @@
                            field_loc_Eface,    field_type_scalar)
       call ice_HaloUpdate (bm,                 halo_info, &
                            field_loc_center,   field_type_scalar)
+      call ice_HaloUpdate (ocn_gridcell_frac,  halo_info, &
+                           field_loc_center,   field_type_scalar)
       call ice_timer_stop(timer_bound)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2986,6 +3088,7 @@
          umaskCD(:,:,iblk) = .false.
          nmask(:,:,iblk)   = .false.
          emask(:,:,iblk)   = .false.
+         opmask(:,:,iblk)  = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk)   > p5  ) tmask  (i,j,iblk)   = .true.
@@ -2993,6 +3096,8 @@
             if (uvmCD(i,j,iblk) > c1p5) umaskCD(i,j,iblk)   = .true.
             if (npm(i,j,iblk)   > p5  ) nmask  (i,j,iblk)   = .true.
             if (epm(i,j,iblk)   > p5  ) emask  (i,j,iblk)   = .true.
+            if (ocn_gridcell_frac(i,j,iblk) > puny .and. .not. tmask(i,j,iblk)) &
+                opmask(i,j,iblk) = .true.
          enddo
          enddo
 
@@ -3046,7 +3151,6 @@
       end subroutine makemask
 
 !=======================================================================
-
 ! Initializes latitude and longitude on T grid
 !
 ! author: Elizabeth C. Hunke, LANL; code originally based on POP grid
@@ -3174,7 +3278,6 @@
       end subroutine Tlatlon
 
 !=======================================================================
-
 ! Initializes latitude and longitude on N, E grid
 !
 ! author: T. Craig from Tlatlon
@@ -3372,7 +3475,6 @@
       end subroutine NElatlon
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! Constructs the shift based on the grid
 ! NOTE: Input array includes ghost cells that must be updated before
@@ -3407,7 +3509,6 @@
       end subroutine grid_average_X2Y_base
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -3443,7 +3544,6 @@
       end subroutine grid_average_X2Y_userwghts
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -3498,7 +3598,6 @@
       end subroutine grid_average_X2Y_NEversion
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -3607,7 +3706,6 @@
       end subroutine grid_average_X2Y_1
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -3943,7 +4041,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YS
 
@@ -4171,7 +4269,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YA
 
@@ -4373,7 +4471,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YF
 
@@ -4518,7 +4616,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2Y_2
 
@@ -5082,7 +5180,6 @@
       end subroutine gridbox_edges
 
 !=======================================================================
-
 ! NOTE:  Boundary conditions for fields on NW, SW, SE corners
 !        have not been implemented; using NE corner location for all.
 !        Extrapolations are also used: these fields are approximate!
@@ -5218,9 +5315,6 @@
       real (kind=dbl_kind), dimension(nlevel) :: &
          depth              ! total depth, m
 
-      real (kind=dbl_kind) :: &
-         puny
-
       logical (kind=log_kind) :: &
          calc_dragio
 
@@ -5243,7 +5337,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry)'
 
-      call icepack_query_parameters(puny_out=puny, calc_dragio_out=calc_dragio)
+      call icepack_query_parameters(calc_dragio_out=calc_dragio)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -5391,7 +5485,6 @@
       end subroutine get_bathymetry_popfile
 
 !=======================================================================
-
 ! Read bathymetry data for seabed stress calculation (grounding scheme for
 ! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode
 ! (e.g. CICE-NEMO), hwater should be uptated at each time level so that

@@ -2090,8 +2090,7 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
-      use ice_domain, only: nblocks, halo_info
-      use ice_grid, only: grid_type
+      use ice_domain, only: nblocks, halo_info, ns_boundary_type
       use ice_restart, only: read_restart_field
 
       ! local variables
@@ -2131,7 +2130,8 @@
       call read_restart_field(nu_restart_eap,0,a12_4,'ruf8', &
            'a12_4',1,diag,field_loc_center,field_type_scalar) ! a12_4
 
-      if (trim(grid_type) == 'tripole') then
+      if (trim(ns_boundary_type) == 'tripole' .or. &
+          trim(ns_boundary_type) == 'tripoleT') then
 
          call ice_HaloUpdate_stress(a11_1, a11_3,      halo_info, &
                                     field_loc_center,  field_type_scalar)
