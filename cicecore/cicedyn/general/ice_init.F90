@@ -167,7 +167,7 @@
         congel_freeze, capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, geos_heatflux, geos_massflux
+        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, semi_implicit_Tsfc, vapor_flux_correction
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -290,7 +290,8 @@
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
-        oceanmixed_file, atm_data_version,geos_heatflux,geos_massflux
+        oceanmixed_file, atm_data_version,semi_implicit_Tsfc,           &
+        vapor_flux_correction
 
       !-----------------------------------------------------------------
       ! default values
@@ -477,8 +478,8 @@
       kridge   = 1             ! -1 = off, 1 = on
       ktransport = 1           ! -1 = off, 1 = on
       calc_Tsfc = .true.       ! calculate surface temperature
-      geos_heatflux = .false.  ! geos heatflux coupling
-      geos_massflux = .false.  ! geos massflux coupling
+      semi_implicit_Tsfc = .false.  ! surface temperature coupling option based on d(hf)/dTs
+      vapor_flux_correction = .false.  ! mass/enthalpy correction for evaporation/sublimation
       update_ocn_f = .false.   ! include fresh water and salt fluxes for frazil
       cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
@@ -1122,8 +1123,8 @@
       call broadcast_scalar(rotate_wind,          master_task)
       call broadcast_scalar(calc_strair,          master_task)
       call broadcast_scalar(calc_Tsfc,            master_task)
-      call broadcast_scalar(geos_heatflux,        master_task)
-      call broadcast_scalar(geos_massflux,        master_task)
+      call broadcast_scalar(semi_implicit_Tsfc,   master_task)
+      call broadcast_scalar(vapor_flux_correction,master_task)
       call broadcast_scalar(formdrag,             master_task)
       call broadcast_scalar(highfreq,             master_task)
       call broadcast_scalar(natmiter,             master_task)
@@ -1506,6 +1507,13 @@
             write(nu_diag,*) subname//' ERROR: tr_pond_lvl=T and hs0 /= 0'
          endif
          abort_list = trim(abort_list)//":7"
+      endif
+
+      if (semi_implicit_Tsfc .and. tr_pond_topo) then
+         if (my_task == master_task) then
+            write(nu_diag,*)'ERROR: semi_implicit_Tsfc and tr_pond_topo not supported together'
+         endif
+         abort_list = trim(abort_list)//":57"
       endif
 
       if (shortwave(1:4) /= 'dEdd' .and. tr_pond .and. calc_tsfc) then
@@ -2293,8 +2301,8 @@
          write(nu_diag,1010) ' rotate_wind      = ', rotate_wind,' : rotate wind/stress to computational grid'
          write(nu_diag,1010) ' formdrag         = ', formdrag,' : use form drag parameterization'
          write(nu_diag,1000) ' iceruf           = ', iceruf, ' : ice surface roughness at atmosphere interface (m)'
-         write(nu_diag,1010) ' geos_heatflux    = ', geos_heatflux,' : GEOS heatflux calc based on d(hf)/dTs'
-         write(nu_diag,1010) ' geos_massflux    = ', geos_massflux,' : GEOS mass/enthalpy adjustment'
+         write(nu_diag,1010) ' semi_implicit_Tsfc    = ', semi_implicit_Tsfc,' : surface temperature coupling option based on d(hf)/dTs'
+         write(nu_diag,1010) ' vapor_flux_correction = ', vapor_flux_correction,' : mass/enthalpy correction for evaporation/sublimation'
          if (trim(atmbndy) == 'constant') then
             tmpstr2 = ' : constant-based boundary layer'
          elseif (trim(atmbndy) == 'similarity' .or. &
@@ -2761,8 +2769,8 @@
          atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
-         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, geos_heatflux_in=geos_heatflux, &
-         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, geos_massflux_in=geos_massflux, &
+         ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, semi_implicit_Tsfc_in=semi_implicit_Tsfc, &
+         a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, vapor_flux_correction_in=vapor_flux_correction, &
          floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
          aspect_rapid_mode_in=aspect_rapid_mode, dSdt_slow_mode_in=dSdt_slow_mode, &
          phi_c_slow_mode_in=phi_c_slow_mode, phi_i_mushy_in=phi_i_mushy, conserv_check_in=conserv_check, &

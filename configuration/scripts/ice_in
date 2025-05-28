@@ -302,8 +302,8 @@
     ocn_data_format = 'bin'
     ocn_data_dir    = '/unknown_ocn_data_dir'
     oceanmixed_file = 'unknown_oceanmixed_file'
-    geos_heatflux   = .false.
-    geos_massflux   = .false.
+    semi_implicit_Tsfc = .false.
+    vapor_flux_correction = .false.
 /
 
 &domain_nml
