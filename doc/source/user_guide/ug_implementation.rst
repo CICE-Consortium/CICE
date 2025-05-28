@@ -32,6 +32,9 @@ The present code distribution includes source code and scripts.  Forcing
 data is available from the ftp site.  The directory structure of CICE is
 as follows
 
+**COPYRIGHT.pdf**
+  copyright notice
+
 **LICENSE.pdf**
   license for using and sharing the code
 

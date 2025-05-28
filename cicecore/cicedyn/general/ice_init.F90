@@ -379,7 +379,7 @@
       restart_chunksize(:) = 0    ! chunksize for netcdf4
       lcdf64       = .false.      ! 64 bit offset for netCDF
       ice_ic       = 'default'    ! latitude and sst-dependent
-      grid_format  = 'bin'        ! grid format 
+      grid_format  = 'bin'        ! grid format
          ! ('bin'=binary or 'pop_nc'=pop netcdf or 'mom_nc'=mom netcdf)
       grid_type    = 'rectangular'! define rectangular grid internally
       grid_file    = 'unknown_grid_file'
