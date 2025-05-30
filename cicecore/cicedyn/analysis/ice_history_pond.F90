@@ -277,7 +277,7 @@
 
       if (f_ilpnd(1:1) /= 'x') &
          call define_hist_field(n_ilpnd,"ilpnd","m/s",tstr2D, tcstr, &
-             "pond loss gain to ice lid freezing / melting",         &
+             "pond loss / gain to ice lid freezing / melting",         &
              "none", c1, c0,                                       &
              ns, f_ilpnd)
 
@@ -364,7 +364,7 @@
 
         if (f_ilpndn(1:1) /= 'x') &
            call define_hist_field(n_ilpndn,"ilpndn","m/s",tstr3Dc, tcstr, &
-               "category pond loss gain to ice lid freezing / melting",   &
+               "category pond loss / gain to ice lid freezing / melting",   &
                "none", c1, c0,                                       &
                ns, f_ilpndn)
 

@@ -1,4 +1,3 @@
 [submodule "icepack"]
 	path = icepack
-        hash = 5feadd007a58fd6e923be99b2147c00130a7ce66
-	url = https://github.com/CICE-Consortium/icepack
+	url = https://github.com/cice-consortium/icepack

@@ -265,8 +265,6 @@
 #endif
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         iglob(nx_block), & ! global indices
-         jglob(ny_block), & ! global indices
          i, j           , & ! horizontal indices
          n              , & ! thickness category index
          k, kk              ! indices for aerosols
@@ -353,8 +351,6 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-      iglob = this_block%i_glob
-      jglob = this_block%j_glob
 
       do j = jlo, jhi
       do i = ilo, ihi
@@ -1072,8 +1068,6 @@
 
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         iglob(nx_block), & ! global indices
-         jglob(ny_block), & ! global indices
          i, j, n,         & ! horizontal indices
          ntrcr,           & !
          nbtrcr             !
@@ -1097,8 +1091,6 @@
       ihi = this_block%ihi
       jlo = this_block%jlo
       jhi = this_block%jhi
-      iglob = this_block%i_glob
-      jglob = this_block%j_glob
 
       do j = jlo, jhi
       do i = ilo, ihi
