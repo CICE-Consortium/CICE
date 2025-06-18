@@ -466,11 +466,11 @@ the divergence computed in the EVP dynamics (Section :ref:`dynam`).
 In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
-prescribing the area of the departure region for each edge. This can be
-done by setting `l\_EFA\_area` = true in
-**ice\_transport\_driver.F90** and passing the prescribed departure
-areas (`edgearea\_e` and `edgearea\_n`) into the remapping routine. An extra
-triangle is then constructed for each departure region to ensure that
+prescribing the area of the departure region for each edge. We refer to 
+this as the edge flux area (EFA) method. The EFA method is used 
+when `l\_EFA\_area` = true. In this case the prescribed departure
+areas (`edgearea\_e` and `edgearea\_n`) are calculated in the remapping routine. 
+An extra triangle is then constructed for each departure region to ensure that
 the total area is equal to the prescribed value. This idea was suggested
 and first implemented by Mats Bentsen of the Nansen Environmental and
 Remote Sensing Center (Norway), who applied an earlier version of the
