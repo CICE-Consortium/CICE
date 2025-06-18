@@ -453,7 +453,7 @@ Each departure triangle is defined by three of the seven points (CL,
 CR, DL, DR, IL, IR, IC).
 
 Given a 2D velocity field **u**, the divergence
-:math:`\nabla\cdot{\bf u}` in a given grid cell can be computed from the
+:math:`\nabla\cdot{\bf u}` in a given grid cell (B grid) can be computed from the
 local velocities and written in terms of fluxes across each cell edge:
 
 .. math::
@@ -467,7 +467,7 @@ In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
 prescribing the area of the departure region for each edge. This can be
-done by setting `l\_fixed\_area` = true in
+done by setting `l\_EFA\_area` = true in
 **ice\_transport\_driver.F90** and passing the prescribed departure
 areas (`edgearea\_e` and `edgearea\_n`) into the remapping routine. An extra
 triangle is then constructed for each departure region to ensure that
@@ -479,10 +479,10 @@ is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
 but not both of the grid cells that share the edge.
 
-The default value for the B grid is `l\_fixed\_area` = false. However, 
+The default value for the B grid is `l\_EFA\_area` = false. However, 
 idealized tests with the C grid have shown that prognostic fields such 
 as sea ice concentration exhibit a checkerboard pattern with 
-`l\_fixed\_area` = false. The logical `l\_fixed\_area` is therefore set 
+`l\_EFA\_area` = false :cite:`Lemieux24`. The logical `l\_EFA\_area` is therefore set 
 to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
 are in this case calculated with the C grid velocity components :math:`uvelE` 
 and :math:`vvelN`.
