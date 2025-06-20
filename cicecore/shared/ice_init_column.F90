@@ -165,6 +165,7 @@
       use ice_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen, &
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           swgrid, igrid
       use ice_blocks, only: block, get_block
@@ -175,8 +176,9 @@
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
                           alvdr_ai, alidr_ai, alvdf_ai, alidf_ai, &
                           swvdr, swvdf, swidr, swidf, scale_factor, snowfrac, &
+                          swuvrdr, swuvrdf, swpardr, swpardf, &
                           albice, albsno, albpnd, apeff_ai, coszen, fsnow
-      use ice_grid, only: tlat, tlon, tmask
+      use ice_grid, only: tlat, tlon, tmask, opmask
       use ice_restart_shared, only: restart, runtype
       use ice_state, only: aicen, vicen, vsnon, trcrn
 
@@ -287,6 +289,11 @@
                alidrn(i,j,n,iblk) = c0
                alvdfn(i,j,n,iblk) = c0
                alidfn(i,j,n,iblk) = c0
+               albpndn(i,j,n,iblk) = c0
+               albicen(i,j,n,iblk) = c0
+               albsnon(i,j,n,iblk) = c0
+               apeffn(i,j,n,iblk)  = c0
+               snowfracn(i,j,n,iblk) = c0
                fswsfcn(i,j,n,iblk) = c0
                fswintn(i,j,n,iblk) = c0
                fswthrun(i,j,n,iblk) = c0
@@ -294,6 +301,10 @@
                fswthrun_vdf(i,j,n,iblk) = c0
                fswthrun_idr(i,j,n,iblk) = c0
                fswthrun_idf(i,j,n,iblk) = c0
+               fswthrun_uvrdr(i,j,n,iblk) = c0
+               fswthrun_uvrdf(i,j,n,iblk) = c0
+               fswthrun_pardr(i,j,n,iblk) = c0
+               fswthrun_pardf(i,j,n,iblk) = c0
             enddo   ! ncat
 
          enddo
@@ -303,7 +314,9 @@
 
             if (shortwave(1:4) == 'dEdd') then ! delta Eddington
 
-#ifndef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
+               ! initialized externally
+#else
                ! initialize orbital parameters
                ! These come from the driver in the coupled model.
                call icepack_init_orbit()
@@ -325,7 +338,7 @@
                endif
             enddo
 
-            if (tmask(i,j,iblk)) then
+            if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
                call icepack_step_radiation (dt=dt,                             &
                           fbri=fbri(:),                                        &
                           aicen=aicen(i,j,:,iblk),                             &
@@ -347,6 +360,8 @@
                           sec=msec,                                             &
                           swvdr=swvdr(i,j,iblk),         swvdf=swvdf(i,j,iblk),&
                           swidr=swidr(i,j,iblk),         swidf=swidf(i,j,iblk),&
+                          swuvrdr=swuvrdr(i,j,iblk), swuvrdf=swuvrdf (i,j,iblk), &
+                          swpardr=swpardr(i,j,iblk), swpardf=swpardf (i,j,iblk), &
                           coszen=coszen(i,j,iblk),       fsnow=fsnow(i,j,iblk),&
                           alvdrn=alvdrn(i,j,:,iblk),     alvdfn=alvdfn(i,j,:,iblk), &
                           alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
@@ -356,6 +371,10 @@
                           fswthrun_vdf=fswthrun_vdf(i,j,:,iblk),               &
                           fswthrun_idr=fswthrun_idr(i,j,:,iblk),               &
                           fswthrun_idf=fswthrun_idf(i,j,:,iblk),               &
+                          fswthrun_uvrdr=fswthrun_uvrdr (i,j,:  ,iblk),        &
+                          fswthrun_uvrdf=fswthrun_uvrdf (i,j,:  ,iblk),        &
+                          fswthrun_pardr=fswthrun_pardr (i,j,:  ,iblk),        &
+                          fswthrun_pardf=fswthrun_pardf (i,j,:  ,iblk),        &
                           fswpenln=fswpenln(i,j,:,:,iblk),                     &
                           Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
                           albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &

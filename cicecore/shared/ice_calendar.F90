@@ -212,7 +212,7 @@
       ! this avoids using it uninitialzed in 'calendar' below
       nstreams = 0
 
-#ifdef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
       ! calendar_type set by coupling
 #else
       calendar_type = ''
@@ -401,7 +401,9 @@
 
       !--- compute other stuff
 
-#ifndef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
+      ! skip setting stop_now and dump_last write_restart
+#else
       if (istep >= npt+1)  stop_now = 1
       if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
 #endif
