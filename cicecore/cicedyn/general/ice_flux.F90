@@ -187,8 +187,8 @@
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          evapn_f,      & ! evaporation/sublimation (kg m-2 s-1)
-         dflatndTs_f,  & ! derivative of latent flux w.r.t. Ts
-         dfsurfndTs_f    ! derivative of surface flux w.r.t. Ts
+         dflatndTsfc_f,  & ! derivative of latent flux w.r.t. Tsfc
+         dfsurfndTsfc_f    ! derivative of surface flux w.r.t. Tsfc
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          swuvrdr     , & !  vis uvr flux, direct (W m-2)
@@ -589,8 +589,8 @@
          fsensn_f   (nx_block,ny_block,ncat,max_blocks), & ! sensible heat flux (W m-2)
          flatn_f    (nx_block,ny_block,ncat,max_blocks), & ! latent heat flux (W m-2)
          evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
-         dflatndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Ts
-         dfsurfndTs_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Ts
+         dflatndTsfc_f (nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Tsfc
+         dfsurfndTsfc_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Tsfc
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)
          meltbn     (nx_block,ny_block,ncat,max_blocks), & ! bottom melt in category n (m)

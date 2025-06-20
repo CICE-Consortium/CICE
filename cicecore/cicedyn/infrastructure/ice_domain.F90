@@ -79,9 +79,9 @@
                              ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
                              ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block
-                             ! 'block' = POP default configuration
-                             ! 'blockall' = no land block elimination
-                             ! 'blockfull'= blockall but all blocks get full weight
+                             ! 'block' = block weighted method with land block elimination
+                             ! 'blockall' = block method with NO land block elimination and minimum weight given to land blocks
+                             ! 'blockfull'= block method with NO land block elimination and full weight given to land blocks
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &

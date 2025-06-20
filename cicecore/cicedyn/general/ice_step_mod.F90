@@ -242,7 +242,7 @@
           fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
           meltt, melts, meltb, congel, snoice, &
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
-          dfsurfndts_f, dflatndts_f, &
+          dfsurfndTsfc_f, dflatndTsfc_f, &
           send_i2x_per_cat, fswthrun_ai, dsnow
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
@@ -525,8 +525,8 @@
                       fsensn_f     = fsensn_f    (i,j,:,iblk), &
                       fsurfn_f     = fsurfn_f    (i,j,:,iblk), &
                       fcondtopn_f  = fcondtopn_f (i,j,:,iblk), &
-                      dfsurfdT     = dfsurfndTs_f(i,j,:,iblk), &
-                      dflatdT      = dflatndTs_f (i,j,:,iblk), &
+                      dfsurfdT     = dfsurfndTsfc_f(i,j,:,iblk), &
+                      dflatdT      = dflatndTsfc_f (i,j,:,iblk), &
                       faero_atm    = faero_atm   (i,j,1:n_aero,iblk), &
                       faero_ocn    = faero_ocn   (i,j,1:n_aero,iblk), &
                       fiso_atm     = fiso_atm    (i,j,:,iblk), &

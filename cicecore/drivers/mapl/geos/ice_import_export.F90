@@ -11,7 +11,7 @@ module ice_import_export
   use ice_flux           , only : strairxt, strairyt, strocnxT_iavg, strocnyT_iavg
   use ice_flux           , only : alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
   use ice_flux           , only : flat, fsens, flwout, evap, fswabs, fhocn, fswthru
-  use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndts_f, dflatndts_f
+  use ice_flux           , only : evapn_f, fsurfn_f, dfsurfndTsfc_f, dflatndTsfc_f
   use ice_flux           , only : flatn_f, coszen
   use ice_flux           , only : fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf
   use ice_flux           , only : send_i2x_per_cat, fswthrun_ai
@@ -220,8 +220,8 @@ contains
                 !trcrn  (i,j,1,k,iblk)      = afldu(i,j,k,1,iblk) - Tffresh
                 evapn_f  (i,j,k,iblk)      = afldu(i,j,k,1,iblk)
                 fsurfn_f (i,j,k,iblk)      = afldu(i,j,k,2,iblk)
-                dfsurfndts_f(i,j,k,iblk)   = afldu(i,j,k,3,iblk)
-                dflatndts_f(i,j,k,iblk)    = afldu(i,j,k,4,iblk)
+                dfsurfndTsfc_f(i,j,k,iblk) = afldu(i,j,k,3,iblk)
+                dflatndTsfc_f(i,j,k,iblk)  = afldu(i,j,k,4,iblk)
                 flatn_f  (i,j,k,iblk)      = afldu(i,j,k,5,iblk)
              end do
           end do
