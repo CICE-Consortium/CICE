@@ -247,7 +247,7 @@
 ! value of del*u computed in the dynamics.  For energetic consistency
 ! (in CICE as well as in layered ocean models such as HYPOP),
 ! these two values should agree.  This can be ensured by using the 
-! edge flux area (EFA) method by setting l_EFA = T. The EFA method 
+! edge flux adjustment (EFA) method by setting l_EFA = T. The EFA method 
 ! specifies the area transported across each grid cell edge in the 
 ! arrays edgearea_e and edgearea_n.  The departure regions are then 
 ! tweaked, following an idea by Mats Bentsen, such that they have the 

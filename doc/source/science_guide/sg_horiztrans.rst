@@ -467,7 +467,7 @@ In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
 prescribing the area of the departure region for each edge. We refer to 
-this as the edge flux area (EFA) method. The EFA method is used 
+this as the edge flux adjustment (EFA) method. The EFA method is used 
 when `l\_EFA\_area` = true. In this case the prescribed departure
 areas (`edgearea\_e` and `edgearea\_n`) are calculated in the remapping routine. 
 An extra triangle is then constructed for each departure region to ensure that
@@ -486,7 +486,6 @@ as sea ice concentration exhibit a checkerboard pattern with
 to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
 are in this case calculated with the C grid velocity components :math:`uvelE` 
 and :math:`vvelN`.
-
 
 We made one other change in the scheme of :cite:`Dukowicz00` for
 locating triangles. In their paper, departure points are defined by
