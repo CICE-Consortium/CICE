@@ -114,8 +114,7 @@
          dvirdgdt, & ! rate of ice volume ridged (m/s)
          opening     ! rate of opening due to divergence/shear (1/s)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
        ! ridging diagnostics in categories
          dardg1ndt, & ! rate of area loss by ridging ice (1/s)
          dardg2ndt, & ! rate of area gain by new ridges (1/s)
@@ -177,12 +176,25 @@
        ! NOTE: when in CICE_IN_NEMO mode, these are gridbox mean fields,
        ! not per ice area. When in standalone mode, these are per ice area.
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fsurfn_f   , & ! net flux to top surface, excluding fcondtop
          fcondtopn_f, & ! downward cond flux at top surface (W m-2)
          fsensn_f   , & ! sensible heat flux (W m-2)
          flatn_f        ! latent heat flux (W m-2)
+
+      ! in from atmosphere
+      ! required for coupling in GEOS
+
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+         evapn_f,      & ! evaporation/sublimation (kg m-2 s-1)
+         dflatndTsfc_f,  & ! derivative of latent flux w.r.t. Tsfc
+         dfsurfndTsfc_f    ! derivative of surface flux w.r.t. Tsfc
+
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+         swuvrdr     , & !  vis uvr flux, direct (W m-2)
+         swuvrdf     , & !  vis uvr flux, diffuse (W m-2)
+         swpardr     , & !  vis par flux, direct (W m-2)
+         swpardf         !  vis par flux, diffuse (W m-2)
 
        ! in from atmosphere
 
@@ -258,7 +270,11 @@
          fswthru_vdr , & ! vis dir shortwave penetrating to ocean (W/m^2)
          fswthru_vdf , & ! vis dif shortwave penetrating to ocean (W/m^2)
          fswthru_idr , & ! nir dir shortwave penetrating to ocean (W/m^2)
-         fswthru_idf     ! nir dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idf , & ! nir dif shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdr,& ! vis dir uvr SW penetrating to ocean (W/m^2)
+         fswthru_uvrdf,& ! vis dif uvr SW penetrating to ocean (W/m^2)
+         fswthru_pardr,& ! nir dir par SW penetrating to ocean (W/m^2)
+         fswthru_pardf   ! nir dif par SW penetrating to ocean (W/m^2)
 
        ! internal
 
@@ -342,16 +358,14 @@
          rfpndn, & ! category runoff rate due to rfrac (m/step)
          ilpndn    ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
          fcondtopn,& ! category fcondtop
          fcondbotn,& ! category fcondbot
          fsensn,   & ! category sensible heat flux
          flatn       ! category latent heat flux
 
-      real (kind=dbl_kind), &
-         dimension (:,:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          snwcnt       ! counter for presence of snow
 
       ! As above but these remain grid box mean values i.e. they are not
@@ -473,6 +487,10 @@
          swvdf      (nx_block,ny_block,max_blocks), & ! sw down, visible, diffuse (W/m^2)
          swidr      (nx_block,ny_block,max_blocks), & ! sw down, near IR, direct  (W/m^2)
          swidf      (nx_block,ny_block,max_blocks), & ! sw down, near IR, diffuse (W/m^2)
+         swuvrdr    (nx_block,ny_block,max_blocks), & ! vis uvr flux, direct (W m-2)
+         swuvrdf    (nx_block,ny_block,max_blocks), & ! vis uvr flux, diffuse (W m-2)
+         swpardr    (nx_block,ny_block,max_blocks), & ! vis par flux, direct (W m-2)
+         swpardf    (nx_block,ny_block,max_blocks), & ! vis par flux, diffuse (W m-2)
          flw        (nx_block,ny_block,max_blocks), & ! incoming longwave radiation (W/m^2)
          frain      (nx_block,ny_block,max_blocks), & ! rainfall rate (kg/m^2 s)
          fsnow      (nx_block,ny_block,max_blocks), & ! snowfall rate (kg/m^2 s)
@@ -519,11 +537,15 @@
          fhocn      (nx_block,ny_block,max_blocks), & ! net heat flux to ocean (W/m^2)
          fsloss     (nx_block,ny_block,max_blocks), & ! rate of snow loss to leads (kg/m^2/s)
          fswthru    (nx_block,ny_block,max_blocks), & ! shortwave penetrating to ocean (W/m^2)
-         fswthru_vdr (nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
-         fswthru_vdf (nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
-         fswthru_idr (nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
-         fswthru_idf (nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
-         scale_factor (nx_block,ny_block,max_blocks), & ! scaling factor for shortwave components
+         fswthru_vdr(nx_block,ny_block,max_blocks), & ! vis dir shortwave penetrating to ocean (W/m^2)
+         fswthru_vdf(nx_block,ny_block,max_blocks), & ! vis dif shortwave penetrating to ocean (W/m^2)
+         fswthru_idr(nx_block,ny_block,max_blocks), & ! nir dir shortwave penetrating to ocean (W/m^2)
+         fswthru_idf(nx_block,ny_block,max_blocks), & ! nir dif shortwave penetrating to ocean (W/m^2)
+         fswthru_uvrdr (nx_block,ny_block,max_blocks), & ! vis dir uvr SW penetrating to ocean (W/m^2)
+         fswthru_uvrdf (nx_block,ny_block,max_blocks), & ! vis dir uvr SW penetrating to ocean (W/m^2)
+         fswthru_pardr (nx_block,ny_block,max_blocks), & ! vis dir par SW penetrating to ocean (W/m^2)
+         fswthru_pardf (nx_block,ny_block,max_blocks), & ! vis dir par SW penetrating to ocean (W/m^2)
+         scale_factor  (nx_block,ny_block,max_blocks), & ! scaling factor for shortwave components
          strairx_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, x-direction
          strairy_ocn(nx_block,ny_block,max_blocks), & ! stress on ocean by air, y-direction
          fsens_ocn  (nx_block,ny_block,max_blocks), & ! sensible heat flux (W/m^2)
@@ -586,6 +608,9 @@
          fcondtopn_f(nx_block,ny_block,ncat,max_blocks), & ! downward cond flux at top surface (W m-2)
          fsensn_f   (nx_block,ny_block,ncat,max_blocks), & ! sensible heat flux (W m-2)
          flatn_f    (nx_block,ny_block,ncat,max_blocks), & ! latent heat flux (W m-2)
+         evapn_f    (nx_block,ny_block,ncat,max_blocks), & ! evaporative water flux (kg/m^2/s) by atmosphere model
+         dflatndTsfc_f (nx_block,ny_block,ncat,max_blocks), & ! derivative of flatn with respect to Tsfc
+         dfsurfndTsfc_f(nx_block,ny_block,ncat,max_blocks), & ! derivative of fsurfn with respect to Tsfc
          meltsn     (nx_block,ny_block,ncat,max_blocks), & ! snow melt in category n (m)
          melttn     (nx_block,ny_block,ncat,max_blocks), & ! top melt in category n (m)
          meltbn     (nx_block,ny_block,ncat,max_blocks), & ! bottom melt in category n (m)
@@ -603,6 +628,11 @@
          Tmltz      (nx_block,ny_block,nilyr+1,max_blocks), & ! initial melting temperature (^oC)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
+
+      swuvrdr(:,:,:) = c0
+      swuvrdf(:,:,:) = c0
+      swpardr(:,:,:) = c0
+      swpardf(:,:,:) = c0
 
       if (grid_ice == "CD" .or. grid_ice == "C") &
          allocate( &
@@ -829,6 +859,10 @@
       fswthru_vdf (:,:,:) = c0
       fswthru_idr (:,:,:) = c0
       fswthru_idf (:,:,:) = c0
+      fswthru_uvrdr (:,:,:) = c0
+      fswthru_uvrdf (:,:,:) = c0
+      fswthru_pardr (:,:,:) = c0
+      fswthru_pardf (:,:,:) = c0
       fresh_da(:,:,:) = c0    ! data assimilation
       fsalt_da(:,:,:) = c0
       flux_bio (:,:,:,:) = c0 ! bgc
@@ -890,6 +924,8 @@
       ! strairxT(:,:,:) = 0.15_dbl_kind
       ! strairyT(:,:,:) = 0.15_dbl_kind
 
+      fsurf   (:,:,:) = c0
+      fcondtop(:,:,:) = c0
       fsens   (:,:,:) = c0
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
@@ -935,6 +971,10 @@
       fswthru_vdf  (:,:,:)   = c0
       fswthru_idr  (:,:,:)   = c0
       fswthru_idf  (:,:,:)   = c0
+      fswthru_uvrdr(:,:,:)   = c0
+      fswthru_uvrdf(:,:,:)   = c0
+      fswthru_pardr(:,:,:)   = c0
+      fswthru_pardf(:,:,:)   = c0
 
       faero_ocn (:,:,:,:) = c0
       fiso_ocn  (:,:,:,:) = c0

@@ -259,7 +259,8 @@
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
-      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
+      use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn, &
+          ns_boundary_type
       use ice_domain_size, only: max_blocks, ncat
       use ice_flux, only: rdg_conv, rdg_shear, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
@@ -280,8 +281,7 @@
       use ice_grid, only: tmask, umask, umaskCD, nmask, emask, uvm, epm, npm, &
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
-          grid_type, grid_ice, &
-          grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
+          grid_ice, grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
@@ -1313,7 +1313,8 @@
       endif
 
       ! Force symmetry across the tripole seam
-      if (trim(grid_type) == 'tripole') then
+      if (trim(ns_boundary_type) == 'tripole' .or. &
+          trim(ns_boundary_type) == 'tripoleT') then
          ! TODO: C/CD-grid
       if (maskhalo_dyn) then
          !-------------------------------------------------------
