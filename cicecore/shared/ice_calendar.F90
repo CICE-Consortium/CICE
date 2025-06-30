@@ -698,8 +698,8 @@
          call abort_ice(subname//'ERROR: in argument sizes')
       endif
 
-      if ((trim(calendar_type) == ice_calendar_gregorian) &
-            .or. (trim(calendar_type) == ice_calendar_proleptic_gregorian) ) then
+      if (trim(calendar_type) == ice_calendar_gregorian .or. &
+          trim(calendar_type) == ice_calendar_proleptic_gregorian ) then
 
          isleap = .false. ! not a leap year
          if (mod(ayear,  4) == 0) isleap = .true.
@@ -761,8 +761,8 @@
 
       ! compute days from year 0000-01-01 to year-01-01
       ! don't loop thru years for performance reasons
-      if ((trim(calendar_type) == ice_calendar_gregorian) &
-            .or. (trim(calendar_type) == ice_calendar_proleptic_gregorian)) then
+      if (trim(calendar_type) == ice_calendar_gregorian .or. &
+          trim(calendar_type) == ice_calendar_proleptic_gregorian) then
          if (lyear == 0) then
             ced_nday = 0
          else
