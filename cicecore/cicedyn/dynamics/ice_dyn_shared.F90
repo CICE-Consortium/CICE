@@ -240,7 +240,8 @@
 
       use ice_blocks, only: block, get_block
       use ice_boundary, only: ice_halo, ice_haloUpdate
-      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info
+      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info, &
+          ns_boundary_type
       use ice_domain_size, only: max_blocks
       use ice_flux, only: &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -267,6 +268,13 @@
          this_block   ! block information for current block
 
       character(len=*), parameter :: subname = '(init_dyn_shared)'
+
+      ! checks
+      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d' .and. &
+          (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT')) then
+         call abort_ice(subname//' ERROR: evp_alg shared mem 1d not supported with tripole', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       call set_evp_parameters (dt)
       ! allocate dyn shared (init_uvel,init_vvel)
