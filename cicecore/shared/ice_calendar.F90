@@ -234,6 +234,14 @@
       endif
 #endif
 
+      ! prevent coupling setting invalid calendars
+      if (trim(calendar_type) /= ice_calendar_gregorian .and. &
+          trim(calendar_type) /= ice_calendar_proleptic_gregorian .and. &
+          trim(calendar_type) /= ice_calendar_noleap .and. &
+          trim(calendar_type) /= ice_calendar_360day) then
+         call abort_ice(subname//'Error: '//trim(calendar_type)//' not supported')
+      endif
+
       call set_calendar(myear)
       call calendar()
 
