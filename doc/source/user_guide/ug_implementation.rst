@@ -888,7 +888,7 @@ per year), 360-day (twelve 30 day months per year), and proleptic gregorian
 years). The proleptic gregorian calendar avoids any discontinuties over time by 
 following the same pattern of leap years before the first year of the gregorian 
 calendar (1582, see 
-`cf-conventions <https://cfconventions.org/Data/cf-conventions/cf-conventions-1.12/cf-conventions.html#calendar>`). 
+`cf-conventions <https://cfconventions.org/Data/cf-conventions/cf-conventions-1.12/cf-conventions.html#calendar>`_). 
 The calendar is set by specifying ``days_per_year`` and ``use_leap_years`` in the
 namelist, and the following combinations are supported,
 
@@ -896,15 +896,15 @@ namelist, and the following combinations are supported,
 
 .. table:: Supported Calendar Options
 
-   +----------------------+----------------------+------------+
-   | ``days_per_year``    |  ``use_leap_years``  | calendar   |
-   +======================+======================+============+
-   | 365                  |  false               | noleap     |
-   +----------------------+----------------------+------------+
+   +----------------------+----------------------+----------------------+
+   | ``days_per_year``    |  ``use_leap_years``  | calendar             |
+   +======================+======================+======================+
+   | 365                  |  false               | noleap               |
+   +----------------------+----------------------+----------------------+
    | 365                  |  true                | proleptic gregorian  |
-   +----------------------+----------------------+------------+
-   | 360                  |  false               | 360-day    |
-   +----------------------+----------------------+------------+
+   +----------------------+----------------------+----------------------+
+   | 360                  |  false               | 360-day              |
+   +----------------------+----------------------+----------------------+
 
 
 The history (:ref:`history`) and restart (:ref:`restartfiles`) 
