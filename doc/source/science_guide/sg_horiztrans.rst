@@ -468,7 +468,7 @@ by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
 prescribing the area of the departure region for each edge. We refer to 
 this as the edge flux adjustment (EFA) method. The EFA method is used 
-when `l\_EFA\_area` = true. In this case the prescribed departure
+when `l\_EFA` = true. In this case the prescribed departure
 areas (`edgearea\_e` and `edgearea\_n`) are calculated in the remapping routine. 
 An extra triangle is then constructed for each departure region to ensure that
 the total area is equal to the prescribed value. This idea was suggested
@@ -479,10 +479,10 @@ is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
 but not both of the grid cells that share the edge.
 
-The default value for the B grid is `l\_EFA\_area` = false. However, 
+The default value for the B grid is `l\_EFA` = false. However, 
 idealized tests with the C grid have shown that prognostic fields such 
 as sea ice concentration exhibit a checkerboard pattern with 
-`l\_EFA\_area` = false :cite:`Lemieux24`. The logical `l\_EFA\_area` is therefore set 
+`l\_EFA` = false :cite:`Lemieux24`. The logical `l\_EFA` is therefore set 
 to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
 are in this case calculated with the C grid velocity components :math:`uvelE` 
 and :math:`vvelN`.
