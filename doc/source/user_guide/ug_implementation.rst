@@ -883,26 +883,28 @@ date is always used to initialize the model run.
 More information about the restart capability can be found in :ref:`restartfiles`.
 
 Several different calendars are supported including noleap (365 days
-per year), 360-day (twelve 30 day months per year), and gregorian
+per year), 360-day (twelve 30 day months per year), and proleptic gregorian
 (leap days every 4 years except every 100 years except every 400
-years).  The gregorian calendar in CICE is formally a proleptic gregorian
-calendar without any discontinuties over time.  The calendar is set
-by specifying ``days_per_year`` and ``use_leap_years`` in the
+years). The proleptic gregorian calendar avoids any discontinuties over time by 
+following the same pattern of leap years before the first year of the gregorian 
+calendar (1582, see 
+`cf-conventions <https://cfconventions.org/Data/cf-conventions/cf-conventions-1.12/cf-conventions.html#calendar>`_). 
+The calendar is set by specifying ``days_per_year`` and ``use_leap_years`` in the
 namelist, and the following combinations are supported,
 
 .. _tab-cal:
 
 .. table:: Supported Calendar Options
 
-   +----------------------+----------------------+------------+
-   | ``days_per_year``    |  ``use_leap_years``  | calendar   |
-   +======================+======================+============+
-   | 365                  |  false               | noleap     |
-   +----------------------+----------------------+------------+
-   | 365                  |  true                | gregorian  |
-   +----------------------+----------------------+------------+
-   | 360                  |  false               | 360-day    |
-   +----------------------+----------------------+------------+
+   +----------------------+----------------------+----------------------+
+   | ``days_per_year``    |  ``use_leap_years``  | calendar             |
+   +======================+======================+======================+
+   | 365                  |  false               | noleap               |
+   +----------------------+----------------------+----------------------+
+   | 365                  |  true                | proleptic gregorian  |
+   +----------------------+----------------------+----------------------+
+   | 360                  |  false               | 360-day              |
+   +----------------------+----------------------+----------------------+
 
 
 The history (:ref:`history`) and restart (:ref:`restartfiles`) 
