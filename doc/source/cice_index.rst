@@ -408,7 +408,7 @@ section :ref:`tabnamelist`.
    "ktherm", "thermodynamic formulation (-1 = off, 1 = :cite:`Bitz99`, 2 = mushy)", ""        
    "**L**", "", ""
    "l_brine", "flag for brine pocket effects", ""
-   "l_fixed_area", "flag for prescribing remapping fluxes", ""
+   "l_edge_flux_adj", "flag for prescribing remapping fluxes", ""
    "l_mpond_fresh", "if true, retain (topo) pond water until ponds drain", ""
    "latpnt", "desired latitude of diagnostic points", "degrees N"
    "latt(u)_bounds", "latitude of T(U) grid cell corners", "degrees N"
