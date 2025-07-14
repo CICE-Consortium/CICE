@@ -232,7 +232,7 @@
         tr_iso, restart_iso,                                            &
         tr_aero, restart_aero,                                          &
         tr_fsd, restart_fsd,                                            &
-        n_iso, n_aero, n_zaero, n_algae,                          &
+        n_iso, n_aero, n_zaero, n_algae,                                &
         n_doc, n_dic, n_don, n_fed, n_fep
 
       namelist /thermo_nml/ &
@@ -249,7 +249,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_yieldcurve,   e_plasticpot,   visc_method,              &
+        e_yieldcurve,   e_plasticpot,   visc_method,                    &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
