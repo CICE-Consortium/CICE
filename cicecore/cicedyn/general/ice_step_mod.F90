@@ -1086,7 +1086,7 @@
 
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         i, j             & ! horizontal indices
+         i, j,            & ! horizontal indices
          ntrcr,           & !
          nbtrcr             !
 

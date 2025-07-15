@@ -353,8 +353,7 @@ contains
     ! tracers
     ! ice age tracer
     if (tr_iage) then
-       if (trim(runtype) == 'continue') &
-            restart_age = .true.
+       if (trim(runtype) == 'continue') restart_age = .true.
        if (restart_age) then
           call read_restart_age
        else
@@ -388,8 +387,7 @@ contains
     endif
     ! level-ice melt ponds
     if (tr_pond_lvl) then
-       if (trim(runtype) == 'continue') &
-            restart_pond_lvl = .true.
+       if (trim(runtype) == 'continue') restart_pond_lvl = .true.
        if (restart_pond_lvl) then
           call read_restart_pond_lvl
        else
@@ -403,8 +401,7 @@ contains
     endif
     ! topographic melt ponds
     if (tr_pond_topo) then
-       if (trim(runtype) == 'continue') &
-            restart_pond_topo = .true.
+       if (trim(runtype) == 'continue') restart_pond_topo = .true.
        if (restart_pond_topo) then
           call read_restart_pond_topo
        else
@@ -464,10 +461,8 @@ contains
     endif
 
     if (trim(runtype) == 'continue') then
-       if (tr_brine) &
-            restart_hbrine = .true.
-       if (skl_bgc .or. z_tracers) &
-            restart_bgc = .true.
+       if (tr_brine) restart_hbrine = .true.
+       if (skl_bgc .or. z_tracers) restart_bgc = .true.
     endif
 
     if (tr_brine .or. skl_bgc) then ! brine height tracer

@@ -24,7 +24,6 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters, icepack_query_tracer_flags, &
           icepack_query_tracer_indices, icepack_query_tracer_sizes
-      use icepack_intfc, only: icepack_init_sealvlpnd
 
       implicit none
       private
@@ -94,7 +93,7 @@
       use ice_transport_driver, only: init_transport
 
       logical(kind=log_kind) :: tr_aero, tr_zaero, skl_bgc, z_tracers, &
-         tr_iso, tr_fsd, wave_spec, tr_snow, tr_pond_sealvl
+         tr_iso, tr_fsd, wave_spec, tr_snow
       character(len=char_len) :: snw_aging_table
       character(len=*), parameter :: subname = '(cice_init)'
 
@@ -190,13 +189,6 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
           file=__FILE__,line= __LINE__)
-
-      call icepack_query_tracer_flags(tr_pond_sealvl_out=tr_pond_sealvl)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(trim(subname), &
-          file=__FILE__,line= __LINE__)
-      ! This must be called before init_shortwave
-      if (tr_pond_sealvl) call icepack_init_sealvlpnd   ! sealvl ponds
 
       ! Initialize shortwave components using swdn from previous timestep
       ! if restarting. These components will be scaled to current forcing
@@ -345,8 +337,7 @@
       ! tracers
       ! ice age tracer
       if (tr_iage) then
-         if (trim(runtype) == 'continue') &
-              restart_age = .true.
+         if (trim(runtype) == 'continue') restart_age = .true.
          if (restart_age) then
             call read_restart_age
          else
@@ -380,8 +371,7 @@
       endif
       ! level-ice melt ponds
       if (tr_pond_lvl) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_lvl = .true.
+         if (trim(runtype) == 'continue') restart_pond_lvl = .true.
          if (restart_pond_lvl) then
             call read_restart_pond_lvl
          else
@@ -395,8 +385,7 @@
       endif
       ! sealvl melt ponds
       if (tr_pond_sealvl) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_sealvl = .true.
+         if (trim(runtype) == 'continue') restart_pond_sealvl = .true.
          if (restart_pond_sealvl) then
             call read_restart_pond_sealvl
          else
@@ -410,8 +399,7 @@
       endif
       ! topographic melt ponds
       if (tr_pond_topo) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_topo = .true.
+         if (trim(runtype) == 'continue') restart_pond_topo = .true.
          if (restart_pond_topo) then
             call read_restart_pond_topo
          else
@@ -473,10 +461,8 @@
       endif
 
       if (trim(runtype) == 'continue') then
-         if (tr_brine) &
-             restart_hbrine = .true.
-         if (skl_bgc .or. z_tracers) &
-             restart_bgc = .true.
+         if (tr_brine) restart_hbrine = .true.
+         if (skl_bgc .or. z_tracers) restart_bgc = .true.
       endif
 
       if (tr_brine .or. skl_bgc) then ! brine height tracer

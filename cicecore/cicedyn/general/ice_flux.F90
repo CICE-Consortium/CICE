@@ -421,11 +421,7 @@
 
       use ice_grid, only : grid_ice
 
-      logical (kind=log_kind) :: tr_pond
-
       integer (int_kind) :: ierr
-
-      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
 
       allocate( &
          strax      (nx_block,ny_block,max_blocks), & ! wind stress components (N/m^2)
@@ -665,7 +661,7 @@
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory (C or CD grid)')
 
       ! Pond diagnostics
-      if (tr_pond) allocate( &
+      allocate( &
          flpnd      (nx_block,ny_block,max_blocks), & ! pond flushing rate due to ice permeability (m/step)
          expnd      (nx_block,ny_block,max_blocks), & ! exponential pond drainage rate (m/step) 
          frpnd      (nx_block,ny_block,max_blocks), & ! pond drainage rate due to freeboard constraint (m/step)
