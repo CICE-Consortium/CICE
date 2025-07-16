@@ -99,13 +99,14 @@
 
       integer (kind=int_kind) :: ns
       integer (kind=int_kind) :: nml_error ! namelist i/o error flag
-      logical (kind=log_kind) :: tr_pond
+      logical (kind=log_kind) :: tr_pond, tr_pond_topo
       character(len=char_len_long) :: tmpstr2 ! for namelist check
       character(len=char_len)      :: nml_name ! text namelist name
 
       character(len=*), parameter :: subname = '(init_hist_pond_2D)'
 
-      call icepack_query_tracer_flags(tr_pond_out=tr_pond)
+      call icepack_query_tracer_flags(tr_pond_out=tr_pond,&
+         tr_pond_topo_out=tr_pond_topo)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -153,29 +154,46 @@
       endif
 
       if (.not. tr_pond) then
-          f_apondn    = 'x'
-          f_hpondn    = 'x'
-          f_apeffn    = 'x'
-          f_apond     = 'x'
-          f_hpond     = 'x'
-          f_ipond     = 'x'
-          f_apeff     = 'x'
-          f_apond_ai  = 'x'
-          f_hpond_ai  = 'x'
-          f_ipond_ai  = 'x'
-          f_apeff_ai  = 'x'
-          f_dpnd_flush   = 'x'
-          f_dpnd_expon   = 'x'
-          f_dpnd_freebd  = 'x'
-          f_dpnd_initial = 'x'
-          f_dpnd_dlid    = 'x'
-          f_dpnd_melt    = 'x'
-          f_dpnd_ridge   = 'x'
-          f_dpnd_flushn  = 'x'
-          f_dpnd_exponn  = 'x'
-          f_dpnd_freebdn = 'x'
-          f_dpnd_initialn= 'x'
-          f_dpnd_dlidn   = 'x'
+         f_apondn    = 'x'
+         f_hpondn    = 'x'
+         f_apeffn    = 'x'
+         f_apond     = 'x'
+         f_hpond     = 'x'
+         f_ipond     = 'x'
+         f_apeff     = 'x'
+         f_apond_ai  = 'x'
+         f_hpond_ai  = 'x'
+         f_ipond_ai  = 'x'
+         f_apeff_ai  = 'x'
+         f_dpnd_flush   = 'x'
+         f_dpnd_expon   = 'x'
+         f_dpnd_freebd  = 'x'
+         f_dpnd_initial = 'x'
+         f_dpnd_dlid    = 'x'
+         f_dpnd_melt    = 'x'
+         f_dpnd_ridge   = 'x'
+         f_dpnd_flushn  = 'x'
+         f_dpnd_exponn  = 'x'
+         f_dpnd_freebdn = 'x'
+         f_dpnd_initialn= 'x'
+         f_dpnd_dlidn   = 'x'
+      endif
+
+      if (tr_pond_topo) then
+         ! tcraig, July 2025.  Turn off dpnd history fields for topo ponds,
+         ! they are not yet validated.  This is temporary.
+         f_dpnd_flush   = 'x'
+         f_dpnd_expon   = 'x'
+         f_dpnd_freebd  = 'x'
+         f_dpnd_initial = 'x'
+         f_dpnd_dlid    = 'x'
+         f_dpnd_melt    = 'x'
+         f_dpnd_ridge   = 'x'
+         f_dpnd_flushn  = 'x'
+         f_dpnd_exponn  = 'x'
+         f_dpnd_freebdn = 'x'
+         f_dpnd_initialn= 'x'
+         f_dpnd_dlidn   = 'x'
       endif
 
       call broadcast_scalar (f_apondn, master_task)

@@ -1406,8 +1406,8 @@ It may also be helpful for debugging to increase the precision of the history fi
 output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
 namelist flag.
 
-Note that some pond history fields have not yet been implemented for the topo
-ponds scheme.
+Note that the dpnd pond history fields have not yet been implemented for the topo
+ponds scheme and are turned off in the code.
 
 ****************
 Diagnostic files

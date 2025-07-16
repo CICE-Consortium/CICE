@@ -1065,20 +1065,18 @@
       frazil_diag (:,:,:) = c0
 
       ! Extra pond diagnostics
-      if (tr_pond) then
-         dpnd_flush(:,:,:)   = c0
-         dpnd_expon(:,:,:)   = c0
-         dpnd_freebd(:,:,:)  = c0
-         dpnd_initial(:,:,:) = c0
-         dpnd_dlid(:,:,:)    = c0
-         dpnd_melt(:,:,:)    = c0
-         dpnd_ridge(:,:,:)   = c0
-         dpnd_flushn(:,:,:,:)   = c0
-         dpnd_exponn(:,:,:,:)   = c0
-         dpnd_freebdn(:,:,:,:)  = c0
-         dpnd_initialn(:,:,:,:) = c0
-         dpnd_dlidn(:,:,:,:)    = c0
-      endif
+      dpnd_flush(:,:,:)   = c0
+      dpnd_expon(:,:,:)   = c0
+      dpnd_freebd(:,:,:)  = c0
+      dpnd_initial(:,:,:) = c0
+      dpnd_dlid(:,:,:)    = c0
+      dpnd_melt(:,:,:)    = c0
+      dpnd_ridge(:,:,:)   = c0
+      dpnd_flushn(:,:,:,:)   = c0
+      dpnd_exponn(:,:,:,:)   = c0
+      dpnd_freebdn(:,:,:,:)  = c0
+      dpnd_initialn(:,:,:,:) = c0
+      dpnd_dlidn(:,:,:,:)    = c0
 
       ! drag coefficients are computed prior to the atmo_boundary call,
       ! during the thermodynamics section
