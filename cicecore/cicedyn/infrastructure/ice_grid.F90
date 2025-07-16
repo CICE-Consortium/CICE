@@ -391,7 +391,7 @@
                deallocate(work_mom, stat=ierr)
                if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
-            case('pop_nc', 'geosnc') 
+            case('pop_nc', 'geosnc')
 
                fieldname='ulat'
                call ice_open_nc(grid_file,fid_grid)
@@ -413,7 +413,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'pop_nc', 'geosnc') 
+            case ('mom_nc', 'pop_nc', 'geosnc')
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -534,11 +534,11 @@
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
          select case (trim(grid_format))
-            case('mom_nc') 
+            case('mom_nc')
                call mom_grid        ! derive cice grid from MOM supergrid nc file
-            case ('pop_nc') 
+            case ('pop_nc')
                call popgrid_nc      ! read POP grid lengths from nc file
-            case ('geosnc') 
+            case ('geosnc')
                call geosgrid_nc     ! read GEOS MOM grid used from nc file
             case default
                call popgrid         ! read POP grid lengths directly
@@ -557,7 +557,7 @@
          hm(:,:,:)  = c1
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
-            case('mom_nc', 'pop_nc' ,'geosnc') 
+            case('mom_nc', 'pop_nc' ,'geosnc')
                call kmtmask('nc')
             case default
                call kmtmask('bin')

@@ -1446,7 +1446,7 @@
                          albpndn  =albpndn  (i,j,:  ,iblk), apeffn  =apeffn  (i,j,:  ,iblk), &
                          snowfracn=snowfracn(i,j,:  ,iblk),                                  &
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
-!opt                         rsnow    =rsnow        (:,:),      
+!opt                         rsnow    =rsnow        (:,:),
                          l_print_point=l_print_point)
          endif
 

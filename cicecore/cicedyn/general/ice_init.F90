@@ -241,7 +241,7 @@
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
         floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
         tscale_pnd_drain
-        
+
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
