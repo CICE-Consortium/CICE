@@ -244,8 +244,8 @@
           flatn_f, fsensn_f, fsurfn_f, fcondtopn_f, &
           dfsurfndTsfc_f, dflatndTsfc_f, &
           send_i2x_per_cat, fswthrun_ai, dsnow
-      use ice_flux, only: flpnd, expnd, frpnd, rfpnd, ilpnd
-      use ice_flux, only: flpndn, expndn, frpndn, rfpndn, ilpndn
+      use ice_flux, only: dpnd_flush, dpnd_expon, dpnd_freebd, dpnd_initial, &
+          dpnd_dlid, dpnd_flushn, dpnd_exponn, dpnd_freebdn, dpnd_initialn, dpnd_dlidn
       use ice_flux_bgc, only: dsnown, faero_atm, faero_ocn, fiso_atm, fiso_ocn, &
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask, opmask
@@ -555,16 +555,16 @@
                       lmask_s      = lmask_s     (i,j,  iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
-                      flpnd        = flpnd       (i,j,  iblk), &
-                      expnd        = expnd       (i,j,  iblk), &
-                      frpnd        = frpnd       (i,j,  iblk), &
-                      rfpnd        = rfpnd       (i,j,  iblk), &
-                      ilpnd        = ilpnd       (i,j,  iblk), &
-                      flpndn       = flpndn      (i,j,:,iblk), &
-                      expndn       = expndn      (i,j,:,iblk), &
-                      frpndn       = frpndn      (i,j,:,iblk), &
-                      rfpndn       = rfpndn      (i,j,:,iblk), &
-                      ilpndn       = ilpndn      (i,j,:,iblk), &
+                      dpnd_flush   = dpnd_flush  (i,j,  iblk), &
+                      dpnd_expon   = dpnd_expon  (i,j,  iblk), &
+                      dpnd_freebd  = dpnd_freebd (i,j,  iblk), &
+                      dpnd_initial = dpnd_initial(i,j,  iblk), &
+                      dpnd_dlid    = dpnd_dlid   (i,j,  iblk), &
+                      dpnd_flushn  = dpnd_flushn (i,j,:,iblk), &
+                      dpnd_exponn  = dpnd_exponn (i,j,:,iblk), &
+                      dpnd_freebdn = dpnd_freebdn(i,j,:,iblk), &
+                      dpnd_initialn=dpnd_initialn(i,j,:,iblk), &
+                      dpnd_dlidn   = dpnd_dlidn  (i,j,:,iblk), &
                       yday=yday, prescribed_ice=prescribed_ice)
 
       !-----------------------------------------------------------------
@@ -646,7 +646,7 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           fsalt, Tf, sss, salinz, fhocn, rsiden, wlat, &
-          meltl, frazil_diag, mipnd
+          meltl, frazil_diag, dpnd_melt
       use ice_flux_bgc, only: flux_bio, faero_ocn, &
           fiso_ocn, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: tmask, opmask
@@ -738,22 +738,22 @@
                       first_ice  = first_ice (i,j,:,iblk), &
                       flux_bio   = flux_bio  (i,j,1:nbtrcr,iblk), &
                       ocean_bio  = ocean_bio (i,j,1:nbtrcr,iblk), &
-                      frazil_diag= frazil_diag(i,j,iblk),  &
+                      frazil_diag=frazil_diag(i,j,  iblk), &
                       frz_onset  = frz_onset (i,j,  iblk), &
                       yday       = yday,                   &
                       fiso_ocn   = fiso_ocn  (i,j,:,iblk), &
                       HDO_ocn    = HDO_ocn   (i,j,  iblk), &
                       H2_16O_ocn = H2_16O_ocn(i,j,  iblk), &
                       H2_18O_ocn = H2_18O_ocn(i,j,  iblk), &
-                      wave_sig_ht= wave_sig_ht(i,j,iblk),  &
-                      wave_spectrum = wave_spectrum(i,j,:,iblk),  &
-                      wavefreq   = wavefreq(:),            &
-                      dwavefreq  = dwavefreq(:),           &
-                      d_afsd_latg= d_afsd_latg(i,j,:,iblk),&
-                      d_afsd_newi= d_afsd_newi(i,j,:,iblk),&
-                      d_afsd_latm= d_afsd_latm(i,j,:,iblk),&
-                      d_afsd_weld= d_afsd_weld(i,j,:,iblk),&
-                      mipnd      = mipnd(i,j, iblk))
+                      wave_sig_ht=wave_sig_ht(i,j,  iblk), &
+                      wave_spectrum=wave_spectrum(i,j,:,iblk),  &
+                      wavefreq   = wavefreq  (:),          &
+                      dwavefreq  = dwavefreq (:),          &
+                      d_afsd_latg=d_afsd_latg(i,j,:,iblk), &
+                      d_afsd_newi=d_afsd_newi(i,j,:,iblk), &
+                      d_afsd_latm=d_afsd_latm(i,j,:,iblk), &
+                      d_afsd_weld=d_afsd_weld(i,j,:,iblk), &
+                      dpnd_melt  = dpnd_melt (i,j,  iblk))
          endif ! tmask
 
       enddo                     ! i
@@ -1061,7 +1061,7 @@
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
-          dvirdgdt, opening, fpond, fresh, fhocn, rdpnd, &
+          dvirdgdt, opening, fpond, fresh, fhocn, dpnd_ridge, &
           aparticn, krdgn, aredistn, vredistn, dardg1ndt, dardg2ndt, &
           dvirdgndt, araftn, vraftn, fsalt, Tf
       use ice_flux_bgc, only: flux_bio, faero_ocn, fiso_ocn
@@ -1154,8 +1154,8 @@
                          fsalt     = fsalt    (i,j,  iblk), &
                          first_ice = first_ice(i,j,:,iblk), &
                          flux_bio  = flux_bio (i,j,1:nbtrcr,iblk), &
-                         Tf        = Tf(i,j,iblk),          &
-                         rdpnd     = rdpnd(i,j,iblk))
+                         Tf        = Tf       (i,j,  iblk), &
+                         dpnd_ridge=dpnd_ridge(i,j,  iblk))
          endif ! tmask
 
       enddo ! i

@@ -343,20 +343,20 @@
          frazil_diag ! frazil ice growth diagnostic (m/step-->cm/day)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-         flpnd,  & ! pond flushing rate due to ice permeability (m/step)
-         expnd,  & ! exponential pond drainage rate (m/step)
-         frpnd,  & ! pond drainage rate due to freeboard constraint (m/step)
-         rfpnd,  & ! runoff rate due to rfrac (m/step)
-         ilpnd,  & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
-         mipnd,  & ! pond 'drainage' due to ice melting (m / step)
-         rdpnd     ! pond 'drainage' due to ridging (m)
+         dpnd_flush,  & ! pond flushing rate due to ice permeability (m/step)
+         dpnd_expon,  & ! exponential pond drainage rate (m/step)
+         dpnd_freebd, & ! pond drainage rate due to freeboard constraint (m/step)
+         dpnd_initial,& ! runoff rate due to rfrac (m/step)
+         dpnd_dlid,   & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         dpnd_melt,   & ! pond 'drainage' due to ice melting (m / step)
+         dpnd_ridge     ! pond 'drainage' due to ridging (m)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         flpndn, & ! category pond flushing rate due to ice permeability (m/step)
-         expndn, & ! category exponential pond drainage rate (m/step)
-         frpndn, & ! category pond drainage rate due to freeboard constraint (m/step)
-         rfpndn, & ! category runoff rate due to rfrac (m/step)
-         ilpndn    ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         dpnd_flushn, & ! category pond flushing rate due to ice permeability (m/step)
+         dpnd_exponn, & ! category exponential pond drainage rate (m/step)
+         dpnd_freebdn,& ! category pond drainage rate due to freeboard constraint (m/step)
+         dpnd_initialn,&! category runoff rate due to rfrac (m/step)
+         dpnd_dlidn     ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
          fsurfn,   & ! category fsurf
@@ -662,18 +662,18 @@
 
       ! Pond diagnostics
       allocate( &
-         flpnd      (nx_block,ny_block,max_blocks), & ! pond flushing rate due to ice permeability (m/step)
-         expnd      (nx_block,ny_block,max_blocks), & ! exponential pond drainage rate (m/step) 
-         frpnd      (nx_block,ny_block,max_blocks), & ! pond drainage rate due to freeboard constraint (m/step)
-         rfpnd      (nx_block,ny_block,max_blocks), & ! runoff rate due to rfrac (m/step)
-         ilpnd      (nx_block,ny_block,max_blocks), & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
-         mipnd      (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ice melting (m / step)
-         rdpnd      (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ridging (m)
-         flpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond flushing rate due to ice permeability (m/step)
-         expndn     (nx_block,ny_block,ncat,max_blocks), & ! category exponential pond drainage rate (m/step) 
-         frpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond drainage rate due to freeboard constraint (m/step)
-         rfpndn     (nx_block,ny_block,ncat,max_blocks), & ! category runoff rate due to rfrac (m/step)
-         ilpndn     (nx_block,ny_block,ncat,max_blocks), & ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         dpnd_flush   (nx_block,ny_block,max_blocks), & ! pond flushing rate due to ice permeability (m/step)
+         dpnd_expon   (nx_block,ny_block,max_blocks), & ! exponential pond drainage rate (m/step) 
+         dpnd_freebd  (nx_block,ny_block,max_blocks), & ! pond drainage rate due to freeboard constraint (m/step)
+         dpnd_initial (nx_block,ny_block,max_blocks), & ! runoff rate due to rfrac (m/step)
+         dpnd_dlid    (nx_block,ny_block,max_blocks), & ! pond loss/gain (+/-) to ice lid freezing/melting (m/step)
+         dpnd_melt    (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ice melting (m / step)
+         dpnd_ridge   (nx_block,ny_block,max_blocks), & ! pond 'drainage' due to ridging (m)
+         dpnd_flushn  (nx_block,ny_block,ncat,max_blocks), & ! category pond flushing rate due to ice permeability (m/step)
+         dpnd_exponn  (nx_block,ny_block,ncat,max_blocks), & ! category exponential pond drainage rate (m/step) 
+         dpnd_freebdn (nx_block,ny_block,ncat,max_blocks), & ! category pond drainage rate due to freeboard constraint (m/step)
+         dpnd_initialn(nx_block,ny_block,ncat,max_blocks), & ! category runoff rate due to rfrac (m/step)
+         dpnd_dlidn   (nx_block,ny_block,ncat,max_blocks), & ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory (ponds)')
 
@@ -1066,18 +1066,18 @@
 
       ! Extra pond diagnostics
       if (tr_pond) then
-         flpnd(:,:,:) = c0
-         expnd(:,:,:) = c0
-         frpnd(:,:,:) = c0
-         rfpnd(:,:,:) = c0
-         ilpnd(:,:,:) = c0
-         mipnd(:,:,:) = c0
-         rdpnd(:,:,:) = c0
-         flpndn(:,:,:,:) = c0
-         expndn(:,:,:,:) = c0
-         frpndn(:,:,:,:) = c0
-         rfpndn(:,:,:,:) = c0
-         ilpndn(:,:,:,:) = c0
+         dpnd_flush(:,:,:)   = c0
+         dpnd_expon(:,:,:)   = c0
+         dpnd_freebd(:,:,:)  = c0
+         dpnd_initial(:,:,:) = c0
+         dpnd_dlid(:,:,:)    = c0
+         dpnd_melt(:,:,:)    = c0
+         dpnd_ridge(:,:,:)   = c0
+         dpnd_flushn(:,:,:,:)   = c0
+         dpnd_exponn(:,:,:,:)   = c0
+         dpnd_freebdn(:,:,:,:)  = c0
+         dpnd_initialn(:,:,:,:) = c0
+         dpnd_dlidn(:,:,:,:)    = c0
       endif
 
       ! drag coefficients are computed prior to the atmo_boundary call,
