@@ -151,7 +151,7 @@
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
-          write_restart_lvl, write_restart_pond_lvl, &
+          write_restart_lvl, write_restart_pond_lvl, write_restart_pond_sealvl,&
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
@@ -174,7 +174,8 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
-          tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+          tr_pond_lvl, tr_pond_sealvl, tr_pond_topo, &
+          tr_brine, tr_iso, tr_aero, &
           calc_Tsfc, skl_bgc, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -191,7 +192,7 @@
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, ktherm_out=ktherm, wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, tr_pond_sealvl_out=tr_pond_sealvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_iso_out=tr_iso, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
@@ -397,6 +398,7 @@
             if (tr_FY)        call write_restart_FY
             if (tr_lvl)       call write_restart_lvl
             if (tr_pond_lvl)  call write_restart_pond_lvl
+            if (tr_pond_sealvl)  call write_restart_pond_sealvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_snow)      call write_restart_snow
             if (tr_fsd)       call write_restart_fsd
