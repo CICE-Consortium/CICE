@@ -529,19 +529,19 @@
              call accum_hist_field(n_apeff_ai, iblk, apeff_ai(:,:,iblk), a2D)
 
          if (f_dpnd_flush (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_flush, iblk, dpnd_flush(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_flush  , iblk, dpnd_flush  (:,:,iblk), a2D)
          if (f_dpnd_expon (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_expon, iblk, dpnd_expon(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_expon  , iblk, dpnd_expon  (:,:,iblk), a2D)
          if (f_dpnd_freebd (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_freebd, iblk, dpnd_freebd(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_freebd , iblk, dpnd_freebd (:,:,iblk), a2D)
          if (f_dpnd_initial (1:1) /= 'x') &
              call accum_hist_field(n_dpnd_initial, iblk, dpnd_initial(:,:,iblk), a2D)
          if (f_dpnd_dlid (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_dlid, iblk, dpnd_dlid(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_dlid   , iblk, dpnd_dlid   (:,:,iblk), a2D)
          if (f_dpnd_melt (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_melt, iblk, dpnd_melt(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_melt   , iblk, dpnd_melt   (:,:,iblk), a2D)
          if (f_dpnd_ridge (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_ridge, iblk, dpnd_ridge(:,:,iblk), a2D)
+             call accum_hist_field(n_dpnd_ridge  , iblk, dpnd_ridge  (:,:,iblk), a2D)
 
          endif ! allocated(a2D)
 
@@ -559,15 +559,15 @@
                   * trcrn(:,:,nt_hpnd,1:ncat_hist,iblk), a3Dc)
 
          if (f_dpnd_flushn (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_flushn-n2D, iblk, ncat_hist, dpnd_flushn(:,:,:,iblk), a3Dc)
+             call accum_hist_field(n_dpnd_flushn-n2D  , iblk, ncat_hist, dpnd_flushn  (:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dpnd_exponn (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_exponn-n2D, iblk, ncat_hist, dpnd_exponn(:,:,:,iblk), a3Dc)
+             call accum_hist_field(n_dpnd_exponn-n2D  , iblk, ncat_hist, dpnd_exponn  (:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dpnd_freebdn (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_freebdn-n2D, iblk, ncat_hist, dpnd_freebdn(:,:,:,iblk), a3Dc)
+             call accum_hist_field(n_dpnd_freebdn-n2D , iblk, ncat_hist, dpnd_freebdn (:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dpnd_initialn (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_initialn-n2D, iblk, ncat_hist, dpnd_initialn(:,:,:,iblk), a3Dc)
+             call accum_hist_field(n_dpnd_initialn-n2D, iblk, ncat_hist, dpnd_initialn(:,:,1:ncat_hist,iblk), a3Dc)
          if (f_dpnd_dlidn (1:1) /= 'x') &
-             call accum_hist_field(n_dpnd_dlidn-n2D, iblk, ncat_hist, dpnd_dlidn(:,:,:,iblk), a3Dc)
+             call accum_hist_field(n_dpnd_dlidn-n2D   , iblk, ncat_hist, dpnd_dlidn   (:,:,1:ncat_hist,iblk), a3Dc)
 
          endif ! allocated(a3Dc)
 
