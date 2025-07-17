@@ -13,10 +13,10 @@
 !  transport using incremental remapping, Mon. Wea. Rev., 132,
 !  1341-1354.
 !
-! Lemieux, J.-F., Lipscomb, W. H., Craig, A., Bailey, D. A., 
-! Hunke, E. C., Blain, P., Rasmussen, T. A. S., Bentsen, M., 
-! Dupont, F., Hebert, D., and Allard, R., 2024: CICE on a 
-! C-grid: new momentum, stress, and transport schemes for CICEv6.5, 
+! Lemieux, J.-F., Lipscomb, W. H., Craig, A., Bailey, D. A.,
+! Hunke, E. C., Blain, P., Rasmussen, T. A. S., Bentsen, M.,
+! Dupont, F., Hebert, D., and Allard, R., 2024: CICE on a
+! C-grid: new momentum, stress, and transport schemes for CICEv6.5,
 ! Geosci. Model Dev., 17, 6703-6724.
 !
 ! authors William H. Lipscomb, LANL
@@ -246,12 +246,12 @@
 ! field implied by the remapping was, in general, different from the
 ! value of del*u computed in the dynamics.  For energetic consistency
 ! (in CICE as well as in layered ocean models such as HYPOP),
-! these two values should agree.  This can be ensured by using the 
-! edge flux adjustment (EFA) method by setting l_edge_flux_adj = T. 
-! The EFA method specifies the area transported across each grid cell 
-! edge in the arrays edgearea_e and edgearea_n.  The departure regions 
-! are then tweaked, following an idea by Mats Bentsen, such that they 
-! have the desired area.  If l_edge_flux_adj = F, these regions are 
+! these two values should agree.  This can be ensured by using the
+! edge flux adjustment (EFA) method by setting l_edge_flux_adj = T.
+! The EFA method specifies the area transported across each grid cell
+! edge in the arrays edgearea_e and edgearea_n.  The departure regions
+! are then tweaked, following an idea by Mats Bentsen, such that they
+! have the desired area.  If l_edge_flux_adj = F, these regions are
 ! not tweaked, and the edgearea arrays are output variables.
 !
 !=======================================================================
@@ -280,11 +280,11 @@
       ! regions are adjusted to obtain the desired area.
       ! If false, edgearea is computed in locate_triangles and passed out.
       !
-      ! l_edge_flux_adj = .false. has been the default approach in CICE. 
-      ! It is used like this for the B-grid. However, idealized tests with 
-      ! the C-grid have shown that l_edge_flux_adj = .false. leads to a 
-      ! checkerboard pattern in prognostic fields such as aice Using 
-      ! l_edge_flux_adj = .true. eliminates the checkerboard pattern in 
+      ! l_edge_flux_adj = .false. has been the default approach in CICE.
+      ! It is used like this for the B-grid. However, idealized tests with
+      ! the C-grid have shown that l_edge_flux_adj = .false. leads to a
+      ! checkerboard pattern in prognostic fields such as aice Using
+      ! l_edge_flux_adj = .true. eliminates the checkerboard pattern in
       ! C-grid simulations (Lemieux et al. 2024).
       !-------------------------------------------------------------------
 
@@ -626,7 +626,7 @@
          jhi = this_block%jhi
 
          !-------------------------------------------------------------------
-         ! If l_edge_flux_adj is true, compute edgearea by taking the 
+         ! If l_edge_flux_adj is true, compute edgearea by taking the
          ! divergence of the velocity field. Otherwise, initialize edgearea.
          !-------------------------------------------------------------------
 
@@ -2048,7 +2048,7 @@
          ! areafact_c or areafac_ce (areafact_c for the other edge) are used
          ! (with shifted indices) to make sure that a flux area on one edge
          ! is consistent with the analogous area on the other edge and to
-         ! ensure that areas add up when using l_edge_flux_adj = T. 
+         ! ensure that areas add up when using l_edge_flux_adj = T.
          ! See PR #849 for details.
          !-------------------------------------------------------------------
 

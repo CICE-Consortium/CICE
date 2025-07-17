@@ -232,7 +232,7 @@
         tr_iso, restart_iso,                                            &
         tr_aero, restart_aero,                                          &
         tr_fsd, restart_fsd,                                            &
-        n_iso, n_aero, n_zaero, n_algae,                          &
+        n_iso, n_aero, n_zaero, n_algae,                                &
         n_doc, n_dic, n_don, n_fed, n_fep
 
       namelist /thermo_nml/ &
@@ -241,7 +241,7 @@
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
         floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
         tscale_pnd_drain
-        
+
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -249,7 +249,7 @@
         brlx,           arlx,           ssh_stress,                     &
         advection,      coriolis,       kridge,         ktransport,     &
         kstrength,      krdg_partic,    krdg_redist,    mu_rdg,         &
-        e_yieldcurve,   e_plasticpot,   visc_method,              &
+        e_yieldcurve,   e_plasticpot,   visc_method,                    &
         maxits_nonlin,  precond,        dim_fgmres,                     &
         dim_pgmres,     maxits_fgmres,  maxits_pgmres,  monitor_nonlin, &
         monitor_fgmres, monitor_pgmres, reltol_nonlin,  reltol_fgmres,  &
@@ -2452,6 +2452,7 @@
             write(nu_diag,1002) ' hs1              = ', hs1,' : snow depth of transition to pond ice'
          elseif (tr_pond_topo) then
             write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
+            write(nu_diag,*) '     WARNING: dpnd history fields are turned off for topo ponds'
             write(nu_diag,1002) ' hp1              = ', hp1,' : critical ice lid thickness for topo ponds'
          elseif (tr_pond_sealvl) then
             write(nu_diag,1010) ' tr_pond_sealvl   = ', tr_pond_sealvl,' : sealvl pond formulation'

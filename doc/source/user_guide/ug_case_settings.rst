@@ -418,8 +418,9 @@ tracer_nml
    "``tr_iage``", "logical", "ice age", "``.false.``"
    "``tr_iso``", "logical", "isotopes", "``.false.``"
    "``tr_lvl``", "logical", "level ice area and volume", "``.false.``"
-   "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
    "``tr_pond_cesm``", " ", "DEPRECATED", " "
+   "``tr_pond_lvl``", "logical", "level-ice melt ponds", "``.false.``"
+   "``tr_pond_sealvl``", "logical", "sea-level melt ponds", "``.false.``"
    "``tr_pond_topo``", "logical", "topo melt ponds", "``.false.``"
    "``tr_snow``", "logical", "advanced snow physics", "``.false.``"
    "``restart_aero``", "logical", "restart tracer values from file", "``.false.``"
@@ -429,6 +430,7 @@ tracer_nml
    "``restart_iso``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_lvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_lvl``", "logical", "restart tracer values from file", "``.false.``"
+   "``restart_pond_sealvl``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_pond_topo``", "logical", "restart tracer values from file", "``.false.``"
    "``restart_snow``", "logical", "restart snow tracer values from file", "``.false.``"
    "", "", "", ""
@@ -463,6 +465,7 @@ thermo_nml
    "``phi_i_mushy``", ":math:`0<\phi_i < 1`", "solid fraction at lower boundary", "0.85"
    "``Rac_rapid_mode``", "real", "critical Rayleigh number", "10.0"
    "``Tliquidus_max``", "real", "maximum liquidus temperature of mush (C)", "0.0"
+   "``tscale_pnd_drain``", "real", "mushy macroscopic drainage timescale (days)", "10"
    "", "", "", ""
 
 
@@ -598,6 +601,7 @@ ponds_nml
    :widths: 15, 15, 30, 15 
 
    "", "", "", ""
+   "``apnd_sl``", "real", "equilibrium pond fraction in sealvl ponds", "0.27"
    "``dpscale``", "real", "time scale for flushing in permeable ice", "1.0"
    "``frzpnd``", "``cesm``", "CESM pond refreezing forumulation", "``cesm``"
    "", "``hlid``", "Stefan refreezing with pond ice thickness", ""
