@@ -32,6 +32,10 @@
             "name": "Philippe Blain"
         }, 
         {
+            "affiliation": "National Center for Atmospheric Research", 
+            "name": "David Clemens-Sewall"
+        }, 
+        {
             "affiliation": "National Oceanographic and Atmospheric Administration (CTR)", 
             "name": "Anthony Craig"
         }, 
@@ -106,6 +110,10 @@
         {
             "affiliation": "National Oceanographic and Atmospheric Administration", 
             "name": "Denise Worthen"
+        }, 
+        {
+            "affiliation": "National Aeronautics and Space Administration", 
+            "name": "Bin Zhao"
         }, 
     ], 
     "access_right": "open", 
