@@ -1,5 +1,5 @@
 #==============================================================================
-# Macros file for ERDC carpenter, intel compiler, intel mpi
+# Macros file for ERDC carpenter, inteloneapi compiler
 #==============================================================================
 
 CPP        := fpp
@@ -13,20 +13,21 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-# fpe0 produces an abort in hdf5 ~v1.14 which is fixed in 1.14.4.2
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe1 -check noarg_temp_created
-#  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
-#  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
+# -check uninit is needed on the ld step but it still throws errors in 2023.* and 2024.0.*, likely compiler bug
+  FFLAGS     += -O0 -g -check bounds -check pointers -fpe1 -check noarg_temp_created -link_mpi=dbg
+#  FFLAGS     += -O0 -g -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  FFLAGS     += -O0 -g -check_uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  LDFLAGS    += -check uninit
 else
   FFLAGS     += -O2
 endif
 
-#SCC   := icx 
-#SFC   := ifort
-SCC   := mpiicc
-SFC   := mpiifort
-MPICC := mpiicc
-MPIFC := mpiifort
+SCC   := icx 
+SFC   := ifx
+#SCC   := cc
+#SFC   := ftn
+MPICC := cc
+MPIFC := ftn
 
 ifeq ($(ICE_COMMDIR), mpi)
   FC := $(MPIFC)
