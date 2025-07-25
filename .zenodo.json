@@ -106,7 +106,7 @@
         {
             "affiliation": "Geophysical Fluid Dynamics Laboratory", 
             "name": "Michael Winton"
-        }
+        }, 
         {
             "affiliation": "National Oceanographic and Atmospheric Administration", 
             "name": "Denise Worthen"
@@ -114,7 +114,7 @@
         {
             "affiliation": "National Aeronautics and Space Administration", 
             "name": "Bin Zhao"
-        }, 
+        }
     ], 
     "access_right": "open", 
     "repository_url": "https://github.com/CICE-Consortium/CICE", 
