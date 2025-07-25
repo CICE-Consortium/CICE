@@ -279,7 +279,7 @@ srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 
 #=======
-else if (${ICE_MACHCOMP} =~ hera*) then
+else if (${ICE_MACHCOMP} =~ hera* || ${ICE_MACHCOMP} =~ ursa*) then
 cat >> ${jobfile} << EOFR
 srun -n ${ntasks} -c ${nthrds} ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
