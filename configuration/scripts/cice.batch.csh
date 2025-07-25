@@ -467,6 +467,17 @@ cat >> ${jobfile} << EOFB
 #BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
 EOFB
 
+else if (${ICE_MACHINE} =~ wcoss2*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -o ${ICE_CASENAME}
+#PBS -j oe 
+#PBS -A ICE-DEV
+#PBS -l walltime=${batchtime}
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+EOFB
+
+
 else if (${ICE_MACHINE} =~ high_Sierra*) then
 cat >> ${jobfile} << EOFB
 # nothing to do
