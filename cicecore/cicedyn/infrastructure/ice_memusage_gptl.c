@@ -179,10 +179,12 @@ int ice_memusage_gptl (int *size, int *rss, int *share, int *text, int *datastac
   */
 
   pid = (int) getpid ();
-  if (pid > 999999) {
-    fprintf (stderr, "get_memusage: pid %d is too large\n", pid);
-    return -1;
-  }
+  /* tcraig, not needed and can be problematic
+  **  if (pid > 999999) {
+  **    fprintf (stderr, "get_memusage: pid %d is too large\n", pid);
+  **    return -1;
+  **  }
+  */
 
   sprintf (file, "%s%d%s", head, pid, tail);
   if ((fd = fopen (file, "r")) < 0) {

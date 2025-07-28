@@ -25,8 +25,8 @@ module ice_comp_nuopc
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, idate0,  mday, mmonth, myear, year_init, month_init, day_init
-  use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
-  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian, use_leap_years
+  use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep, use_leap_years
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_proleptic_gregorian, ice_calendar_gregorian
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
@@ -499,7 +499,7 @@ contains
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
        calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = ice_calendar_gregorian
+       calendar_type = ice_calendar_proleptic_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
@@ -859,7 +859,7 @@ contains
     day_init  = idate0-year_init*10000-month_init*100
 
     !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
-    if (calendar_type == ice_calendar_gregorian) then
+    if (calendar_type == ice_calendar_proleptic_gregorian) then
       use_leap_years = .true.
     else
       use_leap_years = .false. ! no_leap calendars

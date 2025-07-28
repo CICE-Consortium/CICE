@@ -1528,7 +1528,7 @@
          nt_alvl, nt_apnd, nt_fbri
 
       logical (kind=log_kind) :: &
-         tr_pond_lvl, tr_pond_topo
+         tr_pond_lvl, tr_pond_topo, tr_pond_sealvl
 
       integer (kind=int_kind) ::      &
          i, j, n, it, & ! counting indices
@@ -1537,7 +1537,7 @@
       character(len=*), parameter :: subname = '(state_to_work)'
 
       call icepack_query_tracer_flags(tr_pond_lvl_out=tr_pond_lvl, &
-           tr_pond_topo_out=tr_pond_topo)
+           tr_pond_topo_out=tr_pond_topo, tr_pond_sealvl_out=tr_pond_sealvl)
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd, &
            nt_fbri_out=nt_fbri)
       call icepack_warnings_flush(nu_diag)
@@ -1597,7 +1597,7 @@
                enddo
                enddo
             elseif (trcr_depend(it) == 2+nt_apnd .and. &
-                    tr_pond_topo) then
+                    (tr_pond_topo .or. tr_pond_sealvl)) then
                do j = 1, ny_block
                do i = 1, nx_block
                   works(i,j,narrays+it) = aicen(i,j        ,n) &

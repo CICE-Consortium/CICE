@@ -2,6 +2,7 @@ grid_atm = 'B'
 grid_ocn = 'B'
 days_per_year = 360
 use_leap_years = .false.
+npt_unit       = '1'
 npt = 240
 ice_ic = 'internal'
 restart_ext = .true.

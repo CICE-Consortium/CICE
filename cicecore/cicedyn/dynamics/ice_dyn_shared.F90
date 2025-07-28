@@ -51,6 +51,8 @@
                         ! shared_mem_1d = 1d without mpi call and refactorization to 1d
 
       real (kind=dbl_kind), public :: &
+         dyn_area_min,& ! minimum ice area concentration to activate dynamics
+         dyn_mass_min,& ! minimum ice mass to activate dynamics (kg/m^2)
          elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
 
       ! other EVP parameters
@@ -64,9 +66,7 @@
       real (kind=dbl_kind), parameter, public :: &
          u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
          cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw  = c0           , & ! sin(ocean turning angle)  ! turning angle = 0
-         a_min = p001         , & ! minimum ice area
-         m_min = p01              ! minimum ice mass (kg/m^2)
+         sinw  = c0               ! sin(ocean turning angle)  ! turning angle = 0
 
       real (kind=dbl_kind), public :: &
          revp        , & ! 0 for classic EVP, 1 for revised EVP
@@ -240,7 +240,8 @@
 
       use ice_blocks, only: block, get_block
       use ice_boundary, only: ice_halo, ice_haloUpdate
-      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info
+      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info, &
+          ns_boundary_type
       use ice_domain_size, only: max_blocks
       use ice_flux, only: &
           stressp_1, stressp_2, stressp_3, stressp_4, &
@@ -267,6 +268,13 @@
          this_block   ! block information for current block
 
       character(len=*), parameter :: subname = '(init_dyn_shared)'
+
+      ! checks
+      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d' .and. &
+          (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT')) then
+         call abort_ice(subname//' ERROR: evp_alg shared mem 1d not supported with tripole', &
+            file=__FILE__, line=__LINE__)
+      endif
 
       call set_evp_parameters (dt)
       ! allocate dyn shared (init_uvel,init_vvel)
@@ -517,8 +525,8 @@
          !-----------------------------------------------------------------
          ! ice extent mask (T-cells)
          !-----------------------------------------------------------------
-         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > a_min) &
-                                 .and. (Tmass(i,j) > m_min)
+         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > dyn_area_min) &
+                                 .and. (Tmass(i,j) > dyn_mass_min)
 
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
@@ -721,8 +729,8 @@
       do i = ilo, ihi
          iceXmask_old(i,j) = iceXmask(i,j) ! save
          ! ice extent mask (U-cells)
-         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > a_min) &
-                                      .and. (Xmass(i,j) > m_min)
+         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > dyn_area_min) &
+                                      .and. (Xmass(i,j) > dyn_mass_min)
 
          if (iceXmask(i,j)) then
             icellX = icellX + 1

@@ -12,6 +12,7 @@ n_fed           = 1
 n_fep           = 1
 year_init       = 2005
 istep0          = 0
+npt_unit        = '1'
 npt             = 168
 ice_ic          = 'none'
 tr_brine        = .true.

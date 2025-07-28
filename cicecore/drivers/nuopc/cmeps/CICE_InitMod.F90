@@ -221,11 +221,12 @@ contains
     use ice_grid, only: tmask
     use ice_init, only: ice_ic
     use ice_init_column, only: init_age, init_FY, init_lvl, init_snowtracers, &
-         init_meltponds_lvl, init_meltponds_topo, &
+         init_meltponds_lvl, init_meltponds_topo, init_meltponds_sealvl, &
          init_isotope, init_aerosol, init_hbrine, init_bgc, init_fsd
     use ice_restart_column, only: restart_age, read_restart_age, &
          restart_FY, read_restart_FY, restart_lvl, read_restart_lvl, &
          restart_pond_lvl, read_restart_pond_lvl, &
+         restart_pond_sealvl, read_restart_pond_sealvl, &
          restart_pond_topo, read_restart_pond_topo, &
          restart_snow, read_restart_snow, &
          restart_fsd, read_restart_fsd, &
@@ -241,7 +242,7 @@ contains
          i, j        , & ! horizontal indices
          iblk            ! block index
     logical(kind=log_kind) :: &
-         tr_iage, tr_FY, tr_lvl, tr_pond_lvl, &
+         tr_iage, tr_FY, tr_lvl, tr_pond_lvl, tr_pond_sealvl, &
          tr_pond_topo, tr_fsd, tr_iso, tr_aero, tr_brine, tr_snow, &
          skl_bgc, z_tracers
     integer(kind=int_kind) :: &
@@ -261,7 +262,7 @@ contains
 
     call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers)
     call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-         tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+         tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, tr_pond_sealvl_out=tr_pond_sealvl, &
          tr_pond_topo_out=tr_pond_topo, tr_aero_out=tr_aero, tr_brine_out=tr_brine, &
          tr_snow_out=tr_snow, tr_fsd_out=tr_fsd, tr_iso_out=tr_iso)
     call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl, &
@@ -277,7 +278,7 @@ contains
     if (trim(runtype) == 'continue') then
        ! start from core restart file
        call restartfile()           ! given by pointer in ice_in
-      call calendar()              ! update time parameters
+       call calendar()              ! update time parameters
        if (kdyn == 2) call read_restart_eap ! EAP
     else if (restart) then          ! ice_ic = core restart file
        call restartfile (ice_ic)    !  or 'default' or 'none'
@@ -290,8 +291,7 @@ contains
     ! tracers
     ! ice age tracer
     if (tr_iage) then
-       if (trim(runtype) == 'continue') &
-            restart_age = .true.
+       if (trim(runtype) == 'continue') restart_age = .true.
        if (restart_age) then
           call read_restart_age
        else
@@ -325,8 +325,7 @@ contains
     endif
     ! level-ice melt ponds
     if (tr_pond_lvl) then
-       if (trim(runtype) == 'continue') &
-            restart_pond_lvl = .true.
+       if (trim(runtype) == 'continue') restart_pond_lvl = .true.
        if (restart_pond_lvl) then
           call read_restart_pond_lvl
        else
@@ -338,10 +337,23 @@ contains
           enddo ! iblk
        endif
     endif
+    ! sealvl melt ponds
+    if (tr_pond_sealvl) then
+       if (trim(runtype) == 'continue') restart_pond_sealvl = .true.
+       if (restart_pond_sealvl) then
+          call read_restart_pond_sealvl
+       else
+          do iblk = 1, nblocks
+             call init_meltponds_sealvl(trcrn(:,:,nt_apnd,:,iblk), &
+                  trcrn(:,:,nt_hpnd,:,iblk), &
+                  trcrn(:,:,nt_ipnd,:,iblk), &
+                  dhsn(:,:,:,iblk))
+          enddo ! iblk
+       endif ! .not. restart_pond
+    endif
     ! topographic melt ponds
     if (tr_pond_topo) then
-       if (trim(runtype) == 'continue') &
-            restart_pond_topo = .true.
+       if (trim(runtype) == 'continue') restart_pond_topo = .true.
        if (restart_pond_topo) then
           call read_restart_pond_topo
        else
@@ -401,10 +413,8 @@ contains
     endif
 
     if (trim(runtype) == 'continue') then
-       if (tr_brine) &
-            restart_hbrine = .true.
-       if (skl_bgc .or. z_tracers) &
-            restart_bgc = .true.
+       if (tr_brine) restart_hbrine = .true.
+       if (skl_bgc .or. z_tracers) restart_bgc = .true.
     endif
 
     if (tr_brine .or. skl_bgc) then ! brine height tracer

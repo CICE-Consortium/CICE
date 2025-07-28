@@ -453,7 +453,7 @@ Each departure triangle is defined by three of the seven points (CL,
 CR, DL, DR, IL, IR, IC).
 
 Given a 2D velocity field **u**, the divergence
-:math:`\nabla\cdot{\bf u}` in a given grid cell can be computed from the
+:math:`\nabla\cdot{\bf u}` in a given grid cell (B grid) can be computed from the
 local velocities and written in terms of fluxes across each cell edge:
 
 .. math::
@@ -466,11 +466,11 @@ the divergence computed in the EVP dynamics (Section :ref:`dynam`).
 In general, the fluxes in this expression are not equal to those implied
 by the above scheme for locating departure regions. For some
 applications it may be desirable to prescribe the divergence by
-prescribing the area of the departure region for each edge. This can be
-done by setting `l\_fixed\_area` = true in
-**ice\_transport\_driver.F90** and passing the prescribed departure
-areas (`edgearea\_e` and `edgearea\_n`) into the remapping routine. An extra
-triangle is then constructed for each departure region to ensure that
+prescribing the area of the departure region for each edge. We refer to 
+this as the edge flux adjustment (EFA) method. The EFA method is used 
+when `l\_edge_flux_adj` = true. In this case the prescribed departure
+areas (`edgearea\_e` and `edgearea\_n`) are calculated in the remapping routine. 
+An extra triangle is then constructed for each departure region to ensure that
 the total area is equal to the prescribed value. This idea was suggested
 and first implemented by Mats Bentsen of the Nansen Environmental and
 Remote Sensing Center (Norway), who applied an earlier version of the
@@ -479,14 +479,13 @@ is somewhat more general, allowing for departure regions lying on both
 sides of a cell edge. The extra triangle is constrained to lie in one
 but not both of the grid cells that share the edge.
 
-The default value for the B grid is `l\_fixed\_area` = false. However, 
+The default value for the B grid is `l\_edge_flux_adj` = false. However, 
 idealized tests with the C grid have shown that prognostic fields such 
 as sea ice concentration exhibit a checkerboard pattern with 
-`l\_fixed\_area` = false. The logical `l\_fixed\_area` is therefore set 
+`l\_edge_flux_adj` = false :cite:`Lemieux24`. The logical `l\_edge_flux_adj` is therefore set 
 to true when using the C grid. The edge areas `edgearea\_e` and `edgearea\_n` 
 are in this case calculated with the C grid velocity components :math:`uvelE` 
 and :math:`vvelN`.
-
 
 We made one other change in the scheme of :cite:`Dukowicz00` for
 locating triangles. In their paper, departure points are defined by
