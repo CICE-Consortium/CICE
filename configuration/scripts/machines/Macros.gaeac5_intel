@@ -12,7 +12,9 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+  # 7/2025: cannot use -check uninit
+  # 7/2025: must use fpe1 rather than fpe0
+  FFLAGS     += -O0 -g -check bounds -check pointers -fpe1 -check noarg_temp_created -link_mpi=dbg
 else
   FFLAGS     += -O2
 endif
