@@ -12,6 +12,7 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
+# no -check uninit 25 Jul 2025
 # fpe1 rather than fpe0 due to bug in hdf library 25 Jul 2025
   FFLAGS     += -O0 -g -check bounds -check pointers -fpe1 -check noarg_temp_created -link_mpi=dbg
 else
