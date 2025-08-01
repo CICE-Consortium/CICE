@@ -8,7 +8,7 @@ CFLAGS     := -c -O2 -fp-model precise   -xHost
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte  -xHost
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte  -march=core-avx2
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
