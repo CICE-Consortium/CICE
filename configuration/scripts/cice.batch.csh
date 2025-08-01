@@ -388,7 +388,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
-#SBATCH --account=sfs_emc
+#SBATCH --account=sfs-emc
 #SBATCH --clusters=c6
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
