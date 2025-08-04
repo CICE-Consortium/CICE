@@ -1221,6 +1221,11 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
+         if (isnan(missingvalue)) then
+            ! ' _FillValue not defined, resetting to spval_dbl
+            ! this is only needed for the logging statement below'
+            missingvalue =  spval_dbl
+         endif
 !         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= missingvalue)
@@ -1400,7 +1405,11 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+         if (isnan(missingvalue)) then
+            ! ' _FillValue not defined, resetting to spval_dbl
+            ! this is only needed for the logging statement below'
+            missingvalue =  spval_dbl
+         endif
          do n=1,ncat
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
@@ -1592,7 +1601,11 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+         if (isnan(missingvalue)) then
+            ! ' _FillValue not defined, resetting to spval_dbl
+            ! this is only needed for the logging statement below'
+            missingvalue =  spval_dbl
+         endif
          do n = 1, nfreq
             amin = minval(work_g1(:,:,n))
             amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
