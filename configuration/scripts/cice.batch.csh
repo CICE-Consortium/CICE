@@ -371,7 +371,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
-#SBATCH --account=nggps_emc
+#SBATCH --account=${acct}
 #SBATCH --clusters=c5
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
@@ -388,7 +388,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
-#SBATCH --account=sfs-emc
+#SBATCH --account=${acct}
 #SBATCH --clusters=c6
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
