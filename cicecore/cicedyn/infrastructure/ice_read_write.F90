@@ -13,6 +13,7 @@
 
       module ice_read_write
 
+      use,intrinsic :: ieee_arithmetic
       use ice_kinds_mod
       use ice_constants, only: c0, spval_dbl, &
           field_loc_noupdate, field_type_noupdate
@@ -1139,6 +1140,8 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
@@ -1222,10 +1225,17 @@
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
 !         write(nu_diag,*) subname,' missingvalue= ',missingvalue
-         amin = minval(work_g1)
-         amax = maxval(work_g1, mask = work_g1 /= missingvalue)
-         asum = sum   (work_g1, mask = work_g1 /= missingvalue)
+         allocate(mask(nx,ny))
+         if ( ieee_is_nan(missingvalue) ) then
+            mask = ieee_is_nan(work_g1)
+         else
+            mask = work_g1 /= missingvalue
+         endif
+         amin = minval(work_g1, mask = mask )
+         amax = maxval(work_g1, mask = mask )
+         asum = sum   (work_g1, mask = mask )
          write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
@@ -1320,6 +1330,8 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
@@ -1400,13 +1412,19 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+         allocate(mask(nx,ny))
          do n=1,ncat
-            amin = minval(work_g1(:,:,n))
-            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
+            if ( ieee_is_nan(missingvalue) ) then
+               mask = ieee_is_nan(work_g1(:,:,n))
+            else
+               mask = work_g1(:,:,n) /= missingvalue
+            endif
+            amin = minval(work_g1(:,:,n), mask = mask )
+            amax = maxval(work_g1(:,:,n), mask = mask )
+            asum = sum   (work_g1(:,:,n), mask = mask )
             write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
@@ -1508,6 +1526,8 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
@@ -1592,13 +1612,19 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
-         do n = 1, nfreq
-            amin = minval(work_g1(:,:,n))
-            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
+         allocate(mask(nx,ny))
+         do n=1,ncat
+            if ( ieee_is_nan(missingvalue) ) then
+               mask = ieee_is_nan(work_g1(:,:,n))
+            else
+               mask = work_g1(:,:,n) /= missingvalue
+            endif
+            amin = minval(work_g1(:,:,n), mask = mask )
+            amax = maxval(work_g1(:,:,n), mask = mask )
+            asum = sum   (work_g1(:,:,n), mask = mask )
             write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
