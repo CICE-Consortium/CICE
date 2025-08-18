@@ -1,5 +1,5 @@
 !=======================================================================
-! Copyright (c) 1998, 2017, Triad National Security, LLC
+! Copyright 1998-2025, Triad National Security, LLC
 ! All rights reserved.
 !
 ! This program was produced under U.S. Government contract 89233218CNA000001
