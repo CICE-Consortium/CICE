@@ -79,8 +79,9 @@
                              ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
                              ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block
-                             ! 'block' = POP default configuration
-                             ! 'blockall' = no land block elimination
+                             ! 'block' = block weighted method with land block elimination
+                             ! 'blockall' = block method with NO land block elimination and minimum weight given to land blocks
+                             ! 'blockfull'= block method with NO land block elimination and full weight given to land blocks
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &
@@ -104,6 +105,7 @@
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
+
 !----------------------------------------------------------------------
 !
 !  local variables
@@ -476,7 +478,8 @@
        flat = 1
    endif
 
-   if (distribution_wght == 'blockall') landblockelim = .false.
+   if (distribution_wght == 'blockall' ) landblockelim = .false.
+   if (distribution_wght == 'blockfull') landblockelim = .false.
 
    allocate(nocn(nblocks_tot))
 
@@ -579,8 +582,10 @@
 
 #ifdef CICE_IN_NEMO
          ! Keep all blocks even the ones only containing land points
+         ! tcraig, use 'blockfull', get rid of the CPP, keep for backwards compatibility for now
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
+         if (distribution_wght == 'blockfull') nocn(n) = nx_block*ny_block
          if (distribution_wght == 'block' .and. nocn(n) > 0) nocn(n) = nx_block*ny_block
          if (.not. landblockelim) nocn(n) = max(nocn(n),1)
 #endif

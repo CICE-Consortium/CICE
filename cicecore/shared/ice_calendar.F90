@@ -57,7 +57,8 @@
       ! PUBLIC
 
       character(len=*), public, parameter :: &
-         ice_calendar_gregorian = 'Gregorian', &  ! calendar name, actually proleptic gregorian here
+         ice_calendar_proleptic_gregorian = 'proleptic_gregorian' , & ! calendar name
+         ice_calendar_gregorian = 'Gregorian', &  ! actually proleptic gregorian here, legacy name
          ice_calendar_noleap    = 'NO_LEAP', &    ! 365 day per year calendar
          ice_calendar_360day    = '360day'        ! 360 day calendar with 30 days per month
 
@@ -136,8 +137,10 @@
          dumpfreq_base(max_nstrm), & ! restart frequency basetime ('zero', 'init')
          histfreq_base(max_nstrm), & ! history frequency basetime ('zero', 'init')
          calendar_type               ! define calendar type
-      data dumpfreq_base / 'init', 'init', 'init', 'init', 'init' /
-      data histfreq_base / 'zero', 'zero', 'zero', 'zero', 'zero' /
+
+      ! This is needed for the calendar unit tester
+      data dumpfreq_base / max_nstrm*'init' /
+      data histfreq_base / max_nstrm*'zero' /
 
       ! PRIVATE
 
@@ -210,13 +213,13 @@
       ! this avoids using it uninitialzed in 'calendar' below
       nstreams = 0
 
-#ifdef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
       ! calendar_type set by coupling
 #else
       calendar_type = ''
       if (use_leap_years) then
          if (days_per_year == 365) then
-            calendar_type = trim(ice_calendar_gregorian)
+            calendar_type = trim(ice_calendar_proleptic_gregorian)
          else
             call abort_ice(subname//'ERROR: use_leap_years is true, must set days_per_year to 365')
          endif
@@ -230,6 +233,14 @@
          endif
       endif
 #endif
+
+      ! prevent coupling setting invalid calendars
+      if (trim(calendar_type) /= ice_calendar_gregorian .and. &
+          trim(calendar_type) /= ice_calendar_proleptic_gregorian .and. &
+          trim(calendar_type) /= ice_calendar_noleap .and. &
+          trim(calendar_type) /= ice_calendar_360day) then
+         call abort_ice(subname//'Error: '//trim(calendar_type)//' not supported')
+      endif
 
       call set_calendar(myear)
       call calendar()
@@ -399,7 +410,9 @@
 
       !--- compute other stuff
 
-#ifndef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
+      ! skip setting stop_now and dump_last write_restart
+#else
       if (istep >= npt+1)  stop_now = 1
       if (istep == npt .and. dump_last) write_restart = 1 ! last timestep
 #endif
@@ -440,6 +453,9 @@
                if (mod(istep1, histfreq_n(ns))==0) &
                   write_history(ns)=.true.
             endif
+         case ("g")
+            ! grid file
+            write_history(ns)=.true.
          end select
 
       enddo
@@ -692,7 +708,8 @@
          call abort_ice(subname//'ERROR: in argument sizes')
       endif
 
-      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
+      if (trim(calendar_type) == ice_calendar_gregorian .or. &
+          trim(calendar_type) == ice_calendar_proleptic_gregorian ) then
 
          isleap = .false. ! not a leap year
          if (mod(ayear,  4) == 0) isleap = .true.
@@ -754,7 +771,8 @@
 
       ! compute days from year 0000-01-01 to year-01-01
       ! don't loop thru years for performance reasons
-      if (trim(calendar_type) == trim(ice_calendar_gregorian)) then
+      if (trim(calendar_type) == ice_calendar_gregorian .or. &
+          trim(calendar_type) == ice_calendar_proleptic_gregorian) then
          if (lyear == 0) then
             ced_nday = 0
          else

@@ -24,6 +24,7 @@ restart        gx3    12x2        alt03,maskhalo,droundrobin
 restart        gx3     4x4        alt04
 restart        gx3     4x4        alt05,medium
 restart        gx3     8x2        alt06
+restart        gx3     8x2        pondsealvl
 restart        gx3    16x2        snicar
 restart        gx3    18x2        debug,maskhalo
 restart        gx3     6x2        alt01,debug,short

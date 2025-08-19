@@ -7,7 +7,9 @@ Index of primary variables and parameters
 
 This index defines many (but not all) of the symbols used frequently in the CICE model
 code.  All quantities in the code are expressed in MKS units (temperatures may take
-either Celsius or Kelvin units).  Deprecated parameters are listed at the end.
+either Celsius or Kelvin units).  Deprecated parameters are listed at the end.  Units are
+as defined inside the model.  Units on history files may be different and are documented
+in history file metadata.
 
 Namelist variables are partly included here, but they are fully documented in 
 section :ref:`tabnamelist`. 
@@ -27,7 +29,6 @@ section :ref:`tabnamelist`.
    "a4Db", "history field accumulations, 4D categories, vertical bio grid", ""
    "a4Ds", "history field accumulations, 4D categories, vertical snow", ""
    "a4Df", "history field accumulations, 4D categories, fsd", ""
-   "a_min", "minimum area concentration for computing velocity", "0.001"
    "a_rapid_mode", "brine channel diameter", ""
    "add_mpi_barriers", "turns on MPI barriers for communication throttling", ""
    "advection", "type of advection algorithm used (‘remap’ or ‘upwind’)", "remap"
@@ -55,6 +56,7 @@ section :ref:`tabnamelist`.
    "ANGLET", "ANGLE converted to T-cells", "radians"
    "aparticn", "participation function", ""
    "apeff_ai", "grid-cell-mean effective pond fraction", ""
+   "apnd_sl", "equilibrium pond fraction in sealvl ponds", ""
    "apondn", "area concentration of melt ponds", ""
    "arlx1i", "relaxation constant for dynamics (stress)", ""
    "araftn", "area fraction of rafted ice", ""
@@ -110,6 +112,8 @@ section :ref:`tabnamelist`.
    "cm_to_m", "cm to meters conversion", "0.01"
    "coldice", "value for constant albedo parameterization", "0.70"
    "coldsnow", "value for constant albedo parameterization", "0.81"
+   "cona", "history units conversion variable, multiplication term", "1.0"
+   "conb", "history units conversion variable, additive term", "0.0"
    "conduct", "conductivity parameterization", ""
    "congel", "basal ice growth", "m"
    "conserv_check", "if true, check conservation", ""
@@ -204,6 +208,8 @@ section :ref:`tabnamelist`.
    "dvidtd", "ice volume tendency due to dynamics/transport", "m/s"
    "dvidtt", "ice volume tendency due to thermodynamics", "m/s"
    "dvirdg(n)dt", "ice volume ridging rate (category n)", "m/s"
+   "dyn_area_min", "minimum area concentration for computing velocity", "0.001"
+   "dyn_mass_min", "minimum mass for computing velocity", "0.01 kg/m\ :math:`^2`"
    "**E**", "", ""                       
    "e11, e12, e22", "strain rate tensor components", ""
    "earea", "area of E-cell", "m\ :math:`^2`"
@@ -303,7 +309,8 @@ section :ref:`tabnamelist`.
    "grid_ocn_dynu", "grid for ocn dynamic-u forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_ocn_dynv", "grid for ocn dynamic-v forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
    "grid_ocn_thrm", "grid for ocn thermodynamic forcing/coupling fields, 'T', 'U', 'N', 'E'", ""
-   "grid_type", "‘rectangular’, ‘displaced_pole’, ‘column’ or ‘regional’", ""
+   "grid_outfile", "write one-time grid history file", ""
+   "grid_type", "grid input file type, ‘rectangular’, ‘displaced_pole’, 'tripole', etc", ""
    "gridcpl_file", "input file for coupling grid info", ""
    "grow_net", "specific biogeochemistry growth rate per grid cell", "s :math:`^{-1}`"
    "Gstar", "piecewise-linear ridging participation function parameter", "0.15"
@@ -402,7 +409,7 @@ section :ref:`tabnamelist`.
    "ktherm", "thermodynamic formulation (-1 = off, 1 = :cite:`Bitz99`, 2 = mushy)", ""        
    "**L**", "", ""
    "l_brine", "flag for brine pocket effects", ""
-   "l_fixed_area", "flag for prescribing remapping fluxes", ""
+   "l_edge_flux_adj", "flag for prescribing remapping fluxes", ""
    "l_mpond_fresh", "if true, retain (topo) pond water until ponds drain", ""
    "latpnt", "desired latitude of diagnostic points", "degrees N"
    "latt(u)_bounds", "latitude of T(U) grid cell corners", "degrees N"
@@ -418,7 +425,6 @@ section :ref:`tabnamelist`.
    "ltripole_grid", "flag to signal use of tripole grid", ""
    "Lvap", "latent heat of vaporization for fresh water", "2.501\ :math:`\times` 10\ :math:`^6` J/kg"
    "**M**", "", ""
-   "m_min", "minimum mass for computing velocity", "0.01 kg/m\ :math:`^2`"
    "m_to_cm", "meters to cm conversion", "100."
    "m1", "constant for lateral melt rate", "1.6\ :math:`\times`\ 10\ :math:`^{-6}` m/s deg\ :math:`^{-m2}`"
    "m2", "constant for lateral melt rate", "1.36"
@@ -624,6 +630,7 @@ section :ref:`tabnamelist`.
    "runtype", "type of initialization used", ""
    "**S**", "", ""
    "s11, s12, s22", "stress tensor components", ""
+   "saltflux_option", "form of coupled salt flux ", ""
    "saltmax", "max salinity, at ice base (:cite:`Bitz99`)", "3.2 ppt"
    "scale_factor", "scaling factor for shortwave radiation components", ""
    "seabed_stress", "if true, calculate seabed stress", "F"
@@ -692,7 +699,6 @@ section :ref:`tabnamelist`.
    "Tf", "freezing temperature", "C"
    "Tffresh", "freezing temp of fresh ice", "273.15 K"
    "tfrz_option", "form of ocean freezing temperature", ""
-   "saltflux_option", "form of coupled salt flux ", ""
    "thinS", "minimum ice thickness for brine tracer", ""
    "timer_stats", "logical to turn on extra timer statistics", ".false."
    "timesecs", "total elapsed time in seconds", "s"
@@ -717,6 +723,7 @@ section :ref:`tabnamelist`.
    "tr_iage", "if true, use ice age tracer", ""
    "tr_lvl", "if true, use level ice area and volume tracers", ""
    "tr_pond_lvl", "if true, use level-ice melt pond scheme", ""
+   "tr_pond_sealvl", "if true, use sea level melt pond scheme", ""
    "tr_pond_topo", "if true, use topo melt pond scheme", ""
    "trcr", "ice tracers", ""
    "trcr_depend", "tracer dependency on basic state variables", ""
@@ -724,6 +731,7 @@ section :ref:`tabnamelist`.
    "trestore", "restoring time scale", "days"
    "tripole", "if true, block lies along tripole boundary", ""
    "tripoleT", "if true, tripole boundary is T-fold; if false, U-fold", ""
+   "tscale_pnd_drain", "mushy macroscopic drainage timescale", "days"
    "Tsf_errmax", "max allowed :math:`T_{\mathit sf}` error (thermodynamics)", "5.\ :math:`\times`\ 10\ :math:`^{-4}`\ deg"
    "Tsfc(n)", "temperature of ice/snow top surface (in category n)", "C"
    "Tsnz", "Internal snow temperature", "C"
