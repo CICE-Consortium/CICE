@@ -371,7 +371,7 @@
                   allocate(work_mom(nx_global*2+1, ny_global*2+1), stat=ierr)
                   if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-                  fieldname='y'                ! use mom y field to fill cice ULAT 
+                  fieldname='y'                ! use mom y field to fill cice ULAT
                   call ice_open_nc(grid_file,fid_grid)
                   call ice_read_global_nc(fid_grid,1,fieldname,work_mom,.true.)
                   call ice_close_nc(fid_grid)
@@ -382,7 +382,7 @@
                          work_g1(i,j) = work_mom(im, jm)
                          jm = jm + 2
                       enddo
-                      im = im + 2 
+                      im = im + 2
                   enddo
 
                   deallocate(work_mom, stat=ierr)
