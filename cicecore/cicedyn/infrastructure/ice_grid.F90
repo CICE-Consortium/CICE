@@ -25,8 +25,8 @@
       use ice_kinds_mod
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
-      use ice_constants, only: c0, c1, c1p5, c2, c4, c20, c360, &
-          p5, p25, radius, cm_to_m, m_to_cm, &
+      use ice_constants, only: c0, c1, c1p5, c2, c4, c20, c180, c360, &
+          p5, p25, radius, cm_to_m, &
           field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_communicate, only: my_task, master_task
@@ -53,7 +53,7 @@
                 grid_neighbor_min, grid_neighbor_max
 
       character (len=char_len_long), public :: &
-         grid_format  , & ! file format ('bin'=binary or 'nc'=netcdf)
+         grid_format  , & ! file format ('bin'=binary or 'pop_nc'= pop netcdf or 'mom_nc'=mom (supergrid) netcdf)
          gridcpl_file , & !  input file for POP coupling grid info
          grid_file    , & !  input file for POP grid info
          kmt_file     , & !  input file for POP grid info
@@ -108,7 +108,7 @@
          ANGLE  , & ! for conversions between POP grid and lat/lon
          ANGLET , & ! ANGLE converted to T-cells, valid in halo
          bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
-         ocn_gridcell_frac   ! only relevant for lat-lon grids
+         ocn_gridcell_frac   ! ocean gridcell fraction
                              ! gridcell value of [1 - (land fraction)] (T-cell)
 
       real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
@@ -150,6 +150,7 @@
          kmt        ! ocean topography mask for bathymetry (T-cell)
 
       logical (kind=log_kind), public :: &
+         grid_outfile,   & ! flag to write out one-time grid history file
          use_bathymetry, & ! flag for reading in bathymetry_file
          save_ghte_ghtn, & ! flag for saving global hte and htn during initialization
          scale_dxdy        ! flag to apply scale factor to vary dx/dy in rectgrid
@@ -160,6 +161,7 @@
          umaskCD, & ! land/boundary mask  (U-cell) (1 if at least two surrounding T cells are ocean)
          nmask  , & ! land/boundary mask, (N-cell)
          emask  , & ! land/boundary mask, (E-cell)
+         opmask , & ! land/boundary orphan mask, ocean cells in atmosphere but not ocean/ice
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
@@ -171,7 +173,6 @@
 
       character (len=char_len), private :: &
          mask_fieldname !field/var name for the mask variable (in nc files)
-
 
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
@@ -237,6 +238,7 @@
          umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
+         opmask   (nx_block,ny_block,max_blocks), & ! land/boundary orphan mask (atm ocean/ice cell)
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
@@ -250,6 +252,8 @@
          late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
+
+      ocn_gridcell_frac(:,:,:) = -c1   ! special value to start, will be ignored unless set elsewhere
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -269,7 +273,6 @@
       end subroutine alloc_grid
 
 !=======================================================================
-
 !
 ! DeAllocate space for variables no longer needed after initialization
 !
@@ -287,7 +290,6 @@
       end subroutine dealloc_grid
 
 !=======================================================================
-
 ! Distribute blocks across processors.  The distribution is optimized
 ! based on latitude and topography, contained in the ULAT and KMT arrays.
 !
@@ -301,18 +303,19 @@
 #endif
 
       integer (kind=int_kind) :: &
-         fid_grid, &     ! file id for netCDF grid file
-         fid_kmt         ! file id for netCDF kmt file
+         fid_grid, &    ! file id for netCDF grid file
+         fid_kmt        ! file id for netCDF kmt file
 
       character (char_len) :: &
          fieldname       ! field name in netCDF file
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1, work_g2
+         work_g1, work_g2, work_mom
 
       integer (kind=int_kind) :: &
          max_blocks_min, & ! min value of max_blocks across procs
-         max_blocks_max    ! max value of max_blocks across procs
+         max_blocks_max, &    ! max value of max_blocks across procs
+         i, j, im, jm, ierr
 
       real (kind=dbl_kind) :: &
          rad_to_deg
@@ -328,8 +331,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      allocate(work_g1(nx_global,ny_global))
-      allocate(work_g2(nx_global,ny_global))
+      allocate( &
+         work_g1(nx_global,ny_global), &
+         work_g2(nx_global,ny_global), &
+         stat=ierr &
+      )
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! check tripole flags here
       ! can't check in init_data because ns_boundary_type is not yet read
@@ -346,57 +353,98 @@
                         file=__FILE__, line=__LINE__)
       endif
 
+      if (grid_format == 'mom_nc' .and. ns_boundary_type == 'tripoleT') then
+         call abort_ice(subname//" ERROR: ns_boundary_type='tripoleT' not implemented "// &
+                        "for grid_format='mom_nc'. Use 'tripole' instead.", &
+                        file=__FILE__, line=__LINE__)
+      endif
+
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
-          trim(grid_type) == 'regional'     ) then
+          trim(grid_type) == 'regional') then
 
-         if (trim(grid_format) == 'nc') then
+         ! Fill ULAT
+         select case(trim(grid_format))
+            case ('mom_nc')
 
-            fieldname='ulat'
-            call ice_open_nc(grid_file,fid_grid)
-            call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
-            call ice_close_nc(fid_grid)
-
-            ! mask variable name might be kmt or mask, check both
-            call ice_open_nc(kmt_file,fid_kmt)
-#ifdef USE_NETCDF
-            if ( my_task==master_task ) then
-               status = nf90_inq_varid(fid_kmt, 'kmt', varid)
-               if (status == nf90_noerr) then
-                  mask_fieldname = 'kmt'
+               if (my_task == master_task) then
+                  allocate(work_mom(nx_global*2+1, ny_global*2+1), stat=ierr)
                else
-                  status = nf90_inq_varid(fid_kmt, 'mask', varid)
-                  call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
-                                    ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
-                  mask_fieldname = 'mask'
+                  allocate(work_mom(1, 1), stat=ierr)
                endif
-            endif
-#endif
-            call broadcast_scalar(mask_fieldname, master_task)
+               if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-            call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
-            call ice_close_nc(fid_kmt)
+               fieldname='y'                ! use mom y field to fill cice ULAT
+               call ice_open_nc(grid_file,fid_grid)
+               call ice_read_global_nc(fid_grid,1,fieldname,work_mom,.true.)
+               call ice_close_nc(fid_grid)
+               im = 3
+               do i = 1, nx_global
+                  jm = 3
+                  do j = 1, ny_global
+                     work_g1(i,j) = work_mom(im, jm)
+                     jm = jm + 2
+                  enddo
+                  im = im + 2
+               enddo
 
-         else
+               deallocate(work_mom, stat=ierr)
+               if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
-            call ice_open(nu_grid,grid_file,64) ! ULAT
-            call ice_open(nu_kmt, kmt_file, 32) ! KMT
+            case('pop_nc', 'geosnc')
 
-            call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)  ! ULAT
-            call ice_read_global(nu_kmt, 1,work_g2,'ida4',.true.)  ! KMT
+               fieldname='ulat'
+               call ice_open_nc(grid_file,fid_grid)
+               call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
+               call ice_close_nc(fid_grid)
 
-            if (my_task == master_task) then
-               close (nu_grid)
-               close (nu_kmt)
-            endif
+            case default
 
-         endif
+               call ice_open(nu_grid,grid_file,64)
+               call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)
+               if (my_task == master_task) close (nu_grid)
+
+         end select
 
       else   ! rectangular grid
-
          work_g1(:,:) = 75._dbl_kind/rad_to_deg  ! arbitrary polar latitude
-         work_g2(:,:) = c1
+      endif
 
+      ! Fill kmt
+      if (trim(kmt_type) =='file') then
+         select case(trim(grid_format))
+            case ('mom_nc', 'pop_nc', 'geosnc')
+
+               ! mask variable name might be kmt or mask, check both
+               call ice_open_nc(kmt_file,fid_kmt)
+#ifdef USE_NETCDF
+               if ( my_task==master_task ) then
+                  status = nf90_inq_varid(fid_kmt, 'kmt', varid)
+                  if (status == nf90_noerr) then
+                     mask_fieldname = 'kmt'
+                  else
+                     status = nf90_inq_varid(fid_kmt, 'mask', varid)
+                     call ice_check_nc(status, subname//' ERROR: does '//trim(kmt_file)//&
+                                       ' contain "kmt" or "mask" variable?', file=__FILE__, line=__LINE__)
+                     mask_fieldname = 'mask'
+                  endif
+               endif
+#endif
+               call broadcast_scalar(mask_fieldname, master_task)
+
+               call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
+               call ice_close_nc(fid_kmt)
+
+            case default
+
+               call ice_open(nu_kmt, kmt_file, 32) ! KMT
+               call ice_read_global(nu_kmt, 1,work_g2,'ida4',.true.)  ! KMT
+               if (my_task == master_task) close (nu_kmt)
+
+         end select
+
+      else
+         work_g2(:,:) = c1
       endif
 
       call broadcast_array(work_g1, master_task)   ! ULAT
@@ -408,8 +456,8 @@
 
       call init_domain_distribution(work_g2, work_g1, grid_ice)  ! KMT, ULAT
 
-      deallocate(work_g1)
-      deallocate(work_g2)
+      deallocate(work_g1, work_g2, stat = ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! write additional domain information
@@ -429,7 +477,6 @@
       end subroutine init_grid1
 
 !=======================================================================
-
 ! Horizontal grid initialization:
 !
 !     U{LAT,LONG} = true {latitude,longitude} of U points
@@ -449,12 +496,12 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         i, j, iblk,      &
+         ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind) :: &
-         angle_0, angle_w, angle_s, angle_sw, &
-         pi, pi2, puny
+         angle_0, angle_w, angle_s, angle_sw, pi
 
       logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
          out_of_range
@@ -477,8 +524,8 @@
       !-----------------------------------------------------------------
 
       l_readCenter = .false.
+      call icepack_query_parameters(pi_out=pi)
 
-      call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -486,13 +533,16 @@
       if (trim(grid_type) == 'displaced_pole' .or. &
           trim(grid_type) == 'tripole' .or. &
           trim(grid_type) == 'regional'      ) then
-         if (trim(grid_format) == 'nc') then
-            call kmtmask_nc     ! read mask from nc file
-            call popgrid_nc     ! read POP grid lengths from nc file
-         else
-            call kmtmask        ! read kmt directly
-            call popgrid        ! read POP grid lengths directly
-         endif
+         select case (trim(grid_format))
+            case('mom_nc')
+               call mom_grid        ! derive cice grid from MOM supergrid nc file
+            case ('pop_nc')
+               call popgrid_nc      ! read POP grid lengths from nc file
+            case ('geosnc')
+               call geosgrid_nc     ! read GEOS MOM grid used from nc file
+            case default
+               call popgrid         ! read POP grid lengths directly
+         end select
 #ifdef CESMCOUPLED
       elseif (trim(grid_type) == 'latlon') then
          call latlongrid        ! lat lon grid for sequential CESM (CAM mode)
@@ -501,6 +551,18 @@
       else
          call rectgrid          ! regular rectangular grid
       endif
+
+      if (trim(kmt_type) =='none') then
+         kmt(:,:,:) = c1
+         hm(:,:,:)  = c1
+      else if (trim(kmt_type) =='file') then
+         select case (trim(grid_format))
+            case('mom_nc', 'pop_nc' ,'geosnc')
+               call kmtmask('nc')
+            case default
+               call kmtmask('bin')
+         end select
+      endif ! the other types are handled by rectgrid
 
       !-----------------------------------------------------------------
       ! Diagnose OpenMP thread schedule, force order in output
@@ -533,6 +595,27 @@
       ! at halos.
       !-----------------------------------------------------------------
 
+      if (trim(grid_format) /= 'mom_nc') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk),iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+
+            do j = 1,ny_block
+            do i = 1,nx_block
+               tarea(i,j,iblk) = dxT(i,j,iblk)*dyT(i,j,iblk)
+               uarea(i,j,iblk) = dxU(i,j,iblk)*dyU(i,j,iblk)
+               narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
+               earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif
+
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -543,11 +626,6 @@
 
          do j = 1,ny_block
          do i = 1,nx_block
-            tarea(i,j,iblk) = dxT(i,j,iblk)*dyT(i,j,iblk)
-            uarea(i,j,iblk) = dxU(i,j,iblk)*dyU(i,j,iblk)
-            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
-            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
-
             if (tarea(i,j,iblk) > c0) then
                tarear(i,j,iblk) = c1/tarea(i,j,iblk)
             else
@@ -616,8 +694,7 @@
       call ice_timer_stop(timer_bound)
 
       !-----------------------------------------------------------------
-      ! Calculate ANGLET to be compatible with POP ocean model
-      ! First, ensure that -pi <= ANGLE <= pi
+      ! Ensure that -pi <= ANGLE <= pi
       !-----------------------------------------------------------------
 
       out_of_range = .false.
@@ -673,7 +750,8 @@
          !$OMP END PARALLEL DO
       endif
 
-      if (trim(grid_type) == 'regional' .and. &
+      if ((trim(grid_type) == 'regional' .or. &
+           trim(grid_type) == 'rectangular') .and. &
           (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -701,10 +779,21 @@
       call ice_timer_stop(timer_bound)
 
       call makemask          ! velocity mask, hemisphere masks
-      if (.not. (l_readCenter)) then
-         call Tlatlon        ! get lat, lon on the T grid
+
+      !----------------------------------------------------------------
+      ! Coordinates for all T/N/E cells
+      !----------------------------------------------------------------
+
+      if (trim(grid_format) /= 'mom_nc') then
+         if (.not. (l_readCenter)) then
+            call Tlatlon        ! get lat, lon on the T grid
+         endif
+         call NElatlon          ! get lat, lon on the N, E grid
+
+         ! corners for CF-compliant output
+         call gridbox_corners
+         call gridbox_edges
       endif
-      call NElatlon          ! get lat, lon on the N, E grid
 
       !-----------------------------------------------------------------
       ! bathymetry
@@ -719,70 +808,82 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      !----------------------------------------------------------------
-      ! Corner coordinates for CF compliant history files
-      !----------------------------------------------------------------
-
-      call gridbox_corners
-      call gridbox_edges
-
       !-----------------------------------------------------------------
       ! Compute global index (used for unpacking messages from coupler)
       !-----------------------------------------------------------------
 
       if (my_task==master_task) then
-         allocate(work_g1(nx_global,ny_global))
+         allocate(work_g1(nx_global,ny_global), stat=ierr)
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
          do j=1,ny_global
          do i=1,nx_global
             work_g1(i,j) = real((j-1)*nx_global + i,kind=dbl_kind)
          enddo
          enddo
       else
-         allocate(work_g1(1,1)) ! to save memory
+         allocate(work_g1(1,1), stat=ierr) ! to save memory
+         if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       endif
 
       call scatter_global(rndex_global, work_g1,  &
                           master_task,  distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine init_grid2
 
 !=======================================================================
-
 ! POP land mask
 ! Land mask record number and field is (1) KMT.
 
-      subroutine kmtmask
+      subroutine kmtmask(filetype)
+
+      character(len=*), intent(in) :: &
+         filetype        ! 'nc' or 'bin'
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         ilo,ihi,jlo,jhi ! beginning and end of physical domain
+
+      integer (kind=int_kind) :: &
+         fid_kmt         ! file id for netCDF kmt file
 
       logical (kind=log_kind) :: diag
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+      real (kind=dbl_kind) :: &
+         puny
 
       type (block) :: &
-         this_block           ! block information for current block
+         this_block       ! block information for current block
 
       character(len=*), parameter :: subname = '(kmtmask)'
 
-      call ice_open(nu_kmt,kmt_file,32)
+      call icepack_query_parameters(puny_out=puny)
 
       diag = .true.       ! write diagnostic info
 
-      !-----------------------------------------------------------------
-      ! topography
-      !-----------------------------------------------------------------
       kmt(:,:,:) = c0
       hm (:,:,:) = c0
 
-      call ice_read(nu_kmt,1,kmt,'ida4',diag, &
-                    field_loc=field_loc_center, &
-                    field_type=field_type_scalar)
+      if (filetype == 'bin') then
+         call ice_open(nu_kmt,kmt_file,32)
+         call ice_read(nu_kmt,1,kmt,'ida4',diag, &
+                       field_loc=field_loc_center, &
+                       field_type=field_type_scalar)
+         if (my_task == master_task) then
+            close (nu_kmt)
+         endif
+      elseif (filetype == 'nc') then
+         call ice_open_nc(kmt_file,fid_kmt)
+         call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
+                           field_loc=field_loc_center, &
+                           field_type=field_type_scalar)
+         call ice_close_nc(fid_kmt)
+      else
+         call abort_ice(subname//' ERROR: invalid filetype='//trim(filetype), file=__FILE__, line=__LINE__)
+      endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -794,20 +895,20 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
+            ! force grid cells to land if ocn_gridcell_frac is defined
+            if (ocn_gridcell_frac(i,j,iblk) >= c0 .and. &
+                ocn_gridcell_frac(i,j,iblk) < puny) then
+               kmt(i,j,iblk)  = c0
+            endif
             if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
 
-      if (my_task == master_task) then
-         close (nu_kmt)
-      endif
-
       end subroutine kmtmask
 
 !=======================================================================
-
 ! POP displaced pole grid (or tripole).
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
@@ -827,6 +928,8 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
+      integer (int_kind) :: ierr
+
       character(len=*), parameter :: subname = '(popgrid)'
 
       call ice_open(nu_grid,grid_file,64)
@@ -837,7 +940,8 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      allocate(work_g1(nx_global,ny_global))
+      allocate(work_g1(nx_global,ny_global), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)   ! ULAT
       call gridbox_verts(work_g1,latt_bounds)
@@ -869,7 +973,8 @@
       call ice_read_global(nu_grid,4,work_g1,'rda8',.true.)   ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
          close (nu_grid)
@@ -878,60 +983,6 @@
       end subroutine popgrid
 
 !=======================================================================
-
-! POP/MOM land mask.
-! Land mask field is kmt or mask, saved in mask_fieldname.
-
-      subroutine kmtmask_nc
-
-      integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_kmt                ! file id for netCDF kmt file
-
-      logical (kind=log_kind) :: diag
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      character(len=*), parameter :: subname = '(kmtmask_nc)'
-
-      diag = .true.       ! write diagnostic info
-
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-
-      call ice_open_nc(kmt_file,fid_kmt)
-
-      call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
-                        field_loc=field_loc_center, &
-                        field_type=field_type_scalar)
-
-      call ice_close_nc(fid_kmt)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (kmt(i,j,iblk) >= c1) hm(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      end subroutine kmtmask_nc
-
-!=======================================================================
-
 ! POP displaced pole grid and land mask.
 ! Grid record number, field and units are: \\
 ! (1) ULAT  (radians)    \\
@@ -948,13 +999,15 @@
       subroutine popgrid_nc
 
 #ifdef USE_NETCDF
-      use netcdf
+      use netcdf, only : nf90_inq_varid , nf90_inq_dimid, &
+                         nf90_inquire_dimension, nf90_get_var,  nf90_noerr
 #endif
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
-         fid_grid            ! file id for netCDF grid file
+         fid_grid , &           ! file id for netCDF grid file
+         ierr
 
       logical (kind=log_kind) :: diag
 
@@ -986,7 +1039,8 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      allocate(work_g1(nx_global,ny_global))
+      allocate(work_g1(nx_global,ny_global), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
@@ -1015,7 +1069,7 @@
       ! if grid file includes anglet then read instead
       fieldname='anglet'
       if (my_task == master_task) then
-         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         status = nf90_inq_varid(fid_grid, fieldname , varid)
          if (status /= nf90_noerr) then
             write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
          else
@@ -1052,7 +1106,8 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
       call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
 
-      deallocate(work_g1)
+      deallocate(work_g1, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       call ice_close_nc(fid_grid)
 
@@ -1065,7 +1120,6 @@
 
 #ifdef CESMCOUPLED
 !=======================================================================
-
 ! Read in kmt file that matches CAM lat-lon grid and has single column
 ! functionality
 ! author: Mariana Vertenstein
@@ -1075,7 +1129,8 @@
 
       use ice_scam, only : scmlat, scmlon, single_column
 #ifdef USE_NETCDF
-      use netcdf
+      use netcdf, only : nf90_inq_varid , nf90_inq_dimid, &
+                         nf90_inquire_dimension, nf90_get_var
 #endif
 
       integer (kind=int_kind) :: &
@@ -1113,7 +1168,6 @@
       real (kind=dbl_kind) :: &
          pos_scmlon,&         ! temporary
          pi, &
-         puny, &
          scamdata             ! temporary
 
       character(len=*), parameter :: subname = '(lonlatgrid)'
@@ -1126,7 +1180,7 @@
       ! - Read in ocean from "kmt" file (1 for ocean, 0 for land)
       !-----------------------------------------------------------------
 
-      call icepack_query_parameters(pi_out=pi, puny_out=puny)
+      call icepack_query_parameters(pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -1344,8 +1398,855 @@
 
       end subroutine latlongrid
 #endif
+
+!=======================================================================
+! Create the CICE grid from the MOM supergrid netcdf file.
+! CICE fields and units are:
+! ULAT, ULON, TLAT, TLON, ELAT, ELON, NLAT, NLON (radians)
+! HTN, HTE   (m)
+! dxT, dyT, dxU, dyU, dxN, dyN, dxE, dyE,   (m)
+! ANGLE, ANGLET (radians)
+! tarea, uarea, narea, earea (m^2)
+! lont_bounds, latt_bounds, etc (degrees)
+
+      subroutine mom_grid
+
+      integer (kind=int_kind) :: &
+         fid_grid, &            ! file id for netCDF grid file
+         varid, &               ! netcdf varid
+         ierr
+
+      logical (kind=log_kind) :: diag
+
+      character (char_len) :: &
+         fieldname              ! field name in netCDF file
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         G_TLON, work_gE, G_ULON, work_gN, work_mom, G_ULAT, G_TLAT, work_g1
+
+      character(len=*), parameter :: subname = '(mom_grid)'
+
+      call ice_open_nc(grid_file,fid_grid)
+
+      !-----------------------------------------------------------------
+      ! lat, lon, angle
+      !-----------------------------------------------------------------
+
+      if (my_task == master_task) then
+         allocate( &
+            work_mom(nx_global*2+1, ny_global*2+1), &
+            work_gE(nx_global+1,ny_global+1)      , &
+            work_gN(nx_global+1,ny_global+1)      , &
+            G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
+            G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
+            G_TLON(nx_global+1,ny_global+1)       , & !include left and bottom
+            G_ULON(nx_global+1,ny_global+1)       , & !include top and right
+            stat = ierr &
+         )
+      else
+         allocate(work_mom(1,1), work_gE(1,1), work_gN(1,1), &
+            G_ULAT(1,1), G_TLAT(1,1), G_TLON(1,1), G_ULON(1,1), &
+            stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      ! populate all LAT fields
+      fieldname='y'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
+      call mom_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
+      ! create bounds fields for cf-compliant output
+      call mom_bounds(G_ULAT, latt_bounds) ! u points define corners for t-cells
+      call mom_bounds(G_TLAT, latu_bounds)
+      call mom_bounds(work_gN, late_bounds)
+      call mom_bounds(work_gE, latn_bounds)
+      !distribute global array to local
+      call mom_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
+                          ULAT, TLAT, ELAT, NLAT)
+
+      ! populate all LON fields
+      fieldname='x'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
+      call mom_corners_global(work_mom, G_ULON, G_TLON, work_gE, work_gN)
+      call mom_bounds(G_ULON, lont_bounds)
+      call mom_bounds(G_TLON, lonu_bounds)
+      call mom_bounds(work_gN, lone_bounds)
+      call mom_bounds(work_gE, lonn_bounds)
+      call mom_corners_scatter(G_ULON, G_TLON, work_gE, work_gN, &
+                                  ULON, TLON, ELON, NLON)
+
+      deallocate(work_gE, work_gN, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+      if (my_task == master_task) then
+         allocate(work_g1(nx_global, ny_global), stat=ierr)       !array for angle field
+      else
+         allocate(work_g1(1, 1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      ! populate angle fields, angle is u-points, angleT is t-points
+      ! even though mom supergrid files contain angle_dx, mom6 calculates internally
+      call mom_grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
+      call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
+                           field_loc_center, field_type_angle)
+      call mom_grid_rotation_angle(G_TLON, G_TLAT, G_ULON(2:nx_global+1,2:ny_global+1), work_g1) ! angle
+      call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
+                           field_loc_NEcorner, field_type_angle)
+
+      deallocate(work_g1, G_ULAT, G_TLAT, G_TLON, G_ULON, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      !-----------------------------------------------------------------
+      ! cell dimensions
+      !-----------------------------------------------------------------
+      fieldname='dx'
+      ! dx uses the cells in x, edges in y, reallocate work_mom to this size
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+      if (my_task == master_task) then
+         allocate(work_mom(nx_global*2, ny_global*2+1), stat=ierr)
+      else
+         allocate(work_mom(1, 1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
+      call mom_dx(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      fieldname='dy'
+      ! dy uses the edges in x, cells in y, reallocate work_mom to this size
+      if (my_task == master_task) then
+         allocate(work_mom(nx_global*2+1, ny_global*2), stat=ierr)
+      else
+         allocate(work_mom(1, 1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
+      call mom_dy(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+
+      !-----------------------------------------------------------------
+      ! cell areas
+      !-----------------------------------------------------------------
+      fieldname = 'area'
+      if (my_task == master_task) then
+         allocate(work_mom(nx_global*2, ny_global*2), stat=ierr)
+      else
+         allocate(work_mom(1, 1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      call ice_read_global_nc(fid_grid,1,fieldname,work_mom,diag)
+      call mom_area(work_mom)
+      deallocate(work_mom, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc', file=__FILE__, line=__LINE__)
+
+      !-----------------------------------------------------------------
+      ! fin
+      !-----------------------------------------------------------------
+      call ice_close_nc(fid_grid)
+      l_readCenter = .true.       ! we have read t quantities
+
+      end subroutine mom_grid
+
 !=======================================================================
 
+      subroutine mom_corners_global(work_mom, G_U, G_T, G_E, G_N)
+
+      ! mom supergrid has four cells for every model cell
+      ! we need to select the correct edges to get lat & lon for a model cell
+      ! we include left/bottom edges for U-points, and top/right edges for T-points
+      ! and close per ew_boundary_type & ns_boundary_type
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
+         ! supergrid array of x or y
+
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: G_U, G_T, G_E, G_N
+         ! global grids
+
+      integer (kind=int_kind) :: &
+         i, j, &
+         im1, im2, jm1, jm2  ! i & j for mom supergrid
+
+      character(len=*), parameter :: subname = '(mom_corners_global)'
+
+      if (my_task == master_task) then
+
+         im1 = 1 ; im2 = 2  ! lh , middle  hand edge of first col
+         do i = 1, nx_global
+            jm1 = 1; jm2 = 2 ! bottom, middle of first row
+            do j = 1, ny_global
+               G_U(i,j) = work_mom(im1, jm1)     ! ULAT/LON
+               G_N(i,j) = work_mom(im2, jm1)     ! NLAT/LON
+               G_E(i,j) = work_mom(im1, jm2)     ! ELAT/LON
+               G_T(i,j) = work_mom(im2, jm2)     ! TLAT/LON
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+            im1 = im1 + 2 ; im2 = im2 + 2
+         enddo
+
+         ! fill last col
+         jm1 = 1; jm2 = 2 ! bottom, middle of first row
+         do j = 1, ny_global
+            G_U(nx_global+1,j) = work_mom(2*nx_global+1, jm1)
+            G_E(nx_global+1,j) = work_mom(2*nx_global+1, jm2)
+            jm1 = jm1 + 2 ; jm2 = jm2 + 2
+         enddo
+         select case (trim(ew_boundary_type))
+            case('cyclic')
+               G_T(nx_global+1,:) = G_T(1,:)
+               G_N(nx_global+1,:) = G_N(1,:)
+            case('open')
+               do j=1, ny_global+1
+                  G_T(nx_global+1,j) = 2 * G_T(nx_global, j) - G_T(nx_global-1, j)
+                  G_N(nx_global+1,j) = 2 * G_N(nx_global, j) - G_N(nx_global-1, j)
+               enddo
+         end select
+
+         ! fill last row
+         im1 = 1 ; im2 = 2
+         do i = 1, nx_global+1
+            G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global+1)
+            G_N(i,ny_global + 1) = work_mom(im2, 2*ny_global+1)
+            im1 = im1 + 2
+         enddo
+         select case (trim(ns_boundary_type))
+            case ('tripole')
+               do i = 1, nx_global+1
+                  G_T(i,ny_global+1) = G_T(nx_global+1-i, ny_global)
+                  G_E(i,ny_global+1) = G_E(nx_global+1-i, ny_global)
+               enddo
+            case ('cyclic')
+               G_T(:,ny_global+1) = G_T(:,1)
+               G_E(:,ny_global+1) = G_E(:,1)
+            case ('open')
+               do i = 1, nx_global+1
+                  G_T(i,ny_global+1) = 2 * G_T(i, ny_global) - G_T(i, ny_global-1)
+                  G_E(i,ny_global+1) = 2 * G_E(i, ny_global) - G_E(i, ny_global-1)
+               enddo
+         end select
+
+      endif
+
+      end subroutine mom_corners_global
+
+!=======================================================================
+
+      subroutine mom_bounds(G_corners, bounds)
+
+      ! with an global array of corner points, subset and distribute
+      ! into a cice bounds variables
+      ! e.g. The tracer coordinates are the corner of the u-cells,
+      ! so use mom_bounds(G_TLON, lonu_bounds)
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
+      real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds
+
+      ! local vars
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work_bounds
+
+      character(len=*), parameter :: subname = '(mom_bounds)'
+
+      ! Get bounds of grid boxes for each block as follows:
+      ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
+      call scatter_global(work_bounds, G_corners(1:nx_global, 1:ny_global), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(1,:,:,:) = work_bounds(:,:,:)
+      call scatter_global(work_bounds, G_corners(2:nx_global+1, 1:ny_global), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(2,:,:,:) = work_bounds(:,:,:)
+      call scatter_global(work_bounds, G_corners(2:nx_global+1, 2:ny_global+1), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(3,:,:,:) = work_bounds(:,:,:)
+      call scatter_global(work_bounds, G_corners(1:nx_global, 2:ny_global+1), &
+                         master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      bounds(4,:,:,:) = work_bounds(:,:,:)
+
+      end subroutine mom_bounds
+
+!=======================================================================
+
+      subroutine mom_corners_scatter(G_U, G_T, G_E, G_N, U, T, E, N )
+
+      ! with a global array of corner points in degrees, convert to rad and scatter to workers
+
+      real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N
+         ! global grids
+
+      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: U, T, E, N ! local grids
+
+      real (kind=dbl_kind) :: deg_to_rad , pi
+
+      character(len=*), parameter :: subname = '(mom_corners_scatter)'
+
+      call icepack_query_parameters(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      deg_to_rad = pi/c180
+
+      ! convert to rad
+      G_T = G_T * deg_to_rad
+      G_U = G_U * deg_to_rad
+      G_N = G_N * deg_to_rad
+      G_E = G_E * deg_to_rad
+
+      ! distribute to processors
+      ! subset G_T to active cells by dropping right/top halo
+      call scatter_global(T, G_T(1:nx_global, 1:ny_global), &
+                          master_task, distrb_info, &
+                          field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(T, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      ! subset G_U/G_E/G_N to active cells by dropping left/bottom edge
+      call scatter_global(U, G_U(2:nx_global+1, 2:ny_global+1), &
+                          master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(U, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call scatter_global(N, G_N(1:nx_global, 2:ny_global+1), master_task, distrb_info, &
+                         field_loc_Nface, field_type_scalar)
+      call ice_HaloExtrapolate(N, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call scatter_global(E, G_E(2:nx_global+1, 1:ny_global), master_task, distrb_info, &
+                          field_loc_Eface, field_type_scalar)
+      call ice_HaloExtrapolate(E, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      end subroutine mom_corners_scatter
+
+!=======================================================================
+
+      subroutine mom_dx(work_mom)
+
+      ! mom supergrid has four cells for every model cell, sum the sidelengths to get model dx
+
+      real (kind=dbl_kind), dimension(:,:) :: work_mom
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         G_dxT, G_dxN, G_dxE, G_dxU
+
+      integer (kind=int_kind) :: &
+         i, j , &
+         im1, im2, jm1, jm2, im3, jm3 , &  ! i & j for mom supergrid
+         ierr
+
+      character(len=*), parameter :: subname = '(mom_dx)'
+
+      if (my_task == master_task) then
+         allocate( &
+            G_dxT(nx_global,ny_global), &
+            G_dxN(nx_global,ny_global), &
+            G_dxE(nx_global,ny_global), &
+            G_dxU(nx_global,ny_global), &
+            stat=ierr &
+         )
+      else
+         allocate(G_dxT(1,1), G_dxE(1,1), G_dxU(1,1), G_dxN(1,1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      if (my_task == master_task) then
+         im1 = 1 ; im2 = 2 ! left ; center column of first t-cell
+         im3 = 3 ! left column of second T-cell, (ie right column of U-cell)
+         do i = 1, nx_global - 1
+            jm1 = 2 ; jm2 = 3 ! middle , top of first row
+            do j = 1, ny_global
+               G_dxT(i,j) = work_mom(im1, jm1) + work_mom(im2, jm1)     !dxT
+               G_dxN(i,j) = work_mom(im1, jm2) + work_mom(im2, jm2)     !dxN
+               G_dxE(i,j) = work_mom(im2, jm1) + work_mom(im3, jm1)     !dxE
+               G_dxU(i,j) = work_mom(im2, jm2) + work_mom(im3, jm2)     !dxU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+            im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
+         enddo
+
+         ! fill the last col
+         jm1 = 2 ; jm2 = 3 ! middle , top of first row
+         do j = 1, ny_global
+            G_dxT(nx_global,j) = work_mom(2*nx_global - 1, jm1) + work_mom(2*nx_global, jm1)     !dxT
+            G_dxN(nx_global,j) = work_mom(2*nx_global - 1, jm2) + work_mom(2*nx_global, jm2)     !dxN
+            jm1 = jm1 + 2 ; jm2 = jm2 + 2
+         enddo
+         jm1 = 2 ; jm2 = 3 ! middle , top of first row
+         if (trim(ew_boundary_type) == 'cyclic') then
+            do j = 1, ny_global
+               G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
+               G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+         else if (trim(ew_boundary_type) == 'open') then
+            do j = 1, ny_global
+               G_dxE(nx_global,j) = 4*work_mom(2*nx_global, jm1) - 2*work_mom(2*nx_global-1, jm1)     !dxE
+               G_dxU(nx_global,j) = 4*work_mom(2*nx_global, jm2) - 2*work_mom(2*nx_global-1, jm2)     !dxU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2
+            enddo
+         endif
+
+         if (save_ghte_ghtn) then
+            do j = 1, ny_global
+               do i = 1, nx_global
+                  G_HTN(i+nghost,j+nghost) = G_dxN(i,j)
+               enddo
+            enddo
+            call global_ext_halo(G_HTN)
+         endif
+      endif
+
+      call scatter_global(dxT, G_dxT, master_task, distrb_info, &
+                           field_loc_center, field_type_scalar)
+      call scatter_global(HTN, G_dxN, master_task, distrb_info, &
+                           field_loc_Nface, field_type_scalar)
+      dxN(:,:,:) = HTN(:,:,:)
+      call scatter_global(dxE, G_dxE, master_task, distrb_info, &
+                           field_loc_center, field_type_scalar)
+      call scatter_global(dxU, G_dxU, master_task, distrb_info, &
+                           field_loc_NEcorner, field_type_scalar)
+
+      deallocate(G_dxT, G_dxE, G_dxU, G_dxN, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      end subroutine mom_dx
+
+!=======================================================================
+
+      subroutine mom_dy(work_mom)
+
+      ! mom supergrid has four cells for every model cell, sum the sidelengths to get model dy
+
+      real (kind=dbl_kind), dimension(:,:) :: work_mom
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         G_dyT, G_dyN, G_dyE, G_dyU
+
+      integer (kind=int_kind) :: &
+         i, j, &
+         im1, im2, jm1, jm2, im3, jm3 , &  ! i & j for mom supergrid
+         ierr
+
+      character(len=*), parameter :: subname = '(mom_dy)'
+
+      if (my_task == master_task) then
+         allocate( &
+            G_dyT(nx_global,ny_global), &
+            G_dyN(nx_global,ny_global), &
+            G_dyE(nx_global,ny_global), &
+            G_dyU(nx_global,ny_global), &
+            stat=ierr &
+         )
+      else
+         allocate(G_dyT(1,1), G_dyE(1,1), G_dyU(1,1), G_dyN(1,1), stat=ierr)
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      if (my_task == master_task) then
+         im1 = 2 ; im2 = 3 ! middle , right edge of first T-cell
+         do i = 1, nx_global
+            jm1 = 1 ; jm2 = 2 ; jm3 = 3
+            do j = 1, ny_global - 1
+               G_dyT(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2)     !dyT
+               G_dyN(i,j) = work_mom(im1, jm2) + work_mom(im1, jm3)     !dyN
+               G_dyE(i,j) = work_mom(im2, jm1) + work_mom(im2, jm2)     !dyE
+               G_dyU(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3)     !dyU
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
+            enddo
+            im1 = im1 + 2 ; im2 = im2 + 2
+         enddo
+
+         ! fill the top row
+         im1 = 2 ; im2 = 3 ! middle , right edge of first column
+         do i = 1, nx_global
+            G_dyT(i,ny_global) = work_mom(im1, 2*ny_global - 1) + work_mom(im1, 2*ny_global)                   !dyT
+            G_dyE(i,ny_global) = work_mom(im2, 2*ny_global - 1) + work_mom(im2, 2*ny_global)                   !dyE
+            im1 = im1 + 2 ; im2 = im2 + 2
+         enddo
+         im1 = 2 ; im2 = 3
+         if (trim(ns_boundary_type)  == 'tripole') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)      !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)      !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         else if (trim(ns_boundary_type) == 'cyclic') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)                              !dyN
+               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)                              !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         else if (trim(ns_boundary_type) == 'open') then
+            do i = 1, nx_global
+               G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)               !dyN
+               G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)               !dyU
+               im1 = im1 + 2 ; im2 = im2 + 2
+            enddo
+         endif
+
+         if (save_ghte_ghtn) then
+            do j = 1, ny_global
+               do i = 1, nx_global
+                  G_HTE(i+nghost,j+nghost) = G_dyE(i,j)
+               enddo
+            enddo
+            call global_ext_halo(G_HTE)
+         endif
+      endif
+
+      call scatter_global(dyT, G_dyT, master_task, distrb_info, &
+      field_loc_center, field_type_scalar)
+      call scatter_global(dyN, G_dyN, master_task, distrb_info, &
+            field_loc_Nface, field_type_scalar)
+      call scatter_global(HTE, G_dyE, master_task, distrb_info, &
+            field_loc_center, field_type_scalar)
+      dyE(:,:,:) = HTE(:,:,:)
+      call scatter_global(dyU, G_dyU, master_task, distrb_info, &
+            field_loc_NEcorner, field_type_scalar)
+
+      deallocate(G_dyT, G_dyN, G_dyE, G_dyU)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      end subroutine mom_dy
+
+!=======================================================================
+
+      subroutine mom_area(work_mom)
+
+      ! mom supergrid has four cells for every model cell, sum these
+      ! to get uarea and tarea
+      ! earea and narea are calculated from dx & dy - see https://github.com/NOAA-GFDL/MOM6/issues/740
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: work_mom
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         im1, im2, jm1, jm2, im3, jm3 , & ! i & j for mom supergrid
+         ilo,ihi,jlo,jhi , &    ! beginning and end of physical domain
+         ierr
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         G_tarea, G_uarea
+
+      character(len=*), parameter :: subname = '(mom_area)'
+
+      ! calculate narea and earea
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         do j = 1,ny_block
+         do i = 1,nx_block
+            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
+            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      if (my_task == master_task) then
+         allocate( &
+            G_tarea(nx_global,ny_global), &
+            G_uarea(nx_global,ny_global), &
+            stat=ierr &
+         )
+      else
+         allocate(G_tarea(1,1), G_uarea(1,1), stat=ierr )
+      endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+
+      ! load tarea and uarea
+      if (my_task == master_task) then
+         im1 = 1 ; im2 = 2 ! left/right -half of first column
+         im3 = 3 ! right of first U - cell
+         do i = 1, nx_global - 1
+            jm1 = 1 ; jm2 = 2 ! bottom/top -half of first row
+            jm3 = 3 ! top of first U - cell
+            do j = 1, ny_global - 1
+               G_tarea(i,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                              + work_mom(im2, jm1) + work_mom(im2, jm2)
+               G_uarea(i,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                              + work_mom(im3, jm2) + work_mom(im3, jm3)
+               jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
+            enddo
+            im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
+         enddo
+
+         ! fill last column
+         jm1 = 1 ; jm2 = 2 ; jm3 = 3
+         im1 = 2*nx_global - 1 ; im2 = 2*nx_global ; im3 = 1
+         do j = 1, ny_global - 1
+            G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)
+            if (trim(ew_boundary_type) == 'cyclic') then
+               G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
+            else if (trim(ew_boundary_type) == 'open') then
+               G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
+                                    - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
+            endif
+            jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
+         enddo
+
+         ! fill last row
+         jm1 = ny_global*2 - 1 ; jm2 = ny_global*2
+         im1 = 1 ; im2 = 2 ; im3 = 3
+         do i = 1, nx_global -1
+            G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                 + work_mom(im2, jm1) + work_mom(im2, jm2)
+            if (trim(ns_boundary_type) == 'tripole') then
+               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
+                                    + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2)
+            else if (trim(ns_boundary_type) == 'cyclic') then
+               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
+            else if (trim(ns_boundary_type) == 'open') then
+               G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
+                                    - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
+            endif
+            im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
+         enddo
+
+         ! the top right corner
+         im1 = nx_global*2-1 ; im2 = nx_global*2
+         jm1 = ny_global*2-1 ; jm2 = ny_global*2
+         G_tarea(nx_global,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
+                                       + work_mom(im2, jm1) + work_mom(im2, jm2)
+         if (trim(ns_boundary_type) == 'tripole') then
+            G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
+         else if (trim(ns_boundary_type) == 'cyclic' &
+                  .and. trim(ew_boundary_type) == 'cyclic') then
+            G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
+                                          + work_mom(im2, 1) + work_mom(1, 1)
+         else if (trim(ns_boundary_type) == 'cyclic' &
+                  .and. trim(ew_boundary_type) == 'open') then
+            G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
+                                          - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
+         else if (trim(ns_boundary_type) == 'open' &
+                  .and. trim(ew_boundary_type) == 'cyclic') then
+            G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
+                                          - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
+         else if (trim(ns_boundary_type) == 'open' &
+                  .and. trim(ew_boundary_type) == 'open') then
+            G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
+                                 - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
+         endif
+
+      endif
+
+      call scatter_global(tarea, G_tarea, master_task, distrb_info, &
+                         field_loc_center, field_type_scalar)
+      call scatter_global(uarea, G_uarea, master_task, distrb_info, &
+                         field_loc_NEcorner, field_type_scalar)
+      deallocate(G_tarea, G_uarea, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      end subroutine mom_area
+
+!=======================================================================
+
+      subroutine mom_grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
+      !  create angles in the same way mom6 creates the angle
+      !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
+      !  the angle is between logical north on the grid and true north.
+
+      ! global lat/lons/angles
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+         lon_cnr, & ! array of lon corner points
+         lat_cnr, & ! array of lat corner points
+         lon_cen ! array of lon centre points (i.e. the location the angle is calculated for)
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: angle
+
+      ! local vars
+      real (kind=dbl_kind)   :: &
+         lon_scale, &  ! The trigonometric scaling factor converting changes in longitude to equivalent distances in latitudes [nondim]
+         len_lon, &
+         lon_adj, &
+         lonB(2,2)
+      integer (kind=int_kind) :: i, j, m, n
+
+      character(len=*), parameter :: subname = '(mom_grid_rotation_angle)'
+
+      if (my_task == master_task) then
+         len_lon = maxval(lon_cnr)-minval(lon_cnr)  ! The periodic range of longitudes, usually 2pi.
+
+         do j=1,ny_global
+            do i=1,nx_global
+               lon_adj = lon_cen(i,j)-p5*len_lon
+               do n=1,2 ; do m=1,2
+                  ! shift 4 lon corner points to be similar range to centre point
+                  ! e.g. upper limit of 0 might be shifted to 2*pi
+                  lonB(m,n) = modulo(lon_cnr(i+m-1,j+n-1)-lon_adj, len_lon) &
+                                    + lon_adj
+               enddo ; enddo
+               lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
+               angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
+                           (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
+            enddo
+         enddo
+      endif
+
+      end subroutine mom_grid_rotation_angle
+
+!=======================================================================
+! GEOS MOM grid
+! Grid record number, field and units are: \\
+! (1) ULAT  (radians)    \\
+! (2) ULON  (radians)    \\
+! (3) ANGLE (radians)    \\
+! (4) ANGLET (radians)   \\
+! (5) HTN   (cm)         \\
+! (6) HTE   (cm)         \\
+!
+! Land mask record number and field is (1) KMT.
+!
+
+      subroutine geosgrid_nc
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: c0, c1, &
+          field_loc_center, field_loc_NEcorner, &
+          field_type_scalar, field_type_angle
+      use ice_domain_size, only: max_blocks
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
+         fid_grid              ! file id for netCDF grid file
+
+      logical (kind=log_kind) :: diag
+
+      character (char_len) :: &
+         fieldname             ! field name in netCDF file
+
+      real (kind=dbl_kind) :: &
+         pi
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g1
+
+      type (block) :: &
+         this_block            ! block information for current block
+
+      integer(kind=int_kind) :: &
+         varid
+      integer (kind=int_kind) :: &
+         status                ! status flag
+
+      character(len=*), parameter :: subname = '(geosgrid_nc)'
+
+#ifdef USE_NETCDF
+      call icepack_query_parameters(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if   (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      call ice_open_nc(grid_file,fid_grid)
+
+      diag = .true.       ! write diagnostic info
+      l_readCenter = .false.
+
+      !-----------------------------------------------------------------
+      ! lat, lon, angle
+      !-----------------------------------------------------------------
+
+      allocate(work_g1(nx_global,ny_global))
+
+      fieldname='ulat'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
+      call gridbox_verts(work_g1,latt_bounds)
+      call scatter_global(ULAT, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(ULAT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      fieldname='ulon'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
+      call gridbox_verts(work_g1,lont_bounds)
+      call scatter_global(ULON, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(ULON, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      fieldname='angle'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
+      call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
+                          field_loc_NEcorner, field_type_angle)
+      ! fix ANGLE: roundoff error due to single precision
+      where (ANGLE >  pi) ANGLE =  pi
+      where (ANGLE < -pi) ANGLE = -pi
+
+      ! if grid file includes anglet then read instead
+      fieldname='anglet'
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid_grid, trim(fieldname) , varid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
+         else
+            write(nu_diag,*) subname//' angleT, TLON and TLAT is read from grid file'
+            l_readCenter = .true.
+         endif
+      endif
+      call broadcast_scalar(l_readCenter,master_task)
+      if (l_readCenter) then
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_angle)
+         where (ANGLET >  pi) ANGLET =  pi
+         where (ANGLET < -pi) ANGLET = -pi
+         fieldname="tlon"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLON, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+         fieldname="tlat"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
+         call scatter_global(TLAT, work_g1, master_task, distrb_info, &
+                             field_loc_center, field_type_scalar)
+      endif
+      !-----------------------------------------------------------------
+      ! cell dimensions
+      ! calculate derived quantities from global arrays to preserve
+      ! information on boundaries
+      !-----------------------------------------------------------------
+
+      fieldname='htn'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTN
+      call primary_grid_lengths_HTN(work_g1)                  ! dxu, dxt
+      fieldname='hte'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! HTE
+      call primary_grid_lengths_HTE(work_g1)                  ! dyu, dyt
+
+      deallocate(work_g1)
+
+      if (my_task == master_task) then
+         call ice_close_nc(fid_grid)
+      endif
+#else
+      call abort_ice(subname//'ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine geosgrid_nc
+
+!=======================================================================
 ! Regular rectangular grid and mask
 !
 ! author: Elizabeth C. Hunke, LANL
@@ -1703,7 +2604,6 @@
       end subroutine rectgrid_scale_dxdy
 
 !=======================================================================
-
       ! Complex land mask for testing box cases
       ! Requires nx_global, ny_global > 20
       ! Assumes work array has been initialized to 1 (ocean) and north and
@@ -1831,7 +2731,6 @@
 
 
 !=======================================================================
-
 ! Calculate dxU and dxT from HTN on the global grid, to preserve
 ! ghost cell and/or land values that might otherwise be lost. Scatter
 ! dxU, dxT and HTN to all processors.
@@ -1846,7 +2745,8 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         ip1     ! i+1
+         ip1 , &     ! i+1
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -1854,10 +2754,11 @@
       character(len=*), parameter :: subname = '(primary_grid_lengths_HTN)'
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! HTN, dxU = average of 2 neighbor HTNs in i
 
@@ -1932,7 +2833,8 @@
       call scatter_global(dxE, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine primary_grid_lengths_HTN
 
@@ -1951,7 +2853,8 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1     ! i-1
+         im1, &     ! i-1
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -1959,10 +2862,11 @@
       character(len=*), parameter :: subname = '(primary_grid_lengths_HTE)'
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! HTE, dyU = average of 2 neighbor HTE in j
 
@@ -2041,12 +2945,12 @@
 
       dyE(:,:,:) = HTE(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       end subroutine primary_grid_lengths_HTE
 
 !=======================================================================
-
 !  This subroutine fills ghost cells in global extended grid
 
       subroutine global_ext_halo(array)
@@ -2088,7 +2992,6 @@
       end subroutine global_ext_halo
 
 !=======================================================================
-
 ! Sets the boundary values for the T cell land mask (hm) and
 ! makes the logical land masks for T and U cells (tmask, umask)
 ! and N and E cells (nmask, emask).
@@ -2100,7 +3003,8 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
-         ilo,ihi,jlo,jhi      ! beginning and end of physical domain
+         ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind) :: &
          puny
@@ -2130,7 +3034,8 @@
       !-----------------------------------------------------------------
 
       bm = c0
-      allocate(uvmCD(nx_block,ny_block,max_blocks))
+      allocate(uvmCD(nx_block,ny_block,max_blocks), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
@@ -2165,6 +3070,8 @@
                            field_loc_Eface,    field_type_scalar)
       call ice_HaloUpdate (bm,                 halo_info, &
                            field_loc_center,   field_type_scalar)
+      call ice_HaloUpdate (ocn_gridcell_frac,  halo_info, &
+                           field_loc_center,   field_type_scalar)
       call ice_timer_stop(timer_bound)
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
@@ -2181,6 +3088,7 @@
          umaskCD(:,:,iblk) = .false.
          nmask(:,:,iblk)   = .false.
          emask(:,:,iblk)   = .false.
+         opmask(:,:,iblk)  = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
             if ( hm(i,j,iblk)   > p5  ) tmask  (i,j,iblk)   = .true.
@@ -2188,6 +3096,8 @@
             if (uvmCD(i,j,iblk) > c1p5) umaskCD(i,j,iblk)   = .true.
             if (npm(i,j,iblk)   > p5  ) nmask  (i,j,iblk)   = .true.
             if (epm(i,j,iblk)   > p5  ) emask  (i,j,iblk)   = .true.
+            if (ocn_gridcell_frac(i,j,iblk) > puny .and. .not. tmask(i,j,iblk)) &
+                opmask(i,j,iblk) = .true.
          enddo
          enddo
 
@@ -2235,12 +3145,12 @@
       enddo  ! iblk
       !$OMP END PARALLEL DO
 
-      deallocate(uvmCD)
+      deallocate(uvmCD, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       end subroutine makemask
 
 !=======================================================================
-
 ! Initializes latitude and longitude on T grid
 !
 ! author: Elizabeth C. Hunke, LANL; code originally based on POP grid
@@ -2329,7 +3239,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -2367,7 +3278,6 @@
       end subroutine Tlatlon
 
 !=======================================================================
-
 ! Initializes latitude and longitude on N, E grid
 !
 ! author: T. Craig from Tlatlon
@@ -2479,7 +3389,8 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-      if (trim(grid_type) == 'regional') then
+      if (trim(grid_type) == 'regional' .or. &
+          trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
@@ -2564,7 +3475,6 @@
       end subroutine NElatlon
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! Constructs the shift based on the grid
 ! NOTE: Input array includes ghost cells that must be updated before
@@ -2599,7 +3509,6 @@
       end subroutine grid_average_X2Y_base
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -2635,7 +3544,6 @@
       end subroutine grid_average_X2Y_userwghts
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -2690,7 +3598,6 @@
       end subroutine grid_average_X2Y_NEversion
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -2799,7 +3706,6 @@
       end subroutine grid_average_X2Y_1
 
 !=======================================================================
-
 ! Shifts quantities from one grid to another
 ! NOTE: Input array includes ghost cells that must be updated before
 !       calling this routine.
@@ -3135,7 +4041,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YS
 
@@ -3363,7 +4269,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YA
 
@@ -3565,7 +4471,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2YF
 
@@ -3710,7 +4616,7 @@
 
          case default
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
-         end select
+      end select
 
       end subroutine grid_average_X2Y_2
 
@@ -3790,8 +4696,9 @@
       subroutine gridbox_corners
 
       integer (kind=int_kind) :: &
-          i,j,iblk,icorner,& ! index counters
-          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+         i,j,iblk,icorner,& ! index counters
+         ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -3851,10 +4758,11 @@
       !----------------------------------------------------------------
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       work1(:,:,:) = latu_bounds(2,:,:,:)
 !     work_g2 = c0
@@ -3944,13 +4852,15 @@
                           field_loc_NEcorner, field_type_scalar)
       lonu_bounds(4,:,:,:) = work1(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
 
       !----------------------------------------------------------------
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
@@ -3964,7 +4874,8 @@
             lonu_bounds(icorner,:,:,iblk) = work_g2(:,:)
          enddo
       enddo
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       end subroutine gridbox_corners
 
@@ -3981,8 +4892,9 @@
       subroutine gridbox_edges
 
       integer (kind=int_kind) :: &
-          i,j,iblk,icorner,& ! index counters
-          ilo,ihi,jlo,jhi    ! beginning and end of physical domain
+         i,j,iblk,icorner,& ! index counters
+         ilo,ihi,jlo,jhi , &   ! beginning and end of physical domain
+         ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
@@ -4055,10 +4967,11 @@
       !----------------------------------------------------------------
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       ! latn_bounds
 
@@ -4240,13 +5153,15 @@
                           field_loc_NEcorner, field_type_scalar)
       lone_bounds(3,:,:,:) = work1(:,:,:)
 
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       !----------------------------------------------------------------
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block))  ! not used as global here
+      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
@@ -4260,12 +5175,11 @@
             lone_bounds(icorner,:,:,iblk) = work_g2(:,:)
          enddo
       enddo
-      deallocate(work_g2)
+      deallocate(work_g2, stat=ierr)
 
       end subroutine gridbox_edges
 
 !=======================================================================
-
 ! NOTE:  Boundary conditions for fields on NW, SW, SE corners
 !        have not been implemented; using NE corner location for all.
 !        Extrapolations are also used: these fields are approximate!
@@ -4282,7 +5196,8 @@
           vbounds
 
       integer (kind=int_kind) :: &
-          i,j                 ! index counters
+         i,j , &                ! index counters
+         ierr
 
       real (kind=dbl_kind) :: &
           rad_to_deg
@@ -4301,10 +5216,11 @@
          file=__FILE__, line=__LINE__)
 
       if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global))
+         allocate(work_g2(nx_global,ny_global), stat=ierr)
       else
-         allocate(work_g2(1,1))
+         allocate(work_g2(1,1), stat=ierr)
       endif
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       !-------------------------------------------------------------
       ! Get coordinates of grid boxes for each block as follows:
@@ -4378,7 +5294,8 @@
                           field_loc_NEcorner, field_type_scalar)
       vbounds(4,:,:,:) = work1(:,:,:)
 
-      deallocate (work_g2)
+      deallocate (work_g2, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine gridbox_verts
 
@@ -4397,9 +5314,6 @@
 
       real (kind=dbl_kind), dimension(nlevel) :: &
          depth              ! total depth, m
-
-      real (kind=dbl_kind) :: &
-         puny
 
       logical (kind=log_kind) :: &
          calc_dragio
@@ -4423,7 +5337,7 @@
 
       character(len=*), parameter :: subname = '(get_bathymetry)'
 
-      call icepack_query_parameters(puny_out=puny, calc_dragio_out=calc_dragio)
+      call icepack_query_parameters(calc_dragio_out=calc_dragio)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -4495,7 +5409,8 @@
          write(nu_diag,*) subname,' KMT max = ',nlevel
       endif
 
-      allocate(depth(nlevel),thick(nlevel))
+      allocate(depth(nlevel),thick(nlevel), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       thick = -999999.
       depth = -999999.
 
@@ -4564,12 +5479,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      deallocate(depth,thick)
+      deallocate(depth,thick, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
 
       end subroutine get_bathymetry_popfile
 
 !=======================================================================
-
 ! Read bathymetry data for seabed stress calculation (grounding scheme for
 ! landfast ice) in CICE stand-alone mode. When CICE is in coupled mode
 ! (e.g. CICE-NEMO), hwater should be uptated at each time level so that

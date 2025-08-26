@@ -86,6 +86,7 @@
     bathymetry_format = 'default'
     use_bathymetry = .false.
     gridcpl_file = 'unknown_gridcpl_file'
+    grid_outfile = .false.
     kcatbound    = 0
     dxrect         = 30.e5
     dyrect         = 30.e5
@@ -122,6 +123,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_pond_sealvl = .false.
+    restart_pond_sealvl = .false.
     tr_snow      = .false.
     restart_snow = .false.
     tr_iso       = .false.
@@ -147,6 +150,7 @@
     Tliquidus_max     = -0.1d0
     hfrazilmin        = 0.05d0
     floediam          = 300.0d0
+    tscale_pnd_drain  = 10.0d0
 /
 
 &dynamics_nml
@@ -197,6 +201,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
+    dyn_area_min    = 0.001d0
+    dyn_mass_min    = 0.01d0
 /
 
 &shortwave_nml
@@ -220,6 +226,7 @@
 /
 
 &ponds_nml
+    apnd_sl         = 0.27d0
     hp1             = 0.01
     hs0             = 0.
     hs1             = 0.03
@@ -299,6 +306,8 @@
     ocn_data_format = 'bin'
     ocn_data_dir    = '/unknown_ocn_data_dir'
     oceanmixed_file = 'unknown_oceanmixed_file'
+    semi_implicit_Tsfc = .false.
+    vapor_flux_correction = .false.
 /
 
 &domain_nml
@@ -334,8 +343,6 @@
     restore_bgc     = .false.
     restart_bgc     = .false.
     scale_bgc       = .false.
-    solve_zsal      = .false.
-    restart_zsal    = .false.
     tr_bgc_Nit      = .false.
     tr_bgc_C        = .false.
     tr_bgc_chl      = .false.
@@ -349,8 +356,6 @@
     grid_o          = 0.006
     grid_o_t        = 0.006
     l_sk            = 2.0
-    grid_oS         = 0.0
-    l_skS           = 0.028
     phi_snow        = -1.0
     initbio_frac    = 1.0
     frazil_scav     = 0.8  
@@ -651,10 +656,22 @@
     f_apondn       = 'x'
     f_apeffn       = 'x'
     f_hpondn       = 'x'
+    f_dpnd_flushn  = 'x'
+    f_dpnd_exponn  = 'x'
+    f_dpnd_freebdn = 'x'
+    f_dpnd_initialn= 'x'
+    f_dpnd_dlidn   = 'x'
     f_apond        = 'm'
     f_hpond        = 'm'
     f_ipond        = 'm'
     f_apeff        = 'm'
+    f_dpnd_flush   = 'x'
+    f_dpnd_expon   = 'x'
+    f_dpnd_freebd  = 'x'
+    f_dpnd_initial = 'x'
+    f_dpnd_dlid    = 'x'
+    f_dpnd_melt    = 'x'
+    f_dpnd_ridge   = 'x'
     f_apond_ai     = 'm'
     f_hpond_ai     = 'm'
     f_ipond_ai     = 'm'

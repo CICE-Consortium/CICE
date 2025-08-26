@@ -155,7 +155,8 @@
       use ice_boundary, only: ice_HaloMask, ice_HaloUpdate, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block
-      use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn
+      use ice_domain, only: blocks_ice, halo_info, maskhalo_dyn, &
+          ns_boundary_type
       use ice_domain_size, only: max_blocks, ncat
       use ice_dyn_shared, only: deformations, iceTmask, iceUmask, &
           cxp, cyp, cxm, cym
@@ -168,7 +169,7 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
-          tarear, grid_type, grid_average_X2Y, &
+          tarear, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
@@ -546,7 +547,8 @@
       endif
 
       ! Force symmetry across the tripole seam
-      if (trim(grid_type) == 'tripole') then
+      if (trim(ns_boundary_type) == 'tripole' .or. &
+          trim(ns_boundary_type) == 'tripoleT') then
       if (maskhalo_dyn) then
          !-------------------------------------------------------
          ! set halomask to zero because ice_HaloMask always keeps

@@ -2,6 +2,7 @@ nilyr =	1
 ice_ic = 'internal'
 days_per_year = 360
 use_leap_years = .false.
+npt_unit       = '1'
 npt            = 72
 dumpfreq       = 'd'
 dumpfreq_n     = 2

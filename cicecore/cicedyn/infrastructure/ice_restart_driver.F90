@@ -29,6 +29,7 @@
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
+      use ice_grid, only: tmask, opmask, grid_ice, grid_average_X2Y
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
@@ -64,11 +65,10 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen
-      use ice_grid, only: grid_ice, tmask
       use ice_state, only: aicen, vicen, vsnon, trcrn, uvel, vvel, &
                            uvelE, vvelE, uvelN, vvelN
 
-      character(len=char_len_long), intent(in), optional :: filename_spec
+      character(len=*), intent(in), optional :: filename_spec
 
       ! local variables
 
@@ -92,7 +92,7 @@
          file=__FILE__, line=__LINE__)
 
       if (present(filename_spec)) then
-         call init_restart_write(filename_spec)
+         call init_restart_write(filename_spec=filename_spec)
       else
          call init_restart_write
       endif
@@ -107,7 +107,7 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not. tmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
+            if (.not.tmask(i,j,iblk) .and. .not.opmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
          enddo
          enddo
       enddo
@@ -281,7 +281,7 @@
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_blocks, only: nghost, nx_block, ny_block
       use ice_calendar, only: istep0, npt, calendar
-      use ice_domain, only: nblocks, halo_info
+      use ice_domain, only: nblocks, halo_info, ns_boundary_type
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
       use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask,kdyn
@@ -293,7 +293,6 @@
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen, Tf
-      use ice_grid, only: tmask, grid_type, grid_ice, grid_average_X2Y
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
@@ -498,7 +497,8 @@
                'stress12U',1,diag,field_loc_NEcorner,field_type_scalar) ! stress12U
       endif
 
-      if (trim(grid_type) == 'tripole') then
+      if (trim(ns_boundary_type) == 'tripole' .or. &
+          trim(ns_boundary_type) == 'tripoleT') then
          call ice_HaloUpdate_stress(stressp_1, stressp_3, halo_info, &
                                     field_loc_center,  field_type_scalar)
          call ice_HaloUpdate_stress(stressp_3, stressp_1, halo_info, &
@@ -608,7 +608,7 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not. tmask(i,j,iblk)) trcrn(i,j,nt_Tsfc,:,iblk) = c0
+            if (.not.tmask(i,j,iblk) .and. .not.opmask(i,j,iblk)) trcrn(i,j,nt_Tsfc,:,iblk) = c0
          enddo
          enddo
       enddo
@@ -685,7 +685,7 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk)) &
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
@@ -740,7 +740,6 @@
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_gather_scatter, only: scatter_global_stress
-      use ice_grid, only: tmask
       use ice_read_write, only: ice_open, ice_read, ice_read_global
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
@@ -1052,7 +1051,7 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk)) &
+         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &

@@ -96,6 +96,10 @@ Note that the VP solver has not yet been tested on the ``tx1`` grid.
 
 The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
 
+The dynamics are solved for all gridcells with area concentration greater than ``dyn_area_min`` and mass
+greater than ``dyn_mass_min``.  These parameters are respectively 0.001 and 0.01 by default but can be set in 
+namelist.  Lower values can improve the solution but also lead to instabilities.
+
 Here we summarize the equations and
 direct the reader to the above references for details.
 

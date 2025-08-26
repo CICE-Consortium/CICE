@@ -2,6 +2,11 @@
 smoke          gx3    32x1        run1year,histhrly,ionetcdf,iocdf2,short
 smoke          gx3    32x1        run1year,histhrly,iopio2,iocdf5,short
 
+# Need to check with cprnc manually, CICE tools always produce diffs between netcdf and pio
+smoke          gx3     8x2        histall,ionetcdf,iocdf5,run5day
+#smoke          gx3     8x2        histall,iopio2,iocdf5   smoke_gx3_8x2_histall_iocdf5_ionetcdf
+smoke          gx3     8x2        histall,iopio2,iocdf5,run5day
+
 # some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
 # iobinary cannot work with JRA55 because netcdf is turned off
 restart        gx3     8x4        gx3ncarbulk,debug,histall,iobinary,precision8
@@ -48,7 +53,7 @@ restart        gx3     8x4        isotope,histall,iopio1,iopnetcdf1
 restart        gx3    12x2        fsd12,histall,iopio1,iopnetcdf2
 restart        gx3    16x2        debug,histall,iopio1,iopnetcdf5,histinst
 
-restart        gx3    16x2x100x2x4  debug,histall,iopio2,iopioopts,run5day
+restart        gx3    16x2x100x2x4  debug,histall,iopio2,iopioopts
 restart        gx3    16x2        debug,histall,iopio2,iopnetcdf1,precision8
 restart        gx3    14x2        alt01,histall,iopio2,iopnetcdf2,precision8
 restart        gx3    32x1        alt02,histall,iopio2,iopnetcdf5,precision8

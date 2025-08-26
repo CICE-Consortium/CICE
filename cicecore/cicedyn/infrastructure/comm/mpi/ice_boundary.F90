@@ -1333,7 +1333,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR8(1:len,nmsg), len, mpiR8, &
+      call MPI_IRECV(bufRecvR8(1,nmsg), len, mpiR8, &
                      halo%recvTask(nmsg),               &
                      mpitagHalo + halo%recvTask(nmsg),  &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -1359,7 +1359,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR8(1:len,nmsg), len, mpiR8, &
+      call MPI_ISEND(bufSendR8(1,nmsg), len, mpiR8, &
                      halo%sendTask(nmsg),               &
                      mpitagHalo + my_task,              &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -1768,7 +1768,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR4(1:len,nmsg), len, mpiR4, &
+      call MPI_IRECV(bufRecvR4(1,nmsg), len, mpiR4, &
                      halo%recvTask(nmsg),               &
                      mpitagHalo + halo%recvTask(nmsg),  &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -1794,7 +1794,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR4(1:len,nmsg), len, mpiR4, &
+      call MPI_ISEND(bufSendR4(1,nmsg), len, mpiR4, &
                      halo%sendTask(nmsg),               &
                      mpitagHalo + my_task,              &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -2183,7 +2183,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvI4(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_IRECV(bufRecvI4(1,nmsg), len, MPI_INTEGER, &
                      halo%recvTask(nmsg),                     &
                      mpitagHalo + halo%recvTask(nmsg),        &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -2209,7 +2209,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendI4(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_ISEND(bufSendI4(1,nmsg), len, MPI_INTEGER, &
                      halo%sendTask(nmsg),                     &
                      mpitagHalo + my_task,                    &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -2702,7 +2702,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR8,   &
+      call MPI_IRECV(bufRecv(1,nmsg), len, mpiR8,   &
                      halo%recvTask(nmsg),               &
                      mpitagHalo + halo%recvTask(nmsg),  &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -2732,7 +2732,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR8, &
+      call MPI_ISEND(bufSend(1,nmsg), len, mpiR8, &
                      halo%sendTask(nmsg),             &
                      mpitagHalo + my_task,            &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -3176,7 +3176,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR4,   &
+      call MPI_IRECV(bufRecv(1,nmsg), len, mpiR4,   &
                      halo%recvTask(nmsg),               &
                      mpitagHalo + halo%recvTask(nmsg),  &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -3206,7 +3206,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR4, &
+      call MPI_ISEND(bufSend(1,nmsg), len, mpiR4, &
                      halo%sendTask(nmsg),             &
                      mpitagHalo + my_task,            &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -3650,7 +3650,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_IRECV(bufRecv(1,nmsg), len, MPI_INTEGER, &
                      halo%recvTask(nmsg),                   &
                      mpitagHalo + halo%recvTask(nmsg),      &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -3680,7 +3680,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz
-      call MPI_ISEND(bufSend(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_ISEND(bufSend(1,nmsg), len, MPI_INTEGER, &
                      halo%sendTask(nmsg),                   &
                      mpitagHalo + my_task,                  &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -4125,7 +4125,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR8,  &
+      call MPI_IRECV(bufRecv(1,nmsg), len, mpiR8,  &
                      halo%recvTask(nmsg),              &
                      mpitagHalo + halo%recvTask(nmsg), &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -4158,7 +4158,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR8, &
+      call MPI_ISEND(bufSend(1,nmsg), len, mpiR8, &
                      halo%sendTask(nmsg),             &
                      mpitagHalo + my_task,            &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -4623,7 +4623,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, mpiR4,  &
+      call MPI_IRECV(bufRecv(1,nmsg), len, mpiR4,  &
                      halo%recvTask(nmsg),              &
                      mpitagHalo + halo%recvTask(nmsg), &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -4656,7 +4656,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, mpiR4, &
+      call MPI_ISEND(bufSend(1,nmsg), len, mpiR4, &
                      halo%sendTask(nmsg),             &
                      mpitagHalo + my_task,            &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -5121,7 +5121,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_IRECV(bufRecv(1,nmsg), len, MPI_INTEGER, &
                      halo%recvTask(nmsg),                   &
                      mpitagHalo + halo%recvTask(nmsg),      &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -5154,7 +5154,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1:len,nmsg), len, MPI_INTEGER, &
+      call MPI_ISEND(bufSend(1,nmsg), len, MPI_INTEGER, &
                      halo%sendTask(nmsg),                   &
                      mpitagHalo + my_task,                  &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -5588,7 +5588,7 @@ contains
    do nmsg=1,halo%numMsgRecv
 
       len = halo%SizeRecv(nmsg)
-      call MPI_IRECV(bufRecvR8(1:len,nmsg), len, mpiR8, &
+      call MPI_IRECV(bufRecvR8(1,nmsg), len, mpiR8, &
                      halo%recvTask(nmsg),               &
                      mpitagHalo + halo%recvTask(nmsg),  &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -5614,7 +5614,7 @@ contains
       end do
 
       len = halo%SizeSend(nmsg)
-      call MPI_ISEND(bufSendR8(1:len,nmsg), len, mpiR8, &
+      call MPI_ISEND(bufSendR8(1,nmsg), len, mpiR8, &
                      halo%sendTask(nmsg),               &
                      mpitagHalo + my_task,              &
                      halo%communicator, sndRequest(nmsg), ierr)

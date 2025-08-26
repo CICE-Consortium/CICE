@@ -822,12 +822,22 @@
                  write(ncfile,'(a,a,i4.4,a,a)') &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'.',trim(suffix)
+              elseif (histfreq(ns) == 'g') then
+                 write(ncfile,'(a,a,a,a)')  &
+                       history_file(1:lenstr(history_file)),'_grid', &
+                       '.',trim(suffix)
               endif
 
            else                     ! instantaneous
-              write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
-                    history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &
-                    iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
+              if (histfreq(ns) == 'g') then
+                 write(ncfile,'(a,a,a,a)')  &
+                       history_file(1:lenstr(history_file)),'_grid', &
+                       '.',trim(suffix)
+              else
+                 write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
+                       history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &
+                       iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
+              endif
            endif
 
         endif
