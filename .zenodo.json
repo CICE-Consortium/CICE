@@ -1,22 +1,22 @@
 {
     "license": "BSD-3-Clause",
-    "copyright": "Copyright (c) 1998, 2017 Triad National Security, LLC",
+    "copyright": "Copyright 1998-2025 Triad National Security, LLC",
     "description": "View detailed release notes at https://github.com/CICE-Consortium/CICE/releases", 
     "language": "eng", 
-    "title": "CICE-Consortium/CICE: CICE Version 6.6.1", 
+    "title": "CICE-Consortium/CICE: CICE Version 6.6.2", 
     "keywords": [
         "sea ice model",
         "CICE",
         "Icepack"
     ], 
-    "version": "6.6.1", 
+    "version": "6.6.2", 
     "upload_type": "software", 
     "communities": [
         {
             "identifier": "cice-consortium"
         }
     ], 
-    "publication_date": "2025-07-21",
+    "publication_date": "2025-08-15", 
     "creators": [
         {
             "affiliation": "Los Alamos National Laboratory", 
