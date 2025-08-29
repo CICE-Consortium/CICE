@@ -1,0 +1,70 @@
+#==============================================================================
+# Makefile macros for DMI Freya based on ECCC banting
+#==============================================================================
+# For use with intel compiler
+#==============================================================================
+
+#INCLDIR := -I. -I/usr/include
+#SLIBS   :=
+
+#--- Compiler/preprocessor ---
+FC         := ftn 
+CC         := cc
+CXX        := CC
+CPP        := /usr/bin/cpp
+CPPFLAGS   := -P -traditional  # ALLOW fortran double backslash "\\"
+SCC   := gcc
+SFC   := ftn
+
+CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -fp-model precise
+# Additional flags
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
+FFLAGS     := -convert big_endian -assume byterecl
+#-xHost
+
+ifeq ($(ICE_BLDDEBUG), true)
+  FFLAGS     += -O0 -g -check -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -fp-model source -ftz -traceback -no-wrap-margin
+# -heap-arrays 1024 
+else
+#  FFLAGS     += -O3 -xCORE-AVX512 -qopt-zmm-usage=high -finline-functions -finline -parallel
+  FFLAGS     += -O2 -qopt-zmm-usage=high -finline-functions -finline -parallel
+endif
+LD         := $(FC)
+LDFLAGS    := $(FFLAGS) -v
+#ifeq ($(ICE_BLDDEBUG), true)
+#FFLAGS     := -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+#FFLAGS     := -g -O0 -traceback -fp-model precise -fp-stack-check -fpe0
+#else
+#FFLAGS     := -r8 -i4 -O2 -align all -w -ftz -assume byterecl
+# FFLAGS     := -O2 -fp-model precise -assume byterecl -ftz -traceback -xHost
+#endif
+# Preprocessor flags
+#CPPDEFS    := -DLINUX $(ICE_CPPDEFS)
+
+# Linker flags
+
+# Additional flags
+
+ifeq ($(ICE_THREADED), true) 
+   LDFLAGS += -qopenmp 
+   CFLAGS += -qopenmp 
+   FFLAGS += -qopenmp 
+endif
+
+#--- NetCDF ---
+#ifeq ($(IO_TYPE), netcdf)
+#   
+#endif
+#
+#ifeq ($(IO_TYPE), netcdf_bin)
+#   CPPDEFS :=  $(CPPDEFS) -Dncdf
+#endif
+
+### if using parallel I/O, load all 3 libraries.  PIO must be first!
+#ifeq ($(ICE_IOTYPE), pio)
+#   PIO_PATH:=/usr/projects/climate/SHARED_CLIMATE/software/conejo/pio/1.7.2/intel-13.0.1/openmpi-1.6.3/netcdf-3.6.3-parallel-netcdf-1.3.1/include
+#   INCLDIR += -I$(PIO_PATH)
+#   SLIBS   := $(SLIBS) -L$(PIO_PATH) -lpio
+#endif
