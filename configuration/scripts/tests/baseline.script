@@ -136,17 +136,17 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     set cnt = 0
     if (${job} =~ [0-9]*) then
       while ($qstatjob)
-        ${ICE_MACHINE_QSTAT} $job >&/dev/null
-        set qstatus = $status
+        set qstatus = `${ICE_MACHINE_QSTAT} $job | grep $job | wc -l`
+#        ${ICE_MACHINE_QSTAT} $job
 #        echo $job $qstatus
-        if ($qstatus != 0) then
+        if ($qstatus == 0) then
           echo "Job $job completed"
           set qstatjob = 0
         else
           @ cnt = $cnt + 1
           echo "Waiting for $job to complete $cnt"
           sleep 60   # Sleep for 1 minute, so as not to overwhelm the queue manager
-          if ($cnt > 30) then
+          if ($cnt > 5) then
             echo "No longer waiting for $job to complete"
             set qstatjob = 0 # Abandon check after cnt sleep 60 checks
           endif
