@@ -16,10 +16,7 @@
       use netcdf
 #endif
       use ice_read_write, only: ice_check_nc
-      use ice_restart_shared, only: &
-          restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, restart_format, &
-          restart_chunksize, restart_deflate
+      use ice_restart_shared
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -168,6 +165,7 @@
          nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
+      character(len=char_len_long) :: lpointer_file
 
       integer (kind=int_kind), allocatable :: dims(:)
 
@@ -215,7 +213,13 @@
       ! write pointer (path/file)
       if (my_task == master_task) then
          filename = trim(filename) // '.nc'
-         open(nu_rst_pointer,file=pointer_file)
+         lpointer_file = pointer_file
+         if (pointer_date) then
+            ! append date to pointer filename
+            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+               trim(lpointer_file)//'.',myear,'-',mmonth,'-',mday,'-',msec
+         end if
+         open(nu_rst_pointer,file=lpointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
 
