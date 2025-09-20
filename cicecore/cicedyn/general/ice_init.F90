@@ -1171,7 +1171,7 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
-      call broadcast_scalar(insert_ice,           master_task)
+      call broadcast_scalar(insert_sic,           master_task)
       call broadcast_scalar(debug_forcing,        master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
