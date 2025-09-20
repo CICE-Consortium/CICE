@@ -14,6 +14,9 @@
          restart_coszen, &   ! if true, read/write coszen
          use_restart_time ! if true, use time written in core restart file
 
+     logical(kind=log_kind), public :: &
+         insert_sic        ! if true, update restart concentation from a file
+
       character (len=char_len), public :: &
          runtype           ! initial, continue, hybrid, branch
 
