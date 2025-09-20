@@ -760,7 +760,7 @@
                        fiso_ocn  =  fiso_ocn(i,j,:,iblk),      &
                        flux_bio  =  flux_bio(i,j,:,iblk),      &
                        Tf        =        Tf(i,j,  iblk),      &
-                       limit_aice_in = .true. )
+                       limit_aice = .true. )
 
                   call icepack_aggregate( &
                                    aicen = aicen(i,j,:,iblk),     &
