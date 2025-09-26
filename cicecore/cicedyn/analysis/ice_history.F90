@@ -1536,17 +1536,17 @@
          call define_hist_field(n_sitemptop,"sitemptop","K",tstr2D, tcstr,    &
              "sea ice surface temperature", &
              "none", c1, c0,           &
-             ns1, f_sitemptop, avg_ice_present=.true., mask_ice_free_points=.true.)
+             ns1, f_sitemptop, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitempsnic,"sitempsnic","K",tstr2D, tcstr,    &
              "snow ice interface temperature", &
              "surface temperature when no snow present", c1, c0, &
-             ns1, f_sitempsnic, avg_ice_present=.true., mask_ice_free_points=.true.)
+             ns1, f_sitempsnic, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitempbot,"sitempbot","K",tstr2D, tcstr,    &
              "sea ice bottom temperature",                             &
              "none", c1, c0,           &
-             ns1, f_sitempbot, avg_ice_present=.true., mask_ice_free_points=.true.)
+             ns1, f_sitempbot, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_siu,"siu","m/s",ustr2D, ucstr,  &
              "ice x velocity component", &
@@ -2753,7 +2753,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*(trcr(i,j,nt_Tsfc,iblk)+Tffresh)
+              worka(i,j) = trcr(i,j,nt_Tsfc,iblk)+Tffresh
            enddo
            enddo
            call accum_hist_field(n_sitemptop, iblk, worka(:,:), a2D)
@@ -2763,7 +2763,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*(Tsnice(i,j,iblk)+Tffresh)
+              worka(i,j) = Tsnice(i,j,iblk)+Tffresh
            enddo
            enddo
            call accum_hist_field(n_sitempsnic, iblk, worka(:,:), a2D)
@@ -2773,7 +2773,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-               worka(i,j) = aice(i,j,iblk)*(Tbot(i,j,iblk)+Tffresh)
+               worka(i,j) = Tbot(i,j,iblk)+Tffresh
            enddo
            enddo
            call accum_hist_field(n_sitempbot, iblk, worka(:,:), a2D)
