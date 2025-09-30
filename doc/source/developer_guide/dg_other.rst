@@ -81,6 +81,197 @@ This is very likely to be bfb, but is not as fast or accurate as the reprosum
 implementation.  See :cite:`He01`
 
 
+.. _averages:
+
+Averages
+-----------------
+
+Coupling and history output quantities may be averaged in different forms, depending on
+whether it represents a value averaged over the entire grid cell, the sea ice fraction,
+or a subset of the sea ice fraction such as a thickness category or the ponded area. These
+distinctions must also be considered for time averaging.
+
+The following formulas ignore subtleties such as some fluxes being computed on the initial ice area, which then
+changes due to frazil ice formation, lateral melting and transport.  The ice area used for both averaging and coupling should be carefully
+considered in light of the model timestepping.  Edge cases such as the complete disappearance or new appearance of ice
+cause averaging errors.  To address these cases, we could consider interpolating all quantities to the middle of the
+timestep, but that is not currently done.
+
+Ice area
+~~~~~~~~~~~~~~~~~
+
+If :math:`\mathbf{X}=(x,y)`, :math:`A` is the cell area (:math:`m^2`) and :math:`g` represents
+the ice thickness distribution discretized as :math:`a_n` for :math:`n=1,\, ncat`, then the
+ice area is the sum of the thickness category areas :math:`a_n A`:
+
+.. math::
+   A_{i}(t) = \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \sim \sum_{n=1}^{ncat} a_n(t) \, A
+
+and the ice area fraction is
+
+.. math::
+   a_{ice}(t) = {\int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \over \int_{cell} d\mathbf{X} \, dt} \sim \sum_{n=1}^{ncat} a_n(t).
+
+
+The time-averaged ice area over an interval of length :math:`N\Delta t` is
+
+.. math::
+   \bar{A}_{i} = {\int_t A_{i}(t) \, dt \over \int_t \, dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t \over N \, \Delta t}
+               = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} a_n
+
+and the time-averaged ice area fraction is
+
+.. math::
+   \bar{a}_{ice} = {\int_t \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_t \int_{cell} d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \Delta t \over A \, N \, \Delta t}
+                 = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} a_n.
+
+Ice volume
+~~~~~~~~~~~~~~~~~
+
+Likewise for time averages of ice volume (:math:`m^3`),
+
+.. math::
+   \bar{V}_{i} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over N \, \Delta t}
+               = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n
+
+for ice thickness :math:`h` assumed to be 0 in open water. Then the average ice volume per square meter of grid cell (:math:`m`) is
+
+.. math::
+   \bar{v}_{ice} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over A \, N \, \Delta t}
+                 = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} v_n.
+
+:math:`v_{ice}` is the quantity labeled `hi` in history, which can be thought of as the mean ice thickness averaged over the entire
+grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' ice thickness, :math:`m`) is
+
+.. math::
+   \bar{h}_{i} = {\int_t \int_{ice} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} d\mathbf{X} \, dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over N \, \Delta t \sum_{n=1}^{ncat} a_n \, A}
+               = {\sum_{\Delta t} \sum_{n=1}^{ncat} v_n \over N \sum_{n=1}^{ncat} a_n}.
+
+Snow volume is treated similarly.
+
+Volume content
+~~~~~~~~~~~~~~~~~
+
+Total content of tracers such as salt and enthalpy are necessary for conservative coupling.  The time-average content
+of a volume tracer :math:`b` (with units per :math:`m^3`) is
+
+.. math::
+   \bar{B}_{i} = {\int_t \int_{cell} \int_{0}^{h} b(\mathbf{X},z,t) g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} dt}
+           \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over N \, \Delta t}
+           = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n
+
+and the time-averaged content per square meter of grid cell is
+
+.. math::
+   \bar{b}_{ice} \sim {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n.
+
+The mean tracer value in sea ice is
+
+.. math::
+   \bar{b}_{i} = {\int_t \int_{cell} \int_{0}^{h} b(\mathbf{X},z,t) g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} \int_{0}^{h} dz \, d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over \sum_{n=1}^{ncat} h_n \, a_n \, A \, N \, \Delta t}
+		 =  {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n \over N \sum_{n=1}^{ncat} v_n}
+
+Surface quantities
+~~~~~~~~~~~~~~~~~
+
+Surface quantities such as temperature are treated similarly to volume tracers, with integrals taken over
+the desired surface area rather than the volume.  For example
+
+.. math::
+   \bar{T}_{ice} = {\int_t \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
+
+Care is required for tracers averaged over the cell:
+
+.. math::
+   \bar{T}_{cell} = {\int_t \int_{cell} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
+                  \sim {\sum_{\Delta t} \sum_{n=0}^{ncat} T_n \, a_n \, A \, \Delta t \over \sum_{n=0}^{ncat} a_n \, A \, N \, \Delta t}
+                  = {\sum_{\Delta t} \left( T_o \, a_o + \sum_{n=1}^{ncat} T_n \, a_n \right) \over N}.
+   
+If the tracer is (or is assumed to be) zero in open water, :math:`T_o=0`, then the time average is computed using the
+category merged (cell-averaged but not ice-averaged) value.
+
+.. math::
+   \bar{T}_{cell} = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n.
+
+This assumption is often used for time-averaging CICE's history fields: the category-merged value is saved then later divided by the ice area.
+
+If a quantity has already been spatially averaged over the ice, e.g.
+
+.. math::
+   T_{ice}(t) = \frac{ \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} }{ \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} }
+              \sim \frac{ \sum_{n=1}^{ncat} T_n \, a_n \, }{ \sum_{n=1}^{ncat} a_n}
+
+then the ice-averaged quantity must be multiplied by the ice area to return it to the cell-averaged quantity (assuming
+a value of zero in open water) before being accumulated in time and divided once again by the ice area:
+
+.. math::
+   \bar{T}_{ice} = {\int_t \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
+                 = {\int_t T_{ice}(t) \left( \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \right) dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
+		 \sim {\sum_{\Delta t} \left( T_{ice} \sum_{n=1}^{ncat} a_n \right) \over N \sum_{n=1}^{ncat} a_n}.
+
+In some cases, a portion of the calculation may be done in Icepack and then completed in CICE.
+
+Tracer hierarchies
+~~~~~~~~~~~~~~~~~
+
+For tracers that are carried on other tracers, such as melt ponds, averages over different areas of a given cell differ in the denominator.
+For melt ponds not carried on the level-ice area, the average pond depths over the grid cell area, the ice area, and the ponded area are, respectively,
+
+.. math::
+   h_{p\,cell} = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{cell} d\mathbf{X} }
+		\sim \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n
+
+.. math::
+   h_{p\,ice}  = \frac{ \int_{ice} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+   h_{p\,pond} = \frac{ \int_{pond} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{pond} a_p \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} a_p \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n }{ \sum_{n=1}^{ncat} a_{pn} \, a_n }.
+
+For level-ice ponds, there is an extra factor of :math:`a_{lvl}`. The level-ice pond depth averaged over the grid cell area, total ice area, level ice area and pond area are
+
+.. math::
+   h_{p\,cell} = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{cell} d\mathbf{X} }
+		\sim \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n
+
+.. math::
+   h_{p\,ice} = \frac{ \int_{ice} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{ice} g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+   h_{p\,lvl} = \frac{ \int_{lvl} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{lvl} a_{lvl} \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} a_{lvl} \, a_{pn} \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_{lvln} \, a_n }
+
+.. math::
+   h_{p\,pond} = \frac{ \int_{pond} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{pond} a_p \, a_{lvl} \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} a_p \, a_{lvl} \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_{pn} \, a_{lvln} \, a_n }.
+
+Time averages follow analogously as above.
+
 .. _addtimer:
 
 Adding Timers
