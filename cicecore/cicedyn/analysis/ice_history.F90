@@ -3710,7 +3710,7 @@
               enddo             ! i
               enddo             ! j
 
-              ! Only average for timesteps when ice present
+              ! Only average when/where ice present
               if (avail_hist_fields(n)%avg_ice_present) then
                  do j = jlo, jhi
                  do i = ilo, ihi
