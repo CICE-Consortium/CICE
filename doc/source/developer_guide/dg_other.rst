@@ -191,7 +191,7 @@ Then the time average is simply
 .. math::
    \bar{T}_{ice} = {\sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} \, a_n}.
 
-When time-averaging CICE's history fields, the category-merged value in the numerator is saved (often in Icepack), then accumulated and
+When time-averaging CICE's history fields, the category-merged value in the numerator is saved (often in Icepack), then accumulated in time and
 later divided by the accumulated ice area fraction in CICE.
 
 Tracer hierarchies
