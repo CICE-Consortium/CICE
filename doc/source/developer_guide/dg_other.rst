@@ -181,41 +181,18 @@ Surface quantities
 ~~~~~~~~~~~~~~~~~
 
 Surface quantities such as temperature are treated similarly to volume tracers, with integrals taken over
-the desired surface area rather than the volume.  For example
+the desired surface area rather than the volume.  For example,
 
 .. math::
-   \bar{T}_{ice} = {\int_t \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
+   T_{ice}(t) = {\int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \over \int_{ice} g(\mathbf{X},t) \, d\mathbf{X}}
 
-Care is required for tracers averaged over the cell:
-
-.. math::
-   \bar{T}_{cell} = {\int_t \int_{cell} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
-                  \sim {\sum_{\Delta t} \sum_{n=0}^{ncat} T_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=0}^{ncat} a_n \, A \, \Delta t}
-                  = {\sum_{\Delta t} \left( T_o \, a_o + \sum_{n=1}^{ncat} T_n \, a_n \right) \over N}.
-
-If the tracer is (or is assumed to be) zero in open water, :math:`T_o=0`, then the time average is computed using the
-category merged (cell-averaged but not ice-averaged) value.
+Then the time average is simply
 
 .. math::
-   \bar{T}_{cell} = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n.
+   \bar{T}_{ice} = {\sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} \, a_n}.
 
-This assumption is often used for time-averaging CICE's history fields: the category-merged value is saved then later divided by the ice area.
-
-If a quantity has already been spatially averaged over the ice, e.g.
-
-.. math::
-   T_{ice}(t) = \frac{ \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} }{ \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} }
-              \sim \frac{ \sum_{n=1}^{ncat} T_n \, a_n \, }{ \sum_{n=1}^{ncat} a_n}
-
-then the ice-averaged quantity must be multiplied by the ice area to return it to the cell-averaged quantity (assuming
-a value of zero in open water) before being accumulated in time and divided once again by the ice area:
-
-.. math::
-   \bar{T}_{ice} = {\int_t \int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
-                 = {\int_t T_{ice}(t) \left( \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \right) dt \over \int_{t} \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
-		 \sim {\sum_{\Delta t} \left( T_{ice} \sum_{n=1}^{ncat} a_n \right) \over N \sum_{n=1}^{ncat} a_n}.
-
-In some cases, a portion of the calculation may be done in Icepack and then completed in CICE.
+When time-averaging CICE's history fields, the category-merged value in the numerator is saved (often in Icepack), then accumulated and
+later divided by the accumulated ice area fraction in CICE.
 
 Tracer hierarchies
 ~~~~~~~~~~~~~~~~~
