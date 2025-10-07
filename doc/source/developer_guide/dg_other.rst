@@ -186,7 +186,7 @@ the desired surface area rather than the volume.  For example,
 .. math::
    T_{ice}(t) = {\int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \over \int_{ice} g(\mathbf{X},t) \, d\mathbf{X}}
 
-Then the time average is simply
+and the time average is simply
 
 .. math::
    \bar{T}_{ice} = {\sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} \, a_n}.
@@ -202,9 +202,9 @@ and the average value over the ice is then
 .. math::
    T_{ice} = {\sum_{n=1}^{ncat} T_n \, a_n \over \sum_{n=1}^{ncat} \, a_n} = {T_{cell} \over a_{ice}}.
 
-This simplification is applicable for tracers carried on the ice area or volume, which are zero over open water by definition.
-When time-averaging CICE's history fields, the category-merged value in the numerator is saved (often in Icepack), then accumulated in time and
-later divided by the accumulated ice area fraction in CICE.
+This simplification is applicable for tracers carried on the ice area (or volume, similarly), which are zero over open water by definition.
+When time-averaging CICE's history fields, the category-merged value in the numerator is saved (usually in Icepack), then accumulated in time and
+later divided by the accumulated ice area fraction (or volume) in CICE.
 
 
 
@@ -212,7 +212,8 @@ Tracer hierarchies
 ~~~~~~~~~~~~~~~~~
 
 For tracers that are carried on other tracers, such as melt ponds, averages over different areas of a given cell differ in the denominator.
-For melt ponds not carried on the level-ice area, the average pond depths over the grid cell area, the ice area, and the ponded area are, respectively,
+For melt ponds not carried on the level-ice area, for example, the average pond depths over the grid cell area, the ice area, and the ponded
+area are, respectively,
 
 .. math::
    h_{p\,cell} = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
