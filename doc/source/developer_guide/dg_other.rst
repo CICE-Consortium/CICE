@@ -191,8 +191,22 @@ Then the time average is simply
 .. math::
    \bar{T}_{ice} = {\sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} \, a_n}.
 
+Note that since :math:`\sum_{n=0}^{ncat} \, a_n \,=\, 1`, a category-merged quantity can be considered the average over the cell area, assuming
+the quantity is zero over open water:
+
+.. math::
+   T_{cell} = {\sum_{n=0}^{ncat} T_n \, a_n \over \sum_{n=0}^{ncat} \, a_n} = \sum_{n=1}^{ncat} \, T_n \, a_n,
+
+and the average value over the ice is then
+
+.. math::
+   T_{ice} = {\sum_{n=1}^{ncat} T_n \, a_n \over \sum_{n=1}^{ncat} \, a_n} = {T_{cell} \over a_{ice}}.
+
+This simplification is applicable for tracers carried on the ice area or volume, which are zero over open water by definition.
 When time-averaging CICE's history fields, the category-merged value in the numerator is saved (often in Icepack), then accumulated in time and
 later divided by the accumulated ice area fraction in CICE.
+
+
 
 Tracer hierarchies
 ~~~~~~~~~~~~~~~~~
