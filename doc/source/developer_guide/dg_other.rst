@@ -130,7 +130,7 @@ and the time-averaged ice area fraction is
 Ice volume
 ~~~~~~~~~~~~~~~~~
 
-Likewise for time averages of ice volume (:math:`m^3`),
+Likewise for time averages of ice volume :math:`V_i` (:math:`m^3`),
 
 .. math::
    \bar{V}_{i} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} dt}
@@ -149,8 +149,8 @@ grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' i
 
 .. math::
    \bar{h}_{i} = {\int_t \int_{ice} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} d\mathbf{X} \, dt}
-               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over N \, \Delta t \sum_{n=1}^{ncat} a_n \, A}
-               = {\sum_{\Delta t} \sum_{n=1}^{ncat} v_n \over N \sum_{n=1}^{ncat} a_n}.
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t}
+               = {\sum_{\Delta t} \sum_{n=1}^{ncat} v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n}.
 
 Snow volume is treated similarly.
 
@@ -174,8 +174,8 @@ The mean tracer value in sea ice is
 
 .. math::
    \bar{b}_{i} = {\int_t \int_{cell} \int_{0}^{h} b(\mathbf{X},z,t) g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} \int_{0}^{h} dz \, d\mathbf{X} \, dt}
-                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over \sum_{n=1}^{ncat} h_n \, a_n \, A \, N \, \Delta t}
-		 =  {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n \over N \sum_{n=1}^{ncat} v_n}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t}
+		 =  {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} v_n}
 
 Surface quantities
 ~~~~~~~~~~~~~~~~~
@@ -190,9 +190,9 @@ Care is required for tracers averaged over the cell:
 
 .. math::
    \bar{T}_{cell} = {\int_t \int_{cell} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} g(\mathbf{X},t) \, d\mathbf{X} \, dt}
-                  \sim {\sum_{\Delta t} \sum_{n=0}^{ncat} T_n \, a_n \, A \, \Delta t \over \sum_{n=0}^{ncat} a_n \, A \, N \, \Delta t}
+                  \sim {\sum_{\Delta t} \sum_{n=0}^{ncat} T_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=0}^{ncat} a_n \, A \, \Delta t}
                   = {\sum_{\Delta t} \left( T_o \, a_o + \sum_{n=1}^{ncat} T_n \, a_n \right) \over N}.
-   
+
 If the tracer is (or is assumed to be) zero in open water, :math:`T_o=0`, then the time average is computed using the
 category merged (cell-averaged but not ice-averaged) value.
 
