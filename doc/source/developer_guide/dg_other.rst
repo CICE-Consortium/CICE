@@ -144,7 +144,7 @@ for ice thickness :math:`h` assumed to be 0 in open water. Then the average ice 
                  \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over A \, N \, \Delta t}
                  = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} v_n.
 
-:math:`v_{ice}` is the quantity labeled `hi` in history, which can be thought of as the mean ice thickness averaged over the entire
+where :math:`v_n = h_n a_n`. :math:`v_{ice}` is the quantity labeled `hi` in history, which can be thought of as the mean ice thickness averaged over the entire
 grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' ice thickness, :math:`m`) is
 
 .. math::
