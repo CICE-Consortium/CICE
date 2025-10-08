@@ -450,7 +450,8 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 ##PBS -l select=${nnodes}:ncpus=${taskpernodelimit}
 ##PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
-#PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}:mem=256M
+##PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}:mem=512M
+#PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}
 EOFB
 
 else if (${ICE_MACHINE} =~ orion*) then
