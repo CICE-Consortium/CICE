@@ -1327,18 +1327,6 @@
                           trcrn(i,j,nt_qsno+k-1,n,iblk) = qsn(k)
                        enddo  ! nslyr
                     enddo !n
-                    stressp_1 (i,j,iblk) = c0
-                    stressp_2 (i,j,iblk) = c0
-                    stressp_3 (i,j,iblk) = c0
-                    stressp_4 (i,j,iblk) = c0
-                    stressm_1 (i,j,iblk) = c0
-                    stressm_2 (i,j,iblk) = c0
-                    stressm_3 (i,j,iblk) = c0
-                    stressm_4 (i,j,iblk) = c0
-                    stress12_1(i,j,iblk) = c0
-                    stress12_2(i,j,iblk) = c0
-                    stress12_3(i,j,iblk) = c0
-                    stress12_4(i,j,iblk) = c0
                  else !aice_o.ge.p01
                     if     (aice_o.lt.edge_om) then
                        ! --- target ice conc. is obs.
