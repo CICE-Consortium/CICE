@@ -1191,7 +1191,8 @@
              stress12_1, stress12_2, stress12_3, stress12_4
         use ice_state, only:  &
              aice, aicen, vicen, vsnon, trcrn
-        use ice_read_write, only: ice_check_nc, ice_read_nc
+        use ice_read_write, only: ice_check_nc, ice_read_nc, &
+            ice_open_nc, ice_close_nc
         use ice_arrays_column, only: hin_max
         ! use icepack_mushy_physics, only: enthalpy_mush
         use icepack_intfc, only: icepack_init_trcr
@@ -1214,7 +1215,8 @@
              aicen_old, & ! old value of aice to check when adding ice
              vsnon_old, & ! old value of snow volume to check when adding ice
              Tsfc         ! surface temp.
-        integer (kind=int_kind) :: ncid, status
+        integer (kind=int_kind) :: &
+             fid             ! file id for netCDF file
         integer (kind=int_kind) :: &
              i, j, k, n, iblk  ! counting  indices
         logical (kind=log_kind) :: &
@@ -1261,18 +1263,14 @@
 
 #ifdef USE_NETCDF
         if (my_task == master_task) then
-           write(nu_diag,*) "direct_insert_sic"
-           status = nf90_open(trim(restart_dir)//'/sic.nc', nf90_nowrite, ncid)
-           call ice_check_nc(status, subname//' ERROR: open '//trim(restart_dir)//'/sic.nc', file=__FILE__, line=__LINE__)
+           write(nu_diag,*) "Direct_insert_sic from:"
+           write(nu_diag,*) trim(restart_dir)//'/sic.nc'
+           call ice_open_nc(trim(restart_dir)//'/sic.nc', fid)
         endif !master_task
-        call ice_read_nc(ncid,1,'sic',work1, diag, &
+        call ice_read_nc(fid,1,'sic',work1,diag, &
                          field_loc=field_loc_center, &
                          field_type=field_type_scalar)
-        if (my_task == master_task) then
-           ! ncid is only valid on master
-           status = nf90_close(ncid)
-           call ice_check_nc(status, subname//' ERROR: closing', file=__FILE__, line=__LINE__)
-        endif
+        if (my_task == master_task) call ice_close_nc(fid)
 #else
         call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
             file=__FILE__, line=__LINE__)
