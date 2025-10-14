@@ -1196,9 +1196,6 @@
         use ice_arrays_column, only: hin_max
         ! use icepack_mushy_physics, only: enthalpy_mush
         use icepack_intfc, only: icepack_init_trcr
-#ifdef USE_NETCDF
-        use netcdf
-#endif
 
         ! --- local variables
         real(kind=dbl_kind) :: &
@@ -1261,20 +1258,15 @@
         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
              file=__FILE__, line=__LINE__)
 
-#ifdef USE_NETCDF
         if (my_task == master_task) then
            write(nu_diag,*) "Direct_insert_sic from:"
            write(nu_diag,*) trim(restart_dir)//'/sic.nc'
-           call ice_open_nc(trim(restart_dir)//'/sic.nc', fid)
         endif !master_task
+        call ice_open_nc(trim(restart_dir)//'/sic.nc', fid)
         call ice_read_nc(fid,1,'sic',work1,diag, &
                          field_loc=field_loc_center, &
                          field_type=field_type_scalar)
-        if (my_task == master_task) call ice_close_nc(fid)
-#else
-        call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
-            file=__FILE__, line=__LINE__)
-#endif
+        call ice_close_nc(fid)
 
         edge_om = p2  ! nominal ice edge zone
         diff_om = p1  ! allowed model vs obs difference
