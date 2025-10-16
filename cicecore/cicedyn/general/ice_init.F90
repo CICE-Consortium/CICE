@@ -3068,14 +3068,14 @@
 
          ! Halo update on North, East faces
          call ice_HaloUpdate(uvelN, halo_info, &
-                             field_loc_Nface, field_type_scalar)
+                             field_loc_Nface, field_type_scalar, fillvalue=c0)
          call ice_HaloUpdate(vvelN, halo_info, &
-                             field_loc_Nface, field_type_scalar)
+                             field_loc_Nface, field_type_scalar, fillvalue=c0)
 
          call ice_HaloUpdate(uvelE, halo_info, &
-                             field_loc_Eface, field_type_scalar)
+                             field_loc_Eface, field_type_scalar, fillvalue=c0)
          call ice_HaloUpdate(vvelE, halo_info, &
-                             field_loc_Eface, field_type_scalar)
+                             field_loc_Eface, field_type_scalar, fillvalue=c0)
 
       endif
 

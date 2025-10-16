@@ -10,6 +10,7 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_constants, only: c0
       use ice_communicate, only: my_task, master_task
       use ice_kinds_mod
 #ifdef USE_NETCDF
@@ -748,6 +749,8 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
+      work (:,:,:,:) = c0
+      work2(:,:,:)   = c0
 #ifdef USE_NETCDF
       if (present(field_loc)) then
          if (ndim3 == ncat) then

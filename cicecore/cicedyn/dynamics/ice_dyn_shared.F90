@@ -193,12 +193,23 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
+      uvel_init  = c0
+      vvel_init  = c0
+      iceTmask   = .false.
+      iceUmask   = .false.
+      fcor_blk   = c0
+      DminTarea  = c0
+
       allocate( &
          fld2(nx_block,ny_block,2,max_blocks), &
          fld3(nx_block,ny_block,3,max_blocks), &
          fld4(nx_block,ny_block,4,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
+
+      fld2 = c0
+      fld3 = c0
+      fld4 = c0
 
       allocate( &
          cyp(nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
@@ -208,12 +219,19 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
+      cyp = c0
+      cxp = c0
+      cym = c0
+      cxm = c0
+
       if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
          allocate( &
             dxhy(nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
             dyhx(nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
+         dxhy = c0
+         dyhx = c0
       endif
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
@@ -228,6 +246,14 @@
             fcorN_blk  (nx_block,ny_block,max_blocks), &   ! Coriolis
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
+         uvelE_init  = c0
+         vvelE_init  = c0
+         uvelN_init  = c0
+         vvelN_init  = c0
+         iceEmask    = .false.
+         iceNmask    = .false.
+         fcorE_blk   = c0
+         fcorN_blk   = c0
       endif
 
       end subroutine alloc_dyn_shared

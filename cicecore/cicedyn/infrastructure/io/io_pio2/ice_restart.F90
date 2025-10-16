@@ -756,6 +756,7 @@
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
+      work (:,:,:,:) = c0
       if (ndim3 == ncat .and. ndims == 3) then
          call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
 #ifdef CESMCOUPLED

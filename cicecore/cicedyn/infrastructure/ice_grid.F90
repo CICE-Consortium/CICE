@@ -253,7 +253,62 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
 
+      dxT       = c0
+      dyT       = c0
+      dxU       = c0
+      dyU       = c0
+      dxN       = c0
+      dyN       = c0
+      dxE       = c0
+      dyE       = c0
+      HTE       = c0
+      HTN       = c0
+      tarea     = c0
+      uarea     = c0
+      narea     = c0
+      earea     = c0
+      tarear    = c0
+      uarear    = c0
+      narear    = c0
+      earear    = c0
+      tarean    = c0
+      tareas    = c0
+      ULON      = c0
+      ULAT      = c0
+      TLON      = c0
+      TLAT      = c0
+      NLON      = c0
+      NLAT      = c0
+      ELON      = c0
+      ELAT      = c0
+      ANGLE     = c0
+      ANGLET    = c0
+      bathymetry = c0
       ocn_gridcell_frac(:,:,:) = -c1   ! special value to start, will be ignored unless set elsewhere
+      hm        = c0
+      bm        = c0
+      uvm       = c0
+      npm       = c0
+      epm       = c0
+      kmt       = c0
+      tmask     = c0
+      umask     = c0
+      umaskCD   = c0
+      nmask     = c0
+      emask     = c0
+      opmask    = c0
+      lmask_n   = c0
+      lmask_s   = c0
+      rndex_global = c0
+      lont_bounds = c0
+      latt_bounds = c0
+      lonu_bounds = c0
+      latu_bounds = c0
+      lonn_bounds = c0
+      latn_bounds = c0
+      lone_bounds = c0
+      late_bounds = c0
+
 
       if (save_ghte_ghtn) then
          if (my_task == master_task) then
@@ -268,6 +323,8 @@
                stat=ierr)
          endif
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory3', file=__FILE__, line=__LINE__)
+         G_HTE = c0
+         G_HTN = c0
       endif
 
       end subroutine alloc_grid
@@ -2357,6 +2414,10 @@
          if (trim(kmt_type) == 'boxislands') then
 
             call grid_boxislands_kmt(work_g1)
+
+         elseif (trim(kmt_type) == 'none') then
+
+            work_g1(:,:) = c1      ! initialize hm as ocean
 
          elseif (trim(kmt_type) == 'channel') then
 
