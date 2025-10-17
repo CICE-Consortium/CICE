@@ -215,7 +215,7 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) + ny_global
                case ('open')
-!                  j_global(j,n) = nghost - j + 1
+                  j_global(j,n) = nghost - j + 1
 !tcx                  j_global(j,n) = 0
                case ('closed')
                   j_global(j,n) = 0
@@ -240,7 +240,7 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) - ny_global
                case ('open')
-!                  j_global(j,n) = 2*ny_global - j_global(j,n) + 1
+                  j_global(j,n) = 2*ny_global - j_global(j,n) + 1
 !tcx                  j_global(j,n) = 0
                case ('closed')
                   j_global(j,n) = 0
@@ -273,7 +273,7 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) + nx_global
                case ('open')
-!                  i_global(i,n) = nghost - i + 1
+                  i_global(i,n) = nghost - i + 1
 !tcx                  i_global(i,n) = 0
                case ('closed')
                   i_global(i,n) = 0
@@ -294,7 +294,7 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) - nx_global
                case ('open')
-!                  i_global(i,n) = 2*nx_global - i_global(i,n) + 1
+                  i_global(i,n) = 2*nx_global - i_global(i,n) + 1
 !tcx                  i_global(i,n) = 0
                case ('closed')
                   i_global(i,n) = 0
