@@ -1535,18 +1535,18 @@
 
          call define_hist_field(n_sitemptop,"sitemptop","K",tstr2D, tcstr,    &
              "sea ice surface temperature", &
-             "none", c1, c0,           &
-             ns1, f_sitemptop, avg_ice_present=.false., mask_ice_free_points=.true.)
+             "none", c1, Tffresh,           &
+             ns1, f_sitemptop, avg_ice_present=.true., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitempsnic,"sitempsnic","K",tstr2D, tcstr,    &
              "snow ice interface temperature", &
-             "surface temperature when no snow present", c1, c0, &
-             ns1, f_sitempsnic, avg_ice_present=.false., mask_ice_free_points=.true.)
+             "surface temperature when no snow present", c1, Tffresh, &
+             ns1, f_sitempsnic, avg_ice_present=.true., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitempbot,"sitempbot","K",tstr2D, tcstr,    &
              "sea ice bottom temperature",                             &
-             "none", c1, c0,           &
-             ns1, f_sitempbot, avg_ice_present=.false., mask_ice_free_points=.true.)
+             "none", c1, Tffresh,           &
+             ns1, f_sitempbot, avg_ice_present=.true., mask_ice_free_points=.true.)
 
          call define_hist_field(n_siu,"siu","m/s",ustr2D, ucstr,  &
              "ice x velocity component", &
@@ -2753,7 +2753,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = trcr(i,j,nt_Tsfc,iblk)+Tffresh
+              worka(i,j) = aice(i,j,iblk)*trcr(i,j,nt_Tsfc,iblk)
            enddo
            enddo
            call accum_hist_field(n_sitemptop, iblk, worka(:,:), a2D)
@@ -2763,7 +2763,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = Tsnice(i,j,iblk)+Tffresh
+              worka(i,j) = Tsnice(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sitempsnic, iblk, worka(:,:), a2D)
@@ -2773,7 +2773,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-               worka(i,j) = Tbot(i,j,iblk)+Tffresh
+               worka(i,j) = aice(i,j,iblk)*Tbot(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sitempbot, iblk, worka(:,:), a2D)
@@ -3699,28 +3699,28 @@
            do n = 1, num_avail_hist_fields_2D
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
 
-              do j = jlo, jhi
-              do i = ilo, ihi
-                 if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a2D(i,j,n,iblk) = spval_dbl
-                 else                            ! convert units
-                    a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
-                                   * ravgct + avail_hist_fields(n)%conb
-                 endif
-              enddo             ! i
-              enddo             ! j
-
               ! Only average when/where ice present
               if (avail_hist_fields(n)%avg_ice_present) then
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (tmask(i,j,iblk)) then
-                          a2D(i,j,n,iblk) = &
-                          a2D(i,j,n,iblk)*avgct(ns)*ravgip(i,j)
+                       a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
+                                      * ravgip(i,j) + avail_hist_fields(n)%conb
                     endif
                     ! Mask ice-free points
                     if (avail_hist_fields(n)%mask_ice_free_points) then
                        if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
+                    endif
+                 enddo             ! i
+                 enddo             ! j
+              else
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (.not. tmask(i,j,iblk)) then ! mask out land points
+                       a2D(i,j,n,iblk) = spval_dbl
+                    else                            ! convert units
+                       a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
+                                      * ravgct + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
                  enddo             ! j

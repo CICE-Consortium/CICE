@@ -1733,10 +1733,10 @@
          ! set debug point to 1st global point if not set as local values
          if (debug_model_i < 0 .and. debug_model_j < 0 .and. &
              debug_model_iblk < 0 .and. debug_model_task < 0) then
-            debug_model_i    = piloc(1)
-            debug_model_j    = pjloc(1)
-            debug_model_task = pmloc(1)
-            debug_model_iblk = pbloc(1)
+            debug_model_i    = piloc(2)
+            debug_model_j    = pjloc(2)
+            debug_model_task = pmloc(2)
+            debug_model_iblk = pbloc(2)
          endif
 
          ! if debug point is messed up, abort
