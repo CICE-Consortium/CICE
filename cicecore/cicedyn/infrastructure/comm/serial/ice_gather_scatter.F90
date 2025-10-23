@@ -925,6 +925,7 @@
          this_block = get_block(n,n)
          dst_block  = dst_dist%blockLocalID(n)
 
+#if (1 == 0)
          !*** if this is an interior block, then there is no
          !*** padding or update checking required
 
@@ -992,13 +993,46 @@
 
                endif
             end do
-
          endif
+#else
+
+         do j=1,ny_block
+            if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
+               ! tripole is top block with j_glob < 0
+               ! for yoffset=0 or 1, yoffset2=0,0
+               ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
+               do yoffset2=0,max(yoffset,0)-yoffset
+                 jsrc = ny_global + yoffset + yoffset2 + &
+                      (this_block%j_glob(j) + ny_global)
+                 do i=1,nx_block
+                   if (this_block%i_glob(i) /= 0) then
+                      isrc = nx_global + xoffset - this_block%i_glob(i)
+                      if (isrc < 1) isrc = isrc + nx_global
+                      if (isrc > nx_global) isrc = isrc - nx_global
+                      ARRAY(i,j-yoffset2,dst_block) &
+                        = isign * ARRAY_G(isrc,jsrc)
+                   endif
+                 end do
+               end do
+            else
+               ! normal block
+               do i=1,nx_block
+                  isrc = this_block%i_glob(i)
+                  jsrc = this_block%j_glob(j)
+                  if (isrc >=1 .and. isrc <= nx_global .and. &
+                      jsrc >=1 .and. jsrc <= ny_global) &
+                     ARRAY(i,j,dst_block) = ARRAY_G(isrc,jsrc)
+               end do
+            endif
+         end do
+
+#endif
+
       endif ! dst block not land
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure unused ghost cell values are 0
+   ! Ensure/reset ghost cell values are 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
@@ -1173,6 +1207,7 @@
          this_block = get_block(n,n)
          dst_block  = dst_dist%blockLocalID(n)
 
+#if (1 == 0)
          !*** if this is an interior block, then there is no
          !*** padding or update checking required
 
@@ -1242,11 +1277,44 @@
             end do
 
          endif
+#else
+
+         do j=1,ny_block
+            if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
+               ! tripole is top block with j_glob < 0
+               ! for yoffset=0 or 1, yoffset2=0,0
+               ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
+               do yoffset2=0,max(yoffset,0)-yoffset
+                 jsrc = ny_global + yoffset + yoffset2 + &
+                      (this_block%j_glob(j) + ny_global)
+                 do i=1,nx_block
+                   if (this_block%i_glob(i) /= 0) then
+                      isrc = nx_global + xoffset - this_block%i_glob(i)
+                      if (isrc < 1) isrc = isrc + nx_global
+                      if (isrc > nx_global) isrc = isrc - nx_global
+                      ARRAY(i,j-yoffset2,dst_block) &
+                        = isign * ARRAY_G(isrc,jsrc)
+                   endif
+                 end do
+               end do
+            else
+               ! normal block
+               do i=1,nx_block
+                  isrc = this_block%i_glob(i)
+                  jsrc = this_block%j_glob(j)
+                  if (isrc >=1 .and. isrc <= nx_global .and. &
+                      jsrc >=1 .and. jsrc <= ny_global) &
+                     ARRAY(i,j,dst_block) = ARRAY_G(isrc,jsrc)
+               end do
+            endif
+         end do
+
+#endif
       endif ! dst block not land
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure unused ghost cell values are 0
+   ! Ensure/reset ghost cell values are 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
@@ -1421,6 +1489,7 @@
          this_block = get_block(n,n)
          dst_block  = dst_dist%blockLocalID(n)
 
+#if (1 == 0)
          !*** if this is an interior block, then there is no
          !*** padding or update checking required
 
@@ -1490,11 +1559,44 @@
             end do
 
          endif
+#else
+
+         do j=1,ny_block
+            if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
+               ! tripole is top block with j_glob < 0
+               ! for yoffset=0 or 1, yoffset2=0,0
+               ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
+               do yoffset2=0,max(yoffset,0)-yoffset
+                 jsrc = ny_global + yoffset + yoffset2 + &
+                      (this_block%j_glob(j) + ny_global)
+                 do i=1,nx_block
+                   if (this_block%i_glob(i) /= 0) then
+                      isrc = nx_global + xoffset - this_block%i_glob(i)
+                      if (isrc < 1) isrc = isrc + nx_global
+                      if (isrc > nx_global) isrc = isrc - nx_global
+                      ARRAY(i,j-yoffset2,dst_block) &
+                        = isign * ARRAY_G(isrc,jsrc)
+                   endif
+                 end do
+               end do
+            else
+               ! normal block
+               do i=1,nx_block
+                  isrc = this_block%i_glob(i)
+                  jsrc = this_block%j_glob(j)
+                  if (isrc >=1 .and. isrc <= nx_global .and. &
+                      jsrc >=1 .and. jsrc <= ny_global) &
+                     ARRAY(i,j,dst_block) = ARRAY_G(isrc,jsrc)
+               end do
+            endif
+         end do
+
+#endif
       endif ! dst block not land
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure unused ghost cell values are 0
+   ! Ensure/reset ghost cell values are 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
@@ -1570,8 +1672,8 @@
 
    integer (int_kind) :: &
      i,j,n,              &! dummy loop indices
+     isrc, jsrc,         &! source addresses
      iblk, jblk,         &! source addresses
-     iglb, jglb,         &! global indices
      dst_block            ! local block index in dest distribution
 
    type (block) :: &
@@ -1618,13 +1720,13 @@
                ! southwest corner
                   iblk = i
                   jblk = j
-                  iglb = this_block%i_glob(this_block%ilo)+i-1
-                  jglb = j
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = this_block%i_glob(this_block%ilo)+i-1
+                  jsrc = j
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                ! southeast corner
                   iblk = this_block%ihi+i
-                  iglb = this_block%i_glob(this_block%ihi)+nghost+i
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = this_block%i_glob(this_block%ihi)+nghost+i
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                enddo
             enddo
          endif
@@ -1639,13 +1741,13 @@
                ! northwest corner
                   iblk = i
                   jblk = this_block%jhi+j
-                  iglb = this_block%i_glob(this_block%ilo)+i-1
-                  jglb = ny_global+nghost+j
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = this_block%i_glob(this_block%ilo)+i-1
+                  jsrc = ny_global+nghost+j
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                ! northeast corner
                   iblk = this_block%ihi+i
-                  iglb = this_block%i_glob(this_block%ihi)+nghost+i
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = this_block%i_glob(this_block%ihi)+nghost+i
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                enddo
             enddo
          endif
@@ -1661,13 +1763,13 @@
                ! northwest corner
                   iblk = i
                   jblk = this_block%jhi+j
-                  iglb = i
-                  jglb = this_block%j_glob(this_block%jhi)+nghost+j
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = i
+                  jsrc = this_block%j_glob(this_block%jhi)+nghost+j
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                ! southwest corner
                   jblk = j
-                  jglb = this_block%j_glob(this_block%jlo)+j-1
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  jsrc = this_block%j_glob(this_block%jlo)+j-1
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                enddo
                enddo
          endif
@@ -1684,17 +1786,16 @@
                ! northeast corner
                   iblk = this_block%ihi+i
                   jblk = this_block%jhi+j
-                  iglb = nx_global+nghost+i
-                  jglb = this_block%j_glob(this_block%jhi)+nghost+j
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  isrc = nx_global+nghost+i
+                  jsrc = this_block%j_glob(this_block%jhi)+nghost+j
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                ! southeast corner
                   jblk = j
-                  jglb = this_block%j_glob(this_block%jlo)+j-1
-                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(iglb,jglb)
+                  jsrc = this_block%j_glob(this_block%jlo)+j-1
+                  ARRAY(iblk,jblk,dst_block) = ARRAY_G(isrc,jsrc)
                enddo
                enddo
          endif
-
       endif ! dst block not land
    end do  ! block loop
 
@@ -1775,6 +1876,7 @@
          this_block = get_block(n,n)
          dst_block  = dst_dist%blockLocalID(n)
 
+#if (1 == 0)
          !*** if this is an interior block, then there is no
          !*** padding or update checking required
 
@@ -1844,6 +1946,39 @@
             end do
 
          endif
+#else
+
+         do j=1,ny_block
+            if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
+               ! tripole is top block with j_glob < 0
+               ! for yoffset=0 or 1, yoffset2=0,0
+               ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
+               do yoffset2=0,max(yoffset,0)-yoffset
+                 jsrc = ny_global + yoffset + yoffset2 + &
+                      (this_block%j_glob(j) + ny_global)
+                 do i=1,nx_block
+                   if (this_block%i_glob(i) /= 0) then
+                      isrc = nx_global + xoffset - this_block%i_glob(i)
+                      if (isrc < 1) isrc = isrc + nx_global
+                      if (isrc > nx_global) isrc = isrc - nx_global
+                      ARRAY(i,j-yoffset2,dst_block) &
+                        = isign * ARRAY_G2(isrc,jsrc)
+                   endif
+                 end do
+               end do
+            else
+               ! normal block
+               do i=1,nx_block
+                  isrc = this_block%i_glob(i)
+                  jsrc = this_block%j_glob(j)
+                  if (isrc >=1 .and. isrc <= nx_global .and. &
+                      jsrc >=1 .and. jsrc <= ny_global) &
+                     ARRAY(i,j,dst_block) = ARRAY_G1(isrc,jsrc)
+               end do
+            endif
+         end do
+
+#endif
       endif ! dst block not land
    end do  ! block loop
 

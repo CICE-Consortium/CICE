@@ -37,7 +37,7 @@
           close_boundaries
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
           get_fileunit, release_fileunit, flush_fileunit
-      use ice_gather_scatter, only: gather_global, scatter_global
+      use ice_gather_scatter, only: gather_global, scatter_global, gather_global_ext
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc, ice_check_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
@@ -291,14 +291,14 @@
       npm       = c0
       epm       = c0
       kmt       = c0
-      tmask     = c0
-      umask     = c0
-      umaskCD   = c0
-      nmask     = c0
-      emask     = c0
-      opmask    = c0
-      lmask_n   = c0
-      lmask_s   = c0
+      tmask     = .false.
+      umask     = .false.
+      umaskCD   = .false.
+      nmask     = .false.
+      emask     = .false.
+      opmask    = .false.
+      lmask_n   = .false.
+      lmask_s   = .false.
       rndex_global = c0
       lont_bounds = c0
       latt_bounds = c0
@@ -652,14 +652,8 @@
       !-----------------------------------------------------------------
 
       if (trim(grid_format) /= 'mom_nc') then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
-            this_block = get_block(blocks_ice(iblk),iblk)
-            ilo = this_block%ilo
-            ihi = this_block%ihi
-            jlo = this_block%jlo
-            jhi = this_block%jhi
-
             do j = 1,ny_block
             do i = 1,nx_block
                tarea(i,j,iblk) = dxT(i,j,iblk)*dyT(i,j,iblk)
@@ -672,13 +666,8 @@
          !$OMP END PARALLEL DO
       endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
 
          do j = 1,ny_block
          do i = 1,nx_block
@@ -1016,6 +1005,8 @@
       call ice_read_global(nu_grid,7,work_g1,'rda8',.true.)   ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
+      call ice_HaloExtrapolate(ANGLE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       !-----------------------------------------------------------------
       ! cell dimensions
@@ -1118,6 +1109,8 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
+      call ice_HaloExtrapolate(ANGLE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       ! fix ANGLE: roundoff error due to single precision
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
@@ -1138,16 +1131,22 @@
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_angle)
+         call ice_HaloExtrapolate(ANGLET, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
          where (ANGLET >  pi) ANGLET =  pi
          where (ANGLET < -pi) ANGLET = -pi
          fieldname="tlon"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(TLON, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
+         call ice_HaloExtrapolate(TLON, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
          fieldname="tlat"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(TLAT, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
+         call ice_HaloExtrapolate(TLAT, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
       endif
       !-----------------------------------------------------------------
       ! cell dimensions
@@ -1544,9 +1543,13 @@
       call mom_grid_rotation_angle(G_ULON, G_ULAT, G_TLON(1:nx_global,1:ny_global), work_g1) ! anglet
       call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                            field_loc_center, field_type_angle)
+      call ice_HaloExtrapolate(ANGLET, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       call mom_grid_rotation_angle(G_TLON, G_TLAT, G_ULON(2:nx_global+1,2:ny_global+1), work_g1) ! angle
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_angle)
+      call ice_HaloExtrapolate(ANGLE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       deallocate(work_g1, G_ULAT, G_TLAT, G_TLON, G_ULON, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1850,25 +1853,36 @@
             enddo
          endif
 
-         if (save_ghte_ghtn) then
-            do j = 1, ny_global
-               do i = 1, nx_global
-                  G_HTN(i+nghost,j+nghost) = G_dxN(i,j)
-               enddo
-            enddo
-            call global_ext_halo(G_HTN)
-         endif
+!tcx         if (save_ghte_ghtn) then
+!            do j = 1, ny_global
+!               do i = 1, nx_global
+!                  G_HTN(i+nghost,j+nghost) = G_dxN(i,j)
+!               enddo
+!            enddo
+!            call global_ext_halo(G_HTN)
+!         endif
       endif
 
       call scatter_global(dxT, G_dxT, master_task, distrb_info, &
                            field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       call scatter_global(HTN, G_dxN, master_task, distrb_info, &
                            field_loc_Nface, field_type_scalar)
+      call ice_HaloExtrapolate(HTN, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      if (save_ghte_ghtn) then
+         call gather_global_ext(G_HTN, HTN, master_task, distrb_info)
+      endif
       dxN(:,:,:) = HTN(:,:,:)
       call scatter_global(dxE, G_dxE, master_task, distrb_info, &
                            field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       call scatter_global(dxU, G_dxU, master_task, distrb_info, &
                            field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(dxU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       deallocate(G_dxT, G_dxE, G_dxU, G_dxN, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -1948,25 +1962,36 @@
             enddo
          endif
 
-         if (save_ghte_ghtn) then
-            do j = 1, ny_global
-               do i = 1, nx_global
-                  G_HTE(i+nghost,j+nghost) = G_dyE(i,j)
-               enddo
-            enddo
-            call global_ext_halo(G_HTE)
-         endif
+!tcx         if (save_ghte_ghtn) then
+!            do j = 1, ny_global
+!               do i = 1, nx_global
+!                  G_HTE(i+nghost,j+nghost) = G_dyE(i,j)
+!               enddo
+!            enddo
+!            call global_ext_halo(G_HTE)
+!         endif
       endif
 
       call scatter_global(dyT, G_dyT, master_task, distrb_info, &
-      field_loc_center, field_type_scalar)
+            field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       call scatter_global(dyN, G_dyN, master_task, distrb_info, &
             field_loc_Nface, field_type_scalar)
+      call ice_HaloExtrapolate(dyN, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       call scatter_global(HTE, G_dyE, master_task, distrb_info, &
             field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(HTE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      if (save_ghte_ghtn) then
+         call gather_global_ext(G_HTE, HTE, master_task, distrb_info)
+      endif
       dyE(:,:,:) = HTE(:,:,:)
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
             field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(dyU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       deallocate(G_dyT, G_dyN, G_dyE, G_dyU)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -2246,6 +2271,8 @@
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_angle)
+      call ice_HaloExtrapolate(ANGLE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
       ! fix ANGLE: roundoff error due to single precision
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
@@ -2266,16 +2293,22 @@
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(ANGLET, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_angle)
+         call ice_HaloExtrapolate(ANGLET, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
          where (ANGLET >  pi) ANGLET =  pi
          where (ANGLET < -pi) ANGLET = -pi
          fieldname="tlon"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(TLON, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
+         call ice_HaloExtrapolate(TLON, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
          fieldname="tlat"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag)
          call scatter_global(TLAT, work_g1, master_task, distrb_info, &
                              field_loc_center, field_type_scalar)
+         call ice_HaloExtrapolate(TLAT, distrb_info, &
+                                  ew_boundary_type, ns_boundary_type)
       endif
       !-----------------------------------------------------------------
       ! cell dimensions
@@ -2658,7 +2691,6 @@
         call ice_HaloExtrapolate(ULAT, distrb_info, &
                                  ew_boundary_type, ns_boundary_type)
 
-
         deallocate(work_g1)
 
       end subroutine rectgrid_scale_dxdy
@@ -2836,19 +2868,26 @@
             work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxU
          enddo
          enddo
-         if (save_ghte_ghtn) then
-            do j = 1, ny_global
-            do i = 1,nx_global
-               G_HTN(i+nghost,j+nghost) = work_g(i,j)
-            enddo
-            enddo
-            call global_ext_halo(G_HTN)
-         endif
+!tcx         if (save_ghte_ghtn) then
+!            do j = 1, ny_global
+!            do i = 1, nx_global
+!               G_HTN(i+nghost,j+nghost) = work_g(i,j)
+!            enddo
+!            enddo
+!            call global_ext_halo(G_HTN)
+!         endif
       endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
+      call ice_HaloExtrapolate(HTN, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      if (save_ghte_ghtn) then
+         call gather_global_ext(G_HTN, HTN, master_task, distrb_info)
+      endif
       call scatter_global(dxU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(dxU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       ! dxT = average of 2 neighbor HTNs in j
 
@@ -2865,6 +2904,8 @@
       endif
       call scatter_global(dxT, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       ! dxN = HTN
 
@@ -2892,6 +2933,8 @@
       endif
       call scatter_global(dxE, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       deallocate(work_g2, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -2947,19 +2990,26 @@
                work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyU
             enddo
          endif
-         if (save_ghte_ghtn) then
-            do j = 1, ny_global
-            do i = 1, nx_global
-               G_HTE(i+nghost,j+nghost) = work_g(i,j)
-            enddo
-            enddo
-            call global_ext_halo(G_HTE)
-         endif
+!tcx         if (save_ghte_ghtn) then
+!            do j = 1, ny_global
+!            do i = 1, nx_global
+!               G_HTE(i+nghost,j+nghost) = work_g(i,j)
+!            enddo
+!            enddo
+!            call global_ext_halo(G_HTE)
+!         endif
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)
+      call ice_HaloExtrapolate(HTE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      if (save_ghte_ghtn) then
+         call gather_global_ext(G_HTE, HTE, master_task, distrb_info)
+      endif
       call scatter_global(dyU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
+      call ice_HaloExtrapolate(dyU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       ! dyT = average of 2 neighbor HTE in i
 
@@ -2975,6 +3025,8 @@
       endif
       call scatter_global(dyT, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       ! dyN = average of 4 neighbor HTEs
 
@@ -3000,6 +3052,8 @@
       endif
       call scatter_global(dyN, work_g2, master_task, distrb_info, &
                           field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyN, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
 
       ! dyE = HTE
 

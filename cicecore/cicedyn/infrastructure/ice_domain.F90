@@ -259,6 +259,12 @@
       call abort_ice(subname//' ERROR: Not enough ghost cells allocated', file=__FILE__, line=__LINE__)
    endif
 
+   if (ns_boundary_type == 'closed') then
+      call abort_ice(subname//' ERROR: ns_boundary_type = '//trim(ns_boundary_type)//' not supported', file=__FILE__, line=__LINE__)
+   endif
+   if (ew_boundary_type == 'closed') then
+      call abort_ice(subname//' ERROR: ew_boundary_type = '//trim(ew_boundary_type)//' not supported', file=__FILE__, line=__LINE__)
+   endif
 !----------------------------------------------------------------------
 !
 !  compute block decomposition and details
@@ -384,6 +390,7 @@
    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
 
+#if (1 == 0)
    if (trim(ns_boundary_type) == 'closed') then
       call abort_ice(subname//' ERROR: ns_boundary_type = closed not supported', file=__FILE__, line=__LINE__)
       allocate(nocn(nblocks_tot))
@@ -464,6 +471,7 @@
       enddo
       deallocate(nocn)
    endif
+#endif
 
 !----------------------------------------------------------------------
 !
@@ -519,11 +527,11 @@
       do n=1,nblocks_tot
          this_block = get_block(n,n)
          do j=this_block%jlo,this_block%jhi
-            if (this_block%j_glob(j) > 0) then
+            jg = this_block%j_glob(j)
+            if (jg > 0) then
                do i=this_block%ilo,this_block%ihi
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
+                  ig = this_block%i_glob(i)
+                  if (ig > 0) then
 !                     if (KMTG(ig,jg) > puny) &
 !                        nocn(n) = max(nocn(n),nint(wght(ig,jg)+1.0_dbl_kind))
                      if (KMTG(ig,jg) > puny) then
@@ -544,11 +552,11 @@
       do n=1,nblocks_tot
          this_block = get_block(n,n)
          do j=this_block%jlo,this_block%jhi
-            if (this_block%j_glob(j) > 0) then
+            jg = this_block%j_glob(j)
+            if (jg > 0) then
                do i=this_block%ilo,this_block%ihi
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
+                  ig = this_block%i_glob(i)
+                  if (ig > 0) then
                      if (grid_ice == 'C' .or. grid_ice == 'CD') then
                         ! Have to be careful about block elimination with C/CD
                         ! Use a bigger stencil

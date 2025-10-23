@@ -7765,15 +7765,15 @@ contains
 
  subroutine ice_HaloExtrapolate2DR8(ARRAY,dist,ew_bndy_type,ns_bndy_type)
 
-!  This subroutine extrapolates ARRAY values into the first row or column
-!  of ghost cells, and is intended for grid variables whose ghost cells
+!  This subroutine extrapolates ARRAY values into the ghost cells,
+!  and is intended for grid variables whose ghost cells
 !  would otherwise be set using the default boundary conditions (Dirichlet
 !  or Neumann).
-!  Note: This routine will need to be modified for nghost > 1.
-!        We assume padding occurs only on east and north edges.
 !
 !  This is the specific interface for double precision arrays
 !  corresponding to the generic interface ice_HaloExtrapolate
+!
+!  T.Craig, Oct 2025 - extend to nghost > 1
 
    use ice_blocks, only: block, nblocks_x, nblocks_y, get_block
    use ice_constants, only: c2
@@ -7796,8 +7796,9 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-     i,j,iblk,           &! dummy loop indices
-     numBlocks,       &! number of local blocks
+     i,j,n,iblk,ii,jj,   &! dummy loop indices
+     ilo,ihi,jlo,jhi,    &! active block indices
+     numBlocks,          &! number of local blocks
      blockID,            &! block location
      ibc                  ! ghost cell column or row
 
@@ -7805,6 +7806,7 @@ contains
      this_block  ! block info for current block
 
    character(len=*), parameter :: subname = '(ice_HaloExtrapolate2DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  Linear extrapolation
@@ -7817,32 +7819,48 @@ contains
    do iblk = 1, numBlocks
       call ice_distributionGetBlockID(dist, iblk, blockID)
       this_block = get_block(blockID, blockID)
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       if (this_block%iblock == 1) then              ! west edge
          if (trim(ew_bndy_type) /= 'cyclic') then
+            do n = 1, nghost
+            ii = ilo - n  ! gridcell to extrapolate to
             do j = 1, ny_block
-               ARRAY(1,j,iblk) = c2*ARRAY(2,j,iblk) - ARRAY(3,j,iblk)
+               ARRAY(ii,j,iblk) = c2*ARRAY(ii+1,j,iblk) - ARRAY(ii+2,j,iblk)
+            enddo
             enddo
          endif
       endif
 
       if (this_block%iblock == nblocks_x) then  ! east edge
          if (trim(ew_bndy_type) /= 'cyclic') then
-            ! locate ghost cell column (avoid padding)
-            ibc = nx_block
-            do i = nx_block, nghost + 1, -1
-               if (this_block%i_glob(i) == 0) ibc = ibc - 1
-            enddo
+!tcx            ! locate ghost cell column (avoid padding)
+!            ibc = nx_block
+!            do i = nx_block, nghost + 1, -1
+!               if (this_block%i_glob(i) == 0) ibc = ibc - 1
+!            enddo
+!            do j = 1, ny_block
+!               ARRAY(ibc,j,iblk) = c2*ARRAY(ibc-1,j,iblk) - ARRAY(ibc-2,j,iblk)
+!            enddo
+            do n = 1, nghost
+            ii = ihi + n  ! gridcell to extrapolate to
             do j = 1, ny_block
-               ARRAY(ibc,j,iblk) = c2*ARRAY(ibc-1,j,iblk) - ARRAY(ibc-2,j,iblk)
+               ARRAY(ii,j,iblk) = c2*ARRAY(ii-1,j,iblk) - ARRAY(ii-2,j,iblk)
+            enddo
             enddo
          endif
       endif
 
       if (this_block%jblock == 1) then              ! south edge
          if (trim(ns_bndy_type) /= 'cyclic') then
+            do n = 1, nghost
+            jj = jlo - n  ! gridcell to extrapolate to
             do i = 1, nx_block
-               ARRAY(i,1,iblk) = c2*ARRAY(i,2,iblk) - ARRAY(i,3,iblk)
+               ARRAY(i,jj,iblk) = c2*ARRAY(i,jj+1,iblk) - ARRAY(i,jj+2,iblk)
+            enddo
             enddo
          endif
       endif
@@ -7851,13 +7869,19 @@ contains
          if (trim(ns_bndy_type) /= 'cyclic' .and. &
              trim(ns_bndy_type) /= 'tripole' .and. &
              trim(ns_bndy_type) /= 'tripoleT' ) then
-            ! locate ghost cell column (avoid padding)
-            ibc = ny_block
-            do j = ny_block, nghost + 1, -1
-               if (this_block%j_glob(j) == 0) ibc = ibc - 1
-            enddo
+!tcx            ! locate ghost cell column (avoid padding)
+!            ibc = ny_block
+!            do j = ny_block, nghost + 1, -1
+!               if (this_block%j_glob(j) == 0) ibc = ibc - 1
+!            enddo
+!            do i = 1, nx_block
+!               ARRAY(i,ibc,iblk) = c2*ARRAY(i,ibc-1,iblk) - ARRAY(i,ibc-2,iblk)
+!            enddo
+            do n = 1, nghost
+            jj = jhi + n  ! gridcell to extrapolate to
             do i = 1, nx_block
-               ARRAY(i,ibc,iblk) = c2*ARRAY(i,ibc-1,iblk) - ARRAY(i,ibc-2,iblk)
+               ARRAY(i,jj,iblk) = c2*ARRAY(i,jj-1,iblk) - ARRAY(i,jj-2,iblk)
+            enddo
             enddo
          endif
       endif
