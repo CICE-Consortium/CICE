@@ -1146,18 +1146,23 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      lnrec = nrec
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
 
-      nx = nx_global
-      ny = ny_global
+      lnrec = nrec
 
       work = c0 ! to satisfy intent(out) attribute
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1243,10 +1248,8 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call scatter_global_ext(work, work_g1, master_task, distrb_info)
-         endif
+      if (lrestart_ext) then
+         call scatter_global_ext(work, work_g1, master_task, distrb_info)
       else
          if (present(field_loc)) then
             call scatter_global(work, work_g1, master_task, distrb_info, &
@@ -1336,16 +1339,21 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+
       lnrec = nrec
 
-      nx = nx_global
-      ny = ny_global
-
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1432,13 +1440,11 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n=1,ncat
-               call scatter_global_ext(work(:,:,n,:), work_g1(:,:,n), &
-                                       master_task, distrb_info)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n=1,ncat
+            call scatter_global_ext(work(:,:,n,:), work_g1(:,:,n), &
+                                    master_task, distrb_info)
+         enddo
       else
          if (present(field_loc)) then
             do n=1,ncat
@@ -1532,20 +1538,25 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
 #ifdef USE_NETCDF
 
       lnrec = nrec
 
-      nx = nx_global
-      ny = ny_global
-
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1632,13 +1643,11 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n = 1, nfreq
-               call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
-                                       master_task, distrb_info)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n = 1, nfreq
+            call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
+                                    master_task, distrb_info)
+         enddo
       else
          if (present(field_loc)) then
             do n = 1, nfreq
@@ -2214,14 +2223,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (present(varname)) then
@@ -2236,10 +2250,8 @@
          allocate(work_g1(1,1))   ! to save memory
       endif
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call gather_global_ext(work_g1, work, master_task, distrb_info, spc_val=c0)
-         endif
+      if (lrestart_ext) then
+         call gather_global_ext(work_g1, work, master_task, distrb_info, spc_val=c0)
       else
          call gather_global(work_g1, work, master_task, distrb_info, spc_val=c0)
       endif
@@ -2338,14 +2350,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -2354,13 +2371,11 @@
          allocate(work_g1(1,1,ncat))   ! to save memory
       endif
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n=1,ncat
-               call gather_global_ext(work_g1(:,:,n), work(:,:,n,:), &
-                    master_task, distrb_info, spc_val=c0)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n=1,ncat
+            call gather_global_ext(work_g1(:,:,n), work(:,:,n,:), &
+                 master_task, distrb_info, spc_val=c0)
+         enddo
       else
          do n=1,ncat
             call gather_global(work_g1(:,:,n), work(:,:,n,:), &
@@ -2664,14 +2679,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -2717,10 +2737,8 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call scatter_global_ext(work, work_g1, master_task, distrb_info)
-         endif
+      if (lrestart_ext) then
+         call scatter_global_ext(work, work_g1, master_task, distrb_info)
       else
          if (present(field_loc)) then
             call scatter_global(work, work_g1, master_task, distrb_info, &

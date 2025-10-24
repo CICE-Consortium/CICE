@@ -1852,15 +1852,6 @@
                jm1 = jm1 + 2 ; jm2 = jm2 + 2
             enddo
          endif
-
-!tcx         if (save_ghte_ghtn) then
-!            do j = 1, ny_global
-!               do i = 1, nx_global
-!                  G_HTN(i+nghost,j+nghost) = G_dxN(i,j)
-!               enddo
-!            enddo
-!            call global_ext_halo(G_HTN)
-!         endif
       endif
 
       call scatter_global(dxT, G_dxT, master_task, distrb_info, &
@@ -1961,15 +1952,6 @@
                im1 = im1 + 2 ; im2 = im2 + 2
             enddo
          endif
-
-!tcx         if (save_ghte_ghtn) then
-!            do j = 1, ny_global
-!               do i = 1, nx_global
-!                  G_HTE(i+nghost,j+nghost) = G_dyE(i,j)
-!               enddo
-!            enddo
-!            call global_ext_halo(G_HTE)
-!         endif
       endif
 
       call scatter_global(dyT, G_dyT, master_task, distrb_info, &
@@ -2868,14 +2850,6 @@
             work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxU
          enddo
          enddo
-!tcx         if (save_ghte_ghtn) then
-!            do j = 1, ny_global
-!            do i = 1, nx_global
-!               G_HTN(i+nghost,j+nghost) = work_g(i,j)
-!            enddo
-!            enddo
-!            call global_ext_halo(G_HTN)
-!         endif
       endif
       call scatter_global(HTN, work_g, master_task, distrb_info, &
                           field_loc_Nface, field_type_scalar)
@@ -2990,14 +2964,6 @@
                work_g2(i,ny_global) = c2*work_g(i,ny_global-1) - work_g(i,ny_global-2)  ! dyU
             enddo
          endif
-!tcx         if (save_ghte_ghtn) then
-!            do j = 1, ny_global
-!            do i = 1, nx_global
-!               G_HTE(i+nghost,j+nghost) = work_g(i,j)
-!            enddo
-!            enddo
-!            call global_ext_halo(G_HTE)
-!         endif
       endif
       call scatter_global(HTE, work_g, master_task, distrb_info, &
                           field_loc_Eface, field_type_scalar)

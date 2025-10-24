@@ -1643,78 +1643,6 @@
          msg_buffer = c0
          this_block = get_block(n,n)
 
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                         this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         msg_buffer(i,j-yoffset2) = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-
-#else
-
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
                ! tripole is top block with j_glob < 0
@@ -1744,7 +1672,6 @@
                end do
             endif
          end do
-#endif
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
@@ -1761,78 +1688,6 @@
        if (dst_dist%blockLocation(n) == my_task+1) then
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                              this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         ARRAY(i,j-yoffset2,dst_block) &
-                           = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-#else
 
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
@@ -1863,7 +1718,6 @@
                end do
             endif
          end do
-#endif
        endif
      end do
 
@@ -2096,77 +1950,6 @@
          msg_buffer = 0._real_kind
          this_block = get_block(n,n)
 
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                         this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         msg_buffer(i,j-yoffset2) = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-#else
-
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
                ! tripole is top block with j_glob < 0
@@ -2196,7 +1979,6 @@
                end do
             endif
          end do
-#endif
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR4, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
@@ -2213,78 +1995,6 @@
        if (dst_dist%blockLocation(n) == my_task+1) then
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                              this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         ARRAY(i,j-yoffset2,dst_block) &
-                           = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-#else
 
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
@@ -2315,7 +2025,6 @@
                end do
             endif
          end do
-#endif
        endif
      end do
 
@@ -2548,78 +2257,6 @@
          msg_buffer = 0
          this_block = get_block(n,n)
 
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                         this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         msg_buffer(i,j-yoffset2) = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-
-#else
-
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
                ! tripole is top block with j_glob < 0
@@ -2649,7 +2286,7 @@
                end do
             endif
          end do
-#endif
+
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpi_integer, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_ICE, ierr)
@@ -2665,78 +2302,6 @@
        if (dst_dist%blockLocation(n) == my_task+1) then
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                              this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         ARRAY(i,j-yoffset2,dst_block) &
-                           = isign * ARRAY_G(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-#else
 
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
@@ -2767,7 +2332,6 @@
                end do
             endif
          end do
-#endif
        endif
      end do
 
@@ -3136,7 +2700,6 @@
                enddo
                enddo
          endif
-
        endif
      end do
 
@@ -3270,74 +2833,6 @@
          msg_buffer = c0
          this_block = get_block(n,n)
 
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               msg_buffer(i,j) = ARRAY_G1(this_block%i_glob(i),&
-                                          this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G1(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        msg_buffer(i,j) = ARRAY_G1(this_block%i_glob(i),&
-                                                  this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  jsrc = ny_global + yoffset + &
-                         (this_block%j_glob(j) + ny_global)
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        isrc = nx_global + xoffset - this_block%i_glob(i)
-                        if (isrc < 1) isrc = isrc + nx_global
-                        if (isrc > nx_global) isrc = isrc - nx_global
-                        msg_buffer(i,j) = isign * ARRAY_G2(isrc,jsrc)
-                     endif
-                  end do
-
-               endif
-            end do
-
-         endif
-
-#else
-
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
                ! tripole is top block with j_glob < 0
@@ -3363,8 +2858,6 @@
             endif
          end do
 
-#endif
-
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
                        mpiR8, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_ICE, ierr)
@@ -3380,79 +2873,6 @@
        if (dst_dist%blockLocation(n) == my_task+1) then
          dst_block = dst_dist%blockLocalID(n)
          this_block = get_block(n,n)
-
-#if (1 == 0)
-         !*** if this is an interior block, then there is no
-         !*** padding or update checking required
-
-         if (this_block%iblock > 1         .and. &
-             this_block%iblock < nblocks_x .and. &
-             this_block%jblock > 1         .and. &
-             this_block%jblock < nblocks_y) then
-
-            do j=1,ny_block
-            do i=1,nx_block
-               ARRAY(i,j,dst_block) = ARRAY_G1(this_block%i_glob(i),&
-                                              this_block%j_glob(j))
-            end do
-            end do
-
-         !*** if this is an edge block but not a northern edge
-         !*** we only need to check for closed boundaries and
-         !*** padding (global index = 0)
-
-         else if (this_block%jblock /= nblocks_y) then
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) /= 0) then
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G1(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-               endif
-            end do
-
-         !*** if this is a northern edge block, we need to check
-         !*** for and properly deal with tripole boundaries
-
-         else
-
-            do j=1,ny_block
-               if (this_block%j_glob(j) > 0) then ! normal boundary
-
-                  do i=1,nx_block
-                     if (this_block%i_glob(i) /= 0) then
-                        ARRAY(i,j,dst_block) = ARRAY_G1(this_block%i_glob(i),&
-                                                       this_block%j_glob(j))
-                     endif
-                  end do
-
-               else if (this_block%j_glob(j) < 0) then  ! tripole
-
-                  ! for yoffset=0 or 1, yoffset2=0,0
-                  ! for yoffset=-1, yoffset2=0,1, for u-rows on T-fold grid
-                  do yoffset2=0,max(yoffset,0)-yoffset
-                    jsrc = ny_global + yoffset + yoffset2 + &
-                         (this_block%j_glob(j) + ny_global)
-                    do i=1,nx_block
-                      if (this_block%i_glob(i) /= 0) then
-                         isrc = nx_global + xoffset - this_block%i_glob(i)
-                         if (isrc < 1) isrc = isrc + nx_global
-                         if (isrc > nx_global) isrc = isrc - nx_global
-                         ARRAY(i,j-yoffset2,dst_block) &
-                           = isign * ARRAY_G2(isrc,jsrc)
-                      endif
-                    end do
-                  end do
-
-               endif
-            end do
-
-         endif
-
-#else
 
          do j=1,ny_block
             if (this_block%jblock == nblocks_y .and. this_block%j_glob(j) < 0) then
@@ -3483,8 +2903,6 @@
                end do
             endif
          end do
-
-#endif
        endif
      end do
 

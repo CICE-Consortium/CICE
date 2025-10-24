@@ -212,7 +212,7 @@ contains
          all_blocks_ij(iblock,jblock) = n
 
          do j=1,ny_block
-            j_global(j,n) = js - nghost + j - 1
+            j_global(j,n) = js - nghost + j - 1  ! simple lower to upper counting
 
             !*** southern ghost cells
 
@@ -221,14 +221,13 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) + ny_global
                case ('open')
-!                  j_global(j,n) = nghost - j + 1
-!tcx                  j_global(j,n) = 0
+                  ! lower to upper
                case ('closed')
-!                  j_global(j,n) = 0
+                  ! lower to upper
                case ('tripole')
-!                  j_global(j,n) = nghost - j + 1 ! reflecting
+                  ! lower to upper
                case ('tripoleT')
-!                  j_global(j,n) = -j_global(j,n) + 1 ! reflecting
+                  ! lower to upper
                case default
                   call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
@@ -246,14 +245,13 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) - ny_global
                case ('open')
-!                  j_global(j,n) = 2*ny_global - j_global(j,n) + 1
-!tcx                  j_global(j,n) = 0
+                  ! lower to upper
                case ('closed')
-!                  j_global(j,n) = 0
+                  ! lower to upper
                case ('tripole')
-                  j_global(j,n) = -j_global(j,n)
+                  j_global(j,n) = -j_global(j,n)  ! negative
                case ('tripoleT')
-                  j_global(j,n) = -j_global(j,n)
+                  j_global(j,n) = -j_global(j,n)  ! negative
                case default
                   call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
@@ -270,7 +268,7 @@ contains
          all_blocks(n)%j_glob => j_global(:,n)
 
          do i=1,nx_block
-            i_global(i,n) = is - nghost + i - 1
+            i_global(i,n) = is - nghost + i - 1  ! left to right counting
 
             !*** western ghost cells
 
@@ -279,10 +277,9 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) + nx_global
                case ('open')
-!                  i_global(i,n) = nghost - i + 1
-!tcx                  i_global(i,n) = 0
+                  ! left to right
                case ('closed')
-!                  i_global(i,n) = 0
+                  ! left to right
                case default
                   call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select
@@ -300,10 +297,9 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) - nx_global
                case ('open')
-!                  i_global(i,n) = 2*nx_global - i_global(i,n) + 1
-!tcx                  i_global(i,n) = 0
+                  ! left to right
                case ('closed')
-!                  i_global(i,n) = 0
+                  ! left to right
                case default
                   call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select

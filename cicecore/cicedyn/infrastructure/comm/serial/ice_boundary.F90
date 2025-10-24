@@ -782,26 +782,6 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
-   if (ltripoleOnly) then
-      ! skip fill, not needed since tripole seam always exists if running
-      ! on tripole grid and set tripoleOnly flag
-   else
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk), &
-                                  ilo=ilo, ihi=ihi,   &
-                                  jlo=jlo, jhi=jhi)
-         do j = 1,nghost
-            array(1:nx_block, jlo-j,iblk) = fill
-            array(1:nx_block, jhi+j,iblk) = fill
-         enddo
-         do i = 1,nghost
-            array(ilo-i, 1:ny_block,iblk) = fill
-            array(ihi+i, 1:ny_block,iblk) = fill
-         enddo
-      enddo
-   endif
-#else
    if (.not. ltripoleOnly) then
       ! tripoleOnly skip fill, do not overwrite any values in interior as they may 
       ! already be set and filling tripole is not necessary
@@ -867,7 +847,6 @@ contains
          endif
       enddo ! iblk
    endif
-#endif
 
 !-----------------------------------------------------------------------
 !
@@ -1192,82 +1171,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,iblk) = fill
-         array(1:nx_block, jhi+j,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,iblk) = fill
-         array(ihi+i, 1:ny_block,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -1583,82 +1546,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,iblk) = fill
-         array(1:nx_block, jhi+j,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,iblk) = fill
-         array(ihi+i, 1:ny_block,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -2061,82 +2008,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -2478,82 +2409,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -2895,82 +2810,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -3313,82 +3212,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -3747,82 +3630,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -4181,82 +4048,66 @@ contains
 !
 !-----------------------------------------------------------------------
 
-#if (1 == 0)
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
-#else
-      ! fill outer boundary as needed
-      ! only fill corners if both edges are being filled
-      do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk),     &
-                                  ilo=ilo,       ihi=ihi,       &
-                                  jlo=jlo,       jhi=jhi,       &
-                                  iblock=iblock, jblock=jblock)
-         if (ewfillouter .or. iblock > 1) then              ! west edge
-            do i = 1,nghost
-               array(ilo-i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
-            do i = 1,nghost
-               array(ihi+i, jlo:jhi, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock > 1) then              ! south edge
-            do j = 1,nghost
-               array(ilo:ihi, jlo-j, :, :, iblk) = fill
-            enddo
-         endif
-         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
-            do j = 1,nghost
-               array(ilo:ihi, jhi+j, :, :, iblk) = fill
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ilo-i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
-             (nsfillouter .or. jblock > 1)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jlo-j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
-             (nsfillouter .or. jblock < nblocks_y)) then
-            do j = 1,nghost
-            do i = 1,nghost
-               array(ihi+i, jhi+j, :, :, iblk) = fill
-            enddo
-            enddo
-         endif
-      enddo ! iblk
-#endif
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -5597,14 +5448,6 @@ contains
 
       if (this_block%iblock == nblocks_x) then  ! east edge
          if (trim(ew_bndy_type) /= 'cyclic') then
-!tcx            ! locate ghost cell column (avoid padding)
-!            ibc = nx_block
-!            do i = nx_block, nghost + 1, -1
-!               if (this_block%i_glob(i) == 0) ibc = ibc - 1
-!            enddo
-!            do j = 1, ny_block
-!               ARRAY(ibc,j,iblk) = c2*ARRAY(ibc-1,j,iblk) - ARRAY(ibc-2,j,iblk)
-!            enddo
             do n = 1, nghost
             ii = ihi + n  ! gridcell to extrapolate to
             do j = 1, ny_block
@@ -5629,14 +5472,6 @@ contains
          if (trim(ns_bndy_type) /= 'cyclic' .and. &
              trim(ns_bndy_type) /= 'tripole' .and. &
              trim(ns_bndy_type) /= 'tripoleT' ) then
-!tcx            ! locate ghost cell column (avoid padding)
-!            ibc = ny_block
-!            do j = ny_block, nghost + 1, -1
-!               if (this_block%j_glob(j) == 0) ibc = ibc - 1
-!            enddo
-!            do i = 1, nx_block
-!               ARRAY(i,ibc,iblk) = c2*ARRAY(i,ibc-1,iblk) - ARRAY(i,ibc-2,iblk)
-!            enddo
             do n = 1, nghost
             jj = jhi + n  ! gridcell to extrapolate to
             do i = 1, nx_block

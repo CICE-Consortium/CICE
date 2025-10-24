@@ -61,8 +61,6 @@
 
       ! expected results
       real(dbl_kind), allocatable :: cidata_bas(:,:,:,:,:),cjdata_bas(:,:,:,:,:)  ! baseline
-!tcx      real(dbl_kind), allocatable :: cidata_nup(:,:,:,:,:),cjdata_nup(:,:,:,:,:)  ! "no update"
-!tcx      real(dbl_kind), allocatable :: cidata_std(:,:,:,:,:),cjdata_std(:,:,:,:,:)  ! "std update"
 
       integer(int_kind), parameter :: maxtests = 11
       integer(int_kind), parameter :: maxtypes = 4
@@ -196,10 +194,6 @@
 
       allocate(cidata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
       allocate(cjdata_bas(nx_block,ny_block,nz1,nz2,max_blocks))
-!      allocate(cidata_std(nx_block,ny_block,nz1,nz2,max_blocks))
-!      allocate(cjdata_std(nx_block,ny_block,nz1,nz2,max_blocks))
-!      allocate(cidata_nup(nx_block,ny_block,nz1,nz2,max_blocks))
-!      allocate(cjdata_nup(nx_block,ny_block,nz1,nz2,max_blocks))
 
       darrayi1 = fillval
       darrayj1 = fillval
@@ -227,10 +221,6 @@
       darrayj10  = fillval
       cidata_bas = fillval
       cjdata_bas = fillval
-!      cidata_std = fillval
-!      cjdata_std = fillval
-!      cidata_nup = fillval
-!      cjdata_nup = fillval
 
       call ice_distributionGet(distrb_info, numLocalBlocks = numBlocks)
 
@@ -257,94 +247,6 @@
          enddo
       enddo
 
-#if (1 == 0)
-!tcx
-      !--- setup nup (noupdate) solution, set halo/pad will fillval ---
-
-      cidata_nup(:,:,:,:,:) = cidata_bas(:,:,:,:,:)
-      cjdata_nup(:,:,:,:,:) = cjdata_bas(:,:,:,:,:)
-
-      do iblock = 1,numBlocks
-         call ice_distributionGetBlockID(distrb_info, iblock, blockID)
-         this_block = get_block(blockID, blockID)
-         ib = this_block%ilo
-         ie = this_block%ihi
-         jb = this_block%jlo
-         je = this_block%jhi
-         cidata_nup(1:ib-1       ,:            ,:,:,iblock) = fillval
-         cjdata_nup(1:ib-1       ,:            ,:,:,iblock) = fillval
-         cidata_nup(ie+1:nx_block,:            ,:,:,iblock) = fillval
-         cjdata_nup(ie+1:nx_block,:            ,:,:,iblock) = fillval
-         cidata_nup(:            ,1:jb-1       ,:,:,iblock) = fillval
-         cjdata_nup(:            ,1:jb-1       ,:,:,iblock) = fillval
-         cidata_nup(:            ,je+1:ny_block,:,:,iblock) = fillval
-         cjdata_nup(:            ,je+1:ny_block,:,:,iblock) = fillval
-      enddo
-
-      !--- setup std solution for cyclic, closed, open, tripole solution ---
-
-      cidata_std(:,:,:,:,:) = cidata_bas(:,:,:,:,:)
-      cjdata_std(:,:,:,:,:) = cjdata_bas(:,:,:,:,:)
-
-         !--- halo off on east and west boundary ---
-      if (ew_boundary_type == 'closed' .or. &
-          ew_boundary_type == 'open'  ) then
-         do iblock = 1,numBlocks
-            call ice_distributionGetBlockID(distrb_info, iblock, blockID)
-            this_block = get_block(blockID, blockID)
-            ib = this_block%ilo
-            ie = this_block%ihi
-            jb = this_block%jlo
-            je = this_block%jhi
-            if (this_block%i_glob(ib) == 1) then
-               cidata_std(1:ib-1       ,:,:,:,iblock) = dhalofillval
-               cjdata_std(1:ib-1       ,:,:,:,iblock) = dhalofillval
-            endif
-            if (this_block%i_glob(ie) == nx_global) then
-               cidata_std(ie+1:nx_block,:,:,:,iblock) = dhalofillval
-               cjdata_std(ie+1:nx_block,:,:,:,iblock) = dhalofillval
-            endif
-         enddo
-      endif
-
-         !--- halo off on south boundary ---
-      if (ns_boundary_type == 'closed'  .or. &
-          ns_boundary_type == 'open'    .or. &
-          ns_boundary_type == 'tripole' .or. &
-          ns_boundary_type == 'tripoleT' ) then
-         do iblock = 1,numBlocks
-            call ice_distributionGetBlockID(distrb_info, iblock, blockID)
-            this_block = get_block(blockID, blockID)
-            ib = this_block%ilo
-            ie = this_block%ihi
-            jb = this_block%jlo
-            je = this_block%jhi
-            if (this_block%j_glob(jb) == 1) then
-               cidata_std(:,1:jb-1,:,:,iblock) = dhalofillval
-               cjdata_std(:,1:jb-1,:,:,iblock) = dhalofillval
-            endif
-         enddo
-      endif
-
-         !--- halo off on north boundary, tripole handled later ---
-      if (ns_boundary_type == 'closed'  .or. &
-          ns_boundary_type == 'open'    .or. &
-          ns_boundary_type == 'tripole' .or. &
-          ns_boundary_type == 'tripoleT' ) then
-         do iblock = 1,numBlocks
-            call ice_distributionGetBlockID(distrb_info, iblock, blockID)
-            this_block = get_block(blockID, blockID)
-            ib = this_block%ilo
-            ie = this_block%ihi
-            jb = this_block%jlo
-            je = this_block%jhi
-            if (this_block%j_glob(je) == ny_global) then
-               cidata_std(:,je+1:ny_block,:,:,iblock) = dhalofillval
-               cjdata_std(:,je+1:ny_block,:,:,iblock) = dhalofillval
-            endif
-         enddo
-      endif
-#endif
       !---------------------------------------------------------------
 
       testcnt = 0
@@ -595,8 +497,6 @@
             jb = this_block%jlo
             je = this_block%jhi
             ! just check non-padded gridcells
-!            do j = 1,ny_block
-!            do i = 1,nx_block
             do j = jb-nghost, je+nghost
             do i = ib-nghost, ie+nghost
             do k1 = 1,k1m
@@ -624,33 +524,17 @@
                   call abort_ice(subname//' halofld not matched '//trim(halofld),file=__FILE__,line=__LINE__)
                endif
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx1',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                cichk = cidata_bas(i,j,k1,k2,iblock)
                cjchk = cjdata_bas(i,j,k1,k2,iblock)
 
-!               if (index(halofld,'L1') > 0) then
-!                  cichk = mod(nint(cichk),2)
-!                  cjchk = mod(nint(cjchk),2)
-!               endif
-
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx2',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                ! halo special cases
 
                if (field_loc (nl) == field_loc_noupdate .or. &
                    field_type(nt) == field_type_noupdate) then
                   if (i < ib .or. j < jb .or. i > ie .or. j > je) then
                      ! no halo update anywhere, doesn't even see fillvalue passed in
-!                     if (index(halofld,'L1') > 0) then
-!                        cichk = c0
-!                        cjchk = c1
-!                     else
-                        cichk = fillval
-                        cjchk = fillval
-!                     endif
+                     cichk = fillval
+                     cjchk = fillval
                   endif
 
                else
@@ -658,18 +542,10 @@
                   if (ew_boundary_type /= 'cyclic' .and. &
                       ((this_block%i_glob(ib) == 1         .and. i < ib) .or. &  ! west outer face
                        (this_block%i_glob(ie) == nx_global .and. i > ie))) then  ! east outer face
-!                     if (index(halofld,'L1') > 0) then
-!                        cichk = c0
-!                        cjchk = c1
-!                     else
-                        cichk = fillexpected
-                        cjchk = fillexpected
-!                     endif
+                     cichk = fillexpected
+                     cjchk = fillexpected
                   endif
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx3',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                   ! if ns_boundary_type is not cyclic we expect just fill values on outer boundary except
                   ! - tripole north edge will be haloed and is updated below, default to fill value for now
                   ! - tripole south edge will be set to the fillvalue or to haloupdate internal default (c0)
@@ -688,17 +564,6 @@
                         cjchk = fillexpected
                      endif
                   endif
-
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx4',i,j,aichk,cichk,ajchk,cjchk
-!  endif
-!tcx               if (field_loc (nl) == field_loc_noupdate .or. &
-!tcx                   field_type(nt) == field_type_noupdate) then
-!tcx                  cichk = cidata_nup(i,j,k1,k2,iblock)
-!tcx                  cjchk = cjdata_nup(i,j,k1,k2,iblock)
-!tcx               else
-!tcx                  cichk = cidata_std(i,j,k1,k2,iblock)
-!tcx                  cjchk = cjdata_std(i,j,k1,k2,iblock)
 
                   if (index(halofld,'STRESS') > 0) then
                      ! only updates on tripole zipper for tripole grids
@@ -797,9 +662,6 @@
 
                      endif
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                      itrip = mod(itrip + ioffset + nx_global-1,nx_global)+1
                      jtrip = jtrip + joffset
 
@@ -808,46 +670,25 @@
                      rjval = (real(this_block%j_glob(jtrip),kind=dbl_kind) + &
                               real(k1,kind=dbl_kind)*1000._dbl_kind + real(k2,kind=dbl_kind)*10000._dbl_kind)
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5m',i,j,aichk,cichk,ajchk,cjchk
-!     write(100,*) 'tcx5n',itrip,jtrip,rival,rjval
-!  endif
                      if (index(halofld,'STRESS') > 0) then
                         ! only updates on tripole zipper for tripole grids, not tripoleT
                         ! note: L1 and STRESS never overlap so don't worry about L1 here
                         if (tripole_pole) then
                            ! flip sign due to sign of darrayi1str
                            ! ends of tripole seam not averaged in CICE
-!tcx                           cichk = -rsign * cidata_std(i,j,k1,k2,iblock)
-!tcx                           cjchk = -rsign * cjdata_std(i,j,k1,k2,iblock)
                            cichk = -rsign * cidata_bas(i,j,k1,k2,iblock)
                            cjchk = -rsign * cjdata_bas(i,j,k1,k2,iblock)
                         else
                            cichk = -rsign * rival
                            cjchk = -rsign * rjval
                         endif
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5w',i,j,aichk,cichk,ajchk,cjchk
-!  endif
+
                      elseif (tripole_pole) then
                         ! ends of tripole seam not averaged in CICE
-!tcx                        cichk = rsign * cidata_std(i,j,k1,k2,iblock)
-!tcx                        cjchk = rsign * cjdata_std(i,j,k1,k2,iblock)
-!                        if (index(halofld,'L1') > 0) then
-!                           ! logical math doesn't produce sign change
-!                           cichk = mod(nint(cidata_bas(i,j,k1,k2,iblock)),2) ! rsign * mod(nint(cidata_bas(i,j,k1,k2,iblock)),2)
-!                           cjchk = mod(nint(cjdata_bas(i,j,k1,k2,iblock)),2) ! rsign * mod(nint(cjdata_bas(i,j,k1,k2,iblock)),2)
-!                        else
-                           cichk = rsign * cidata_bas(i,j,k1,k2,iblock)
-                           cjchk = rsign * cjdata_bas(i,j,k1,k2,iblock)
-!                        endif
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5x',i,j,aichk,cichk,ajchk,cjchk
-!  endif
+                        cichk = rsign * cidata_bas(i,j,k1,k2,iblock)
+                        cjchk = rsign * cjdata_bas(i,j,k1,k2,iblock)
+
                      elseif (tripole_average) then
-                        ! tripole average
-!tcx                        cichk = p5 * (cidata_std(i,j,k1,k2,iblock) + rsign * rival)
-!tcx                        cjchk = p5 * (cjdata_std(i,j,k1,k2,iblock) + rsign * rjval)
                         if (index(halofld,'L1') > 0) then
                            ! logical math doesn't work this way, force to correct answer
                            cichk = aichk ! p5 * (mod(nint(cidata_bas(i,j,k1,k2,iblock)),2) + rsign * mod(nint(rival),2))
@@ -856,33 +697,13 @@
                            cichk = p5 * (cidata_bas(i,j,k1,k2,iblock) + rsign * rival)
                            cjchk = p5 * (cjdata_bas(i,j,k1,k2,iblock) + rsign * rjval)
                         endif
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5y',i,j,aichk,cichk,ajchk,cjchk
-!  endif
+
                      else
                         ! standard tripole fold
-!                        if (index(halofld,'L1') > 0) then
-!                           ! logical math doesn't produce sign change
-!                           cichk = mod(nint(rival),2) ! rsign * mod(nint(rival),2)
-!                           cjchk = mod(nint(rjval),2) ! rsign * mod(nint(rjval),2)
-!                        else
-                           cichk = rsign * rival
-                           cjchk = rsign * rjval
-!                        endif
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx5z',i,j,aichk,cichk,ajchk,cjchk
-!  endif
+                        cichk = rsign * rival
+                        cjchk = rsign * rjval
                      endif
 
-!  if (testcnt == 6 .and. j == 61 .and. i < 3) then
-!  if (testcnt == 186 .and. j == 61 .and. i<4) then
-!  if (testcnt == 13 .and. j > 61 .and. (i < 3 .or. i > 89)) then
-!  if (testcnt == 5 .and. j >= 61 .and. (i < 3 .or. i > 90)) then
-!     write(100+my_task,'(a,5i6,2l3,f6.2,i6)') 'tcx1 ',i,j,iblock,itrip,jtrip, &
-!           tripole_average,tripole_pole,rsign,this_block%i_glob(i)
-!     write(100+my_task,'(a,4f12.2)') 'tcx2 ',cidata_std(i,j,k1,k2,iblock),rival,cichk,aichk
-!     write(100+my_task,'(a,4f12.2)') 'tcx3 ',cjdata_std(i,j,k1,k2,iblock),rjval,cjchk,ajchk
-!  endif
                   endif  ! tripole or tripoleT
 
                endif
@@ -892,32 +713,19 @@
                   cjchk = real(nint(cjchk),kind=dbl_kind)
                endif
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx6',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                if (index(halofld,'L1') > 0) then
-!                  if ((j == 1 .or. j == je) .and. &
-!                      (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT')) then
-!b                        ! force cichk and cjchk to match on tripole halo for logicals, not well-defined
-!                        cichk = aichk
-!                        cjchk = ajchk
-!                  else
-                     if (cichk == dhalofillval .or. cichk == fillval) then
-                        cichk = c0
-                     else
-                        cichk = mod(nint(cichk),2)
-                     endif
-                     if (cjchk == dhalofillval .or. cjchk == fillval) then
-                        cjchk = c1
-                     else
-                        cjchk = mod(nint(cjchk),2)
-                     endif
-!                  endif
+                  if (cichk == dhalofillval .or. cichk == fillval) then
+                     cichk = c0
+                  else
+                     cichk = mod(nint(cichk),2)
+                  endif
+                  if (cjchk == dhalofillval .or. cjchk == fillval) then
+                     cjchk = c1
+                  else
+                     cjchk = mod(nint(cjchk),2)
+                  endif
                endif
 
-!  if (index(halofld,'L1')>0 .and. i<5 .and. j>=61 .and. iblock==14) then
-!     write(100,*) 'tcx7',i,j,aichk,cichk,ajchk,cjchk
-!  endif
                ptcnt(testcnt) = ptcnt(testcnt) + 1
                call chkresults(aichk,cichk,errorflag(testcnt),testcnt,failcnt(testcnt), &
                     i,j,k1,k2,iblock,first_call,teststring(testcnt),trim(halofld)//'_I')
