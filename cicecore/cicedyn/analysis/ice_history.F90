@@ -2759,6 +2759,7 @@
            call accum_hist_field(n_sitemptop, iblk, worka(:,:), a2D)
          endif
 
+         ! Tsnice is already multiplied by aicen in icepack.
          if (f_sitempsnic(1:1) /= 'x') then
            worka(:,:) = c0
            do j = jlo, jhi
@@ -3703,13 +3704,11 @@
               if (avail_hist_fields(n)%avg_ice_present) then
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (tmask(i,j,iblk)) then
+                    if (.not. tmask(i,j,iblk)) then
+                       a2D(i,j,n,iblk) = spval_dbl
+                    else                            ! convert units
                        a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
                                       * ravgip(i,j) + avail_hist_fields(n)%conb
-                    endif
-                    ! Mask ice-free points
-                    if (avail_hist_fields(n)%mask_ice_free_points) then
-                       if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                     endif
                  enddo             ! i
                  enddo             ! j
@@ -3722,6 +3721,15 @@
                        a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
                                       * ravgct + avail_hist_fields(n)%conb
                     endif
+                 enddo             ! i
+                 enddo             ! j
+              endif
+
+              ! Mask ice-free points
+              if (avail_hist_fields(n)%mask_ice_free_points) then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3832,30 +3840,33 @@
               nn = n2D + n
               if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
 
-              do k = 1, ncat_hist
-              do j = jlo, jhi
-              do i = ilo, ihi
-                 if (.not. tmask(i,j,iblk)) then ! mask out land points
-                    a3Dc(i,j,k,n,iblk) = spval_dbl
-                 else                            ! convert units
-                    a3Dc(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dc(i,j,k,n,iblk) &
-                                   * ravgct + avail_hist_fields(nn)%conb
+                 if (avail_hist_fields(nn)%avg_ice_present) then
+                    do k = 1, ncat_hist
+                    do j = jlo, jhi
+                    do i = ilo, ihi
+                       if (.not. tmask(i,j,iblk)) then ! mask out land points
+                          a3Dc(i,j,k,n,iblk) = spval_dbl
+                       else                            ! convert units
+                          a3Dc(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dc(i,j,k,n,iblk) &
+                                         * ravgipn(i,j,n) + avail_hist_fields(nn)%conb
+                       endif
+                    enddo             ! i
+                    enddo             ! j
+                    enddo             ! k
+                 else
+                    do k = 1, ncat_hist
+                    do j = jlo, jhi
+                    do i = ilo, ihi
+                       if (.not. tmask(i,j,iblk)) then ! mask out land points
+                          a3Dc(i,j,k,n,iblk) = spval_dbl
+                       else                            ! convert units
+                          a3Dc(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dc(i,j,k,n,iblk) &
+                                         * ravgct + avail_hist_fields(nn)%conb
+                       endif
+                    enddo             ! i
+                    enddo             ! j
+                    enddo             ! k
                  endif
-              enddo             ! i
-              enddo             ! j
-              enddo             ! k
-              if (avail_hist_fields(nn)%avg_ice_present) then
-                 do k = 1, ncat_hist
-                 do j = jlo, jhi
-                 do i = ilo, ihi
-                    if (tmask(i,j,iblk)) then
-                          a3Dc(i,j,k,n,iblk) = &
-                          a3Dc(i,j,k,n,iblk)*avgct(ns)*ravgipn(i,j,k)
-                    endif
-                 enddo             ! i
-                 enddo             ! j
-                 enddo             ! k
-              endif
 
               endif
 
@@ -3879,6 +3890,7 @@
               enddo             ! k
               endif
            enddo                ! n
+
            do n = 1, num_avail_hist_fields_3Db
               nn = n3Dzcum + n
               if (avail_hist_fields(nn)%vhistfreq == histfreq(ns)) then
