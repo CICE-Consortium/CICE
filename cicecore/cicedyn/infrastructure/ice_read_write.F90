@@ -1146,7 +1146,7 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       lnrec = nrec
 
@@ -1339,7 +1339,7 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       lnrec = nrec
 
@@ -1538,7 +1538,7 @@
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
@@ -2223,7 +2223,7 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       lrestart_ext = .false.
       if (present(restart_ext)) then
@@ -2350,7 +2350,7 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       lrestart_ext = .false.
       if (present(restart_ext)) then
@@ -2679,7 +2679,7 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      logical (kind=log_kind) :: lrestart_ext  ! local value of reatart_ext
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       lrestart_ext = .false.
       if (present(restart_ext)) then
