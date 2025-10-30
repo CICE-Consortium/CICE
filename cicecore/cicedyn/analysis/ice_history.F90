@@ -2774,7 +2774,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-               worka(i,j) = aice(i,j,iblk)*Tbot(i,j,iblk)
+              worka(i,j) = aice(i,j,iblk)*Tbot(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sitempbot, iblk, worka(:,:), a2D)
