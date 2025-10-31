@@ -44,7 +44,7 @@
       nblocks         ! actual number of blocks on this processor
 
    logical (kind=log_kind), public :: &
-      close_boundaries
+      close_boundaries   ! deprecated Nov, 2025
 
    integer (int_kind), dimension(:), pointer, public :: &
       blocks_ice => null()        ! block ids for local blocks
@@ -259,12 +259,6 @@
       call abort_ice(subname//' ERROR: Not enough ghost cells allocated', file=__FILE__, line=__LINE__)
    endif
 
-   if (ns_boundary_type == 'closed') then
-      call abort_ice(subname//' ERROR: ns_boundary_type = '//trim(ns_boundary_type)//' not supported', file=__FILE__, line=__LINE__)
-   endif
-   if (ew_boundary_type == 'closed') then
-      call abort_ice(subname//' ERROR: ew_boundary_type = '//trim(ew_boundary_type)//' not supported', file=__FILE__, line=__LINE__)
-   endif
 !----------------------------------------------------------------------
 !
 !  compute block decomposition and details
@@ -376,14 +370,6 @@
       wght                 ! wghts from file
 
    character(len=*), parameter :: subname = '(init_domain_distribution)'
-
-!----------------------------------------------------------------------
-!
-!  check that there are at least nghost+1 rows or columns of land cells
-!  for closed boundary conditions (otherwise grid lengths are zero in
-!  cells neighboring ocean points).
-!
-!----------------------------------------------------------------------
 
    call icepack_query_parameters(puny_out=puny, rad_to_deg_out=rad_to_deg)
    call icepack_warnings_flush(nu_diag)

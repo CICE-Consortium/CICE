@@ -958,7 +958,7 @@
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure/reset ghost cell values are 0 for noupdate
+   ! Set ghost cell values to 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
@@ -1166,7 +1166,7 @@
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure/reset ghost cell values are 0 for noupdate
+   ! Set ghost cell values to 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then
@@ -1374,7 +1374,7 @@
    end do  ! block loop
 
    !-----------------------------------------------------------------
-   ! Ensure/reset ghost cell values are 0 for noupdate
+   ! Set ghost cell values to 0 for noupdate
    !-----------------------------------------------------------------
 
    if (field_loc == field_loc_noupdate) then

@@ -1443,6 +1443,14 @@
          endif
       endif
 
+      if (close_boundaries) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: close_boundaries deprecated, '// &
+              'use ew_boundary_type=closed and/or ns_boundary_type=closed'
+         endif
+         abort_list = trim(abort_list)//":49"
+      endif
+
       if (grid_ice == 'CD') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: grid_ice = CD not supported yet'

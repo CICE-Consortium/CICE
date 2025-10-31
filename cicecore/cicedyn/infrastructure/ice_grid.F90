@@ -33,8 +33,7 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
-          ew_boundary_type, ns_boundary_type, init_domain_distribution, &
-          close_boundaries
+          ew_boundary_type, ns_boundary_type, init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
           get_fileunit, release_fileunit, flush_fileunit
       use ice_gather_scatter, only: gather_global, scatter_global, gather_global_ext
@@ -2502,11 +2501,13 @@
 
          endif ! kmt_type
 
-         if (close_boundaries) then
-            work_g1(:, 1:2) = c0
-            work_g1(:, ny_global-1:ny_global) = c0
+         if (ew_boundary_type == 'closed') then
             work_g1(1:2, :) = c0
             work_g1(nx_global-1:nx_global, :) = c0
+         endif
+         if (ns_boundary_type == 'closed') then
+            work_g1(:, 1:2) = c0
+            work_g1(:, ny_global-1:ny_global) = c0
          endif
 
       endif
