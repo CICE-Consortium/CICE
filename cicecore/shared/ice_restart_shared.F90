@@ -14,9 +14,6 @@
          restart_coszen, &   ! if true, read/write coszen
          use_restart_time ! if true, use time written in core restart file
 
-     logical(kind=log_kind), public :: &
-         insert_sic        ! if true, update restart concentation from a file
-
       character (len=char_len), public :: &
          runtype           ! initial, continue, hybrid, branch
 
@@ -30,6 +27,7 @@
 
       character (len=char_len), public :: &
          restart_format      , & ! format of restart files 'nc'
+         restart_mod         , & ! restart modification option, "none", "adjust_aice"
          restart_rearranger      ! restart file rearranger, box or subset for pio
 
       integer (kind=int_kind), public :: &

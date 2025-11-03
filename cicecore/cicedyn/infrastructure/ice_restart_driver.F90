@@ -25,7 +25,7 @@
           field_loc_Eface, field_loc_Nface, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, insert_sic
+          runid, use_restart_time, lenstr, restart_coszen, restart_mod
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
@@ -299,7 +299,7 @@
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
           trcr_base, nt_strata, n_trcr_strata
-      use icepack_itd, only: cleanup_itd  !for insert_sic
+      use icepack_itd, only: cleanup_itd  !for restart_mod
       use ice_arrays_column, only: first_ice, hin_max
       use ice_flux, only: fpond, fresh, fsalt, fhocn
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, flux_bio
@@ -729,12 +729,21 @@
       !-----------------------------------------------------------------
       ! update concentration from a file
       !-----------------------------------------------------------------
-      if (insert_sic) then
+      if (restart_mod /= "none") then
 
-         if (my_task == master_task) &
-              write(nu_diag,*) "Inserting sic"
+         select case (trim(restart_mod))
 
-         call direct_insert_sic
+         case('adjust_aice')
+            call direct_adjust_aice
+
+         case('adjust_aice_test')
+            call direct_adjust_aice(test=.true.)
+
+         case default
+            call abort_ice(subname//'ERROR: unsupported restart_mod='//trim(restart_mod), &
+               file=__FILE__, line=__LINE__)
+
+         end select
 
          !-----------------------------------------------------------------
          ! Ensure ice is binned in correct categories
@@ -785,7 +794,7 @@
             enddo     ! j
          enddo        ! iblk
 
-      endif !insert_sic
+      endif !restart_mod
 
       end subroutine restartfile
 
@@ -1173,14 +1182,15 @@
 !
 !  Alan J. Wallcraft, COAPS/FSU, Nov 2024
 
-      subroutine direct_insert_sic
+      subroutine direct_adjust_aice(test)
 
         use ice_blocks, only: nghost, nx_block, ny_block
         use ice_domain, only: nblocks
         use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
         use ice_grid, only: tmask
         use ice_communicate, only: my_task, master_task
-        use ice_constants, only: c0, c1, c4, p5, p2, p1, p01, p001, &
+        use ice_constants, only: c0, c1, c4, c20, c100, &
+             p5, p2, p1, p01, p001, &
              field_loc_center, field_loc_NEcorner, &
              field_type_scalar, field_type_vector
         use ice_fileunits, only: nu_diag
@@ -1196,6 +1206,9 @@
         use ice_arrays_column, only: hin_max
         ! use icepack_mushy_physics, only: enthalpy_mush
         use icepack_intfc, only: icepack_init_trcr
+
+        logical(kind=log_kind), optional, intent(in) :: &
+             test         ! use internally generated aice
 
         ! --- local variables
         real(kind=dbl_kind) :: &
@@ -1213,17 +1226,21 @@
              vsnon_old, & ! old value of snow volume to check when adding ice
              Tsfc         ! surface temp.
         integer (kind=int_kind) :: &
-             fid             ! file id for netCDF file
+             fid          ! file id for netCDF file
         integer (kind=int_kind) :: &
-             i, j, k, n, iblk  ! counting  indices
+             i, j, k, n, iblk ! counting  indices
         logical (kind=log_kind) :: &
-             diag  ! diagnostic output
+             diag,      & ! diagnostic output
+             ltest        ! local value of test argument
         real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
              work1
         real (kind=dbl_kind), dimension(nilyr) :: &
-             qin             ! ice enthalpy (J/m3)
+             qin          ! ice enthalpy (J/m3)
         real (kind=dbl_kind), dimension(nslyr) :: &
-             qsn             ! snow enthalpy (J/m3)
+             qsn          ! snow enthalpy (J/m3)
+        character(len=char_len_long) :: &
+             aice_filename, &! filename to read in
+             aice_fldname    ! fieldname to read in
 
         ! parameters from icepack
         real (kind=dbl_kind) :: &
@@ -1232,9 +1249,15 @@
         integer (kind=int_kind) :: &
              nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
              ktherm
-        character(len=*), parameter :: subname = '(direct_insert_sic)'
+        character(len=*), parameter :: subname = '(direct_adjust_aice)'
 
         diag = .true.
+        ltest = .false.
+        if (present(test)) then
+           ltest = test
+        endif
+        aice_filename = trim(restart_dir)//'/sic.nc'
+        aice_fldname = 'sic'
 
         ! get parameters from icepack
         call icepack_query_parameters( &
@@ -1258,15 +1281,22 @@
         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
              file=__FILE__, line=__LINE__)
 
-        if (my_task == master_task) then
-           write(nu_diag,*) "Direct_insert_sic from:"
-           write(nu_diag,*) trim(restart_dir)//'/sic.nc'
-        endif !master_task
-        call ice_open_nc(trim(restart_dir)//'/sic.nc', fid)
-        call ice_read_nc(fid,1,'sic',work1,diag, &
-                         field_loc=field_loc_center, &
-                         field_type=field_type_scalar)
-        call ice_close_nc(fid)
+        if (ltest) then
+           if (my_task == master_task) then
+              write(nu_diag,*) subname//" direct_adjust_aice rounding to nearest 1/20th"
+           endif
+           work1 = nint(aice*c20)/c20   ! round to nearest 5/100th
+        else
+           if (my_task == master_task) then
+              write(nu_diag,*) subname//" direct_adjust_aice from "//trim(aice_filename)
+           endif
+
+           call ice_open_nc(trim(aice_filename), fid)
+           call ice_read_nc(fid,1,trim(aice_fldname),work1,diag, &
+                            field_loc=field_loc_center, &
+                            field_type=field_type_scalar)
+           call ice_close_nc(fid)
+        endif
 
         edge_om = p2  ! nominal ice edge zone
         diff_om = p1  ! allowed model vs obs difference
@@ -1442,7 +1472,7 @@
            enddo                ! i
         enddo                   ! iblk
 
-      end subroutine direct_insert_sic
+      end subroutine direct_adjust_aice
 
 !=======================================================================
 
