@@ -1189,7 +1189,8 @@
         use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
         use ice_grid, only: tmask
         use ice_communicate, only: my_task, master_task
-        use ice_constants, only: c0, c1, c4, c100, p5, p2, p1, p01, p001, &
+        use ice_constants, only: c0, c1, c4, c20, c100, &
+             p5, p2, p1, p01, p001, &
              field_loc_center, field_loc_NEcorner, &
              field_type_scalar, field_type_vector
         use ice_fileunits, only: nu_diag
@@ -1255,7 +1256,7 @@
         if (present(test)) then
            ltest = test
         endif
-        aice_filename = trim(restart_dir)//'sic.nc'
+        aice_filename = trim(restart_dir)//'/sic.nc'
         aice_fldname = 'sic'
 
         ! get parameters from icepack
@@ -1282,9 +1283,9 @@
 
         if (ltest) then
            if (my_task == master_task) then
-              write(nu_diag,*) subname//" direct_adjust_aice rounding to nearest 1/100th"
+              write(nu_diag,*) subname//" direct_adjust_aice rounding to nearest 1/20th"
            endif
-           work1 = nint(aice*c100)/c100   ! round to nearest 1/100th
+           work1 = nint(aice*c20)/c20   ! round to nearest 5/100th
         else
            if (my_task == master_task) then
               write(nu_diag,*) subname//" direct_adjust_aice from "//trim(aice_filename)
