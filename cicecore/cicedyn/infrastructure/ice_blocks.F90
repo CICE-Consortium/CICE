@@ -151,11 +151,11 @@ contains
 !  size evenly, add additional block space to accomodate padding.
 !
 !  Compute the global indices for each block including on the halo.
-!  The global indices with go from 1:nx_global and 1:ny_global for
+!  The global indices go from 1:nx_global and 1:ny_global for
 !  most of the domain including the halo that's in the internal part
 !  of the domain.  On the outer boundaries, the global indices will
 !  be wrapped around for the 'cyclic' option and will be given a
-!  negative value on the north tripole.  Padded gridcells with be
+!  negative value on the north tripole.  Padded gridcells will be
 !  given a global index of zero (0).  All other cases will extrapolate
 !  the global index outside of 1:nx_global, 1:ny_global.  That means
 !  the global index will go from -nghost+1:0 on the lower boundary

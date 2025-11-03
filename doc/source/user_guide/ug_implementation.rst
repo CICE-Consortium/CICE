@@ -465,9 +465,6 @@ sophisticated treatment.  The rectangular grid option can be used to test
 this configuration. 
 
 Technical boundary conditions are not currently supported in the CICE model.
-An unreleased branch of the code does exist that allows Neumann boundary 
-conditions, which must be set explicitly.  Contact Elizabeth Hunke for
-more information.
 
 For exact restarts using restoring, set ``restart_ext`` = true in namelist
 to use the extended-grid subroutines.
