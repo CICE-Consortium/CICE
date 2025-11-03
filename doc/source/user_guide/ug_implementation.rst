@@ -452,9 +452,9 @@ if ice is present at that location.  The outside halo is handled automatically
 with ``closed`` or ``cyclic`` conditions.  With open boundary conditions, one can imagine 
 several different ways to set the outside boundary including reading values from
 an external file or deriving values on that halo based on the interior 
-solution while specifying Direchlet, Neumann, zero gradient, constant gradient, 
-zero flux, or other technical boundary conditions.  Not all of these options
-are presently available.
+solution while specifying zero gradient, constant gradient, specified state,
+zero flux, or other boundary conditions.  Mathematically specified boundary 
+conditions are currently not supported in the CICE model.
 
 The namelist variable ``restore_ice`` turns on a restoring capability on the
 boundary by setting the boundary halo to values read from a file.  The
@@ -463,8 +463,6 @@ ocean sea surface temperature in stand-alone ice runs). This
 implementation is only intended to provide the “hooks" for a more
 sophisticated treatment.  The rectangular grid option can be used to test
 this configuration. 
-
-Technical boundary conditions are not currently supported in the CICE model.
 
 For exact restarts using restoring, set ``restart_ext`` = true in namelist
 to use the extended-grid subroutines.
