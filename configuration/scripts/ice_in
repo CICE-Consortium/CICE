@@ -141,6 +141,9 @@
     conduct           = 'bubbly'
     ksno              = 0.3d0
     hi_min            = 0.01d0
+    zap_residual_ice  = .false.
+    min_area          = 1.d-11
+    min_mass          = 1.d-10
     a_rapid_mode      =  0.5e-3
     Rac_rapid_mode    =    10.0
     aspect_rapid_mode =     1.0
