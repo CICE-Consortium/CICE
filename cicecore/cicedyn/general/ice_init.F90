@@ -157,7 +157,7 @@
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
         sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn, &
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, Tliquidus_max, &
-        windmin, drhosdwind, snwlvlfac, tscale_pnd_drain
+        windmin, drhosdwind, snwlvlfac, tscale_pnd_drain, min_area, min_mass
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
@@ -167,7 +167,8 @@
         congel_freeze, capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, semi_implicit_Tsfc, vapor_flux_correction
+        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, semi_implicit_Tsfc, vapor_flux_correction, &
+        zap_residual_ice
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -203,7 +204,7 @@
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
-        hist_suffix, history_deflate, history_chunksize,                &
+        hist_suffix,    history_deflate, history_chunksize,             &
         history_dir,    history_file,   history_precision, cpl_bgc,     &
         histfreq_base,  dumpfreq_base,  timer_stats,     memory_stats,  &
         conserv_check,  debug_model,    debug_model_step,               &
@@ -240,8 +241,8 @@
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
         floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
+        min_area,       min_mass,        zap_residual_ice,              &
         tscale_pnd_drain
-
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -487,6 +488,9 @@
       cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
       hi_min = p01             ! minimum ice thickness allowed (m)
+      zap_residual_ice = .true.  ! zap residual ice below a minimum area and mass
+      min_area = 1.e-11_dbl_kind ! zap residual ice below a minimum area
+      min_mass = 1.e-10_dbl_kind ! zap residual ice below a minimum mass
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
       calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
@@ -922,6 +926,18 @@
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
 
+      ! Residual zapping in Icepack is turned off by setting the minimum
+      ! area and mass parameters to zero.  In CICE, the zap_residual_ice
+      ! flag is provided to simplify backward compatibility by resetting
+      ! min_area and min_mass.
+      if (.not. zap_residual_ice) then
+         write(nu_diag,*) subname//' WARNING: zap_residual_ice is OFF, reset min_area and min_mass to 0'
+         min_area=c0
+         min_mass=c0
+      elseif (min_area < puny .or. min_mass < puny) then
+         write(nu_diag,*) subname//' WARNING: zap_residual_ice is ON but min_area < puny or min_mass < puny'
+      endif
+
       !-----------------------------------------------------------------
       ! broadcast namelist settings
       !-----------------------------------------------------------------
@@ -1145,6 +1161,9 @@
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
       call broadcast_scalar(hi_min,               master_task)
+      call broadcast_scalar(zap_residual_ice,     master_task)
+      call broadcast_scalar(min_area,             master_task)
+      call broadcast_scalar(min_mass,             master_task)
       call broadcast_scalar(iceruf,               master_task)
       call broadcast_scalar(iceruf_ocn,           master_task)
       call broadcast_scalar(calc_dragio,          master_task)
@@ -2400,6 +2419,16 @@
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
          write(nu_diag,1000) ' hi_min           = ', hi_min,' : minimum ice thickness allowed (m)'
+         write(nu_diag,1000) ' puny             = ', puny,' : general-use minimum value'
+         write(nu_diag,*) ' Ice thickness category areas smaller than puny are always removed.'
+         write(nu_diag,1000) ' min_area         = ', min_area,' : zap residual ice below a minimum area'
+         write(nu_diag,1000) ' min_mass         = ', min_mass,' : zap residual ice below a minimum mass'
+         if (zap_residual_ice) then
+            tmpstr2 = ' : remove ice with total area < min_area or mass < min_mass'
+         else
+            tmpstr2 = ' : residual ice > puny (categories) is not removed'
+         endif
+         write(nu_diag,1010) ' zap_residual_ice   = ', zap_residual_ice,trim(tmpstr2)
          if (calc_dragio) then
             tmpstr2 = ' : dragio computed from iceruf_ocn'
          else
@@ -2410,8 +2439,11 @@
             write(nu_diag,1002) ' iceruf_ocn       = ', iceruf_ocn,' : under-ice roughness length'
          endif
 
+         write(nu_diag,*) ' '
+         write(nu_diag,*) ' Floe size distribution and waves'
+         write(nu_diag,*) '---------------------------------'
+         write(nu_diag,1002) ' floediam         = ', floediam, ' : constant floe diameter'
          if (tr_fsd) then
-            write(nu_diag,1002) ' floediam         = ', floediam, ' constant floe diameter'
             if (wave_spec) then
                tmpstr2 = ' : use wave spectrum for floe size distribution'
             else
@@ -2799,7 +2831,7 @@
          atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
-         apnd_sl_in=apnd_sl, min_area_in=dyn_area_min, min_mass_in=dyn_mass_min, &
+         apnd_sl_in=apnd_sl, min_area_in=min_area, min_mass_in=min_mass, &
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, semi_implicit_Tsfc_in=semi_implicit_Tsfc, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, vapor_flux_correction_in=vapor_flux_correction, &
          floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
