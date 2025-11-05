@@ -86,3 +86,4 @@ restart        gx3     4x4        diag1,gx3ncarbulk,short
 smoke          gx3     4x1        calcdragio
 restart        gx3     4x2        atmbndyconstant
 restart        gx3     4x2        atmbndymixed
+smoke          gx3    12x2        diag1,run5day,restaicetest,debug
