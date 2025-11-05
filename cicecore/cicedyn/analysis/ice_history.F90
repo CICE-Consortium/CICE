@@ -3848,7 +3848,7 @@
                           a3Dc(i,j,k,n,iblk) = spval_dbl
                        else                            ! convert units
                           a3Dc(i,j,k,n,iblk) = avail_hist_fields(nn)%cona*a3Dc(i,j,k,n,iblk) &
-                                         * ravgipn(i,j,n) + avail_hist_fields(nn)%conb
+                                         * ravgipn(i,j,k) + avail_hist_fields(nn)%conb
                        endif
                     enddo             ! i
                     enddo             ! j
