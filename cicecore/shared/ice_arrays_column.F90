@@ -9,6 +9,7 @@
       module ice_arrays_column
 
       use ice_kinds_mod
+      use ice_constants, only : c0
       use ice_fileunits, only: nu_diag
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat, nilyr, nslyr, &
@@ -25,8 +26,7 @@
 
       ! icepack_atmo.F90
       ! Cdn variables on the T-grid
-      real (kind=dbl_kind), public, &
-         dimension (:,:,:), allocatable :: &
+      real (kind=dbl_kind), public, dimension (:,:,:), allocatable :: &
          Cdn_atm     , & ! atm drag coefficient
          Cdn_ocn     , & ! ocn drag coefficient
                          ! form drag
@@ -64,16 +64,17 @@
 
       ! icepack_itd.F90
       real (kind=dbl_kind), public, allocatable :: &
-         hin_max(:) ! category limits (m)
+         hin_max(:)   ! category limits (m)
 
-      character (len=35), public, allocatable :: c_hi_range(:)
+      character (len=35), public, allocatable :: &
+         c_hi_range(:)! string for history output
 
       ! icepack_snow.F90
       real (kind=dbl_kind), public, dimension (:,:,:), allocatable :: &
          meltsliq     ! snow melt mass (kg/m^2/step-->kg/m^2/day)
 
       real (kind=dbl_kind), public, dimension (:,:,:,:), allocatable :: &
-         meltsliqn       ! snow melt mass in category n (kg/m^2)
+         meltsliqn    ! snow melt mass in category n (kg/m^2)
 
       ! icepack_meltpond_lvl.F90
       real (kind=dbl_kind), public, dimension (:,:,:,:), allocatable :: &
@@ -83,10 +84,10 @@
       ! icepack_shortwave.F90
       ! category albedos
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         alvdrn      , & ! visible direct albedo           (fraction)
-         alidrn      , & ! near-ir direct albedo           (fraction)
-         alvdfn      , & ! visible diffuse albedo          (fraction)
-         alidfn          ! near-ir diffuse albedo          (fraction)
+         alvdrn, &    ! visible direct albedo           (fraction)
+         alidrn, &    ! near-ir direct albedo           (fraction)
+         alvdfn, &    ! visible diffuse albedo          (fraction)
+         alidfn       ! near-ir diffuse albedo          (fraction)
 
       ! albedo components for history
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
@@ -100,14 +101,14 @@
 
       ! shortwave components
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         Iswabsn         ! SW radiation absorbed in ice layers (W m-2)
+         Iswabsn      ! SW radiation absorbed in ice layers (W m-2)
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         Sswabsn         ! SW radiation absorbed in snow layers (W m-2)
+         Sswabsn      ! SW radiation absorbed in snow layers (W m-2)
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
-         fswsfcn     , & ! SW absorbed at ice/snow surface (W m-2)
-         fswthrun    , & ! SW through ice to ocean            (W/m^2)
+         fswsfcn      , & ! SW absorbed at ice/snow surface (W m-2)
+         fswthrun     , & ! SW through ice to ocean            (W/m^2)
          fswthrun_vdr , & ! vis dir SW through ice to ocean            (W/m^2)
          fswthrun_vdf , & ! vis dif SW through ice to ocean            (W/m^2)
          fswthrun_idr , & ! nir dir SW through ice to ocean            (W/m^2)
@@ -119,7 +120,7 @@
          fswintn          ! SW absorbed in ice interior, below surface (W m-2)
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable, public :: &
-         fswpenln        ! visible SW entering ice layers (W m-2)
+         fswpenln     ! visible SW entering ice layers (W m-2)
 
       ! biogeochemistry components
 
@@ -348,6 +349,71 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of Memory1')
 
+      Cdn_atm       = c0
+      Cdn_ocn       = c0
+      hfreebd       = c0
+      hdraft        = c0
+      hridge        = c0
+      distrdg       = c0
+      hkeel         = c0
+      dkeel         = c0
+      lfloe         = c0
+      dfloe         = c0
+      Cdn_atm_skin  = c0
+      Cdn_atm_floe  = c0
+      Cdn_atm_pond  = c0
+      Cdn_atm_rdg   = c0
+      Cdn_ocn_skin  = c0
+      Cdn_ocn_floe  = c0
+      Cdn_ocn_keel  = c0
+      Cdn_atm_ratio = c0
+      grow_net      = c0
+      PP_net        = c0
+      hbri          = c0
+      chl_net       = c0
+      NO_net        = c0
+      upNO          = c0
+      upNH          = c0
+      meltsliq      = c0
+      meltsliqn     = c0
+      dhsn          = c0
+      ffracn        = c0
+      alvdrn        = c0
+      alidrn        = c0
+      alvdfn        = c0
+      alidfn        = c0
+      albicen       = c0
+      albsnon       = c0
+      albpndn       = c0
+      apeffn        = c0
+      snowfracn     = c0
+      fswsfcn       = c0
+      fswthrun      = c0
+      fswthrun_vdr  = c0
+      fswthrun_vdf  = c0
+      fswthrun_idr  = c0
+      fswthrun_idf  = c0
+      fswthrun_uvrdr= c0
+      fswthrun_uvrdf= c0
+      fswthrun_pardr= c0
+      fswthrun_pardf= c0
+      fswintn       = c0
+      first_ice_real= c0
+      first_ice     = .false.
+      dhbr_top      = c0
+      dhbr_bot      = c0
+      darcy_V       = c0
+      sice_rho      = c0
+      Iswabsn       = c0
+      Sswabsn       = c0
+      fswpenln      = c0
+      Zoo           = c0
+      zfswin        = c0
+      iDi           = c0
+      iki           = c0
+      bphi          = c0
+      bTiz          = c0
+
       allocate(                                       &
          ocean_bio    (nx_block,ny_block,max_nbtrcr,max_blocks), & ! contains all the ocean bgc tracer concentrations
          fbio_snoice  (nx_block,ny_block,max_nbtrcr,max_blocks), & ! fluxes from snow to ice
@@ -359,6 +425,14 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of Memory2')
 
+      ocean_bio    = c0
+      fbio_snoice  = c0
+      fbio_atmice  = c0
+      ocean_bio_all= c0
+      ice_bio_net  = c0
+      snow_bio_net = c0
+      algal_peak   = 0
+
       allocate(                                       &
          hin_max(0:ncat)            , & ! category limits (m)
          c_hi_range(ncat)           , & !
@@ -369,6 +443,14 @@
          swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory3')
+
+      hin_max = c0
+      c_hi_range = ''
+      bgrid   = c0
+      igrid   = c0
+      cgrid   = c0
+      icgrid  = c0
+      swgrid  = c0
 
       ! floe size distribution
       allocate(                                                   &
@@ -387,6 +469,20 @@
          d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' Out of Memory5')
+
+      floe_rad_l     = c0
+      floe_rad_c     = c0
+      floe_binwidth  = c0
+      c_fsd_range    = ''
+      wavefreq       = c0
+      dwavefreq      = c0
+      wave_sig_ht    = c0
+      wave_spectrum  = c0
+      d_afsd_newi    = c0
+      d_afsd_latg    = c0
+      d_afsd_latm    = c0
+      d_afsd_wave    = c0
+      d_afsd_weld    = c0
 
       end subroutine alloc_arrays_column
 

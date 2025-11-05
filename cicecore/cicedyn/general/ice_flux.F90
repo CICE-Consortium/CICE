@@ -625,40 +625,270 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory')
 
-      if (grid_ice == "CD" .or. grid_ice == "C") &
+      strax      = c0
+      stray      = c0
+      uocn       = c0
+      vocn       = c0
+      ss_tltx    = c0
+      ss_tlty    = c0
+      hwater     = c0
+      strairxT   = c0
+      strairyT   = c0
+      strocnxT_iavg= c0
+      strocnyT_iavg= c0
+      sig1       = c0
+      sig2       = c0
+      sigP       = c0
+      taubxU     = c0
+      taubyU     = c0
+      strairxU   = c0
+      strairyU   = c0
+      strocnxU   = c0
+      strocnyU   = c0
+      strtltxU   = c0
+      strtltyU   = c0
+      strintxU   = c0
+      strintyU   = c0
+      daidtd     = c0
+      dvidtd     = c0
+      dvsdtd     = c0
+      dagedtd    = c0
+      dardg1dt   = c0
+      dardg2dt   = c0
+      dvirdgdt   = c0
+      opening    = c0
+      stressp_1  = c0
+      stressp_2  = c0
+      stressp_3  = c0
+      stressp_4  = c0
+      stressm_1  = c0
+      stressm_2  = c0
+      stressm_3  = c0
+      stressm_4  = c0
+      stress12_1 = c0
+      stress12_2 = c0
+      stress12_3 = c0
+      stress12_4 = c0
+      fmU        = c0
+      TbU        = c0
+      zlvl       = c0
+      zlvs       = c0
+      uatm       = c0
+      vatm       = c0
+      wind       = c0
+      potT       = c0
+      Tair       = c0
+      Qa         = c0
+      rhoa       = c0
+      swvdr      = c0
+      swvdf      = c0
+      swidr      = c0
+      swidf      = c0
+      swuvrdr    = c0
+      swuvrdf    = c0
+      swpardr    = c0
+      swpardf    = c0
+      flw        = c0
+      frain      = c0
+      fsnow      = c0
+      sss        = c0
+      sst        = c0
+      frzmlt     = c0
+      frzmlt_init= c0
+      Tf         = c0
+      qdp        = c0
+      hmix       = c0
+      daice_da   = c0
+      fsens      = c0
+      flat       = c0
+      fswabs     = c0
+      fswint_ai  = c0
+      flwout     = c0
+      Tref       = c0
+      Qref       = c0
+      Uref       = c0
+      evap       = c0
+      evaps      = c0
+      evapi      = c0
+      alvdr      = c0
+      alidr      = c0
+      alvdf      = c0
+      alidf      = c0
+      alvdr_ai   = c0
+      alidr_ai   = c0
+      alvdf_ai   = c0
+      alidf_ai   = c0
+      albice     = c0
+      albsno     = c0
+      albpnd     = c0
+      apeff_ai   = c0
+      snowfrac   = c0
+      alvdr_init = c0
+      alidr_init = c0
+      alvdf_init = c0
+      alidf_init = c0
+      fpond      = c0
+      fresh      = c0
+      fsalt      = c0
+      fhocn      = c0
+      fsloss     = c0
+      fswthru    = c0
+      fswthru_vdr= c0
+      fswthru_vdf= c0
+      fswthru_idr= c0
+      fswthru_idf= c0
+      fswthru_uvrdr = c0
+      fswthru_uvrdf = c0
+      fswthru_pardr = c0
+      fswthru_pardf = c0
+      scale_factor  = c0
+      strairx_ocn= c0
+      strairy_ocn= c0
+      fsens_ocn  = c0
+      flat_ocn   = c0
+      flwout_ocn = c0
+      evap_ocn   = c0
+      alvdr_ocn  = c0
+      alidr_ocn  = c0
+      alvdf_ocn  = c0
+      alidf_ocn  = c0
+      Tref_ocn   = c0
+      Qref_ocn   = c0
+      fsurf      = c0
+      fcondtop   = c0
+      fcondbot   = c0
+      fbot       = c0
+      Tbot       = c0
+      Tsnice     = c0
+      congel     = c0
+      frazil     = c0
+      snoice     = c0
+      meltt      = c0
+      melts      = c0
+      meltb      = c0
+      meltl      = c0
+      dsnow      = c0
+      daidtt     = c0
+      dvidtt     = c0
+      dvsdtt     = c0
+      dagedtt    = c0
+      mlt_onset  = c0
+      frz_onset  = c0
+      frazil_diag= c0
+      fresh_ai   = c0
+      fsalt_ai   = c0
+      fhocn_ai   = c0
+      fswthru_ai = c0
+      fresh_da   = c0
+      fsalt_da   = c0
+      uatmT      = c0
+      vatmT      = c0
+      wlat       = c0
+      fsw        = c0
+      coszen     = c0
+      rdg_conv   = c0
+      rdg_shear  = c0
+      rsiden     = c0
+      dardg1ndt  = c0
+      dardg2ndt  = c0
+      dvirdgndt  = c0
+      aparticn   = c0
+      krdgn      = c0
+      ardgn      = c0
+      vrdgn      = c0
+      araftn     = c0
+      vraftn     = c0
+      aredistn   = c0
+      vredistn   = c0
+      fsurfn_f   = c0
+      fcondtopn_f= c0
+      fsensn_f   = c0
+      flatn_f    = c0
+      evapn_f    = c0
+      dflatndTsfc_f = c0
+      dfsurfndTsfc_f= c0
+      meltsn     = c0
+      melttn     = c0
+      meltbn     = c0
+      congeln    = c0
+      snoicen    = c0
+      keffn_top  = c0
+      fsurfn     = c0
+      fcondtopn  = c0
+      fcondbotn  = c0
+      fsensn     = c0
+      flatn      = c0
+      albcnt     = c0
+      snwcnt     = c0
+      salinz     = c0
+      Tmltz      = c0
+
+      if (grid_ice == "CD" .or. grid_ice == "C") then
          allocate( &
-         taubxN     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
-         taubyN     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
-         strairxN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at N points
-         strairyN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at N points
-         strocnxN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at N points
-         strocnyN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at N points
-         strtltxN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at N points
-         strtltyN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
-         strintxN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
-         strintyN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
-         fmN        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in N-cell (kg/s)
-         TbN        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
-         taubxE     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
-         taubyE     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
-         strairxE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
-         strairyE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at E points
-         strocnxE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at E points
-         strocnyE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at E points
-         strtltxE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at E points
-         strtltyE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
-         strintxE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
-         strintyE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
-         fmE        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
-         TbE        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
-         stresspT   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
-         stressmT   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
-         stress12T  (nx_block,ny_block,max_blocks), & ! sigma12
-         stresspU   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
-         stressmU   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
-         stress12U  (nx_block,ny_block,max_blocks), & ! sigma12
-         stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_flux): Out of memory (C or CD grid)')
+            taubxN     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at N points (N/m^2)
+            taubyN     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at N points (N/m^2)
+            strairxN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at N points
+            strairyN   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at N points
+            strocnxN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at N points
+            strocnyN   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at N points
+            strtltxN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at N points
+            strtltyN   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at N points
+            strintxN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
+            strintyN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
+            fmN        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in N-cell (kg/s)
+            TbN        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+            taubxE     (nx_block,ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
+            taubyE     (nx_block,ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
+            strairxE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
+            strairyE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, y-direction at E points
+            strocnxE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, x-direction at E points
+            strocnyE   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction at E points
+            strtltxE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction at E points
+            strtltyE   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction at E points
+            strintxE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
+            strintyE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
+            fmE        (nx_block,ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
+            TbE        (nx_block,ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
+            stresspT   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+            stressmT   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+            stress12T  (nx_block,ny_block,max_blocks), & ! sigma12
+            stresspU   (nx_block,ny_block,max_blocks), & ! sigma11+sigma22
+            stressmU   (nx_block,ny_block,max_blocks), & ! sigma11-sigma22
+            stress12U  (nx_block,ny_block,max_blocks), & ! sigma12
+            stat=ierr)
+         if (ierr/=0) call abort_ice('(alloc_flux): Out of memory (C or CD grid)')
+
+         taubxN     = c0
+         taubyN     = c0
+         strairxN   = c0
+         strairyN   = c0
+         strocnxN   = c0
+         strocnyN   = c0
+         strtltxN   = c0
+         strtltyN   = c0
+         strintxN   = c0
+         strintyN   = c0
+         fmN        = c0
+         TbN        = c0
+         taubxE     = c0
+         taubyE     = c0
+         strairxE   = c0
+         strairyE   = c0
+         strocnxE   = c0
+         strocnyE   = c0
+         strtltxE   = c0
+         strtltyE   = c0
+         strintxE   = c0
+         strintyE   = c0
+         fmE        = c0
+         TbE        = c0
+         stresspT   = c0
+         stressmT   = c0
+         stress12T  = c0
+         stresspU   = c0
+         stressmU   = c0
+         stress12U  = c0
+      endif
 
       ! Pond diagnostics
       allocate( &
@@ -676,6 +906,19 @@
          dpnd_dlidn   (nx_block,ny_block,ncat,max_blocks), & ! category pond loss/gain (+/-) to ice lid freezing/melting (m/step)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux): Out of memory (ponds)')
+
+      dpnd_flush   = c0
+      dpnd_expon   = c0
+      dpnd_freebd  = c0
+      dpnd_initial = c0
+      dpnd_dlid    = c0
+      dpnd_melt    = c0
+      dpnd_ridge   = c0
+      dpnd_flushn  = c0
+      dpnd_exponn  = c0
+      dpnd_freebdn = c0
+      dpnd_initialn= c0
+      dpnd_dlidn   = c0
 
       end subroutine alloc_flux
 

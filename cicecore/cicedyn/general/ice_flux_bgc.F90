@@ -7,6 +7,7 @@
       module ice_flux_bgc
 
       use ice_kinds_mod
+      use ice_constants, only: c0
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks, ncat
       use ice_fileunits, only: nu_diag
@@ -160,6 +161,48 @@
          ffep        (nx_block,ny_block,icepack_max_fe, max_blocks), & ! ice-ocean particulate fe flux (umol/m^2/s)
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_flux_bgc): Out of memory')
+
+      nit         = c0
+      amm         = c0
+      sil         = c0
+      dmsp        = c0
+      dms         = c0
+      hum         = c0
+      fnit        = c0
+      famm        = c0
+      fsil        = c0
+      fdmsp       = c0
+      fdms        = c0
+      fhum        = c0
+      fdust       = c0
+      hin_old     = c0
+      dsnown      = c0
+      HDO_ocn     = c0
+      H2_16O_ocn  = c0
+      H2_18O_ocn  = c0
+      Qa_iso      = c0
+      Qref_iso    = c0
+      fiso_atm    = c0
+      fiso_evap   = c0
+      fiso_ocn    = c0
+      faero_atm   = c0
+      faero_ocn   = c0
+      zaeros      = c0
+      flux_bio_atm= c0
+      flux_bio    = c0
+      flux_bio_ai = c0
+      algalN      = c0
+      falgalN     = c0
+      doc         = c0
+      fdoc        = c0
+      don         = c0
+      fdon        = c0
+      dic         = c0
+      fdic        = c0
+      fed         = c0
+      fep         = c0
+      ffed        = c0
+      ffep        = c0
 
       end subroutine alloc_flux_bgc
 
