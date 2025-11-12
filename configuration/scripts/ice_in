@@ -141,9 +141,6 @@
     conduct           = 'bubbly'
     ksno              = 0.3d0
     hi_min            = 0.01d0
-    zap_residual_ice  = .false.
-    min_area          = 1.d-11
-    min_mass          = 1.d-10
     a_rapid_mode      =  0.5e-3
     Rac_rapid_mode    =    10.0
     aspect_rapid_mode =     1.0
@@ -204,8 +201,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
-    dyn_area_min    = 0.001d0
-    dyn_mass_min    = 0.01d0
+    dyn_area_min    = 1.e-11
+    dyn_mass_min    = 1.e-10
 /
 
 &shortwave_nml

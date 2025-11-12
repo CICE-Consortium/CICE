@@ -114,10 +114,13 @@ values of the downwelling shortwave forcing, the shortwave components
 computed at the end of the last timestep are scaled for the new forcing.
 
 In Icepack, residual amounts of ice may be conservatively removed based
-on minimum area and mass parameters ``min_area`` and ``min_mass``.
+on minimum area and mass parameters ``itd_area_min`` and ``itd_mass_min``.
 Initializing these parameters to CICE's ``dyn_area_min`` and ``dyn_mass_min``
-namelist values ensures consistency between Icepack's thermodynamic and
-CICE's dynamic calculations and avoids tiny amounts of residual ice in the
-solution. However, ``dyn_area_min`` and ``dyn_mass_min`` should be relatively
-small to avoid removing too much ice. In CICE, the ``zap_residual_ice`` flag
-is provided to simplify backward compatibility.
+namelist values ensures consistency between Icepack's column physics and
+CICE's dynamic calculations by avoiding residual ice not handled in either
+place. However, ``dyn_area_min`` and ``dyn_mass_min`` should be relatively
+small to avoid removing too much ice. The default behavior sets the column
+physics (itd) parameters to the dynamics values (from namelist).
+``itd_area_min`` and ``itd_mass_min`` can be added to the namelist file
+**ice_in** and set to different values, if desired. Setting them to zero
+turns off residual zapping completely.
