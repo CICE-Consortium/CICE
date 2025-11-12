@@ -157,7 +157,7 @@
         phi_c_slow_mode, phi_i_mushy, kalg, atmiter_conv, Pstar, Cstar, &
         sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn, &
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, Tliquidus_max, &
-        windmin, drhosdwind, snwlvlfac, tscale_pnd_drain, min_area, min_mass
+        windmin, drhosdwind, snwlvlfac, tscale_pnd_drain, itd_area_min, itd_mass_min
 
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
@@ -167,8 +167,7 @@
         congel_freeze, capping_method, snw_ssp_table
 
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
-        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, semi_implicit_Tsfc, vapor_flux_correction, &
-        zap_residual_ice
+        sw_redist, calc_dragio, use_smliq_pnd, snwgrain, semi_implicit_Tsfc, vapor_flux_correction
 
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
@@ -241,8 +240,7 @@
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
         floediam,       hfrazilmin,      Tliquidus_max,   hi_min,       &
-        min_area,       min_mass,        zap_residual_ice,              &
-        tscale_pnd_drain
+        itd_area_min,   itd_mass_min,    tscale_pnd_drain
 
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
@@ -420,8 +418,8 @@
       kstrength = 1           ! 1 = Rothrock 75 strength, 0 = Hibler 79
       Pstar = 2.75e4_dbl_kind ! constant in Hibler strength formula (kstrength = 0)
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
-      dyn_area_min = p001     ! minimum ice area concentration to activate dynamics
-      dyn_mass_min = p01      ! minimum ice mass to activate dynamics (kg/m^2)
+      dyn_area_min = 1.e-11_dbl_kind ! minimum ice area concentration to activate dynamics
+      dyn_mass_min = 1.e-10_dbl_kind ! minimum ice mass to activate dynamics (kg/m^2)
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -488,9 +486,8 @@
       cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
       hi_min = p01             ! minimum ice thickness allowed (m)
-      zap_residual_ice = .true.  ! zap residual ice below a minimum area and mass
-      min_area = 1.e-11_dbl_kind ! zap residual ice below a minimum area
-      min_mass = 1.e-10_dbl_kind ! zap residual ice below a minimum mass
+      itd_area_min = -999.     ! zap residual ice below a minimum area
+      itd_mass_min = -999.     ! zap residual ice below a minimum mass
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
       calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
@@ -925,16 +922,22 @@
       if (trim(diag_type) == 'file') call get_fileunit(nu_diag)
 #endif
 
-      ! Residual zapping in Icepack is turned off by setting the minimum
-      ! area and mass parameters to zero.  In CICE, the zap_residual_ice
-      ! flag is provided to simplify backward compatibility by resetting
-      ! min_area and min_mass.
-      if (.not. zap_residual_ice) then
-         write(nu_diag,*) subname//' WARNING: zap_residual_ice is OFF, reset min_area and min_mass to 0'
-         min_area=c0
-         min_mass=c0
-      elseif (min_area < puny .or. min_mass < puny) then
-         write(nu_diag,*) subname//' WARNING: zap_residual_ice is ON but min_area < puny or min_mass < puny'
+      ! To remove small amounts of residual ice that are not handled by either dynamics or
+      ! column physics, the minimum area and mass parameters should be set to the same values
+      ! in both places. The default sets the column physics (itd) parameters to the dynamics
+      ! values (available in namelist). itd_area_min and itd_mass_min can be added to the
+      ! namelist file ice_in and set to different values, if desired. Setting them to
+      ! zero turns off residual zapping completely.
+      if (itd_area_min /= -999. .or. itd_mass_min /= -999.) then
+         ! allow itd and dyn parameters to be different
+         write(nu_diag,*) subname//' WARNING: zap_residual parameters are reset in namelist'
+      elseif (itd_area_min == c0 .or. itd_mass_min == c0) then
+         ! turn off residual zapping in Icepack
+         write(nu_diag,*) subname//' WARNING: zap_residual is turned off'
+      else
+         ! itd and dyn parameters are the same by default
+         itd_area_min = dyn_area_min ! zap residual ice below dynamics minimum area
+         itd_mass_min = dyn_mass_min ! zap residual ice below dynamics minimum mass
       endif
 
       !-----------------------------------------------------------------
@@ -1159,9 +1162,8 @@
       call broadcast_scalar(l_mpond_fresh,        master_task)
       call broadcast_scalar(ustar_min,            master_task)
       call broadcast_scalar(hi_min,               master_task)
-      call broadcast_scalar(zap_residual_ice,     master_task)
-      call broadcast_scalar(min_area,             master_task)
-      call broadcast_scalar(min_mass,             master_task)
+      call broadcast_scalar(itd_area_min,         master_task)
+      call broadcast_scalar(itd_mass_min,         master_task)
       call broadcast_scalar(iceruf,               master_task)
       call broadcast_scalar(iceruf_ocn,           master_task)
       call broadcast_scalar(calc_dragio,          master_task)
@@ -2411,14 +2413,8 @@
          write(nu_diag,1000) ' hi_min           = ', hi_min,' : minimum ice thickness allowed (m)'
          write(nu_diag,1000) ' puny             = ', puny,' : general-use minimum value'
          write(nu_diag,*) ' Ice thickness category areas smaller than puny are always removed.'
-         write(nu_diag,1000) ' min_area         = ', min_area,' : zap residual ice below a minimum area'
-         write(nu_diag,1000) ' min_mass         = ', min_mass,' : zap residual ice below a minimum mass'
-         if (zap_residual_ice) then
-            tmpstr2 = ' : remove ice with total area < min_area or mass < min_mass'
-         else
-            tmpstr2 = ' : residual ice > puny (categories) is not removed'
-         endif
-         write(nu_diag,1010) ' zap_residual_ice   = ', zap_residual_ice,trim(tmpstr2)
+         write(nu_diag,1003) ' itd_area_min     = ', itd_area_min,' : zap residual ice below a minimum area'
+         write(nu_diag,1003) ' itd_mass_min     = ', itd_mass_min,' : zap residual ice below a minimum mass'
          if (calc_dragio) then
             tmpstr2 = ' : dragio computed from iceruf_ocn'
          else
@@ -2820,7 +2816,7 @@
          atmbndy_in=atmbndy, calc_strair_in=calc_strair, formdrag_in=formdrag, highfreq_in=highfreq, &
          kitd_in=kitd, kcatbound_in=kcatbound, hs0_in=hs0, dpscale_in=dpscale, frzpnd_in=frzpnd, &
          rfracmin_in=rfracmin, rfracmax_in=rfracmax, pndaspect_in=pndaspect, hs1_in=hs1, hp1_in=hp1, &
-         apnd_sl_in=apnd_sl, min_area_in=min_area, min_mass_in=min_mass, &
+         apnd_sl_in=apnd_sl, itd_area_min_in=itd_area_min, itd_mass_min_in=itd_mass_min, &
          ktherm_in=ktherm, calc_Tsfc_in=calc_Tsfc, conduct_in=conduct, semi_implicit_Tsfc_in=semi_implicit_Tsfc, &
          a_rapid_mode_in=a_rapid_mode, Rac_rapid_mode_in=Rac_rapid_mode, vapor_flux_correction_in=vapor_flux_correction, &
          floediam_in=floediam, hfrazilmin_in=hfrazilmin, Tliquidus_max_in=Tliquidus_max, &
