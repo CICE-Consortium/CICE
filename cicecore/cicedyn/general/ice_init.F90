@@ -178,6 +178,7 @@
 
       integer (kind=int_kind) :: rplvl, rptopo, rpsealvl
       real (kind=dbl_kind)    :: Cf, ksno, puny, ice_ref_salinity, Tocnfrz
+      real (kind=dbl_kind), parameter :: ice_init_spval = -999._dbl_kind
 
       character (len=char_len) :: abort_list
       character (len=char_len)      :: nml_name ! namelist name
@@ -486,8 +487,8 @@
       cpl_frazil = 'fresh_ice_correction' ! type of coupling for frazil ice
       ustar_min = 0.005        ! minimum friction velocity for ocean heat flux (m/s)
       hi_min = p01             ! minimum ice thickness allowed (m)
-      itd_area_min = -999.     ! zap residual ice below a minimum area
-      itd_mass_min = -999.     ! zap residual ice below a minimum mass
+      itd_area_min = ice_init_spval ! zap residual ice below a minimum area
+      itd_mass_min = ice_init_spval ! zap residual ice below a minimum mass
       iceruf = 0.0005_dbl_kind ! ice surface roughness at atmosphere interface (m)
       iceruf_ocn = 0.03_dbl_kind ! under-ice roughness (m)
       calc_dragio = .false.    ! compute dragio from iceruf_ocn and thickness of first ocean level
@@ -928,7 +929,7 @@
       ! values (available in namelist). itd_area_min and itd_mass_min can be added to the
       ! namelist file ice_in and set to different values, if desired. Setting them to
       ! zero turns off residual zapping completely.
-      if (itd_area_min /= -999. .or. itd_mass_min /= -999.) then
+      if (itd_area_min /= ice_init_spval .or. itd_mass_min /= ice_init_spval) then
          ! allow itd and dyn parameters to be different
          write(nu_diag,*) subname//' WARNING: zap_residual parameters are reset in namelist'
       elseif (itd_area_min == c0 .or. itd_mass_min == c0) then
