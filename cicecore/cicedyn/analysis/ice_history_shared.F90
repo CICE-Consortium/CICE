@@ -289,7 +289,7 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
-           f_CMIP = 'x'     , &
+           f_CMIP      = 'x', f_CICE       = 'x', &
            f_sithick   = 'x', f_sisnthick  = 'x', &
            f_siage     = 'x', &
            f_sitemptop = 'x', f_sitempsnic = 'x', &
@@ -461,7 +461,7 @@
            f_mlt_onset, f_frz_onset, &
            f_iage,      f_FY       , &
            f_hisnap,    f_aisnap   , &
-           f_CMIP, &
+           f_CMIP,      f_CICE     , &
            f_sithick,   f_sisnthick, &
            f_siage,     &
            f_sitemptop, f_sitempsnic,&

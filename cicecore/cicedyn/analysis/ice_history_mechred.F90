@@ -83,7 +83,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CICE
       use ice_fileunits, only: goto_nml
 
       integer (kind=int_kind) :: ns
@@ -141,6 +141,11 @@
 
          close(nu_nml)
          call release_fileunit(nu_nml)
+      endif
+
+      if (f_CICE(1:1) == 'x') then
+         f_ardg = 'x'
+         f_vrdg = 'x'
       endif
 
       if (.not. tr_lvl) then

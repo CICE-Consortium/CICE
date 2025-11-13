@@ -340,6 +340,8 @@
      ! Turn on all CMIP fields in one go.
 
       if (f_CMIP(1:1) /= 'x') then
+         f_aice = 'mxxxx' ! needed for avg_ice_present
+         f_aicen = 'mxxxx' ! needed for avg_ice_present
          f_sithick = 'mxxxx'
          f_sisnthick = 'mxxxx'
          f_siage = 'mxxxx'
@@ -402,12 +404,12 @@
          f_siitdconc = 'mxxxx'
          f_siitdthick = 'mxxxx'
          f_siitdsnthick = 'mxxxx'
-         f_aicen = 'mxxxx'
       endif
 
       if (f_CMIP(2:2) == 'd') then
          f_icepresent = f_CMIP
          f_aice = f_CMIP
+         f_aicen = f_CMIP
          f_sithick = f_CMIP
          f_sisnthick = f_CMIP
          f_sitemptop = f_CMIP
@@ -419,6 +421,62 @@
          f_sndmassmelt = f_CMIP
          f_sndmassdyn = f_CMIP
          f_sidmasssi = f_CMIP
+      endif
+
+      ! reduce redundancy of CMIP versus CICE variables.
+      if (f_CICE(1:1) == 'x') then
+         f_hi = 'xxxxx'
+         f_hs = 'xxxxx'
+         f_Tsfc = 'xxxxx'
+         f_uvel = 'xxxxx'
+         f_vvel = 'xxxxx'
+         f_icespd = 'xxxxx'
+         f_icedir = 'xxxxx'
+         f_iage = 'xxxxx'
+         f_albsni = 'xxxxx'
+         f_fswdn = 'xxxxx'
+         f_fswup = 'xxxxx'
+         f_fswthru = 'xxxxx'
+         f_flwdn = 'xxxxx'
+         f_flwup = 'xxxxx'
+         f_fsens = 'xxxxx'
+         f_flat = 'xxxxx'
+         f_fhocn = 'xxxx'
+         f_fcondtop = 'xxxxx'
+         f_fcondbot = 'xxxxx'
+         f_rain = 'xxxxx'
+         f_snow = 'xxxxx'
+         f_evap = 'xxxxx'
+         f_fsalt = 'xxxxx'
+         f_fresh = 'xxxxx'
+         f_meltl = 'xxxxx'
+         f_melts = 'xxxxx'
+         f_meltt = 'xxxxx'
+         f_meltb = 'xxxxx'
+         f_strairx = 'xxxxx'
+         f_strairy = 'xxxxx'
+         f_strocnx = 'xxxxx'
+         f_strocny = 'xxxxx'
+         f_strtltx = 'xxxxx'
+         f_strtlty = 'xxxxx'
+         f_strintx = 'xxxxx'
+         f_strinty = 'xxxxx'
+         f_strcorx = 'xxxxx'
+         f_strcory = 'xxxxx'
+         f_strength = 'xxxxx'
+         f_daidtt = 'xxxxx'
+         f_daidtd = 'xxxxx'
+         f_dvidtt = 'xxxxx'
+         f_dvidtd = 'xxxxx'
+         f_dvsdtt = 'xxxxx'
+         f_dvsdtd = 'xxxxx'
+         f_congel = 'xxxxx'
+         f_frazil = 'xxxxx'
+         f_snoice = 'xxxxx'
+         f_vicen = 'xxxxx'
+         f_vsnon = 'xxxxx'
+         f_divu = 'xxxxx'
+         f_shear = 'xxxxx'
       endif
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
