@@ -37,6 +37,11 @@
            f_aredistn  = 'x', f_vredistn   = 'x', &
            f_araftn    = 'x', f_vraftn     = 'x'
 
+      ! CMIP ridging variables.
+
+      character (len=max_nstrm), public :: &
+           f_sirdgconc = 'm', f_sirdgthick = 'm'
+
       !---------------------------------------------------------------
       ! namelist variables
       !---------------------------------------------------------------
@@ -51,7 +56,8 @@
            f_dvirdgndt, &
            f_aparticn,  f_krdgn    , &
            f_aredistn,  f_vredistn , &
-           f_araftn,    f_vraftn
+           f_araftn,    f_vraftn   , &
+           f_sirdgconc, f_sirdgthick
 
       !---------------------------------------------------------------
       ! field indices
@@ -69,6 +75,9 @@
            n_aredistn   , n_vredistn   , &
            n_araftn     , n_vraftn
 
+      integer (kind=int_kind), dimension(max_nstrm) :: &
+           n_sirdgconc, n_sirdgthick
+
 !=======================================================================
 
       contains
@@ -83,7 +92,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CICE
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CICE, f_CMIP
       use ice_fileunits, only: goto_nml
 
       integer (kind=int_kind) :: ns
@@ -143,6 +152,16 @@
          call release_fileunit(nu_nml)
       endif
 
+      if (f_CMIP(1:1) /= 'x') then
+         f_sirdgconc  = 'mxxxx'
+         f_sirdgthick = 'mxxxx'
+      endif
+
+      if (f_CMIP(2:2) == 'd') then
+         f_sirdgconc  = f_CMIP
+         f_sirdgthick = f_CMIP
+      endif
+
       if (f_CICE(1:1) == 'x') then
          f_ardg = 'x'
          f_vrdg = 'x'
@@ -157,6 +176,8 @@
          f_vrdgn = 'x'
          f_araftn = 'x'
          f_vraftn = 'x'
+         f_sirdgconc  = 'x'
+         f_sirdgthick = 'x'
       endif
       if (f_araftn /= 'x' .or. f_vraftn /= 'x') f_ardgn = f_araftn
 
@@ -179,6 +200,8 @@
       call broadcast_scalar (f_vredistn, master_task)
       call broadcast_scalar (f_araftn, master_task)
       call broadcast_scalar (f_vraftn, master_task)
+      call broadcast_scalar (f_sirdgconc, master_task)
+      call broadcast_scalar (f_sirdgthick, master_task)
 
       ! 2D variables
 
@@ -229,6 +252,17 @@
              "lead area opening rate",                                   &
              "none", secday*c100, c0,                                    &
              ns, f_opening)
+
+      if (f_sirdgconc(1:1) /= 'x') &
+         call define_hist_field(n_sirdgconc,"sirdgconc","1",tstr2D, tcstr, &
+             "ridged ice area fraction",                           &
+             "none", c1, c0,                                       &
+             ns, f_sirdgconc)
+      if (f_sirdgthick(1:1) /= 'x') &
+         call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &
+             "ridged ice thickness",                          &
+             "grid cell mean level ridged thickness", c1, c0, &
+             ns, f_sirdgthick, avg_ice_present=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -385,6 +419,12 @@
          if (f_opening(1:1) /= 'x') &
              call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
 
+         if (f_sirdgconc(1:1)/= 'x') &
+             call accum_hist_field(n_sirdgconc,   iblk, &
+                             aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+         if (f_sirdgthick(1:1)/= 'x') &
+             call accum_hist_field(n_sirdgthick,   iblk, &
+                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          endif ! allocated(a2D)
 
          ! 3D category fields

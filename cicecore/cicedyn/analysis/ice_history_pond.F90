@@ -40,6 +40,11 @@
            f_dpnd_freebdn= 'x', f_dpnd_initialn= 'x', &
            f_dpnd_dlidn  = 'x'
 
+      ! CMIP related pond variables
+      character (len=max_nstrm), public :: &
+           f_simpconc    = 'm', f_simpeffconc   = 'm', &
+           f_simpthick    = 'm', f_simprefrozen  = 'm'
+
       !---------------------------------------------------------------
       ! namelist variables
       !---------------------------------------------------------------
@@ -62,7 +67,11 @@
            f_dpnd_exponn   , &
            f_dpnd_freebdn  , &
            f_dpnd_initialn , &
-           f_dpnd_dlidn
+           f_dpnd_dlidn    , &
+           f_simpconc      , &
+           f_simpeffconc   , &
+           f_simpthick      , &
+           f_simprefrozen
 
       !---------------------------------------------------------------
       ! field indices
@@ -83,6 +92,11 @@
            n_dpnd_freebdn, n_dpnd_initialn, &
            n_dpnd_dlidn
 
+      ! CMIP related melt pond variables
+      integer (kind=int_kind), dimension(max_nstrm) :: &
+           n_simpconc    , n_simpeffconc, &
+           n_simpthick    , n_simprefrozen
+
 !=======================================================================
 
       contains
@@ -94,7 +108,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CMIP, f_CICE
       use ice_fileunits, only: goto_nml
 
       integer (kind=int_kind) :: ns
@@ -110,6 +124,27 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      if (f_CMIP(1:1) /= 'x') then
+         f_simpconc = 'mxxxx'
+         f_simpeffconc = 'mxxxx'
+         f_simpthick = 'mxxxx'
+         f_simprefrozen = 'mxxxx'
+      endif
+
+      if (f_CMIP(2:2) == 'd') then
+         f_simpconc = f_CMIP
+         f_simpeffconc = f_CMIP
+         f_simpthick = f_CMIP
+         f_simprefrozen = f_CMIP
+      endif
+
+      if (f_CICE(1:1) == 'x') then
+         f_apond = 'xxxxx'
+         f_apeff = 'xxxxx'
+         f_hpond = 'xxxxx'
+         f_ipond = 'xxxxx'
+      endif
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -177,6 +212,10 @@
          f_dpnd_freebdn = 'x'
          f_dpnd_initialn= 'x'
          f_dpnd_dlidn   = 'x'
+         f_simpconc = 'x'
+         f_simpeffconc = 'x'
+         f_simpthick = 'x'
+         f_simprefrozen = 'x'
       endif
 
       if (tr_pond_topo) then
@@ -203,6 +242,10 @@
       call broadcast_scalar (f_hpond, master_task)
       call broadcast_scalar (f_ipond, master_task)
       call broadcast_scalar (f_apeff, master_task)
+      call broadcast_scalar (f_simpconc, master_task)
+      call broadcast_scalar (f_simpeffconc, master_task)
+      call broadcast_scalar (f_simpthick, master_task)
+      call broadcast_scalar (f_simprefrozen, master_task)
       call broadcast_scalar (f_apond_ai, master_task)
       call broadcast_scalar (f_hpond_ai, master_task)
       call broadcast_scalar (f_ipond_ai, master_task)
@@ -315,6 +358,31 @@
              "pond drainage due to ridging",                       &
              "none", c1, c0,                                       &
              ns, f_dpnd_ridge)
+
+      ! CMIP melt pond variables
+      if (f_simpconc(1:1) /= 'x') &
+         call define_hist_field(n_simpconc,"simpconc","1",tstr2D, tcstr, &
+             "melt pond fraction of sea ice",                      &
+             "none", c1, c0,                                       &
+             ns, f_simpconc)
+
+      if (f_simpeffconc(1:1) /= 'x') &
+         call define_hist_field(n_simpeffconc,"simpeffconc","1",tstr2D, tcstr, &
+             "radiatively active melt pond fraction of sea ice",               &
+             "none", c1, c0,                                       &
+             ns, f_simpeffconc)
+
+      if (f_simpthick(1:1) /= 'x') &
+         call define_hist_field(n_simpthick,"simpthick","kg m-2",tstr2D, tcstr, &
+             "sea ice melt pond thickness",                        &
+             "none", c1, c0,                                       &
+             ns, f_simpthick, avg_ice_present=.true.)
+
+      if (f_simprefrozen(1:1) /= 'x') &
+         call define_hist_field(n_simprefrozen,"simprefrozen","m",tstr2D, tcstr, &
+             "thickness of refrozen ice on melt ponds",               &
+             "none", c1, c0,                                       &
+             ns, f_simprefrozen, avg_ice_present=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -483,6 +551,20 @@
                           * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                    * trcr(:,:,nt_ipnd,iblk), a2D)
 
+         if (f_simpconc(1:1)/= 'x') &
+             call accum_hist_field(n_simpconc, iblk, &
+                            trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
+
+         if (f_simpthick(1:1)/= 'x') &
+             call accum_hist_field(n_simpthick, iblk, &
+                                   aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
+                                                                         * trcr(:,:,nt_hpnd,iblk), a2D)
+
+         if (f_simprefrozen(1:1)/= 'x') &
+             call accum_hist_field(n_simprefrozen, iblk, &
+                            aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
+                                                                  * trcr(:,:,nt_ipnd,iblk), a2D)
+
          elseif (tr_pond_topo .or. tr_pond_sealvl) then
 
          if (f_apond(1:1)/= 'x') &
@@ -507,6 +589,20 @@
              call accum_hist_field(n_ipond_ai, iblk, &
                                    aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
                                                   * trcr(:,:,nt_ipnd,iblk), a2D)
+
+         if (f_simpconc(1:1)/= 'x') &
+             call accum_hist_field(n_simpconc, iblk, trcr(:,:,nt_apnd,iblk), a2D)
+
+         if (f_simpthick(1:1)/= 'x') &
+             call accum_hist_field(n_simpthick, iblk, &
+                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
+                                                  * trcr(:,:,nt_hpnd,iblk), a2D)
+
+         if (f_simprefrozen(1:1)/= 'x') &
+             call accum_hist_field(n_simprefrozen, iblk, &
+                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
+                                                  * trcr(:,:,nt_ipnd,iblk), a2D)
+
          endif ! ponds
 
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -543,6 +639,16 @@
          if (f_dpnd_ridge (1:1) /= 'x') &
              call accum_hist_field(n_dpnd_ridge  , iblk, dpnd_ridge  (:,:,iblk), a2D)
 
+         ! CMIP pond related variables
+         if (f_simpeffconc (1:1) /= 'x') then
+             worka(:,:) = c0
+             do j = jlo, jhi
+             do i = ilo, ihi
+                if (aice(i,j,iblk) > puny) worka(i,j) = apeff_ai(i,j,iblk) 
+             enddo
+             enddo
+             call accum_hist_field(n_simpeffconc, iblk, worka(:,:), a2D)
+         endif
          endif ! allocated(a2D)
 
          ! 3D category fields
