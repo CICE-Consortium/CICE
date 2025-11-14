@@ -344,6 +344,7 @@
            f_siitdsnconc = 'x', &
            f_siitdthick = 'x', &
            f_siitdsnthick = 'x', &
+           f_sidragbot = 'x', &
            f_sidragtop = 'x', &
            f_sistressave = 'x', &
            f_sistressmax = 'x', &
@@ -523,6 +524,7 @@
            f_siitdsnconc, &
            f_siitdthick, &
            f_siitdsnthick, &
+           f_sidragbot, &
            f_sidragtop, &
            f_sistressave, &
            f_sistressmax, &
@@ -730,6 +732,7 @@
            n_siitdsnconc, &
            n_siitdthick, &
            n_siitdsnthick, &
+           n_sidragbot, &
            n_sidragtop, &
            n_sistressave, &
            n_sistressmax, &

@@ -254,9 +254,9 @@
              ns, f_opening)
 
       if (f_sirdgconc(1:1) /= 'x') &
-         call define_hist_field(n_sirdgconc,"sirdgconc","1",tstr2D, tcstr, &
+         call define_hist_field(n_sirdgconc,"sirdgconc","%",tstr2D, tcstr, &
              "ridged ice area fraction",                           &
-             "none", c1, c0,                                       &
+             "none", c100, c0,                                       &
              ns, f_sirdgconc)
       if (f_sirdgthick(1:1) /= 'x') &
          call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &

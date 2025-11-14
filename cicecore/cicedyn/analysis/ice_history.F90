@@ -406,6 +406,7 @@
          f_siforceintstrx = 'mxxxx'
          f_siforceintstry = 'mxxxx'
          f_sidragtop = 'mxxxx'
+         f_sidragbot = 'mxxxx'
          f_sistressave = 'mxxxx'
          f_sistressmax = 'mxxxx'
          f_sidivvel = 'mxxxx'
@@ -784,6 +785,7 @@
       call broadcast_scalar (f_siitdthick, master_task)
       call broadcast_scalar (f_siitdsnthick, master_task)
       call broadcast_scalar (f_sidragtop, master_task)
+      call broadcast_scalar (f_sidragbot, master_task)
       call broadcast_scalar (f_sistressave, master_task)
       call broadcast_scalar (f_sistressmax, master_task)
       call broadcast_scalar (f_sidivvel, master_task)
@@ -1694,7 +1696,7 @@
              "none", c1, c0,         &
              ns1, f_sialb, avg_ice_present=.true., mask_ice_free_points=.true.)
 
-         call define_hist_field(n_sisali,"sisali","1",tstr2D, tcstr, &
+         call define_hist_field(n_sisali,"sisali","ppt",tstr2D, tcstr, &
              "sea ice saltinity",                                         &
              "none", c1, c0,                                              &
              ns1, f_sisali, avg_ice_present=.true., mask_ice_free_points=.true.)
@@ -1779,6 +1781,11 @@
              "none", c1, c0,                            &
              ns1, f_sidragtop, avg_ice_present=.true., mask_ice_free_points=.true.)
 
+         call define_hist_field(n_sidragbot,"sidragbot","1",tstr2D, tcstr, &
+             "sea ice ocean drag", &
+             "none", c1, c0,                            &
+             ns1, f_sidragbot, avg_ice_present=.true., mask_ice_free_points=.true.)
+
          call define_hist_field(n_siforcetiltx,"siforcetiltx","N m-2",tstr2D, tcstr, &
              "sea surface tilt term", &
              "none", c1, c0,                            &
@@ -1832,9 +1839,9 @@
 
       ! CMIP 2D variables (extensive, avg_ice_present = .false.)
 
-         call define_hist_field(n_siconc,"siconc","1",tstr2D, tcstr,   &
+         call define_hist_field(n_siconc,"siconc","%",tstr2D, tcstr,   &
              "sea area fraction",                                      &
-             "none", c1, c0,                                           &
+             "none", c100, c0,                                           &
              ns1, f_siconc, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sivol,"sivol","m",tstr2D, tcstr,     &
@@ -1852,9 +1859,9 @@
              "none", c1, c0,                                              &
              ns1, f_sisaltmass, avg_ice_present=.false., mask_ice_free_points=.true.)
 
-         call define_hist_field(n_sisnconc,"sisnconc","1",tstr2D, tcstr,   &
+         call define_hist_field(n_sisnconc,"sisnconc","%",tstr2D, tcstr,   &
              "sea snow area fraction",                                      &
-             "none", c1, c0,                                               &
+             "none", c100, c0,                                               &
              ns1, f_sisnconc, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sisnmass,"sisnmass","kg m-2",tstr2D, tcstr, &
@@ -2039,12 +2046,12 @@
               ns1, f_keffn_top)
 
            ! CMIP 3D
-           call define_hist_field(n_siitdconc,"siitdconc","1",tstr3Dc, tcstr, &
-              "ice area, categories","none", c1, c0,                  &
+           call define_hist_field(n_siitdconc,"siitdconc","%",tstr3Dc, tcstr, &
+              "ice area, categories","none", c100, c0,                  &
               ns1, f_siitdconc)
 
-           call define_hist_field(n_siitdconc,"siitdsnconc","1",tstr3Dc, tcstr, &
-              "snow area fraction, categories","none", c1, c0,                  &
+           call define_hist_field(n_siitdconc,"siitdsnconc","%",tstr3Dc, tcstr, &
+              "snow area fraction, categories","none", c100, c0,                  &
               ns1, f_siitdsnconc)
 
            call define_hist_field(n_siitdthick,"siitdthick","m",tstr3Dc, tcstr, &
@@ -2336,7 +2343,7 @@
           mlt_onset, frz_onset, dagedtt, dagedtd, fswint_ai, keffn_top, &
           snowfrac, alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, update_ocn_f, &
           cpl_frazil
-      use ice_arrays_column, only: snowfracn, Cdn_atm
+      use ice_arrays_column, only: snowfracn, Cdn_atm, Cdn_ocn
       use ice_history_shared ! almost everything
       use ice_history_write, only: ice_write_hist
       use ice_history_bgc, only: accum_hist_bgc
@@ -3642,6 +3649,18 @@
            enddo
            enddo
            call accum_hist_field(n_sidragtop, iblk, worka(:,:), a2D)
+         endif
+
+         if (f_sidragbot(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (aice(i,j,iblk) > puny) then
+                 worka(i,j) = aice(i,j,iblk)*Cdn_ocn(i,j,iblk)
+              endif
+           enddo
+           enddo
+           call accum_hist_field(n_sidragbot, iblk, worka(:,:), a2D)
          endif
 
          if (f_siforcetiltx(1:1) /= 'x') then

@@ -361,15 +361,15 @@
 
       ! CMIP melt pond variables
       if (f_simpconc(1:1) /= 'x') &
-         call define_hist_field(n_simpconc,"simpconc","1",tstr2D, tcstr, &
+         call define_hist_field(n_simpconc,"simpconc","%",tstr2D, tcstr, &
              "melt pond fraction of sea ice",                      &
-             "none", c1, c0,                                       &
+             "none", c100, c0,                                       &
              ns, f_simpconc)
 
       if (f_simpeffconc(1:1) /= 'x') &
-         call define_hist_field(n_simpeffconc,"simpeffconc","1",tstr2D, tcstr, &
+         call define_hist_field(n_simpeffconc,"simpeffconc","%",tstr2D, tcstr, &
              "radiatively active melt pond fraction of sea ice",               &
-             "none", c1, c0,                                       &
+             "none", c100, c0,                                       &
              ns, f_simpeffconc)
 
       if (f_simpthick(1:1) /= 'x') &
