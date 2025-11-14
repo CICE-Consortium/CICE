@@ -210,59 +210,59 @@
 
       if (f_alvl(1:1) /= 'x') &
          call define_hist_field(n_alvl,"alvl","1",tstr2D, tcstr, &
-             "level ice area fraction",                            &
-             "none", c1, c0,                                       &
+             "level ice area fraction",                          &
+             "none", c1, c0,                                     &
              ns, f_alvl)
       if (f_vlvl(1:1) /= 'x') &
          call define_hist_field(n_vlvl,"vlvl","m",tstr2D, tcstr, &
-             "level ice volume",                           &
-             "grid cell mean level ice thickness", c1, c0, &
+             "level ice volume",                                 &
+             "grid cell mean level ice thickness", c1, c0,       &
              ns, f_vlvl)
       if (f_ardg(1:1) /= 'x') &
          call define_hist_field(n_ardg,"ardg","1",tstr2D, tcstr, &
-             "ridged ice area fraction",                           &
-             "none", c1, c0,                                       &
+             "ridged ice area fraction",                         &
+             "none", c1, c0,                                     &
              ns, f_ardg)
       if (f_vrdg(1:1) /= 'x') &
          call define_hist_field(n_vrdg,"vrdg","m",tstr2D, tcstr, &
-             "ridged ice volume",                          &
-             "grid cell mean level ridged thickness", c1, c0, &
+             "ridged ice volume",                                &
+             "grid cell mean level ridged thickness", c1, c0,    &
              ns, f_vrdg)
 
       if (f_dardg1dt(1:1) /= 'x') &
          call define_hist_field(n_dardg1dt,"dardg1dt","%/day",tstr2D, tcstr, &
-             "ice area ridging rate",                                      &
-             "none", secday*c100, c0,                                      &
+             "ice area ridging rate",                                        &
+             "none", secday*c100, c0,                                        &
              ns, f_dardg1dt)
 
       if (f_dardg2dt(1:1) /= 'x') &
          call define_hist_field(n_dardg2dt,"dardg2dt","%/day",tstr2D, tcstr, &
-             "ridge area formation rate",                                  &
-             "none", secday*c100, c0,                                      &
+             "ridge area formation rate",                                    &
+             "none", secday*c100, c0,                                        &
              ns, f_dardg2dt)
 
       if (f_dvirdgdt(1:1) /= 'x') &
          call define_hist_field(n_dvirdgdt,"dvirdgdt","cm/day",tstr2D, tcstr, &
-             "ice volume ridging rate",                                     &
-             "none", mps_to_cmpdy, c0,                                      &
+             "ice volume ridging rate",                                       &
+             "none", mps_to_cmpdy, c0,                                        &
              ns, f_dvirdgdt)
 
       if (f_opening(1:1) /= 'x') &
          call define_hist_field(n_opening,"opening","%/day",tstr2D, tcstr, &
-             "lead area opening rate",                                   &
-             "none", secday*c100, c0,                                    &
+             "lead area opening rate",                                     &
+             "none", secday*c100, c0,                                      &
              ns, f_opening)
 
       if (f_sirdgconc(1:1) /= 'x') &
          call define_hist_field(n_sirdgconc,"sirdgconc","%",tstr2D, tcstr, &
-             "ridged ice area fraction",                           &
-             "none", c100, c0,                                       &
+             "ridged ice area fraction",                                   &
+             "none", c100, c0,                                             &
              ns, f_sirdgconc)
       if (f_sirdgthick(1:1) /= 'x') &
          call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &
-             "ridged ice thickness",                          &
-             "grid cell mean level ridged thickness", c1, c0, &
-             ns, f_sirdgthick, avg_ice_present=.true.)
+             "ridged ice thickness",                                         &
+             "grid cell mean level ridged thickness", c1, c0,                &
+             ns, f_sirdgthick, avg_ice_present=.true., mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams

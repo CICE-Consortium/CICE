@@ -277,8 +277,8 @@
 
       if (f_apond_ai(1:1) /= 'x') &
          call define_hist_field(n_apond_ai,"apond_ai","1",tstr2D, tcstr, &
-             "melt pond fraction of grid cell",                    &
-             "weighted by ice area", c1, c0,                       &
+             "melt pond fraction of grid cell",                          &
+             "weighted by ice area", c1, c0,                             &
              ns, f_apond_ai)
 
       if (f_hpond(1:1) /= 'x') &
@@ -289,8 +289,8 @@
 
       if (f_hpond_ai(1:1) /= 'x') &
          call define_hist_field(n_hpond_ai,"hpond_ai","m",tstr2D, tcstr, &
-             "mean melt pond depth over grid cell",                &
-             "weighted by ice area", c1, c0,                       &
+             "mean melt pond depth over grid cell",                      &
+             "weighted by ice area", c1, c0,                             &
              ns, f_hpond)
 
       if (f_ipond(1:1) /= 'x') &
@@ -301,88 +301,88 @@
 
       if (f_ipond_ai(1:1) /= 'x') &
          call define_hist_field(n_ipond_ai,"ipond_ai","m",tstr2D, tcstr, &
-             "mean pond ice thickness over grid cell",             &
-             "weighted by ice area", c1, c0,                       &
+             "mean pond ice thickness over grid cell",                   &
+             "weighted by ice area", c1, c0,                             &
              ns, f_ipond_ai)
 
       if (f_apeff(1:1) /= 'x') &
          call define_hist_field(n_apeff,"apeff","1",tstr2D, tcstr, &
              "radiation-effective pond area fraction of sea ice",  &
-             "none", c1, c0,  &
+             "none", c1, c0,                                       &
              ns, f_apeff)
 
       if (f_apeff_ai(1:1) /= 'x') &
          call define_hist_field(n_apeff_ai,"apeff_ai","1",tstr2D, tcstr, &
-             "radiation-effective pond area fraction over grid cell",  &
-             "weighted by ice area", c1, c0,                       &
+             "radiation-effective pond area fraction over grid cell",    &
+             "weighted by ice area", c1, c0,                             &
              ns, f_apeff_ai)
 
       if (f_dpnd_flush(1:1) /= 'x') &
          call define_hist_field(n_dpnd_flush,"dpnd_flush","m/s",tstr2D, tcstr, &
-             "pond flushing rate due to ice permeability",           &
-             "none", c1, c0,                                       &
+             "pond flushing rate due to ice permeability",                     &
+             "none", c1, c0,                                                   &
              ns, f_dpnd_flush)
 
       if (f_dpnd_expon(1:1) /= 'x') &
          call define_hist_field(n_dpnd_expon,"dpnd_expon","m/s",tstr2D, tcstr, &
-             "exponential pond drainage rate",                       &
-             "none", c1, c0,                                       &
+             "exponential pond drainage rate",                                 &
+             "none", c1, c0,                                                   &
              ns, f_dpnd_expon)
 
       if (f_dpnd_freebd(1:1) /= 'x') &
          call define_hist_field(n_dpnd_freebd,"dpnd_freebd","m/s",tstr2D, tcstr, &
-             "pond drainage rate due to freeboard constraint",       &
-             "none", c1, c0,                                       &
+             "pond drainage rate due to freeboard constraint",                   &
+             "none", c1, c0,                                                     &
              ns, f_dpnd_freebd)
 
       if (f_dpnd_initial(1:1) /= 'x') &
          call define_hist_field(n_dpnd_initial,"dpnd_initial","m/s",tstr2D, tcstr, &
-             "runoff rate due to rfrac",                             &
-             "none", c1, c0,                                       &
+             "runoff rate due to rfrac",                                           &
+             "none", c1, c0,                                                       &
              ns, f_dpnd_initial)
 
       if (f_dpnd_dlid(1:1) /= 'x') &
          call define_hist_field(n_dpnd_dlid,"dpnd_dlid","m/s",tstr2D, tcstr, &
-             "pond loss / gain to ice lid freezing / melting",         &
-             "none", c1, c0,                                       &
+             "pond loss / gain to ice lid freezing / melting",               &
+             "none", c1, c0,                                                 &
              ns, f_dpnd_dlid)
 
       if (f_dpnd_melt(1:1) /= 'x') &
          call define_hist_field(n_dpnd_melt,"dpnd_melt","m/s",tstr2D, tcstr, &
-             "pond drainage due to ice melting",                     &
-             "none", c1, c0,                                       &
+             "pond drainage due to ice melting",                             &
+             "none", c1, c0,                                                 &
              ns, f_dpnd_melt)
 
       if (f_dpnd_ridge(1:1) /= 'x') &
          call define_hist_field(n_dpnd_ridge,"dpnd_ridge","m",tstr2D, tcstr, &
-             "pond drainage due to ridging",                       &
-             "none", c1, c0,                                       &
+             "pond drainage due to ridging",                                 &
+             "none", c1, c0,                                                 &
              ns, f_dpnd_ridge)
 
       ! CMIP melt pond variables
       if (f_simpconc(1:1) /= 'x') &
          call define_hist_field(n_simpconc,"simpconc","%",tstr2D, tcstr, &
-             "melt pond fraction of sea ice",                      &
-             "none", c100, c0,                                       &
+             "melt pond fraction of sea ice",                            &
+             "none", c100, c0,                                           &
              ns, f_simpconc)
 
       if (f_simpeffconc(1:1) /= 'x') &
          call define_hist_field(n_simpeffconc,"simpeffconc","%",tstr2D, tcstr, &
              "radiatively active melt pond fraction of sea ice",               &
-             "none", c100, c0,                                       &
+             "none", c100, c0,                                                 &
              ns, f_simpeffconc)
 
       if (f_simpthick(1:1) /= 'x') &
          call define_hist_field(n_simpthick,"simpthick","kg m-2",tstr2D, tcstr, &
-             "sea ice melt pond thickness",                        &
-             "none", c1, c0,                                       &
-             ns, f_simpthick, avg_ice_present=.true.)
+             "sea ice melt pond thickness",                                     &
+             "none", c1, c0,                                                    &
+             ns, f_simpthick, avg_ice_present=.true., mask_ice_free_points=.true.)
 
       if (f_simprefrozen(1:1) /= 'x') &
          call define_hist_field(n_simprefrozen,"simprefrozen","m",tstr2D, tcstr, &
-             "thickness of refrozen ice on melt ponds",               &
-             "none", c1, c0,                                       &
-             ns, f_simprefrozen, avg_ice_present=.true.)
+             "thickness of refrozen ice on melt ponds",                          &
+             "none", c1, c0,                                                     &
+             ns, f_simprefrozen, avg_ice_present=.true., mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
