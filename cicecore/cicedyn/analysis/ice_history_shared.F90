@@ -301,7 +301,7 @@
            f_sistrxdtop = 'x', f_sistrydtop = 'x', &
            f_sistrxubot = 'x', f_sistryubot = 'x', &
            f_sicompstren = 'x', &
-           f_sialb     = 'x', f_sisali     = 'x', &
+           f_sisali     = 'x', &
            f_sihc      = 'x', f_sisnhc     = 'x', &
            f_sidconcth = 'x', f_sidconcdyn = 'x', &
            f_sidmassth = 'x', f_sidmassdyn = 'x', &
@@ -481,7 +481,7 @@
            f_sistrxdtop, f_sistrydtop, &
            f_sistrxubot, f_sistryubot, &
            f_sicompstren, &
-           f_sialb,     f_sisali,    &
+           f_sisali,    &
            f_sihc,      f_sisnhc,    &
            f_sidconcth, f_sidconcdyn,&
            f_sidmassth, f_sidmassdyn,&
@@ -689,7 +689,7 @@
            n_sistrxdtop,  n_sistrydtop,  &
            n_sistrxubot,  n_sistryubot,  &
            n_sicompstren, &
-           n_sialb      , n_sisali,      &
+           n_sisali,      &
            n_sihc       , n_sisnhc,      &
            n_sidconcth  , n_sidconcdyn,  &
            n_sidmassth  , n_sidmassdyn,  &

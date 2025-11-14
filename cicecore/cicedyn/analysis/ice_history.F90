@@ -363,7 +363,6 @@
          f_sistrxubot = 'mxxxx'
          f_sistryubot = 'mxxxx'
          f_sicompstren = 'mxxxx'
-         f_sialb = 'mxxxx'
          f_sisali = 'mxxxx'
          f_sisaltmass = 'mxxxx'
          f_sihc = 'mxxxx'
@@ -469,7 +468,6 @@
          f_fsens = 'xxxxx'
          f_flat = 'xxxxx'
          f_fhocn = 'xxxx'
-         f_fcondtop_ai = 'xxxxx'
          f_rain = 'xxxxx'
          f_snow = 'xxxxx'
          f_evap = 'xxxxx'
@@ -739,7 +737,6 @@
       call broadcast_scalar (f_sicompstren, master_task)
       call broadcast_scalar (f_sispeed, master_task)
       call broadcast_scalar (f_sidir, master_task)
-      call broadcast_scalar (f_sialb, master_task)
       call broadcast_scalar (f_sisali, master_task)
       call broadcast_scalar (f_sihc, master_task)
       call broadcast_scalar (f_sisnhc, master_task)
@@ -1691,11 +1688,6 @@
              "vector direction - going to", c1, c0,                  &
              ns1, f_sidir, avg_ice_present=.true., mask_ice_free_points=.true.)
 
-         call define_hist_field(n_sialb,"sialb","1",tstr2D, tcstr, &
-             "sea ice albedo",                                     &
-             "none", c1, c0,                                       &
-             ns1, f_sialb, avg_ice_present=.true., mask_ice_free_points=.true.)
-
          call define_hist_field(n_sisali,"sisali","ppt",tstr2D, tcstr, &
              "sea ice saltinity",                                      &
              "none", c1, c0,                                           &
@@ -1877,12 +1869,12 @@
          call define_hist_field(n_sihc,"sihc","J m-2",tstr2D, tcstr, &
              "sea ice heat content",                                 &
              "none", c1, c0,                                         &
-             ns1, f_sihc, avg_ice_present=.false.)
+             ns1, f_sihc, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sisnhc,"sisnhc","J m-2",tstr2D, tcstr, &
              "snow heat content",                                        &
              "none", c1, c0,                                             &
-             ns1, f_sisnhc, avg_ice_present=.false.)
+             ns1, f_sisnhc, avg_ice_present=.false., mask_ice_free_points=.true.)
 
          call define_hist_field(n_sidconcth,"sidconcth","1/s",tstr2D, tcstr, &
              "sea ice area change from thermodynamics",                      &
@@ -2608,7 +2600,7 @@
 
          if (f_fswup(1:1) /= 'x') &
             call accum_hist_field(n_fswup, iblk, &
-                 (fsw(:,:,iblk)-fswabs(:,:,iblk)*workb(:,:)), a2D)
+                 (fsw(:,:,iblk)-fswabs(:,:,iblk)*aice(:,:,iblk)), a2D)
          if (f_fswdn  (1:1) /= 'x') &
              call accum_hist_field(n_fswdn,  iblk, fsw(:,:,iblk), a2D)
          if (f_flwdn  (1:1) /= 'x') &
@@ -2661,14 +2653,14 @@
              call accum_hist_field(n_fswint_ai, iblk, fswint_ai(:,:,iblk), a2D)
 
          if (f_fswabs_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*aice(:,:,iblk), a2D)
 
          if (f_albsni (1:1) /= 'x') &
              call accum_hist_field(n_albsni, iblk, &
                                   (awtvdr*alvdr(:,:,iblk) &
                                  + awtidr*alidr(:,:,iblk) &
                                  + awtvdf*alvdf(:,:,iblk) &
-                                 + awtidf*alidf(:,:,iblk))*workb(:,:), a2D)
+                                 + awtidf*alidf(:,:,iblk))*aice(:,:,iblk), a2D)
          if (f_alvdr  (1:1) /= 'x') &
              call accum_hist_field(n_alvdr,  iblk, alvdr(:,:,iblk), a2D)
          if (f_alidr  (1:1) /= 'x') &
@@ -2698,19 +2690,19 @@
          if (f_flat   (1:1) /= 'x') &
              call accum_hist_field(n_flat,   iblk, flat(:,:,iblk), a2D)
          if (f_flat_ai(1:1) /= 'x') &
-             call accum_hist_field(n_flat_ai,iblk, flat(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_flat_ai,iblk, flat(:,:,iblk)*aice(:,:,iblk), a2D)
          if (f_fsens  (1:1) /= 'x') &
              call accum_hist_field(n_fsens,   iblk, fsens(:,:,iblk), a2D)
          if (f_fsens_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fsens_ai,iblk, fsens(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_fsens_ai,iblk, fsens(:,:,iblk)*aice(:,:,iblk), a2D)
          if (f_flwup  (1:1) /= 'x') &
              call accum_hist_field(n_flwup,   iblk, flwout(:,:,iblk), a2D)
          if (f_flwup_ai(1:1)/= 'x') &
-             call accum_hist_field(n_flwup_ai,iblk, flwout(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_flwup_ai,iblk, flwout(:,:,iblk)*aice(:,:,iblk), a2D)
          if (f_evap   (1:1) /= 'x') &
              call accum_hist_field(n_evap,   iblk, evap(:,:,iblk), a2D)
          if (f_evap_ai(1:1) /= 'x') &
-             call accum_hist_field(n_evap_ai,iblk, evap(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_evap_ai,iblk, evap(:,:,iblk)*aice(:,:,iblk), a2D)
 
          if (f_Tair   (1:1) /= 'x') &
              call accum_hist_field(n_Tair,   iblk, Tair(:,:,iblk), a2D)
@@ -2861,10 +2853,10 @@
              call accum_hist_field(n_dagedtd, iblk, dagedtd(:,:,iblk), a2D)
 
          if (f_fsurf_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fsurf_ai,iblk, fsurf(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_fsurf_ai,iblk, fsurf(:,:,iblk)*aice(:,:,iblk), a2D)
          if (f_fcondtop_ai(1:1)/= 'x') &
              call accum_hist_field(n_fcondtop_ai, iblk, &
-                                                 fcondtop(:,:,iblk)*workb(:,:), a2D)
+                                                 fcondtop(:,:,iblk)*aice(:,:,iblk), a2D)
 
          if (f_icepresent(1:1) /= 'x') then
            worka(:,:) = c0
@@ -2971,7 +2963,7 @@
                     salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
                  enddo
               endif
-              if (aice(i,j,iblk) > puny) worka(i,j) = salt_ice
+              if (aice(i,j,iblk) > puny) worka(i,j) = aice(i,j,iblk)*salt_ice
            enddo
            enddo
            call accum_hist_field(n_sisali, iblk, worka(:,:), a2D)
@@ -3134,8 +3126,8 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (aice_init(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairxU(i,j,iblk)/aice_init(i,j,iblk))
+              if (aice(i,j,iblk) > puny) &
+                 worka(i,j) = aice(i,j,iblk)*strairxU(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sistrxdtop, iblk, worka(:,:), a2D)
@@ -3145,8 +3137,8 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (aice_init(i,j,iblk) > puny) &
-                 worka(i,j) = aice(i,j,iblk)*(aice(i,j,iblk)*strairyU(i,j,iblk)/aice_init(i,j,iblk))
+              if (aice(i,j,iblk) > puny) &
+                 worka(i,j) = aice(i,j,iblk)*strairyU(i,j,iblk)
            enddo
            enddo
            call accum_hist_field(n_sistrydtop, iblk, worka(:,:), a2D)
@@ -3183,19 +3175,6 @@
            enddo
            enddo
            call accum_hist_field(n_sicompstren, iblk, worka(:,:), a2D)
-         endif
-
-         if (f_sialb(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (fsw(i,j,iblk) > puny .and. aice_init(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*(fsw(i,j,iblk)-fswabs(i,j,iblk) &
-                            * aice(i,j,iblk)/aice_init(i,j,iblk)) / fsw(i,j,iblk)
-              endif
-           enddo
-           enddo
-           call accum_hist_field(n_sialb, iblk, worka(:,:), a2D)
          endif
 
          if (f_sihc(1:1) /= 'x') then
@@ -3431,8 +3410,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (fsw(i,j,iblk) > puny .and. aice_init(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*(fsw(i,j,iblk)-fswabs(i,j,iblk) &
-                            * aice(i,j,iblk)/aice_init(i,j,iblk))
+                 worka(i,j) = aice(i,j,iblk)*(fsw(i,j,iblk)-fswabs(i,j,iblk)*aice(i,j,iblk)/aice_init(i,j,iblk))
               endif
            enddo
            enddo
@@ -3527,8 +3505,8 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (aice_init(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*fcondbot(i,j,iblk)/aice_init(i,j,iblk)
+              if (aice(i,j,iblk) > puny) then
+                 worka(i,j) = aice(i,j,iblk)*fcondbot(i,j,iblk)
               endif
            enddo
            enddo
@@ -3566,7 +3544,8 @@
                     enddo
                     rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
                  endif
-                 worka(i,j) = ((rho_ocn-rho_ice)*vice(i,j,iblk) - rhos*vsno(i,j,iblk))/rho_ocn
+                 if (aice(i,j,iblk) > puny) &
+                    worka(i,j) = ((rho_ocn-rho_ice)*vice(i,j,iblk)-rhos*vsno(i,j,iblk))/rho_ocn
 !                if (worka(i,j) < c0) then
 !                   write(nu_diag,*) 'negative fb',rho_ocn,rho_ice,rhos
 !                   write(nu_diag,*) vice(i,j,iblk),vsno(i,j,iblk)
@@ -4038,13 +4017,6 @@
                  enddo             ! j
               endif
 
-              ! CMIP albedo: also mask points below horizon
-              if (index(avail_hist_fields(n)%vname,'sialb') /= 0) then
-               do j = jlo, jhi
-               do i = ilo, ihi
-                  if (albcnt(i,j,iblk,ns) <= puny) a2D(i,j,n,iblk) = spval_dbl
-               enddo             ! i
-               enddo             ! j
             endif
 
               ! back out albedo/zenith angle dependence
@@ -4137,7 +4109,6 @@
 !              enddo             ! j
 !              endif
 
-              endif             ! avail_hist_fields(n)%vhistfreq == histfreq(ns)
            enddo                ! n
 
            do n = 1, num_avail_hist_fields_3Dc

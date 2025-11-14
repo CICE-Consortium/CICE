@@ -8,7 +8,7 @@
 
       use ice_kinds_mod
       use ice_domain_size, only: max_nstrm
-      use ice_constants, only: c0, c1
+      use ice_constants, only: c0, c1, c100
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_fileunits, only: nu_diag

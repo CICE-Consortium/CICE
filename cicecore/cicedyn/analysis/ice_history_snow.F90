@@ -31,6 +31,9 @@
            f_rsnw      = 'm', f_rsnwn       = 'x', &
            f_meltsliq  = 'm', f_fsloss      = 'x'
 
+      character (len=max_nstrm), public :: &
+           f_sisndmasswind = 'm'
+
       !---------------------------------------------------------------
       ! namelist variables
       !---------------------------------------------------------------
@@ -41,7 +44,8 @@
            f_rhos_cmp,  f_rhos_cmpn,  &
            f_rhos_cnt,  f_rhos_cntn,  &
            f_rsnw,      f_rsnwn,      &
-           f_meltsliq,  f_fsloss
+           f_meltsliq,  f_fsloss,     &
+           f_sisndmasswind
 
       !---------------------------------------------------------------
       ! field indices
@@ -55,6 +59,9 @@
            n_rsnw,      n_rsnwn,     &
            n_meltsliq,  n_fsloss
 
+      integer (kind=int_kind), dimension(max_nstrm), public :: &
+           n_sisndmasswind
+
 !=======================================================================
 
       contains
@@ -66,7 +73,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CICE, f_CMIP
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_fileunits, only: goto_nml
@@ -147,6 +154,15 @@
           f_rsnwn    = 'x'
           f_meltsliq = 'x'
           f_fsloss   = 'x'
+          f_sisndmasswind = 'x'
+      endif
+
+      if (f_CMIP(1:1) /= 'x') then
+          f_sisndmasswind = 'mxxxx'
+      endif
+
+      if (f_CICE(1:1) == 'x') then
+          f_fsloss = 'xxxxx'
       endif
 
       call broadcast_scalar (f_smassice, master_task)
@@ -161,6 +177,7 @@
       call broadcast_scalar (f_rsnwn,    master_task)
       call broadcast_scalar (f_meltsliq, master_task)
       call broadcast_scalar (f_fsloss,   master_task)
+      call broadcast_scalar (f_sisndmasswind,   master_task)
 
       if (tr_snow) then
 
@@ -209,6 +226,12 @@
              "rate of snow loss to leads (liquid)",                         &
              "none", c1, c0,                                                &
              ns, f_fsloss)
+
+      if (f_sisndmasswind(1:1) /= 'x') &
+         call define_hist_field(n_sisndmasswind,"sisndmasswind","kg/m^2/s",tstr2D, tcstr, &
+             "rate of snow loss to leads (liquid)",                         &
+             "none", c1, c0,                                                &
+             ns, f_sisndmasswind)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -374,6 +397,10 @@
                  meltsliq(:,:,iblk), a2D)
          if (f_fsloss(1:1)/= 'x') &
             call accum_hist_field(n_fsloss, iblk, &
+                 fsloss(:,:,iblk), a2D)
+
+         if (f_sisndmasswind(1:1)/= 'x') &
+            call accum_hist_field(n_sisndmasswind, iblk, &
                  fsloss(:,:,iblk), a2D)
 
          endif ! allocated(a2D)

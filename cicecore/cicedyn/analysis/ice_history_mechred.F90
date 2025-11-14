@@ -421,10 +421,10 @@
 
          if (f_sirdgconc(1:1)/= 'x') &
              call accum_hist_field(n_sirdgconc,   iblk, &
-                             aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+                             (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
          if (f_sirdgthick(1:1)/= 'x') &
              call accum_hist_field(n_sirdgthick,   iblk, &
-                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+                             (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          endif ! allocated(a2D)
 
          ! 3D category fields
