@@ -88,8 +88,15 @@ Averages
 
 Coupling and history output quantities may be averaged in different forms, depending on
 whether it represents a value averaged over the entire grid cell, the sea ice fraction,
-or a subset of the sea ice fraction such as a thickness category or the ponded area. These
-distinctions must also be considered for time averaging.
+or a subset of the sea ice fraction such as a thickness category or the ponded area.
+
+These distinctions must also be considered for time averaging. The SIMIP Project :cite:`Notz16`
+categorizes output variables as 'intensive' and 'extensive' based on their characteristics
+relative to ice area.  Extensive variables are proportional to area fraction, and their time
+averages include zeroes when and where there is no ice.  Intensive variables area not
+proportional to area fraction, and their time averages should not include zeroes when and
+where there is no ice. This is accomplished by summing area-weighted values across categories
+then dividing by the sum of the category areas.
 
 The following formulas ignore subtleties such as some fluxes being computed on the initial ice area, which then
 changes due to frazil ice formation, lateral melting and transport.  The ice area used for both averaging and coupling should be carefully
@@ -120,7 +127,7 @@ The time-averaged ice area over an interval of length :math:`N\Delta t` is
                \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t \over N \, \Delta t}
                = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} a_n
 
-and the time-averaged ice area fraction is
+and the time-averaged ice area fraction is extensive (by definition):
 
 .. math::
    \bar{a}_{ice} = {\int_t \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_t \int_{cell} d\mathbf{X} \, dt}
@@ -152,7 +159,8 @@ grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' i
                \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t}
                = {\sum_{\Delta t} \sum_{n=1}^{ncat} v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n}.
 
-Snow volume is treated similarly.
+Snow volume is treated similarly. Ice and snow volumes are extensive, while thicknesses are
+intensive.
 
 Volume content
 ~~~~~~~~~~~~~~~~~
@@ -177,10 +185,12 @@ The mean tracer value in sea ice is
                  \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t}
 		 =  {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} v_n}
 
+Thus, volume content variables are extensive, while the tracers themselves are intensive.
+
 Surface quantities
 ~~~~~~~~~~~~~~~~~
 
-Surface quantities such as temperature are treated similarly to volume tracers, with integrals taken over
+Surface quantities such as temperature are intensive and treated similarly to volume tracers, with integrals taken over
 the desired surface area rather than the volume.  For example,
 
 .. math::
