@@ -96,7 +96,7 @@ categorizes output variables as 'intensive' and 'extensive' based on their chara
 relative to ice area.  Extensive variables are proportional to area fraction, and their time
 averages include zeroes when and where there is no ice.  Intensive variables area not
 proportional to area fraction, and their time averages should not include zeroes when and
-where there is no ice. This is accomplished by summing area-weighted values across categories
+where there is no ice. This is accomplished by summing area-weighted intensive values across categories
 then dividing by the sum of the category areas. Tracers such as ice thickness, surface temperature,
 and biogeochemical tracers are examples of intensive variables.
 
