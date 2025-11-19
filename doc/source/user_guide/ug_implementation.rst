@@ -1408,6 +1408,12 @@ Additionally, a new history output variable, ``f_CMIP``, has been added. When ``
 is added to the **icefields_nml** section of **ice_in** then all SIMIP variables
 will be turned on for output at the frequency specified by ``f_CMIP``. 
 
+We have updated the SIMIP variables to correspond to the new
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. We have also
+added the ``f_CICE`` flag to help reduce duplication. When ``f_CICE = 'xxxxx'`` this
+will turn off the CICE duplicates of CMIP variables. However, it is possible for the
+user to have both.
+
 It may also be helpful for debugging to increase the precision of the history file
 output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
 namelist flag.
