@@ -2046,20 +2046,24 @@
               ns1, f_keffn_top)
 
            ! CMIP 3D
-           call define_hist_field(n_siitdconc,"siitdconc","%",tstr3Dc, tcstr, &
-              "ice area, categories","none", c100, c0,                  &
+           call define_hist_field(n_siitdconc,"siitdconc","%",tstr3Dc, tcstr,   &
+              "percentage of grid cell covered by each ice thickness category", &
+              "none", c100, c0,                                                 &
               ns1, f_siitdconc)
 
-           call define_hist_field(n_siitdconc,"siitdsnconc","%",tstr3Dc, tcstr, &
-              "snow area fraction, categories","none", c100, c0,                  &
+           call define_hist_field(n_siitdsnconc,"siitdsnconc","%",tstr3Dc, tcstr,         &
+              "percentage of grid cell covered by snow in each ice thickness category", &
+              "none", c100, c0,                                                         &
               ns1, f_siitdsnconc)
 
            call define_hist_field(n_siitdthick,"siitdthick","m",tstr3Dc, tcstr, &
-              "ice thickness, categories","none", c1, c0, &
+              "actual (floe) thickness of sea ice in each thickness category",  &
+              "none", c1, c0,                                                   &
               ns1, f_siitdthick, avg_ice_present='final')
 
            call define_hist_field(n_siitdsnthick,"siitdsnthick","m",tstr3Dc, tcstr, &
-              "snow thickness, categories","none", c1, c0, &
+              "actual thickness of snow in each ice thickness category",            &
+              "none", c1, c0,                                                       &
               ns1, f_siitdsnthick, avg_ice_present='final')
 
       endif ! if (histfreq(ns1) /= 'x') then
@@ -3724,9 +3728,7 @@
            do n = 1,ncat_hist
            do j = jlo, jhi
            do i = ilo, ihi
-              if (aicen(i,j,n,iblk) > puny) then
-                 worka3(i,j,n) = aicen(i,j,n,iblk)
-              endif
+              worka3(i,j,n) = aicen(i,j,n,iblk)
            enddo
            enddo
            enddo
