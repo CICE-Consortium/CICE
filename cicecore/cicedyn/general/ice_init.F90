@@ -84,7 +84,7 @@
           restart, restart_ext, restart_coszen, use_restart_time, &
           runtype, restart_file, restart_dir, runid, pointer_file, &
           restart_format, restart_rearranger, restart_iotasks, restart_root, &
-          restart_stride, restart_deflate, restart_chunksize
+          restart_stride, restart_deflate, restart_chunksize, restart_mod
       use ice_history_shared, only: &
           history_precision, hist_avg, history_format, history_file, incond_file, &
           history_dir, incond_dir, version_name, history_rearranger, &
@@ -196,7 +196,7 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
-        restart_deflate, restart_chunksize,                             &
+        restart_deflate, restart_chunksize, restart_mod,                &
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
@@ -573,6 +573,7 @@
       restore_ocn     = .false.   ! restore sst if true
       trestore        = 90        ! restoring timescale, days (0 instantaneous)
       restore_ice     = .false.   ! restore ice state on grid edges if true
+      restart_mod     = 'none'    ! restart modification option
       debug_forcing   = .false.   ! true writes diagnostics for input forcing
 
       latpnt(1) =  90._dbl_kind   ! latitude of diagnostic point 1 (deg)
@@ -991,6 +992,7 @@
       call broadcast_scalar(restart_rearranger,   master_task)
       call broadcast_scalar(restart_deflate,      master_task)
       call broadcast_array(restart_chunksize,     master_task)
+      call broadcast_scalar(restart_mod,          master_task)
       call broadcast_scalar(lcdf64,               master_task)
       call broadcast_scalar(pointer_file,         master_task)
       call broadcast_scalar(ice_ic,               master_task)
@@ -1441,6 +1443,14 @@
             endif
             abort_list = trim(abort_list)//":48"
          endif
+      endif
+
+      if (close_boundaries) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: close_boundaries deprecated, '// &
+              'use ew_boundary_type=closed and/or ns_boundary_type=closed'
+         endif
+         abort_list = trim(abort_list)//":49"
       endif
 
       if (grid_ice == 'CD') then
@@ -2620,6 +2630,7 @@
          write(nu_diag,1011) ' restart          = ', restart
          write(nu_diag,1031) ' restart_dir      = ', trim(restart_dir)
          write(nu_diag,1011) ' restart_ext      = ', restart_ext
+         write(nu_diag,1031) ' restart_mod      = ', trim(restart_mod)
          write(nu_diag,1011) ' restart_coszen   = ', restart_coszen
          write(nu_diag,1031) ' restart_format   = ', trim(restart_format)
          write(nu_diag,1021) ' restart_deflate  = ', restart_deflate
@@ -3068,14 +3079,14 @@
 
          ! Halo update on North, East faces
          call ice_HaloUpdate(uvelN, halo_info, &
-                             field_loc_Nface, field_type_scalar)
+                             field_loc_Nface, field_type_scalar, fillvalue=c0)
          call ice_HaloUpdate(vvelN, halo_info, &
-                             field_loc_Nface, field_type_scalar)
+                             field_loc_Nface, field_type_scalar, fillvalue=c0)
 
          call ice_HaloUpdate(uvelE, halo_info, &
-                             field_loc_Eface, field_type_scalar)
+                             field_loc_Eface, field_type_scalar, fillvalue=c0)
          call ice_HaloUpdate(vvelE, halo_info, &
-                             field_loc_Eface, field_type_scalar)
+                             field_loc_Eface, field_type_scalar, fillvalue=c0)
 
       endif
 

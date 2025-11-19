@@ -4,15 +4,17 @@
 
 CPP        := fpp
 CPPDEFS    := -DFORTRANUNDERSCORE ${ICE_CPPDEFS}
-CFLAGS     := -c -O2 -fp-model precise   -xHost
+CFLAGS     := -c -O2 -fp-model precise -march=core-avx2
 
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte  -xHost
+FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -align array64byte -march=core-avx2
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+  # 7/2025: cannot use -check uninit
+  # 7/2025: must use fpe1 rather than fpe0
+  FFLAGS     += -O0 -g -check bounds -check pointers -fpe1 -check noarg_temp_created -link_mpi=dbg
 else
   FFLAGS     += -O2
 endif

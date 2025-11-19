@@ -366,12 +366,21 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
+else if (${ICE_MACHINE} =~ boreas* ) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -j oe
+#PBS -q ${queue}
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+#PBS -l walltime=${batchtime}
+EOFB
+
 else if (${ICE_MACHINE} =~ gaeac5*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
-#SBATCH --account=nggps_emc
+#SBATCH --account=${acct}
 #SBATCH --clusters=c5
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}
@@ -388,7 +397,7 @@ cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}
 #SBATCH --partition=batch
 #SBATCH --qos=${queue}
-#SBATCH --account=sfs_emc
+#SBATCH --account=${acct}
 #SBATCH --clusters=c6
 #SBATCH --time=${batchtime}
 #SBATCH --nodes=${nnodes}

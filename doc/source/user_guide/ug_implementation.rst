@@ -421,7 +421,7 @@ Tinz and Tsnz, and the ice salinity profile, Sinz. These variables also include 
 category as a fourth dimension. 
 
 *******************
-Boundary conditions
+Boundary Conditions
 *******************
 
 Much of the infrastructure used in CICE, including the boundary
@@ -430,33 +430,39 @@ communications among processors when MPI is in use and among blocks
 whenever there is more than one block per processor.
 
 Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
-namelist inputs.  Valid values are ``open`` and ``cyclic``.  In addition,
+namelist inputs.  Valid values are ``open``, ``closed``, and ``cyclic``.  In addition,
 ``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
-Closed boundary conditions are not supported currently.  
-The domain can be physically closed with the ``close_boundaries``
-namelist which forces a land mask on the boundary with a two gridcell depth. 
-Where the boundary is land, the boundary_type settings play no role.
-For example, in the displaced-pole grids, at least one row of grid cells along the north 
-and south boundaries is land.  Along the east/west domain boundaries not
-masked by land, periodic conditions wrap the domain around the globe.  In
-this example,
-the appropriate namelist settings are ``nsboundary_type`` = ``open``,
-``ew_boundary_type`` = ``cyclic``, and ``close_boundaries`` = ``.false.``.
+``closed`` imposes a land mask on the boundary with a two gridcell depth
+and is only supported for rectangular grids.  In general,
+where the boundary is land or where there is no ice on the boundary, 
+the boundary_type settings and boundary conditions play no role.
 
-CICE can be run on regional grids with open boundary conditions; except
-for variables describing grid lengths, non-land halo cells along the
-grid edge must be filled by restoring them to specified values. The
-namelist variable ``restore_ice`` turns this functionality on and off; the
+In the displaced-pole global grids, the mask (kmt) file has at least one row of 
+grid cells along the north and south boundaries that is land.  Along the east/west 
+domain boundaries, periodic conditions wrap the domain around the globe.  In
+this example,
+the appropriate namelist settings are ``ns_boundary_type`` = ``open``,
+``ew_boundary_type`` = ``cyclic``.
+
+CICE can be run on regional grids with ``open``, ``closed``, or ``cyclic`` 
+boundary conditions.
+Except for variables describing grid lengths, non-land halo cells along the
+grid edge must be filled with some boundary conditions 
+if ice is present at that location.  The outside halo is handled automatically
+with ``closed`` or ``cyclic`` conditions.  With open boundary conditions, one can imagine 
+several different ways to set the outside boundary including reading values from
+an external file or deriving values on that halo based on the interior 
+solution while specifying zero gradient, constant gradient, specified state,
+zero flux, or other boundary conditions.  Mathematically specified boundary 
+conditions are currently not supported in the CICE model.
+
+The namelist variable ``restore_ice`` turns on a restoring capability on the
+boundary by setting the boundary halo to values read from a file.  The
 restoring timescale ``trestore`` may be used (it is also used for restoring
 ocean sea surface temperature in stand-alone ice runs). This
 implementation is only intended to provide the “hooks" for a more
-sophisticated treatment; the rectangular grid option can be used to test
-this configuration. The ‘displaced_pole’ grid option should not be used
-unless the regional grid contains land all along the north and south
-boundaries. The current form of the boundary condition routines does not
-allow Neumann boundary conditions, which must be set explicitly. This
-has been done in an unreleased branch of the code; contact Elizabeth for
-more information.
+sophisticated treatment.  The rectangular grid option can be used to test
+this configuration. 
 
 For exact restarts using restoring, set ``restart_ext`` = true in namelist
 to use the extended-grid subroutines.
