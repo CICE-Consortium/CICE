@@ -90,7 +90,7 @@
           real (kind=dbl_kind) :: conb    ! additive conversion factor
           character (len=1) :: vhistfreq  ! frequency of history output
           integer (kind=int_kind) :: vhistfreq_n ! number of vhistfreq intervals
-          logical (kind=log_kind) :: avg_ice_present ! only average where ice is present
+          character (len=16) :: avg_ice_present ! only average where ice is present 'init', 'final', 'none'
           logical (kind=log_kind) :: mask_ice_free_points ! mask ice-free points
       end type
 
@@ -221,6 +221,7 @@
            f_hi        = 'm', f_hs         = 'm', &
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
+           f_aice_init = 'x', &
            f_uvel      = 'm', f_vvel       = 'm', &
            f_icespd    = 'm', f_icedir     = 'm', &
            f_uvelE     = 'x', f_vvelE      = 'x', &
@@ -400,6 +401,7 @@
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
+           f_aice_init, &
            f_uvel,      f_vvel     , &
            f_icespd,    f_icedir   , &
 !          For now, C and CD grid quantities are controlled by the generic (originally B-grid) namelist flag
@@ -609,6 +611,7 @@
            n_hi         , n_hs         , &
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
+           n_aice_init  , &
            n_uvel       , n_vvel       , &
            n_icespd     , n_icedir     , &
            n_uvelE      , n_vvelE      , &
@@ -912,6 +915,9 @@
          vdesc      , & ! variable descriptions
          vcomment       ! variable comments
 
+      character (len=*), optional, intent(in) :: &
+         avg_ice_present ! compute average only when ice is present
+
       real (kind=dbl_kind), intent(in) :: &
          cona       , & ! multiplicative conversion factor
          conb           ! additive conversion factor
@@ -923,7 +929,6 @@
          ns             ! history file stream index
 
       logical (kind=log_kind), optional, intent(in) :: &
-         avg_ice_present       , & ! compute average only when ice is present
          mask_ice_free_points      ! mask ice-free points
 
       integer (kind=int_kind) :: &
@@ -932,13 +937,14 @@
 
       character (len=40) :: stmp
 
+      character (len=16) :: l_avg_ice_present ! compute average only when ice is present
+
       logical (kind=log_kind) :: &
-         l_avg_ice_present       , & ! compute average only when ice is present
          l_mask_ice_free_points      ! mask ice-free points
 
       character(len=*), parameter :: subname = '(define_hist_field)'
 
-      l_avg_ice_present = .false.
+      l_avg_ice_present = 'none'
       l_mask_ice_free_points = .false.
 
       if(present(avg_ice_present)) l_avg_ice_present = avg_ice_present

@@ -1287,7 +1287,7 @@
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-             if (hfield%avg_ice_present) then
+             if (trim(hfield%avg_ice_present) /= 'none') then
                 status = nf90_put_att(ncid,varid,'cell_methods','area: time: mean where sea ice (mask=siconc)')
                 call ice_check_nc(status, subname// ' ERROR: defining cell methods for '//hfield%vname, &
                                   file=__FILE__, line=__LINE__)

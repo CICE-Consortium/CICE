@@ -1428,7 +1428,7 @@
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            if (hfield%avg_ice_present) then
+            if (trim(hfield%avg_ice_present) /= 'none') then
                call ice_pio_check(pio_put_att(File,varid,'cell_methods', &
                     'area: time: mean where sea ice (mask=siconc)'), &
                     subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)

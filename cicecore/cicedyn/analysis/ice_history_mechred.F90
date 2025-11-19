@@ -255,14 +255,14 @@
 
       if (f_sirdgconc(1:1) /= 'x') &
          call define_hist_field(n_sirdgconc,"sirdgconc","%",tstr2D, tcstr, &
-             "ridged ice area fraction",                                   &
+             "percentage of ridged sea ice",                               &
              "none", c100, c0,                                             &
              ns, f_sirdgconc)
       if (f_sirdgthick(1:1) /= 'x') &
          call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &
              "ridged ice thickness",                                         &
              "grid cell mean level ridged thickness", c1, c0,                &
-             ns, f_sirdgthick, avg_ice_present=.true., mask_ice_free_points=.true.)
+             ns, f_sirdgthick, avg_ice_present='final', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -421,10 +421,10 @@
 
          if (f_sirdgconc(1:1)/= 'x') &
              call accum_hist_field(n_sirdgconc,   iblk, &
-                             (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+                             aice(:,:,iblk)*(c1 - trcr(:,:,nt_alvl,iblk)), a2D)
          if (f_sirdgthick(1:1)/= 'x') &
              call accum_hist_field(n_sirdgthick,   iblk, &
-                             (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+                             vice(:,:,iblk)*(c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          endif ! allocated(a2D)
 
          ! 3D category fields
