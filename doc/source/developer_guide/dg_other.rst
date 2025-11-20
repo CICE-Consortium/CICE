@@ -94,7 +94,7 @@ distinctions must also be considered for time averaging.
 The SIMIP Project :cite:`Notz16`
 categorizes output variables as 'intensive' and 'extensive' based on their characteristics
 relative to ice area.  Extensive variables are proportional to area fraction, and their time
-averages include zeroes when and where there is no ice.  Intensive variables area not
+averages include zeroes when and where there is no ice.  Intensive variables are not
 proportional to area fraction, and their time averages should not include zeroes when and
 where there is no ice. This is accomplished by summing area-weighted intensive values across categories
 then dividing by the sum of the category areas. Tracers such as ice thickness, surface temperature,
@@ -111,12 +111,12 @@ Ice area
 
 If :math:`\mathbf{X}=(x,y)`, :math:`A` is the cell area (:math:`m^2`) and :math:`g` represents
 the ice thickness distribution discretized as :math:`a_n` for :math:`n=1,\, ncat`, then the
-ice area is the sum of the thickness category areas :math:`a_n A`:
+ice area (:math:`m^2`) is the sum of the thickness category areas :math:`a_n A`:
 
 .. math::
    A_{i}(t) = \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \sim \sum_{n=1}^{ncat} a_n(t) \, A
 
-and the ice area fraction is
+and the (unitless) ice area fraction is
 
 .. math::
    a_{ice}(t) = {\int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \over \int_{cell} d\mathbf{X} \, dt} \sim \sum_{n=1}^{ncat} a_n(t).
@@ -146,7 +146,7 @@ Likewise for time averages of ice volume :math:`V_i` (:math:`m^3`),
                \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over N \, \Delta t}
                = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n
 
-for ice thickness :math:`h` assumed to be 0 in open water. Then the average ice volume per square meter of grid cell (:math:`m`) is
+for ice thickness :math:`h` assumed to be 0 in open water. Then the time-average ice volume per square meter of grid cell (:math:`m`) is
 
 .. math::
    \bar{v}_{ice} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} d\mathbf{X} \, dt}
@@ -163,6 +163,14 @@ grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' i
 
 Snow volume is treated similarly. Ice and snow volumes are extensive, while thicknesses are
 intensive.
+
+The form used here for time-averaging the average 'actual' thickness produces the average over all ice present
+during the averaging interval. For intensive variables in particular, this form is slightly different from
+the time-average of the category-averaged quantity per time step. The latter, two-step averaging process
+requires additional divisions and re-multiplications by ice area, introducing errors where ice areas
+are very small or cells change from ice-free to having ice or vice versa. The same is true for other tracers
+and intensive variables. While both approaches are valid, averages as written here are preferred when
+conservation is important.
 
 Volume content
 ~~~~~~~~~~~~~~~~~
