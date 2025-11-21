@@ -452,7 +452,8 @@
          f_sisaltmass = f_CMIP
       endif
 
-      ! reduce redundancy of CMIP versus CICE variables.
+      ! turn off CICE native diagnostics which are on by default
+
       if (f_CICE(1:1) == 'x') then
          f_icepresent = 'xxxxx'
          f_hi = 'xxxxx'
@@ -1619,11 +1620,13 @@
              "weighted by ice area", c1, c0,                     &
               ns1, f_FY)
 
-      ! CMIP 2D variables (intensive, avg_ice_present = 'init' or 'final')
+      ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
+      ! use avg_ice_present = 'init' or 'final' to divide by sum(aice) over time, when 
+      ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
 
          call define_hist_field(n_sithick,"sithick","m",tstr2D, tcstr, &
              "sea-ice thickness",                                      &
-             "volume divided by area", c1, c0,                         &
+             "volume divided by sea-ice area", c1, c0,                 &
              ns1, f_sithick, avg_ice_present='final', mask_ice_free_points=.true.)
 
          call define_hist_field(n_siage,"siage","s",tstr2D, tcstr, &
@@ -1633,7 +1636,7 @@
 
          call define_hist_field(n_sisnthick,"sisnthick","m",tstr2D, tcstr, &
              "snow thickness",                                             &
-             "snow volume divided by area", c1, c0,                        &
+             "snow volume divided by sea-ice area", c1, c0,                        &
              ns1, f_sisnthick, avg_ice_present='final', mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitemptop,"sitemptop","K",tstr2D, tcstr, &
@@ -1837,7 +1840,7 @@
              ns1, f_sishearvel)
 
 
-      ! CMIP 2D variables (extensive, avg_ice_present = 'none')
+      ! CMIP 2D variables (intensive, avg_ice_present = 'init' or 'final')
 
          call define_hist_field(n_siconc,"siconc","%",tstr2D, tcstr, &
              "sea-ice area percentage (ocean grid)",                 &
@@ -1947,7 +1950,7 @@
          call define_hist_field(n_sisndmasssnf,"sisndmasssnf","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass change through snowfall",                                         &
              "none", c1, c0,                                                              &
-             ns1, f_sisndmasssnf)
+             ns1, f_sisndmasssnf, avg_ice_present='init')
 
          call define_hist_field(n_sisndmassmelt,"sisndmassmelt","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through melt",                                       &
@@ -2386,7 +2389,7 @@
          worka, workb, ravgip, ravgip_init
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
-         ravgipn, worka3
+         ravgipn
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
@@ -2495,7 +2498,7 @@
 #ifndef __INTEL_LLVM_COMPILER
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
       !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,salt_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt,sicen, &
-      !$OMP             worka,workb,worka3,Tinz4d,Sinz4d,Tsnz4d)
+      !$OMP             worka,workb,Tinz4d,Sinz4d,Tsnz4d)
 #endif
 
       do iblk = 1, nblocks
@@ -2900,23 +2903,11 @@
          endif
 
          if (f_sithick(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = vice(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sithick, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sithick, iblk, vice(:,:,iblk), a2D)
          endif
 
          if (f_sivol(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = vice(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sivol, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sivol, iblk, vice(:,:,iblk), a2D)
          endif
 
          if (f_simass(1:1) /= 'x') then
@@ -2989,104 +2980,44 @@
          endif
 
          if (f_siconc(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siconc, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siconc, iblk, aice(:,:,iblk), a2D)
          endif
 
          if (f_sisnconc(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = snowfrac(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisnconc, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisnconc, iblk, snowfrac(:,:,iblk), a2D)
          endif
 
          if (f_sisnmass(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = rhos*vsno(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisnmass, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisnmass, iblk, rhos*vsno(:,:,iblk), a2D)
          endif
 
          if (f_siage(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*trcr(i,j,nt_iage,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siage, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siage, iblk, aice(:,:,iblk)*trcr(:,:,nt_iage,iblk), a2D)
          endif
 
          if (f_sisnthick(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = vsno(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisnthick, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisnthick, iblk, vsno(:,:,iblk), a2D)
          endif
 
          if (f_sitemptop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*trcr(i,j,nt_Tsfc,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sitemptop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sitemptop, iblk, aice(:,:,iblk)*trcr(:,:,nt_Tsfc,iblk), a2D)
          endif
 
          ! Tsnice is already multiplied by aicen in icepack.
          if (f_sitempsnic(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = Tsnice(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sitempsnic, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sitempsnic, iblk, Tsnice(:,:,iblk), a2D)
          endif
 
          if (f_sitempbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*Tbot(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sitempbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sitempbot, iblk, aice_init(:,:,iblk)*Tbot(:,:,iblk), a2D)
          endif
 
          if (f_siu(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*uvel(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siu, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siu, iblk, aice(:,:,iblk)*uvel(:,:,iblk), a2D)
          endif
 
          if (f_siv(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*vvel(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siv, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siv, iblk, aice(:,:,iblk)*vvel(:,:,iblk), a2D)
          endif
 
          if (f_sispeed(1:1) /= 'x') then
@@ -3171,53 +3102,23 @@
          endif
 
          if (f_sistrxdtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strairxU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sistrxdtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sistrxdtop, iblk, aice(:,:,iblk)*strairxU(:,:,iblk), a2D)
          endif
 
          if (f_sistrydtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strairyU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sistrydtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sistrydtop, iblk, aice(:,:,iblk)*strairyU(:,:,iblk), a2D)
          endif
 
          if (f_sistrxubot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strocnxU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sistrxubot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sistrxubot, iblk, aice(:,:,iblk)*strocnxU(:,:,iblk), a2D)
          endif
 
          if (f_sistryubot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strocnyU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sistryubot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sistryubot, iblk, aice(:,:,iblk)*strocnyU(:,:,iblk), a2D)
          endif
 
          if (f_sicompstren(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strength(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sicompstren, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sicompstren, iblk, aice(:,:,iblk)*strength(:,:,iblk), a2D)
          endif
 
          if (f_sihc(1:1) /= 'x') then
@@ -3245,30 +3146,34 @@
          endif
 
          if (f_sidconcth(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = daidtt(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sidconcth, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidconcth, iblk, daidtt(:,:,iblk), a2D)
          endif
 
          if (f_sidconcdyn(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = daidtd(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sidconcdyn, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidconcdyn, iblk, daidtd(:,:,iblk), a2D)
          endif
 
          if (f_sidmassth(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = dvidtt(i,j,iblk) * rhoi
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = dvidtt(i,j,iblk) * rho_ice
            enddo
            enddo
            call accum_hist_field(n_sidmassth, iblk, worka(:,:), a2D)
@@ -3276,9 +3181,25 @@
 
          if (f_sidmassdyn(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = dvidtd(i,j,iblk) * rhoi
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = dvidtd(i,j,iblk) * rho_ice
            enddo
            enddo
            call accum_hist_field(n_sidmassdyn, iblk, worka(:,:), a2D)
@@ -3286,9 +3207,25 @@
 
          if (f_sidmassgrowthwat(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = frazil(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = frazil(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassgrowthwat, iblk, worka(:,:), a2D)
@@ -3296,9 +3233,25 @@
 
          if (f_sidmassgrowthbot(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = congel(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = congel(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassgrowthbot, iblk, worka(:,:), a2D)
@@ -3306,29 +3259,55 @@
 
          if (f_sidmassgrowthsi(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = snoice(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = snoice(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassgrowthsi, iblk, worka(:,:), a2D)
          endif
 
          if (f_sisndmasssi(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = -snoice(i,j,iblk)*rhos/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sisndmasssi, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisndmasssi, iblk, -snoice(:,:,iblk)*rhos/dt, a2D)
          endif
 
          if (f_sidmassevapsubl(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = evapi(i,j,iblk)*rhoi
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = evapi(i,j,iblk)*rho_ice
            enddo
            enddo
            call accum_hist_field(n_sidmassevapsubl, iblk, worka(:,:), a2D)
@@ -3336,9 +3315,25 @@
 
          if (f_sidmassmelttop(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = meltt(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = meltt(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassmelttop, iblk, worka(:,:), a2D)
@@ -3346,9 +3341,25 @@
 
          if (f_sidmassmeltbot(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = meltb(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = meltb(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassmeltbot, iblk, worka(:,:), a2D)
@@ -3356,62 +3367,48 @@
 
          if (f_sidmasslat(1:1) /= 'x') then
            worka(:,:) = c0
+           rho_ice = rhoi
+           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = meltl(i,j,iblk)*rhoi/dt
+              if (ktherm == 2) then
+                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
+                 rho_ice = c0
+                 salt_ice = c0
+                 do k = 1, nzilyr
+                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
+                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
+                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+                    rhob = icepack_mushy_density_brine(Sbr)
+                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+                 enddo
+                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+              endif
+              worka(i,j) = meltl(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmasslat, iblk, worka(:,:), a2D)
          endif
 
          if (f_sisndmasssubl(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = evaps(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisndmasssubl, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisndmasssubl, iblk, evaps(:,:,iblk), a2D)
          endif
 
          if (f_sisndmasssnf(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fsnow(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisndmasssnf, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisndmasssnf, iblk, aice_init(:,:,iblk)*fsnow(:,:,iblk), a2D)
          endif
 
          if (f_sisndmassmelt(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = melts(i,j,iblk)*rhos/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sisndmassmelt, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisndmassmelt, iblk, melts(:,:,iblk)*rhos/dt, a2D)
          endif
 
          if (f_sisndmassdyn(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = dvsdtd(i,j,iblk)*rhos
-           enddo
-           enddo
-           call accum_hist_field(n_sisndmassdyn, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisndmassdyn, iblk, dvsdtd(:,:,iblk)*rhos, a2D)
          endif
 
          if (f_siflswdtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fsw(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siflswdtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflswdtop, iblk, aice_init(:,:,iblk)*fsw(:,:,iblk), a2D)
          endif
 
          if (f_siflswutop(1:1) /= 'x') then
@@ -3427,35 +3424,15 @@
          endif
 
          if (f_siflswdbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fswthru(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siflswdbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflswdbot, iblk, aice_init(:,:,iblk)*fswthru(:,:,iblk), a2D)
          endif
 
          if (f_sifllwdtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*flw(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sifllwdtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sifllwdtop, iblk, aice_init(:,:,iblk)*flw(:,:,iblk), a2D)
          endif
 
          if (f_sifllwutop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*flwout(i,j,iblk)
-!             if (aice_init(i,j,iblk) > c0) &
-!                worka(i,j) = aice(i,j,iblk)*(flwout(i,j,iblk)*aice(i,j,iblk))
-           enddo
-           enddo
-           call accum_hist_field(n_sifllwutop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sifllwutop, iblk, aice(:,:,iblk)*flwout(:,:,iblk), a2D)
          endif
 
          if (f_siflsenstop(1:1) /= 'x') then
@@ -3465,57 +3442,27 @@
               worka(i,j) = aice(i,j,iblk)*fsens(i,j,iblk)
            enddo
            enddo
-           call accum_hist_field(n_siflsenstop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflsenstop, iblk, aice(:,:,iblk)*fsens(:,:,iblk), a2D)
          endif
 
          if (f_siflsensbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fhocn(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siflsensbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflsensbot, iblk, aice(:,:,iblk)*fhocn(:,:,iblk), a2D)
          endif
 
          if (f_sifllattop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*flat(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sifllattop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sifllattop, iblk, aice(:,:,iblk)*flat(:,:,iblk), a2D)
          endif
 
          if (f_siflcondtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fcondtop(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siflcondtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflcondtop, iblk, aice(:,:,iblk)*fcondtop(:,:,iblk), a2D)
          endif
 
          if (f_siflcondbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fcondbot(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siflcondbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflcondbot, iblk, aice(:,:,iblk)*fcondbot(:,:,iblk), a2D)
          endif
 
          if (f_sipr(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*frain(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sipr, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sipr, iblk, aice_init(:,:,iblk)*frain(:,:,iblk), a2D)
          endif
 
          if (f_sifb(1:1) /= 'x') then
@@ -3602,50 +3549,26 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*(frain(i,j,iblk)+melts(i,j,iblk)+meltt(i,j,iblk))
+              worka(i,j) = aice(i,j,iblk)*(melts(i,j,iblk)+meltt(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_siflfwdrain, iblk, worka(:,:), a2D)
          endif
 
          if (f_sidragtop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*Cdn_atm(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sidragtop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidragtop, iblk, aice_init(:,:,iblk)*Cdn_atm(:,:,iblk), a2D)
          endif
 
          if (f_sidragbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*Cdn_ocn(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sidragbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidragbot, iblk, aice_init(:,:,iblk)*Cdn_ocn(:,:,iblk), a2D)
          endif
 
          if (f_siforcetiltx(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strtltxU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siforcetiltx, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siforcetiltx, iblk, aice_init(:,:,iblk)*strtltxU(:,:,iblk), a2D)
          endif
 
          if (f_siforcetilty(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strtltyU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siforcetilty, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siforcetiltx, iblk, aice_init(:,:,iblk)*strtltyU(:,:,iblk), a2D)
          endif
 
          if (f_siforcecoriolx(1:1) /= 'x') then
@@ -3669,23 +3592,11 @@
          endif
 
          if (f_siforceintstrx(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strintxU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siforceintstrx, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk)*strintxU(:,:,iblk), a2D)
          endif
 
          if (f_siforceintstry(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*strintyU(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_siforceintstry, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk)*strintyU(:,:,iblk), a2D)
          endif
 
          endif ! if (allocated(a2D))
@@ -3731,51 +3642,19 @@
                       *aicen_init(:,:,1:ncat_hist,iblk), a3Dc)
 
          if (f_siitdconc   (1:1) /= 'x') then
-           worka3(:,:,:) = c0
-           do n = 1,ncat_hist
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka3(i,j,n) = aicen(i,j,n,iblk)
-           enddo
-           enddo
-           enddo
-           call accum_hist_field(n_siitdconc-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
+           call accum_hist_field(n_siitdconc-n2D, iblk, ncat_hist, aicen(:,:,:,iblk), a3Dc)
          endif
 
          if (f_siitdsnconc   (1:1) /= 'x') then
-           worka3(:,:,:) = c0
-           do n = 1,ncat_hist
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka3(i,j,n) = snowfracn(i,j,n,iblk)
-           enddo
-           enddo
-           enddo
-           call accum_hist_field(n_siitdsnconc-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
+           call accum_hist_field(n_siitdsnconc-n2D, iblk, ncat_hist, snowfracn(:,:,:,iblk), a3Dc)
          endif
 
          if (f_siitdthick   (1:1) /= 'x') then
-           worka3(:,:,:) = c0
-           do n = 1,ncat_hist
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka3(i,j,n) = vicen(i,j,n,iblk)
-           enddo
-           enddo
-           enddo
-           call accum_hist_field(n_siitdthick-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
+           call accum_hist_field(n_siitdthick-n2D, iblk, ncat_hist, vicen(:,:,:,iblk), a3Dc)
          endif
 
          if (f_siitdsnthick   (1:1) /= 'x') then
-           worka3(:,:,:) = c0
-           do n = 1,ncat_hist
-           do j = jlo, jhi
-           do i = ilo, ihi
-              worka3(i,j,n) = vsnon(i,j,n,iblk)
-           enddo
-           enddo
-           enddo
-           call accum_hist_field(n_siitdsnthick-n2D, iblk, ncat_hist, worka3(:,:,:), a3Dc)
+           call accum_hist_field(n_siitdsnthick-n2D, iblk, ncat_hist, vsnon(:,:,:,iblk), a3Dc)
          endif
 
          endif ! if (allocated(a3Dc))
