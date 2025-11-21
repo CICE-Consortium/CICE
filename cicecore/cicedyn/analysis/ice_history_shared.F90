@@ -315,7 +315,7 @@
            f_sisndmasssubl = 'x', &
            f_sidmassmelttop = 'x', &
            f_sidmassmeltbot = 'x', &
-           f_sidmasslat = 'x', &
+           f_sidmassmeltlat = 'x', &
            f_sisndmasssnf = 'x', &
            f_sisndmassmelt = 'x', &
            f_sisndmassdyn = 'x', &
@@ -496,7 +496,7 @@
            f_sisndmasssubl, &
            f_sidmassmelttop, &
            f_sidmassmeltbot, &
-           f_sidmasslat, &
+           f_sidmassmeltlat, &
            f_sisndmasssnf, &
            f_sisndmassmelt, &
            f_sisndmassdyn, &
@@ -705,7 +705,7 @@
            n_sisndmasssubl,  &
            n_sidmassmelttop,  &
            n_sidmassmeltbot,  &
-           n_sidmasslat,  &
+           n_sidmassmeltlat,  &
            n_sisndmasssnf,  &
            n_sisndmassmelt,  &
            n_sisndmassdyn,  &

@@ -379,7 +379,7 @@
          f_sisndmasssubl = 'mxxxx'
          f_sidmassmelttop = 'mxxxx'
          f_sidmassmeltbot = 'mxxxx'
-         f_sidmasslat = 'mxxxx'
+         f_sidmassmeltlat = 'mxxxx'
          f_sisndmasssnf = 'mxxxx'
          f_sisndmassmelt = 'mxxxx'
          f_sisndmassdyn = 'mxxxx'
@@ -755,7 +755,7 @@
       call broadcast_scalar (f_sisndmasssubl, master_task)
       call broadcast_scalar (f_sidmassmelttop, master_task)
       call broadcast_scalar (f_sidmassmeltbot, master_task)
-      call broadcast_scalar (f_sidmasslat, master_task)
+      call broadcast_scalar (f_sidmassmeltlat, master_task)
       call broadcast_scalar (f_sisndmasssnf, master_task)
       call broadcast_scalar (f_sisndmassmelt, master_task)
       call broadcast_scalar (f_sisndmassdyn, master_task)
@@ -1942,10 +1942,10 @@
              "none", c1, c0,                                                                  &
              ns1, f_sidmassmeltbot)
 
-         call define_hist_field(n_sidmasslat,"sidmasslat","kg m-2 s-1",tstr2D, tcstr, &
+         call define_hist_field(n_sidmassmeltlat,"sidmassmeltlat","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through lateral melting",                           &
              "none", c1, c0,                                                          &
-             ns1, f_sidmasslat)
+             ns1, f_sidmassmeltlat)
 
          call define_hist_field(n_sisndmasssnf,"sisndmasssnf","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass change through snowfall",                                         &
@@ -2395,7 +2395,7 @@
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: rho_ice, rho_ocn, salt_ice, Tice, Sbr, phi, rhob, dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
-      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_topo
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_vlvl
@@ -2413,7 +2413,7 @@
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
       call icepack_query_parameters(saltflux_option_out=saltflux_option)
       call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-           tr_brine_out=tr_brine, tr_snow_out=tr_snow)
+           tr_brine_out=tr_brine, tr_snow_out=tr_snow, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc, &
            nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
@@ -3333,7 +3333,7 @@
                  enddo
                  rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
               endif
-              worka(i,j) = meltt(i,j,iblk)*rho_ice/dt
+              worka(i,j) = -meltt(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassmelttop, iblk, worka(:,:), a2D)
@@ -3359,13 +3359,13 @@
                  enddo
                  rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
               endif
-              worka(i,j) = meltb(i,j,iblk)*rho_ice/dt
+              worka(i,j) = -meltb(i,j,iblk)*rho_ice/dt
            enddo
            enddo
            call accum_hist_field(n_sidmassmeltbot, iblk, worka(:,:), a2D)
          endif
 
-         if (f_sidmasslat(1:1) /= 'x') then
+         if (f_sidmassmeltlat(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
            rho_ocn = rhow
@@ -3385,10 +3385,10 @@
                  enddo
                  rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
               endif
-              worka(i,j) = meltl(i,j,iblk)*rho_ice/dt
+              worka(i,j) = -meltl(i,j,iblk)*rho_ice/dt
            enddo
            enddo
-           call accum_hist_field(n_sidmasslat, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassmeltlat, iblk, worka(:,:), a2D)
          endif
 
          if (f_sisndmasssubl(1:1) /= 'x') then
@@ -3400,7 +3400,7 @@
          endif
 
          if (f_sisndmassmelt(1:1) /= 'x') then
-           call accum_hist_field(n_sisndmassmelt, iblk, melts(:,:,iblk)*rhos/dt, a2D)
+           call accum_hist_field(n_sisndmassmelt, iblk, -melts(:,:,iblk)*rhos/dt, a2D)
          endif
 
          if (f_sisndmassdyn(1:1) /= 'x') then
@@ -3462,7 +3462,9 @@
          endif
 
          if (f_sipr(1:1) /= 'x') then
-           call accum_hist_field(n_sipr, iblk, aice_init(:,:,iblk)*frain(:,:,iblk), a2D)
+           worka(:,:) = c0
+           if (tr_pond_topo) worka(:,:) = aice_init(:,:,iblk)*frain(:,:,iblk)
+           call accum_hist_field(n_sipr, iblk, worka(:,:), a2D)
          endif
 
          if (f_sifb(1:1) /= 'x') then
@@ -3568,7 +3570,7 @@
          endif
 
          if (f_siforcetilty(1:1) /= 'x') then
-           call accum_hist_field(n_siforcetiltx, iblk, aice_init(:,:,iblk)*strtltyU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforcetilty, iblk, aice_init(:,:,iblk)*strtltyU(:,:,iblk), a2D)
          endif
 
          if (f_siforcecoriolx(1:1) /= 'x') then
@@ -3596,7 +3598,7 @@
          endif
 
          if (f_siforceintstry(1:1) /= 'x') then
-           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk)*strintyU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforceintstry, iblk, aice(:,:,iblk)*strintyU(:,:,iblk), a2D)
          endif
 
          endif ! if (allocated(a2D))
