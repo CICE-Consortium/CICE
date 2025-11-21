@@ -1563,9 +1563,6 @@
             fsens   (i,j) = fsens   (i,j) * ar
             flat    (i,j) = flat    (i,j) * ar
             fswabs  (i,j) = fswabs  (i,j) * ar
-            ! Special case where aice_init was zero and aice > 0.
-            if (flwout(i,j) > -puny) &
-               flwout  (i,j) = -stefan_boltzmann *(Tf(i,j) + Tffresh)**4
             flwout  (i,j) = flwout  (i,j) * ar
             evap    (i,j) = evap    (i,j) * ar
             Tref    (i,j) = Tref    (i,j) * ar

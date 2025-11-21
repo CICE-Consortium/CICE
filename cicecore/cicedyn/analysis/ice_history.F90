@@ -2669,12 +2669,17 @@
          if (f_fswabs_ai(1:1)/= 'x') &
              call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*aice(:,:,iblk), a2D)
 
-         if (f_albsni (1:1) /= 'x') &
-             call accum_hist_field(n_albsni, iblk, &
-                                  (awtvdr*alvdr(:,:,iblk) &
-                                 + awtidr*alidr(:,:,iblk) &
-                                 + awtvdf*alvdf(:,:,iblk) &
-                                 + awtidf*alidf(:,:,iblk))*aice(:,:,iblk), a2D)
+         if (f_albsni(1:1) /= 'x') then
+           worka(:,:) = c0
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (fsw(i,j,iblk) > puny .and. aice(i,j,iblk) > c0) &
+                 worka(i,j) = (fsw(i,j,iblk)-aice(i,j,iblk)*fswabs(i,j,iblk)) / fsw(i,j,iblk)
+           enddo
+           enddo
+           call accum_hist_field(n_albsni, iblk, worka(:,:), a2D)
+         endif
+
          if (f_alvdr  (1:1) /= 'x') &
              call accum_hist_field(n_alvdr,  iblk, alvdr(:,:,iblk), a2D)
          if (f_alidr  (1:1) /= 'x') &
@@ -3446,6 +3451,8 @@
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk)*flwout(i,j,iblk)
+!             if (aice_init(i,j,iblk) > c0) &
+!                worka(i,j) = aice(i,j,iblk)*(flwout(i,j,iblk)*aice(i,j,iblk))
            enddo
            enddo
            call accum_hist_field(n_sifllwutop, iblk, worka(:,:), a2D)
@@ -4001,63 +4008,63 @@
             endif
 
               ! back out albedo/zenith angle dependence
-              if (avail_hist_fields(n)%vname(1:6) == 'albice') then
-              do j = jlo, jhi
-              do i = ilo, ihi
-                 if (tmask(i,j,iblk)) then
-                    ravgctz = c0
-                    if (albcnt(i,j,iblk,ns) > puny) &
-                        ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_albice (1:1) /= 'x' .and. n_albice(ns) /= 0) &
-                       a2D(i,j,n_albice(ns),iblk) = &
-                       a2D(i,j,n_albice(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_albsno (1:1) /= 'x' .and. n_albsno(ns) /= 0) &
-                       a2D(i,j,n_albsno(ns),iblk) = &
-                       a2D(i,j,n_albsno(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_albpnd (1:1) /= 'x' .and. n_albpnd(ns) /= 0) &
-                       a2D(i,j,n_albpnd(ns),iblk) = &
-                       a2D(i,j,n_albpnd(ns),iblk)*avgct(ns)*ravgctz
-                 endif
-              enddo             ! i
-              enddo             ! j
-              endif
-              if (avail_hist_fields(n)%vname(1:6) == 'albsni') then
-              do j = jlo, jhi
-              do i = ilo, ihi
-                 if (tmask(i,j,iblk)) then
-                    ravgctz = c0
-                    if (albcnt(i,j,iblk,ns) > puny) &
-                        ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_albsni (1:1) /= 'x' .and. n_albsni(ns) /= 0) &
-                       a2D(i,j,n_albsni(ns),iblk) = &
-                       a2D(i,j,n_albsni(ns),iblk)*avgct(ns)*ravgctz
-                 endif
-              enddo             ! i
-              enddo             ! j
-              endif
-              if (avail_hist_fields(n)%vname(1:8) == 'alvdr_ai') then
-              do j = jlo, jhi
-              do i = ilo, ihi
-                 if (tmask(i,j,iblk)) then
-                    ravgctz = c0
-                    if (albcnt(i,j,iblk,ns) > puny) &
-                        ravgctz = c1/albcnt(i,j,iblk,ns)
-                    if (f_alvdr_ai (1:1) /= 'x' .and. n_alvdr_ai(ns) /= 0) &
-                       a2D(i,j,n_alvdr_ai(ns),iblk) = &
-                       a2D(i,j,n_alvdr_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alvdf_ai (1:1) /= 'x' .and. n_alvdf_ai(ns) /= 0) &
-                       a2D(i,j,n_alvdf_ai(ns),iblk) = &
-                       a2D(i,j,n_alvdf_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alidr_ai (1:1) /= 'x' .and. n_alidr_ai(ns) /= 0) &
-                       a2D(i,j,n_alidr_ai(ns),iblk) = &
-                       a2D(i,j,n_alidr_ai(ns),iblk)*avgct(ns)*ravgctz
-                    if (f_alidf_ai (1:1) /= 'x' .and. n_alidf_ai(ns) /= 0) &
-                       a2D(i,j,n_alidf_ai(ns),iblk) = &
-                       a2D(i,j,n_alidf_ai(ns),iblk)*avgct(ns)*ravgctz
-                 endif
-              enddo             ! i
-              enddo             ! j
-              endif
+!             if (avail_hist_fields(n)%vname(1:6) == 'albice') then
+!             do j = jlo, jhi
+!             do i = ilo, ihi
+!                if (tmask(i,j,iblk)) then
+!                   ravgctz = c0
+!                   if (albcnt(i,j,iblk,ns) > puny) &
+!                       ravgctz = c1/albcnt(i,j,iblk,ns)
+!                   if (f_albice (1:1) /= 'x' .and. n_albice(ns) /= 0) &
+!                      a2D(i,j,n_albice(ns),iblk) = &
+!                      a2D(i,j,n_albice(ns),iblk)*avgct(ns)*ravgctz
+!                   if (f_albsno (1:1) /= 'x' .and. n_albsno(ns) /= 0) &
+!                      a2D(i,j,n_albsno(ns),iblk) = &
+!                      a2D(i,j,n_albsno(ns),iblk)*avgct(ns)*ravgctz
+!                   if (f_albpnd (1:1) /= 'x' .and. n_albpnd(ns) /= 0) &
+!                      a2D(i,j,n_albpnd(ns),iblk) = &
+!                      a2D(i,j,n_albpnd(ns),iblk)*avgct(ns)*ravgctz
+!                endif
+!             enddo             ! i
+!             enddo             ! j
+!             endif
+!             if (avail_hist_fields(n)%vname(1:6) == 'albsni') then
+!             do j = jlo, jhi
+!             do i = ilo, ihi
+!                if (tmask(i,j,iblk)) then
+!                   ravgctz = c0
+!                   if (albcnt(i,j,iblk,ns) > puny) &
+!                       ravgctz = c1/albcnt(i,j,iblk,ns)
+!                   if (f_albsni (1:1) /= 'x' .and. n_albsni(ns) /= 0) &
+!                      a2D(i,j,n_albsni(ns),iblk) = &
+!                      a2D(i,j,n_albsni(ns),iblk)*avgct(ns)*ravgctz
+!                endif
+!             enddo             ! i
+!             enddo             ! j
+!             endif
+!             if (avail_hist_fields(n)%vname(1:8) == 'alvdr_ai') then
+!             do j = jlo, jhi
+!             do i = ilo, ihi
+!                if (tmask(i,j,iblk)) then
+!                   ravgctz = c0
+!                   if (albcnt(i,j,iblk,ns) > puny) &
+!                       ravgctz = c1/albcnt(i,j,iblk,ns)
+!                   if (f_alvdr_ai (1:1) /= 'x' .and. n_alvdr_ai(ns) /= 0) &
+!                      a2D(i,j,n_alvdr_ai(ns),iblk) = &
+!                      a2D(i,j,n_alvdr_ai(ns),iblk)*avgct(ns)*ravgctz
+!                   if (f_alvdf_ai (1:1) /= 'x' .and. n_alvdf_ai(ns) /= 0) &
+!                      a2D(i,j,n_alvdf_ai(ns),iblk) = &
+!                      a2D(i,j,n_alvdf_ai(ns),iblk)*avgct(ns)*ravgctz
+!                   if (f_alidr_ai (1:1) /= 'x' .and. n_alidr_ai(ns) /= 0) &
+!                      a2D(i,j,n_alidr_ai(ns),iblk) = &
+!                      a2D(i,j,n_alidr_ai(ns),iblk)*avgct(ns)*ravgctz
+!                   if (f_alidf_ai (1:1) /= 'x' .and. n_alidf_ai(ns) /= 0) &
+!                      a2D(i,j,n_alidf_ai(ns),iblk) = &
+!                      a2D(i,j,n_alidf_ai(ns),iblk)*avgct(ns)*ravgctz
+!                endif
+!             enddo             ! i
+!             enddo             ! j
+!             endif
 
 ! snwcnt averaging is not working correctly
 ! for now, these history fields will have zeroes includes in the averages
