@@ -1,14 +1,14 @@
 #!/bin/csh -f
 
-# Compare the binary files 
+# Compare the CICE files via binary cmp diff
 #-----------------------------------------------------------
 
 # usage: comparebfb.csh base_file test_file
-#     does binary diff of two files
+#     does diff of two files
 # usage: comparebfb.csh base_dir test_dir
-#     looks for base_iced and iced binary files for comparison
+#     looks for base_iced and iced files for comparison
 # usage: comparebfb.csh base_dir
-#     looks for iced binary files in both directories for comparison
+#     looks for iced files in both directories for comparison
 #
 # Return Codes (depends on quality of error checking)
 #  0 = pass
@@ -38,11 +38,11 @@ else if ( $#argv == 2 ) then
 else
   echo "Error in ${0}"
   echo "Usage: ${0} <base_file> <test_file>"
-  echo "   does binary diff of two files"
+  echo "   does diff of two files"
   echo "Usage: ${0} <restart_dir>"
-  echo "   looks for base_iced and iced binary files for comparison"
+  echo "   looks for base_iced and iced files for comparison"
   echo "Usage: ${0} <base_dir> <test_dir>"
-  echo "   looks for iced binary files in both directories for comparison"
+  echo "   looks for iced files in both directories for comparison"
   exit 9
 endif
 
