@@ -1,10 +1,12 @@
     histfreq           = 'm','d','x','x','x'
     histfreq_n         =  1,1,1,1,1
+    f_aice             = 'md'
+    f_aice_init        = 'md'
     f_siage            = 'md'
     f_siconc           = 'md'
     f_sifb             = 'md'
     f_siflcondbot      = 'md'
-    f_siflconttop      = 'md'
+    f_siflcondtop      = 'md'
     f_sifllattop       = 'md'
     f_sifllwdtop       = 'md'
     f_sifllwutop       = 'md'

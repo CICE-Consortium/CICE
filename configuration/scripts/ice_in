@@ -512,6 +512,7 @@
     f_VGRDa        = .true.
     f_bounds       = .false.
     f_aice         = 'm' 
+    f_aice_init    = 'x' 
     f_hi           = 'm'
     f_hs           = 'm' 
     f_Tsfc         = 'm' 
@@ -633,7 +634,7 @@
     f_siconc           = 'x'
     f_sifb             = 'x'
     f_siflcondbot      = 'x'
-    f_siflconttop      = 'x'
+    f_siflcondtop      = 'x'
     f_sifllattop       = 'x'
     f_sifllwdtop       = 'x'
     f_sifllwutop       = 'x'
