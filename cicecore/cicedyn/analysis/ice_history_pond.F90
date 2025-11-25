@@ -108,7 +108,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CMIP, f_CICE
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: goto_nml
 
       integer (kind=int_kind) :: ns
@@ -124,27 +124,6 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
-
-      if (f_CMIP(1:1) /= 'x') then
-         f_simpconc = 'mxxxx'
-         f_simpeffconc = 'mxxxx'
-         f_simpthick = 'mxxxx'
-         f_simprefrozen = 'mxxxx'
-      endif
-
-      if (f_CMIP(2:2) == 'd') then
-         f_simpconc = f_CMIP
-         f_simpeffconc = f_CMIP
-         f_simpthick = f_CMIP
-         f_simprefrozen = f_CMIP
-      endif
-
-      if (f_CICE(1:1) == 'x') then
-         f_apond = 'xxxxx'
-         f_apeff = 'xxxxx'
-         f_hpond = 'xxxxx'
-         f_ipond = 'xxxxx'
-      endif
 
       !-----------------------------------------------------------------
       ! read namelist
@@ -641,13 +620,7 @@
 
          ! CMIP pond related variables
          if (f_simpeffconc (1:1) /= 'x') then
-             worka(:,:) = c0
-             do j = jlo, jhi
-             do i = ilo, ihi
-                if (aice(i,j,iblk) > puny) worka(i,j) = apeff_ai(i,j,iblk) 
-             enddo
-             enddo
-             call accum_hist_field(n_simpeffconc, iblk, worka(:,:), a2D)
+             call accum_hist_field(n_simpeffconc, iblk, apeff_ai(:,:,iblk), a2D)
          endif
          endif ! allocated(a2D)
 

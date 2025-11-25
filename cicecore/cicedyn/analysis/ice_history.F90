@@ -337,177 +337,6 @@
       ! to prevent array-out-of-bounds when aggregating
       if (f_fmeltt_ai(1:1) /= 'x') f_fmelttn_ai = f_fmeltt_ai
 
-     ! Turn on all CMIP fields in one go.
-
-      if (f_CMIP(1:1) /= 'x') then
-         f_aice = 'mxxxx' ! needed for avg_ice_present
-         f_aice_init = 'mxxxx' ! needed for avg_ice_present
-         f_aicen = 'mxxxx' ! needed for avg_ice_present
-         f_sithick = 'mxxxx'
-         f_sisnthick = 'mxxxx'
-         f_siage = 'mxxxx'
-         f_siconc = 'mxxxx'
-         f_sisnconc = 'mxxxx'
-         f_sisnmass = 'mxxxx'
-         f_sivol = 'mxxxx'
-         f_simass = 'mxxxx'
-         f_sitemptop = 'mxxxx'
-         f_sitempsnic = 'mxxxx'
-         f_sitempbot = 'mxxxx'
-         f_sispeed = 'mxxxx'
-         f_siu = 'mxxxx'
-         f_siv = 'mxxxx'
-         f_sidmasstranx = 'mxxxx'
-         f_sidmasstrany = 'mxxxx'
-         f_sistrxdtop = 'mxxxx'
-         f_sistrydtop = 'mxxxx'
-         f_sistrxubot = 'mxxxx'
-         f_sistryubot = 'mxxxx'
-         f_sicompstren = 'mxxxx'
-         f_sisali = 'mxxxx'
-         f_sisaltmass = 'mxxxx'
-         f_sihc = 'mxxxx'
-         f_sisnhc = 'mxxxx'
-         f_sidconcth = 'mxxxx'
-         f_sidconcdyn = 'mxxxx'
-         f_sidmassth = 'mxxxx'
-         f_sidmassdyn = 'mxxxx'
-         f_sidmassgrowthwat = 'mxxxx'
-         f_sidmassgrowthbot = 'mxxxx'
-         f_sidmassgrowthsi = 'mxxxx'
-         f_sidmassevapsubl = 'mxxxx'
-         f_sisndmasssubl = 'mxxxx'
-         f_sidmassmelttop = 'mxxxx'
-         f_sidmassmeltbot = 'mxxxx'
-         f_sidmassmeltlat = 'mxxxx'
-         f_sisndmasssnf = 'mxxxx'
-         f_sisndmassmelt = 'mxxxx'
-         f_sisndmassdyn = 'mxxxx'
-         f_sisndmasssi = 'mxxxx'
-         f_siflswdtop = 'mxxxx'
-         f_siflswutop = 'mxxxx'
-         f_siflswdbot = 'mxxxx'
-         f_sifllwdtop = 'mxxxx'
-         f_sifllwutop = 'mxxxx'
-         f_siflsenstop = 'mxxxx'
-         f_siflsensbot = 'mxxxx'
-         f_sifllattop = 'mxxxx'
-         f_siflcondtop = 'mxxxx'
-         f_siflcondbot = 'mxxxx'
-         f_sipr = 'mxxxx'
-         f_sifb = 'mxxxx'
-         f_siflsaltbot = 'mxxxx'
-         f_siflfwbot = 'mxxxx'
-         f_siflfwdrain = 'mxxxx'
-         f_siforcetiltx = 'mxxxx'
-         f_siforcetilty = 'mxxxx'
-         f_siforcecoriolx = 'mxxxx'
-         f_siforcecorioly = 'mxxxx'
-         f_siforceintstrx = 'mxxxx'
-         f_siforceintstry = 'mxxxx'
-         f_sidragtop = 'mxxxx'
-         f_sidragbot = 'mxxxx'
-         f_sistressave = 'mxxxx'
-         f_sistressmax = 'mxxxx'
-         f_sidivvel = 'mxxxx'
-         f_sishearvel = 'mxxxx'
-         f_siitdconc = 'mxxxx'
-         f_siitdsnconc = 'mxxxx'
-         f_siitdthick = 'mxxxx'
-         f_siitdsnthick = 'mxxxx'
-      endif
-
-      if (f_CMIP(2:2) == 'd') then
-         f_sitimefrac = f_CMIP
-         f_aice = f_CMIP
-         f_aice_init = f_CMIP
-         f_aicen = f_CMIP
-         f_siconc = f_CMIP
-         f_sithick = f_CMIP
-         f_sisnthick = f_CMIP
-         f_sitemptop = f_CMIP
-         f_sitempsnic = f_CMIP
-         f_sitempbot = f_CMIP
-         f_siu = f_CMIP
-         f_siv = f_CMIP
-         f_sispeed = f_CMIP
-         f_sifb = f_CMIP
-         f_siflcondbot = f_CMIP
-         f_siflcondtop = f_CMIP
-         f_sifllattop = f_CMIP
-         f_sifllwdtop = f_CMIP
-         f_sifllwutop = f_CMIP
-         f_siflsensbot = f_CMIP
-         f_siflsenstop = f_CMIP
-         f_siflswdbot = f_CMIP
-         f_siflswdtop = f_CMIP
-         f_siflswutop = f_CMIP
-         f_sihc = f_CMIP
-         f_sisnhc = f_CMIP
-         f_siitdconc = f_CMIP
-         f_siitdthick = f_CMIP
-         f_siitdsnconc = f_CMIP
-         f_siitdsnthick = f_CMIP
-         f_sisali = f_CMIP
-         f_sisaltmass = f_CMIP
-      endif
-
-      ! turn off CICE native diagnostics which are on by default
-
-      if (f_CICE(1:1) == 'x') then
-         f_icepresent = 'xxxxx'
-         f_hi = 'xxxxx'
-         f_hs = 'xxxxx'
-         f_Tsfc = 'xxxxx'
-         f_icespd = 'xxxxx'
-         f_icedir = 'xxxxx'
-         f_iage = 'xxxxx'
-         f_albsni = 'xxxxx'
-         f_fswdn = 'xxxxx'
-         f_fswup = 'xxxxx'
-         f_fswthru = 'xxxxx'
-         f_flwdn = 'xxxxx'
-         f_flwup = 'xxxxx'
-         f_fsens = 'xxxxx'
-         f_flat = 'xxxxx'
-         f_fhocn = 'xxxx'
-         f_rain = 'xxxxx'
-         f_snow = 'xxxxx'
-         f_evap = 'xxxxx'
-         f_fsalt = 'xxxxx'
-         f_fresh = 'xxxxx'
-         f_meltl = 'xxxxx'
-         f_melts = 'xxxxx'
-         f_meltt = 'xxxxx'
-         f_meltb = 'xxxxx'
-         f_strairx = 'xxxxx'
-         f_strairy = 'xxxxx'
-         f_strocnx = 'xxxxx'
-         f_strocny = 'xxxxx'
-         f_strtltx = 'xxxxx'
-         f_strtlty = 'xxxxx'
-         f_strintx = 'xxxxx'
-         f_strinty = 'xxxxx'
-         f_strcorx = 'xxxxx'
-         f_strcory = 'xxxxx'
-         f_strength = 'xxxxx'
-         f_daidtt = 'xxxxx'
-         f_daidtd = 'xxxxx'
-         f_dvidtt = 'xxxxx'
-         f_dvidtd = 'xxxxx'
-         f_congel = 'xxxxx'
-         f_frazil = 'xxxxx'
-         f_snoice = 'xxxxx'
-         f_vicen = 'xxxxx'
-         f_vsnon = 'xxxxx'
-         f_divu = 'xxxxx'
-         f_shear = 'xxxxx'
-         f_snowfrac = 'xxxxx'
-         f_snowfracn = 'xxxxx'
-         f_uvel = 'xxxxx'
-         f_vvel = 'xxxxx'
-      endif
-
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          f_uvelE = f_uvel
          f_vvelE = f_vvel
@@ -1629,19 +1458,20 @@
              "volume divided by sea-ice area", c1, c0,                 &
              ns1, f_sithick, avg_ice_present='final', mask_ice_free_points=.true.)
 
-         call define_hist_field(n_siage,"siage","s",tstr2D, tcstr, &
-             "age of sea-ice",                                     &
-             "none", c1, c0,                                       &
+         call define_hist_field(n_siage,"siage","s",tstr2D, tcstr,       &
+             "age of sea ice",                                           &
+             "age of sea ice since its formation in open water", c1, c0, &
              ns1, f_siage, avg_ice_present='final', mask_ice_free_points=.true.)
 
          call define_hist_field(n_sisnthick,"sisnthick","m",tstr2D, tcstr, &
              "snow thickness",                                             &
-             "snow volume divided by sea-ice area", c1, c0,                        &
+             "snow volume divided by sea-ice area", c1, c0,                &
              ns1, f_sisnthick, avg_ice_present='final', mask_ice_free_points=.true.)
 
-         call define_hist_field(n_sitemptop,"sitemptop","K",tstr2D, tcstr, &
-             "surface temperature of sea-ice",                             &
-             "none", c1, Tffresh,                                          &
+         call define_hist_field(n_sitemptop,"sitemptop","K",tstr2D, tcstr,            &
+             "surface temperature of sea ice",                                        &
+             "mean surface temperature of the sea-ice covered part of the grid cell", &
+             c1, Tffresh,                                                             &
              ns1, f_sitemptop, avg_ice_present='final', mask_ice_free_points=.true.)
 
          call define_hist_field(n_sitempsnic,"sitempsnic","K",tstr2D, tcstr, &
@@ -2359,8 +2189,6 @@
       use ice_history_snow, only: accum_hist_snow, &
           f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
-      use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
-      use icepack_intfc, only: icepack_mushy_temperature_mush
       use ice_history_fsd, only: accum_hist_fsd
       use ice_state ! almost everything
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
@@ -2393,7 +2221,7 @@
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
-      real (kind=dbl_kind) :: rho_ice, rho_ocn, salt_ice, Tice, Sbr, phi, rhob, dfresh, dfsalt, sicen
+      real (kind=dbl_kind) :: rho_ice, rho_ocn, salt_ice, dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
       logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_topo
       integer (kind=int_kind) :: ktherm
@@ -2497,7 +2325,7 @@
 
 #ifndef __INTEL_LLVM_COMPILER
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,salt_ice,Tice,Sbr,phi,rhob,dfresh,dfsalt,sicen, &
+      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,salt_ice,dfresh,dfsalt,sicen, &
       !$OMP             worka,workb,Tinz4d,Sinz4d,Tsnz4d)
 #endif
 
@@ -2913,48 +2741,26 @@
          if (f_simass(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
-              worka(i,j) = rho_ice*vice(i,j,iblk)
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
            enddo
            enddo
+           worka(i,j) = rho_ice*vice(i,j,iblk)
            call accum_hist_field(n_simass, iblk, worka(:,:), a2D)
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            salt_ice = ice_ref_salinity
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = rho_ice*salt_ice*vice(i,j,iblk)
            enddo
            enddo
@@ -2966,13 +2772,9 @@
            salt_ice = ice_ref_salinity
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                 enddo
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = aice(i,j,iblk)*salt_ice
            enddo
            enddo
@@ -3048,23 +2850,11 @@
          if (f_sidmasstranx(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = (rho_ice*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
                          + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU(i,j,iblk)) &
                          *  p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
@@ -3076,23 +2866,11 @@
          if (f_sidmasstrany(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = (rho_ice*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
                          + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU(i,j,iblk)) &
                          *  p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
@@ -3156,23 +2934,11 @@
          if (f_sidmassth(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = dvidtt(i,j,iblk) * rho_ice
            enddo
            enddo
@@ -3182,23 +2948,11 @@
          if (f_sidmassdyn(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = dvidtd(i,j,iblk) * rho_ice
            enddo
            enddo
@@ -3208,23 +2962,11 @@
          if (f_sidmassgrowthwat(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = frazil(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3234,23 +2976,11 @@
          if (f_sidmassgrowthbot(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = congel(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3260,23 +2990,11 @@
          if (f_sidmassgrowthsi(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = snoice(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3290,23 +3008,11 @@
          if (f_sidmassevapsubl(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = evapi(i,j,iblk)*rho_ice
            enddo
            enddo
@@ -3316,23 +3022,11 @@
          if (f_sidmassmelttop(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = -meltt(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3342,23 +3036,11 @@
          if (f_sidmassmeltbot(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = -meltb(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3368,23 +3050,11 @@
          if (f_sidmassmeltlat(1:1) /= 'x') then
            worka(:,:) = c0
            rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) then
-                 rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                 rho_ice = c0
-                 salt_ice = c0
-                 do k = 1, nzilyr
-                    Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                    Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                    salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
-                    phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                    rhob = icepack_mushy_density_brine(Sbr)
-                    rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                 enddo
-                 rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-              endif
+              if (ktherm == 2) &
+                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
               worka(i,j) = -meltl(i,j,iblk)*rho_ice/dt
            enddo
            enddo
@@ -3474,18 +3144,9 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 if (ktherm == 2) then
-                    rho_ocn = icepack_mushy_density_brine(sss(i,j,iblk))
-                    rho_ice = c0
-                    do k = 1, nzilyr
-                       Tice = icepack_mushy_temperature_mush(trcr(i,j,nt_qice+k-1,iblk),trcr(i,j,nt_sice+k-1,iblk))
-                       Sbr = trcr(i,j,nt_sice+k-1,iblk)
-                       phi = icepack_mushy_liquid_fraction(Tice,Sbr)
-                       rhob = icepack_mushy_density_brine(Sbr)
-                       rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
-                    enddo
-                    rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
-                 endif
+                 if (ktherm == 2) &
+                    call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                           sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
                  worka(i,j) = ((rho_ocn-rho_ice)*vice(i,j,iblk)-rhos*vsno(i,j,iblk))/rho_ocn
 !                if (worka(i,j) < c0) then
 !                   write(nu_diag,*) 'negative fb',rho_ocn,rho_ice,rhos

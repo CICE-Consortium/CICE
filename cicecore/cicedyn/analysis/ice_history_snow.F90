@@ -73,7 +73,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: nstreams, histfreq
       use ice_communicate, only: my_task, master_task
-      use ice_history_shared, only: tstr2D, tcstr, define_hist_field, f_CICE, f_CMIP
+      use ice_history_shared, only: tstr2D, tcstr, define_hist_field
       use ice_fileunits, only: nu_nml, nml_filename, &
           get_fileunit, release_fileunit
       use ice_fileunits, only: goto_nml
@@ -155,14 +155,6 @@
           f_meltsliq = 'x'
           f_fsloss   = 'x'
           f_sisndmasswind = 'x'
-      endif
-
-      if (f_CMIP(1:1) /= 'x') then
-          f_sisndmasswind = 'mxxxx'
-      endif
-
-      if (f_CICE(1:1) == 'x') then
-          f_fsloss = 'xxxxx'
       endif
 
       call broadcast_scalar (f_smassice, master_task)

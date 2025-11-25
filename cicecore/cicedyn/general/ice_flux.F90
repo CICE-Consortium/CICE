@@ -1070,8 +1070,6 @@
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
       fswint_ai(:,:,:) = c0
-!     flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4
-                        ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
       evaps   (:,:,:) = c0
       evapi   (:,:,:) = c0

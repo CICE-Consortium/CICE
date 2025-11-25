@@ -1402,17 +1402,14 @@ Project (SIMIP) :cite:`Notz16` have been added as possible history output variab
 `monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
 `daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
 requested  SIMIP variables provide the names of possible history fields in CICE. 
-However, each of the additional variables can be output at any temporal frequency 
+Each of the SIMIP variables can be output at any temporal frequency 
 specified in the **icefields_nml** section of **ice_in** as detailed above.
-Additionally, a new history output variable, ``f_CMIP``, has been added. When ``f_CMIP``
-is added to the **icefields_nml** section of **ice_in** then all SIMIP variables
-will be turned on for output at the frequency specified by ``f_CMIP``. 
-
-We have updated the SIMIP variables to correspond to the new
-`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. We have also
-added the ``f_CICE`` flag to help reduce duplication. When ``f_CICE = 'xxxxx'`` this
-will turn off the CICE duplicates of CMIP variables. However, it is possible for the
-user to have both.
+The ``f_CMIP`` flag has been removed. This is now a ``set_nml.cmip`` namelist option
+which can be invoked with the ``-s cmip`` option during cice.setup. This optional
+namelist setting will turn on the CMIP data request and turn of CICE duplicates of
+SIMIP variables. However, these can be changed by the user in their case ice_in file.
+Note that all SIMIP variables have been updated to correspond to the new 
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. 
 
 It may also be helpful for debugging to increase the precision of the history file
 output from 4 bytes to 8 bytes. This is changed through the ``history_precision``

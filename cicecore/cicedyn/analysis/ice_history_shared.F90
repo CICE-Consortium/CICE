@@ -34,7 +34,7 @@
       implicit none
 
       private
-      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename
+      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
 
       integer (kind=int_kind), public :: history_precision
 
@@ -80,7 +80,7 @@
       !---------------------------------------------------------------
 
       type, public :: ice_hist_field
-          character (len=16) :: vname     ! variable name
+          character (len=20) :: vname     ! variable name
           character (len=16) :: vunit     ! variable units
           character (len=25) :: vcoord    ! variable coordinates
           character (len=16) :: vcellmeas ! variable cell measures
@@ -290,7 +290,6 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
-           f_CMIP      = 'x', f_CICE       = 'x', &
            f_sithick   = 'x', f_sisnthick  = 'x', &
            f_siage     = 'x', f_siconc     = 'x', &
            f_sisnconc  = 'x', f_sisnmass   = 'x', &
@@ -471,7 +470,6 @@
            f_mlt_onset, f_frz_onset, &
            f_iage,      f_FY       , &
            f_hisnap,    f_aisnap   , &
-           f_CMIP,      f_CICE     , &
            f_sithick,   f_sisnthick, &
            f_siage,     f_siconc   , &
            f_sisnconc,  f_sisnmass , &
@@ -1227,6 +1225,37 @@
 
       end subroutine accum_hist_field_4D
 
+      subroutine ice_brine_density (qice,sice,sss,rho_ice,rho_ocn,salt_ice)
+
+      use ice_constants, only: c0, c1
+      use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
+      use icepack_intfc, only: icepack_mushy_temperature_mush, icepack_query_parameters
+
+      real (kind=dbl_kind), intent(in), dimension(:) :: qice, sice
+      real (kind=dbl_kind), intent(in) :: sss
+
+      real (kind=dbl_kind), intent(out) :: rho_ice, rho_ocn, salt_ice
+
+      integer (kind=int_kind) :: k
+      real (kind=dbl_kind) :: rhoi
+      real (kind=dbl_kind) :: Tice, Sbr, phi, rhob
+
+         call icepack_query_parameters(rhoi_out=rhoi)
+
+         rho_ocn = icepack_mushy_density_brine(sss)
+         rho_ice = c0
+         salt_ice = c0
+         do k = 1, nzilyr
+            Sbr = sice(k)
+            Tice = icepack_mushy_temperature_mush(qice(k),Sbr)
+            salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+            phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+            rhob = icepack_mushy_density_brine(Sbr)
+            rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+         enddo
+         rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+
+      end subroutine ice_brine_density
 !=======================================================================
 
       end module ice_history_shared
