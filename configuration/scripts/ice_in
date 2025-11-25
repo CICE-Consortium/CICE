@@ -21,6 +21,7 @@
     restart_stride = -99
     restart_deflate = 0
     restart_chunksize = 0, 0
+    restart_mod    = 'none'
     lcdf64         = .false.
     numin          = 21
     numax          = 89
@@ -95,7 +96,6 @@
     scale_dxdy     = .false.
     dxscale        = 1.d0
     dyscale        = 1.d0
-    close_boundaries = .false.
     ncat         = 5
     nfsd         = 1
     nilyr        = 7

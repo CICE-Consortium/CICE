@@ -1428,8 +1428,14 @@
            .and.TRIM(hfield%vname(1:9))/='sistreave' &
            .and.TRIM(hfield%vname(1:9))/='sistremax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            call ice_pio_check(pio_put_att(File,varid,'cell_methods','time: mean'), &
-                 subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
+            if (hfield%avg_ice_present) then
+               call ice_pio_check(pio_put_att(File,varid,'cell_methods', &
+                    'area: time: mean where sea ice (mask=siconc)'), &
+                    subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
+            else
+               call ice_pio_check(pio_put_att(File,varid,'cell_methods','time: mean'), &
+                    subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
+            endif
          endif
       endif
 

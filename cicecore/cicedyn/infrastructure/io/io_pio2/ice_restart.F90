@@ -220,16 +220,20 @@
                myear,'-',mmonth,'-',mday,'-',msec
       end if
 
-      if (restart_format(1:3) /= 'bin') filename = trim(filename) // '.nc'
+      filename = trim(filename) // '.nc'
 
       ! write pointer (path/file)
       if (my_task == master_task) then
-#ifdef CESMCOUPLED
-            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
-                 'rpointer.ice'//trim(inst_suffix)//'.',myear,'-',mmonth,'-',mday,'-',msec
+#ifdef CESMCOUPLED 
+            lpointer_file = 'rpointer.ice'//trim(inst_suffix)
 #else
             lpointer_file = pointer_file
 #endif
+         if (pointer_date) then
+            ! append date to pointer filename
+            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+               trim(lpointer_file)//'.',myear,'-',mmonth,'-',mday,'-',msec
+         end if
          open(nu_rst_pointer,file=lpointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
@@ -752,6 +756,7 @@
            subname// " ERROR: missing varndims "//trim(vname),file=__FILE__,line=__LINE__)
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 
+      work (:,:,:,:) = c0
       if (ndim3 == ncat .and. ndims == 3) then
          call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
 #ifdef CESMCOUPLED

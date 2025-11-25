@@ -65,6 +65,11 @@
           stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing_bgc): Out of memory')
 
+       nitdat  = c0
+       sildat  = c0
+       nit_data= c0
+       sil_data= c0
+
       end subroutine alloc_forcing_bgc
 
 !=======================================================================

@@ -209,37 +209,59 @@
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
       allocate ( &
-                 cldf(nx_block,ny_block, max_blocks), & ! cloud fraction
-            fsw_data(nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
-           cldf_data(nx_block,ny_block,2,max_blocks), &
-          fsnow_data(nx_block,ny_block,2,max_blocks), &
-           Tair_data(nx_block,ny_block,2,max_blocks), &
-           uatm_data(nx_block,ny_block,2,max_blocks), &
-           vatm_data(nx_block,ny_block,2,max_blocks), &
-           wind_data(nx_block,ny_block,2,max_blocks), &
-          strax_data(nx_block,ny_block,2,max_blocks), &
-          stray_data(nx_block,ny_block,2,max_blocks), &
-             Qa_data(nx_block,ny_block,2,max_blocks), &
-           rhoa_data(nx_block,ny_block,2,max_blocks), &
-            flw_data(nx_block,ny_block,2,max_blocks), &
-            sst_data(nx_block,ny_block,2,max_blocks), &
-            sss_data(nx_block,ny_block,2,max_blocks), &
-           uocn_data(nx_block,ny_block,2,max_blocks), &
-           vocn_data(nx_block,ny_block,2,max_blocks), &
-         sublim_data(nx_block,ny_block,2,max_blocks), &
-          frain_data(nx_block,ny_block,2,max_blocks), &
-        topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
-        botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
-           ocn_frc_m(nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
-        topmelt_file(ncat), &
-        botmelt_file(ncat), &
-        wave_spectrum_data(nx_block,ny_block,nfreq,2,max_blocks), &
+         cldf        (nx_block,ny_block,  max_blocks), & ! cloud fraction
+         fsw_data    (nx_block,ny_block,2,max_blocks), & ! field values at 2 temporal data points
+         cldf_data   (nx_block,ny_block,2,max_blocks), &
+         fsnow_data  (nx_block,ny_block,2,max_blocks), &
+         Tair_data   (nx_block,ny_block,2,max_blocks), &
+         uatm_data   (nx_block,ny_block,2,max_blocks), &
+         vatm_data   (nx_block,ny_block,2,max_blocks), &
+         wind_data   (nx_block,ny_block,2,max_blocks), &
+         strax_data  (nx_block,ny_block,2,max_blocks), &
+         stray_data  (nx_block,ny_block,2,max_blocks), &
+         Qa_data     (nx_block,ny_block,2,max_blocks), &
+         rhoa_data   (nx_block,ny_block,2,max_blocks), &
+         flw_data    (nx_block,ny_block,2,max_blocks), &
+         sst_data    (nx_block,ny_block,2,max_blocks), &
+         sss_data    (nx_block,ny_block,2,max_blocks), &
+         uocn_data   (nx_block,ny_block,2,max_blocks), &
+         vocn_data   (nx_block,ny_block,2,max_blocks), &
+         sublim_data (nx_block,ny_block,2,max_blocks), &
+         frain_data  (nx_block,ny_block,2,max_blocks), &
+         topmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+         botmelt_data(nx_block,ny_block,2,max_blocks,ncat), &
+         ocn_frc_m   (nx_block,ny_block,  max_blocks,nfld,12), & ! ocn data for 12 months
+         topmelt_file(ncat), &
+         botmelt_file(ncat), &
+         wave_spectrum_data(nx_block,ny_block,nfreq,2,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_forcing): Out of Memory')
 
-! initialize this, not set in box2001 (and some other forcings?)
-
-      cldf = c0
+      cldf         = c0
+      fsw_data     = c0
+      cldf_data    = c0
+      fsnow_data   = c0
+      Tair_data    = c0
+      uatm_data    = c0
+      vatm_data    = c0
+      wind_data    = c0
+      strax_data   = c0
+      stray_data   = c0
+      Qa_data      = c0
+      rhoa_data    = c0
+      flw_data     = c0
+      sst_data     = c0
+      sss_data     = c0
+      uocn_data    = c0
+      vocn_data    = c0
+      sublim_data  = c0
+      frain_data   = c0
+      topmelt_data = c0
+      botmelt_data = c0
+      ocn_frc_m    = c0
+      topmelt_file = ''
+      botmelt_file = ''
+      wave_spectrum_data = c0
 
       end subroutine alloc_forcing
 
@@ -711,13 +733,13 @@
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (swvdr,             halo_info, &
-                           field_loc_center,  field_type_scalar)
+                           field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_HaloUpdate (swvdf,             halo_info, &
-                           field_loc_center,  field_type_scalar)
+                           field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_HaloUpdate (swidr,             halo_info, &
-                           field_loc_center,  field_type_scalar)
+                           field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_HaloUpdate (swidf,             halo_info, &
-                           field_loc_center,  field_type_scalar)
+                           field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_timer_stop(timer_bound)
 
       call ice_timer_stop(timer_forcing)

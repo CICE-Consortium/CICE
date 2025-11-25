@@ -31,7 +31,13 @@
          tripoleTFlag         ! tripole boundary is a T-fold
 
       integer (int_kind), dimension(:), pointer :: &
-         i_glob, j_glob     ! global domain location for each point
+         i_glob, j_glob       ! global domain location for each point.
+                              ! valid values between 1:nx_global, 1:ny_global.
+                              ! outside that range may occur in the halo with
+                              ! open or closed bcs or on the tripole.
+                              ! by definition, tripole is only on the north
+                              ! boundary and in that case, the j_glob values
+                              ! will be valid j_glob values with minus sign.
    end type
 
    public :: create_blocks       ,&
@@ -140,9 +146,23 @@ contains
 
 !----------------------------------------------------------------------
 !
-!  compute number of blocks and cartesian decomposition
-!  if the requested block size does not divide the global domain
-!  size evenly, add additional block space to accomodate padding
+!  Compute number of blocks and cartesian decomposition.
+!  If the requested block size does not divide the global domain
+!  size evenly, add additional block space to accomodate padding.
+!
+!  Compute the global indices for each block including on the halo.
+!  The global indices go from 1:nx_global and 1:ny_global for
+!  most of the domain including the halo that's in the internal part
+!  of the domain.  On the outer boundaries, the global indices will
+!  be wrapped around for the 'cyclic' option and will be given a
+!  negative value on the north tripole.  Padded gridcells will be
+!  given a global index of zero (0).  All other cases will extrapolate
+!  the global index outside of 1:nx_global, 1:ny_global.  That means
+!  the global index will go from -nghost+1:0 on the lower boundary
+!  and n*_global+1:n*_global+nghost on the upper boundary and the
+!  haloUpdate and scatter, for instance, will not fill those values
+!  in those cases.  Other boundary condition methods will fill the 
+!  outer halo values in cases where ice exists on those boundaries.
 !
 !----------------------------------------------------------------------
 
@@ -206,7 +226,7 @@ contains
          all_blocks_ij(iblock,jblock) = n
 
          do j=1,ny_block
-            j_global(j,n) = js - nghost + j - 1
+            j_global(j,n) = js - nghost + j - 1  ! simple lower to upper counting
 
             !*** southern ghost cells
 
@@ -215,13 +235,13 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) + ny_global
                case ('open')
-                  j_global(j,n) = nghost - j + 1
+                  ! lower to upper
                case ('closed')
-                  j_global(j,n) = 0
+                  ! lower to upper
                case ('tripole')
-                  j_global(j,n) = nghost - j + 1 ! open
+                  ! lower to upper
                case ('tripoleT')
-                  j_global(j,n) = -j_global(j,n) + 1 ! open
+                  ! lower to upper
                case default
                   call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
@@ -239,13 +259,13 @@ contains
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) - ny_global
                case ('open')
-                  j_global(j,n) = 2*ny_global - j_global(j,n) + 1
+                  ! lower to upper
                case ('closed')
-                  j_global(j,n) = 0
+                  ! lower to upper
                case ('tripole')
-                  j_global(j,n) = -j_global(j,n)
+                  j_global(j,n) = -j_global(j,n)  ! negative
                case ('tripoleT')
-                  j_global(j,n) = -j_global(j,n)
+                  j_global(j,n) = -j_global(j,n)  ! negative
                case default
                   call abort_ice(subname//' ERROR: unknown n-s bndy type')
                end select
@@ -262,7 +282,7 @@ contains
          all_blocks(n)%j_glob => j_global(:,n)
 
          do i=1,nx_block
-            i_global(i,n) = is - nghost + i - 1
+            i_global(i,n) = is - nghost + i - 1  ! left to right counting
 
             !*** western ghost cells
 
@@ -271,9 +291,9 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) + nx_global
                case ('open')
-                  i_global(i,n) = nghost - i + 1
+                  ! left to right
                case ('closed')
-                  i_global(i,n) = 0
+                  ! left to right
                case default
                   call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select
@@ -291,9 +311,9 @@ contains
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) - nx_global
                case ('open')
-                  i_global(i,n) = 2*nx_global - i_global(i,n) + 1
+                  ! left to right
                case ('closed')
-                  i_global(i,n) = 0
+                  ! left to right
                case default
                   call abort_ice(subname//' ERROR: unknown e-w bndy type')
                end select
