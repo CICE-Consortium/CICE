@@ -241,12 +241,15 @@
       if (f_sirdgconc(1:1) /= 'x') &
          call define_hist_field(n_sirdgconc,"sirdgconc","%",tstr2D, tcstr, &
              "percentage of ridged sea ice",                               &
-             "none", c100, c0,                                             &
+             "area percentage of sea ice surface that is ridged sea ice",  &
+             c100, c0,                                                     &
              ns, f_sirdgconc)
+
       if (f_sirdgthick(1:1) /= 'x') &
          call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &
              "ridged ice thickness",                                         &
-             "grid cell mean level ridged thickness", c1, c0,                &
+             "total volume of ridged sea ice divided by area of ridges",     &
+             c1, c0,                                                         &
              ns, f_sirdgthick, avg_ice_present='final', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'

@@ -221,8 +221,9 @@
 
       if (f_sisndmasswind(1:1) /= 'x') &
          call define_hist_field(n_sisndmasswind,"sisndmasswind","kg/m^2/s",tstr2D, tcstr, &
-             "rate of snow loss to leads (liquid)",                         &
-             "none", c1, c0,                                                &
+             "snow mass rate of change through wind drift of snow",                       &
+             "rate of change of snow mass due to wind-driven transport into the ocean",   &
+             c1, c0,                                                                      &
              ns, f_sisndmasswind)
 
       endif ! histfreq(ns) /= 'x'

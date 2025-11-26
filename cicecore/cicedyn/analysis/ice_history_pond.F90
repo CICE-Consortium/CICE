@@ -340,28 +340,32 @@
 
       ! CMIP melt pond variables
       if (f_simpconc(1:1) /= 'x') &
-         call define_hist_field(n_simpconc,"simpconc","%",tstr2D, tcstr, &
-             "fraction of sea-ice covered by melt ponds",                &
-             "none", c100, c0,                                           &
+         call define_hist_field(n_simpconc,"simpconc","%",tstr2D, tcstr,         &
+             "percentage of sea ice covered by melt ponds",                      &
+             "area percentage of sea-ice surface that is covered by melt ponds", &
+             c100, c0,                                                           &
              ns, f_simpconc)
 
       if (f_simpeffconc(1:1) /= 'x') &
-         call define_hist_field(n_simpeffconc,"simpeffconc","%",tstr2D, tcstr, &
-             "fraction of sea-ice covered by effective melt ponds",            &
-             "none", c100, c0,                                                 &
+         call define_hist_field(n_simpeffconc,"simpeffconc","%",tstr2D, tcstr,        &
+             "percentage of sea ice covered by effective melt ponds",                 &
+             "area percentage of sea-ice surface that is covered by open melt ponds", &
+             c100, c0,                                                                &
              ns, f_simpeffconc)
 
-      if (f_simpthick(1:1) /= 'x') &
-         call define_hist_field(n_simpthick,"simpthick","kg m-2",tstr2D, tcstr, &
-             "melt pond depth",                                                 &
-             "none", c1, c0,                                                    &
-             ns, f_simpthick, avg_ice_present='final', mask_ice_free_points=.true.)
-
       if (f_simprefrozen(1:1) /= 'x') &
-         call define_hist_field(n_simprefrozen,"simprefrozen","m",tstr2D, tcstr, &
-             "thickness of refrozen ice on melt ponds",                          &
-             "none", c1, c0,                                                     &
+         call define_hist_field(n_simprefrozen,"simprefrozen","m",tstr2D, tcstr,       &
+             "thickness of refrozen ice on melt ponds",                                &
+             "volume of refrozen ice on melt ponds divided by melt pond covered area", &
+             c1, c0,                                                                   &
              ns, f_simprefrozen, avg_ice_present='final', mask_ice_free_points=.true.)
+
+      if (f_simpthick(1:1) /= 'x') &
+         call define_hist_field(n_simpthick,"simpthick","kg m-2",tstr2D, tcstr,                            &
+             "melt pond depth",                                                                            &
+             "average depth of melt ponds on sea ice, that is melt pond volume divided by melt pond area", &
+             c1, c0,                                                                                       &
+             ns, f_simpthick, avg_ice_present='final', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams

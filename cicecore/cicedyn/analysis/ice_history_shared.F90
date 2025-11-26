@@ -295,7 +295,7 @@
            f_sisnconc  = 'x', f_sisnmass   = 'x', &
            f_sitemptop = 'x', f_sitempsnic = 'x', &
            f_sitempbot = 'x', f_sivol      = 'x', &
-           f_sispeed   = 'x', f_sidir      = 'x', &
+           f_sispeed   = 'x', &
            f_siu       = 'x', f_siv        = 'x', &
            f_sidmasstranx = 'x', f_sidmasstrany = 'x', &
            f_sistrxdtop = 'x', f_sistrydtop = 'x', &
@@ -475,7 +475,7 @@
            f_sisnconc,  f_sisnmass , &
            f_sitemptop, f_sitempsnic,&
            f_sitempbot, f_sivol,     &
-           f_sispeed,   f_sidir,     &
+           f_sispeed, &
            f_siu,       f_siv,       &
            f_sidmasstranx, f_sidmasstrany, &
            f_sistrxdtop, f_sistrydtop, &
@@ -684,7 +684,7 @@
            n_sisnconc   , n_sisnmass   , &
            n_sitemptop  , n_sitempsnic , &
            n_sitempbot  , n_sivol      , &
-           n_sispeed    , n_sidir      , &
+           n_sispeed    , &
            n_siu,         n_siv,         &
            n_sidmasstranx, n_sidmasstrany, &
            n_sistrxdtop,  n_sistrydtop,  &
