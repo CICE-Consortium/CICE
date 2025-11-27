@@ -8,6 +8,7 @@ smoke          gx3     8x2        histall,ionetcdf,iocdf5,run5day
 smoke          gx3     8x2        histall,iopio2,iocdf5,run5day
 
 # history restart tests
+restart        gx3    15x2        gx3ncarbulk,debug,histall10d,iobinary
 restart        gx3    18x1        debug,histall10d,ionetcdf,iocdf5
 restart        gx3    20x2        debug,histall10d,iopio1,iocdf5
 restart        gx3    18x2        debug,histall10d,iopio2,iocdf2

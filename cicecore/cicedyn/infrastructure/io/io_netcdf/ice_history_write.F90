@@ -18,6 +18,7 @@
 ! 2009 D Bailey and ECH: Generalized for multiple frequency output
 ! 2010 Alison McLaren and ECH: Added 3D capability
 ! 2013 ECH split from ice_history.F90
+! 2025 T Craig: Add history restart capability
 
       module ice_history_write
 
@@ -1006,7 +1007,6 @@
             status  = nf90_put_var(ncid,varid,avgct(ns))
             call ice_check_nc(status, subname// ' ERROR: writing variable '//'avgct', &
                               file=__FILE__, line=__LINE__)
-!tcx            write(nu_diag,'(2a,i3,2g12.3)') subname,' write time_beg,avgct',ns,time_beg(ns),avgct(ns)
          endif
          call gather_global(work_g1, albcnt(:,:,:,ns), master_task, distrb_info)
          if (my_task == master_task) then
@@ -1249,7 +1249,6 @@
          status = nf90_close(ncid)
          call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
                            file=__FILE__, line=__LINE__)
-         write(nu_diag,*) ' '
          write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
       endif
 
@@ -1268,7 +1267,7 @@
 !
 ! read history restarts, only called for history restarts
 !
-! author:   Elizabeth C. Hunke, LANL
+! author:   T. Craig Nov 2025
 
       subroutine ice_read_hist
 
@@ -1293,6 +1292,9 @@
       integer (kind=int_kind) :: k,ic,n,nn,ns,ncid,status,varid
       character (char_len_long) :: ncfile
       character (len=1) :: cns
+      character (len=32) :: readstr
+      character (len=*), parameter :: readstrT = ' read ok:'
+      character (len=*), parameter :: readstrF = ' DID NOT READ:'
 
       character(len=*), parameter :: subname = '(ice_read_hist)'
 
@@ -1336,64 +1338,67 @@
             !-----------------------------------------------------------------
 
             if (my_task == master_task) then
+               readstr = readstrF
                status  = nf90_inq_varid(ncid,'time_beg',varid)
                if (status == nf90_noerr) status  = nf90_get_var(ncid,varid,time_beg(ns))
+               if (status == nf90_noerr) readstr = readstrT
+               write(nu_diag,*) subname,trim(readstr),' time_beg'
+
+               readstr = readstrF
                status  = nf90_inq_varid(ncid,'avgct',varid)
                if (status == nf90_noerr) status  = nf90_get_var(ncid,varid,avgct(ns))
+               if (status == nf90_noerr) readstr = readstrT
+               write(nu_diag,*) subname,trim(readstr),' time_beg'
             endif
             call broadcast_scalar(time_beg(ns),master_task)
             call broadcast_scalar(avgct(ns),master_task)
 
             if (my_task == master_task) then
+               readstr = readstrF
                status  = nf90_inq_varid(ncid,'albcnt'//cns,varid)
                if (status == nf90_noerr) then
                   status  = nf90_get_var(ncid,varid,work_g1, &
                                          count=(/nx_global,ny_global/))
+                  if (status == nf90_noerr) readstr = readstrT
                endif
+               write(nu_diag,*) subname,trim(readstr),' albcnt'//cns
             endif
             call broadcast_scalar(status,master_task)
             if (status == nf90_noerr) then
-               if (my_task == master_task) then
-                  write(nu_diag,*) subname,' read ','albcnt'//cns
-               endif
                call scatter_global(albcnt(:,:,:,ns), work_g1, master_task, distrb_info, &
                                    field_loc_noupdate, field_type_noupdate)
             endif
 
             if (my_task == master_task) then
+               readstr = readstrF
                status  = nf90_inq_varid(ncid,'snwcnt'//cns,varid)
                if (status == nf90_noerr) then
                   status  = nf90_get_var(ncid,varid,work_g1, &
                                          count=(/nx_global,ny_global/))
+                  if (status == nf90_noerr) readstr = readstrT
                endif
+               write(nu_diag,*) subname,trim(readstr),' snwcnt'//cns
             endif
             call broadcast_scalar(status,master_task)
             if (status == nf90_noerr) then
-               if (my_task == master_task) then
-                  write(nu_diag,*) subname,' read ','snwcnt'//cns
-               endif
                call scatter_global(snwcnt(:,:,:,ns), work_g1, master_task, distrb_info, &
                                    field_loc_noupdate, field_type_noupdate)
             endif
 
-!tcx            if (my_task == master_task) then
-!               write(nu_diag,'(2a,i3,2g12.3)') subname,' read time_beg,avgct',ns,time_beg(ns),avgct(ns)
-!            endif
-
             do n=1,num_avail_hist_fields_2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                      if (status == nf90_noerr) then
                         status  = nf90_get_var(ncid,varid,work_g1, &
                                                count=(/nx_global,ny_global/))
+                        if (status == nf90_noerr) readstr = readstrT
                      endif
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
                   endif
                   call broadcast_scalar(status,master_task)
                   if (status == nf90_noerr) then
-                     if (my_task == master_task) then
-                        write(nu_diag,*) subname,' read ',avail_hist_fields(n)%vname
-                     endif
                      call scatter_global(a2D(:,:,n,:), work_g1, master_task, distrb_info, &
                                          field_loc_noupdate, field_type_noupdate)
                   endif
@@ -1403,6 +1408,7 @@
             do n = n2D + 1, n3Dccum
                nn = n - n2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1413,6 +1419,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k/), &
                                                   count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1421,6 +1428,9 @@
                         endif
                      enddo ! k
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_3Dc
 
@@ -1429,6 +1439,7 @@
             do n = n3Dccum+1, n3Dzcum
                nn = n - n3Dccum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1439,6 +1450,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k/), &
                                                   count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1447,6 +1459,9 @@
                         endif
                      enddo ! k
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_3Dz
 
@@ -1455,6 +1470,7 @@
             do n = n3Dzcum+1, n3Dbcum
                nn = n - n3Dzcum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1465,6 +1481,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k/), &
                                                   count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1473,6 +1490,9 @@
                         endif
                      enddo ! k
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_3Db
 
@@ -1481,6 +1501,7 @@
             do n = n3Dbcum+1, n3Dacum
                nn = n - n3Dbcum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1499,6 +1520,9 @@
                         endif
                      enddo ! k
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_3Da
 
@@ -1507,6 +1531,7 @@
             do n = n3Dacum+1, n3Dfcum
                nn = n - n3Dacum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1517,6 +1542,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k/), &
                                                   count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1525,6 +1551,9 @@
                         endif
                      enddo ! k
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_3Df
 
@@ -1533,6 +1562,7 @@
             do n = n3Dfcum+1, n4Dicum
                nn = n - n3Dfcum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1544,6 +1574,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k,ic/), &
                                                   count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1553,6 +1584,9 @@
                      enddo ! k
                      enddo ! ic
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_4Di
 
@@ -1561,6 +1595,7 @@
             do n = n4Dicum+1, n4Dscum
                nn = n - n4Dicum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1572,6 +1607,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k,ic/), &
                                                   count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1581,12 +1617,16 @@
                      enddo ! k
                      enddo ! ic
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_4Ds
 
             do n = n4Dscum+1, n4Dfcum
                nn = n - n4Dscum
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
                   if (my_task == master_task) then
                      status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   endif
@@ -1598,6 +1638,7 @@
                            status  = nf90_get_var(ncid,varid,work_g1, &
                                                   start=(/        1,        1,k,ic/), &
                                                   count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
                         endif
                         call broadcast_scalar(status,master_task)
                         if (status == nf90_noerr) then
@@ -1607,6 +1648,9 @@
                      enddo ! k
                      enddo ! ic
                   endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
                endif ! histfreq
             enddo ! num_avail_hist_fields_4Df
 
@@ -1620,9 +1664,6 @@
                status = nf90_close(ncid)
                call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
                                  file=__FILE__, line=__LINE__)
-               write(nu_diag,*) ' '
-!tcx               write(nu_diag,*) subname,' time_beg = ',time_beg
-!               write(nu_diag,*) subname,' avgct = ',avgct
                write(nu_diag,*) subname,' Finished reading ',trim(ncfile)
             endif
 
