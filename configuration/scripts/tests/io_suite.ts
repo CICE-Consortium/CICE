@@ -8,13 +8,13 @@ smoke          gx3     8x2        histall,ionetcdf,iocdf5,run5day
 smoke          gx3     8x2        histall,iopio2,iocdf5,run5day
 
 # history restart tests
-restart        gx3    15x2        gx3ncarbulk,debug,histall10d,iobinary
-restart        gx3    18x1        debug,histall10d,ionetcdf,iocdf5
-restart        gx3    20x2        debug,histall10d,iopio1,iocdf5
-restart        gx3    18x2        debug,histall10d,iopio2,iocdf2
-restart        gx3    10x2        histall10d,ionetcdf,iocdf2
-restart        gx3    40x1        histall10d,iopio1,iocdf1
-restart        gx3    17x2        histall10d,iopio2,iocdf5
+restart        gx3    15x2        gx3ncarbulk,fsd12,isotope,debug,histall10d,iobinary
+restart        gx3    18x1        debug,fsd12,isotope,bgczm,histall10d,ionetcdf,iocdf5
+restart        gx3    20x2        debug,fsd12,isotope,bgczm,histall10d,iopio1,iocdf5
+restart        gx3    18x2        debug,fsd12,isotope,bgczm,histall10d,iopio2,iocdf2
+restart        gx3    10x2        fsd12,isotope,bgczm,histall10d,ionetcdf,iocdf2
+restart        gx3    40x1        fsd12,isotope,bgczm,histall10d,iopio1,iocdf1
+restart        gx3    17x2        fsd12,isotope,bgczm,histall10d,iopio2,iocdf5
 
 # some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
 # iobinary cannot work with JRA55 because netcdf is turned off
