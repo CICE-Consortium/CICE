@@ -4041,7 +4041,7 @@
       ! write history restarts
       !---------------------------------------------------------------
 
-      if (write_restart) then
+      if (write_restart == 1) then
         ! turn on histrest features
         write_histrest = .true.
 

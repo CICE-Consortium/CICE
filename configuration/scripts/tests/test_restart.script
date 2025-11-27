@@ -80,7 +80,7 @@ else
   if (${bfbstatus} != 0) set restbfb = "FAIL"
 
   set icehrbfb = "NONE"
-  if (${ICE_TESTNAME} =~ *histall10d*) then
+  if (${ICE_TESTNAME} =~ *histall10d* && ${ICE_IOTYPE} !~ *binary* ) then
     echo "${restbfb} ${ICE_TESTNAME} restart " >> ${ICE_CASEDIR}/test_output
     foreach file1 (${ICE_RUNDIR}/restart/base_iceh* ${ICE_RUNDIR}/history/base_iceh*)
       set file2  = `echo $file1 | sed -e 's|base_iceh|iceh|g'`
