@@ -820,8 +820,8 @@
               imonth,'-',iday,'-',isec,'.',trim(suffix)
 
         elseif (loption == 'histrest') then
-           write(ncfile,'(a,i1.1,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
-                 history_file(1:lenstr(history_file))//trim(cstream)//'_r',ns,'.', &
+           write(ncfile,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
+                 history_file(1:lenstr(history_file))//trim(cstream)//'_r'//trim(histfreq(ns))//'.', &
                  iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
         else
 

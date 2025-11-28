@@ -4048,7 +4048,8 @@
         ! write history restarts
         call ice_timer_start(timer_readwrite)  ! reading/writing
         do ns = 1, nstrm
-           if (hist_avg(ns)) then  ! only write avg history file
+           ! only write avg history file when something has accumulated
+           if (hist_avg(ns) .and. avgct(ns)>0) then
               call ice_write_hist (ns)
            endif
         enddo
