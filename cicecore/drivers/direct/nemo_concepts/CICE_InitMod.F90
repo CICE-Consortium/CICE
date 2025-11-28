@@ -82,6 +82,7 @@
           faero_data, faero_default, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
+      use ice_history_write, only: ice_read_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
@@ -183,6 +184,7 @@
          call init_shortwave    ! initialize radiative transfer
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
+      call ice_read_hist  ! read history restarts
 
       ! determine the time and date at the end of the first timestep
       call advance_timestep()
