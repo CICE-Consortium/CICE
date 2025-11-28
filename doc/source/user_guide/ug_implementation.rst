@@ -1260,7 +1260,7 @@ to the Macros machine file explicity when needed.
 .. _history:
 
 *************
-History files
+History Files
 *************
 
 CICE provides history data output in binary unformatted or netCDF formats via
