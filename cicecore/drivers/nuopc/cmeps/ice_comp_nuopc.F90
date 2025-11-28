@@ -33,6 +33,7 @@ module ice_comp_nuopc
   use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, &
                                   restart_format, restart_chunksize, pointer_date
   use ice_history        , only : accum_hist
+  use ice_history_write  , only : ice_read_hist
   use ice_history_shared , only : history_format, history_chunksize
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
@@ -903,6 +904,7 @@ contains
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
+    call ice_read_hist  ! read history restarts
 
     !-----------------------------------------------------------------
     ! Prescribed ice initialization

@@ -224,7 +224,7 @@
 
       ! write pointer (path/file)
       if (my_task == master_task) then
-#ifdef CESMCOUPLED 
+#ifdef CESMCOUPLED
             lpointer_file = 'rpointer.ice'//trim(inst_suffix)
 #else
             lpointer_file = pointer_file
