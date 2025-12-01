@@ -84,8 +84,8 @@
           character (len=16) :: vunit     ! variable units
           character (len=25) :: vcoord    ! variable coordinates
           character (len=16) :: vcellmeas ! variable cell measures
-          character (len=55) :: vdesc     ! variable description
-          character (len=55) :: vcomment  ! variable description
+          character (len=80) :: vdesc     ! variable description
+          character (len=80) :: vcomment  ! variable description
           real (kind=dbl_kind) :: cona    ! multiplicative conversion factor
           real (kind=dbl_kind) :: conb    ! additive conversion factor
           character (len=1) :: vhistfreq  ! frequency of history output
