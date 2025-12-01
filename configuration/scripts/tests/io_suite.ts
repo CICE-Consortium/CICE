@@ -3,7 +3,7 @@ smoke          gx3    32x1        run1year,histhrly,ionetcdf,iocdf2,short
 smoke          gx3    32x1        run1year,histhrly,iopio2,iocdf5,short
 
 # Need to check with cprnc manually, CICE tools always produce diffs between netcdf and pio
-smoke          gx3     8x2        histall,ionetcdf,iocdf5,run5day
+smoke          gx3     8x2        histall,cmip,ionetcdf,iocdf5,run5day
 #smoke          gx3     8x2        histall,iopio2,iocdf5   smoke_gx3_8x2_histall_iocdf5_ionetcdf
 smoke          gx3     8x2        histall,iopio2,iocdf5,run5day
 

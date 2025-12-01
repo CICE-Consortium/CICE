@@ -841,8 +841,12 @@
                        iyear,'-',imonth,'-',iday,'.',trim(suffix)
               elseif (histfreq(ns) == 'm'.or.histfreq(ns) == 'M') then ! monthly
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,a)')  &
-                       history_file(1:lenstr(history_file))//trim(cstream),'.', &
+                       history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &
                        iyear,'-',imonth,'.',trim(suffix)
+              elseif (histfreq(ns) == 'n'.or.histfreq(ns) == 'N') then ! monthly instantaneous
+                 write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,a)')  &
+                       history_file(1:lenstr(history_file))//trim(cstream),'.', &
+                       iyear,'-',imonth,'-',histfreq_n(ns),'.',trim(suffix)
               elseif (histfreq(ns) == 'y'.or.histfreq(ns) == 'Y') then ! yearly
                  write(ncfile,'(a,a,i4.4,a,a)') &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &

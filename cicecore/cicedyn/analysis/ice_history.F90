@@ -273,7 +273,7 @@
       do ns = 1, max_nstrm
          if (histfreq(ns) == '1' .or. histfreq(ns) == 'h' .or. &
              histfreq(ns) == 'd' .or. histfreq(ns) == 'm' .or. &
-             histfreq(ns) == 'y') then
+             histfreq(ns) == 'y' .or. histfreq(ns) == 'n') then
                 nstreams = nstreams + 1
                 if (ns >= 2) then
                    if (histfreq(ns-1) == 'x') then

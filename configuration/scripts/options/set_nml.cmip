@@ -1,5 +1,6 @@
-    histfreq           = 'm','d','x','x','x'
-    histfreq_n         =  1,1,1,1,1
+    histfreq           = 'm','d','n','x','x'
+    histfreq_n         =  1,1,15,1,1
+    hist_avg           = .true.,.true.,.false.,.false,.false.
     f_aice             = 'md'
     f_aice_init        = 'md'
     f_siage            = 'md'
@@ -39,7 +40,7 @@
     f_sicompstren      = 'm'
     f_sidconcdyn       = 'm'
     f_sidconcth        = 'm'
-    f_sidivvel         = 'm'
+    f_sidivvel         = 'n'
     f_sidmassdyn       = 'm'
     f_sidmassevapsubl  = 'm'
     f_sidmassgrowthbot = 'm'
@@ -64,7 +65,7 @@
     f_siforcetilty     = 'm'
     f_simass           = 'm'
     f_sipr             = 'm'
-    f_sishearvel       = 'm'
+    f_sishearvel       = 'n'
     f_sisnconc         = 'm'
     f_sisndmassdyn     = 'm'
     f_sisndmassmelt    = 'm'
@@ -74,8 +75,8 @@
     f_sisndmasswind    = 'm'
     f_sisnmass         = 'm'
     f_sispeed          = 'm'
-    f_sistressave      = 'm'
-    f_sistressmax      = 'm'
+    f_sistressave      = 'n'
+    f_sistressmax      = 'n'
     f_sistrxdtop       = 'm'
     f_sistrydtop       = 'm'
     f_sistrxubot       = 'm'
