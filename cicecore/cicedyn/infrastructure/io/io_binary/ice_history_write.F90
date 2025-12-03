@@ -163,7 +163,8 @@
                 .or. n==n_vort(ns)                              &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
-                .or. n==n_sistresseave(ns) .or. n==n_sistressemax(ns) &
+                .or. n==n_sidivvel(ns)  .or. n==n_sishearvel(ns) &
+                .or. n==n_sistressave(ns) .or. n==n_sistressmax(ns) &
                 .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
                 .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &

@@ -1425,8 +1425,18 @@
       if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
-           .and.TRIM(hfield%vname(1:9))/='sistressave' &
-           .and.TRIM(hfield%vname(1:9))/='sistressmax' &
+           .and.TRIM(hfield%vname(1:5))/='trsig' &
+           .and.TRIM(hfield%vname(1:4))/='divu' &
+           .and.TRIM(hfield%vname(1:5))/='shear' &
+           .and.TRIM(hfield%vname(1:4))/='vort' &
+           .and.TRIM(hfield%vname(1:9))/='frz_onset' &
+           .and.TRIM(hfield%vname(1:9))/='mlt_onset' &
+           .and.TRIM(hfield%vname(1:6))/='aisnap' &
+           .and.TRIM(hfield%vname(1:6))/='hisnap' &
+           .and.TRIM(hfield%vname(1:8))/='sidivvel' &
+           .and.TRIM(hfield%vname(1:10))/='sishearvel' &
+           .and.TRIM(hfield%vname(1:11))/='sistressave' &
+           .and.TRIM(hfield%vname(1:11))/='sistressmax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
             if (trim(hfield%avg_ice_present) /= 'none') then
                call ice_pio_check(pio_put_att(File,varid,'cell_methods', &
@@ -1449,8 +1459,10 @@
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &
           .or.TRIM(hfield%vname(1:5))=='trsig' &
-          .or.TRIM(hfield%vname(1:9))=='sistressave' &
-          .or.TRIM(hfield%vname(1:9))=='sistressmax' &
+          .or.TRIM(hfield%vname(1:8))=='sidivvel' &
+          .or.TRIM(hfield%vname(1:10))=='sishearvel' &
+          .or.TRIM(hfield%vname(1:11))=='sistressave' &
+          .or.TRIM(hfield%vname(1:11))=='sistressmax' &
           .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &
