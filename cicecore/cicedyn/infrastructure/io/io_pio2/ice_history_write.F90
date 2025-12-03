@@ -1351,7 +1351,7 @@
 
 !=======================================================================
 ! Defines a (time-dependent) history var in the history file
-! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+! variables have short_name, long_name and units, coordinates and cell_measures attributes,
 !  and are compressed and chunked for 'hdf5'
 
       subroutine ice_hist_field_def(File, hfield,lprecision, dimids, ns)
