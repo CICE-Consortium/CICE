@@ -95,7 +95,7 @@
       end type
 
       integer (kind=int_kind), parameter, public :: &
-         max_avail_hist_fields = 800      ! Max number of history fields
+         max_avail_hist_fields = 1200      ! Max number of history fields
 
       integer (kind=int_kind), public :: &
          num_avail_hist_fields_tot  = 0, & ! Current, total number of defined fields

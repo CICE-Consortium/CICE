@@ -272,7 +272,7 @@
             ! Define coord time_bounds if hist_avg is true
             ! bounds inherit attributes
             if (hist_avg(ns) .and. .not. write_ic) then
-               time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
+               time_coord = coord_attributes('time_bounds', 'time interval endpoints', 'undefined', 'undefined')
 
                dimid(1) = boundid
                dimid(2) = timid
@@ -407,14 +407,14 @@
          ! bounds fields are required for CF compliance
          ! dimensions (nx,ny,nverts)
          ! bounds inherit attributes
-         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
-         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
-         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
-         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
-         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
-         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
-         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
-         var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','und','und')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','und','und')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','und','und')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','und','und')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','und','und')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','und','und')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','und','und')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','und','und')
 
          !-----------------------------------------------------------------
          ! define attributes for time-invariant variables
@@ -1284,8 +1284,8 @@
       if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
-           .and.TRIM(hfield%vname(1:9))/='sistreave' &
-           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:9))/='sistressave' &
+           .and.TRIM(hfield%vname(1:9))/='sistressmax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
              if (trim(hfield%avg_ice_present) /= 'none') then
                 status = nf90_put_att(ncid,varid,'cell_methods','area: time: mean where sea ice (mask=siconc)')
@@ -1309,8 +1309,8 @@
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &
           .or.TRIM(hfield%vname(1:5))=='trsig' &
-          .or.TRIM(hfield%vname(1:9))=='sistreave' &
-          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:9))=='sistressave' &
+          .or.TRIM(hfield%vname(1:9))=='sistressmax' &
           .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &

@@ -1168,6 +1168,8 @@
       fswabs  (:,:,:) = c0
       flwout  (:,:,:) = c0
       evap    (:,:,:) = c0
+      evaps   (:,:,:) = c0
+      evapi   (:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
       Uref    (:,:,:) = c0

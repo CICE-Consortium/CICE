@@ -89,7 +89,6 @@
     f_icespd           = 'x'
     f_icedir           = 'x'
     f_iage             = 'x'
-    f_albsni           = 'x'
     f_fswdn            = 'x'
     f_fswup            = 'x'
     f_fswthru          = 'x'
