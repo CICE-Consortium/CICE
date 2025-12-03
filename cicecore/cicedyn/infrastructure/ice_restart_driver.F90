@@ -25,7 +25,7 @@
           field_loc_Eface, field_loc_Nface, &
           field_type_scalar, field_type_vector
       use ice_restart_shared, only: restart_dir, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen
+          runid, use_restart_time, lenstr, restart_coszen, restart_mod
       use ice_restart
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag, nu_rst_pointer, nu_restart, nu_dump
@@ -33,6 +33,8 @@
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_aggregate
       use icepack_intfc, only: icepack_query_tracer_indices, icepack_query_tracer_sizes
+      use icepack_intfc, only: icepack_query_parameters
+      use icepack_intfc, only: icepack_query_tracer_flags
 
       implicit none
       private
@@ -297,6 +299,11 @@
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
           trcr_base, nt_strata, n_trcr_strata
+      use icepack_itd, only: cleanup_itd  !for restart_mod
+      use ice_arrays_column, only: first_ice, hin_max
+      use ice_flux, only: fpond, fresh, fsalt, fhocn
+      use ice_flux_bgc, only: faero_ocn, fiso_ocn, flux_bio
+      use ice_calendar, only: dt
 
       character (*), optional :: ice_ic
 
@@ -308,7 +315,8 @@
          nt_Tsfc, nt_sice, nt_qice, nt_qsno
 
       logical (kind=log_kind) :: &
-         diag
+         diag, &
+         tr_aero, tr_pond_topo
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
@@ -324,6 +332,7 @@
 
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
            nt_qice_out=nt_qice, nt_qsno_out=nt_qsno)
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_pond_topo_out=tr_pond_topo)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -717,6 +726,76 @@
          npt = npt - istep0
       endif
 
+      !-----------------------------------------------------------------
+      ! update concentration from a file
+      !-----------------------------------------------------------------
+      if (restart_mod /= "none") then
+
+         select case (trim(restart_mod))
+
+         case('adjust_aice')
+            call direct_adjust_aice
+
+         case('adjust_aice_test')
+            call direct_adjust_aice(test=.true.)
+
+         case default
+            call abort_ice(subname//'ERROR: unsupported restart_mod='//trim(restart_mod), &
+               file=__FILE__, line=__LINE__)
+
+         end select
+
+         !-----------------------------------------------------------------
+         ! Ensure ice is binned in correct categories
+         !-----------------------------------------------------------------
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               if (tmask(i,j,iblk)) then
+
+                  call cleanup_itd(dt,    hin_max,             &
+                       aicen(i,j,:,iblk), trcrn(i,j,:,:,iblk), &
+                       vicen(i,j,:,iblk), vsnon(i,j,:,  iblk), &
+                       aice0(i,j,  iblk),  aice(i,j,    iblk), &
+                       tr_aero,           tr_pond_topo,        &
+                       first_ice(i,j,:,iblk),                  &
+                       trcr_depend,       trcr_base,           &
+                       n_trcr_strata,     nt_strata,           &
+                       fpond     =     fpond(i,j,  iblk),      &
+                       fresh     =     fresh(i,j,  iblk),      &
+                       fsalt     =     fsalt(i,j,  iblk),      &
+                       fhocn     =     fhocn(i,j,  iblk),      &
+                       faero_ocn = faero_ocn(i,j,:,iblk),      &
+                       fiso_ocn  =  fiso_ocn(i,j,:,iblk),      &
+                       flux_bio  =  flux_bio(i,j,:,iblk),      &
+                       Tf        =        Tf(i,j,  iblk),      &
+                       limit_aice = .true. )
+
+                  call icepack_aggregate( &
+                                   aicen = aicen(i,j,:,iblk),     &
+                                   trcrn = trcrn(i,j,:,:,iblk),   &
+                                   vicen = vicen(i,j,:,iblk),     &
+                                   vsnon = vsnon(i,j,:,iblk),     &
+                                   aice  = aice (i,j,  iblk),     &
+                                   trcr  = trcr (i,j,:,iblk),     &
+                                   vice  = vice (i,j,  iblk),     &
+                                   vsno  = vsno (i,j,  iblk),     &
+                                   aice0 = aice0(i,j,  iblk),     &
+                                   trcr_depend   = trcr_depend,   &
+                                   trcr_base     = trcr_base,     &
+                                   n_trcr_strata = n_trcr_strata, &
+                                   nt_strata     = nt_strata,     &
+                                   Tf            = Tf(i,j,iblk))
+
+                  aice_init(i,j,iblk) = aice(i,j,iblk)
+
+               endif  ! tmask
+            enddo     ! i
+            enddo     ! j
+         enddo        ! iblk
+
+      endif !restart_mod
+
       end subroutine restartfile
 
 !=======================================================================
@@ -1090,6 +1169,310 @@
       endif
 
       end subroutine restartfile_v4
+
+!=======================================================================
+
+!=======================================================================
+!  Direct insertion of ice concentration read from file.
+!
+!  Posey, et. al. 2015: Improving Arctic sea ice edge forecasts by
+!  assimilating high horizontal resolution sea ice concentration
+!  data into the US Navy's ice forecast systems.
+!  The Cryosphere.  doi:10.5194/tc-9-1735-2015
+!
+!  Alan J. Wallcraft, COAPS/FSU, Nov 2024
+
+      subroutine direct_adjust_aice(test)
+
+        use ice_blocks, only: nghost, nx_block, ny_block
+        use ice_domain, only: nblocks
+        use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
+        use ice_grid, only: tmask
+        use ice_communicate, only: my_task, master_task
+        use ice_constants, only: c0, c1, c4, c20, c100, &
+             p5, p2, p1, p01, p001, &
+             field_loc_center, field_loc_NEcorner, &
+             field_type_scalar, field_type_vector
+        use ice_fileunits, only: nu_diag
+        use ice_flux, only:  &
+             Tair, Tf, salinz, Tmltz, sst,                  &
+             stressp_1, stressp_2, stressp_3, stressp_4,    &
+             stressm_1, stressm_2, stressm_3, stressm_4,    &
+             stress12_1, stress12_2, stress12_3, stress12_4
+        use ice_state, only:  &
+             aice, aicen, vicen, vsnon, trcrn
+        use ice_read_write, only: ice_check_nc, ice_read_nc, &
+            ice_open_nc, ice_close_nc
+        use ice_arrays_column, only: hin_max
+        ! use icepack_mushy_physics, only: enthalpy_mush
+        use icepack_intfc, only: icepack_init_trcr
+
+        logical(kind=log_kind), optional, intent(in) :: &
+             test         ! use internally generated aice
+
+        ! --- local variables
+        real(kind=dbl_kind) :: &
+             q     ,    & ! scale factor
+             aice_m,    & ! model aice
+             aice_o,    & ! observation aice
+             aice_t,    & ! target aice
+             aice_i,    & ! insert ice
+             slope,     & ! used to compute surf Temp
+             Ti,        & ! target surface temperature
+             edge_om,   & ! nominal ice edge zone
+             diff_om,   & ! allowed model vs obs difference
+             hin_om,    & ! new ice thickness
+             aicen_old, & ! old value of aice to check when adding ice
+             vsnon_old, & ! old value of snow volume to check when adding ice
+             Tsfc         ! surface temp.
+        integer (kind=int_kind) :: &
+             fid          ! file id for netCDF file
+        integer (kind=int_kind) :: &
+             i, j, k, n, iblk ! counting  indices
+        logical (kind=log_kind) :: &
+             diag,      & ! diagnostic output
+             ltest        ! local value of test argument
+        real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+             work1
+        real (kind=dbl_kind), dimension(nilyr) :: &
+             qin          ! ice enthalpy (J/m3)
+        real (kind=dbl_kind), dimension(nslyr) :: &
+             qsn          ! snow enthalpy (J/m3)
+        character(len=char_len_long) :: &
+             aice_filename, &! filename to read in
+             aice_fldname    ! fieldname to read in
+
+        ! parameters from icepack
+        real (kind=dbl_kind) :: &
+             puny, Tffresh, Tsmelt, Lfresh, cp_ice, cp_ocn, &
+             rhos, rhoi
+        integer (kind=int_kind) :: &
+             nt_Tsfc, nt_sice, nt_qice, nt_qsno, &
+             ktherm
+        character(len=*), parameter :: subname = '(direct_adjust_aice)'
+
+        diag = .true.
+        ltest = .false.
+        if (present(test)) then
+           ltest = test
+        endif
+        aice_filename = trim(restart_dir)//'/sic.nc'
+        aice_fldname = 'sic'
+
+        ! get parameters from icepack
+        call icepack_query_parameters( &
+             puny_out=puny,            &
+             Tffresh_out=Tffresh,      &
+             Tsmelt_out=Tsmelt,        &
+             Lfresh_out=Lfresh,        &
+             cp_ice_out=cp_ice,        &
+             cp_ocn_out=cp_ocn,        &
+             rhos_out=rhos,            &
+             rhoi_out=rhoi,            &
+             ktherm_out=ktherm         )
+
+        call icepack_query_tracer_indices( &
+             nt_Tsfc_out=nt_Tsfc,          &
+             nt_sice_out=nt_sice,          &
+             nt_qice_out=nt_qice,          &
+             nt_qsno_out=nt_qsno           )
+
+        call icepack_warnings_flush(nu_diag)
+        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+             file=__FILE__, line=__LINE__)
+
+        if (ltest) then
+           if (my_task == master_task) then
+              write(nu_diag,*) subname//" direct_adjust_aice rounding to nearest 1/20th"
+           endif
+           work1 = nint(aice*c20)/c20   ! round to nearest 5/100th
+        else
+           if (my_task == master_task) then
+              write(nu_diag,*) subname//" direct_adjust_aice from "//trim(aice_filename)
+           endif
+
+           call ice_open_nc(trim(aice_filename), fid)
+           call ice_read_nc(fid,1,trim(aice_fldname),work1,diag, &
+                            field_loc=field_loc_center, &
+                            field_type=field_type_scalar)
+           call ice_close_nc(fid)
+        endif
+
+        edge_om = p2  ! nominal ice edge zone
+        diff_om = p1  ! allowed model vs obs difference
+        hin_om  = hin_max(1)*0.9_dbl_kind  !new ice thickness
+
+        do iblk = 1, nblocks
+           do j = 1, ny_block
+           do i = 1, nx_block
+
+              aice_o = work1(i,j,iblk) ! obs.  ice concentration
+              aice_m = aice(i,j,iblk)  ! model ice concentration
+
+              if     (.not.tmask(i,j,iblk)) then
+                 ! land - do nothing
+              elseif (aice_o.gt.p01 .and. &
+                   abs(aice_o-aice_m).le.p01) then
+                 ! model and obs are very close - do nothing
+              elseif (min(aice_o,aice_m).ge.edge_om .and. &
+                   abs(aice_o-aice_m).le.diff_om) then
+                 ! model and obs are close enough - do nothing
+              elseif (aice_o.eq.aice_m) then
+              elseif (aice_o.lt.aice_m) then
+                 if (aice_o.lt.p01)then
+                    ! --- remove all ice ---
+                    ! warm sst so the ice won't grow immediately
+                    sst(i,j,iblk) = sst(i,j,iblk) + p2
+                    do n=1,ncat
+                       aicen(i,j,n,iblk) = c0
+                       vicen(i,j,n,iblk) = c0
+                       vsnon(i,j,n,iblk) = c0
+                       call icepack_init_trcr( &
+                            Tair     =   Tair(i,j,  iblk), &
+                            Tf       =     Tf(i,j,  iblk), &
+                            Sprofile = salinz(i,j,:,iblk), &
+                            Tprofile =  Tmltz(i,j,:,iblk), &
+                            Tsfc     = Tsfc,               &
+                            qin      = qin(:),             &
+                            qsn      = qsn(:)              )
+                       ! surface temperature
+                       trcrn(i,j,nt_Tsfc,n,iblk) = Tsfc ! deg C
+                       ! ice enthalpy, salinity
+                       do k = 1, nilyr
+                          trcrn(i,j,nt_qice+k-1,n,iblk) = qin(k)
+                          trcrn(i,j,nt_sice+k-1,n,iblk) = salinz(i,j,k,iblk)
+                       enddo  ! nilyr
+                       ! snow enthalpy
+                       do k = 1, nslyr
+                          trcrn(i,j,nt_qsno+k-1,n,iblk) = qsn(k)
+                       enddo  ! nslyr
+                    enddo !n
+                 else !aice_o.ge.p01
+                    if     (aice_o.lt.edge_om) then
+                       ! --- target ice conc. is obs.
+                       aice_t = aice_o
+                    else !aice_m-aice_o.gt.diff_om
+                       ! --- target ice conc. is obs.+diff_om
+                       aice_t = aice_o + diff_om
+                    endif
+                    ! --- reduce ice to the target concentration,
+                    !     completely exhasting ice categories in order ---
+                    aice_i = aice_m - aice_t   !>=0.0
+                    do n=1,ncat
+                       if     (aice_i.le.p001) then
+                          exit
+                       elseif (aice_i.ge.aicen(i,j,n,iblk)) then
+                          ! --- remove all of this category
+                          aice_i = aice_i - aicen(i,j,n,iblk)
+                          aicen(i,j,n,iblk) = c0
+                          vicen(i,j,n,iblk) = c0
+                          vsnon(i,j,n,iblk) = c0
+                          call icepack_init_trcr( &
+                               Tair     =   Tair(i,j,  iblk), &
+                               Tf       =     Tf(i,j,  iblk), &
+                               Sprofile = salinz(i,j,:,iblk), &
+                               Tprofile =  Tmltz(i,j,:,iblk), &
+                               Tsfc     = Tsfc,               &
+                               qin      = qin(:),             &
+                               qsn      = qsn(:)              )
+                          ! surface temperature
+                          trcrn(i,j,nt_Tsfc,n,iblk) = Tsfc ! deg C
+                          ! ice enthalpy, salinity
+                          do k = 1, nilyr
+                             trcrn(i,j,nt_qice+k-1,n,iblk) = qin(k)
+                             trcrn(i,j,nt_sice+k-1,n,iblk) = salinz(i,j,k,iblk)
+                          enddo  ! nilyr
+                          ! snow enthalpy
+                          do k = 1, nslyr
+                             trcrn(i,j,nt_qsno+k-1,n,iblk) = qsn(k)
+                          enddo  ! nslyr
+                       else  !aice_i.lt.aicen(i,j,n,iblk)
+                          ! --- remove part of this category
+                          q = (aicen(i,j,n,iblk) - aice_i) &
+                               /aicen(i,j,n,iblk)              !<1
+                          aice_i = c0
+
+                          ! reduce aicen, vicen, vsnon by q
+                          ! do not alter Tsfc since there is already
+                          ! ice here.
+                          aicen(i,j,n,iblk) = q*aicen(i,j,n,iblk)
+                          vicen(i,j,n,iblk) = q*vicen(i,j,n,iblk)
+                          vsnon(i,j,n,iblk) = q*vsnon(i,j,n,iblk)
+                       endif    ! aice_i.gt.p001 and aice_i.lt.aicen
+                    enddo       ! n
+                 endif          ! aice_o.lt.p01
+              elseif (aice_o.gt.p01) then  ! .and. aice_o.gt.aicen
+                 if     (aice_m.lt.edge_om) then
+                    ! --- target ice conc. is obs.
+                    aice_t = aice_o
+                 else !aice_o-aice_m.gt.diff_om
+                    ! --- target ice conc. is obs.-diff_om
+                    aice_t = aice_o - diff_om
+                 endif
+                 q = (aice_t-aice_m)
+                 ! --- add ice to the target concentration,
+                 ! --- with all new ice in category 1
+                 ! --- cool sst so the ice won't melt immediately
+                 sst(  i,j,  iblk) = sst(  i,j,  iblk) - q  ! 0 <= q <= 1
+                 aicen_old         = aicen(i,j,1,iblk)  ! store to check for zero ice later
+                 vsnon_old         = vsnon(i,j,1,iblk)  ! store to check for zero snow later
+                 aicen(i,j,1,iblk) = aicen(i,j,1,iblk) + q
+                 vicen(i,j,1,iblk) = vicen(i,j,1,iblk) + q*hin_om
+                 vsnon(i,j,1,iblk) = vsnon(i,j,1,iblk) + q*hin_om*p2
+
+                 ! ------------------------------------------------------
+                 ! check for zero snow in 1st category.
+                 ! It is possible that there was ice
+                 ! but no snow. This would skip the loop below and an
+                 ! error in snow thermo would occur. If snow was zero
+                 ! specify enthalpy here
+                 ! ------------------------------------------------------
+                 if (vsnon_old < puny) then
+                    do n=1,1           ! only do 1st category
+                       ! --- snow layers
+                       trcrn(i,j,nt_Tsfc,n,iblk) =   &      ! Tsfc
+                            min(Tsmelt,Tair(i,j,iblk) - Tffresh)
+                       Ti = min(c0,trcrn(i,j,nt_Tsfc,n,iblk))
+                       do k=1,nslyr
+                          trcrn(i,j,nt_qsno+k-1,n,iblk) = -rhos*(Lfresh - cp_ice*Ti)
+                       enddo ! k
+                    enddo ! n = 1,1
+                 endif
+
+                 ! ------------------------------------------------------
+                 ! check for zero aice in 1st category.
+                 ! if adding to an initially zero ice, we must define
+                 ! qice, qsno, sice so thermo does not blow up.
+                 ! ------------------------------------------------------
+                 if (aicen_old < puny) then
+                    do n =1,1  ! only do 1st category
+                       call icepack_init_trcr( &
+                            Tair     =   Tair(i,j,  iblk), &
+                            Tf       =     Tf(i,j,  iblk), &
+                            Sprofile = salinz(i,j,:,iblk), &
+                            Tprofile =  Tmltz(i,j,:,iblk), &
+                            Tsfc     = Tsfc,               &
+                            qin      = qin(:),             &
+                            qsn      = qsn(:)              )
+                       ! surface temperature
+                       trcrn(i,j,nt_Tsfc,n,iblk) = Tsfc ! deg C
+                       ! ice enthalpy, salinity
+                       do k = 1, nilyr
+                          trcrn(i,j,nt_qice+k-1,n,iblk) = qin(k)
+                          trcrn(i,j,nt_sice+k-1,n,iblk) = salinz(i,j,k,iblk)
+                       enddo
+                       ! snow enthalpy
+                       do k = 1, nslyr
+                          trcrn(i,j,nt_qsno+k-1,n,iblk) = qsn(k)
+                       enddo               ! nslyr
+                    enddo       ! n
+                 endif          ! qice == c0
+              endif             ! aice_o vs aice_m or tmask
+           enddo                ! j
+           enddo                ! i
+        enddo                   ! iblk
+
+      end subroutine direct_adjust_aice
 
 !=======================================================================
 

@@ -172,6 +172,32 @@
          stat=ierr)
       if (ierr/=0) call abort_ice('(alloc_state): Out of memory1')
 
+      aice  = c0
+      aiU   = c0
+      vice  = c0
+      vsno  = c0
+      aice0 = c0
+      uvel  = c0
+      vvel  = c0
+      uvelE = c0
+      vvelE = c0
+      uvelN = c0
+      vvelN = c0
+      divu  = c0
+      shear = c0
+      vort  = c0
+      strength   = c0
+      aice_init  = c0
+      aicen = c0
+      vicen = c0
+      vsnon = c0
+      aicen_init = c0
+      vicen_init = c0
+      vsnon_init = c0
+      Tsfcn_init = c0
+      trcr  = c0
+      trcrn = c0
+
       allocate ( &
          trcr_depend(ntrcr)   , & !
          n_trcr_strata(ntrcr) , & ! number of underlying tracer layers
@@ -184,12 +210,6 @@
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
-      aicen = c0
-      aicen_init = c0
-      vicen = c0
-      vicen_init = c0
-      vsnon = c0
-      vsnon_init = c0
 
       end subroutine alloc_state
 

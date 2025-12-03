@@ -30,6 +30,7 @@
 
       character (len=char_len), public :: &
          restart_format      , & ! format of restart files 'nc'
+         restart_mod         , & ! restart modification option, "none", "adjust_aice"
          restart_rearranger      ! restart file rearranger, box or subset for pio
 
       integer (kind=int_kind), public :: &
