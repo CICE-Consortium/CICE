@@ -270,12 +270,14 @@
          ! Define coord time_bounds if hist_avg is true
          ! bounds inherit attributes
          if (hist_avg(ns) .and. .not. write_ic) then
-            time_coord = coord_attributes('time_bounds', 'time interval bounds', 'undefined', 'undefined')
+            time_coord = coord_attributes('time_bounds', 'time interval bounds', trim(cal_units), 'undefined')
 
             dimid2(1) = boundid
             dimid2(2) = timid
 
             call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
+            call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
+                 subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          endif
 
       endif  ! histfreq(ns)/='g'
@@ -405,14 +407,14 @@
       ! bounds fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
       ! bounds inherit attributes
-      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','und','und')
-      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','und','und')
-      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','und','und')
-      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','und','und')
-      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','und','und')
-      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','und','und')
-      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','und','und')
-      var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','und','und')
+      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','degrees_east','und')
+      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','degrees_north','und')
+      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','degrees_east','und')
+      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','degrees_north','und')
+      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','degrees_east','und')
+      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','degrees_north','und')
+      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','degrees_east','und')
+      var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','degrees_north','und')
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
