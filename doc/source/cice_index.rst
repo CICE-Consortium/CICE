@@ -595,6 +595,7 @@ section :ref:`tabnamelist`.
    "restart_file", "restart file prefix", ""
    "restart_format", "restart file format", ""
    "restart_iotasks", "restart output total number of tasks used", ""
+   "restart_mod", "restart modification mode", ""
    "restart_rearranger", "restart output io rearranger method", ""
    "restart_root", "restart output io root task id", ""
    "restart_stride", "restart output io task stride", ""
