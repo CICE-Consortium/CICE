@@ -87,7 +87,6 @@
     f_hs               = 'x'
     f_Tsfc             = 'x'
     f_icespd           = 'x'
-    f_icedir           = 'x'
     f_iage             = 'x'
     f_fswdn            = 'x'
     f_fswup            = 'x'

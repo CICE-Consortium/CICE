@@ -268,7 +268,6 @@
          endif
 
          ! Define coord time_bounds if hist_avg is true
-         ! bounds inherit attributes
          if (hist_avg(ns) .and. .not. write_ic) then
             time_coord = coord_attributes('time_bounds', 'time interval bounds', trim(cal_units), 'undefined')
 
@@ -406,7 +405,6 @@
 
       ! bounds fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
-      ! bounds inherit attributes
       var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','degrees_east','und')
       var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','degrees_north','und')
       var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','degrees_east','und')
@@ -469,7 +467,6 @@
       enddo
 
       ! bounds fields with dimensions (nverts,nx,ny)
-      ! bounds inherit attributes
       dimid_nverts(1) = nvertexid
       dimid_nverts(2) = imtid
       dimid_nverts(3) = jmtid
