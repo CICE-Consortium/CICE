@@ -244,7 +244,7 @@
          floe_binwidth     ! fsd size bin width in m (radius)
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
-        wave_sig_ht        ! significant height of waves (m)
+         wave_sig_ht       ! significant height of waves (m)
 
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          wavefreq,      &  ! wave frequencies
