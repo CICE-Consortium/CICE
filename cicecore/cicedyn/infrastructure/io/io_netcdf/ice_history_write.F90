@@ -279,6 +279,7 @@
 
                call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
                status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
+               call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
             endif
 
          endif  ! histfreq(ns)/='g'

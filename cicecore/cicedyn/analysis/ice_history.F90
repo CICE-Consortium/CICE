@@ -1663,7 +1663,7 @@
              "on native model grid", c1, c0,                     &
              ns1, f_siv, avg_ice_present='final', mask_ice_free_points=.true.)
 
-      ! CMIP 2D variables (intensive, avg_ice_present = 'init' or 'final')
+         ! CMIP 2D extensive variables
 
          call define_hist_field(n_siconc,"siconc","%",tstr2D, tcstr,                         &
              "sea-ice area percentage (ocean grid)",                                         &
@@ -1749,7 +1749,7 @@
          call define_hist_field(n_sihc,"sihc","J m-2",tstr2D, tcstr, &
              "sea-ice heat content",                                 &
              "heat content of all ice in grid cell", c1, c0,         &
-             ns1, f_sihc, avg_ice_present='none', mask_ice_free_points=.true.)
+             ns1, f_sihc)
 
          call define_hist_field(n_simass,"simass","kg m-2",tstr2D, tcstr, &
              "sea-ice mass per area",                                     &
@@ -1786,7 +1786,7 @@
              "snow mass change through snowfall",                                           &
              "rate of change of snow mass due to solid precipitation falling onto sea ice", &
              c1, c0,                                                                        &
-             ns1, f_sisndmasssnf, avg_ice_present='init')
+             ns1, f_sisndmasssnf)
 
          call define_hist_field(n_sisndmasssubl,"sisndmasssubl","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through evaporation or sublimation",                 &
@@ -1796,7 +1796,7 @@
          call define_hist_field(n_sisnhc,"sisnhc","J m-2",tstr2D, tcstr, &
              "snow heat content",                                        &
              "heat content of all snow in grid cell", c1, c0,            &
-             ns1, f_sisnhc, avg_ice_present='none', mask_ice_free_points=.true.)
+             ns1, f_sisnhc)
 
          call define_hist_field(n_sisnmass,"sisnmass","kg m-2",tstr2D, tcstr, &
              "snow mass per area",                                            &
@@ -1804,7 +1804,7 @@
              ns1, f_sisnmass)
 
          call define_hist_field(n_sitimefrac,"sitimefrac","1",tstr2D, tcstr,                 &
-             "fraction of time steps with sea-ice",                                          &
+             "fraction of time steps with sea ice",                                          &
              "averaging period during which sea ice is present (siconc > 0) in a grid cell", &
              c1, c0,                                                                         &
              ns1, f_icepresent)
@@ -2248,14 +2248,14 @@
            sn                    ! temporary variable for salinity
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
-         worka, workb, ravgip, ravgip_init
+         worka, workb, ravgip, ravgip_init, rho_ice, rho_ocn, salt_ice
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          ravgipn
 
       real (kind=dbl_kind) :: awtvdr, awtidr, awtvdf, awtidf, puny, secday, rad_to_deg
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
-      real (kind=dbl_kind) :: rho_ice, rho_ocn, salt_ice, dfresh, dfsalt, sicen
+      real (kind=dbl_kind) :: dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
       logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_topo
       integer (kind=int_kind) :: ktherm
@@ -2535,14 +2535,11 @@
              call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*aice(:,:,iblk), a2D)
 
          if (f_albsni(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (fsw(i,j,iblk) > puny .and. aice(i,j,iblk) > c0) &
-                 worka(i,j) = (fsw(i,j,iblk)-aice(i,j,iblk)*fswabs(i,j,iblk)) / fsw(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_albsni, iblk, worka(:,:), a2D)
+             call accum_hist_field(n_albsni, iblk, &
+                                  (awtvdr*alvdr_ai(:,:,iblk) &
+                                 + awtidr*alidr_ai(:,:,iblk) &
+                                 + awtvdf*alvdf_ai(:,:,iblk) &
+                                 + awtidf*alidf_ai(:,:,iblk)), a2D)
          endif
 
          if (f_alvdr  (1:1) /= 'x') &
@@ -2772,47 +2769,27 @@
            call accum_hist_field(n_sivol, iblk, vice(:,:,iblk), a2D)
          endif
 
+         rho_ice(:,:) = rhoi
+         rho_ocn(:,:) = rhow
+         salt_ice(:,:) = ice_ref_salinity
+         do j = jlo, jhi
+         do i = ilo, ihi
+            if (ktherm == 2) &
+               call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
+                                      sss(i,j,iblk), rho_ice(i,j), rho_ocn(i,j), salt_ice(i,j))
+         enddo
+         enddo
+
          if (f_simass(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-           enddo
-           enddo
-           worka(i,j) = rho_ice*vice(i,j,iblk)
-           call accum_hist_field(n_simass, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_simass, iblk, rho_ice(:,:)*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           salt_ice = ice_ref_salinity
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = rho_ice*salt_ice*vice(i,j,iblk)
-           enddo
-           enddo
-           call accum_hist_field(n_sisaltmass, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisaltmass, iblk, rho_ice(:,:)*salt_ice(:,:)*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisali(1:1) /= 'x') then
-           worka(:,:) = c0
-           salt_ice = ice_ref_salinity
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = aice(i,j,iblk)*salt_ice
-           enddo
-           enddo
-           call accum_hist_field(n_sisali, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sisali, iblk, aice(:,:,iblk)*salt_ice(:,:), a2D)
          endif
 
          if (f_siconc(1:1) /= 'x') then
@@ -2868,13 +2845,9 @@
          endif
          if (f_sidmasstranx(1:1) /= 'x') then
            worka(:,:) = c0
-           rho_ice = rhoi
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = (rho_ice*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
+              worka(i,j) = (rho_ice(i,j)*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
                          + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU(i,j,iblk)) &
                          *  p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
            enddo
@@ -2884,13 +2857,9 @@
 
          if (f_sidmasstrany(1:1) /= 'x') then
            worka(:,:) = c0
-           rho_ice = rhoi
            do j = jlo, jhi
            do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = (rho_ice*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
+              worka(i,j) = (rho_ice(i,j)*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
                          + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU(i,j,iblk)) &
                          *  p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
            enddo
@@ -2951,73 +2920,23 @@
          endif
 
          if (f_sidmassth(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = dvidtt(i,j,iblk) * rho_ice
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassth, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassth, iblk, rho_ice(:,:)*dvidtt(:,:,iblk), a2D)
          endif
 
          if (f_sidmassdyn(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = dvidtd(i,j,iblk) * rho_ice
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassdyn, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassdyn, iblk, rho_ice(:,:)*dvidtd(:,:,iblk), a2D)
          endif
 
          if (f_sidmassgrowthwat(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = frazil(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassgrowthwat, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassgrowthwat, iblk, rho_ice(:,:)*frazil(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassgrowthbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = congel(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassgrowthbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassgrowthbot, iblk, rho_ice(:,:)*congel(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassgrowthsi(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = snoice(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassgrowthsi, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassgrowthsi, iblk, rho_ice(:,:)*snoice(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sisndmasssi(1:1) /= 'x') then
@@ -3025,59 +2944,19 @@
          endif
 
          if (f_sidmassevapsubl(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = evapi(i,j,iblk)*rho_ice
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassevapsubl, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassevapsubl, iblk, rho_ice(:,:)*evapi(:,:,iblk), a2D)
          endif
 
          if (f_sidmassmelttop(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = -meltt(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassmelttop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassmelttop, iblk, -rho_ice(:,:)*meltt(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassmeltbot(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = -meltb(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassmeltbot, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassmeltbot, iblk, -rho_ice(:,:)*meltb(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sidmassmeltlat(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (ktherm == 2) &
-                 call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                        sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-              worka(i,j) = -meltl(i,j,iblk)*rho_ice/dt
-           enddo
-           enddo
-           call accum_hist_field(n_sidmassmeltlat, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_sidmassmeltlat, iblk, -rho_ice(:,:)*meltl(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sisndmasssubl(1:1) /= 'x') then
@@ -3085,7 +2964,7 @@
          endif
 
          if (f_sisndmasssnf(1:1) /= 'x') then
-           call accum_hist_field(n_sisndmasssnf, iblk, aice_init(:,:,iblk)*fsnow(:,:,iblk), a2D)
+           call accum_hist_field(n_sisndmasssnf, iblk, fsnow(:,:,iblk), a2D)
          endif
 
          if (f_sisndmassmelt(1:1) /= 'x') then
@@ -3157,16 +3036,10 @@
          endif
 
          if (f_sifb(1:1) /= 'x') then
-           worka(:,:) = c0
-           rho_ice = rhoi
-           rho_ocn = rhow
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 if (ktherm == 2) &
-                    call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                           sss(i,j,iblk), rho_ice, rho_ocn, salt_ice)
-                 worka(i,j) = ((rho_ocn-rho_ice)*vice(i,j,iblk)-rhos*vsno(i,j,iblk))/rho_ocn
+                 worka(i,j) = ((rho_ocn(i,j)-rho_ice(i,j))*vice(i,j,iblk)-rhos*vsno(i,j,iblk))/rho_ocn(i,j)
 !                if (worka(i,j) < c0) then
 !                   write(nu_diag,*) 'negative fb',rho_ocn,rho_ice,rhos
 !                   write(nu_diag,*) vice(i,j,iblk),vsno(i,j,iblk)
@@ -3485,7 +3358,7 @@
            if (n_aice(ns) > 0) then
            do j = jlo, jhi
            do i = ilo, ihi
-              if (a2D(i,j,n_aice(ns),iblk) > c0) then
+              if (a2D(i,j,n_aice(ns),iblk) > puny) then
                  ravgip(i,j) = c1/(a2D(i,j,n_aice(ns),iblk))
               else
                  ravgip(i,j) = c0
@@ -3493,7 +3366,7 @@
            enddo             ! i
            enddo             ! j
            endif
-           if (n_aice_init(ns) > 0) then
+           if (n_aice_init(ns) > puny) then
            do j = jlo, jhi
            do i = ilo, ihi
               if (a2D(i,j,n_aice_init(ns),iblk) > c0) then
@@ -3558,7 +3431,8 @@
               endif
 
               ! Mask ice-free points
-              if (avail_hist_fields(n)%mask_ice_free_points) then
+              if (avail_hist_fields(n)%mask_ice_free_points .and. &
+                  trim(avail_hist_fields(n)%avg_ice_present) == 'final') then
                  do j = jlo, jhi
                  do i = ilo, ihi
                     if (ravgip(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
@@ -3566,6 +3440,14 @@
                  enddo             ! j
               endif
 
+              if (avail_hist_fields(n)%mask_ice_free_points .and. &
+                  trim(avail_hist_fields(n)%avg_ice_present) == 'init') then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (ravgip_init(i,j) == c0) a2D(i,j,n,iblk) = spval_dbl
+                 enddo             ! i
+                 enddo             ! j
+              endif
             endif
 
               ! back out albedo/zenith angle dependence

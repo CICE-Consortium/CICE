@@ -236,7 +236,6 @@
     f_aice_ww      = 'md'
     f_diam_ww      = 'md'
     f_hice_ww      = 'md'
-    f_aice             = 'md'
     f_aice_init        = 'md'
     f_siage            = 'md'
     f_siconc           = 'md'
