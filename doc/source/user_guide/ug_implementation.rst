@@ -1397,7 +1397,7 @@ terms respectively that are hardwired into the source code to convert model unit
 history units.
 
 Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
+Project (SIMIP) :cite:`Notz16` were added as possible history output variables (e.g. 
 ``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
 `monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
 `daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
@@ -1407,7 +1407,7 @@ specified in the **icefields_nml** section of **ice_in** as detailed above.
 The ``f_CMIP`` flag has been removed. This is now a ``set_nml.cmip`` namelist option
 which can be invoked with the ``-s cmip`` option during cice.setup. This optional
 namelist setting will turn on the CMIP data request and turn of CICE duplicates of
-SIMIP variables. However, these can be changed by the user in their case ice_in file.
+SIMIP variables. However, these can be changed by the user in their case ``ice_in`` file.
 Note that all SIMIP variables have been updated to correspond to the new 
 `CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. 
 

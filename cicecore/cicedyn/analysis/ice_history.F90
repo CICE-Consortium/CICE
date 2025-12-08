@@ -2248,7 +2248,7 @@
            sn                    ! temporary variable for salinity
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
-         worka, workb, ravgip, ravgip_init, rho_ice, rho_ocn, salt_ice
+         worka, workb, ravgip, ravgip_init, rho_ice, rho_ocn, sal_ice
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          ravgipn
@@ -2359,7 +2359,7 @@
 
 #ifndef __INTEL_LLVM_COMPILER
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,salt_ice,dfresh,dfsalt,sicen, &
+      !$OMP             k,n,qn,ns,sn,rho_ocn,rho_ice,sal_ice,dfresh,dfsalt,sicen, &
       !$OMP             worka,workb,Tinz4d,Sinz4d,Tsnz4d)
 #endif
 
@@ -2771,12 +2771,12 @@
 
          rho_ice(:,:) = rhoi
          rho_ocn(:,:) = rhow
-         salt_ice(:,:) = ice_ref_salinity
+         sal_ice(:,:) = ice_ref_salinity
          do j = jlo, jhi
          do i = ilo, ihi
             if (ktherm == 2) &
                call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
-                                      sss(i,j,iblk), rho_ice(i,j), rho_ocn(i,j), salt_ice(i,j))
+                                      sss(i,j,iblk), rho_ice(i,j), rho_ocn(i,j), sal_ice(i,j))
          enddo
          enddo
 
@@ -2785,11 +2785,11 @@
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
-           call accum_hist_field(n_sisaltmass, iblk, rho_ice(:,:)*salt_ice(:,:)*vice(:,:,iblk), a2D)
+           call accum_hist_field(n_sisaltmass, iblk, rho_ice(:,:)*sal_ice(:,:)*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisali(1:1) /= 'x') then
-           call accum_hist_field(n_sisali, iblk, aice(:,:,iblk)*salt_ice(:,:), a2D)
+           call accum_hist_field(n_sisali, iblk, aice(:,:,iblk)*sal_ice(:,:), a2D)
          endif
 
          if (f_siconc(1:1) /= 'x') then
