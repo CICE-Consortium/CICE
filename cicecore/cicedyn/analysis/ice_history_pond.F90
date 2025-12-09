@@ -540,8 +540,8 @@
 
          if (f_simpthick(1:1)/= 'x') &
              call accum_hist_field(n_simpthick, iblk, &
-                                   aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                                         * trcr(:,:,nt_hpnd,iblk), a2D)
+                            aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
+                                                                  * trcr(:,:,nt_hpnd,iblk), a2D)
 
          if (f_simprefrozen(1:1)/= 'x') &
              call accum_hist_field(n_simprefrozen, iblk, &

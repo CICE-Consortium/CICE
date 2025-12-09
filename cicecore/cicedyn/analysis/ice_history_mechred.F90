@@ -358,6 +358,7 @@
 
       subroutine accum_hist_mechred (iblk)
 
+      use ice_blocks, only: nx_block, ny_block
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
@@ -370,11 +371,16 @@
 
       ! local variables
 
+      real (kind=dbl_kind) :: puny
+
+       real (kind=dbl_kind), dimension (nx_block,ny_block) :: worka
+
       integer (kind=int_kind) :: &
            nt_alvl, nt_vlvl
       character(len=*), parameter :: subname = '(accum_hist_mechred)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -410,9 +416,13 @@
          if (f_sirdgconc(1:1)/= 'x') &
              call accum_hist_field(n_sirdgconc,   iblk, &
                              aice(:,:,iblk)*(c1 - trcr(:,:,nt_alvl,iblk)), a2D)
-         if (f_sirdgthick(1:1)/= 'x') &
-             call accum_hist_field(n_sirdgthick,   iblk, &
-                             vice(:,:,iblk)*(c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+         if (f_sirdgthick(1:1)/= 'x') then 
+             worka(:,:) = c0
+             where ((c1 - trcr(:,:,nt_alvl,iblk)) > puny) &
+                worka(:,:) = vice(:,:,iblk)*(c1 - trcr(:,:,nt_vlvl,iblk)) / (c1 - trcr(:,:,nt_alvl,iblk))
+             call accum_hist_field(n_sirdgthick,   iblk, worka(:,:), a2D) 
+         endif
+
          endif ! allocated(a2D)
 
          ! 3D category fields
