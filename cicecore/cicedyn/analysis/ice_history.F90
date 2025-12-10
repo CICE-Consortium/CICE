@@ -3039,11 +3039,8 @@
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
-                 worka(i,j) = ((rho_ocn(i,j)-rho_ice(i,j))*vice(i,j,iblk)-rhos*vsno(i,j,iblk))/rho_ocn(i,j)
-!                if (worka(i,j) < c0) then
-!                   write(nu_diag,*) 'negative fb',rho_ocn,rho_ice,rhos
-!                   write(nu_diag,*) vice(i,j,iblk),vsno(i,j,iblk)
-!                endif
+                 worka(i,j) = max(((rho_ocn(i,j)-rho_ice(i,j))*vice(i,j,iblk)-rhos*vsno(i,j,iblk)) &
+                                  / rho_ocn(i,j), c0)
               endif
            enddo
            enddo

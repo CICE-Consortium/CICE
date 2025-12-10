@@ -361,7 +361,7 @@
              ns, f_simprefrozen, avg_ice_present='final', mask_ice_free_points=.true.)
 
       if (f_simpthick(1:1) /= 'x') &
-         call define_hist_field(n_simpthick,"simpthick","kg m-2",tstr2D, tcstr,                            &
+         call define_hist_field(n_simpthick,"simpthick","m",tstr2D, tcstr,                                 &
              "melt pond depth",                                                                            &
              "average depth of melt ponds on sea ice, that is melt pond volume divided by melt pond area", &
              c1, c0,                                                                                       &
@@ -540,13 +540,13 @@
 
          if (f_simpthick(1:1)/= 'x') &
              call accum_hist_field(n_simpthick, iblk, &
-                            aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                                  * trcr(:,:,nt_hpnd,iblk), a2D)
+                            aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk) &
+                                           * trcr(:,:,nt_hpnd,iblk), a2D)
 
          if (f_simprefrozen(1:1)/= 'x') &
              call accum_hist_field(n_simprefrozen, iblk, &
-                            aice(:,:,iblk)*trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                                  * trcr(:,:,nt_ipnd,iblk), a2D)
+                            aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk) &
+                                           * trcr(:,:,nt_ipnd,iblk), a2D)
 
          elseif (tr_pond_topo .or. tr_pond_sealvl) then
 
@@ -578,13 +578,11 @@
 
          if (f_simpthick(1:1)/= 'x') &
              call accum_hist_field(n_simpthick, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                  * trcr(:,:,nt_hpnd,iblk), a2D)
+                                   aice(:,:,iblk) * trcr(:,:,nt_hpnd,iblk), a2D)
 
          if (f_simprefrozen(1:1)/= 'x') &
              call accum_hist_field(n_simprefrozen, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                  * trcr(:,:,nt_ipnd,iblk), a2D)
+                                   aice(:,:,iblk) * trcr(:,:,nt_ipnd,iblk), a2D)
 
          endif ! ponds
 
