@@ -77,7 +77,7 @@
       ! field indices
       !---------------------------------------------------------------
 
-      integer (kind=int_kind), dimension(max_nstrm) :: &
+      integer (kind=int_kind), dimension(max_nstrm), public :: &
            n_apondn      , n_apeffn    , &
            n_hpondn      , &
            n_apond       , n_apond_ai, &
@@ -358,14 +358,14 @@
              "thickness of refrozen ice on melt ponds",                                &
              "volume of refrozen ice on melt ponds divided by melt pond covered area", &
              c1, c0,                                                                   &
-             ns, f_simprefrozen, avg_ice_present='final', mask_ice_free_points=.true.)
+             ns, f_simprefrozen, avg_ice_present='pond', mask_ice_free_points=.true.)
 
       if (f_simpthick(1:1) /= 'x') &
          call define_hist_field(n_simpthick,"simpthick","m",tstr2D, tcstr,                                 &
              "melt pond depth",                                                                            &
              "average depth of melt ponds on sea ice, that is melt pond volume divided by melt pond area", &
              c1, c0,                                                                                       &
-             ns, f_simpthick, avg_ice_present='final', mask_ice_free_points=.true.)
+             ns, f_simpthick, avg_ice_present='pond', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -507,84 +507,36 @@
          if (allocated(a2D)) then
 
          if (tr_pond_lvl) then
+            worka(:,:) = trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk)
+         else
+            worka(:,:) = trcr(:,:,nt_apnd,iblk)
+         endif
 
          if (f_apond(1:1)/= 'x') &
-             call accum_hist_field(n_apond, iblk, &
-                            trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
+             call accum_hist_field(n_apond, iblk, worka(:,:), a2D)
          if (f_apond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_apond_ai, iblk, &
-                            aice(:,:,iblk) &
-                          * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
+             call accum_hist_field(n_apond_ai, iblk, aice(:,:,iblk)*worka(:,:), a2D)
          if (f_hpond(1:1)/= 'x') &
-             call accum_hist_field(n_hpond, iblk, &
-                            trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                   * trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_hpond, iblk, worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_hpond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_hpond_ai, iblk, &
-                            aice(:,:,iblk) &
-                          * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                   * trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_hpond_ai, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_ipond(1:1)/= 'x') &
-             call accum_hist_field(n_ipond, iblk, &
-                            trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                   * trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_ipond, iblk, worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
          if (f_ipond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_ipond_ai, iblk, &
-                            aice(:,:,iblk) &
-                          * trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                   * trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_ipond_ai, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+
+         ! CMIP pond related variables
+         if (f_simpeffconc (1:1) /= 'x') &
+             call accum_hist_field(n_simpeffconc, iblk, apeff_ai(:,:,iblk), a2D)
 
          if (f_simpconc(1:1)/= 'x') &
-             call accum_hist_field(n_simpconc, iblk, &
-                            trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
+             call accum_hist_field(n_simpconc, iblk, worka(:,:), a2D)
 
          if (f_simpthick(1:1)/= 'x') &
-             call accum_hist_field(n_simpthick, iblk, &
-                            aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk) &
-                                           * trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_simpthick, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
 
          if (f_simprefrozen(1:1)/= 'x') &
-             call accum_hist_field(n_simprefrozen, iblk, &
-                            aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk) &
-                                           * trcr(:,:,nt_ipnd,iblk), a2D)
-
-         elseif (tr_pond_topo .or. tr_pond_sealvl) then
-
-         if (f_apond(1:1)/= 'x') &
-             call accum_hist_field(n_apond, iblk, &
-                                   trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_apond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_apond_ai, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk), a2D)
-         if (f_hpond(1:1)/= 'x') &
-             call accum_hist_field(n_hpond, iblk, &
-                                   trcr(:,:,nt_apnd,iblk) &
-                                 * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_hpond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_hpond_ai, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                  * trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_ipond(1:1)/= 'x') &
-             call accum_hist_field(n_ipond, iblk, &
-                                   trcr(:,:,nt_apnd,iblk) &
-                                 * trcr(:,:,nt_ipnd,iblk), a2D)
-         if (f_ipond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_ipond_ai, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_apnd,iblk) &
-                                                  * trcr(:,:,nt_ipnd,iblk), a2D)
-
-         if (f_simpconc(1:1)/= 'x') &
-             call accum_hist_field(n_simpconc, iblk, trcr(:,:,nt_apnd,iblk), a2D)
-
-         if (f_simpthick(1:1)/= 'x') &
-             call accum_hist_field(n_simpthick, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_hpnd,iblk), a2D)
-
-         if (f_simprefrozen(1:1)/= 'x') &
-             call accum_hist_field(n_simprefrozen, iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_ipnd,iblk), a2D)
-
-         endif ! ponds
+             call accum_hist_field(n_simprefrozen, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
 
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -620,10 +572,6 @@
          if (f_dpnd_ridge (1:1) /= 'x') &
              call accum_hist_field(n_dpnd_ridge  , iblk, dpnd_ridge  (:,:,iblk), a2D)
 
-         ! CMIP pond related variables
-         if (f_simpeffconc (1:1) /= 'x') then
-             call accum_hist_field(n_simpeffconc, iblk, apeff_ai(:,:,iblk), a2D)
-         endif
          endif ! allocated(a2D)
 
          ! 3D category fields

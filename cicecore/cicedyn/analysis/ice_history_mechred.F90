@@ -63,7 +63,7 @@
       ! field indices
       !---------------------------------------------------------------
 
-      integer (kind=int_kind), dimension(max_nstrm) :: &
+      integer (kind=int_kind), dimension(max_nstrm), public :: &
            n_ardg       , n_vrdg       , &
            n_alvl       , n_vlvl       , &
            n_dardg1dt   , n_dardg2dt   , &
@@ -250,7 +250,7 @@
              "ridged ice thickness",                                         &
              "total volume of ridged sea ice divided by area of ridges",     &
              c1, c0,                                                         &
-             ns, f_sirdgthick, avg_ice_present='final', mask_ice_free_points=.true.)
+             ns, f_sirdgthick, avg_ice_present='ridge', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -403,7 +403,7 @@
                              aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
          if (f_vrdg(1:1)/= 'x') &
              call accum_hist_field(n_vrdg,   iblk, &
-                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+                             vice(:,:,iblk) - trcr(:,:,nt_vlvl,iblk), a2D)
          if (f_dardg1dt(1:1)/= 'x') &
              call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
          if (f_dardg2dt(1:1)/= 'x') &
@@ -416,11 +416,9 @@
          if (f_sirdgconc(1:1)/= 'x') &
              call accum_hist_field(n_sirdgconc,   iblk, &
                              aice(:,:,iblk)*(c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+
          if (f_sirdgthick(1:1)/= 'x') then 
-             worka(:,:) = c0
-             where ((c1 - trcr(:,:,nt_alvl,iblk)) > puny) &
-                worka(:,:) = vice(:,:,iblk)*(c1 - trcr(:,:,nt_vlvl,iblk)) / (c1 - trcr(:,:,nt_alvl,iblk))
-             call accum_hist_field(n_sirdgthick,   iblk, worka(:,:), a2D) 
+             call accum_hist_field(n_sirdgthick,   iblk, vice(:,:,iblk) - trcr(:,:,nt_vlvl,iblk), a2D) 
          endif
 
          endif ! allocated(a2D)

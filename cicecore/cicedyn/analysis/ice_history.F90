@@ -2219,7 +2219,9 @@
       use ice_history_write, only: ice_write_hist
       use ice_history_bgc, only: accum_hist_bgc
       use ice_history_mechred, only: accum_hist_mechred
+      use ice_history_mechred, only: n_alvl, n_ardg
       use ice_history_pond, only: accum_hist_pond
+      use ice_history_pond, only: n_apond
       use ice_history_snow, only: accum_hist_snow, &
           f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
@@ -2248,7 +2250,7 @@
            sn                    ! temporary variable for salinity
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
-         worka, workb, ravgip, ravgip_init, rho_ice, rho_ocn, sal_ice
+         worka, workb, ravgip, ravgip_init, ravgip_pond, ravgip_ridge, rho_ice, rho_ocn, sal_ice
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          ravgipn
@@ -2257,10 +2259,10 @@
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
-      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_topo
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_lvl, tr_pond_topo
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
-                                 nt_alvl, nt_vlvl
+                                 nt_alvl, nt_apnd
       character (len=char_len) :: saltflux_option
 
       type (block) :: &
@@ -2274,11 +2276,11 @@
            rhow_out=rhow, ice_ref_salinity_out=ice_ref_salinity)
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
       call icepack_query_parameters(saltflux_option_out=saltflux_option)
-      call icepack_query_tracer_flags(tr_pond_out=tr_pond, tr_aero_out=tr_aero, &
-           tr_brine_out=tr_brine, tr_snow_out=tr_snow, tr_pond_topo_out=tr_pond_topo)
+      call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_brine_out=tr_brine, tr_snow_out=tr_snow, &
+           tr_pond_out=tr_pond, tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc, &
-           nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
+           nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -3341,7 +3343,8 @@
 
         ravgct = c1/avgct(ns)
         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
-        !$OMP                     n,nn,ravgctz,ravgip,ravgip_init,ravgipn)
+        !$OMP                     n,nn,ravgctz,ravgip,ravgip_init,ravgip_pond, &
+        !$OMP                     ravgip_ridge,ravgipn)
         do iblk = 1, nblocks
            this_block = get_block(blocks_ice(iblk),iblk)
            ilo = this_block%ilo
@@ -3363,13 +3366,50 @@
            enddo             ! i
            enddo             ! j
            endif
-           if (n_aice_init(ns) > puny) then
+           if (n_aice_init(ns) > 0) then
            do j = jlo, jhi
            do i = ilo, ihi
-              if (a2D(i,j,n_aice_init(ns),iblk) > c0) then
+              if (a2D(i,j,n_aice_init(ns),iblk) > puny) then
                  ravgip_init(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk))
               else
                  ravgip_init(i,j) = c0
+              endif
+           enddo             ! i
+           enddo             ! j
+           endif
+           if (tr_pond .and. n_aice(ns) > 0 .and. n_apond(ns) > 0) then
+              if (tr_pond_lvl .and. n_alvl(ns) > 0) then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_alvl(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice(ns),iblk) &
+                                             *a2D(i,j,n_alvl(ns),iblk) &
+                                             *a2D(i,j,n_apond(ns),iblk))
+                    else
+                       ravgip_pond(i,j) = c0
+                    endif
+                 enddo             ! i
+                 enddo             ! j
+              else
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice(ns),iblk) &
+                                             *a2D(i,j,n_apond(ns),iblk))
+                    else
+                       ravgip_pond(i,j) = c0
+                    endif
+                 enddo             ! i
+                 enddo             ! j
+              endif
+           endif
+           if (n_ardg(ns) > 0) then
+           do j = jlo, jhi
+           do i = ilo, ihi
+              if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_ardg(ns),iblk) > puny) then
+                 ravgip(i,j) = c1/(a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_ardg(ns),iblk))
+              else
+                 ravgip(i,j) = c0
               endif
            enddo             ! i
            enddo             ! j
@@ -3411,6 +3451,28 @@
                     else                            ! convert units
                        a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
                                       * ravgip_init(i,j) + avail_hist_fields(n)%conb
+                    endif
+                 enddo             ! i
+                 enddo             ! j
+              elseif (trim(avail_hist_fields(n)%avg_ice_present) == 'pond') then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (.not. tmask(i,j,iblk)) then
+                       a2D(i,j,n,iblk) = spval_dbl
+                    else                            ! convert units
+                       a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
+                                      * ravgip_pond(i,j) + avail_hist_fields(n)%conb
+                    endif
+                 enddo             ! i
+                 enddo             ! j
+              elseif (trim(avail_hist_fields(n)%avg_ice_present) == 'ridge') then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (.not. tmask(i,j,iblk)) then
+                       a2D(i,j,n,iblk) = spval_dbl
+                    else                            ! convert units
+                       a2D(i,j,n,iblk) = avail_hist_fields(n)%cona*a2D(i,j,n,iblk) &
+                                      * ravgip_ridge(i,j) + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
                  enddo             ! j
