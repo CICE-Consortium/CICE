@@ -3406,8 +3406,8 @@
            if (n_aice(ns) > 0 .and. n_ardg(ns) > 0) then
            do j = jlo, jhi
            do i = ilo, ihi
-              if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_ardg(ns),iblk) > puny) then
-                 ravgip_ridge(i,j) = c1/(a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_ardg(ns),iblk))
+              if (a2D(i,j,n_ardg(ns),iblk) > puny) then
+                 ravgip_ridge(i,j) = c1/a2D(i,j,n_ardg(ns),iblk)
               else
                  ravgip_ridge(i,j) = c0
               endif
