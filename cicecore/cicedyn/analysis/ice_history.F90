@@ -3377,12 +3377,12 @@
            enddo             ! i
            enddo             ! j
            endif
-           if (tr_pond .and. n_aice(ns) > 0 .and. n_apond(ns) > 0) then
+           if (tr_pond .and. n_aice_init(ns) > 0 .and. n_apond(ns) > 0) then
               if (tr_pond_lvl .and. n_alvl(ns) > 0) then
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_alvl(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice(ns),iblk) &
+                    if (a2D(i,j,n_aice_init(ns),iblk)*a2D(i,j,n_alvl(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk) &
                                              *a2D(i,j,n_alvl(ns),iblk) &
                                              *a2D(i,j,n_apond(ns),iblk))
                     else
@@ -3393,8 +3393,8 @@
               else
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (a2D(i,j,n_aice(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice(ns),iblk) &
+                    if (a2D(i,j,n_aice_init(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk) &
                                              *a2D(i,j,n_apond(ns),iblk))
                     else
                        ravgip_pond(i,j) = c0

@@ -464,7 +464,7 @@
       use ice_flux, only: dpnd_flushn, dpnd_exponn, dpnd_freebdn, dpnd_initialn
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
-      use ice_state, only: aice, trcr, trcrn
+      use ice_state, only: aice, aice_init, trcr, trcrn
 
       integer (kind=int_kind), intent(in) :: &
            iblk                 ! block index
@@ -515,15 +515,15 @@
          if (f_apond(1:1)/= 'x') &
              call accum_hist_field(n_apond, iblk, worka(:,:), a2D)
          if (f_apond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_apond_ai, iblk, aice(:,:,iblk)*worka(:,:), a2D)
+             call accum_hist_field(n_apond_ai, iblk, aice_init(:,:,iblk)*worka(:,:), a2D)
          if (f_hpond(1:1)/= 'x') &
              call accum_hist_field(n_hpond, iblk, worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_hpond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_hpond_ai, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_hpond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_ipond(1:1)/= 'x') &
              call accum_hist_field(n_ipond, iblk, worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
          if (f_ipond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_ipond_ai, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_ipond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
 
          ! CMIP pond related variables
          if (f_simpeffconc (1:1) /= 'x') &
@@ -533,10 +533,10 @@
              call accum_hist_field(n_simpconc, iblk, worka(:,:), a2D)
 
          if (f_simpthick(1:1)/= 'x') &
-             call accum_hist_field(n_simpthick, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_simpthick, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
 
          if (f_simprefrozen(1:1)/= 'x') &
-             call accum_hist_field(n_simprefrozen, iblk, aice(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_simprefrozen, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
 
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
