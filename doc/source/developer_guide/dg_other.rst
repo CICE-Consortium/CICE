@@ -282,20 +282,22 @@ For level-ice ponds, there is an extra factor of :math:`a_{lvl}`. The level-ice 
                       { \int_{ice} a_p \, a_{lvl} \, g \, d\mathbf{X} }
 		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_{pn} \, a_{lvln} \, a_n }.
 
-Ridged ice area and volume are handled slightly differently, since they are diagnostic based on
+Ridged-ice area and volume are handled slightly differently, since they are diagnostic based on
 level-ice area and volume. Level-ice area is a tracer on ice area, and level-ice volume is a
-tracer on ice volume. The tracer values are fractions of the total ice area, and ridged (deformed) ice is
+tracer on ice volume. The tracer values are fractions of the total ice, and ridged (deformed) ice is
 diagnosed as the remainder of the ice fraction or volume:
-:math:`T_{ardg} = 1 - T_{alvl}` and :math:`b_{vrdg} = 1 - b_{vlvl}` for the area and volume tracers
-:math:`T` and :math:`b`. Thus the mean level and ridged ice area fractions of the ice area are
+:math:`T_{ardg} = 1 - T_{alvl}` and :math:`T_{vrdg} = 1 - T_{vlvl}` for the area and volume tracers.
+Thus the mean level and ridged ice area fractions of the ice area are
 
 .. math::
-   a_{lvl,ice} = \frac{ \int_{ice} T_{alvl} \, g \, d\mathbf{X} }
-                      { \int_{ice}             g \, d\mathbf{X} }
-            \sim \frac{ \sum_{n=1}^{ncat} a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_n }
-   a_{rdg,ice} = \frac{ \int_{ice} (1 - T_{alvl}) \, g \, d\mathbf{X} }
-                      { \int_{ice}                   g \, d\mathbf{X} }
-            \sim \frac{ \sum_{n=1}^{ncat} (1 - a_{lvln}) \, a_n }{ \sum_{n=1}^{ncat} a_n }.
+   a_{lvl\,ice} = \frac{ \int_{ice} T_{alvl} \, g \, d\mathbf{X} }
+                       { \int_{ice}             g \, d\mathbf{X} }
+             \sim \frac{ \sum_{n=1}^{ncat} a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+a_{rdg\,ice} = \frac{ \int_{ice} (1 - T_{alvl}) \, g \, d\mathbf{X} }
+                    { \int_{ice}                   g \, d\mathbf{X} }
+          \sim \frac{ \sum_{n=1}^{ncat} (1 - a_{lvln}) \, a_n }{ \sum_{n=1}^{ncat} a_n }.
 
 The mean thickness of level ice, averaging over just the level-ice areas from all categories, is
 
