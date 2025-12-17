@@ -35,7 +35,7 @@
       ! namelist parameters
 
       integer (kind=int_kind), public :: &
-         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
+         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap , 3 = vp)
          kridge     , & ! set to "-1" to turn off ridging
          ndte           ! number of subcycles
 
@@ -55,7 +55,7 @@
          dyn_mass_min,& ! minimum ice mass to activate dynamics (kg/m^2)
          elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
 
-      ! other EVP parameters
+      ! other dynamics parameters
 
       character (len=char_len), public :: &
          yield_curve      , & ! 'ellipse' ('teardrop' needs further testing)
@@ -64,9 +64,10 @@
                               ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. 2022
 
       real (kind=dbl_kind), parameter, public :: &
-         u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
-         cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw  = c0               ! sin(ocean turning angle)  ! turning angle = 0
+         rheo_area_min = 1e-3_dbl_kind, & ! minimum ice area concentration to activate rheology
+         u0    = 5e-5_dbl_kind        , & ! residual velocity for seabed stress (m/s)
+         cosw  = c1                   , & ! cos(ocean turning angle)  ! turning angle = 0
+         sinw  = c0                       ! sin(ocean turning angle)  ! turning angle = 0
 
       real (kind=dbl_kind), public :: &
          revp        , & ! 0 for classic EVP, 1 for revised EVP
