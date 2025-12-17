@@ -597,7 +597,7 @@
                             indxXi,     indxXj,     &
                             aiX,        Xmass,      &
                             Xmassdti,   fcor,       &
-                            Xmask,                  &
+                            Xmask,      rheofactX,  &
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
@@ -680,7 +680,9 @@
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         tauby   , & ! seabed stress, y-direction (N/m^2)
+         rheofactX   ! mult. factor = 1, set to 0 if aiU < rheo_area_min
+         
 
       ! local variables
 

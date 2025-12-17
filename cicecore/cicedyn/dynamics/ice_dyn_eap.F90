@@ -298,7 +298,7 @@
                          indxUi      (:,iblk), indxUj      (:,iblk), &
                          aiU       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                         umask     (:,:,iblk),                       &
+                         umask     (:,:,iblk), rheofactU (:,:,iblk), &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
