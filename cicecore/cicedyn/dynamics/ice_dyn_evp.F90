@@ -515,7 +515,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umask     (:,:,iblk),                       &
+                            umask     (:,:,iblk), rheofactU (:,:,iblk), &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -572,7 +572,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umaskCD   (:,:,iblk),                       &
+                            umaskCD   (:,:,iblk), rheofactU (:,:,iblk), &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -622,7 +622,7 @@
                             indxNi      (:,iblk), indxNj      (:,iblk), &
                             aiN       (:,:,iblk), nmass     (:,:,iblk), &
                             nmassdti  (:,:,iblk), fcorN_blk (:,:,iblk), &
-                            nmask     (:,:,iblk),                       &
+                            nmask     (:,:,iblk), rheofactN (:,:,iblk), &
                             uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
                             strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                             ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
@@ -655,7 +655,7 @@
                             indxEi      (:,iblk), indxEj      (:,iblk), &
                             aiE       (:,:,iblk), emass     (:,:,iblk), &
                             emassdti  (:,:,iblk), fcorE_blk (:,:,iblk), &
-                            emask     (:,:,iblk),                       &
+                            emask     (:,:,iblk), rheofactE (:,:,iblk), &
                             uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
                             strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                             ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
