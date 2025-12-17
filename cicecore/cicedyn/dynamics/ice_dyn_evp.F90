@@ -67,7 +67,7 @@
          forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiN      (:,:,:) , & ! ice fraction on N-grid
-         rheofactN(:,:,:) , & ! mult. factor = 1, set to 0 if aiN < rheo_area_min
+         rheofactN(:,:,:) , & ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
          nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
          nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
 ! all c or d
@@ -82,7 +82,7 @@
          forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiE      (:,:,:) , & ! ice fraction on E-grid
-         rheofactE(:,:,:) , & ! mult. factor = 1, set to 0 if aiE < rheo_area_min
+         rheofactE(:,:,:) , & ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
          emass    (:,:,:) , & ! total mass of ice and snow (E grid)
          emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
@@ -102,7 +102,7 @@
          zetax2U  (:,:,:) , & ! zetax2T averaged to U points
          etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
          etax2U   (:,:,:) , & ! etax2T averaged to U points
-         rheofactU(:,:,:)     ! mult. factor = 1, set to 0 if aiU < rheo_area_min
+         rheofactU(:,:,:)     ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
                               ! rheofactU is not used but added for consistency with
                               ! C-grid rheofactN and rheofactE (for call dyn_prep2)
 

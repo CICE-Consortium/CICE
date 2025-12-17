@@ -205,7 +205,7 @@
          fpresy   , & ! fixed point residual vector, y components: fy = vvel - vprev_k
          umass    , & ! total mass of ice and snow (u grid)
          umassdti , & ! mass of U-cell/dte (kg/m^2 s)
-         rheofactU    ! mult. factor = 1, set to 0 if aiU < rheo_area_min
+         rheofactU    ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
                       ! rheofactU is not used but added for consistency with
                       ! C-grid rheofactN and rheofactE (for call dyn_prep2)
 
