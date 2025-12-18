@@ -681,7 +681,7 @@
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby   , & ! seabed stress, y-direction (N/m^2)
-         rheofactX   ! mult. factor = 1, set to 0 if aiU < rheo_area_min
+         rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
          
 
       ! local variables
@@ -800,6 +800,12 @@
       do ij = 1, icellX
          i = indxXi(ij)
          j = indxXj(ij)
+
+         if ( aiX (i,j) > rheo_area_min ) then
+            rheofactX(i,j) = c1
+         else
+            rheofactX(i,j) = c0
+         endif
 
          Xmassdti(i,j) = Xmass(i,j)/dt ! kg/m^2 s
 
