@@ -1086,7 +1086,7 @@
       subroutine stepu_C (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
-                                      aiX,      &
+                                      aiE,      &
                           uocn,       vocn,     &
                           waterx,     forcex,   &
                           massdti,    fm,       &
@@ -1106,7 +1106,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         aiX     , & ! ice fraction on X-grid
+         aiE     , & ! ice fraction on E-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          massdti , & ! mass of e-cell/dt (kg/m^2 s)
@@ -1153,7 +1153,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiE(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -1185,7 +1185,7 @@
       subroutine stepv_C (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
-                                      aiX,      &
+                                      aiN,      &
                           uocn,       vocn,     &
                           watery,     forcey,   &
                           massdti,    fm,       &
@@ -1205,7 +1205,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiX     , & ! ice fraction on X-grid
+         aiN     , & ! ice fraction on N-grid
          watery  , & ! for ocean stress calculation, y (m/s)
          forcey  , & ! work array: combined atm stress and ocn tilt, y
          massdti , & ! mass of n-cell/dt (kg/m^2 s)
@@ -1252,7 +1252,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiN(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
