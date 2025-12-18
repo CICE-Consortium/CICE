@@ -2221,7 +2221,7 @@
       use ice_history_mechred, only: accum_hist_mechred
       use ice_history_mechred, only: n_alvl, n_ardg
       use ice_history_pond, only: accum_hist_pond
-      use ice_history_pond, only: n_apond
+      use ice_history_pond, only: n_apond_ai
       use ice_history_snow, only: accum_hist_snow, &
           f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
@@ -3377,14 +3377,12 @@
            enddo             ! i
            enddo             ! j
            endif
-           if (tr_pond .and. n_aice_init(ns) > 0 .and. n_apond(ns) > 0) then
-              if (tr_pond_lvl .and. n_alvl(ns) > 0) then
+           if (tr_pond .and. n_apond_ai(ns) > 0) then
+              if (tr_pond_lvl) then
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (a2D(i,j,n_aice_init(ns),iblk)*a2D(i,j,n_alvl(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk) &
-                                             *a2D(i,j,n_alvl(ns),iblk) &
-                                             *a2D(i,j,n_apond(ns),iblk))
+                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
                     else
                        ravgip_pond(i,j) = c0
                     endif
@@ -3393,9 +3391,8 @@
               else
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (a2D(i,j,n_aice_init(ns),iblk)*a2D(i,j,n_apond(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk) &
-                                             *a2D(i,j,n_apond(ns),iblk))
+                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
                     else
                        ravgip_pond(i,j) = c0
                     endif
