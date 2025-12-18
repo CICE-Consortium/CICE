@@ -3,6 +3,7 @@
     hist_avg           = .true.,.true.,.false.,.false,.false.
     f_aice             = 'md'
     f_aice_init        = 'md'
+    f_aicen            = 'md'
     f_siage            = 'md'
     f_siconc           = 'md'
     f_sifb             = 'md'

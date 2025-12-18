@@ -371,16 +371,11 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: puny
-
-       real (kind=dbl_kind), dimension (nx_block,ny_block) :: worka
-
       integer (kind=int_kind) :: &
            nt_alvl, nt_vlvl
       character(len=*), parameter :: subname = '(accum_hist_mechred)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
-      call icepack_query_parameters(puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -418,7 +413,7 @@
                              aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
 
          if (f_sirdgthick(1:1)/= 'x') then 
-             call accum_hist_field(n_sirdgthick,   iblk, &
+             call accum_hist_field(n_sirdgthick,  iblk, &
                              vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D) 
          endif
 

@@ -1396,14 +1396,14 @@ subroutine **define_hist_field**.  ``cona`` and ``conb`` are multiplicative and 
 terms respectively that are hardwired into the source code to convert model units to
 history units.
 
-Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) :cite:`Notz16` were added as possible history output variables (e.g. 
-``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
-`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
-`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
-requested  SIMIP variables provide the names of possible history fields in CICE. 
-Each of the SIMIP variables can be output at any temporal frequency 
-specified in the **icefields_nml** section of **ice_in** as detailed above.
+Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison
+Project (SIMIP) :cite:`Notz16` are available as history output variables 
+(e.g. ``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_
+requested SIMIP variables provide their history field names in CICE.
+These variables have been updated for the  `CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_.
+
 The ``f_CMIP`` flag has been removed. This is now a ``set_nml.cmip`` namelist option
 which can be invoked with the ``-s cmip`` option during cice.setup. This optional
 namelist setting will turn on the CMIP data request and turn of CICE duplicates of
