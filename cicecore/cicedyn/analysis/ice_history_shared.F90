@@ -218,6 +218,7 @@
 
       character (len=max_nstrm), public :: &
 !          f_example   = 'md', &
+           f_CMIP      = 'x',  &
            f_hi        = 'm', f_hs         = 'm', &
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
@@ -397,6 +398,7 @@
            f_VGRDb    , f_VGRDa    , &
            f_NFSD     , &
 !          f_example  , &
+           f_CMIP     ,              &
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
@@ -1225,20 +1227,38 @@
 
       end subroutine accum_hist_field_4D
 
+!=======================================================================
+
+!     Computes total density of brine plus fresh ice. Used for mass
+!     related CMIP variables.
+!
+!     2025 Created by D. Bailey
+
       subroutine ice_brine_density (qice,sice,sss,rho_ice,rho_ocn,salt_ice)
 
       use ice_constants, only: c0, c1
       use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
       use icepack_intfc, only: icepack_mushy_temperature_mush, icepack_query_parameters
 
-      real (kind=dbl_kind), intent(in), dimension(:) :: qice, sice
-      real (kind=dbl_kind), intent(in) :: sss
+      real (kind=dbl_kind), intent(in), dimension(:) :: &
+           qice,  & ! sea ice enthalpy of each layer (J m-3)
+           sice     ! sea ice salinity in each layer (psu)
 
-      real (kind=dbl_kind), intent(out) :: rho_ice, rho_ocn, salt_ice
+      real (kind=dbl_kind), intent(in) :: &
+           sss      ! sea surface (ocean) salinity (psu)
+
+      real (kind=dbl_kind), intent(out) :: &
+           rho_ice, & ! combined brine + ice density (kg m-3)
+           rho_ocn, & ! ocean density from sss (kg m-3)
+           salt_ice   ! bulk salinity of brine + ice (psu)
 
       integer (kind=int_kind) :: k
-      real (kind=dbl_kind) :: rhoi
-      real (kind=dbl_kind) :: Tice, Sbr, phi, rhob
+      real (kind=dbl_kind) :: rhoi ! constant fresh ice density (kg m-3)
+      real (kind=dbl_kind) :: &
+           Tice,    & ! sea ice temperature in each layer (C)
+           Sbr,     & ! salinity of brine in each layer (psu)
+           phi,     & ! brine fraction in each layer
+           rhob       ! density of brine (kg m-3)
 
          call icepack_query_parameters(rhoi_out=rhoi)
 

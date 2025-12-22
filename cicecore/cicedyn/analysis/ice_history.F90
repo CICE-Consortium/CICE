@@ -410,6 +410,7 @@
       call broadcast_scalar (f_NFSD, master_task)
 
 !     call broadcast_scalar (f_example, master_task)
+      call broadcast_scalar (f_CMIP, master_task)
       call broadcast_scalar (f_hi, master_task)
       call broadcast_scalar (f_hs, master_task)
       call broadcast_scalar (f_snowfrac, master_task)
@@ -654,6 +655,11 @@
       call broadcast_scalar (f_yieldstress11, master_task)
       call broadcast_scalar (f_yieldstress12, master_task)
       call broadcast_scalar (f_yieldstress22, master_task)
+
+      if (f_CMIP(1:1) /= 'x') then
+         if (my_task == master_task) write(nu_diag,*) subname, &
+            'WARNING: f_CMIP has been deprecated. Please use the set_nml.cmip namelist option'
+      endif
 
       ! 2D variables
       do ns1 = 1, nstreams
@@ -1449,7 +1455,8 @@
               ns1, f_FY)
 
       ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
-      ! use avg_ice_present = 'init' or 'final' to divide by sum(aice) over time, when 
+      ! use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
+      ! sum(aice), sum(apond), or sum(ardg) over time 
       ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
 
          call define_hist_field(n_siage,"siage","s",tstr2D, tcstr,       &
@@ -2259,7 +2266,7 @@
       real (kind=dbl_kind) :: Tffresh, rhoi, rhos, rhow, ice_ref_salinity
       real (kind=dbl_kind) :: dfresh, dfsalt, sicen
       logical (kind=log_kind) :: formdrag, skl_bgc
-      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_lvl, tr_pond_topo
+      logical (kind=log_kind) :: tr_pond, tr_aero, tr_brine, tr_snow, tr_pond_topo
       integer (kind=int_kind) :: ktherm
       integer (kind=int_kind) :: nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY, nt_Tsfc, &
                                  nt_alvl, nt_apnd
@@ -2277,7 +2284,7 @@
       call icepack_query_parameters(formdrag_out=formdrag, skl_bgc_out=skl_bgc, ktherm_out=ktherm)
       call icepack_query_parameters(saltflux_option_out=saltflux_option)
       call icepack_query_tracer_flags(tr_aero_out=tr_aero, tr_brine_out=tr_brine, tr_snow_out=tr_snow, &
-           tr_pond_out=tr_pond, tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl)
+           tr_pond_out=tr_pond, tr_pond_topo_out=tr_pond_topo)
       call icepack_query_tracer_indices(nt_sice_out=nt_sice, nt_qice_out=nt_qice, &
            nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_FY_out=nt_FY, nt_Tsfc_out=nt_Tsfc, &
            nt_alvl_out=nt_alvl, nt_apnd_out=nt_apnd)
@@ -3378,27 +3385,15 @@
            enddo             ! j
            endif
            if (tr_pond .and. n_apond_ai(ns) > 0) then
-              if (tr_pond_lvl) then
-                 do j = jlo, jhi
-                 do i = ilo, ihi
-                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
-                    else
-                       ravgip_pond(i,j) = c0
-                    endif
-                 enddo             ! i
-                 enddo             ! j
-              else
-                 do j = jlo, jhi
-                 do i = ilo, ihi
-                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
-                    else
-                       ravgip_pond(i,j) = c0
-                    endif
-                 enddo             ! i
-                 enddo             ! j
-              endif
+              do j = jlo, jhi
+              do i = ilo, ihi
+                 if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
+                    ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
+                 else
+                    ravgip_pond(i,j) = c0
+                 endif
+              enddo             ! i
+              enddo             ! j
            endif
            if (n_aice(ns) > 0 .and. n_ardg(ns) > 0) then
            do j = jlo, jhi

@@ -506,9 +506,10 @@
 
          if (allocated(a2D)) then
 
+         worka(:,:) = c0
          if (tr_pond_lvl) then
             worka(:,:) = trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk)
-         else
+         elseif (tr_pond_sealvl .or. tr_pond_topo) then
             worka(:,:) = trcr(:,:,nt_apnd,iblk)
          endif
 
