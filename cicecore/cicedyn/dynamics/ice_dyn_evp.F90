@@ -169,6 +169,7 @@
                 forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
                 umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
                 umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                rheofactU(nx_block,ny_block,max_blocks), & ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
 
@@ -184,7 +185,6 @@
                    zetax2U  (nx_block,ny_block,max_blocks), &
                    etax2T   (nx_block,ny_block,max_blocks), &
                    etax2U   (nx_block,ny_block,max_blocks), &
-                   rheofactU(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory U evp')
 
