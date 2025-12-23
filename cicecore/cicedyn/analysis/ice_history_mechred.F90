@@ -243,7 +243,7 @@
              "percentage of ridged sea ice",                               &
              "area percentage of sea ice surface that is ridged sea ice",  &
              c100, c0,                                                     &
-             ns, f_sirdgconc)
+             ns, f_sirdgconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
       if (f_sirdgthick(1:1) /= 'x') &
          call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &

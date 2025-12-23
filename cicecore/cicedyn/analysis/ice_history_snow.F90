@@ -224,7 +224,7 @@
              "snow mass rate of change through wind drift of snow",                       &
              "rate of change of snow mass due to wind-driven transport into the ocean",   &
              c1, c0,                                                                      &
-             ns, f_sisndmasswind)
+             ns, f_sisndmasswind, avg_ice_present='none', mask_ice_free_points=.false.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams

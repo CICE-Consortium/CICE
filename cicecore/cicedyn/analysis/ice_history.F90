@@ -570,6 +570,7 @@
       call broadcast_scalar (f_sistryubot, master_task)
       call broadcast_scalar (f_sicompstren, master_task)
       call broadcast_scalar (f_sispeed, master_task)
+!     call broadcast_scalar (f_sidir, master_task)
       call broadcast_scalar (f_sisali, master_task)
       call broadcast_scalar (f_sihc, master_task)
       call broadcast_scalar (f_sisnhc, master_task)
@@ -1455,9 +1456,11 @@
               ns1, f_FY)
 
       ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
-      ! use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
+      ! accumulate grid cell mean values as they are divided by the sum of ice fraction
+      ! Use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
       ! sum(aice), sum(apond), or sum(ardg) over time 
       ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
+      ! avg_ice_present = 'none' means a standard time average
 
          call define_hist_field(n_siage,"siage","s",tstr2D, tcstr,       &
              "age of sea ice",                                           &
@@ -1612,6 +1615,12 @@
              "speed of ice (i.e. mean absolute velocity)", c1, c0,       &
              ns1, f_sispeed, avg_ice_present='final', mask_ice_free_points=.true.)
 
+!        sidir is not actually in the CMIP7 table
+!        call define_hist_field(n_sidir,"sidir","deg",ustr2D, ucstr,  &
+!            "ice direction",                                         &
+!            "vector direction - going to", c1, c0,                   &
+!            ns1, f_sidir)
+
          call define_hist_field(n_sisnthick,"sisnthick","m",tstr2D, tcstr, &
              "snow thickness",                                             &
              "snow volume divided by sea-ice area", c1, c0,                &
@@ -1676,173 +1685,173 @@
              "sea-ice area percentage (ocean grid)",                                         &
              "percentage of a given grid cell that is covered by sea ice on the ocean grid", &
              c100, c0,                                                                       &
-             ns1, f_siconc)
+             ns1, f_siconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidconcdyn,"sidconcdyn","1/s",tstr2D, tcstr,                   &
              "sea-ice area fraction tendency due to dynamics",                                   &
              "total rate of change in sea-ice area fraction through dynamics-related processes", &
              c1, c0,                                                                             &
-             ns1, f_sidconcdyn)
+             ns1, f_sidconcdyn, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidconcth,"sidconcth","1/s",tstr2D, tcstr,                  &
              "sea-ice area fraction tendency due to thermodynamics",                          & 
              "total rate of change in sea-ice area fraction through thermodynamic processes", &
              c1, c0,                                                                          &
-             ns1, f_sidconcth)
+             ns1, f_sidconcth, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassdyn,"sidmassdyn","kg m-2 s-1",tstr2D, tcstr,   &
              "sea-ice mass change from dynamics",                                       &
              "total rate of change in sea-ice mass through dynamics-related processes", &
              c1, c0,                                                                    &
-             ns1, f_sidmassdyn)
+             ns1, f_sidmassdyn, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassevapsubl,"sidmassevapsubl","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through evaporation and sublimation",                         &
-             "rate of change of sea-ice mass change through evaporation and sublimation",       &
+             "rate of change of sea-ice mass through evaporation and sublimation",              &
              c1, c0,                                                                            &
-             ns1, f_sidmassevapsubl)
+             ns1, f_sidmassevapsubl, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassgrowthbot,"sidmassgrowthbot","kg m-2 s-1",tstr2D, tcstr,     &
              "sea-ice mass change through basal growth",                                              &
              "rate of change of sea-ice mass due to vertical growth of existing sea ice at its base", &
              c1, c0,                                                                                  &
-             ns1, f_sidmassgrowthbot)
+             ns1, f_sidmassgrowthbot, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassgrowthsi,"sidmassgrowthsi","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change from snow-to-ice conversion",                                 &
              "rate of change of sea-ice mass due to transformation of snow to sea ice",         &
              c1, c0,                                                                            &
-             ns1, f_sidmassgrowthsi)
+             ns1, f_sidmassgrowthsi, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassgrowthwat,"sidmassgrowthwat","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through growth in supercooled open water (frazil)",             &
              "always positive or zero", c1, c0,                                                   &
-             ns1, f_sidmassgrowthwat)
+             ns1, f_sidmassgrowthwat, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassmeltbot,"sidmassmeltbot","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through bottom melting",                                    &
              "rate of change of sea-ice mass through melting/dissolution at the ice bottom",  &
              c1, c0,                                                                          &
-             ns1, f_sidmassmeltbot)
+             ns1, f_sidmassmeltbot, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassmeltlat,"sidmassmeltlat","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through lateral melting",                                   &
              "rate of change of sea-ice mass through lateral melting/dissolution", c1, c0,    &
-             ns1, f_sidmassmeltlat)
+             ns1, f_sidmassmeltlat, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassmelttop,"sidmassmelttop","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change through surface melting",                                   &
              "rate of change of sea-ice mass through melting at the ice surface", c1, c0,     &
-             ns1, f_sidmassmelttop)
+             ns1, f_sidmassmelttop, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmassth,"sidmassth","kg m-2 s-1",tstr2D, tcstr, &
              "sea-ice mass change from thermodynamics",                             &
              "total rate of change in sea-ice mass from thermodynamic processes",   &
              c1, c0,                                                                &
-             ns1, f_sidmassth)
+             ns1, f_sidmassth, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmasstranx,"sidmasstranx","kg/s",ustr2D, ucstr,         &
              "x-component of sea-ice mass transport",                                       &
              "x-component of the sea-ice drift-induced transport of snow and sea ice mass", &
              c1, c0,                                                                        &
-             ns1, f_sidmasstranx)
+             ns1, f_sidmasstranx, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidmasstrany,"sidmasstrany","kg/s",ustr2D, ucstr,         &
              "y-component of sea-ice mass transport",                                       &
              "y-component of the sea-ice drift-induced transport of snow and sea ice mass", &
              c1, c0,                                                                        &
-             ns1, f_sidmasstrany)
+             ns1, f_sidmasstrany, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sihc,"sihc","J m-2",tstr2D, tcstr, &
              "sea-ice heat content",                                 &
              "heat content of all ice in grid cell", c1, c0,         &
-             ns1, f_sihc)
+             ns1, f_sihc, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_simass,"simass","kg m-2",tstr2D, tcstr, &
              "sea-ice mass per area",                                     &
              "total mass of sea ice", c1, c0,                             &
-             ns1, f_simass)
+             ns1, f_simass, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisaltmass,"sisaltmass","kg m-2",tstr2D, tcstr, &
              "mass of salt in sea-ice per area",                                  &
              "total mass of all salt in sea ice", c1, c0,                         &
-             ns1, f_sisaltmass)
+             ns1, f_sisaltmass, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisnconc,"sisnconc","%",tstr2D, tcstr,  &
              "snow area percentage",                                      &
              "percentage of the sea-ice surface that is covered by snow", &
              c100, c0,                                                    &
-             ns1, f_sisnconc)
+             ns1, f_sisnconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisndmassdyn,"sisndmassdyn","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through advection by sea-ice dynamics",            &
              "rate of change of snow mass due to sea ice dynamics", c1, c0,               &
-             ns1, f_sisndmassdyn)
+             ns1, f_sisndmassdyn, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisndmassmelt,"sisndmassmelt","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through melt",                                       &
              "always negative or zero", c1, c0,                                             &
-             ns1, f_sisndmassmelt)
+             ns1, f_sisndmassmelt, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisndmasssi,"sisndmasssi","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through snow-to-ice conversion",                 &
              "always negative or zero", c1, c0,                                         &
-             ns1, f_sisndmasssi)
+             ns1, f_sisndmasssi, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisndmasssnf,"sisndmasssnf","kg m-2 s-1",tstr2D, tcstr,   &
              "snow mass change through snowfall",                                           &
              "rate of change of snow mass due to solid precipitation falling onto sea ice", &
              c1, c0,                                                                        &
-             ns1, f_sisndmasssnf)
+             ns1, f_sisndmasssnf, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisndmasssubl,"sisndmasssubl","kg m-2 s-1",tstr2D, tcstr, &
              "snow mass rate of change through evaporation or sublimation",                 &
              "none", c1, c0,                                                                &
-             ns1, f_sisndmasssubl)
+             ns1, f_sisndmasssubl, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisnhc,"sisnhc","J m-2",tstr2D, tcstr, &
              "snow heat content",                                        &
              "heat content of all snow in grid cell", c1, c0,            &
-             ns1, f_sisnhc)
+             ns1, f_sisnhc, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sisnmass,"sisnmass","kg m-2",tstr2D, tcstr, &
              "snow mass per area",                                            &
              "total mass of snow on sea ice", c1, c0,                         &
-             ns1, f_sisnmass)
+             ns1, f_sisnmass, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sitimefrac,"sitimefrac","1",tstr2D, tcstr,                 &
              "fraction of time steps with sea ice",                                          &
              "averaging period during which sea ice is present (siconc > 0) in a grid cell", &
              c1, c0,                                                                         &
-             ns1, f_icepresent)
+             ns1, f_icepresent, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sivol,"sivol","m",tstr2D, tcstr,                       &
              "sea-ice volume per area",                                                  &
              "total volume of sea ice divided by grid-cell area (equivalent thickness)", &
              c1, c0,                                                                     &
-             ns1, f_sivol)
+             ns1, f_sivol, avg_ice_present='none', mask_ice_free_points=.false.)
 
          ! CMIP 2D instantaneous fields
 
          call define_hist_field(n_sidivvel,"sidivvel","s-1",ustr2D, ucstr, &
              "divergence of the sea-ice velocity field",                   &
              "sidivvel is instantaneous", c1, c0,                          &
-             ns1, f_sidivvel)
+             ns1, f_sidivvel, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sishearvel,"sishearvel","s-1",ustr2D, ucstr, &
              "maximum shear of the sea-ice velocity field",                    &
              "sishearvel is instantaneous", c1, c0,                            &
-             ns1, f_sishearvel)
+             ns1, f_sishearvel, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sistressave,"sistressave","N m-1",ustr2D, ucstr, &
              "average normal stress in sea ice",                                   &
              "sistressave is instantaneous", c1, c0,                               &
-             ns1, f_sistressave)
+             ns1, f_sistressave, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sistressmax,"sistressmax","N m-1",ustr2D, ucstr, &
              "maximum shear stress in sea ice",                                    &
              "sistressmax is instantaneous", c1, c0,                               &
-             ns1, f_sistressmax)
+             ns1, f_sistressmax, avg_ice_present='none', mask_ice_free_points=.false.)
 
       endif ! if (histfreq(ns1) /= 'x') then
       enddo ! ns1
@@ -1920,25 +1929,25 @@
               "sea-ice area percentages in ice thickness categories",           &
               "percentage of grid cell covered by each ice thickness category", &
               c100, c0,                                                         &
-              ns1, f_siitdconc)
+              ns1, f_siitdconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
            call define_hist_field(n_siitdsnconc,"siitdsnconc","%",tstr3Dc, tcstr,       &
               "snow area percentages in ice thickness categories",                      &
               "percentage of grid cell covered by snow in each ice thickness category", &
               c100, c0,                                                                 &
-              ns1, f_siitdsnconc)
+              ns1, f_siitdsnconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
            call define_hist_field(n_siitdsnthick,"siitdsnthick","m",tstr3Dc, tcstr, &
               "snow thickness in ice thickness categories",                         &
               "actual thickness of snow in each ice thickness category",            &
               c1, c0,                                                               &
-              ns1, f_siitdsnthick, avg_ice_present='final')
+              ns1, f_siitdsnthick, avg_ice_present='final', mask_ice_free_points=.false.)
 
            call define_hist_field(n_siitdthick,"siitdthick","m",tstr3Dc, tcstr, &
               "sea-ice thickness in ice thickness categories",                  &
               "actual (floe) thickness of sea ice in each thickness category",  &
               c1, c0,                                                           &
-              ns1, f_siitdthick, avg_ice_present='final')
+              ns1, f_siitdthick, avg_ice_present='final', mask_ice_free_points=.false.)
 
       endif ! if (histfreq(ns1) /= 'x') then
       enddo ! ns1
@@ -2852,6 +2861,23 @@
            enddo
            call accum_hist_field(n_sispeed, iblk, worka(:,:), a2D)
          endif
+
+!        if (f_sidir(1:1) /= 'x') then
+!          worka(:,:) = c0
+!          do j = jlo, jhi
+!          do i = ilo, ihi
+!             if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
+!                worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+!             if (worka(i,j) < 0.0 ) then
+!                worka(i,j) = worka(i,j) + c360
+!             else
+!                worka(i,j) = worka(i,j) * c1
+!             endif
+!          enddo
+!          enddo
+!          call accum_hist_field(n_sidir, iblk, worka(:,:), a2D)
+!        endif
+
          if (f_sidmasstranx(1:1) /= 'x') then
            worka(:,:) = c0
            do j = jlo, jhi

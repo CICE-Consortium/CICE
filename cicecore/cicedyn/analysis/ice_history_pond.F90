@@ -344,14 +344,14 @@
              "percentage of sea ice covered by melt ponds",                      &
              "area percentage of sea-ice surface that is covered by melt ponds", &
              c100, c0,                                                           &
-             ns, f_simpconc)
+             ns, f_simpconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
       if (f_simpeffconc(1:1) /= 'x') &
          call define_hist_field(n_simpeffconc,"simpeffconc","%",tstr2D, tcstr,        &
              "percentage of sea ice covered by effective melt ponds",                 &
              "area percentage of sea-ice surface that is covered by open melt ponds", &
              c100, c0,                                                                &
-             ns, f_simpeffconc)
+             ns, f_simpeffconc, avg_ice_present='none', mask_ice_free_points=.false.)
 
       if (f_simprefrozen(1:1) /= 'x') &
          call define_hist_field(n_simprefrozen,"simprefrozen","m",tstr2D, tcstr,       &

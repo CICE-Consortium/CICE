@@ -1412,9 +1412,9 @@ SIMIP variables. However, these can be changed by the user in their case ``ice_i
 Note that all SIMIP variables have been updated to correspond to the new 
 `CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. 
 
-Note that some SIMIP variables require division ice or sub=ice areas, which can be extremely
+Note that some SIMIP variables require division by ice or sub-ice areas, which can be extremely
 small and cause the output variables to appear unphysically large. Please interpret these
-quantities such as ``sithick`` very carefully. A future release will have an option to mask
+quantities (such as ``sithick``) very carefully. A future release will have an option to mask
 these regions.
 
 It may also be helpful for debugging to increase the precision of the history file
