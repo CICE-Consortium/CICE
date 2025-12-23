@@ -443,6 +443,11 @@
                if (mod(elapsed_days,histfreq_n(ns))==0) &
                    write_history(ns) = .true.
             endif
+         case ("n", "N")
+            if (new_day  .and. histfreq_n(ns)/=0) then
+               if (mday == histfreq_n(ns)) &
+                   write_history(ns) = .true.
+            endif
          case ("h", "H")
             if (new_hour  .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_hours,histfreq_n(ns))==0) &
