@@ -407,14 +407,22 @@
 
          ! bounds fields are required for CF compliance
          ! dimensions (nx,ny,nverts)
-         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','degrees_east','und')
-         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','degrees_north','und')
-         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','degrees_east','und')
-         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','degrees_north','und')
-         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','degrees_east','und')
-         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','degrees_north','und')
-         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','degrees_east','und')
-         var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','degrees_north','und')
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
+                   'longitude of gridbox corners for T points','degrees_east','und')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
+                   'latitude of gridbox corners for T points','degrees_north','und')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
+                   'longitude of gridbox corners for U points','degrees_east','und')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
+                   'latitude of gridbox corners for U points','degrees_north','und')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
+                   'longitude of gridbox corners for N points','degrees_east','und')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
+                   'latitude of gridbox corners for N points','degrees_north','und')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
+                   'longitude of gridbox corners for E points','degrees_east','und')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
+                   'latitude of gridbox corners for E points','degrees_north','und')
 
          !-----------------------------------------------------------------
          ! define attributes for time-invariant variables
