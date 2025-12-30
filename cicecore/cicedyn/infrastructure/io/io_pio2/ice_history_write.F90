@@ -268,14 +268,15 @@
          endif
 
          ! Define coord time_bounds if hist_avg is true
-         ! bounds inherit attributes
          if (hist_avg(ns) .and. .not. write_ic) then
-            time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
+            time_coord = coord_attributes('time_bounds', 'time interval bounds', trim(cal_units), 'undefined')
 
             dimid2(1) = boundid
             dimid2(2) = timid
 
             call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
+            call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
+                 subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          endif
 
       endif  ! histfreq(ns)/='g'
@@ -404,15 +405,14 @@
 
       ! bounds fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
-      ! bounds inherit attributes
-      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
-      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
-      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
-      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
-      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
-      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
-      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
-      var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
+      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','degrees_east','und')
+      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','degrees_north','und')
+      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','degrees_east','und')
+      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','degrees_north','und')
+      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','degrees_east','und')
+      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','degrees_north','und')
+      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','degrees_east','und')
+      var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','degrees_north','und')
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
@@ -467,7 +467,6 @@
       enddo
 
       ! bounds fields with dimensions (nverts,nx,ny)
-      ! bounds inherit attributes
       dimid_nverts(1) = nvertexid
       dimid_nverts(2) = imtid
       dimid_nverts(3) = jmtid
@@ -1351,7 +1350,7 @@
 
 !=======================================================================
 ! Defines a (time-dependent) history var in the history file
-! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+! variables have short_name, long_name and units, coordinates and cell_measures attributes,
 !  and are compressed and chunked for 'hdf5'
 
       subroutine ice_hist_field_def(File, hfield,lprecision, dimids, ns)
@@ -1425,10 +1424,20 @@
       if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
-           .and.TRIM(hfield%vname(1:9))/='sistreave' &
-           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:5))/='trsig' &
+           .and.TRIM(hfield%vname(1:4))/='divu' &
+           .and.TRIM(hfield%vname(1:5))/='shear' &
+           .and.TRIM(hfield%vname(1:4))/='vort' &
+           .and.TRIM(hfield%vname(1:9))/='frz_onset' &
+           .and.TRIM(hfield%vname(1:9))/='mlt_onset' &
+           .and.TRIM(hfield%vname(1:6))/='aisnap' &
+           .and.TRIM(hfield%vname(1:6))/='hisnap' &
+           .and.TRIM(hfield%vname(1:8))/='sidivvel' &
+           .and.TRIM(hfield%vname(1:10))/='sishearvel' &
+           .and.TRIM(hfield%vname(1:11))/='sistressave' &
+           .and.TRIM(hfield%vname(1:11))/='sistressmax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            if (hfield%avg_ice_present) then
+            if (trim(hfield%avg_ice_present) /= 'none') then
                call ice_pio_check(pio_put_att(File,varid,'cell_methods', &
                     'area: time: mean where sea ice (mask=siconc)'), &
                     subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
@@ -1449,8 +1458,10 @@
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &
           .or.TRIM(hfield%vname(1:5))=='trsig' &
-          .or.TRIM(hfield%vname(1:9))=='sistreave' &
-          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:8))=='sidivvel' &
+          .or.TRIM(hfield%vname(1:10))=='sishearvel' &
+          .or.TRIM(hfield%vname(1:11))=='sistressave' &
+          .or.TRIM(hfield%vname(1:11))=='sistressmax' &
           .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &
