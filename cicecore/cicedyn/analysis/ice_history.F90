@@ -1456,11 +1456,11 @@
               ns1, f_FY)
 
       ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
-      ! accumulate grid cell mean values as they are divided by the sum of ice fraction
+      ! that is a weighted time average when ice is present.
       ! Use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
       ! sum(aice), sum(apond), or sum(ardg) over time 
       ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
-      ! avg_ice_present = 'none' means a standard time average
+      ! avg_ice_present = 'none' means a simple time average
 
          call define_hist_field(n_siage,"siage","s",tstr2D, tcstr,       &
              "age of sea ice",                                           &
@@ -2497,7 +2497,7 @@
 
          if (f_fswup(1:1) /= 'x') &
             call accum_hist_field(n_fswup, iblk, &
-                 (fsw(:,:,iblk)-fswabs(:,:,iblk)*aice(:,:,iblk)), a2D)
+                 (fsw(:,:,iblk)*workb(:,:)-fswabs(:,:,iblk)*aice(:,:,iblk)), a2D)
          if (f_fswdn  (1:1) /= 'x') &
              call accum_hist_field(n_fswdn,  iblk, fsw(:,:,iblk), a2D)
          if (f_flwdn  (1:1) /= 'x') &
@@ -3018,8 +3018,8 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (fsw(i,j,iblk) > puny .and. aice_init(i,j,iblk) > puny) then
-                 worka(i,j) = aice(i,j,iblk)*(fsw(i,j,iblk)-fswabs(i,j,iblk)*aice(i,j,iblk)/aice_init(i,j,iblk))
+              if (fsw(i,j,iblk) > puny) then
+                 worka(i,j) = (fsw(i,j,iblk)*aice_init(i,j,iblk)-fswabs(i,j,iblk)*aice(i,j,iblk))
               endif
            enddo
            enddo
