@@ -311,6 +311,7 @@ grid_nml
    "``grid_format``", "``bin``", "read direct access grid and kmt files", "``bin``"
    "", "``geosnc``", "read grid and kmt file in GEOS netcdf format", ""
    "", "``pop_nc``", "read grid and kmt files in POP netcdf format", ""
+   "", "``pop_nc_ext``", "read extended grid and kmt files in POP netcdf format", ""
    "", "``meshnc``", "coupled model grid option, no CICE code support", ""
    "", "``mom_nc``", "read grid in MOM (supergrid) format and kmt files", ""
    "``grid_ice``", "``B``", "use B grid structure with T at center and U at NE corner", "``B``"

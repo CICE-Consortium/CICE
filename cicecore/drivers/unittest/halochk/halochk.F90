@@ -450,15 +450,15 @@
             k1m = 1
             k2m = 1
             halofld = '2DL1'
-            where (darrayi1 == fillval) 
+            where (darrayi1 == fillval)
                larrayi1 = .false.
             elsewhere
-               larrayi1 = (mod(nint(darrayi1),2) == 1) 
+               larrayi1 = (mod(nint(darrayi1),2) == 1)
             endwhere
-            where (darrayj1 == fillval) 
+            where (darrayj1 == fillval)
                larrayj1 = .true.
             elsewhere
-               larrayj1 = (mod(nint(darrayj1),2) == 1) 
+               larrayj1 = (mod(nint(darrayj1),2) == 1)
             endwhere
             if (halofill) then
                call ice_haloUpdate(larrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=0)
