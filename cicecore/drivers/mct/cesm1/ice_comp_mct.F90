@@ -122,6 +122,7 @@ contains
     use CICE_InitMod
     use ice_restart_shared, only: runid, runtype, restart_dir, restart_format
     use ice_history,        only: accum_hist
+    use ice_history_write,  only: ice_read_hist
     use ice_history_shared, only: history_dir, history_file
 !
 ! !ARGUMENTS:
@@ -352,6 +353,7 @@ contains
 
     call calendar         ! update calendar info
     if (write_ic) call accum_hist(dt) ! write initial conditions
+    call ice_read_hist  ! read history restarts
 
     !---------------------------------------------------------------------------
     ! Initialize MCT attribute vectors and indices
