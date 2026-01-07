@@ -1456,11 +1456,11 @@
               ns1, f_FY)
 
       ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
-      ! that is a weighted time average when ice is present.
+      ! that is a weighted time average when ice is present)
       ! Use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
       ! sum(aice), sum(apond), or sum(ardg) over time 
       ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
-      ! avg_ice_present = 'none' means a simple time average
+      ! avg_ice_present = 'none' produces a time average including zeroes when ice is not present
 
          call define_hist_field(n_siage,"siage","s",tstr2D, tcstr,       &
              "age of sea ice",                                           &
@@ -2211,7 +2211,7 @@
           yieldstress11, yieldstress12, yieldstress22
       use ice_dyn_shared, only: kdyn, principal_stress
       use ice_flux, only: fsw, flw, fsnow, frain, sst, sss, uocn, vocn, &
-          frzmlt_init, scale_factor, fswabs, fswthru, alvdr, alvdf, alidr, alidf, &
+          frzmlt_init, scale_factor, fswabs, fswup, fswthru, alvdr, alvdf, alidr, alidf, &
           albice, albsno, albpnd, coszen, flat, fsens, flwout, evap, evaps, evapi, &
           Tair, Tref, Qref, congel, frazil, frazil_diag, snoice, dsnow, &
           melts, meltb, meltt, meltl, fresh, fsalt, fresh_ai, fsalt_ai, &
@@ -2496,8 +2496,7 @@
          endif
 
          if (f_fswup(1:1) /= 'x') &
-            call accum_hist_field(n_fswup, iblk, &
-                 (fsw(:,:,iblk)*workb(:,:)-fswabs(:,:,iblk)*aice(:,:,iblk)), a2D)
+             call accum_hist_field(n_fswup,  iblk, fswup(:,:,iblk), a2D)
          if (f_fswdn  (1:1) /= 'x') &
              call accum_hist_field(n_fswdn,  iblk, fsw(:,:,iblk), a2D)
          if (f_flwdn  (1:1) /= 'x') &
@@ -3015,15 +3014,7 @@
          endif
 
          if (f_siflswutop(1:1) /= 'x') then
-           worka(:,:) = c0
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (fsw(i,j,iblk) > puny) then
-                 worka(i,j) = (fsw(i,j,iblk)*aice_init(i,j,iblk)-fswabs(i,j,iblk)*aice(i,j,iblk))
-              endif
-           enddo
-           enddo
-           call accum_hist_field(n_siflswutop, iblk, worka(:,:), a2D)
+           call accum_hist_field(n_siflswutop, iblk, fswup(:,:,iblk), a2D)
          endif
 
          if (f_siflswdbot(1:1) /= 'x') then
