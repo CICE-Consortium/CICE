@@ -36,7 +36,7 @@
           ew_boundary_type, ns_boundary_type, init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
           get_fileunit, release_fileunit, flush_fileunit
-      use ice_gather_scatter, only: gather_global, scatter_global, gather_global_ext
+      use ice_gather_scatter, only: gather_global, scatter_global, gather_global_ext, scatter_global_ext
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc, ice_check_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
@@ -366,7 +366,7 @@
          fieldname       ! field name in netCDF file
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1, work_g2, work_mom
+         work_g1, work_g2, work_g1x, work_mom
 
       integer (kind=int_kind) :: &
          max_blocks_min, & ! min value of max_blocks across procs
@@ -453,6 +453,17 @@
                call ice_read_global_nc(fid_grid,1,fieldname,work_g1,.true.)
                call ice_close_nc(fid_grid)
 
+            case('pop_nc_ext')
+
+               fieldname='ulat'
+               call ice_open_nc(grid_file,fid_grid)
+               allocate(work_g1x(nx_global+2*nghost, ny_global+2*nghost), stat=ierr)
+               if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+               call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,.true.)
+               work_g1(1:nx_global,1:ny_global) = work_g1x(1+nghost:nx_global+nghost,1+nghost:ny_global+nghost)
+               deallocate(work_g1x)
+               call ice_close_nc(fid_grid)
+
             case default
 
                call ice_open(nu_grid,grid_file,64)
@@ -468,7 +479,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'pop_nc', 'geosnc')
+            case ('mom_nc', 'pop_nc', 'pop_nc_ext', 'geosnc')
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -487,7 +498,15 @@
 #endif
                call broadcast_scalar(mask_fieldname, master_task)
 
-               call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
+               if (trim(grid_format) == 'pop_nc_ext') then
+                  allocate(work_g1x(nx_global+2*nghost, ny_global+2*nghost), stat=ierr)
+                  if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+                  call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g1x,.true.)
+                  work_g2(1:nx_global,1:ny_global) = work_g1x(1+nghost:nx_global+nghost,1+nghost:ny_global+nghost)
+                  deallocate(work_g1x)
+               else
+                  call ice_read_global_nc(fid_kmt,1,mask_fieldname,work_g2,.true.)
+               endif
                call ice_close_nc(fid_kmt)
 
             case default
@@ -593,6 +612,8 @@
                call mom_grid        ! derive cice grid from MOM supergrid nc file
             case ('pop_nc')
                call popgrid_nc      ! read POP grid lengths from nc file
+            case ('pop_nc_ext')
+               call popgrid_nc_ext  ! read POP extended grid lengths from nc file
             case ('geosnc')
                call geosgrid_nc     ! read GEOS MOM grid used from nc file
             case default
@@ -614,6 +635,8 @@
          select case (trim(grid_format))
             case('mom_nc', 'pop_nc' ,'geosnc')
                call kmtmask('nc')
+            case('pop_nc_ext')
+               call kmtmask('nc_ext')
             case default
                call kmtmask('bin')
          end select
@@ -922,8 +945,14 @@
       elseif (filetype == 'nc') then
          call ice_open_nc(kmt_file,fid_kmt)
          call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag, &
-                           field_loc=field_loc_center, &
-                           field_type=field_type_scalar)
+                          field_loc=field_loc_center, &
+                          field_type=field_type_scalar)
+         call ice_close_nc(fid_kmt)
+      elseif (filetype == 'nc_ext') then
+         call ice_open_nc(kmt_file,fid_kmt)
+         call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag,restart_ext=.true., &
+                          field_loc=field_loc_center, &
+                          field_type=field_type_scalar)
          call ice_close_nc(fid_kmt)
       else
          call abort_ice(subname//' ERROR: invalid filetype='//trim(filetype), file=__FILE__, line=__LINE__)
@@ -936,7 +965,6 @@
          ihi = this_block%ihi
          jlo = this_block%jlo
          jhi = this_block%jhi
-
          do j = jlo, jhi
          do i = ilo, ihi
             ! force grid cells to land if ocn_gridcell_frac is defined
@@ -944,6 +972,10 @@
                 ocn_gridcell_frac(i,j,iblk) < puny) then
                kmt(i,j,iblk)  = c0
             endif
+         enddo
+         enddo
+         do j = 1,ny_block
+         do i = 1,nx_block
             if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
          enddo
          enddo
@@ -988,18 +1020,18 @@
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       call ice_read_global(nu_grid,1,work_g1,'rda8',.true.)   ! ULAT
-      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULAT,latt_bounds)
 
       call ice_read_global(nu_grid,2,work_g1,'rda8',.true.)   ! ULON
-      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULON,lont_bounds)
 
       call ice_read_global(nu_grid,7,work_g1,'rda8',.true.)   ! ANGLE
       call scatter_global(ANGLE, work_g1, master_task, distrb_info, &
@@ -1090,19 +1122,19 @@
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
-      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULAT,latt_bounds)
 
       fieldname='ulon'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
-      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULON,lont_bounds)
 
       fieldname='angle'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
@@ -1171,6 +1203,210 @@
 #endif
 
       end subroutine popgrid_nc
+
+!=======================================================================
+! POP extended displaced pole grid and land mask.
+! Grid record number, field and units are: \\
+! (1) ULAT  (radians)    \\
+! (2) ULON  (radians)    \\
+! (3) HTN   (cm)         \\
+! (4) HTE   (cm)         \\
+! (5) HUS   (cm)         \\
+! (6) HUW   (cm)         \\
+! (7) ANGLE (radians)
+!
+! author: T. Craig
+! Revised for netcdf input: Ann Keen, Met Office, May 2007
+
+      subroutine popgrid_nc_ext
+
+#ifdef USE_NETCDF
+      use netcdf, only : nf90_inq_varid , nf90_inq_dimid, &
+                         nf90_inquire_dimension, nf90_get_var,  nf90_noerr
+#endif
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, &
+         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
+         fid_grid , &           ! file id for netCDF grid file
+         ierr
+
+      logical (kind=log_kind) :: diag
+
+      character (char_len) :: &
+         fieldname              ! field name in netCDF file
+
+      real (kind=dbl_kind) :: &
+         pi
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g1x               ! temporary global extended array
+
+      integer(kind=int_kind) :: &
+         varid, status
+
+      type (block) :: &
+         this_block             ! block information for current block
+
+      character(len=*), parameter :: subname = '(popgrid_nc_ext)'
+
+#ifdef USE_NETCDF
+      call icepack_query_parameters(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      call ice_open_nc(grid_file,fid_grid)
+
+      diag = .true.       ! write diagnostic info
+
+      !-----------------------------------------------------------------
+      ! lat, lon, angle
+      !-----------------------------------------------------------------
+
+      allocate(work_g1x(nx_global+2*nghost,ny_global+2*nghost), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+      work_g1x = c0
+
+      fieldname='ulat'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ULAT
+      call scatter_global_ext(ULAT, work_g1x, master_task, distrb_info)
+      call gridbox_verts(ULAT,latt_bounds)
+
+      fieldname='ulon'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ULON
+      call scatter_global_ext(ULON, work_g1x, master_task, distrb_info)
+      call gridbox_verts(ULON,lont_bounds)
+
+      fieldname='angle'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ANGLE
+      call scatter_global_ext(ANGLE, work_g1x, master_task, distrb_info)
+      ! fix ANGLE: roundoff error due to single precision
+      where (ANGLE >  pi) ANGLE =  pi
+      where (ANGLE < -pi) ANGLE = -pi
+
+      ! if grid file includes anglet then read instead
+      fieldname='anglet'
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid_grid, fieldname , varid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname//' CICE will calculate angleT, TLON and TLAT'
+         else
+            write(nu_diag,*) subname//' angleT, TLON and TLAT is read from grid file'
+            l_readCenter = .true.
+         endif
+      endif
+      call broadcast_scalar(l_readCenter,master_task)
+      if (l_readCenter) then
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
+         call scatter_global_ext(ANGLET, work_g1x, master_task, distrb_info)
+         where (ANGLET >  pi) ANGLET =  pi
+         where (ANGLET < -pi) ANGLET = -pi
+
+         fieldname="tlon"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
+         call scatter_global_ext(TLON, work_g1x, master_task, distrb_info)
+
+         fieldname="tlat"
+         call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
+         call scatter_global_ext(TLAT, work_g1x, master_task, distrb_info)
+      endif
+      !-----------------------------------------------------------------
+      ! cell dimensions
+      ! calculate derived quantities from global arrays to preserve
+      ! information on boundaries
+      !-----------------------------------------------------------------
+
+      fieldname='htn'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! HTN
+      if (my_task == master_task) then
+         work_g1x(:,:) = work_g1x(:,:) * cm_to_m                  ! HTN
+      endif
+!      call primary_grid_lengths_HTN(work_g1)                  ! dxU, dxT, dxN, dxE
+      if (save_ghte_ghtn) then
+         if (my_task == master_task) then
+            G_HTN = work_g1x
+         endif
+      endif
+      call scatter_global_ext(HTN, work_g1x, master_task, distrb_info)
+
+      dxN(:,:,:) = HTN(:,:,:)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            dxU(i,j,iblk) = p5*(HTN(i,j,iblk)+HTN(i+1,j,iblk))
+            dxT(i,j,iblk) = p5*(HTN(i,j,iblk)+HTN(i,j-1,iblk))
+            dxE(i,j,iblk) = p25*(HTN(i,j,iblk)+HTN(i+1,j,iblk)+HTN(i,j-1,iblk)+HTN(i+1,j-1,iblk))
+         enddo
+         enddo
+      enddo
+      call ice_HaloUpdate     (dxU,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloUpdate     (dxT,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloUpdate     (dxE,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dxE, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      fieldname='hte'
+      call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! HTE
+      if (my_task == master_task) then
+         work_g1x(:,:) = work_g1x(:,:) * cm_to_m                  ! HTN
+      endif
+!      call primary_grid_lengths_HTE(work_g1)                  ! dyU, dyT, dyN, dyE
+      if (save_ghte_ghtn) then
+         G_HTE = work_g1x
+      endif
+      call scatter_global_ext(HTE, work_g1x, master_task, distrb_info)
+      dyE(:,:,:) = HTE(:,:,:)
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            dyU(i,j,iblk) = p5*(HTE(i,j,iblk)+HTE(i,j+1,iblk))
+            dyT(i,j,iblk) = p5*(HTE(i,j,iblk)+HTE(i-1,j,iblk))
+            dyN(i,j,iblk) = p25*(HTE(i,j,iblk)+HTE(i-1,j,iblk)+HTE(i,j+1,iblk)+HTE(i-1,j+1,iblk))
+         enddo
+         enddo
+      enddo
+      call ice_HaloUpdate     (dyU,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyU, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloUpdate     (dyT,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyT, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+      call ice_HaloUpdate     (dyN,              halo_info, &
+                               field_loc_center, field_type_scalar)
+      call ice_HaloExtrapolate(dyN, distrb_info, &
+                               ew_boundary_type, ns_boundary_type)
+
+      deallocate(work_g1x, stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+
+      call ice_close_nc(fid_grid)
+
+#else
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+          file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine popgrid_nc_ext
 
 #ifdef CESMCOUPLED
 !=======================================================================
@@ -2234,19 +2470,19 @@
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULAT
-      call gridbox_verts(work_g1,latt_bounds)
       call scatter_global(ULAT, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULAT, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULAT,latt_bounds)
 
       fieldname='ulon'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ULON
-      call gridbox_verts(work_g1,lont_bounds)
       call scatter_global(ULON, work_g1, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(ULON, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
+      call gridbox_verts(ULON,lont_bounds)
 
       fieldname='angle'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1,diag) ! ANGLE
@@ -2845,7 +3081,7 @@
          enddo
          do j = 1, ny_global
          do i = 1, nx_global
-            ! assume cyclic; noncyclic will be handled during scatter
+            ! assume cyclic; noncyclic will be handled during extrapolate
             ip1 = i+1
             if (i == nx_global) ip1 = 1
             work_g2(i,j) = p5*(work_g(i,j) + work_g(ip1,j))    ! dxU
@@ -2891,7 +3127,7 @@
       if (my_task == master_task) then
          do j = 2, ny_global
          do i = 1, nx_global
-            ! assume cyclic; noncyclic will be handled during scatter
+            ! assume cyclic; noncyclic will be handled during extrapolate
             ip1 = i+1
             if (i == nx_global) ip1 = 1
             work_g2(i,j) = p25*(work_g(i,j)+work_g(ip1,j)+work_g(i,j-1)+work_g(ip1,j-1))   ! dxE
@@ -2899,7 +3135,7 @@
          enddo
          ! extrapolate to obtain dxT along j=1
          do i = 1, nx_global
-            ! assume cyclic; noncyclic will be handled during scatter
+            ! assume cyclic; noncyclic will be handled during extrapolate
             ip1 = i+1
             if (i == nx_global) ip1 = 1
             work_g2(i,1) = p5*(c2*work_g(i  ,2) - work_g(i  ,3) + &
@@ -2983,7 +3219,7 @@
       if (my_task == master_task) then
          do j = 1, ny_global
          do i = 1, nx_global
-            ! assume cyclic; noncyclic will be handled during scatter
+            ! assume cyclic; noncyclic will be handled during extrapolate
             im1 = i-1
             if (i == 1) im1 = nx_global
             work_g2(i,j) = p5*(work_g(i,j) + work_g(im1,j))    ! dyT
@@ -3000,7 +3236,7 @@
       if (my_task == master_task) then
          do j = 1, ny_global-1
          do i = 1, nx_global
-            ! assume cyclic; noncyclic will be handled during scatter
+            ! assume cyclic; noncyclic will be handled during extrapolate
             im1 = i-1
             if (i == 1) im1 = nx_global
             work_g2(i,j) = p25*(work_g(i,j) + work_g(im1,j) + work_g(i,j+1) + work_g(im1,j+1))   ! dyN
@@ -3009,7 +3245,7 @@
          ! extrapolate to obtain dyN along j=ny_global
          if (ny_global > 1) then
             do i = 1, nx_global
-               ! assume cyclic; noncyclic will be handled during scatter
+               ! assume cyclic; noncyclic will be handled during extrapolate
                im1 = i-1
                if (i == 1) im1 = nx_global
                work_g2(i,ny_global) = p5*(c2*work_g(i  ,ny_global-1) - work_g(i  ,ny_global-2) + &
@@ -5267,27 +5503,25 @@
 !
 ! authors:   A. McLaren, Met Office
 !            E. Hunke, LANL
+!            T. Craig
 
-      subroutine gridbox_verts(work_g,vbounds)
+      subroutine gridbox_verts(work,vbounds)
 
-      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
-          work_g
+      real (kind=dbl_kind), dimension(:,:,:), intent(in) :: &
+         work
 
       real (kind=dbl_kind), dimension(4,nx_block,ny_block,max_blocks), intent(out) :: &
-          vbounds
+         vbounds
 
       integer (kind=int_kind) :: &
-         i,j , &                ! index counters
+         iblk,i,j,ilo,ihi,jlo,jhi, &      ! index counters
          ierr
 
+      type (block) :: &
+         this_block           ! block information for current block
+
       real (kind=dbl_kind) :: &
-          rad_to_deg
-
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g2
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1
+         rad_to_deg
 
       character(len=*), parameter :: subname = '(gridbox_verts)'
 
@@ -5296,87 +5530,22 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      if (my_task == master_task) then
-         allocate(work_g2(nx_global,ny_global), stat=ierr)
-      else
-         allocate(work_g2(1,1), stat=ierr)
-      endif
-      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
-
-      !-------------------------------------------------------------
-      ! Get coordinates of grid boxes for each block as follows:
-      ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
-      !-------------------------------------------------------------
-
-      work_g2(:,:) = c0
-      if (my_task == master_task) then
-         do j = 2, ny_global
-         do i = 2, nx_global
-            work_g2(i,j) = work_g(i-1,j-1) * rad_to_deg
+      vbounds = c0
+      do iblk = 1, nblocks
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         do j = jlo, jhi
+         do i = ilo, ihi
+            vbounds(1,i,j,iblk) = work(i-1,j-1,iblk)*rad_to_deg
+            vbounds(2,i,j,iblk) = work(i  ,j-1,iblk)*rad_to_deg
+            vbounds(3,i,j,iblk) = work(i  ,j  ,iblk)*rad_to_deg
+            vbounds(4,i,j,iblk) = work(i-1,j  ,iblk)*rad_to_deg
          enddo
          enddo
-         ! extrapolate
-         do j = 1, ny_global
-            work_g2(1,j) = c2*work_g2(2,j) - work_g2(3,j)
-         enddo
-         do i = 1, nx_global
-            work_g2(i,1) = c2*work_g2(i,2) - work_g2(i,3)
-         enddo
-      endif
-      call scatter_global(work1, work_g2, &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      vbounds(1,:,:,:) = work1(:,:,:)
-
-      work_g2(:,:) = c0
-      if (my_task == master_task) then
-         do j = 2, ny_global
-         do i = 1, nx_global
-            work_g2(i,j) = work_g(i,j-1) * rad_to_deg
-         enddo
-         enddo
-         ! extrapolate
-         do i = 1, nx_global
-            work_g2(i,1) = (c2*work_g2(i,2) - work_g2(i,3))
-         enddo
-      endif
-      call scatter_global(work1, work_g2, &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      vbounds(2,:,:,:) = work1(:,:,:)
-
-      work_g2(:,:) = c0
-      if (my_task == master_task) then
-         do j = 1, ny_global
-         do i = 1, nx_global
-            work_g2(i,j) = work_g(i,j) * rad_to_deg
-         enddo
-         enddo
-      endif
-      call scatter_global(work1, work_g2, &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      vbounds(3,:,:,:) = work1(:,:,:)
-
-      work_g2(:,:) = c0
-      if (my_task == master_task) then
-         do j = 1, ny_global
-         do i = 2, nx_global
-            work_g2(i,j) = work_g(i-1,j  ) * rad_to_deg
-         enddo
-         enddo
-         ! extrapolate
-         do j = 1, ny_global
-            work_g2(1,j) = c2*work_g2(2,j) - work_g2(3,j)
-         enddo
-      endif
-      call scatter_global(work1, work_g2, &
-                          master_task, distrb_info, &
-                          field_loc_NEcorner, field_type_scalar)
-      vbounds(4,:,:,:) = work1(:,:,:)
-
-      deallocate (work_g2, stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
+      enddo
 
       end subroutine gridbox_verts
 
