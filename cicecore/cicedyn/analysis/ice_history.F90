@@ -2789,13 +2789,15 @@
          rho_ice(:,:) = rhoi
          rho_ocn(:,:) = rhow
          sal_ice(:,:) = ice_ref_salinity
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (ktherm == 2) &
+
+         if (ktherm == 2) then
+            do j = jlo, jhi
+            do i = ilo, ihi
                call ice_brine_density(trcr(i,j,nt_qice:nt_qice+nzilyr-1,iblk),trcr(i,j,nt_sice:nt_sice+nzilyr-1,iblk), &
                                       sss(i,j,iblk), rho_ice(i,j), rho_ocn(i,j), sal_ice(i,j))
-         enddo
-         enddo
+            enddo
+            enddo
+         endif
 
          if (f_simass(1:1) /= 'x') then
            call accum_hist_field(n_simass, iblk, rho_ice(:,:)*vice(:,:,iblk), a2D)
@@ -3380,61 +3382,73 @@
            ! streams, but in case it is not.
 
            if (n_aice(ns) > 0) then
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (a2D(i,j,n_aice(ns),iblk) > puny) then
-                 ravgip(i,j) = c1/(a2D(i,j,n_aice(ns),iblk))
-              else
-                 ravgip(i,j) = c0
-              endif
-           enddo             ! i
-           enddo             ! j
-           endif
-           if (n_aice_init(ns) > 0) then
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (a2D(i,j,n_aice_init(ns),iblk) > puny) then
-                 ravgip_init(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk))
-              else
-                 ravgip_init(i,j) = c0
-              endif
-           enddo             ! i
-           enddo             ! j
-           endif
-           if (tr_pond .and. n_apond_ai(ns) > 0) then
               do j = jlo, jhi
               do i = ilo, ihi
-                 if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
-                    ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
+                 if (a2D(i,j,n_aice(ns),iblk) > puny) then
+                    ravgip(i,j) = c1/(a2D(i,j,n_aice(ns),iblk))
                  else
-                    ravgip_pond(i,j) = c0
+                    ravgip(i,j) = c0
                  endif
               enddo             ! i
               enddo             ! j
+           else
+              call abort_ice(subname//' ERROR: f_aice must be defined', file=__FILE__, line=__LINE__)
            endif
-           if (n_aice(ns) > 0 .and. n_ardg(ns) > 0) then
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (a2D(i,j,n_ardg(ns),iblk) > puny) then
-                 ravgip_ridge(i,j) = c1/a2D(i,j,n_ardg(ns),iblk)
+           if (n_aice_init(ns) > 0) then
+              do j = jlo, jhi
+              do i = ilo, ihi
+                 if (a2D(i,j,n_aice_init(ns),iblk) > puny) then
+                    ravgip_init(i,j) = c1/(a2D(i,j,n_aice_init(ns),iblk))
+                 else
+                    ravgip_init(i,j) = c0
+                 endif
+              enddo             ! i
+              enddo             ! j
+           else
+              call abort_ice(subname//' ERROR: f_aice_init must be defined', file=__FILE__, line=__LINE__)
+           endif
+           if (tr_pond) then
+              if (n_apond_ai(ns) > 0) then
+                 do j = jlo, jhi
+                 do i = ilo, ihi
+                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
+                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
+                    else
+                       ravgip_pond(i,j) = c0
+                    endif
+                 enddo             ! i
+                 enddo             ! j
               else
-                 ravgip_ridge(i,j) = c0
+                 call abort_ice(subname//' ERROR: f_apond_ai must be defined', file=__FILE__, line=__LINE__)
               endif
-           enddo             ! i
-           enddo             ! j
+           endif
+           if (n_ardg(ns) > 0) then
+              do j = jlo, jhi
+              do i = ilo, ihi
+                 if (a2D(i,j,n_ardg(ns),iblk) > puny) then
+                    ravgip_ridge(i,j) = c1/a2D(i,j,n_ardg(ns),iblk)
+                 else
+                    ravgip_ridge(i,j) = c0
+                 endif
+              enddo             ! i
+              enddo             ! j
+           else
+              call abort_ice(subname//' ERROR: f_ardg must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_aicen(ns) > n2D) then
-           do k=1,ncat_hist
-           do j = jlo, jhi
-           do i = ilo, ihi
-              if (a3Dc(i,j,k,n_aicen(ns)-n2D,iblk) > puny) then
-                 ravgipn(i,j,k) = c1/(a3Dc(i,j,k,n_aicen(ns)-n2D,iblk))
-              else
-                 ravgipn(i,j,k) = c0
-              endif
-           enddo             ! i
-           enddo             ! j
-           enddo             ! k
+              do k=1,ncat_hist
+              do j = jlo, jhi
+              do i = ilo, ihi
+                 if (a3Dc(i,j,k,n_aicen(ns)-n2D,iblk) > puny) then
+                    ravgipn(i,j,k) = c1/(a3Dc(i,j,k,n_aicen(ns)-n2D,iblk))
+                 else
+                    ravgipn(i,j,k) = c0
+                 endif
+              enddo             ! i
+              enddo             ! j
+              enddo             ! k
+           else
+              call abort_ice(subname//' ERROR: f_aicen must be defined', file=__FILE__, line=__LINE__)
            endif
 
            do n = 1, num_avail_hist_fields_2D

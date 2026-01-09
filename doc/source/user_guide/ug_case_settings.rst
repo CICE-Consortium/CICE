@@ -195,7 +195,7 @@ setup_nml
    "", "``x``", "unused frequency stream (not written)", ""
    "", "``y``", "write history every ``histfreq_n`` years", ""
    "", "``1``", "write history every ``histfreq_n`` time step", ""
-   "", "``n``", "write history on day ``histfreq_n`` instantaneously", ""
+   "", "``n``", "write history on day ``histfreq_n``", ""
    "``histfreq_base``", "``init``", "history output frequency relative to year_init, month_init, day_init", "'zero','zero','zero','zero','zero'"
    "", "``zero``", "history output frequency relative to year-month-day of 0000-01-01", ""
    "``histfreq_n``", "integer array", "frequency history output is written with ``histfreq``", "1,1,1,1,1"
