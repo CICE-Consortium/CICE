@@ -3391,7 +3391,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           else
+           elseif (n_aice(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               call abort_ice(subname//' ERROR: f_aice must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_aice_init(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
@@ -3404,7 +3404,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           else
+           elseif (n_aice_init(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
               call abort_ice(subname//' ERROR: f_aice_init must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_apond_ai(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
@@ -3417,7 +3417,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           else
+           elseif (n_apond_ai(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
               call abort_ice(subname//' ERROR: f_apond_ai must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_ardg(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
@@ -3430,7 +3430,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           else
+           elseif (n_ardg(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
               call abort_ice(subname//' ERROR: f_ardg must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_aicen(ns) > n2D .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
@@ -3445,7 +3445,7 @@
               enddo             ! i
               enddo             ! j
               enddo             ! k
-           else
+           elseif (n_aicen(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
               call abort_ice(subname//' ERROR: f_aicen must be defined', file=__FILE__, line=__LINE__)
            endif
 
