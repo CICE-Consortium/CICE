@@ -1073,6 +1073,7 @@ contains
        call state_setexport(exportState, 'Si_imask', input=ocn_gridcell_frac, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
     else
+       tempfld(:,:,:) = c0
        do iblk = 1, nblocks
           this_block = get_block(blocks_ice(iblk),iblk)
           ilo = this_block%ilo
@@ -1134,6 +1135,7 @@ contains
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Snow height
+    tempfld(:,:,:) = c0
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
        ilo = this_block%ilo
@@ -1191,10 +1193,28 @@ contains
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    ! Fix outgoing longwave if aice_init = 0, but aice > 0.
+    tempfld(:,:,:) = flwout(:,:,:)
+    do iblk = 1, nblocks
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+       do j = jlo, jhi
+          do i = ilo, ihi
+             if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 .and. flwout(i,j,iblk) > -puny) then
+                 tempfld(i,j,iblk) = (-stefan_boltzmann *(Tf(i,j) + Tffresh)**4) / ailohi(i,j,iblk)
+             end if
+          end do
+       end do
+    end do
     ! longwave outgoing (upward), average over ice fraction only
-    call state_setexport(exportState, 'Faii_lwup' , input=flwout, lmask=tmask, ifrac=ailohi, &
+    call state_setexport(exportState, 'Faii_lwup' , input=tempfld, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    deallocate(tempfld)
 
     ! Evaporative water flux (kg/m^2/s)
     call state_setexport(exportState, 'Faii_evap' , input=evap, lmask=tmask, ifrac=ailohi, &

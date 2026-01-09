@@ -1296,8 +1296,8 @@ collected in their own history modules (**ice_history_bgc.F90**,
 **ice_history_drag.F90**, **ice_history_mechred.F90**,
 **ice_history_pond.F90**).
 
-The history modules allow output at different frequencies. Five output
-options (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously for ``histfreq``
+The history modules allow output at different frequencies. Six output
+options (``1``, ``h``, ``d``, ``m``, ``y``, ``n``) are available simultaneously for ``histfreq``
 during a run, and each stream must have a unique value for ``histfreq``.  In other words, ``d``
 cannot be used by two different streams.  Each stream has an associated frequency
 set by ``histfreq_n``.  The frequency is
@@ -1396,17 +1396,26 @@ subroutine **define_hist_field**.  ``cona`` and ``conb`` are multiplicative and 
 terms respectively that are hardwired into the source code to convert model units to
 history units.
 
-Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
-``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
-`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
-`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
-requested  SIMIP variables provide the names of possible history fields in CICE. 
-However, each of the additional variables can be output at any temporal frequency 
-specified in the **icefields_nml** section of **ice_in** as detailed above.
-Additionally, a new history output variable, ``f_CMIP``, has been added. When ``f_CMIP``
-is added to the **icefields_nml** section of **ice_in** then all SIMIP variables
-will be turned on for output at the frequency specified by ``f_CMIP``. 
+Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison
+Project (SIMIP) :cite:`Notz16` are available as history output variables 
+(e.g. ``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_
+requested SIMIP variables provide their history field names in CICE.
+These variables have been updated for the  
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_.
+
+The ``f_CMIP`` flag has been removed. This is now a ``set_nml.cmip`` namelist option
+which can be invoked with the ``-s cmip`` option during cice.setup. This optional
+namelist setting will turn on the CMIP data request and turn off CICE duplicates of
+SIMIP variables. However, these can be changed by the user in their case ``ice_in`` file.
+Note that all SIMIP variables have been updated to correspond to the new 
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. 
+
+Note that some SIMIP variables require division by ice or sub-ice areas, which can be extremely
+small and cause the output variables to appear unphysically large. Please interpret these
+quantities (such as ``sithick``) very carefully. A future release will have an option to mask
+these regions.
 
 It may also be helpful for debugging to increase the precision of the history file
 output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
