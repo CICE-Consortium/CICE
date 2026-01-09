@@ -2488,7 +2488,7 @@
             elseif (trim(wave_height_type) == 'none') then
                tmpstr2 = ' : no wave height data available, default==0'
             endif
-            write(nu_diag,1010) ' wave_height_type = ', trim(wave_height_type),trim(tmpstr2)
+            write(nu_diag,1030) ' wave_height_type = ', trim(wave_height_type),trim(tmpstr2)
          endif
 
          write(nu_diag,*) ' '
