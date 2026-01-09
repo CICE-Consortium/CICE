@@ -1263,7 +1263,8 @@
       if (trim(ice_data_type) == 'default') ice_data_type = 'latsst'
 
       ! For backward compatibility
-      if (grid_format ==  'nc') grid_format = 'pop_nc'
+      if (grid_format ==  'nc'    ) grid_format = 'pop_nc'
+      if (grid_format ==  'nc_ext') grid_format = 'pop_nc_ext'
 
       !-----------------------------------------------------------------
       ! verify inputs
@@ -2487,7 +2488,7 @@
             elseif (trim(wave_height_type) == 'none') then
                tmpstr2 = ' : no wave height data available, default==0'
             endif
-            write(nu_diag,1010) ' wave_height_type = ', trim(wave_height_type),trim(tmpstr2)
+            write(nu_diag,1030) ' wave_height_type = ', trim(wave_height_type),trim(tmpstr2)
          endif
 
          write(nu_diag,*) ' '
@@ -2780,6 +2781,7 @@
       endif                     ! my_task = master_task
 
       if (grid_format /=  'pop_nc'        .and. &
+          grid_format /=  'pop_nc_ext'    .and. &
           grid_format /=  'mom_nc'        .and. &
           grid_format /=  'geosnc'        .and. &
           grid_format /=  'meshnc'        .and. &
