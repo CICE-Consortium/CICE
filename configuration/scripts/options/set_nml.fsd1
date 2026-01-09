@@ -1,5 +1,6 @@
 tr_fsd = .true.
 nfsd = 1
 wave_spec_type = 'none'
+wave_height_type = 'none'
 nfreq = 25
 
