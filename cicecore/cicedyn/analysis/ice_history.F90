@@ -3381,7 +3381,7 @@
            ! Ice fraction really needs to be on one of the history
            ! streams, but in case it is not.
 
-           if (n_aice(ns) > 0) then
+           if (n_aice(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               do j = jlo, jhi
               do i = ilo, ihi
                  if (a2D(i,j,n_aice(ns),iblk) > puny) then
@@ -3394,7 +3394,7 @@
            else
               call abort_ice(subname//' ERROR: f_aice must be defined', file=__FILE__, line=__LINE__)
            endif
-           if (n_aice_init(ns) > 0) then
+           if (n_aice_init(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
               do j = jlo, jhi
               do i = ilo, ihi
                  if (a2D(i,j,n_aice_init(ns),iblk) > puny) then
@@ -3407,22 +3407,20 @@
            else
               call abort_ice(subname//' ERROR: f_aice_init must be defined', file=__FILE__, line=__LINE__)
            endif
-           if (tr_pond) then
-              if (n_apond_ai(ns) > 0) then
-                 do j = jlo, jhi
-                 do i = ilo, ihi
-                    if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
-                       ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
-                    else
-                       ravgip_pond(i,j) = c0
-                    endif
-                 enddo             ! i
-                 enddo             ! j
-              else
-                 call abort_ice(subname//' ERROR: f_apond_ai must be defined', file=__FILE__, line=__LINE__)
-              endif
+           if (n_apond_ai(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
+              do j = jlo, jhi
+              do i = ilo, ihi
+                 if (a2D(i,j,n_apond_ai(ns),iblk) > puny) then
+                    ravgip_pond(i,j) = c1/a2D(i,j,n_apond_ai(ns),iblk)
+                 else
+                    ravgip_pond(i,j) = c0
+                 endif
+              enddo             ! i
+              enddo             ! j
+           else
+              call abort_ice(subname//' ERROR: f_apond_ai must be defined', file=__FILE__, line=__LINE__)
            endif
-           if (n_ardg(ns) > 0) then
+           if (n_ardg(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
               do j = jlo, jhi
               do i = ilo, ihi
                  if (a2D(i,j,n_ardg(ns),iblk) > puny) then
@@ -3435,7 +3433,7 @@
            else
               call abort_ice(subname//' ERROR: f_ardg must be defined', file=__FILE__, line=__LINE__)
            endif
-           if (n_aicen(ns) > n2D) then
+           if (n_aicen(ns) > n2D .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               do k=1,ncat_hist
               do j = jlo, jhi
               do i = ilo, ihi
