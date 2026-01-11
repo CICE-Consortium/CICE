@@ -285,7 +285,7 @@ To run the test::
 
 .. _testsuites:
 
-Test suites
+Test Suites
 ------------
 
 Test suites support running multiple tests specified via

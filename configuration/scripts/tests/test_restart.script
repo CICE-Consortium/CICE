@@ -21,19 +21,24 @@ if ( $res != 0 ) then
   exit 99
 endif
 
-# Prepend 'base_' to the final restart file to save for comparison
+# Compute date of last file in first run
 if ( "${ICE_IOTYPE}" == "binary" ) then
-  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
-  foreach file (${ICE_RUNDIR}/restart/*${end_date})
-    set surname = `echo $file | awk -F'/' '{print $NF}'`
-    mv $file ${ICE_RUNDIR}/restart/base_$surname
-  end
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | rev | cut -d "." -f 1 | rev`
 else
-  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-  set test_data = ${ICE_RUNDIR}/restart/${test_file}
-  set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
-  mv ${test_data} ${base_data}
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | rev | cut -d "." -f 2 | rev`
 endif
+
+# Prepend 'base_' to final restart and history restart files to save for comparison
+foreach file (${ICE_RUNDIR}/restart/*${end_date}*)
+  set surname = `echo $file | awk -F'/' '{print $NF}'`
+  mv $file ${ICE_RUNDIR}/restart/base_$surname
+end
+
+# Prepend 'base_' to all history files to save for comparison
+foreach file (${ICE_RUNDIR}/history/*)
+  set surname = `echo $file | awk -F'/' '{print $NF}'`
+  mv $file ${ICE_RUNDIR}/history/base_$surname
+end
 
 #-----------------------------------------------------------
 # Run the CICE model for the restart simulation
@@ -69,13 +74,40 @@ else
   if (${tcolumn}   == "") set tcolumn = -1
   echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
 
+  set restbfb = "PASS"
   ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/restart
   set bfbstatus = $status
-  if (${bfbstatus} == 0) then
+  if (${bfbstatus} != 0) set restbfb = "FAIL"
+
+  set icehrbfb = "NONE"
+  if (${ICE_TESTNAME} =~ *histall10d* && ${ICE_IOTYPE} !~ *binary* ) then
+    echo "${restbfb} ${ICE_TESTNAME} restart " >> ${ICE_CASEDIR}/test_output
+    foreach file1 (${ICE_RUNDIR}/restart/base_iceh* ${ICE_RUNDIR}/history/base_iceh*)
+      set file2  = `echo $file1 | sed -e 's|base_iceh|iceh|g'`
+      if (-e ${file2} && `where ncatted` != "") then
+        if (${icehrbfb} == "NONE") set icehrbfb = "PASS"
+        # remove global attributes to do bfb binary compare
+        set file1m = `echo $file1 | sed -e 's|base_iceh|base_iceh_mod|g'`
+        set file2m = `echo $file1 | sed -e 's|base_iceh|iceh_mod|g'`
+        ncatted -h -a ,global,d,, ${file1} ${file1m}
+        ncatted -h -a ,global,d,, ${file2} ${file2m}
+        ${ICE_CASEDIR}/casescripts/comparebfb.csh ${file1m} ${file2m}
+        set bfbstatus = $status
+        if (${bfbstatus} != 0) set icehrbfb = "FAIL"
+        rm ${file1m} ${file2m}
+      endif
+    end
+    echo "${icehrbfb} ${ICE_TESTNAME} histrest " >> ${ICE_CASEDIR}/test_output
+  endif
+
+  if (${restbfb} == PASS && ${icehrbfb} == PASS) then
+    echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
+  else if (${restbfb} == PASS && ${icehrbfb} == NONE) then
     echo "PASS ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   else
     echo "FAIL ${ICE_TESTNAME} test " >> ${ICE_CASEDIR}/test_output
   endif
+
 endif
 
 #-----------------------------------------------------------
