@@ -67,6 +67,7 @@
          forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiN      (:,:,:) , & ! ice fraction on N-grid
+         rheofactN(:,:,:) , & ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
          nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
          nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
 ! all c or d
@@ -81,6 +82,7 @@
          forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiE      (:,:,:) , & ! ice fraction on E-grid
+         rheofactE(:,:,:) , & ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
          emass    (:,:,:) , & ! total mass of ice and snow (E grid)
          emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
@@ -99,7 +101,10 @@
          zetax2T  (:,:,:) , & ! zetax2 = 2*zeta (bulk viscosity)
          zetax2U  (:,:,:) , & ! zetax2T averaged to U points
          etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
-         etax2U   (:,:,:)     ! etax2T averaged to U points
+         etax2U   (:,:,:) , & ! etax2T averaged to U points
+         rheofactU(:,:,:)     ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
+                              ! rheofactU is not used but added for consistency with
+                              ! C-grid rheofactN and rheofactE (for call dyn_prep2)
 
       real (kind=dbl_kind), allocatable :: &
          uocnU    (:,:,:) , & ! i ocean current (m/s)
@@ -164,6 +169,7 @@
                 forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
                 umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
                 umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                rheofactU(nx_block,ny_block,max_blocks), & ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
 
@@ -194,6 +200,7 @@
                    aiN      (nx_block,ny_block,max_blocks), &
                    nmass    (nx_block,ny_block,max_blocks), &
                    nmassdti (nx_block,ny_block,max_blocks), &
+                   rheofactN(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
 
@@ -209,6 +216,7 @@
                    aiE      (nx_block,ny_block,max_blocks), &
                    emass    (nx_block,ny_block,max_blocks), &
                    emassdti (nx_block,ny_block,max_blocks), &
+                   rheofactE(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
 
@@ -507,7 +515,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umask     (:,:,iblk),                       &
+                            umask     (:,:,iblk), rheofactU (:,:,iblk), &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -564,7 +572,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umaskCD   (:,:,iblk),                       &
+                            umaskCD   (:,:,iblk), rheofactU (:,:,iblk), &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -614,7 +622,7 @@
                             indxNi      (:,iblk), indxNj      (:,iblk), &
                             aiN       (:,:,iblk), nmass     (:,:,iblk), &
                             nmassdti  (:,:,iblk), fcorN_blk (:,:,iblk), &
-                            nmask     (:,:,iblk),                       &
+                            nmask     (:,:,iblk), rheofactN (:,:,iblk), &
                             uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
                             strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                             ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
@@ -647,7 +655,7 @@
                             indxEi      (:,iblk), indxEj      (:,iblk), &
                             aiE       (:,:,iblk), emass     (:,:,iblk), &
                             emassdti  (:,:,iblk), fcorE_blk (:,:,iblk), &
-                            emask     (:,:,iblk),                       &
+                            emask     (:,:,iblk), rheofactE (:,:,iblk), &
                             uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
                             strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                             ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
@@ -1016,7 +1024,7 @@
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
                                    dxE       (:,:,iblk), dyE       (:,:,iblk), &
                                    dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk)                      , &
+                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12U (:,:,iblk), strintxE  (:,:,iblk)  )
 
@@ -1025,7 +1033,7 @@
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
                                    dxN       (:,:,iblk), dyN       (:,:,iblk), &
                                    dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk)                      , &
+                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12U (:,:,iblk), strintyN  (:,:,iblk)  )
 
@@ -1198,7 +1206,7 @@
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
                                    dxE       (:,:,iblk), dyE       (:,:,iblk), &
                                    dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk)                      , &
+                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12U (:,:,iblk), strintxE  (:,:,iblk)  )
 
@@ -1207,7 +1215,7 @@
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
                                    dxE       (:,:,iblk), dyE       (:,:,iblk), &
                                    dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk)                      , &
+                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
                                    stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                    stress12T (:,:,iblk), strintyE  (:,:,iblk)  )
 
@@ -1216,7 +1224,7 @@
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
                                    dxN       (:,:,iblk), dyN       (:,:,iblk), &
                                    dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk)                      , &
+                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
                                    stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
                                    stress12T (:,:,iblk), strintxN  (:,:,iblk)  )
 
@@ -1225,7 +1233,7 @@
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
                                    dxN       (:,:,iblk), dyN       (:,:,iblk), &
                                    dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk)                      , &
+                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
                                    stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
                                    stress12U (:,:,iblk), strintyN  (:,:,iblk)  )
 
@@ -2186,14 +2194,14 @@
 ! elastic-viscous-plastic sea ice model formulated on Arakawa B and C grids.
 ! Ocean Model., 27, 174-184.
 
-      subroutine div_stress_Ex(nx_block, ny_block, &
-                                         icell   , &
-                               indxi   , indxj   , &
-                               dxE     , dyE     , &
-                               dxU     , dyT     , &
-                               arear   ,           &
-                               stressp , stressm , &
-                               stress12,           &
+      subroutine div_stress_Ex(nx_block, ny_block , &
+                                         icell    , &
+                               indxi   , indxj    , &
+                               dxE     , dyE      , &
+                               dxU     , dyT      , &
+                               arear   , rheofactE, &
+                               stressp , stressm  , &
+                               stress12,            &
                                strintx )
 
 
@@ -2210,7 +2218,8 @@
          dyE     , & ! height of E or N-cell through the middle (m)
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
-         arear       ! earear or narear
+         arear   , & ! earear or narear
+         rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2230,7 +2239,7 @@
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strintx(i,j) = arear(i,j) * &
+         strintx(i,j) = rheofactE(i,j) * arear(i,j) * &
               ( p5 * dyE(i,j)  * ( stressp(i+1,j  )  - stressp (i  ,j  ) ) &
               + (p5/ dyE(i,j)) * ( (dyT(i+1,j  )**2) * stressm (i+1,j  )   &
                                   -(dyT(i  ,j  )**2) * stressm (i  ,j  ) ) &
@@ -2241,14 +2250,14 @@
       end subroutine div_stress_Ex
 
 !=======================================================================
-      subroutine div_stress_Ey(nx_block, ny_block, &
-                                         icell   , &
-                               indxi   , indxj   , &
-                               dxE     , dyE     , &
-                               dxU     , dyT     , &
-                               arear   ,           &
-                               stressp , stressm , &
-                               stress12,           &
+      subroutine div_stress_Ey(nx_block, ny_block , &
+                                         icell    , &
+                               indxi   , indxj    , &
+                               dxE     , dyE      , &
+                               dxU     , dyT      , &
+                               arear   , rheofactE, &
+                               stressp , stressm  , &
+                               stress12,            &
                                strinty )
 
       integer (kind=int_kind), intent(in) :: &
@@ -2264,7 +2273,8 @@
          dyE     , & ! height of E or N-cell through the middle (m)
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
-         arear         ! earear or narear
+         arear   , & ! earear or narear
+         rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
@@ -2284,7 +2294,7 @@
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strinty(i,j) = arear(i,j) * &
+         strinty(i,j) = rheofactE(i,j) * arear(i,j) * &
               ( p5 * dxE(i,j)  * ( stressp(i  ,j  )  - stressp (i  ,j-1) ) &
               - (p5/ dxE(i,j)) * ( (dxU(i  ,j  )**2) * stressm (i  ,j  )   &
                                   -(dxU(i  ,j-1)**2) * stressm (i  ,j-1) ) &
@@ -2295,14 +2305,14 @@
       end subroutine div_stress_Ey
 
 !=======================================================================
-      subroutine div_stress_Nx(nx_block, ny_block, &
-                                         icell   , &
-                               indxi   , indxj   , &
-                               dxN     , dyN     , &
-                               dxT     , dyU     , &
-                               arear   ,           &
-                               stressp , stressm , &
-                               stress12,           &
+      subroutine div_stress_Nx(nx_block, ny_block , &
+                                         icell    , &
+                               indxi   , indxj    , &
+                               dxN     , dyN      , &
+                               dxT     , dyU      , &
+                               arear   , rheofactN, &
+                               stressp , stressm  , &
+                               stress12,            &
                                strintx )
 
       integer (kind=int_kind), intent(in) :: &
@@ -2318,7 +2328,8 @@
          dyN     , & ! height of E or N-cell through the middle (m)
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
-         arear       ! earear or narear
+         arear   , & ! earear or narear
+         rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2338,7 +2349,7 @@
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strintx(i,j) = arear(i,j) * &
+         strintx(i,j) = rheofactN(i,j) * arear(i,j) * &
               ( p5 * dyN(i,j)  * ( stressp(i  ,j  )  - stressp (i-1,j  ) ) &
               + (p5/ dyN(i,j)) * ( (dyU(i  ,j  )**2) * stressm (i  ,j  )   &
                                   -(dyU(i-1,j  )**2) * stressm (i-1,j  ) ) &
@@ -2349,14 +2360,14 @@
       end subroutine div_stress_Nx
 
 !=======================================================================
-      subroutine div_stress_Ny(nx_block, ny_block, &
-                                         icell   , &
-                               indxi   , indxj   , &
-                               dxN     , dyN     , &
-                               dxT     , dyU     , &
-                               arear   ,           &
-                               stressp , stressm , &
-                               stress12,           &
+      subroutine div_stress_Ny(nx_block, ny_block , &
+                                         icell    , &
+                               indxi   , indxj    , &
+                               dxN     , dyN      , &
+                               dxT     , dyU      , &
+                               arear   , rheofactN, &
+                               stressp , stressm  , &
+                               stress12,            &
                                strinty )
 
       integer (kind=int_kind), intent(in) :: &
@@ -2372,7 +2383,8 @@
          dyN     , & ! height of E or N-cell through the middle (m)
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
-         arear       ! earear or narear
+         arear   , & ! earear or narear
+         rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
@@ -2392,7 +2404,7 @@
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strinty(i,j) = arear(i,j) * &
+         strinty(i,j) = rheofactN(i,j) * arear(i,j) * &
               ( p5 * dxN(i,j)  * ( stressp(i  ,j+1)  - stressp (i  ,j  ) ) &
               - (p5/ dxN(i,j)) * ( (dxT(i  ,j+1)**2) * stressm (i  ,j+1)   &
                                   -(dxT(i  ,j  )**2) * stressm (i  ,j  ) ) &
