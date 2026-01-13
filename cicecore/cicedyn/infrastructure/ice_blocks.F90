@@ -161,7 +161,7 @@ contains
 !  the global index will go from -nghost+1:0 on the lower boundary
 !  and n*_global+1:n*_global+nghost on the upper boundary and the
 !  haloUpdate and scatter, for instance, will not fill those values
-!  in those cases.  Other boundary condition methods will fill the 
+!  in those cases.  Other boundary condition methods will fill the
 !  outer halo values in cases where ice exists on those boundaries.
 !
 !----------------------------------------------------------------------

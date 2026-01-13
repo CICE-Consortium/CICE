@@ -783,7 +783,7 @@ contains
 !-----------------------------------------------------------------------
 
    if (.not. ltripoleOnly) then
-      ! tripoleOnly skip fill, do not overwrite any values in interior as they may 
+      ! tripoleOnly skip fill, do not overwrite any values in interior as they may
       ! already be set and filling tripole is not necessary
 
       ! fill outer boundary as needed
