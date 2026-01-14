@@ -2235,9 +2235,9 @@
       use ice_history_write, only: ice_write_hist
       use ice_history_bgc, only: accum_hist_bgc
       use ice_history_mechred, only: accum_hist_mechred
-      use ice_history_mechred, only: n_alvl, n_ardg
+      use ice_history_mechred, only: n_alvl, n_ardg, f_ardg
       use ice_history_pond, only: accum_hist_pond
-      use ice_history_pond, only: n_apond_ai
+      use ice_history_pond, only: n_apond_ai, f_apond_ai
       use ice_history_snow, only: accum_hist_snow, &
           f_rhos_cmp, f_rhos_cnt, n_rhos_cmp, n_rhos_cnt
       use ice_history_drag, only: accum_hist_drag
@@ -3391,7 +3391,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           elseif (n_aice(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
+           elseif (f_aice(1:1) == 'x' .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               call abort_ice(subname//' ERROR: f_aice must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_aice_init(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
@@ -3404,7 +3404,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           elseif (n_aice_init(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
+           elseif (f_aice_init(1:1) == 'x' .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
               call abort_ice(subname//' ERROR: f_aice_init must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_apond_ai(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
@@ -3417,7 +3417,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           elseif (n_apond_ai(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
+           elseif (f_apond_ai(1:1) == 'x' .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
               call abort_ice(subname//' ERROR: f_apond_ai must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_ardg(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
@@ -3430,7 +3430,7 @@
                  endif
               enddo             ! i
               enddo             ! j
-           elseif (n_ardg(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
+           elseif (f_ardg(1:1) == 'x' .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
               call abort_ice(subname//' ERROR: f_ardg must be defined', file=__FILE__, line=__LINE__)
            endif
            if (n_aicen(ns) > n2D .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
@@ -3445,7 +3445,7 @@
               enddo             ! i
               enddo             ! j
               enddo             ! k
-           elseif (n_aicen(ns) == 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
+           elseif (f_aicen(1:1) == 'x' .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               call abort_ice(subname//' ERROR: f_aicen must be defined', file=__FILE__, line=__LINE__)
            endif
 
