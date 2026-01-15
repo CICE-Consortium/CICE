@@ -201,8 +201,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
-    dyn_area_min    = 0.001d0
-    dyn_mass_min    = 0.01d0
+    dyn_area_min    = 1.e-11
+    dyn_mass_min    = 1.e-10
 /
 
 &shortwave_nml
@@ -281,6 +281,7 @@
     saltflux_option = 'constant'
     ice_ref_salinity = 4.0
     oceanmixed_ice  = .true.
+    wave_height_type = 'none'
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
