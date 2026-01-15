@@ -684,7 +684,7 @@
              ns1, f_hs)
 
          call define_hist_field(n_snowfrac,"snowfrac","1",tstr2D, tcstr, &
-             "snow fraction on sea ice",                                 &
+             "snow fraction of sea ice",                                 &
              "none", c1, c0,                                             &
              ns1, f_snowfrac)
 
