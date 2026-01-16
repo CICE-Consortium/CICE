@@ -37,6 +37,11 @@
            f_aredistn  = 'x', f_vredistn   = 'x', &
            f_araftn    = 'x', f_vraftn     = 'x'
 
+      ! CMIP ridging variables.
+
+      character (len=max_nstrm), public :: &
+           f_sirdgconc = 'm', f_sirdgthick = 'm'
+
       !---------------------------------------------------------------
       ! namelist variables
       !---------------------------------------------------------------
@@ -51,13 +56,14 @@
            f_dvirdgndt, &
            f_aparticn,  f_krdgn    , &
            f_aredistn,  f_vredistn , &
-           f_araftn,    f_vraftn
+           f_araftn,    f_vraftn   , &
+           f_sirdgconc, f_sirdgthick
 
       !---------------------------------------------------------------
       ! field indices
       !---------------------------------------------------------------
 
-      integer (kind=int_kind), dimension(max_nstrm) :: &
+      integer (kind=int_kind), dimension(max_nstrm), public :: &
            n_ardg       , n_vrdg       , &
            n_alvl       , n_vlvl       , &
            n_dardg1dt   , n_dardg2dt   , &
@@ -68,6 +74,9 @@
            n_aparticn   , n_krdgn      , &
            n_aredistn   , n_vredistn   , &
            n_araftn     , n_vraftn
+
+      integer (kind=int_kind), dimension(max_nstrm) :: &
+           n_sirdgconc, n_sirdgthick
 
 !=======================================================================
 
@@ -152,6 +161,8 @@
          f_vrdgn = 'x'
          f_araftn = 'x'
          f_vraftn = 'x'
+         f_sirdgconc  = 'x'
+         f_sirdgthick = 'x'
       endif
       if (f_araftn /= 'x' .or. f_vraftn /= 'x') f_ardgn = f_araftn
 
@@ -174,6 +185,8 @@
       call broadcast_scalar (f_vredistn, master_task)
       call broadcast_scalar (f_araftn, master_task)
       call broadcast_scalar (f_vraftn, master_task)
+      call broadcast_scalar (f_sirdgconc, master_task)
+      call broadcast_scalar (f_sirdgthick, master_task)
 
       ! 2D variables
 
@@ -182,48 +195,62 @@
 
       if (f_alvl(1:1) /= 'x') &
          call define_hist_field(n_alvl,"alvl","1",tstr2D, tcstr, &
-             "level ice area fraction",                            &
-             "none", c1, c0,                                       &
+             "level ice area fraction",                          &
+             "none", c1, c0,                                     &
              ns, f_alvl)
       if (f_vlvl(1:1) /= 'x') &
          call define_hist_field(n_vlvl,"vlvl","m",tstr2D, tcstr, &
-             "level ice volume",                           &
-             "grid cell mean level ice thickness", c1, c0, &
+             "level ice volume",                                 &
+             "grid cell mean level ice thickness", c1, c0,       &
              ns, f_vlvl)
       if (f_ardg(1:1) /= 'x') &
          call define_hist_field(n_ardg,"ardg","1",tstr2D, tcstr, &
-             "ridged ice area fraction",                           &
-             "none", c1, c0,                                       &
+             "ridged ice area fraction",                         &
+             "none", c1, c0,                                     &
              ns, f_ardg)
       if (f_vrdg(1:1) /= 'x') &
          call define_hist_field(n_vrdg,"vrdg","m",tstr2D, tcstr, &
-             "ridged ice volume",                          &
-             "grid cell mean level ridged thickness", c1, c0, &
+             "ridged ice volume",                                &
+             "grid cell mean level ridged thickness", c1, c0,    &
              ns, f_vrdg)
 
       if (f_dardg1dt(1:1) /= 'x') &
          call define_hist_field(n_dardg1dt,"dardg1dt","%/day",tstr2D, tcstr, &
-             "ice area ridging rate",                                      &
-             "none", secday*c100, c0,                                      &
+             "ice area ridging rate",                                        &
+             "none", secday*c100, c0,                                        &
              ns, f_dardg1dt)
 
       if (f_dardg2dt(1:1) /= 'x') &
          call define_hist_field(n_dardg2dt,"dardg2dt","%/day",tstr2D, tcstr, &
-             "ridge area formation rate",                                  &
-             "none", secday*c100, c0,                                      &
+             "ridge area formation rate",                                    &
+             "none", secday*c100, c0,                                        &
              ns, f_dardg2dt)
 
       if (f_dvirdgdt(1:1) /= 'x') &
          call define_hist_field(n_dvirdgdt,"dvirdgdt","cm/day",tstr2D, tcstr, &
-             "ice volume ridging rate",                                     &
-             "none", mps_to_cmpdy, c0,                                      &
+             "ice volume ridging rate",                                       &
+             "none", mps_to_cmpdy, c0,                                        &
              ns, f_dvirdgdt)
 
       if (f_opening(1:1) /= 'x') &
          call define_hist_field(n_opening,"opening","%/day",tstr2D, tcstr, &
-             "lead area opening rate",                                   &
-             "none", secday*c100, c0,                                    &
+             "lead area opening rate",                                     &
+             "none", secday*c100, c0,                                      &
              ns, f_opening)
+
+      if (f_sirdgconc(1:1) /= 'x') &
+         call define_hist_field(n_sirdgconc,"sirdgconc","%",tstr2D, tcstr, &
+             "percentage of ridged sea ice",                               &
+             "area percentage of sea ice surface that is ridged sea ice",  &
+             c100, c0,                                                     &
+             ns, f_sirdgconc, avg_ice_present='none', mask_ice_free_points=.false.)
+
+      if (f_sirdgthick(1:1) /= 'x') &
+         call define_hist_field(n_sirdgthick,"sirdgthick","m",tstr2D, tcstr, &
+             "ridged ice thickness",                                         &
+             "total volume of ridged sea ice divided by area of ridges",     &
+             c1, c0,                                                         &
+             ns, f_sirdgthick, avg_ice_present='ridge', mask_ice_free_points=.true.)
 
       endif ! histfreq(ns) /= 'x'
       enddo ! nstreams
@@ -331,6 +358,7 @@
 
       subroutine accum_hist_mechred (iblk)
 
+      use ice_blocks, only: nx_block, ny_block
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
@@ -379,6 +407,15 @@
              call accum_hist_field(n_dvirdgdt,iblk, dvirdgdt(:,:,iblk), a2D)
          if (f_opening(1:1) /= 'x') &
              call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
+
+         if (f_sirdgconc(1:1)/= 'x') &
+             call accum_hist_field(n_sirdgconc,   iblk, &
+                             aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+
+         if (f_sirdgthick(1:1)/= 'x') then 
+             call accum_hist_field(n_sirdgthick,  iblk, &
+                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D) 
+         endif
 
          endif ! allocated(a2D)
 

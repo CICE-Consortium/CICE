@@ -370,7 +370,7 @@
           fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           fswthru_uvrdr, fswthru_uvrdf, fswthru_pardr, fswthru_pardf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
-          fsens, flat, fswabs, flwout, evap, Tref, Qref, &
+          fsens, flat, fswabs, fsw, fswup, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt, Uref, wind
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
           flux_bio, flux_bio_ai, &
@@ -556,6 +556,8 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
+            fswup     (i,j,iblk) = aice_init(i,j,iblk) &
+                                 * fsw    (i,j,iblk) - fswabs(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr

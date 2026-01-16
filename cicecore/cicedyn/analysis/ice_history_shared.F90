@@ -1,4 +1,4 @@
-!=======================================================================
+! =======================================================================
 !
 ! Output files: netCDF or binary data, Fortran unformatted dumps
 !
@@ -34,7 +34,7 @@
       implicit none
 
       private
-      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename
+      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
 
       integer (kind=int_kind), public :: history_precision
 
@@ -80,22 +80,22 @@
       !---------------------------------------------------------------
 
       type, public :: ice_hist_field
-          character (len=16) :: vname     ! variable name
+          character (len=20) :: vname     ! variable name
           character (len=16) :: vunit     ! variable units
           character (len=25) :: vcoord    ! variable coordinates
           character (len=16) :: vcellmeas ! variable cell measures
-          character (len=55) :: vdesc     ! variable description
-          character (len=55) :: vcomment  ! variable description
+          character (len=80) :: vdesc     ! variable description
+          character (len=80) :: vcomment  ! variable description
           real (kind=dbl_kind) :: cona    ! multiplicative conversion factor
           real (kind=dbl_kind) :: conb    ! additive conversion factor
           character (len=1) :: vhistfreq  ! frequency of history output
           integer (kind=int_kind) :: vhistfreq_n ! number of vhistfreq intervals
-          logical (kind=log_kind) :: avg_ice_present ! only average where ice is present
+          character (len=16) :: avg_ice_present ! only average where ice is present 'init', 'final', 'none'
           logical (kind=log_kind) :: mask_ice_free_points ! mask ice-free points
       end type
 
       integer (kind=int_kind), parameter, public :: &
-         max_avail_hist_fields = 800      ! Max number of history fields
+         max_avail_hist_fields = 1200      ! Max number of history fields
 
       integer (kind=int_kind), public :: &
          num_avail_hist_fields_tot  = 0, & ! Current, total number of defined fields
@@ -218,9 +218,11 @@
 
       character (len=max_nstrm), public :: &
 !          f_example   = 'md', &
+           f_CMIP      = 'x',  &
            f_hi        = 'm', f_hs         = 'm', &
            f_snowfrac  = 'x', f_snowfracn  = 'x', &
            f_Tsfc      = 'm', f_aice       = 'm', &
+           f_aice_init = 'x', &
            f_uvel      = 'm', f_vvel       = 'm', &
            f_icespd    = 'm', f_icedir     = 'm', &
            f_uvelE     = 'x', f_vvelE      = 'x', &
@@ -289,40 +291,43 @@
            f_mlt_onset = 'm', f_frz_onset  = 'm', &
            f_iage      = 'm', f_FY         = 'm', &
            f_hisnap    = 'm', f_aisnap     = 'm', &
-           f_CMIP = 'x'     , &
            f_sithick   = 'x', f_sisnthick  = 'x', &
-           f_siage     = 'x', &
+           f_siage     = 'x', f_siconc     = 'x', &
+           f_sisnconc  = 'x', f_sisnmass   = 'x', &
            f_sitemptop = 'x', f_sitempsnic = 'x', &
-           f_sitempbot = 'x', &
+           f_sitempbot = 'x', f_sivol      = 'x', &
            f_sispeed   = 'x', f_sidir      = 'x', &
            f_siu       = 'x', f_siv        = 'x', &
            f_sidmasstranx = 'x', f_sidmasstrany = 'x', &
            f_sistrxdtop = 'x', f_sistrydtop = 'x', &
            f_sistrxubot = 'x', f_sistryubot = 'x', &
            f_sicompstren = 'x', &
-           f_sialb     = 'x', &
+           f_sisali     = 'x', &
            f_sihc      = 'x', f_sisnhc     = 'x', &
            f_sidconcth = 'x', f_sidconcdyn = 'x', &
            f_sidmassth = 'x', f_sidmassdyn = 'x', &
            f_sidmassgrowthwat = 'x', &
            f_sidmassgrowthbot = 'x', &
-           f_sidmasssi = 'x', &
+           f_simass    = 'x', &
+           f_sisaltmass    = 'x', &
+           f_sidmassgrowthsi = 'x', &
            f_sidmassevapsubl = 'x', &
-           f_sndmasssubl = 'x', &
+           f_sisndmasssubl = 'x', &
            f_sidmassmelttop = 'x', &
            f_sidmassmeltbot = 'x', &
-           f_sidmasslat = 'x', &
-           f_sndmasssnf = 'x', &
-           f_sndmassmelt = 'x', &
-           f_sndmassdyn = 'x', &
+           f_sidmassmeltlat = 'x', &
+           f_sisndmasssnf = 'x', &
+           f_sisndmassmelt = 'x', &
+           f_sisndmassdyn = 'x', &
+           f_sisndmasssi = 'x', &
            f_siflswdtop = 'x', &
            f_siflswutop = 'x', &
            f_siflswdbot = 'x', &
            f_sifllwdtop = 'x', &
            f_sifllwutop = 'x', &
            f_siflsenstop = 'x', &
-           f_siflsensupbot = 'x', &
-           f_sifllatstop = 'x', &
+           f_siflsensbot = 'x', &
+           f_sifllattop = 'x', &
            f_siflcondtop = 'x', &
            f_siflcondbot = 'x', &
            f_sipr = 'x', &
@@ -337,12 +342,16 @@
            f_siforceintstrx = 'x', &
            f_siforceintstry = 'x', &
            f_siitdconc = 'x', &
+           f_siitdsnconc = 'x', &
            f_siitdthick = 'x', &
            f_siitdsnthick = 'x', &
+           f_sidragbot = 'x', &
            f_sidragtop = 'x', &
-           f_sirdgthick = 'x', &
-           f_sistreave = 'x', &
-           f_sistremax = 'x', &
+           f_sistressave = 'x', &
+           f_sistressmax = 'x', &
+           f_sidivvel    = 'x', &
+           f_sishearvel    = 'x', &
+           f_sitimefrac = 'x', &
            f_aicen     = 'x', f_vicen      = 'x', &
            f_vsnon     = 'x', &
            f_trsig     = 'm', f_icepresent = 'm', &
@@ -389,9 +398,11 @@
            f_VGRDb    , f_VGRDa    , &
            f_NFSD     , &
 !          f_example  , &
+           f_CMIP     ,              &
            f_hi,        f_hs       , &
            f_snowfrac,  f_snowfracn, &
            f_Tsfc,      f_aice     , &
+           f_aice_init, &
            f_uvel,      f_vvel     , &
            f_icespd,    f_icedir   , &
 !          For now, C and CD grid quantities are controlled by the generic (originally B-grid) namelist flag
@@ -461,40 +472,43 @@
            f_mlt_onset, f_frz_onset, &
            f_iage,      f_FY       , &
            f_hisnap,    f_aisnap   , &
-           f_CMIP, &
            f_sithick,   f_sisnthick, &
-           f_siage,     &
+           f_siage,     f_siconc   , &
+           f_sisnconc,  f_sisnmass , &
            f_sitemptop, f_sitempsnic,&
-           f_sitempbot, &
+           f_sitempbot, f_sivol,     &
            f_sispeed,   f_sidir,     &
            f_siu,       f_siv,       &
            f_sidmasstranx, f_sidmasstrany, &
            f_sistrxdtop, f_sistrydtop, &
            f_sistrxubot, f_sistryubot, &
            f_sicompstren, &
-           f_sialb, &
+           f_sisali,    &
            f_sihc,      f_sisnhc,    &
            f_sidconcth, f_sidconcdyn,&
            f_sidmassth, f_sidmassdyn,&
            f_sidmassgrowthwat, &
            f_sidmassgrowthbot, &
-           f_sidmasssi, &
+           f_simass, &
+           f_sisaltmass, &
+           f_sidmassgrowthsi, &
            f_sidmassevapsubl, &
-           f_sndmasssubl, &
+           f_sisndmasssubl, &
            f_sidmassmelttop, &
            f_sidmassmeltbot, &
-           f_sidmasslat, &
-           f_sndmasssnf, &
-           f_sndmassmelt, &
-           f_sndmassdyn, &
+           f_sidmassmeltlat, &
+           f_sisndmasssnf, &
+           f_sisndmassmelt, &
+           f_sisndmassdyn, &
+           f_sisndmasssi, &
            f_siflswdtop, &
            f_siflswutop, &
            f_siflswdbot, &
            f_sifllwdtop, &
            f_sifllwutop, &
            f_siflsenstop, &
-           f_siflsensupbot, &
-           f_sifllatstop, &
+           f_siflsensbot, &
+           f_sifllattop, &
            f_siflcondtop, &
            f_siflcondbot, &
            f_sipr, &
@@ -509,12 +523,16 @@
            f_siforceintstrx, &
            f_siforceintstry, &
            f_siitdconc, &
+           f_siitdsnconc, &
            f_siitdthick, &
            f_siitdsnthick, &
+           f_sidragbot, &
            f_sidragtop, &
-           f_sirdgthick, &
-           f_sistreave, &
-           f_sistremax, &
+           f_sistressave, &
+           f_sistressmax, &
+           f_sidivvel, &
+           f_sishearvel, &
+           f_sitimefrac, &
            f_aicen,     f_vicen    , &
            f_vsnon,     &
            f_trsig,     f_icepresent,&
@@ -593,6 +611,7 @@
            n_hi         , n_hs         , &
            n_snowfrac   , n_snowfracn  , &
            n_Tsfc       , n_aice       , &
+           n_aice_init  , &
            n_uvel       , n_vvel       , &
            n_icespd     , n_icedir     , &
            n_uvelE      , n_vvelE      , &
@@ -663,38 +682,42 @@
            n_mlt_onset  , n_frz_onset  , &
            n_hisnap     , n_aisnap     , &
            n_sithick    , n_sisnthick  , &
-           n_siage,       &
+           n_siage      , n_siconc     , &
+           n_sisnconc   , n_sisnmass   , &
            n_sitemptop  , n_sitempsnic , &
-           n_sitempbot  , &
+           n_sitempbot  , n_sivol      , &
            n_sispeed    , n_sidir      , &
-           n_siu,         n_siv,         &
+           n_siu        , n_siv        , &
            n_sidmasstranx, n_sidmasstrany, &
            n_sistrxdtop,  n_sistrydtop,  &
            n_sistrxubot,  n_sistryubot,  &
            n_sicompstren, &
-           n_sialb, &
+           n_sisali,      &
            n_sihc       , n_sisnhc,      &
            n_sidconcth  , n_sidconcdyn,  &
            n_sidmassth  , n_sidmassdyn,  &
            n_sidmassgrowthwat,  &
            n_sidmassgrowthbot,  &
-           n_sidmasssi,  &
+           n_simass,  &
+           n_sisaltmass,  &
+           n_sidmassgrowthsi,  &
            n_sidmassevapsubl,  &
-           n_sndmasssubl,  &
+           n_sisndmasssubl,  &
            n_sidmassmelttop,  &
            n_sidmassmeltbot,  &
-           n_sidmasslat,  &
-           n_sndmasssnf,  &
-           n_sndmassmelt,  &
-           n_sndmassdyn,  &
+           n_sidmassmeltlat,  &
+           n_sisndmasssnf,  &
+           n_sisndmassmelt,  &
+           n_sisndmassdyn,  &
+           n_sisndmasssi,  &
            n_siflswdtop,  &
            n_siflswutop,  &
            n_siflswdbot,  &
            n_sifllwdtop,  &
            n_sifllwutop,  &
            n_siflsenstop,  &
-           n_siflsensupbot,  &
-           n_sifllatstop,  &
+           n_siflsensbot,  &
+           n_sifllattop,  &
            n_siflcondtop,  &
            n_siflcondbot,  &
            n_sipr,  &
@@ -709,12 +732,16 @@
            n_siforceintstrx,  &
            n_siforceintstry,  &
            n_siitdconc, &
+           n_siitdsnconc, &
            n_siitdthick, &
            n_siitdsnthick, &
+           n_sidragbot, &
            n_sidragtop, &
-           n_sirdgthick, &
-           n_sistreave, &
-           n_sistremax, &
+           n_sistressave, &
+           n_sistressmax, &
+           n_sidivvel, &
+           n_sishearvel, &
+           n_sitimefrac, &
            n_trsig      , n_icepresent , &
            n_iage       , n_FY         , &
            n_fsurf_ai   , &
@@ -888,6 +915,9 @@
          vdesc      , & ! variable descriptions
          vcomment       ! variable comments
 
+      character (len=*), optional, intent(in) :: &
+         avg_ice_present ! compute average only when ice is present
+
       real (kind=dbl_kind), intent(in) :: &
          cona       , & ! multiplicative conversion factor
          conb           ! additive conversion factor
@@ -899,7 +929,6 @@
          ns             ! history file stream index
 
       logical (kind=log_kind), optional, intent(in) :: &
-         avg_ice_present       , & ! compute average only when ice is present
          mask_ice_free_points      ! mask ice-free points
 
       integer (kind=int_kind) :: &
@@ -908,13 +937,14 @@
 
       character (len=40) :: stmp
 
+      character (len=16) :: l_avg_ice_present ! compute average only when ice is present
+
       logical (kind=log_kind) :: &
-         l_avg_ice_present       , & ! compute average only when ice is present
          l_mask_ice_free_points      ! mask ice-free points
 
       character(len=*), parameter :: subname = '(define_hist_field)'
 
-      l_avg_ice_present = .false.
+      l_avg_ice_present = 'none'
       l_mask_ice_free_points = .false.
 
       if(present(avg_ice_present)) l_avg_ice_present = avg_ice_present
@@ -1197,6 +1227,55 @@
 
       end subroutine accum_hist_field_4D
 
+!=======================================================================
+
+!     Computes total density of brine plus fresh ice. Used for mass
+!     related CMIP variables.
+!
+!     2025 Created by D. Bailey
+
+      subroutine ice_brine_density (qice,sice,sss,rho_ice,rho_ocn,salt_ice)
+
+      use ice_constants, only: c0, c1
+      use icepack_intfc, only: icepack_mushy_density_brine, icepack_mushy_liquid_fraction
+      use icepack_intfc, only: icepack_mushy_temperature_mush, icepack_query_parameters
+
+      real (kind=dbl_kind), intent(in), dimension(:) :: &
+           qice,  & ! sea ice enthalpy of each layer (J m-3)
+           sice     ! sea ice salinity in each layer (psu)
+
+      real (kind=dbl_kind), intent(in) :: &
+           sss      ! sea surface (ocean) salinity (psu)
+
+      real (kind=dbl_kind), intent(out) :: &
+           rho_ice, & ! combined brine + ice density (kg m-3)
+           rho_ocn, & ! ocean density from sss (kg m-3)
+           salt_ice   ! bulk salinity of brine + ice (psu)
+
+      integer (kind=int_kind) :: k
+      real (kind=dbl_kind) :: rhoi ! constant fresh ice density (kg m-3)
+      real (kind=dbl_kind) :: &
+           Tice,    & ! sea ice temperature in each layer (C)
+           Sbr,     & ! salinity of brine in each layer (psu)
+           phi,     & ! brine fraction in each layer
+           rhob       ! density of brine (kg m-3)
+
+         call icepack_query_parameters(rhoi_out=rhoi)
+
+         rho_ocn = icepack_mushy_density_brine(sss)
+         rho_ice = c0
+         salt_ice = c0
+         do k = 1, nzilyr
+            Sbr = sice(k)
+            Tice = icepack_mushy_temperature_mush(qice(k),Sbr)
+            salt_ice = salt_ice + Sbr / real(nzilyr,kind=dbl_kind)
+            phi = icepack_mushy_liquid_fraction(Tice,Sbr)
+            rhob = icepack_mushy_density_brine(Sbr)
+            rho_ice = rho_ice + min(phi*rhob+(c1-phi)*rhoi,rho_ocn)
+         enddo
+         rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
+
+      end subroutine ice_brine_density
 !=======================================================================
 
       end module ice_history_shared
