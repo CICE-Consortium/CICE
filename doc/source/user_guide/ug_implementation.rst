@@ -1434,7 +1434,8 @@ accumulated history data, one file per history stream, to the restart directory 
 a naming convention that uses the history filename, appends '_r' plus the ``histfreq`` character
 string and then appends the model time.  This occurs only for streams with 
 ``hist_avg = .true.`` and where the accumulator count is greater than zero when the data is 
-written.  Only accumulating data associated with the history stream is written.
+written.  Only accumulating data associated with the history stream is written.  This feature
+can be turned off by setting ``write_histrest = .false.`` in namelist.
 
 On restart, CICE looks for appropriate history restart files and reads them if they exist.
 If the files do not exist or fields cannot be read, the model continues with the history

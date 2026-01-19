@@ -3,6 +3,7 @@
     histfreq_n     =  10,24,1
     histfreq_base  =  'zero','init','zero'
     hist_avg        = .true.,.true.,.true.
+    write_histrest = .true.
     write_ic       = .true.
     f_tmask        = .true.
     f_blkmask      = .true.

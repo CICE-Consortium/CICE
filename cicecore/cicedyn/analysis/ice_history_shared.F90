@@ -39,7 +39,7 @@
       integer (kind=int_kind), public :: history_precision
 
       logical (kind=log_kind), public :: &
-         write_histrest = .false. , & ! true when writing history restarts
+         write_histrest_now = .false. , & ! true when writing history restarts
          hist_avg(max_nstrm)  ! if true, write averaged data instead of snapshots
 
       character (len=char_len_long), public :: &

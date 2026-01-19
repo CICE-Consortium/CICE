@@ -146,7 +146,7 @@
 
       ! modify history restart output
       lhistprec = history_precision
-      if (write_histrest) then
+      if (write_histrest_now) then
          history_precision = 8
       endif
 
@@ -155,7 +155,7 @@
 
       if (my_task == master_task) then
 
-         if (write_histrest) then
+         if (write_histrest_now) then
             call construct_filename(ncfile,'nc',ns, option='histrest')
          else
             call construct_filename(ncfile,'nc',ns)
@@ -164,7 +164,7 @@
          ! add local directory path name to ncfile
          if (write_ic) then
             ncfile = trim(incond_dir)//ncfile
-         elseif (write_histrest) then
+         elseif (write_histrest_now) then
             ncfile = trim(restart_dir)//ncfile
          else
             ncfile = trim(history_dir)//ncfile
@@ -513,7 +513,7 @@
          ! define attributes for time-variant variables
          !-----------------------------------------------------------------
 
-         if (write_histrest) then
+         if (write_histrest_now) then
             status = nf90_def_var(ncid, 'time_beg', lprecision, varid=varid)
             status = nf90_def_var(ncid, 'avgct', lprecision, varid=varid)
             status = nf90_def_var(ncid, 'albcnt'//cns, lprecision, dimid, varid)
@@ -1000,7 +1000,7 @@
       ! write variable data
       !-----------------------------------------------------------------
 
-      if (write_histrest) then
+      if (write_histrest_now) then
          if (my_task == master_task) then
             status  = nf90_inq_varid(ncid,'time_beg',varid)
             call ice_check_nc(status, subname// ' ERROR: getting varid for '//'time_beg', &
@@ -1260,7 +1260,7 @@
       endif
 
       ! reset history parameters
-      if (write_histrest) then
+      if (write_histrest_now) then
          history_precision = lhistprec
       endif
 

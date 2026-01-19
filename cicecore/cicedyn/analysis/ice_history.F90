@@ -2206,7 +2206,7 @@
       use ice_grid, only: tmask, lmask_n, lmask_s, dxU, dyU, grid_ice
       use ice_calendar, only: new_year, write_history, write_restart, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
-                              new_month
+                              new_month, write_histrest
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
       use ice_dyn_shared, only: kdyn, principal_stress
@@ -4041,9 +4041,9 @@
       ! write history restarts
       !---------------------------------------------------------------
 
-      if (write_restart == 1) then
+      if (write_histrest .and. write_restart == 1) then
         ! turn on histrest features
-        write_histrest = .true.
+        write_histrest_now = .true.
 
         ! write history restarts
         call ice_timer_start(timer_readwrite)  ! reading/writing
@@ -4056,7 +4056,7 @@
         call ice_timer_stop(timer_readwrite)  ! reading/writing
 
         ! turn off histrest features
-        write_histrest = .false.
+        write_histrest_now = .false.
       endif
 
       end subroutine accum_hist

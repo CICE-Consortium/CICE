@@ -74,7 +74,7 @@
           istep0, histfreq, histfreq_n, histfreq_base, &
           dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
-          write_ic, dump_last, npt_unit
+          write_ic, dump_last, npt_unit, write_histrest
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: &
           restart_age, restart_FY, restart_lvl, &
@@ -198,7 +198,7 @@
         ice_ic,         restart,        restart_dir,     restart_file,  &
         restart_ext,    use_restart_time, restart_format, lcdf64,       &
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
-        restart_deflate, restart_chunksize, restart_mod,                &
+        restart_deflate, restart_chunksize, restart_mod, write_histrest,&
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
@@ -361,6 +361,7 @@
       history_deflate = 0    ! compression level for netcdf4
       history_chunksize(:) = 0 ! chunksize for netcdf4
       write_ic = .false.     ! write out initial condition
+      write_histrest = .true.! write out history restart files if needed
       cpl_bgc = .false.      ! couple bgc thru driver
       incond_dir = history_dir ! write to history dir for default
       incond_file = 'iceh_ic'! file prefix
@@ -997,6 +998,7 @@
       call broadcast_scalar(history_deflate,      master_task)
       call broadcast_array(history_chunksize,     master_task)
       call broadcast_scalar(write_ic,             master_task)
+      call broadcast_scalar(write_histrest,       master_task)
       call broadcast_scalar(cpl_bgc,              master_task)
       call broadcast_scalar(incond_dir,           master_task)
       call broadcast_scalar(incond_file,          master_task)
@@ -2696,6 +2698,7 @@
          write(nu_diag,1031) ' restart_file     = ', trim(restart_file)
          write(nu_diag,1031) ' pointer_file     = ', trim(pointer_file)
          write(nu_diag,1011) ' use_restart_time = ', use_restart_time
+         write(nu_diag,1011) ' write_histrest   = ', write_histrest
          write(nu_diag,1031) ' ice_ic           = ', trim(ice_ic)
          if (trim(grid_type) /= 'rectangular' .or. &
              trim(grid_type) /= 'column') then

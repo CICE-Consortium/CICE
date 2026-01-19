@@ -73,7 +73,7 @@
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       ! not supported in binary IO
-      if (write_histrest) then
+      if (write_histrest_now) then
          if (my_task == master_task) then
             write(nu_diag,*) subname,' WARNING: history restarts not supported with binary IO'
          endif

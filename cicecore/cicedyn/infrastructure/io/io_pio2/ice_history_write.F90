@@ -167,12 +167,12 @@
 
       ! modify history restart output
       lhistprec = history_precision
-      if (write_histrest) then
+      if (write_histrest_now) then
          history_precision = 8
       endif
 
       if (my_task == master_task) then
-        if (write_histrest) then
+        if (write_histrest_now) then
            call construct_filename(ncfile,'nc',ns,option='histrest')
         else
            call construct_filename(ncfile,'nc',ns)
@@ -181,7 +181,7 @@
         ! add local directory path name to ncfile
         if (write_ic) then
           ncfile = trim(incond_dir)//ncfile
-        elseif (write_histrest) then
+        elseif (write_histrest_now) then
           ncfile = trim(restart_dir)//ncfile
         else
           ncfile = trim(history_dir)//ncfile
@@ -504,7 +504,7 @@
       dimid3(2) = jmtid
       dimid3(3) = timid
 
-      if (write_histrest) then
+      if (write_histrest_now) then
          status = pio_def_var(File, 'time_beg', lprecision, varid)
          status = pio_def_var(File, 'avgct', lprecision, varid)
          status = pio_def_var(File, 'albcnt'//cns, lprecision, dimid3, varid)
@@ -949,7 +949,7 @@
       ! write variable data
       !-----------------------------------------------------------------
 
-      if (write_histrest) then
+      if (write_histrest_now) then
          call ice_pio_check(pio_inq_varid(File,'time_beg',varid), &
                             subname// ' ERROR: getting varid for '//'time_beg', &
                             file=__FILE__, line=__LINE__)
@@ -1378,7 +1378,7 @@
       call ice_pio_finalize()
 
       ! reset history parameters
-      if (write_histrest) then
+      if (write_histrest_now) then
          history_precision = lhistprec
       endif
 
