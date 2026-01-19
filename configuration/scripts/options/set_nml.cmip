@@ -134,6 +134,7 @@
     f_icespd           = 'x'
     f_apeff            = 'x'
     f_apond            = 'md'
+    f_apond_ai         = 'md'
     f_hpond            = 'x'
     f_ipond            = 'x'
     f_fsloss           = 'x'
