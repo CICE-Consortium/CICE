@@ -123,6 +123,7 @@
       logical (kind=log_kind), public :: &
          use_leap_years , & ! use leap year functionality if true
          write_ic       , & ! write initial condition now
+         write_histrest , & ! write history restarts if needed
          dump_last      , & ! write restart file on last time step
          force_restart_now, & ! force a restart now
          write_history(max_nstrm) ! write history now

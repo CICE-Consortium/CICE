@@ -39,6 +39,7 @@
       integer (kind=int_kind), public :: history_precision
 
       logical (kind=log_kind), public :: &
+         write_histrest_now = .false. , & ! true when writing history restarts
          hist_avg(max_nstrm)  ! if true, write averaged data instead of snapshots
 
       character (len=char_len_long), public :: &
@@ -80,7 +81,7 @@
       !---------------------------------------------------------------
 
       type, public :: ice_hist_field
-          character (len=20) :: vname     ! variable name
+          character (len=24) :: vname     ! variable name
           character (len=16) :: vunit     ! variable units
           character (len=25) :: vcoord    ! variable coordinates
           character (len=16) :: vcellmeas ! variable cell measures
@@ -776,7 +777,7 @@
 
 !=======================================================================
 
-      subroutine construct_filename(ncfile,suffix,ns)
+      subroutine construct_filename(ncfile,suffix,ns,option)
 
       use ice_calendar, only: msec, myear, mmonth, daymo,  &
                               mday, write_ic, histfreq, histfreq_n, &
@@ -787,12 +788,22 @@
       character (len=*), intent(inout) :: ncfile
       character (len=*), intent(in) :: suffix
       integer (kind=int_kind), intent(in) :: ns
+      character (len=*), intent(in), optional :: option
 
       integer (kind=int_kind) :: iyear, imonth, iday, isec
       integer (kind=int_kind) :: n
-      character (len=char_len) :: cstream
+      character (len=char_len) :: cstream, loption
       character (len=char_len_long), save :: ncfile_last(max_nstrm) = 'UnDefineD'
       character(len=*), parameter :: subname = '(construct_filename)'
+
+        loption = 'history'
+        if (present(option)) then
+           loption = option
+        endif
+
+        if (loption /= 'history' .and. loption /= 'histrest') then
+           call abort_ice(subname//' ERROR: option invalid = '//trim(loption))
+        endif
 
         iyear = myear
         imonth = mmonth
@@ -807,6 +818,11 @@
            write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
               incond_file(1:lenstr(incond_file)),'.',iyear,'-', &
               imonth,'-',iday,'-',isec,'.',trim(suffix)
+
+        elseif (loption == 'histrest') then
+           write(ncfile,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
+                 history_file(1:lenstr(history_file))//trim(cstream)//'_r'//trim(histfreq(ns))//'.', &
+                 iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
         else
 
            if (hist_avg(ns)) then
@@ -874,19 +890,21 @@
         ! The current filename convention means we just have to check latest filename,
         ! not all filenames ever generated because of use of current model date/time in filename.
 
-        ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug ncfile= ',ns,trim(ncfile)
-        do n = 1,max_nstrm
-           ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug nfile_last= ',n,trim(ncfile_last(n))
-           if (ncfile == ncfile_last(n)) then
-              write(nu_diag,*) subname,' history stream = ',ns
-              write(nu_diag,*) subname,' history filename = ',trim(ncfile)
-              write(nu_diag,*) subname,' filename in use for stream ',n
-              write(nu_diag,*) subname,' filename for stream ',trim(ncfile_last(n))
-              write(nu_diag,*) subname,' Use namelist hist_suffix so history filenames are unique'
-              call abort_ice(subname//' ERROR: history filename already used for another history stream '//trim(ncfile))
-           endif
-        enddo
-        ncfile_last(ns) = ncfile
+        if (loption /= 'histrest') then
+           ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug ncfile= ',ns,trim(ncfile)
+           do n = 1,max_nstrm
+              ! write(nu_diag,'(2a,i2,1x,a)') subname, 'debug nfile_last= ',n,trim(ncfile_last(n))
+              if (ncfile == ncfile_last(n)) then
+                 write(nu_diag,*) subname,' history stream = ',ns
+                 write(nu_diag,*) subname,' history filename = ',trim(ncfile)
+                 write(nu_diag,*) subname,' filename in use for stream ',n
+                 write(nu_diag,*) subname,' filename for stream ',trim(ncfile_last(n))
+                 write(nu_diag,*) subname,' Use namelist hist_suffix so history filenames are unique'
+                 call abort_ice(subname//' ERROR: history filename already used for another history stream '//trim(ncfile))
+              endif
+           enddo
+           ncfile_last(ns) = ncfile
+        endif
 
       end subroutine construct_filename
 

@@ -1260,7 +1260,7 @@ to the Macros machine file explicity when needed.
 .. _history:
 
 *************
-History files
+History Files
 *************
 
 CICE provides history data output in binary unformatted or netCDF formats via
@@ -1424,8 +1424,35 @@ namelist flag.
 Note that the dpnd pond history fields have not yet been implemented for the topo
 ponds scheme and are turned off in the code.
 
+************************
+History Restart Files
+************************
+
+CICE has a history restart capability.  History restart files are needed and written when 
+a restart file is written while history fields are accumulating.  The implementation dumps 
+accumulated history data, one file per history stream, to the restart directory using
+a naming convention that uses the history filename, appends '_r' plus the ``histfreq`` character
+string and then appends the model time.  This occurs only for streams with 
+``hist_avg = .true.`` and where the accumulator count is greater than zero when the data is 
+written.  Only accumulating data associated with the history stream is written.  This feature
+can be turned off by setting ``write_histrest = .false.`` in namelist.
+
+On restart, CICE looks for appropriate history restart files and reads them if they exist.
+If the files do not exist or fields cannot be read, the model continues with the history
+accumulator set to zero.  Output is written to the log file that indicates which history restart
+files and fields were read and which were not.  In a production run, where the history streams
+are set and unchanging, this should result in bit-for-bit history restart capability.  If
+a user changes the history stream output, CICE will read only files and fields that exist
+and any new fields will initialize with zero accumulation and a potentially erroneous accumluation
+counter.
+
+There is a settings option, **histall10d**, that specifies 10-day and monthly time average
+history streams for all history variables.  For these tests, the test script compares
+the history and history restart output generated to verify bit-for-bit history capability
+for a restart run.
+
 ****************
-Diagnostic files
+Diagnostic Files
 ****************
 
 Like ``histfreq``, the parameter ``diagfreq`` can be used to regulate how often
@@ -1534,7 +1561,7 @@ The timers use *MPI_WTIME* for parallel runs and the F90 intrinsic
 .. _restartfiles:
 
 *************
-Restart files
+Restart Files
 *************
 
 CICE reads and writes restart data in binary unformatted or netCDF formats via

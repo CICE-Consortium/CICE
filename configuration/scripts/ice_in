@@ -68,6 +68,7 @@
     history_deflate = 0
     history_chunksize = 0, 0
     hist_time_axis = 'end'
+    write_histrest = .true.
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'
