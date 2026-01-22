@@ -159,7 +159,10 @@
          forcexU    , & ! work array: combined atm stress and ocn tilt, x
          forceyU    , & ! work array: combined atm stress and ocn tilt, y
          umass      , & ! total mass of ice and snow (u grid)
-         umassdti       ! mass of U-cell/dte (kg/m^2 s)
+         umassdti   , & ! mass of U-cell/dte (kg/m^2 s)
+         rheofactU      ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
+                        ! rheofactU is not used but added for consistency with
+                        ! C-grid rheofactN and rheofactE (for call dyn_prep2)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp         ! stress combinations for momentum equation
@@ -295,7 +298,7 @@
                          indxUi      (:,iblk), indxUj      (:,iblk), &
                          aiU       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                         umask     (:,:,iblk),                       &
+                         umask     (:,:,iblk), rheofactU (:,:,iblk), &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &

@@ -35,7 +35,7 @@
       ! namelist parameters
 
       integer (kind=int_kind), public :: &
-         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap )
+         kdyn       , & ! type of dynamics ( -1, 0 = off, 1 = evp, 2 = eap , 3 = vp)
          kridge     , & ! set to "-1" to turn off ridging
          ndte           ! number of subcycles
 
@@ -55,7 +55,7 @@
          dyn_mass_min,& ! minimum ice mass to activate dynamics (kg/m^2)
          elasticDamp    ! coefficient for calculating the parameter E, elastic damping parameter
 
-      ! other EVP parameters
+      ! other dynamics parameters
 
       character (len=char_len), public :: &
          yield_curve      , & ! 'ellipse' ('teardrop' needs further testing)
@@ -64,9 +64,10 @@
                               ! LKD: Lemieux et al. 2015, probabilistic: Dupont et al. 2022
 
       real (kind=dbl_kind), parameter, public :: &
-         u0    = 5e-5_dbl_kind, & ! residual velocity for seabed stress (m/s)
-         cosw  = c1           , & ! cos(ocean turning angle)  ! turning angle = 0
-         sinw  = c0               ! sin(ocean turning angle)  ! turning angle = 0
+         rheo_area_min = 1e-3_dbl_kind, & ! minimum ice area concentration to activate rheology
+         u0    = 5e-5_dbl_kind        , & ! residual velocity for seabed stress (m/s)
+         cosw  = c1                   , & ! cos(ocean turning angle)  ! turning angle = 0
+         sinw  = c0                       ! sin(ocean turning angle)  ! turning angle = 0
 
       real (kind=dbl_kind), public :: &
          revp        , & ! 0 for classic EVP, 1 for revised EVP
@@ -596,7 +597,7 @@
                             indxXi,     indxXj,     &
                             aiX,        Xmass,      &
                             Xmassdti,   fcor,       &
-                            Xmask,                  &
+                            Xmask,      rheofactX,  &
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
@@ -679,7 +680,9 @@
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         tauby   , & ! seabed stress, y-direction (N/m^2)
+         rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
+         
 
       ! local variables
 
@@ -797,6 +800,12 @@
       do ij = 1, icellX
          i = indxXi(ij)
          j = indxXj(ij)
+
+         if ( aiX (i,j) > rheo_area_min ) then
+            rheofactX(i,j) = c1
+         else
+            rheofactX(i,j) = c0
+         endif
 
          Xmassdti(i,j) = Xmass(i,j)/dt ! kg/m^2 s
 
@@ -1077,7 +1086,7 @@
       subroutine stepu_C (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
-                                      aiX,      &
+                                      aiE,      &
                           uocn,       vocn,     &
                           waterx,     forcex,   &
                           massdti,    fm,       &
@@ -1097,7 +1106,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         aiX     , & ! ice fraction on X-grid
+         aiE     , & ! ice fraction on E-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          massdti , & ! mass of e-cell/dt (kg/m^2 s)
@@ -1144,7 +1153,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiE(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(i,j) ! NOTE this is not the entire
@@ -1176,7 +1185,7 @@
       subroutine stepv_C (nx_block,   ny_block, &
                           icell,      Cw,       &
                           indxi,      indxj,    &
-                                      aiX,      &
+                                      aiN,      &
                           uocn,       vocn,     &
                           watery,     forcey,   &
                           massdti,    fm,       &
@@ -1196,7 +1205,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiX     , & ! ice fraction on X-grid
+         aiN     , & ! ice fraction on N-grid
          watery  , & ! for ocean stress calculation, y (m/s)
          forcey  , & ! work array: combined atm stress and ocn tilt, y
          massdti , & ! mass of n-cell/dt (kg/m^2 s)
@@ -1243,7 +1252,7 @@
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiN(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
          tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
