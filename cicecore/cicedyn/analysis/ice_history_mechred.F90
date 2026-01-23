@@ -412,9 +412,9 @@
              call accum_hist_field(n_sirdgconc,   iblk, &
                              aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
 
-         if (f_sirdgthick(1:1)/= 'x') then 
+         if (f_sirdgthick(1:1)/= 'x') then
              call accum_hist_field(n_sirdgthick,  iblk, &
-                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D) 
+                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          endif
 
          endif ! allocated(a2D)
