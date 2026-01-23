@@ -1455,10 +1455,10 @@
              "weighted by ice area", c1, c0,                     &
               ns1, f_FY)
 
-      ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition, 
+      ! CMIP 2D variables (for "intensive" variables per Notz et al 2016 definition,
       ! that is a weighted time average when ice is present)
-      ! Use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by 
-      ! sum(aice), sum(apond), or sum(ardg) over time 
+      ! Use avg_ice_present = 'init', 'final', 'pond', or 'ridge' to divide by
+      ! sum(aice), sum(apond), or sum(ardg) over time
       ! aice is at the start of the timestep ('init') or the end of the timestep ('final')
       ! avg_ice_present = 'none' produces a time average including zeroes when ice is not present
 
@@ -1694,7 +1694,7 @@
              ns1, f_sidconcdyn, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sidconcth,"sidconcth","1/s",tstr2D, tcstr,                  &
-             "sea-ice area fraction tendency due to thermodynamics",                          & 
+             "sea-ice area fraction tendency due to thermodynamics",                          &
              "total rate of change in sea-ice area fraction through thermodynamic processes", &
              c1, c0,                                                                          &
              ns1, f_sidconcth, avg_ice_present='none', mask_ice_free_points=.false.)
