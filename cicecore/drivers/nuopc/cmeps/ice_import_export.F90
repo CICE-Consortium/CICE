@@ -94,6 +94,7 @@ module ice_import_export
   type (fld_list_type)     :: fldsToIce(fldsMax)
   type (fld_list_type)     :: fldsFrIce(fldsMax)
 
+  logical                  :: flds_wave           ! wave ice coupling
   integer     , parameter  :: io_dbug = 10        ! i/o debug messages
   character(*), parameter  :: u_FILE_u = &
        __FILE__
@@ -116,7 +117,6 @@ contains
     character(char_len) :: stdname
     character(char_len) :: cvalue
     logical             :: flds_wiso         ! use case
-    logical             :: flds_wave         ! use case
     logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
@@ -266,10 +266,13 @@ contains
     ! ice/ocn fluxes computed by ice
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_melth'     )
     call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen'     )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdr' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdf' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idr' )
-    call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idf' )
+
+    if (.not.prescribed_ice) then
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdr' )
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_vdf' )
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idr' )
+       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_idf' )
+    endif
 
     if (send_i2x_per_cat) then
        call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_swpen_ifrac_n', &
@@ -926,7 +929,7 @@ contains
     real    (kind=dbl_kind) :: floethick(nx_block,ny_block,max_blocks) ! ice thickness
     logical (kind=log_kind) :: tr_fsd
     integer (kind=int_kind) :: nt_fsd
-    real    (kind=dbl_kind) :: Tffresh
+    real    (kind=dbl_kind) :: Tffresh, stefan_boltzmann
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
     real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
     real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
@@ -938,6 +941,7 @@ contains
     if (io_dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
 
     call icepack_query_parameters(Tffresh_out=Tffresh)
+    call icepack_query_parameters(stefan_boltzmann_out=stefan_boltzmann)
     !    call icepack_query_parameters(tfrz_option_out=tfrz_option, &
     !       modal_aero_out=modal_aero, z_tracers_out=z_tracers, skl_bgc_out=skl_bgc, &
     !       Tffresh_out=Tffresh)
@@ -980,7 +984,7 @@ contains
              ! surface temperature
              Tsrf(i,j,iblk)  = Tffresh + trcr(i,j,1,iblk)     !Kelvin (original ???)
 
-             if (tr_fsd) then
+             if (flds_wave) then
                 ! floe thickness (m)
                 if (aice(i,j,iblk) > puny) then
                    floethick(i,j,iblk) = vice(i,j,iblk) / aice(i,j,iblk)
@@ -988,17 +992,22 @@ contains
                    floethick(i,j,iblk) = c0
                 end if
 
-                ! floe diameter (m)
-                workx = c0
-                worky = c0
-                do n = 1, ncat
-                   do k = 1, nfsd
-                      workx = workx + floe_rad_c(k) * aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
-                      worky = worky + aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
+                if (tr_fsd) then
+                   ! floe diameter (m)
+                   workx = c0
+                   worky = c0
+                   do n = 1, ncat
+                      do k = 1, nfsd
+                         workx = workx + floe_rad_c(k) * aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
+                         worky = worky + aicen_init(i,j,n,iblk) * trcrn(i,j,nt_fsd+k-1,n,iblk)
+                      end do
                    end do
-                end do
-                if (worky > c0) workx = c2*workx / worky
-                floediam(i,j,iblk) = MAX(c2*floe_rad_c(1),workx)
+                   if (worky > c0) workx = c2*workx / worky
+                   floediam(i,j,iblk) = MAX(c2*floe_rad_c(1),workx)
+                else ! with FSD off
+                   ! floe diameter (m)
+                   floediam(i,j,iblk) = 50.0_dbl_kind
+                endif
              endif
 
              ! wind stress  (on POP T-grid:  convert to lat-lon)
@@ -1204,7 +1213,7 @@ contains
        do j = jlo, jhi
           do i = ilo, ihi
              if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 .and. flwout(i,j,iblk) > -puny) then
-                 tempfld(i,j,iblk) = (-stefan_boltzmann *(Tf(i,j) + Tffresh)**4) / ailohi(i,j,iblk)
+                 tempfld(i,j,iblk) = (-stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4) / ailohi(i,j,iblk)
              end if
           end do
        end do
@@ -1235,6 +1244,8 @@ contains
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
+    if (.not.prescribed_ice) then
+
     ! flux of vis dir shortwave through ice to ocean
     call state_setexport(exportState, 'Fioi_swpen_vdr' , input=fswthru_vdr, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
@@ -1254,6 +1265,8 @@ contains
     call state_setexport(exportState, 'Fioi_swpen_idf' , input=fswthru_idf, lmask=tmask, ifrac=ailohi, &
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+    endif
 
     ! flux of heat exchange with ocean
     call state_setexport(exportState, 'Fioi_melth' , input=fhocn, lmask=tmask, ifrac=ailohi, &

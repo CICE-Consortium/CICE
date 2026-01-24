@@ -1823,7 +1823,7 @@
              "fraction of time steps with sea ice",                                          &
              "averaging period during which sea ice is present (siconc > 0) in a grid cell", &
              c1, c0,                                                                         &
-             ns1, f_icepresent, avg_ice_present='none', mask_ice_free_points=.false.)
+             ns1, f_sitimefrac, avg_ice_present='none', mask_ice_free_points=.false.)
 
          call define_hist_field(n_sivol,"sivol","m",tstr2D, tcstr,                       &
              "sea-ice volume per area",                                                  &
