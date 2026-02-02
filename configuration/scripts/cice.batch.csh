@@ -35,8 +35,15 @@ EOFB
 
 else if (${ICE_MACHINE} =~ derecho*) then
 set memstr = ""
-if (${ncores} <= 8 && ${runlength} <= 1 && ${batchmem} <= 20) then
+set mycorespernode = ${corespernode}
+# trying to avoid shared node launch errors
+if (${ncores} <= 24 && ${runlength} <= 1 && ${batchmem} <= 20) then
   set queue = "develop"
+  # set develop cores to 16 or 32 to limit the number of jobs per shared node
+  if (${mycorespernode} < 32) then
+     @ corenum = (${mycorespernode} / 16 + 1) * 16
+     set mycorespernode = ${corenum}
+  endif
   set memstr = ":mem=${batchmem}GB"
 endif
 cat >> ${jobfile} << EOFB
@@ -44,13 +51,14 @@ cat >> ${jobfile} << EOFB
 #PBS -l job_priority=regular
 #PBS -N ${ICE_CASENAME}
 #PBS -A ${acct}
-#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}${memstr}
+#PBS -l select=${nnodes}:ncpus=${mycorespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}${memstr}
 #PBS -l walltime=${batchtime}
 #PBS -j oe
 #PBS -W umask=022
 #PBS -o ${ICE_CASEDIR}
 ###PBS -M username@domain.com
 ###PBS -m be
+
 EOFB
 
 else if (${ICE_MACHINE} =~ gadi*) then
