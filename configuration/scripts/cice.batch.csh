@@ -37,13 +37,14 @@ else if (${ICE_MACHINE} =~ derecho*) then
 set memstr = ""
 set mycorespernode = ${corespernode}
 # trying to avoid shared node launch errors
-if (${ncores} <= 24 && ${runlength} <= 1 && ${batchmem} <= 20) then
+#if (${ncores} <= 24 && ${runlength} <= 1 && ${batchmem} <= 20) then
+if (${ncores} <= 16 && ${runlength} <= 1 && ${batchmem} <= 20) then
   set queue = "develop"
-  # set develop cores to 16 or 32 to limit the number of jobs per shared node
-  if (${mycorespernode} < 32) then
-     @ corenum = (${mycorespernode} / 16 + 1) * 16
-     set mycorespernode = ${corenum}
-  endif
+#  # set develop cores to 16 or 32 to limit the number of jobs per shared node
+#  if (${mycorespernode} < 32) then
+#     @ corenum = (${mycorespernode} / 16 + 1) * 16
+#     set mycorespernode = ${corenum}
+#  endif
   set memstr = ":mem=${batchmem}GB"
 endif
 cat >> ${jobfile} << EOFB
