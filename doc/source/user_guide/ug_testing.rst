@@ -448,11 +448,13 @@ which means by default the test suite builds and submits the jobs.  By defining 
 By leveraging the **cice.setup** command line arguments ``--setup-only``, ``--setup-build``, and ``--setup-build-run`` as well as the environment variables SUITE_BUILD, SUITE_RUN, and SUITE_SUBMIT, users can run **cice.setup** and **suite.submit** in various combinations to quickly setup, setup and build, submit, resubmit, run interactively, or rebuild and resubmit full testsuites quickly and easily.  See :ref:`examplesuites` for an example.
 
 The script **create_fails.csh** will process the output from results.csh and generate a new 
-test suite file, **fails.ts**, from the failed tests.  
-**fails.ts** can then be edited and passed into ``cice.setup --suite fails.ts ...`` to rerun 
-subsets of failed tests to more efficiently move thru the development, testing, and 
-validation process.  However, a full test suite should be run on the final development
-version of the code.
+test suite file, **fails.ts**, from the failed tests.   It will also generate a script called
+**rerun.csh** for runs that failed to complete.  **rerun.csh** can be executed from the testsuite directory and
+runs that failed to complete will be resubmitted.
+**fails.ts** can be passed into ``cice.setup --suite fails.ts ...`` to setup a new test
+suite based on the failed tests to more efficiently move thru the development, testing, and 
+validation process.  However, ultimately, once all code changes are complete, a full test suite 
+should be run on the final development version of the code.
 
 To report the test results, as is required for Pull Requests to be accepted into 
 the main the CICE Consortium code see :ref:`testreporting`.
