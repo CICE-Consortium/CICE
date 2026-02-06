@@ -459,7 +459,8 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 ##PBS -l select=${nnodes}:ncpus=${taskpernodelimit}
 ##PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
-#PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}:mem=256M
+##PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}:mem=512M
+#PBS -l place=vscatter,select=${nnodes}:ncpus=${corespernode}:mpiprocs=${corespernode}
 EOFB
 
 else if (${ICE_MACHINE} =~ orion*) then
@@ -499,6 +500,17 @@ cat >> ${jobfile} << EOFB
 #BSUB -o /u/Robert.Grumbine/${ICE_CASENAME}.out.%J
 #BSUB -e /u/Robert.Grumbine/${ICE_CASENAME}.err.%J
 EOFB
+
+else if (${ICE_MACHINE} =~ wcoss2*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -o ${ICE_CASENAME}
+#PBS -j oe 
+#PBS -A ICE-DEV
+#PBS -l walltime=${batchtime}
+#PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
+EOFB
+
 
 else if (${ICE_MACHINE} =~ high_Sierra*) then
 cat >> ${jobfile} << EOFB
