@@ -3064,6 +3064,7 @@
          endif
 
          if (f_sifb(1:1) /= 'x') then
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
