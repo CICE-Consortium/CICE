@@ -64,7 +64,7 @@
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    use ice_blocks, only: nx_block, ny_block, nghost, &
-           nblocks_tot, ice_blocksNorth, &
+           nblocks_tot, nblocks_x, nblocks_y, ice_blocksNorth, &
            ice_blocksSouth, ice_blocksEast, ice_blocksWest, &
            ice_blocksEast2, ice_blocksWest2, &
            ice_blocksNorthEast, ice_blocksNorthWest, &
@@ -105,6 +105,10 @@
       integer (int_kind), dimension(:,:,:), pointer :: &
          sendAddr,         &! src addresses for each sent message
          recvAddr           ! dst addresses for each recvd message
+
+      character (char_len) :: &
+         nsBoundaryType,   &! type of boundary to use in logical ns dir
+         ewBoundaryType     ! type of boundary to use in logical ew dir
 
    end type
 
@@ -252,6 +256,8 @@ contains
    if (my_task >= numProcs) return
 
    halo%communicator = communicator
+   halo%ewBoundaryType = ewBoundaryType
+   halo%nsBoundaryType = nsBoundaryType
 
    blockSizeX = nx_block - 2*nghost
    blockSizeY = ny_block - 2*nghost
@@ -1239,6 +1245,7 @@ contains
    integer (int_kind) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
@@ -1261,6 +1268,8 @@ contains
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
 
    logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter,     &! fill outer boundary ns
       ltripoleOnly      ! local tripoleOnly value
 
    integer (int_kind) ::  len  ! length of messages
@@ -1290,8 +1299,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_dbl_kind
    endif
@@ -1367,29 +1388,77 @@ contains
 
 !-----------------------------------------------------------------------
 !
-!  while messages are being communicated, fill out halo region
+!  While messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
-   if (ltripoleOnly) then
-      ! skip fill, not needed since tripole seam always exists if running
-      ! on tripole grid and set tripoleOnly flag
-   else
+   if (.not. ltripoleOnly) then
+      ! tripoleOnly skip fill, do not overwrite any values in interior as they may
+      ! already be set and filling tripole is not necessary
+
+      ! fill outer boundary as needed
+      ! only fill corners if both edges are being filled
       do iblk = 1, halo%numLocalBlocks
-         call get_block_parameter(halo%blockGlobalID(iblk), &
-                                  ilo=ilo, ihi=ihi,   &
-                                  jlo=jlo, jhi=jhi)
-         do j = 1,nghost
-            array(1:nx_block, jlo-j,iblk) = fill
-            array(1:nx_block, jhi+j,iblk) = fill
-         enddo
-         do i = 1,nghost
-            array(ilo-i, 1:ny_block,iblk) = fill
-            array(ihi+i, 1:ny_block,iblk) = fill
-         enddo
-      enddo
+         call get_block_parameter(halo%blockGlobalID(iblk),     &
+                                  ilo=ilo,       ihi=ihi,       &
+                                  jlo=jlo,       jhi=jhi,       &
+                                  iblock=iblock, jblock=jblock)
+         if (ewfillouter .or. iblock > 1) then              ! west edge
+            do i = 1,nghost
+               array(ilo-i, jlo:jhi, iblk) = fill
+            enddo
+         endif
+         if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+            do i = 1,nghost
+               array(ihi+i, jlo:jhi, iblk) = fill
+            enddo
+         endif
+         if (nsfillouter .or. jblock > 1) then              ! south edge
+            do j = 1,nghost
+               array(ilo:ihi, jlo-j, iblk) = fill
+            enddo
+         endif
+         if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+            do j = 1,nghost
+               array(ilo:ihi, jhi+j, iblk) = fill
+            enddo
+         endif
+         if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+             (nsfillouter .or. jblock > 1)) then
+            do j = 1,nghost
+            do i = 1,nghost
+               array(ilo-i, jlo-j, iblk) = fill
+            enddo
+            enddo
+         endif
+         if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+             (nsfillouter .or. jblock < nblocks_y)) then
+            do j = 1,nghost
+            do i = 1,nghost
+               array(ilo-i, jhi+j, iblk) = fill
+            enddo
+            enddo
+         endif
+         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+             (nsfillouter .or. jblock > 1)) then
+            do j = 1,nghost
+            do i = 1,nghost
+               array(ihi+i, jlo-j, iblk) = fill
+            enddo
+            enddo
+         endif
+         if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+             (nsfillouter .or. jblock < nblocks_y)) then
+            do j = 1,nghost
+            do i = 1,nghost
+               array(ihi+i, jhi+j, iblk) = fill
+            enddo
+            enddo
+         endif
+      enddo ! iblk
    endif
 
 !-----------------------------------------------------------------------
@@ -1683,6 +1752,7 @@ contains
    integer (int_kind) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
@@ -1703,6 +1773,10 @@ contains
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    integer (int_kind) :: len  ! length of messages
 
@@ -1731,8 +1805,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_real_kind
    endif
@@ -1804,23 +1890,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,iblk) = fill
-         array(1:nx_block, jhi+j,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,iblk) = fill
-         array(ihi+i, 1:ny_block,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -2098,6 +2232,7 @@ contains
    integer (int_kind) ::           &
       i,j,n,nmsg,                &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       iSrc,jSrc,                 &! source addresses for message
@@ -2118,6 +2253,10 @@ contains
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    integer (int_kind) :: len ! length of messages
 
@@ -2146,8 +2285,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0_int_kind
    endif
@@ -2219,23 +2370,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,iblk) = fill
-         array(1:nx_block, jhi+j,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,iblk) = fill
-         array(ihi+i, 1:ny_block,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -2593,6 +2792,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
@@ -2614,6 +2814,10 @@ contains
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    real (dbl_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 3d send,recv buffers
@@ -2648,8 +2852,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_dbl_kind
    endif
@@ -2742,23 +2958,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -3067,6 +3331,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
@@ -3088,6 +3353,10 @@ contains
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    real (real_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 3d send,recv buffers
@@ -3122,8 +3391,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_real_kind
    endif
@@ -3216,23 +3497,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -3541,6 +3870,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,n,nmsg,              &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz,                        &! size of array in 3rd dimension
@@ -3562,6 +3892,10 @@ contains
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    integer (int_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 3d send,recv buffers
@@ -3596,8 +3930,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0_int_kind
    endif
@@ -3690,23 +4036,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -4015,6 +4409,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,l,n,nmsg,            &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
@@ -4036,6 +4431,10 @@ contains
    real (dbl_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    real (dbl_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 4d send,recv buffers
@@ -4070,8 +4469,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_dbl_kind
    endif
@@ -4168,23 +4579,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -4513,6 +4972,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,l,n,nmsg,            &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
@@ -4534,6 +4994,10 @@ contains
    real (real_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    real (real_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 4d send,recv buffers
@@ -4568,8 +5032,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0.0_real_kind
    endif
@@ -4666,23 +5142,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -5011,6 +5535,7 @@ contains
    integer (int_kind) ::           &
       i,j,k,l,n,nmsg,            &! dummy loop indices
       iblk,ilo,ihi,jlo,jhi,      &! block sizes for fill
+      iblock,jblock,             &! global block indices
       ierr,                      &! error or status flag for MPI,alloc
       nxGlobal,                  &! global domain size in x (tripole)
       nz, nt,                    &! size of array in 3rd,4th dimensions
@@ -5032,6 +5557,10 @@ contains
    integer (int_kind) :: &
       fill,            &! value to use for unknown points
       x1,x2,xavg        ! scalars for enforcing symmetry at U pts
+
+   logical (log_kind) :: &
+      ewfillouter,     &! fill outer boundary ew
+      nsfillouter       ! fill outer boundary ns
 
    integer (int_kind), dimension(:,:), allocatable :: &
       bufSend, bufRecv            ! 4d send,recv buffers
@@ -5066,8 +5595,20 @@ contains
 !
 !-----------------------------------------------------------------------
 
+   ewfillouter = .false.
+   nsfillouter = .false.
+
+   ! fill outer boundary if cyclic
+   if (halo%ewBoundaryType == 'cyclic') ewfillouter=.true.
+   if (halo%nsBoundaryType == 'tripole' .or. &
+       halo%nsBoundaryType == 'tripoleT' .or. &
+       halo%nsBoundaryType == 'cyclic') nsfillouter=.true.
+
    if (present(fillValue)) then
       fill = fillValue
+      ! always fill outer boundary if fillValue is passed
+      ewfillouter = .true.
+      nsfillouter = .true.
    else
       fill = 0_int_kind
    endif
@@ -5164,23 +5705,71 @@ contains
 !
 !  while messages are being communicated, fill out halo region
 !  needed for masked halos to ensure halo values are filled for
-!  halo grid cells that are not updated
+!  halo grid cells that are not updated except in cases where
+!  you don't want to overwrite those halos
 !
 !-----------------------------------------------------------------------
 
+   ! fill outer boundary as needed
+   ! only fill corners if both edges are being filled
    do iblk = 1, halo%numLocalBlocks
-      call get_block_parameter(halo%blockGlobalID(iblk), &
-                               ilo=ilo, ihi=ihi,   &
-                               jlo=jlo, jhi=jhi)
-      do j = 1,nghost
-         array(1:nx_block, jlo-j,:,:,iblk) = fill
-         array(1:nx_block, jhi+j,:,:,iblk) = fill
-      enddo
-      do i = 1,nghost
-         array(ilo-i, 1:ny_block,:,:,iblk) = fill
-         array(ihi+i, 1:ny_block,:,:,iblk) = fill
-      enddo
-   enddo
+      call get_block_parameter(halo%blockGlobalID(iblk),     &
+                               ilo=ilo,       ihi=ihi,       &
+                               jlo=jlo,       jhi=jhi,       &
+                               iblock=iblock, jblock=jblock)
+      if (ewfillouter .or. iblock > 1) then              ! west edge
+         do i = 1,nghost
+            array(ilo-i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (ewfillouter .or. iblock < nblocks_x) then      ! east edge
+         do i = 1,nghost
+            array(ihi+i, jlo:jhi, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock > 1) then              ! south edge
+         do j = 1,nghost
+            array(ilo:ihi, jlo-j, :, :, iblk) = fill
+         enddo
+      endif
+      if (nsfillouter .or. jblock < nblocks_y) then      ! north edge
+         do j = 1,nghost
+            array(ilo:ihi, jhi+j, :, :, iblk) = fill
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! southwest corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock > 1) .and. &          ! northwest corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ilo-i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! southeast corner
+          (nsfillouter .or. jblock > 1)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jlo-j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+      if ((ewfillouter .or. iblock < nblocks_x) .and. &  ! northeast corner
+          (nsfillouter .or. jblock < nblocks_y)) then
+         do j = 1,nghost
+         do i = 1,nghost
+            array(ihi+i, jhi+j, :, :, iblk) = fill
+         enddo
+         enddo
+      endif
+   enddo ! iblk
 
 !-----------------------------------------------------------------------
 !
@@ -7027,15 +7616,15 @@ contains
 
  subroutine ice_HaloExtrapolate2DR8(ARRAY,dist,ew_bndy_type,ns_bndy_type)
 
-!  This subroutine extrapolates ARRAY values into the first row or column
-!  of ghost cells, and is intended for grid variables whose ghost cells
+!  This subroutine extrapolates ARRAY values into the ghost cells,
+!  and is intended for grid variables whose ghost cells
 !  would otherwise be set using the default boundary conditions (Dirichlet
 !  or Neumann).
-!  Note: This routine will need to be modified for nghost > 1.
-!        We assume padding occurs only on east and north edges.
 !
 !  This is the specific interface for double precision arrays
 !  corresponding to the generic interface ice_HaloExtrapolate
+!
+!  T.Craig, Oct 2025 - extend to nghost > 1
 
    use ice_blocks, only: block, nblocks_x, nblocks_y, get_block
    use ice_constants, only: c2
@@ -7058,8 +7647,9 @@ contains
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-     i,j,iblk,           &! dummy loop indices
-     numBlocks,       &! number of local blocks
+     i,j,n,iblk,ii,jj,   &! dummy loop indices
+     ilo,ihi,jlo,jhi,    &! active block indices
+     numBlocks,          &! number of local blocks
      blockID,            &! block location
      ibc                  ! ghost cell column or row
 
@@ -7067,6 +7657,7 @@ contains
      this_block  ! block info for current block
 
    character(len=*), parameter :: subname = '(ice_HaloExtrapolate2DR8)'
+
 !-----------------------------------------------------------------------
 !
 !  Linear extrapolation
@@ -7079,32 +7670,40 @@ contains
    do iblk = 1, numBlocks
       call ice_distributionGetBlockID(dist, iblk, blockID)
       this_block = get_block(blockID, blockID)
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       if (this_block%iblock == 1) then              ! west edge
          if (trim(ew_bndy_type) /= 'cyclic') then
+            do n = 1, nghost
+            ii = ilo - n  ! gridcell to extrapolate to
             do j = 1, ny_block
-               ARRAY(1,j,iblk) = c2*ARRAY(2,j,iblk) - ARRAY(3,j,iblk)
+               ARRAY(ii,j,iblk) = c2*ARRAY(ii+1,j,iblk) - ARRAY(ii+2,j,iblk)
+            enddo
             enddo
          endif
       endif
 
       if (this_block%iblock == nblocks_x) then  ! east edge
          if (trim(ew_bndy_type) /= 'cyclic') then
-            ! locate ghost cell column (avoid padding)
-            ibc = nx_block
-            do i = nx_block, nghost + 1, -1
-               if (this_block%i_glob(i) == 0) ibc = ibc - 1
-            enddo
+            do n = 1, nghost
+            ii = ihi + n  ! gridcell to extrapolate to
             do j = 1, ny_block
-               ARRAY(ibc,j,iblk) = c2*ARRAY(ibc-1,j,iblk) - ARRAY(ibc-2,j,iblk)
+               ARRAY(ii,j,iblk) = c2*ARRAY(ii-1,j,iblk) - ARRAY(ii-2,j,iblk)
+            enddo
             enddo
          endif
       endif
 
       if (this_block%jblock == 1) then              ! south edge
          if (trim(ns_bndy_type) /= 'cyclic') then
+            do n = 1, nghost
+            jj = jlo - n  ! gridcell to extrapolate to
             do i = 1, nx_block
-               ARRAY(i,1,iblk) = c2*ARRAY(i,2,iblk) - ARRAY(i,3,iblk)
+               ARRAY(i,jj,iblk) = c2*ARRAY(i,jj+1,iblk) - ARRAY(i,jj+2,iblk)
+            enddo
             enddo
          endif
       endif
@@ -7113,13 +7712,11 @@ contains
          if (trim(ns_bndy_type) /= 'cyclic' .and. &
              trim(ns_bndy_type) /= 'tripole' .and. &
              trim(ns_bndy_type) /= 'tripoleT' ) then
-            ! locate ghost cell column (avoid padding)
-            ibc = ny_block
-            do j = ny_block, nghost + 1, -1
-               if (this_block%j_glob(j) == 0) ibc = ibc - 1
-            enddo
+            do n = 1, nghost
+            jj = jhi + n  ! gridcell to extrapolate to
             do i = 1, nx_block
-               ARRAY(i,ibc,iblk) = c2*ARRAY(i,ibc-1,iblk) - ARRAY(i,ibc-2,iblk)
+               ARRAY(i,jj,iblk) = c2*ARRAY(i,jj-1,iblk) - ARRAY(i,jj-2,iblk)
+            enddo
             enddo
          endif
       endif

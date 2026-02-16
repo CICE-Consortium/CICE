@@ -1,2 +1,4 @@
 grid_ice = 'C'
+dyn_area_min    = 0.001d0
+dyn_mass_min    = 0.01d0
 

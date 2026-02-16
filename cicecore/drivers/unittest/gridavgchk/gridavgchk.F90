@@ -16,7 +16,6 @@
       use CICE_InitMod
       use ice_kinds_mod, only: int_kind, dbl_kind
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot
-      use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: c0, c1, c2, p25, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface, field_type_scalar

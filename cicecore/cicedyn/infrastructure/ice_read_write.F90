@@ -13,6 +13,7 @@
 
       module ice_read_write
 
+      use,intrinsic :: ieee_arithmetic
       use ice_kinds_mod
       use ice_constants, only: c0, spval_dbl, &
           field_loc_noupdate, field_type_noupdate
@@ -1139,22 +1140,29 @@
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
-      lnrec = nrec
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
-      nx = nx_global
-      ny = ny_global
+      lnrec = nrec
 
       work = c0 ! to satisfy intent(out) attribute
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1222,10 +1230,17 @@
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
 !         write(nu_diag,*) subname,' missingvalue= ',missingvalue
-         amin = minval(work_g1)
-         amax = maxval(work_g1, mask = work_g1 /= missingvalue)
-         asum = sum   (work_g1, mask = work_g1 /= missingvalue)
+         allocate(mask(nx,ny))
+         if ( ieee_is_nan(missingvalue) ) then
+            mask = ieee_is_nan(work_g1)
+         else
+            mask = work_g1 /= missingvalue
+         endif
+         amin = minval(work_g1, mask = mask )
+         amax = maxval(work_g1, mask = mask )
+         asum = sum   (work_g1, mask = mask )
          write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
@@ -1233,10 +1248,8 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call scatter_global_ext(work, work_g1, master_task, distrb_info)
-         endif
+      if (lrestart_ext) then
+         call scatter_global_ext(work, work_g1, master_task, distrb_info)
       else
          if (present(field_loc)) then
             call scatter_global(work, work_g1, master_task, distrb_info, &
@@ -1320,20 +1333,27 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
 
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
+
       lnrec = nrec
 
-      nx = nx_global
-      ny = ny_global
-
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1400,13 +1420,19 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+         allocate(mask(nx,ny))
          do n=1,ncat
-            amin = minval(work_g1(:,:,n))
-            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
+            if ( ieee_is_nan(missingvalue) ) then
+               mask = ieee_is_nan(work_g1(:,:,n))
+            else
+               mask = work_g1(:,:,n) /= missingvalue
+            endif
+            amin = minval(work_g1(:,:,n), mask = mask )
+            amax = maxval(work_g1(:,:,n), mask = mask )
+            asum = sum   (work_g1(:,:,n), mask = mask )
             write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
@@ -1414,13 +1440,11 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n=1,ncat
-               call scatter_global_ext(work(:,:,n,:), work_g1(:,:,n), &
-                                       master_task, distrb_info)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n=1,ncat
+            call scatter_global_ext(work(:,:,n,:), work_g1(:,:,n), &
+                                    master_task, distrb_info)
+         enddo
       else
          if (present(field_loc)) then
             do n=1,ncat
@@ -1508,9 +1532,13 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
          work_g1
 
+      logical, dimension(:,:), allocatable :: mask
+
       integer (kind=int_kind) :: nx, ny
 
       integer (kind=int_kind) :: lnrec       ! local value of nrec
+
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
       character(len=*), parameter :: subname = '(ice_read_nc_xyf)'
 
@@ -1518,14 +1546,17 @@
 
       lnrec = nrec
 
-      nx = nx_global
-      ny = ny_global
-
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -1592,13 +1623,19 @@
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
-         do n = 1, nfreq
-            amin = minval(work_g1(:,:,n))
-            amax = maxval(work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
-            asum = sum   (work_g1(:,:,n), mask = work_g1(:,:,n) /= missingvalue)
+         allocate(mask(nx,ny))
+         do n=1,ncat
+            if ( ieee_is_nan(missingvalue) ) then
+               mask = ieee_is_nan(work_g1(:,:,n))
+            else
+               mask = work_g1(:,:,n) /= missingvalue
+            endif
+            amin = minval(work_g1(:,:,n), mask = mask )
+            amax = maxval(work_g1(:,:,n), mask = mask )
+            asum = sum   (work_g1(:,:,n), mask = mask )
             write(nu_diag,*) subname,' min, max, sum =', amin, amax, asum, trim(varname)
          enddo
+         deallocate(mask)
       endif
 
       !-------------------------------------------------------------------
@@ -1606,13 +1643,11 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n = 1, nfreq
-               call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
-                                       master_task, distrb_info)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n = 1, nfreq
+            call scatter_global_ext(work(:,:,n,1,:), work_g1(:,:,n), &
+                                    master_task, distrb_info)
+         enddo
       else
          if (present(field_loc)) then
             do n = 1, nfreq
@@ -2188,14 +2223,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (present(varname)) then
@@ -2210,10 +2250,8 @@
          allocate(work_g1(1,1))   ! to save memory
       endif
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call gather_global_ext(work_g1, work, master_task, distrb_info, spc_val=c0)
-         endif
+      if (lrestart_ext) then
+         call gather_global_ext(work_g1, work, master_task, distrb_info, spc_val=c0)
       else
          call gather_global(work_g1, work, master_task, distrb_info, spc_val=c0)
       endif
@@ -2312,14 +2350,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -2328,13 +2371,11 @@
          allocate(work_g1(1,1,ncat))   ! to save memory
       endif
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            do n=1,ncat
-               call gather_global_ext(work_g1(:,:,n), work(:,:,n,:), &
-                    master_task, distrb_info, spc_val=c0)
-            enddo
-         endif
+      if (lrestart_ext) then
+         do n=1,ncat
+            call gather_global_ext(work_g1(:,:,n), work(:,:,n,:), &
+                 master_task, distrb_info, spc_val=c0)
+         enddo
       else
          do n=1,ncat
             call gather_global(work_g1(:,:,n), work(:,:,n,:), &
@@ -2638,14 +2679,19 @@
 
       integer (kind=int_kind) :: nx, ny
 
-      nx = nx_global
-      ny = ny_global
+      logical (kind=log_kind) :: lrestart_ext  ! local value of restart_ext
 
+      lrestart_ext = .false.
       if (present(restart_ext)) then
-         if (restart_ext) then
-            nx = nx_global + 2*nghost
-            ny = ny_global + 2*nghost
-         endif
+         lrestart_ext = restart_ext
+      endif
+
+      if (lrestart_ext) then
+         nx = nx_global + 2*nghost
+         ny = ny_global + 2*nghost
+      else
+         nx = nx_global
+         ny = ny_global
       endif
 
       if (my_task == master_task) then
@@ -2691,10 +2737,8 @@
       ! NOTE: Ghost cells are not updated unless field_loc is present.
       !-------------------------------------------------------------------
 
-      if (present(restart_ext)) then
-         if (restart_ext) then
-            call scatter_global_ext(work, work_g1, master_task, distrb_info)
-         endif
+      if (lrestart_ext) then
+         call scatter_global_ext(work, work_g1, master_task, distrb_info)
       else
          if (present(field_loc)) then
             call scatter_global(work, work_g1, master_task, distrb_info, &

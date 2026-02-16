@@ -21,6 +21,7 @@
     restart_stride = -99
     restart_deflate = 0
     restart_chunksize = 0, 0
+    restart_mod    = 'none'
     lcdf64         = .false.
     numin          = 21
     numax          = 89
@@ -67,6 +68,7 @@
     history_deflate = 0
     history_chunksize = 0, 0
     hist_time_axis = 'end'
+    write_histrest = .true.
     write_ic       = .true.
     incond_dir     = './history/'
     incond_file    = 'iceh_ic'
@@ -95,7 +97,6 @@
     scale_dxdy     = .false.
     dxscale        = 1.d0
     dyscale        = 1.d0
-    close_boundaries = .false.
     ncat         = 5
     nfsd         = 1
     nilyr        = 7
@@ -123,6 +124,8 @@
     restart_pond_topo = .false.
     tr_pond_lvl  = .true.
     restart_pond_lvl  = .false.
+    tr_pond_sealvl = .false.
+    restart_pond_sealvl = .false.
     tr_snow      = .false.
     restart_snow = .false.
     tr_iso       = .false.
@@ -148,6 +151,7 @@
     Tliquidus_max     = -0.1d0
     hfrazilmin        = 0.05d0
     floediam          = 300.0d0
+    tscale_pnd_drain  = 10.0d0
 /
 
 &dynamics_nml
@@ -198,8 +202,8 @@
     reltol_pgmres   = 1e-6
     algo_nonlin     = 'picard'
     use_mean_vrel   = .true.
-    dyn_area_min    = 0.001d0
-    dyn_mass_min    = 0.01d0
+    dyn_area_min    = 1.e-11
+    dyn_mass_min    = 1.e-10
 /
 
 &shortwave_nml
@@ -223,6 +227,7 @@
 /
 
 &ponds_nml
+    apnd_sl         = 0.27d0
     hp1             = 0.01
     hs0             = 0.
     hs1             = 0.03
@@ -277,6 +282,7 @@
     saltflux_option = 'constant'
     ice_ref_salinity = 4.0
     oceanmixed_ice  = .true.
+    wave_height_type = 'none'
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
@@ -302,6 +308,8 @@
     ocn_data_format = 'bin'
     ocn_data_dir    = '/unknown_ocn_data_dir'
     oceanmixed_file = 'unknown_oceanmixed_file'
+    semi_implicit_Tsfc = .false.
+    vapor_flux_correction = .false.
 /
 
 &domain_nml
@@ -506,12 +514,15 @@
     f_VGRDa        = .true.
     f_bounds       = .false.
     f_aice         = 'm' 
+    f_aice_init    = 'x' 
     f_hi           = 'm'
     f_hs           = 'm' 
     f_Tsfc         = 'm' 
     f_sice         = 'm' 
     f_uvel         = 'm' 
     f_vvel         = 'm' 
+    f_icedir       = 'x'
+    f_icespd       = 'x'
     f_uatm         = 'm' 
     f_vatm         = 'm' 
     f_fswdn        = 'm' 
@@ -621,7 +632,78 @@
     f_fmelttn_ai   = 'x'
     f_flatn_ai     = 'x'
     f_fsensn_ai    = 'x'
-    f_CMIP         = 'x'
+    f_siage            = 'x'
+    f_siconc           = 'x'
+    f_sifb             = 'x'
+    f_siflcondbot      = 'x'
+    f_siflcondtop      = 'x'
+    f_sifllattop       = 'x'
+    f_sifllwdtop       = 'x'
+    f_sifllwutop       = 'x'
+    f_siflsensbot      = 'x'
+    f_siflsenstop      = 'x'
+    f_siflswdtop       = 'x'
+    f_siflswutop       = 'x'
+    f_sihc             = 'x'
+    f_siitdconc        = 'x'
+    f_siitdsnconc      = 'x'
+    f_siitdsnthick     = 'x'
+    f_siitdthick       = 'x'
+    f_sisali           = 'x'
+    f_sisaltmass       = 'x'
+    f_sisnhc           = 'x'
+    f_sisnthick        = 'x'
+    f_sitempbot        = 'x'
+    f_sitempsnic       = 'x'
+    f_sitemptop        = 'x'
+    f_sithick          = 'x'
+    f_sitimefrac       = 'x'
+    f_siu              = 'x'
+    f_siv              = 'x'
+    f_sicompstren      = 'x'
+    f_sidconcdyn       = 'x'
+    f_sidconcth        = 'x'
+    f_sidivvel         = 'x'
+    f_sidmassdyn       = 'x'
+    f_sidmassevapsubl  = 'x'
+    f_sidmassgrowthbot = 'x'
+    f_sidmassgrowthsi  = 'x'
+    f_sidmassgrowthwat = 'x'
+    f_sidmassmeltbot   = 'x'
+    f_sidmassmeltlat   = 'x'
+    f_sidmassmelttop   = 'x'
+    f_sidmassth        = 'x'
+    f_sidmasstranx     = 'x'
+    f_sidmasstrany     = 'x'
+    f_sidragbot        = 'x'
+    f_sidragtop        = 'x'
+    f_siflfwbot        = 'x'
+    f_siflfwdrain      = 'x'
+    f_siflsaltbot      = 'x'
+    f_siforcecoriolx   = 'x'
+    f_siforcecorioly   = 'x'
+    f_siforceintstrx   = 'x'
+    f_siforceintstry   = 'x'
+    f_siforcetiltx     = 'x'
+    f_siforcetilty     = 'x'
+    f_simass           = 'x'
+    f_sipr             = 'x'
+    f_sishearvel       = 'x'
+    f_sisnconc         = 'x'
+    f_sisndmassdyn     = 'x'
+    f_sisndmassmelt    = 'x'
+    f_sisndmasssi      = 'x'
+    f_sisndmasssnf     = 'x'
+    f_sisndmasssubl    = 'x'
+    f_sisnmass         = 'x'
+    f_sispeed          = 'x'
+    f_sistressave      = 'x'
+    f_sistressmax      = 'x'
+    f_sistrxdtop       = 'x'
+    f_sistrydtop       = 'x'
+    f_sistrxubot       = 'x'
+    f_sistryubot       = 'x'
+    f_sivol            = 'x'
 /
 
 &icefields_mechred_nml
@@ -644,20 +726,38 @@
     f_vredistn     = 'x'
     f_araftn       = 'x'
     f_vraftn       = 'x'
+    f_sirdgconc        = 'x'
+    f_sirdgthick       = 'x'
 /
 
 &icefields_pond_nml
     f_apondn       = 'x'
     f_apeffn       = 'x'
     f_hpondn       = 'x'
+    f_dpnd_flushn  = 'x'
+    f_dpnd_exponn  = 'x'
+    f_dpnd_freebdn = 'x'
+    f_dpnd_initialn= 'x'
+    f_dpnd_dlidn   = 'x'
     f_apond        = 'm'
     f_hpond        = 'm'
     f_ipond        = 'm'
     f_apeff        = 'm'
+    f_dpnd_flush   = 'x'
+    f_dpnd_expon   = 'x'
+    f_dpnd_freebd  = 'x'
+    f_dpnd_initial = 'x'
+    f_dpnd_dlid    = 'x'
+    f_dpnd_melt    = 'x'
+    f_dpnd_ridge   = 'x'
     f_apond_ai     = 'm'
     f_hpond_ai     = 'm'
     f_ipond_ai     = 'm'
     f_apeff_ai     = 'm'
+    f_simpconc         = 'x'
+    f_simpeffconc      = 'x'
+    f_simprefrozen     = 'x'
+    f_simpthick        = 'x'
 /
 
 &icefields_snow_nml
@@ -673,6 +773,7 @@
     f_rsnw         = 'm'
     f_meltsliq     = 'm'
     f_fsloss       = 'm'
+    f_sisndmasswind    = 'x'
 /
 
 &icefields_bgc_nml

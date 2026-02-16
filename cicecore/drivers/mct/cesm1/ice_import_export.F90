@@ -29,7 +29,7 @@ module ice_import_export
   use ice_domain        , only: nblocks, blocks_ice, halo_info, distrb_info
   use ice_domain_size   , only: nx_global, ny_global, block_size_x, block_size_y, max_blocks
   use ice_grid          , only: tlon, tlat, tarea, tmask, anglet, hm
-  use ice_grid          , only: grid_type, grid_average_X2Y
+  use ice_grid          , only: grid_average_X2Y
   use ice_boundary      , only: ice_HaloUpdate
   use ice_communicate   , only: my_task, master_task, MPI_COMM_ICE, get_num_procs
   use ice_calendar      , only: istep, istep1, diagfreq

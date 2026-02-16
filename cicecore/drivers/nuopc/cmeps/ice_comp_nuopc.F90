@@ -25,13 +25,15 @@ module ice_comp_nuopc
   use ice_communicate    , only : init_communicate, my_task, master_task, mpi_comm_ice
   use ice_calendar       , only : force_restart_now, write_ic
   use ice_calendar       , only : idate, idate0,  mday, mmonth, myear, year_init, month_init, day_init
-  use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep
-  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_gregorian, use_leap_years
+  use ice_calendar       , only : msec, dt, calendar, calendar_type, nextsw_cday, istep, use_leap_years
+  use ice_calendar       , only : ice_calendar_noleap, ice_calendar_proleptic_gregorian, ice_calendar_gregorian
   use ice_kinds_mod      , only : dbl_kind, int_kind, char_len, char_len_long
   use ice_fileunits      , only : nu_diag, nu_diag_set, inst_index, inst_name
   use ice_fileunits      , only : inst_suffix, release_all_fileunits, flush_fileunit
-  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, restart_format, restart_chunksize
+  use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, &
+                                  restart_format, restart_chunksize, pointer_date
   use ice_history        , only : accum_hist
+  use ice_history_write  , only : ice_read_hist
   use ice_history_shared , only : history_format, history_chunksize
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
@@ -329,6 +331,15 @@ contains
        if (trim(cvalue) .eq. '.true.') restart_eor = .true.
     endif
 
+#ifdef CESMCOUPLED
+    pointer_date = .true.
+#endif
+
+    ! set CICE internal pointer_date variable based on nuopc settings
+    ! this appends a datestamp to the "rpointer" file
+    call NUOPC_CompAttributeGet(gcomp, name="restart_pointer_append_date", value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    if (isPresent .and. isSet) pointer_date = (trim(cvalue) .eq. ".true.")
     !----------------------------------------------------------------------------
     ! generate local mpi comm
     !----------------------------------------------------------------------------
@@ -499,7 +510,7 @@ contains
     if (esmf_caltype == ESMF_CALKIND_NOLEAP) then
        calendar_type = ice_calendar_noleap
     else if (esmf_caltype == ESMF_CALKIND_GREGORIAN) then
-       calendar_type = ice_calendar_gregorian
+       calendar_type = ice_calendar_proleptic_gregorian
     else
        call abort_ice( subname//'ERROR:: bad calendar for ESMF' )
     end if
@@ -859,7 +870,7 @@ contains
     day_init  = idate0-year_init*10000-month_init*100
 
     !  - Set use_leap_years based on calendar (as some CICE calls use this instead of the calendar type)
-    if (calendar_type == ice_calendar_gregorian) then
+    if (calendar_type == ice_calendar_proleptic_gregorian) then
       use_leap_years = .true.
     else
       use_leap_years = .false. ! no_leap calendars
@@ -893,6 +904,7 @@ contains
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
+    call ice_read_hist  ! read history restarts
 
     !-----------------------------------------------------------------
     ! Prescribed ice initialization

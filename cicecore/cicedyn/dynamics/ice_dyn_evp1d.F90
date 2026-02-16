@@ -94,7 +94,7 @@ module ice_dyn_evp1d
     endif
 
     ! gather from blks to global
-    call gather_static(G_uarear,  G_dxT, G_dyT, G_tmask)
+    call gather_static(G_uarear, G_dxT, G_dyT, G_tmask)
 
     ! calculate number of water points (T and U). Only needed for the static version
     ! tmask in ocean/ice
@@ -348,7 +348,6 @@ module ice_dyn_evp1d
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
-
 
     allocate(indxTi(1:na0), &
              indxTj(1:na0), &
@@ -627,6 +626,11 @@ module ice_dyn_evp1d
      logical(kind=log_kind), dimension(:,:), intent(out) :: G_Tmask
 
      character(len=*), parameter :: subname = '(gather_static)'
+
+     G_uarear = c0
+     G_dyT = c0
+     G_dxT = c0
+     G_tmask = .false.
 
      ! copy from distributed I_* to G_*
      call gather_global_ext(G_uarear, uarear, master_task, distrb_info)
@@ -976,6 +980,37 @@ module ice_dyn_evp1d
 
      integer(kind=int_kind) ::  lo, up, iw, i, j
      character(len=*), parameter :: subname = '(convert_1d_2d_dyn)'
+
+     G_stressp_1  = c0
+     G_stressp_2  = c0
+     G_stressp_3  = c0
+     G_stressp_4  = c0
+     G_stressm_1  = c0
+     G_stressm_2  = c0
+     G_stressm_3  = c0
+     G_stressm_4  = c0
+     G_stress12_1 = c0
+     G_stress12_2 = c0
+     G_stress12_3 = c0
+     G_stress12_4 = c0
+     G_strength   = c0
+     G_cdn_ocn    = c0
+     G_aiu        = c0
+     G_uocn       = c0
+     G_vocn       = c0
+     G_waterxU    = c0
+     G_wateryU    = c0
+     G_forcexU    = c0
+     G_forceyU    = c0
+     G_umassdti   = c0
+     G_fmU        = c0
+     G_strintxU   = c0
+     G_strintyU   = c0
+     G_Tbu        = c0
+     G_uvel       = c0
+     G_vvel       = c0
+     G_taubxU     = c0
+     G_taubyU     = c0
 
      lo=1
      up=na0

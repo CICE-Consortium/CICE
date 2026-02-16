@@ -13,6 +13,12 @@
 !  transport using incremental remapping, Mon. Wea. Rev., 132,
 !  1341-1354.
 !
+! Lemieux, J.-F., Lipscomb, W. H., Craig, A., Bailey, D. A.,
+! Hunke, E. C., Blain, P., Rasmussen, T. A. S., Bentsen, M.,
+! Dupont, F., Hebert, D., and Allard, R., 2024: CICE on a
+! C-grid: new momentum, stress, and transport schemes for CICEv6.5,
+! Geosci. Model Dev., 17, 6703-6724.
+!
 ! authors William H. Lipscomb, LANL
 !         John Baumgardner, LANL
 !
@@ -26,6 +32,7 @@
 ! 2010: ECH removed unnecessary grid arrays and optional arguments from
 !       horizontal_remap
 ! 2023: TAR, DMI Remove commented code and unnecessary arrays
+! 2024: JFL and WHL improved robustness of Bentsen's approach for area flux.
 
       module ice_transport_remap
 
@@ -60,9 +67,9 @@
          p52083 = 25._dbl_kind/48._dbl_kind
 
       logical :: &
-         l_fixed_area ! if true, prescribe area flux across each edge
-                      ! if false, area flux is determined internally
-                      ! and is passed out
+         l_edge_flux_adj ! if true, prescribe area flux across each edge
+                         ! if false, area flux is determined internally
+                         ! and is passed out
 
       logical (kind=log_kind), parameter :: bugcheck = .false.
 
@@ -239,12 +246,13 @@
 ! field implied by the remapping was, in general, different from the
 ! value of del*u computed in the dynamics.  For energetic consistency
 ! (in CICE as well as in layered ocean models such as HYPOP),
-! these two values should agree.  This can be ensured by setting
-! l_fixed_area = T and specifying the area transported across each grid
-! cell edge in the arrays edgearea_e and edgearea_n.  The departure
-! regions are then tweaked, following an idea by Mats Bentsen, such
-! that they have the desired area.  If l_fixed_area = F, these regions
-! are not tweaked, and the edgearea arrays are output variables.
+! these two values should agree.  This can be ensured by using the
+! edge flux adjustment (EFA) method by setting l_edge_flux_adj = T.
+! The EFA method specifies the area transported across each grid cell
+! edge in the arrays edgearea_e and edgearea_n.  The departure regions
+! are then tweaked, following an idea by Mats Bentsen, such that they
+! have the desired area.  If l_edge_flux_adj = F, these regions are
+! not tweaked, and the edgearea arrays are output variables.
 !
 !=======================================================================
 
@@ -264,26 +272,26 @@
       character(len=*), parameter :: subname = '(init_remap)'
 
       !-------------------------------------------------------------------
-      ! Set logical l_fixed_area depending of the grid type.
+      ! Set logical l_edge_flux_adj depending of the grid type.
       !
-      ! If l_fixed_area is true, the area of each departure region is
-      !  computed in advance (e.g., by taking the divergence of the
-      !  velocity field and passed to locate_triangles.  The departure
-      !  regions are adjusted to obtain the desired area.
+      ! If l_edge_flux_adj is true, the area of each departure region is
+      ! computed in advance (e.g., by taking the divergence of the
+      ! velocity field and passed to locate_triangles.  The departure
+      ! regions are adjusted to obtain the desired area.
       ! If false, edgearea is computed in locate_triangles and passed out.
       !
-      ! l_fixed_area = .false. has been the default approach in CICE. It is
-      ! used like this for the B-grid. However, idealized tests with the
-      ! C-grid have shown that l_fixed_area = .false. leads to a checkerboard
-      ! pattern in prognostic fields (e.g. aice). Using l_fixed_area = .true.
-      ! eliminates the checkerboard pattern in C-grid simulations.
-      !
+      ! l_edge_flux_adj = .false. has been the default approach in CICE.
+      ! It is used like this for the B-grid. However, idealized tests with
+      ! the C-grid have shown that l_edge_flux_adj = .false. leads to a
+      ! checkerboard pattern in prognostic fields such as aice Using
+      ! l_edge_flux_adj = .true. eliminates the checkerboard pattern in
+      ! C-grid simulations (Lemieux et al. 2024).
       !-------------------------------------------------------------------
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
-         l_fixed_area = .true.
+         l_edge_flux_adj = .true.
       else
-         l_fixed_area = .false.
+         l_edge_flux_adj = .false.
       endif
 
       end subroutine init_remap
@@ -618,8 +626,8 @@
          jhi = this_block%jhi
 
          !-------------------------------------------------------------------
-         ! If l_fixed_area is true, compute edgearea by taking the divergence
-         !  of the velocity field.  Otherwise, initialize edgearea.
+         ! If l_edge_flux_adj is true, compute edgearea by taking the
+         ! divergence of the velocity field. Otherwise, initialize edgearea.
          !-------------------------------------------------------------------
 
          do j = 1, ny_block
@@ -629,10 +637,10 @@
          enddo
          enddo
 
-         if (l_fixed_area) then
+         if (l_edge_flux_adj) then
             if (grid_ice == 'CD' .or. grid_ice == 'C') then ! velocities are already on the center
                if (.not.present(uvelE).or..not.present(vvelN)) then
-                  call abort_ice (subname//'ERROR: uvelE,vvelN required with C|CD and l_fixed_area')
+                  call abort_ice (subname//'ERROR: uvelE,vvelN required with C|CD and l_edge_flux_adj')
                endif
 
                do j = jlo, jhi
@@ -1715,7 +1723,7 @@
          xicl, yicl   , & ! left-hand x-axis intersection point
          xicr, yicr   , & ! right-hand x-axis intersection point
          xdm, ydm     , & ! midpoint of segment connecting DL and DR;
-                          ! shifted if l_fixed_area = T
+                          ! shifted if l_edge_flux_adj = T
          md           , & ! slope of line connecting DL and DR
          mdl          , & ! slope of line connecting DL and DM
          mdr          , & ! slope of line connecting DR and DM
@@ -2040,9 +2048,8 @@
          ! areafact_c or areafac_ce (areafact_c for the other edge) are used
          ! (with shifted indices) to make sure that a flux area on one edge
          ! is consistent with the analogous area on the other edge and to
-         ! ensure that areas add up when using l_fixed_area = T. See PR #849
-         ! for details.
-         !
+         ! ensure that areas add up when using l_edge_flux_adj = T.
+         ! See PR #849 for details.
          !-------------------------------------------------------------------
 
          if (yil > c0 .and. xdl < xcl .and. ydl >= c0) then
@@ -2241,11 +2248,11 @@
          endif
 
          !-------------------------------------------------------------------
-         ! For l_fixed_area = T, shift the midpoint so that the departure
+         ! For l_edge_flux_adj = T, shift the midpoint so that the departure
          ! region has the prescribed area
          !-------------------------------------------------------------------
 
-         if (l_fixed_area) then
+         if (l_edge_flux_adj) then
 
             ! Sum the areas of the left and right triangles.
             ! Note that yp(i,j,1,ng) = 0 for all triangles, so we can
@@ -2375,7 +2382,7 @@
 
             endif   ! ydl*ydr >= c0
 
-         endif  ! l_fixed_area
+         endif  ! l_edge_flux_adj
 
          !-------------------------------------------------------------------
          ! Locate triangles in BC cell (H for both north and east edges)
@@ -2907,8 +2914,8 @@
       !        The fluxes work out correctly in the end.
       !
       ! Also compute the cumulative area transported across each edge.
-      ! If l_fixed_area = T, this area is compared to edgearea as a bug check.
-      ! If l_fixed_area = F, this area is passed as an output array.
+      ! If l_edge_flux_adj = T, this area is compared to edgearea as a bug check.
+      ! If l_edge_flux_adj = F, this area is passed as an output array.
       !-------------------------------------------------------------------
 
       areasum(:,:) = c0
@@ -2940,7 +2947,7 @@
          enddo                  ! ij
       enddo                     ! ng
 
-      if (l_fixed_area) then
+      if (l_edge_flux_adj) then
          if (bugcheck) then   ! set bugcheck = F to speed up code
             do ij = 1, icellsd
                i = indxid(ij)
@@ -2963,13 +2970,13 @@
             enddo
          endif          ! bugcheck
 
-      else            ! l_fixed_area = F
+      else            ! l_edge_flux_adj = F
          do ij = 1, icellsd
             i = indxid(ij)
             j = indxjd(ij)
             edgearea(i,j) = areasum(i,j)
          enddo
-      endif     ! l_fixed_area
+      endif     ! l_edge_flux_adj
 
       !-------------------------------------------------------------------
       ! Transform triangle vertices to a scaled coordinate system centered

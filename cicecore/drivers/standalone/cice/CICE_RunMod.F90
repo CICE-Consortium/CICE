@@ -151,7 +151,7 @@
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
-          write_restart_lvl, write_restart_pond_lvl, &
+          write_restart_lvl, write_restart_pond_lvl, write_restart_pond_sealvl,&
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
@@ -174,7 +174,8 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
-          tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+          tr_pond_lvl, tr_pond_sealvl, tr_pond_topo, &
+          tr_brine, tr_iso, tr_aero, &
           calc_Tsfc, skl_bgc, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -191,7 +192,7 @@
       call icepack_query_parameters(calc_Tsfc_out=calc_Tsfc, skl_bgc_out=skl_bgc, &
            z_tracers_out=z_tracers, ktherm_out=ktherm, wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
-           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+           tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, tr_pond_sealvl_out=tr_pond_sealvl, &
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_iso_out=tr_iso, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
@@ -397,6 +398,7 @@
             if (tr_FY)        call write_restart_FY
             if (tr_lvl)       call write_restart_lvl
             if (tr_pond_lvl)  call write_restart_pond_lvl
+            if (tr_pond_sealvl)  call write_restart_pond_sealvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_snow)      call write_restart_snow
             if (tr_fsd)       call write_restart_fsd
@@ -433,14 +435,13 @@
           fswthru_ai, fhocn, scale_factor, snowfrac, &
           fswthru, fswthru_vdr, fswthru_vdf, fswthru_idr, fswthru_idf, &
           swvdr, swidr, swvdf, swidf, Tf, Tair, Qa, strairxT, strairyT, &
-          fsens, flat, fswabs, flwout, evap, Tref, Qref, &
+          fsens, flat, fswabs, fsw, fswup, flwout, evap, Tref, Qref, &
           scale_fluxes, frzmlt_init, frzmlt
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
           flux_bio, flux_bio_ai
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice
+      use ice_state, only: aicen, aice, aice_init
 #ifdef CICE_IN_NEMO
-      use ice_state, only: aice_init
       use ice_flux, only: flatn_f, fsurfn_f
 #endif
       use ice_step_mod, only: ocean_mixed_layer
@@ -583,10 +584,18 @@
             alidf_ai  (i,j,iblk) = alidf  (i,j,iblk)
             alvdr_ai  (i,j,iblk) = alvdr  (i,j,iblk)
             alidr_ai  (i,j,iblk) = alidr  (i,j,iblk)
+
+
+      !----------------------------------------------------------------
+      ! Store fluxes before scaling by aice
+      !----------------------------------------------------------------
+
             fresh_ai  (i,j,iblk) = fresh  (i,j,iblk)
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
+            fswup     (i,j,iblk) = aice_init(i,j,iblk) &
+                                 * fsw    (i,j,iblk) - fswabs(i,j,iblk)
 
             if (nbtrcr > 0) then
             do k = 1, nbtrcr

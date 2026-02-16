@@ -1,0 +1,12 @@
+
+congel_freeze = 'one-step'
+hist_time_axis = 'middle'
+nfsd = 12
+nfreq = 25
+snwredist = "snwITDrdg"
+tr_fsd = .true.
+tr_ponds_lvl = .false.
+tr_ponds_sealvl = .true.
+tr_snow = .true.
+tscale_pnd_drain = 0.5d0
+wave_frac_spec = 'alt'

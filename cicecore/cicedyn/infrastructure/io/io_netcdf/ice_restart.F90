@@ -10,16 +10,14 @@
       module ice_restart
 
       use ice_broadcast
+      use ice_constants, only: c0
       use ice_communicate, only: my_task, master_task
       use ice_kinds_mod
 #ifdef USE_NETCDF
       use netcdf
 #endif
       use ice_read_write, only: ice_check_nc
-      use ice_restart_shared, only: &
-          restart_ext, restart_dir, restart_file, pointer_file, &
-          runid, use_restart_time, lenstr, restart_coszen, restart_format, &
-          restart_chunksize, restart_deflate
+      use ice_restart_shared
       use ice_fileunits, only: nu_diag, nu_rst_pointer
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_query_parameters
@@ -147,14 +145,14 @@
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: grid_ice
 
-      character(len=char_len_long), intent(in), optional :: filename_spec
+      character(len=*), intent(in), optional :: filename_spec
 
       ! local variables
 
       logical (kind=log_kind) :: &
          skl_bgc, z_tracers, tr_fsd, &
          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
-         tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
+         tr_pond_topo, tr_pond_lvl, tr_pond_sealvl, tr_brine, tr_snow, &
          tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
          tr_bgc_Sil, tr_bgc_DMS, &
          tr_bgc_chl, tr_bgc_Am,  &
@@ -168,6 +166,7 @@
          nbtrcr                  ! number of bgc tracers
 
       character(len=char_len_long) :: filename
+      character(len=char_len_long) :: lpointer_file
 
       integer (kind=int_kind), allocatable :: dims(:)
 
@@ -190,6 +189,7 @@
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, tr_fsd_out=tr_fsd, &
          tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
          tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
+         tr_pond_sealvl_out=tr_pond_sealvl, &
          tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
          tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
          tr_bgc_Sil_out=tr_bgc_Sil, tr_bgc_DMS_out=tr_bgc_DMS, &
@@ -214,7 +214,13 @@
       ! write pointer (path/file)
       if (my_task == master_task) then
          filename = trim(filename) // '.nc'
-         open(nu_rst_pointer,file=pointer_file)
+         lpointer_file = pointer_file
+         if (pointer_date) then
+            ! append date to pointer filename
+            write(lpointer_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5)') &
+               trim(lpointer_file)//'.',myear,'-',mmonth,'-',mday,'-',msec
+         end if
+         open(nu_rst_pointer,file=lpointer_file)
          write(nu_rst_pointer,'(a)') filename
          close(nu_rst_pointer)
 
@@ -357,7 +363,7 @@
             call define_rest_field(ncid,'a12_4',dims)
          endif
 
-         if (tr_pond_lvl) then
+         if (tr_pond_lvl .or. tr_pond_sealvl) then
             call define_rest_field(ncid,'fsnow',dims)
          endif
 
@@ -449,7 +455,7 @@
             call define_rest_field(ncid,'ipnd',dims)
          end if
 
-         if (tr_pond_lvl) then
+         if (tr_pond_lvl .or. tr_pond_sealvl) then
             call define_rest_field(ncid,'apnd',dims)
             call define_rest_field(ncid,'hpnd',dims)
             call define_rest_field(ncid,'ipnd',dims)
@@ -743,39 +749,25 @@
 
       character(len=*), parameter :: subname = '(read_restart_field)'
 
+      work (:,:,:,:) = c0
+      work2(:,:,:)   = c0
 #ifdef USE_NETCDF
       if (present(field_loc)) then
          if (ndim3 == ncat) then
-            if (restart_ext) then
-               call ice_read_nc(ncid,1,vname,work,diag, &
-                  field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
-            else
-               call ice_read_nc(ncid,1,vname,work,diag,field_loc,field_type)
-            endif
+            call ice_read_nc(ncid,1,vname,work,diag, &
+               field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
          elseif (ndim3 == 1) then
-            if (restart_ext) then
-               call ice_read_nc(ncid,1,vname,work2,diag, &
-                  field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
-            else
-               call ice_read_nc(ncid,1,vname,work2,diag,field_loc,field_type)
-            endif
+            call ice_read_nc(ncid,1,vname,work2,diag, &
+               field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
             work(:,:,1,:) = work2(:,:,:)
          else
             write(nu_diag,*) 'ndim3 not supported ',ndim3
          endif
       else
          if (ndim3 == ncat) then
-            if (restart_ext) then
-               call ice_read_nc(ncid, 1, vname, work, diag, restart_ext=restart_ext)
-            else
-               call ice_read_nc(ncid, 1, vname, work, diag)
-            endif
+            call ice_read_nc(ncid, 1, vname, work, diag, restart_ext=restart_ext)
          elseif (ndim3 == 1) then
-            if (restart_ext) then
-               call ice_read_nc(ncid, 1, vname, work2, diag, restart_ext=restart_ext)
-            else
-               call ice_read_nc(ncid, 1, vname, work2, diag)
-            endif
+            call ice_read_nc(ncid, 1, vname, work2, diag, restart_ext=restart_ext)
             work(:,:,1,:) = work2(:,:,:)
          else
             write(nu_diag,*) 'ndim3 not supported ',ndim3
@@ -836,18 +828,10 @@
          call ice_check_nc(status, subname//' ERROR: inq varid '//trim(vname), file=__FILE__, line=__LINE__)
       endif
       if (ndim3 == ncat) then
-         if (restart_ext) then
-            call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
-         else
-            call ice_write_nc(ncid, 1, varid, work, diag, varname=trim(vname))
-         endif
+         call ice_write_nc(ncid, 1, varid, work, diag, restart_ext, varname=trim(vname))
       elseif (ndim3 == 1) then
          work2(:,:,:) = work(:,:,1,:)
-         if (restart_ext) then
-            call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
-         else
-            call ice_write_nc(ncid, 1, varid, work2, diag, varname=trim(vname))
-         endif
+         call ice_write_nc(ncid, 1, varid, work2, diag, restart_ext, varname=trim(vname))
       else
          write(nu_diag,*) 'ndim3 not supported',ndim3
       endif

@@ -44,7 +44,7 @@
       private
       public :: init_thermo_vertical, init_shortwave, &
                 init_age, init_FY, init_lvl, init_fsd, &
-                init_meltponds_lvl, init_meltponds_topo, &
+                init_meltponds_lvl, init_meltponds_topo, init_meltponds_sealvl, &
                 init_aerosol, init_bgc, init_hbrine, init_zbgc, input_zbgc, &
                 count_tracers, init_isotope, init_snowtracers
 
@@ -165,6 +165,7 @@
       use ice_arrays_column, only: fswpenln, Iswabsn, Sswabsn, albicen, &
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
+          fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
           fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
           swgrid, igrid
       use ice_blocks, only: block, get_block
@@ -175,8 +176,9 @@
       use ice_flux, only: alvdf, alidf, alvdr, alidr, &
                           alvdr_ai, alidr_ai, alvdf_ai, alidf_ai, &
                           swvdr, swvdf, swidr, swidf, scale_factor, snowfrac, &
+                          swuvrdr, swuvrdf, swpardr, swpardf, &
                           albice, albsno, albpnd, apeff_ai, coszen, fsnow
-      use ice_grid, only: tlat, tlon, tmask
+      use ice_grid, only: tlat, tlon, tmask, opmask
       use ice_restart_shared, only: restart, runtype
       use ice_state, only: aicen, vicen, vsnon, trcrn
 
@@ -287,6 +289,11 @@
                alidrn(i,j,n,iblk) = c0
                alvdfn(i,j,n,iblk) = c0
                alidfn(i,j,n,iblk) = c0
+               albpndn(i,j,n,iblk) = c0
+               albicen(i,j,n,iblk) = c0
+               albsnon(i,j,n,iblk) = c0
+               apeffn(i,j,n,iblk)  = c0
+               snowfracn(i,j,n,iblk) = c0
                fswsfcn(i,j,n,iblk) = c0
                fswintn(i,j,n,iblk) = c0
                fswthrun(i,j,n,iblk) = c0
@@ -294,6 +301,10 @@
                fswthrun_vdf(i,j,n,iblk) = c0
                fswthrun_idr(i,j,n,iblk) = c0
                fswthrun_idf(i,j,n,iblk) = c0
+               fswthrun_uvrdr(i,j,n,iblk) = c0
+               fswthrun_uvrdf(i,j,n,iblk) = c0
+               fswthrun_pardr(i,j,n,iblk) = c0
+               fswthrun_pardf(i,j,n,iblk) = c0
             enddo   ! ncat
 
          enddo
@@ -303,7 +314,9 @@
 
             if (shortwave(1:4) == 'dEdd') then ! delta Eddington
 
-#ifndef CESMCOUPLED
+#if defined (CESMCOUPLED) || defined (GEOSCOUPLED)
+               ! initialized externally
+#else
                ! initialize orbital parameters
                ! These come from the driver in the coupled model.
                call icepack_init_orbit()
@@ -325,7 +338,7 @@
                endif
             enddo
 
-            if (tmask(i,j,iblk)) then
+            if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
                call icepack_step_radiation (dt=dt,                             &
                           fbri=fbri(:),                                        &
                           aicen=aicen(i,j,:,iblk),                             &
@@ -347,6 +360,8 @@
                           sec=msec,                                             &
                           swvdr=swvdr(i,j,iblk),         swvdf=swvdf(i,j,iblk),&
                           swidr=swidr(i,j,iblk),         swidf=swidf(i,j,iblk),&
+                          swuvrdr=swuvrdr(i,j,iblk), swuvrdf=swuvrdf (i,j,iblk), &
+                          swpardr=swpardr(i,j,iblk), swpardf=swpardf (i,j,iblk), &
                           coszen=coszen(i,j,iblk),       fsnow=fsnow(i,j,iblk),&
                           alvdrn=alvdrn(i,j,:,iblk),     alvdfn=alvdfn(i,j,:,iblk), &
                           alidrn=alidrn(i,j,:,iblk),     alidfn=alidfn(i,j,:,iblk), &
@@ -356,6 +371,10 @@
 !opt                          fswthrun_vdf=fswthrun_vdf(i,j,:,iblk),               &
 !opt                          fswthrun_idr=fswthrun_idr(i,j,:,iblk),               &
 !opt                          fswthrun_idf=fswthrun_idf(i,j,:,iblk),               &
+!opt                          fswthrun_uvrdr=fswthrun_uvrdr (i,j,:  ,iblk),        &
+!opt                          fswthrun_uvrdf=fswthrun_uvrdf (i,j,:  ,iblk),        &
+!opt                          fswthrun_pardr=fswthrun_pardr (i,j,:  ,iblk),        &
+!opt                          fswthrun_pardf=fswthrun_pardf (i,j,:  ,iblk),        &
                           fswpenln=fswpenln(i,j,:,:,iblk),                     &
                           Sswabsn=Sswabsn(i,j,:,:,iblk), Iswabsn=Iswabsn(i,j,:,:,iblk), &
                           albicen=albicen(i,j,:,iblk),   albsnon=albsnon(i,j,:,iblk), &
@@ -535,6 +554,27 @@
       dhsn(:,:,:) = c0
 
       end subroutine init_meltponds_lvl
+
+!=======================================================================
+
+!  Initialize melt ponds.
+
+      subroutine init_meltponds_sealvl(apnd, hpnd, ipnd, dhsn)
+
+      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+         apnd , & ! melt pond area fraction
+         hpnd , & ! melt pond depth
+         ipnd , & ! melt pond refrozen lid thickness
+         dhsn     ! depth difference for snow on sea ice and pond ice
+
+      character(len=*),parameter :: subname='(init_meltponds_sealvl)'
+
+      apnd(:,:,:) = c0
+      hpnd(:,:,:) = c0
+      ipnd(:,:,:) = c0
+      dhsn(:,:,:) = c0
+
+      end subroutine init_meltponds_sealvl
 
 !=======================================================================
 
@@ -1063,7 +1103,7 @@
       ! z biology parameters
       grid_o             = 0.006           ! for bottom flux
       grid_o_t           = 0.006           ! for top flux
-      l_sk               = 2.0_dbl_kind    ! characteristic diffusive scale (m)
+      l_sk               = 2.0_dbl_kind    ! characteristic diffusive scale brine (m)
       initbio_frac       = c1              ! fraction of ocean trcr concentration in bio trcrs
       frazil_scav        = 0.8_dbl_kind    ! increase in initial bio tracer from ocean scavenging
       ratio_Si2N_diatoms = 1.8_dbl_kind    ! algal Si to N (mol/mol)
@@ -1787,7 +1827,7 @@
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond, tr_aero, tr_fsd
       logical (kind=log_kind) :: tr_snow
-      logical (kind=log_kind) :: tr_iso, tr_pond_lvl, tr_pond_topo
+      logical (kind=log_kind) :: tr_iso, tr_pond_lvl, tr_pond_topo, tr_pond_sealvl
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd, nt_aero
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice
@@ -1871,7 +1911,7 @@
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
-         tr_pond_lvl_out=tr_pond_lvl, &
+         tr_pond_lvl_out=tr_pond_lvl, tr_pond_sealvl_out=tr_pond_sealvl, &
          tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_fsd_out=tr_fsd, &
          tr_snow_out=tr_snow, tr_iso_out=tr_iso, &
          tr_bgc_Nit_out=tr_bgc_Nit, tr_bgc_Am_out =tr_bgc_Am,  tr_bgc_Sil_out=tr_bgc_Sil,   &
@@ -1929,6 +1969,10 @@
           if (tr_pond_lvl) then
               ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
               nt_ipnd = ntrcr      ! on level-ice ponds (if frzpnd='hlid')
+          endif
+          if (tr_pond_sealvl) then
+              ntrcr = ntrcr + 1    ! refrozen pond ice lid thickness
+              nt_ipnd = ntrcr      ! on sea level ponds (if frzpnd='hlid')
           endif
           if (tr_pond_topo) then
               ntrcr = ntrcr + 1    !
@@ -2813,7 +2857,7 @@
       call icepack_init_zbgc( &
 !opt         zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
 !opt         zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
-      )
+             )
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)

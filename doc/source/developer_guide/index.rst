@@ -16,6 +16,7 @@ Developer Guide
    dg_infra.rst
    dg_driver.rst
    dg_forcing.rst
+   dg_assim.rst
    dg_icepack.rst
    dg_scripts.rst
    dg_tools.rst

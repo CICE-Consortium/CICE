@@ -82,6 +82,7 @@
           faero_data, faero_default, alloc_forcing_bgc
       use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
+      use ice_history_write, only: ice_read_hist
       use ice_restart_shared, only: restart, runid, runtype
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
@@ -214,6 +215,7 @@
 
       call dealloc_grid         ! deallocate temporary grid arrays
       if (write_ic) call accum_hist(dt) ! write initial conditions
+      call ice_read_hist  ! read history restarts
 
       end subroutine cice_init
 
@@ -296,8 +298,7 @@
       ! tracers
       ! ice age tracer
       if (tr_iage) then
-         if (trim(runtype) == 'continue') &
-              restart_age = .true.
+         if (trim(runtype) == 'continue') restart_age = .true.
          if (restart_age) then
             call read_restart_age
          else
@@ -331,8 +332,7 @@
       endif
       ! level-ice melt ponds
       if (tr_pond_lvl) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_lvl = .true.
+         if (trim(runtype) == 'continue') restart_pond_lvl = .true.
          if (restart_pond_lvl) then
             call read_restart_pond_lvl
          else
@@ -346,8 +346,7 @@
       endif
       ! topographic melt ponds
       if (tr_pond_topo) then
-         if (trim(runtype) == 'continue') &
-              restart_pond_topo = .true.
+         if (trim(runtype) == 'continue') restart_pond_topo = .true.
          if (restart_pond_topo) then
             call read_restart_pond_topo
          else
@@ -379,10 +378,8 @@
       endif
 
       if (trim(runtype) == 'continue') then
-         if (tr_brine) &
-             restart_hbrine = .true.
-         if (skl_bgc .or. z_tracers) &
-             restart_bgc = .true.
+         if (tr_brine) restart_hbrine = .true.
+         if (skl_bgc .or. z_tracers) restart_bgc = .true.
       endif
 
       if (tr_brine .or. skl_bgc) then ! brine height tracer

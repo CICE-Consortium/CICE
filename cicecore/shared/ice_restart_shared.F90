@@ -25,8 +25,12 @@
       character (len=char_len_long), public :: &
          pointer_file      ! input pointer file for restarts
 
+      logical (kind=log_kind), public :: &
+         pointer_date =  .false.   ! if true, append datestamp to pointer file
+
       character (len=char_len), public :: &
          restart_format      , & ! format of restart files 'nc'
+         restart_mod         , & ! restart modification option, "none", "adjust_aice"
          restart_rearranger      ! restart file rearranger, box or subset for pio
 
       integer (kind=int_kind), public :: &

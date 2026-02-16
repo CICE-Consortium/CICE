@@ -13,7 +13,9 @@ FFLAGS     := -fp-model precise -convert big_endian -assume byterecl -ftz -trace
 FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
-  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
+# fpe0 produces an abort in hdf5 ~v1.14 which is fixed in 1.14.4.2
+  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe1 -check noarg_temp_created
+#  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created
 #  FFLAGS     += -O0 -g -check all -fpe0 -ftrapuv -fp-model except -check noarg_temp_created -init=snan,arrays
 else
   FFLAGS     += -O2

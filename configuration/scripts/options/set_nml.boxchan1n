@@ -9,7 +9,6 @@ grid_type      = 'rectangular'
 kmt_type       = 'channel_onenorth'
 dxrect         = 16.e5
 dyrect         = 16.e5
-close_boundaries = .false.
 ew_boundary_type  = 'open'
 ns_boundary_type  = 'cyclic'
 tr_iage      = .false.

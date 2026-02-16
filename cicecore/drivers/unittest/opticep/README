@@ -1,7 +1,7 @@
 
 This unittest tests Icepack optional arguments.  The idea is to have source code that is
 identical to the standard CICE source code except the significant optional arguments passed
-into Icepack are removed from the CICE calls.  Then to run a standard CICE case with optional 
+into Icepack are removed from the CICE calls.  Then to run a standard CICE case with optional
 features (fsd, bgc, isotopes, etc) off in namelist.  That results should be bit-for-bit identical
 with an equivalent run from the standard source code.
 
@@ -18,7 +18,7 @@ today, that includes
   CICE_InitMod.F90
   CICE_RunMod.F90
 
-Add 
+Add
   write(nu_diag, *) "OPTICEP TEST COMPLETED SUCCESSFULLY "
 to CICE_FinalMod.F90
 
@@ -26,5 +26,5 @@ Do not worry about the parameter/tracer query/init/write methods
 
 Interfaces to modify include
   ice_init_column.F90  (icepack_step_radiation, icepack_init_zbgc)
-  ice_step_mod.F90     (icepack_step_therm1, icepack_step_therm2, icepack_prep_radiation, 
+  ice_step_mod.F90     (icepack_step_therm1, icepack_step_therm2, icepack_prep_radiation,
                         icepack_step_radiation, icepack_step_ridge)

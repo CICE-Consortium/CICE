@@ -245,12 +245,13 @@ With the addition of several alternative parameterizations for sea ice
 processes, a number of subprocesses now appear in multiple parts of the
 code with differing descriptions. For instance, sea ice porosity and
 permeability, along with associated flushing and flooding, are
-calculated separately for mushy thermodynamics, topo and level-ice melt
-ponds, and for the brine height tracer, each employing its own
+calculated separately for mushy thermodynamics and various pond schemes,
+and for the brine height tracer, each employing its own
 equations. Likewise, the BL99 and mushy thermodynamics compute freeboard
 and snow–ice formation differently, and the topo and level-ice melt pond
 schemes both allow fresh ice to grow atop melt ponds, using slightly
-different formulations for Stefan freezing. These various process
+different formulations for Stefan freezing. Mass calculations throughout
+the code are inconsistent with respect to pond water. These various process
 parameterizations will be compared and their subprocess descriptions
 possibly unified in the future.
 

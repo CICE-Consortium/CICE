@@ -44,7 +44,7 @@
       nblocks         ! actual number of blocks on this processor
 
    logical (kind=log_kind), public :: &
-      close_boundaries
+      close_boundaries   ! deprecated Nov, 2025
 
    integer (int_kind), dimension(:), pointer, public :: &
       blocks_ice => null()        ! block ids for local blocks
@@ -79,8 +79,9 @@
                              ! 'cartesian', 'roundrobin', 'sectrobin', 'sectcart'
                              ! 'rake', 'spacecurve', etc
        distribution_wght     ! method for weighting work per block
-                             ! 'block' = POP default configuration
-                             ! 'blockall' = no land block elimination
+                             ! 'block' = block weighted method with land block elimination
+                             ! 'blockall' = block method with NO land block elimination and minimum weight given to land blocks
+                             ! 'blockfull'= block method with NO land block elimination and full weight given to land blocks
                              ! 'latitude' = no. ocean points * |lat|
                              ! 'file' = read distribution_wgth_file
     character (char_len_long) :: &
@@ -104,6 +105,7 @@
    use ice_domain_size, only: ncat, nilyr, nslyr, max_blocks, &
        nx_global, ny_global, block_size_x, block_size_y
    use ice_fileunits, only: goto_nml
+
 !----------------------------------------------------------------------
 !
 !  local variables
@@ -369,99 +371,10 @@
 
    character(len=*), parameter :: subname = '(init_domain_distribution)'
 
-!----------------------------------------------------------------------
-!
-!  check that there are at least nghost+1 rows or columns of land cells
-!  for closed boundary conditions (otherwise grid lengths are zero in
-!  cells neighboring ocean points).
-!
-!----------------------------------------------------------------------
-
    call icepack_query_parameters(puny_out=puny, rad_to_deg_out=rad_to_deg)
    call icepack_warnings_flush(nu_diag)
    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
       file=__FILE__, line=__LINE__)
-
-   if (trim(ns_boundary_type) == 'closed') then
-      call abort_ice(subname//' ERROR: ns_boundary_type = closed not supported', file=__FILE__, line=__LINE__)
-      allocate(nocn(nblocks_tot))
-      nocn = 0
-      do n=1,nblocks_tot
-         this_block = get_block(n,n)
-         if (this_block%jblock == nblocks_y) then ! north edge
-         do j = this_block%jhi-1, this_block%jhi
-            if (this_block%j_glob(j) > 0) then
-               do i = 1, nx_block
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny) nocn(n) = nocn(n) + 1
-                  endif
-               enddo
-            endif
-         enddo
-         endif
-         if (this_block%jblock == 1) then ! south edge
-         do j = this_block%jlo, this_block%jlo+1
-            if (this_block%j_glob(j) > 0) then
-               do i = 1, nx_block
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny) nocn(n) = nocn(n) + 1
-                  endif
-               enddo
-            endif
-         enddo
-         endif
-         if (nocn(n) > 0) then
-            write(nu_diag,*) subname,'ns closed, Not enough land cells along ns edge'
-            call abort_ice(subname//' ERROR: Not enough land cells along ns edge for ns closed', &
-                           file=__FILE__, line=__LINE__)
-         endif
-      enddo
-      deallocate(nocn)
-   endif
-   if (trim(ew_boundary_type) == 'closed') then
-      call abort_ice(subname//' ERROR: ew_boundary_type = closed not supported', file=__FILE__, line=__LINE__)
-      allocate(nocn(nblocks_tot))
-      nocn = 0
-      do n=1,nblocks_tot
-         this_block = get_block(n,n)
-         if (this_block%iblock == nblocks_x) then ! east edge
-         do j = 1, ny_block
-            if (this_block%j_glob(j) > 0) then
-               do i = this_block%ihi-1, this_block%ihi
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny) nocn(n) = nocn(n) + 1
-                  endif
-               enddo
-            endif
-         enddo
-         endif
-         if (this_block%iblock == 1) then ! west edge
-         do j = 1, ny_block
-            if (this_block%j_glob(j) > 0) then
-               do i = this_block%ilo, this_block%ilo+1
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
-                     if (KMTG(ig,jg) > puny) nocn(n) = nocn(n) + 1
-                  endif
-               enddo
-            endif
-         enddo
-         endif
-         if (nocn(n) > 0) then
-            write(nu_diag,*) subname,'ew closed, Not enough land cells along ew edge'
-            call abort_ice(subname//' ERROR: Not enough land cells along ew edge for ew closed', &
-                           file=__FILE__, line=__LINE__)
-         endif
-      enddo
-      deallocate(nocn)
-   endif
 
 !----------------------------------------------------------------------
 !
@@ -476,7 +389,8 @@
        flat = 1
    endif
 
-   if (distribution_wght == 'blockall') landblockelim = .false.
+   if (distribution_wght == 'blockall' ) landblockelim = .false.
+   if (distribution_wght == 'blockfull') landblockelim = .false.
 
    allocate(nocn(nblocks_tot))
 
@@ -516,11 +430,11 @@
       do n=1,nblocks_tot
          this_block = get_block(n,n)
          do j=this_block%jlo,this_block%jhi
-            if (this_block%j_glob(j) > 0) then
+            jg = this_block%j_glob(j)
+            if (jg > 0) then
                do i=this_block%ilo,this_block%ihi
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
+                  ig = this_block%i_glob(i)
+                  if (ig > 0) then
 !                     if (KMTG(ig,jg) > puny) &
 !                        nocn(n) = max(nocn(n),nint(wght(ig,jg)+1.0_dbl_kind))
                      if (KMTG(ig,jg) > puny) then
@@ -541,11 +455,11 @@
       do n=1,nblocks_tot
          this_block = get_block(n,n)
          do j=this_block%jlo,this_block%jhi
-            if (this_block%j_glob(j) > 0) then
+            jg = this_block%j_glob(j)
+            if (jg > 0) then
                do i=this_block%ilo,this_block%ihi
-                  if (this_block%i_glob(i) > 0) then
-                     ig = this_block%i_glob(i)
-                     jg = this_block%j_glob(j)
+                  ig = this_block%i_glob(i)
+                  if (ig > 0) then
                      if (grid_ice == 'C' .or. grid_ice == 'CD') then
                         ! Have to be careful about block elimination with C/CD
                         ! Use a bigger stencil
@@ -579,8 +493,10 @@
 
 #ifdef CICE_IN_NEMO
          ! Keep all blocks even the ones only containing land points
+         ! tcraig, use 'blockfull', get rid of the CPP, keep for backwards compatibility for now
          if (distribution_wght == 'block') nocn(n) = nx_block*ny_block
 #else
+         if (distribution_wght == 'blockfull') nocn(n) = nx_block*ny_block
          if (distribution_wght == 'block' .and. nocn(n) > 0) nocn(n) = nx_block*ny_block
          if (.not. landblockelim) nocn(n) = max(nocn(n),1)
 #endif

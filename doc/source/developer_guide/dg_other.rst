@@ -81,6 +81,247 @@ This is very likely to be bfb, but is not as fast or accurate as the reprosum
 implementation.  See :cite:`He01`
 
 
+.. _averages:
+
+Averages
+-----------------
+
+Coupling and history output quantities may be averaged in different forms, depending on
+whether the quantity represents a value averaged over the entire grid cell, the sea ice fraction,
+or a subset of the sea ice fraction such as a thickness category or the ponded area. These
+distinctions must also be considered for time averaging.
+
+The SIMIP Project :cite:`Notz16`
+categorizes output variables as 'intensive' and 'extensive' based on their characteristics
+relative to ice area.  Extensive variables are proportional to area fraction, and their time
+averages include zeroes when and where there is no ice.  Intensive variables are not
+proportional to area fraction, and their time averages should not include zeroes when and
+where there is no ice. This is accomplished by summing area-weighted intensive values across categories
+then dividing by the sum of the category areas. Tracers such as ice thickness, surface temperature,
+and biogeochemical tracers are examples of intensive variables.
+
+The following formulas ignore subtleties such as some fluxes being computed on the initial ice area, which then
+changes due to frazil ice formation, lateral melting and transport.  The ice area used for both averaging and coupling should be carefully
+considered in light of the model timestepping.  Edge cases such as the complete disappearance or new appearance of ice
+cause averaging errors.  To address these cases, we could consider interpolating all quantities to the middle of the
+timestep, but that is not currently done.
+
+Ice area
+~~~~~~~~~~~~~~~~~
+
+If :math:`\mathbf{X}=(x,y)`, :math:`A` is the cell area (:math:`m^2`) and :math:`g` represents
+the ice thickness distribution discretized as :math:`a_n` for :math:`n=1,\, ncat`, then the
+ice area (:math:`m^2`) is the sum of the thickness category areas :math:`a_n A`:
+
+.. math::
+   A_{i}(t) = \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \sim \sum_{n=1}^{ncat} a_n(t) \, A
+
+and the (unitless) ice area fraction is
+
+.. math::
+   a_{ice}(t) = {\int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \over \int_{cell} d\mathbf{X} \, dt} \sim \sum_{n=1}^{ncat} a_n(t).
+
+
+The time-averaged ice area over an interval of length :math:`N\Delta t` is
+
+.. math::
+   \bar{A}_{i} = {\int_t A_{i}(t) \, dt \over \int_t \, dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t \over N \, \Delta t}
+               = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} a_n
+
+and the time-averaged ice area fraction is extensive (by definition):
+
+.. math::
+   \bar{a}_{ice} = {\int_t \int_{ice} g(\mathbf{X},t) \, d\mathbf{X} \, dt \over \int_t \int_{cell} d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \Delta t \over A \, N \, \Delta t}
+                 = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} a_n.
+
+Ice volume
+~~~~~~~~~~~~~~~~~
+
+Likewise for time averages of ice volume :math:`V_i` (:math:`m^3`),
+
+.. math::
+   \bar{V}_{i} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over N \, \Delta t}
+               = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n
+
+for ice thickness :math:`h` assumed to be 0 in open water. Then the time-average ice volume per square meter of grid cell (:math:`m`) is
+
+.. math::
+   \bar{v}_{ice} = {\int_t \int_{cell} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over A \, N \, \Delta t}
+                 = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n = {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} v_n.
+
+where :math:`v_n = h_n a_n`. :math:`v_{ice}` is the quantity labeled `hi` in history, which can be thought of as the mean ice thickness averaged over the entire
+grid cell. The time-averaged ice volume per square meter of ice (mean 'actual' ice thickness, :math:`m`) is
+
+.. math::
+   \bar{h}_{i} = {\int_t \int_{ice} \int_{0}^{h} g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{ice} d\mathbf{X} \, dt}
+               \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n \, A \, \Delta t}
+               = {\sum_{\Delta t} \sum_{n=1}^{ncat} v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} a_n}.
+
+Snow volume is treated similarly. Ice and snow volumes are extensive, while thicknesses are
+intensive.
+
+The form used here for time-averaging the average 'actual' thickness produces the average over all ice present
+during the averaging interval. For intensive variables in particular, this form is slightly different from
+the time-average of the category-averaged quantity per time step. The latter, two-step averaging process
+requires additional divisions and re-multiplications by ice area, introducing errors where ice areas
+are very small or cells change from ice-free to having ice or vice versa. The same is true for other tracers
+and intensive variables. While both approaches are valid, averages as written here are preferred when
+conservation is important.
+
+Volume content
+~~~~~~~~~~~~~~~~~
+
+Total content of tracers such as salt and enthalpy are necessary for conservative coupling.  The time-average content
+of a volume tracer :math:`b` (with units per :math:`m^3`) is
+
+.. math::
+   \bar{B}_{i} = {\int_t \int_{cell} \int_{0}^{h} b(\mathbf{X},z,t) g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} dt}
+           \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over N \, \Delta t}
+           = {A \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n
+
+and the time-averaged content per square meter of grid cell is
+
+.. math::
+   \bar{b}_{ice} \sim {1 \over N} \sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n.
+
+The mean tracer value in sea ice is
+
+.. math::
+   \bar{b}_{i} = {\int_t \int_{cell} \int_{0}^{h} b(\mathbf{X},z,t) g(\mathbf{X},t) \, dz \, d\mathbf{X} \, dt \over \int_{t} \int_{cell} \int_{0}^{h} dz \, d\mathbf{X} \, dt}
+                 \sim {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, h_n \, a_n \, A \, \Delta t \over \sum_{\Delta t} \sum_{n=1}^{ncat} h_n \, a_n \, A \, \Delta t}
+		 =  {\sum_{\Delta t} \sum_{n=1}^{ncat} b_n \, v_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} v_n}
+
+Thus, volume content variables are extensive, while the tracers themselves are intensive.
+
+Surface quantities
+~~~~~~~~~~~~~~~~~
+
+Surface quantities such as temperature are intensive and treated similarly to volume tracers, with integrals taken over
+the desired surface area rather than the volume.  For example,
+
+.. math::
+   T_{ice}(t) = {\int_{ice} T(\mathbf{X},t) g(\mathbf{X},t) \, d\mathbf{X} \over \int_{ice} g(\mathbf{X},t) \, d\mathbf{X}}
+
+and the time average is simply
+
+.. math::
+   \bar{T}_{ice} = {\sum_{\Delta t} \sum_{n=1}^{ncat} T_n \, a_n \over \sum_{\Delta t} \sum_{n=1}^{ncat} \, a_n}.
+
+Note that since :math:`\sum_{n=0}^{ncat} \, a_n \,=\, 1`, a category-merged quantity can be considered the average over the cell area, assuming
+the quantity is zero over open water:
+
+.. math::
+   T_{cell} = {\sum_{n=0}^{ncat} T_n \, a_n \over \sum_{n=0}^{ncat} \, a_n} = \sum_{n=1}^{ncat} \, T_n \, a_n,
+
+and the average value over the ice is then
+
+.. math::
+   T_{ice} = {\sum_{n=1}^{ncat} T_n \, a_n \over \sum_{n=1}^{ncat} \, a_n} = {T_{cell} \over a_{ice}}.
+
+This simplification is applicable for tracers carried on the ice area (or volume, similarly), which are zero over open water by definition.
+When time-averaging CICE's history fields, the category-merged value in the numerator is saved (usually in Icepack), then accumulated in time and
+later divided by the accumulated ice area fraction (or volume) in CICE.
+
+
+
+Tracer hierarchies
+~~~~~~~~~~~~~~~~~
+
+For tracers that are carried on other tracers, such as melt ponds, averages over different areas of a given cell differ in the denominator.
+For melt ponds not carried on the level-ice area, for example, the average pond depths over the grid cell area, the ice area, and the ponded
+area are, respectively,
+
+.. math::
+   h_{p\,cell} = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{cell} d\mathbf{X} }
+		\sim \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n
+
+.. math::
+   h_{p\,ice}  = \frac{ \int_{ice} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+   h_{p\,pond} = \frac{ \int_{pond} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{pond} a_p \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, g \, d\mathbf{X} }
+                      { \int_{ice} a_p \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_n }{ \sum_{n=1}^{ncat} a_{pn} \, a_n }.
+
+For level-ice ponds, there is an extra factor of :math:`a_{lvl}`. The level-ice pond depth averaged over the grid cell area, total ice area, level ice area and pond area are
+
+.. math::
+   h_{p\,cell} = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{cell} d\mathbf{X} }
+		\sim \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n
+
+.. math::
+   h_{p\,ice} = \frac{ \int_{ice} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{ice} g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+   h_{p\,lvl} = \frac{ \int_{lvl} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                     { \int_{lvl} a_{lvl} \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} a_{lvl} \, a_{pn} \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_{lvln} \, a_n }
+
+.. math::
+   h_{p\,pond} = \frac{ \int_{pond} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{pond} a_p \, a_{lvl} \, g \, d\mathbf{X} }
+               = \frac{ \int_{cell} h_p \, a_p \, a_{lvl} \, g \, d\mathbf{X} }
+                      { \int_{ice} a_p \, a_{lvl} \, g \, d\mathbf{X} }
+		\sim \frac{ \sum_{n=1}^{ncat} h_{pn} \, a_{pn} \, a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_{pn} \, a_{lvln} \, a_n }.
+
+Time averages follow analogously as above.
+
+Ridged-ice area and volume are handled slightly differently, since they are diagnostic based on
+level-ice area and volume. Level-ice area is a tracer on ice area, and level-ice volume is a
+tracer on ice volume. The tracer values are fractions of the total ice, and ridged (deformed) ice is
+diagnosed as the remainder of the ice fraction or volume:
+:math:`T_{ardg} = 1 - T_{alvl}` and :math:`T_{vrdg} = 1 - T_{vlvl}` for the area and volume tracers.
+Thus the mean level and ridged ice area fractions of the ice area are
+
+.. math::
+   a_{lvl\,ice} = \frac{ \int_{ice} T_{alvl} \, g \, d\mathbf{X} }
+                       { \int_{ice}             g \, d\mathbf{X} }
+             \sim \frac{ \sum_{n=1}^{ncat} a_{lvln} \, a_n }{ \sum_{n=1}^{ncat} a_n }
+
+.. math::
+   a_{rdg\,ice} = \frac{ \int_{ice} (1 - T_{alvl}) \, g \, d\mathbf{X} }
+                       { \int_{ice}                   g \, d\mathbf{X} }
+             \sim \frac{ \sum_{n=1}^{ncat} (1 - a_{lvln}) \, a_n }{ \sum_{n=1}^{ncat} a_n }.
+
+The mean thickness of level ice, averaging over just the level-ice areas from all categories, is
+
+.. math::
+   h_{lvl} = \frac{ \int_{ice} \int_{0}^{h} T_{vlvl} \, g \, dz \, d\mathbf{X} }
+                  { \int_{ice}              T_{alvl} \, g       \, d\mathbf{X} }
+        \sim \frac{ \sum_{n=1}^{ncat} T_{vlvln} \, a_n \, h_n }
+                  { \sum_{n=1}^{ncat} T_{alvln} \, a_n }
+        \sim \frac{ \sum_{n=1}^{ncat} T_{vlvln} \, v_n }
+                  { \sum_{n=1}^{ncat} T_{alvln} \, a_n }
+
+and the mean thickness of deformed ice (averaging over just the ridged-ice
+areas from all categories) is
+
+.. math::
+   h_{rdg} = \frac{ \int_{ice} \int_{0}^{h} (1 - T_{vlvl}) \, g \, dz \, d\mathbf{X} }
+                  { \int_{ice}              (1 - T_{alvl}) \, g       \, d\mathbf{X} }
+            \sim \frac{ \sum_{n=1}^{ncat} (1 - T_{vlvln}) \, a_n \, h_n }
+                      { \sum_{n=1}^{ncat} (1 - T_{alvln}) \, a_n }
+            \sim \frac{ \sum_{n=1}^{ncat} (1 - T_{vlvln}) \, v_n }
+                      { \sum_{n=1}^{ncat} (1 - T_{alvln}) \, a_n }.
+
 .. _addtimer:
 
 Adding Timers
