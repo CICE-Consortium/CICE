@@ -18,13 +18,14 @@
 
       module ice_history_write
 
+      use ice_communicate, only: my_task, master_task
       use ice_fileunits, only: nu_history, nu_hdr, nu_diag
       use ice_exit, only: abort_ice
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
       implicit none
       private
-      public :: ice_write_hist
+      public :: ice_write_hist, ice_read_hist
 
 !=======================================================================
 
@@ -44,7 +45,6 @@
 
       use ice_kinds_mod
       use ice_calendar, only: write_ic, dayyr, histfreq, use_leap_years
-      use ice_communicate, only: my_task, master_task
       use ice_constants, only: spval
       use ice_domain_size, only: nx_global, ny_global, max_nstrm
       use ice_read_write, only: ice_open, ice_write
@@ -71,6 +71,14 @@
       logical (kind=log_kind) :: diag
 
       character(len=*), parameter :: subname = '(ice_write_hist)'
+
+      ! not supported in binary IO
+      if (write_histrest_now) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' WARNING: history restarts not supported with binary IO'
+         endif
+         return
+      endif
 
       diag = .false.
 
@@ -163,7 +171,8 @@
                 .or. n==n_vort(ns)                              &  ! snapshots
                 .or. n==n_sig1(ns)      .or. n==n_sig2(ns)      &
                 .or. n==n_sigP(ns)      .or. n==n_trsig(ns)     &
-                .or. n==n_sistreave(ns) .or. n==n_sistremax(ns) &
+                .or. n==n_sidivvel(ns)  .or. n==n_sishearvel(ns) &
+                .or. n==n_sistressave(ns) .or. n==n_sistressmax(ns) &
                 .or. n==n_mlt_onset(ns) .or. n==n_frz_onset(ns) &
                 .or. n==n_hisnap(ns)    .or. n==n_aisnap(ns)) then
                write (nu_hdr, 996) nrec,trim(avail_hist_fields(n)%vname), &
@@ -396,6 +405,22 @@
 
       end subroutine ice_write_hist
 
+!=======================================================================
+!
+! read history restarts, only called for history restarts
+! NOT supported with Binary
+!
+! author:   T. Craig, Nov 2025
+
+      subroutine ice_read_hist
+
+      character(len=*), parameter :: subname = '(ice_read_hist)'
+
+      if (my_task == master_task) then
+         write(nu_diag,*) subname,' WARNING: history restarts not supported with binary IO'
+      endif
+
+      end subroutine ice_read_hist
 !=======================================================================
 
       end module ice_history_write

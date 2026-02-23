@@ -7,6 +7,15 @@ smoke          gx3     8x2        histall,ionetcdf,iocdf5,run5day
 #smoke          gx3     8x2        histall,iopio2,iocdf5   smoke_gx3_8x2_histall_iocdf5_ionetcdf
 smoke          gx3     8x2        histall,iopio2,iocdf5,run5day
 
+# history restart tests
+restart        gx3    15x2        gx3ncarbulk,fsd12,isotope,debug,histall10d,iobinary
+restart        gx3    18x1        debug,fsd12,isotope,bgczm,histall10d,ionetcdf,iocdf5
+restart        gx3    20x2        debug,fsd12,isotope,bgczm,histall10d,iopio1,iocdf5
+restart        gx3    18x2        debug,fsd12,isotope,bgczm,histall10d,iopio2,iocdf2
+restart        gx3    10x2        fsd12,isotope,bgczm,histall10d,ionetcdf,iocdf2
+restart        gx3    40x1        fsd12,isotope,bgczm,histall10d,iopio1,iocdf1
+restart        gx3    17x2        fsd12,isotope,bgczm,histall10d,iopio2,iocdf5
+
 # some iobinary configurations fail due to bathymetry netcdf file requirement, remove them
 # iobinary cannot work with JRA55 because netcdf is turned off
 restart        gx3     8x4        gx3ncarbulk,debug,histall,iobinary,precision8
@@ -68,3 +77,4 @@ restart        gx3     8x4        isotope,histall,iopio2,iohdf5,precision8
 restart        gx3    12x2        fsd12,histall,iopio2,iocdf1,precision8
 restart        gx3    16x2        debug,histall,iopio2,iocdf2,histinst,precision8
 
+restart        gx3    12x2        cmip,ionetcdf,iocdf2

@@ -18,6 +18,7 @@
 ! 2009 D Bailey and ECH: Generalized for multiple frequency output
 ! 2010 Alison McLaren and ECH: Added 3D capability
 ! 2013 ECH split from ice_history.F90
+! 2025 T Craig: Add history restart capability
 
       module ice_history_write
 
@@ -47,7 +48,7 @@
         character (len=20)   :: coordinates
       END TYPE req_attributes
 
-      public :: ice_write_hist
+      public :: ice_write_hist, ice_read_hist
 
       integer (kind=int_kind) :: imtid,jmtid
 
@@ -58,6 +59,7 @@
 !=======================================================================
 !
 ! write average ice quantities or snapshots
+! supports history output, write_ic, and history restarts
 !
 ! author:   Elizabeth C. Hunke, LANL
 
@@ -73,6 +75,7 @@
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info
       use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
+      use ice_flux, only: albcnt, snwcnt
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
           hm, uvm, npm, epm, bm, tarea, uarea, narea, earea, &
@@ -80,6 +83,7 @@
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
+      use ice_restart_shared, only: restart_dir
 #ifdef CESMCOUPLED
       use ice_restart_shared, only: runid
 #endif
@@ -93,8 +97,8 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work1
 
       integer (kind=int_kind) :: i,k,ic,n,nn, &
-         ncid,status,kmtidi,kmtids,kmtidb, cmtid,timid,varid, &
-         nvertexid,ivertex,kmtida,iflag, fmtid
+         ncid,status,kmtidi,kmtids,kmtidb,cmtid,timid,varid, &
+         nvertexid,ivertex,kmtida,iflag,fmtid,lhistprec
       integer (kind=int_kind), dimension(3) :: dimid
       integer (kind=int_kind), dimension(4) :: dimidz
       integer (kind=int_kind), dimension(5) :: dimidcz
@@ -111,6 +115,7 @@
 
       character (char_len) :: start_time,current_date,current_time
       character (len=8) :: cdate
+      character (len=1) :: cns
 
       ! time coord
       TYPE(coord_attributes) :: time_coord
@@ -137,16 +142,30 @@
           file=__FILE__, line=__LINE__)
 
       extvars = ''
+      write(cns,'(i1.1)') ns
+
+      ! modify history restart output
+      lhistprec = history_precision
+      if (write_histrest_now) then
+         history_precision = 8
+      endif
+
       lprecision = nf90_float
       if (history_precision == 8) lprecision = nf90_double
 
       if (my_task == master_task) then
 
-         call construct_filename(ncfile,'nc',ns)
+         if (write_histrest_now) then
+            call construct_filename(ncfile,'nc',ns, option='histrest')
+         else
+            call construct_filename(ncfile,'nc',ns)
+         endif
 
          ! add local directory path name to ncfile
          if (write_ic) then
             ncfile = trim(incond_dir)//ncfile
+         elseif (write_histrest_now) then
+            ncfile = trim(restart_dir)//ncfile
          else
             ncfile = trim(history_dir)//ncfile
          endif
@@ -270,14 +289,15 @@
             endif
 
             ! Define coord time_bounds if hist_avg is true
-            ! bounds inherit attributes
             if (hist_avg(ns) .and. .not. write_ic) then
-               time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
+               time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units), 'undefined')
 
                dimid(1) = boundid
                dimid(2) = timid
 
                call ice_hist_coord_def(ncid, time_coord, nf90_double, dimid(1:2), varid)
+               status = nf90_put_att(ncid,varid,'calendar',cal_att) !extra attribute
+               call ice_check_nc(status,  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
             endif
 
          endif  ! histfreq(ns)/='g'
@@ -406,15 +426,22 @@
 
          ! bounds fields are required for CF compliance
          ! dimensions (nx,ny,nverts)
-         ! bounds inherit attributes
-         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
-         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
-         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
-         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
-         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
-         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
-         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
-         var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
+         var_nverts(n_lont_bnds) = coord_attributes('lont_bounds', &
+                   'longitude of gridbox corners for T points','degrees_east','und')
+         var_nverts(n_latt_bnds) = coord_attributes('latt_bounds', &
+                   'latitude of gridbox corners for T points','degrees_north','und')
+         var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds', &
+                   'longitude of gridbox corners for U points','degrees_east','und')
+         var_nverts(n_latu_bnds) = coord_attributes('latu_bounds', &
+                   'latitude of gridbox corners for U points','degrees_north','und')
+         var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds', &
+                   'longitude of gridbox corners for N points','degrees_east','und')
+         var_nverts(n_latn_bnds) = coord_attributes('latn_bounds', &
+                   'latitude of gridbox corners for N points','degrees_north','und')
+         var_nverts(n_lone_bnds) = coord_attributes('lone_bounds', &
+                   'longitude of gridbox corners for E points','degrees_east','und')
+         var_nverts(n_late_bnds) = coord_attributes('late_bounds', &
+                   'latitude of gridbox corners for E points','degrees_north','und')
 
          !-----------------------------------------------------------------
          ! define attributes for time-invariant variables
@@ -473,7 +500,6 @@
          enddo
 
          ! bounds fields with dimensions (nverts,nx,ny)
-         ! bounds inherits attributes
          dimid_nverts(1) = nvertexid
          dimid_nverts(2) = imtid
          dimid_nverts(3) = jmtid
@@ -486,6 +512,13 @@
          !-----------------------------------------------------------------
          ! define attributes for time-variant variables
          !-----------------------------------------------------------------
+
+         if (write_histrest_now) then
+            status = nf90_def_var(ncid, 'time_beg', lprecision, varid=varid)
+            status = nf90_def_var(ncid, 'avgct', lprecision, varid=varid)
+            status = nf90_def_var(ncid, 'albcnt'//cns, lprecision, dimid, varid)
+            status = nf90_def_var(ncid, 'snwcnt'//cns, lprecision, dimid, varid)
+         endif
 
          do n=1,num_avail_hist_fields_2D
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -591,6 +624,7 @@
          !-----------------------------------------------------------------
          ! ... the user should change these to something useful ...
          !-----------------------------------------------------------------
+
 #ifdef CESMCOUPLED
          status = nf90_put_att(ncid,nf90_global,'title',runid)
          call ice_check_nc(status, subname// ' ERROR: in global attribute title', &
@@ -966,12 +1000,48 @@
       ! write variable data
       !-----------------------------------------------------------------
 
+      if (write_histrest_now) then
+         if (my_task == master_task) then
+            status  = nf90_inq_varid(ncid,'time_beg',varid)
+            call ice_check_nc(status, subname// ' ERROR: getting varid for '//'time_beg', &
+                              file=__FILE__, line=__LINE__)
+            status  = nf90_put_var(ncid,varid,time_beg(ns))
+            call ice_check_nc(status, subname// ' ERROR: writing variable '//'time_beg', &
+                              file=__FILE__, line=__LINE__)
+            status  = nf90_inq_varid(ncid,'avgct',varid)
+            call ice_check_nc(status, subname// ' ERROR: getting varid for '//'avgct', &
+                              file=__FILE__, line=__LINE__)
+            status  = nf90_put_var(ncid,varid,avgct(ns))
+            call ice_check_nc(status, subname// ' ERROR: writing variable '//'avgct', &
+                              file=__FILE__, line=__LINE__)
+         endif
+         call gather_global(work_g1, albcnt(:,:,:,ns), master_task, distrb_info)
+         if (my_task == master_task) then
+            status  = nf90_inq_varid(ncid,'albcnt'//cns,varid)
+            call ice_check_nc(status, subname// ' ERROR: getting varid for '//'albcnt'//cns, &
+                              file=__FILE__, line=__LINE__)
+            status  = nf90_put_var(ncid,varid,work_g1, &
+                                   count=(/nx_global,ny_global/))
+            call ice_check_nc(status, subname// ' ERROR: writing variable '//'albcnt'//cns, &
+                              file=__FILE__, line=__LINE__)
+         endif
+         call gather_global(work_g1, snwcnt(:,:,:,ns), master_task, distrb_info)
+         if (my_task == master_task) then
+            status  = nf90_inq_varid(ncid,'snwcnt'//cns,varid)
+            call ice_check_nc(status, subname// ' ERROR: getting varid for '//'snwcnt'//cns, &
+                              file=__FILE__, line=__LINE__)
+            status  = nf90_put_var(ncid,varid,work_g1, &
+                                   count=(/nx_global,ny_global/))
+            call ice_check_nc(status, subname// ' ERROR: writing variable '//'snwcnt'//cns, &
+                              file=__FILE__, line=__LINE__)
+         endif
+      endif
+
       work_g1(:,:) = c0
 
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call gather_global(work_g1, a2D(:,:,n,:), &
-                               master_task, distrb_info)
+            call gather_global(work_g1, a2D(:,:,n,:), master_task, distrb_info)
             if (my_task == master_task) then
                status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
@@ -996,9 +1066,7 @@
                                  file=__FILE__, line=__LINE__)
             endif
             do k = 1, ncat_hist
-               call gather_global(work_g1, a3Dc(:,:,k,nn,:), &
-                                  master_task, distrb_info)
-
+               call gather_global(work_g1, a3Dc(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                   call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
@@ -1024,9 +1092,7 @@
                                  file=__FILE__, line=__LINE__)
             endif
             do k = 1, nzilyr
-               call gather_global(work_g1, a3Dz(:,:,k,nn,:), &
-                                  master_task, distrb_info)
-
+               call gather_global(work_g1, a3Dz(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k/), &
@@ -1049,9 +1115,7 @@
                                  file=__FILE__, line=__LINE__)
             endif
             do k = 1, nzblyr
-               call gather_global(work_g1, a3Db(:,:,k,nn,:), &
-                                  master_task, distrb_info)
-
+               call gather_global(work_g1, a3Db(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k/), &
@@ -1074,9 +1138,7 @@
                                  file=__FILE__, line=__LINE__)
             endif
             do k = 1, nzalyr
-               call gather_global(work_g1, a3Da(:,:,k,nn,:), &
-                                  master_task, distrb_info)
-
+               call gather_global(work_g1, a3Da(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k/), &
@@ -1099,8 +1161,7 @@
                                  file=__FILE__, line=__LINE__)
             endif
             do k = 1, nfsd_hist
-               call gather_global(work_g1, a3Df(:,:,k,nn,:), &
-                                  master_task, distrb_info)
+               call gather_global(work_g1, a3Df(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k/), &
@@ -1124,8 +1185,7 @@
             endif
             do ic = 1, ncat_hist
             do k = 1, nzilyr
-               call gather_global(work_g1, a4Di(:,:,k,ic,nn,:), &
-                                  master_task, distrb_info)
+               call gather_global(work_g1, a4Di(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
@@ -1150,8 +1210,7 @@
             endif
             do ic = 1, ncat_hist
             do k = 1, nzslyr
-               call gather_global(work_g1, a4Ds(:,:,k,ic,nn,:), &
-                                  master_task, distrb_info)
+               call gather_global(work_g1, a4Ds(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
@@ -1174,8 +1233,7 @@
             endif
             do ic = 1, ncat_hist
             do k = 1, nfsd_hist
-               call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), &
-                                  master_task, distrb_info)
+               call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
                                          start=(/        1,        1,k,ic/), &
@@ -1198,8 +1256,12 @@
          status = nf90_close(ncid)
          call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
                            file=__FILE__, line=__LINE__)
-         write(nu_diag,*) ' '
-         write(nu_diag,*) 'Finished writing ',trim(ncfile)
+         write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+      endif
+
+      ! reset history parameters
+      if (write_histrest_now) then
+         history_precision = lhistprec
       endif
 
 #else
@@ -1209,8 +1271,423 @@
       end subroutine ice_write_hist
 
 !=======================================================================
+!
+! read history restarts, only called for history restarts
+!
+! author:   T. Craig Nov 2025
+
+      subroutine ice_read_hist
+
+      use ice_kinds_mod
+      use ice_blocks, only: nx_block, ny_block
+      use ice_broadcast, only: broadcast_scalar
+      use ice_calendar, only: nstreams, histfreq
+      use ice_communicate, only: my_task, master_task
+      use ice_constants, only: field_loc_noupdate, field_type_noupdate
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
+      use ice_flux, only: albcnt, snwcnt
+      use ice_gather_scatter, only: scatter_global
+      use ice_history_shared
+      use ice_restart_shared, only: restart_dir
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension(:,:),   allocatable :: work_g1
+
+      integer (kind=int_kind) :: k,ic,n,nn,ns,ncid,status,varid
+      character (char_len_long) :: ncfile
+      character (len=1) :: cns
+      character (len=32) :: readstr
+      character (len=*), parameter :: readstrT = ' read ok:'
+      character (len=*), parameter :: readstrF = ' DID NOT READ:'
+
+      character(len=*), parameter :: subname = '(ice_read_hist)'
+
+      call ice_timer_start(timer_readwrite)  ! reading/writing
+      do ns = 1,nstreams
+      if (hist_avg(ns)) then
+
+         write(cns,'(i1.1)') ns
+#ifdef USE_NETCDF
+         if (my_task == master_task) then
+
+            call construct_filename(ncfile,'nc',ns, option='histrest')
+
+            ! add local directory path name to ncfile
+            ncfile = trim(restart_dir)//ncfile
+
+            ! open file
+            status = nf90_open(ncfile, nf90_nowrite, ncid)
+         endif                     ! master_task
+
+         call broadcast_scalar(status,master_task)
+         if (status /= nf90_noerr) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' file not found ',trim(ncfile)
+            endif
+         else
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' reading file ',trim(ncfile)
+            endif
+
+            if (my_task==master_task) then
+               allocate(work_g1(nx_global,ny_global))
+            else
+               allocate(work_g1(1,1))
+            endif
+
+            work_g1(:,:) = c0
+
+            !-----------------------------------------------------------------
+            ! read variable data
+            !-----------------------------------------------------------------
+
+            if (my_task == master_task) then
+               readstr = readstrF
+               status  = nf90_inq_varid(ncid,'time_beg',varid)
+               if (status == nf90_noerr) status  = nf90_get_var(ncid,varid,time_beg(ns))
+               if (status == nf90_noerr) readstr = readstrT
+               write(nu_diag,*) subname,trim(readstr),' time_beg'
+
+               readstr = readstrF
+               status  = nf90_inq_varid(ncid,'avgct',varid)
+               if (status == nf90_noerr) status  = nf90_get_var(ncid,varid,avgct(ns))
+               if (status == nf90_noerr) readstr = readstrT
+               write(nu_diag,*) subname,trim(readstr),' time_beg'
+            endif
+            call broadcast_scalar(time_beg(ns),master_task)
+            call broadcast_scalar(avgct(ns),master_task)
+
+            if (my_task == master_task) then
+               readstr = readstrF
+               status  = nf90_inq_varid(ncid,'albcnt'//cns,varid)
+               if (status == nf90_noerr) then
+                  status  = nf90_get_var(ncid,varid,work_g1, &
+                                         count=(/nx_global,ny_global/))
+                  if (status == nf90_noerr) readstr = readstrT
+               endif
+               write(nu_diag,*) subname,trim(readstr),' albcnt'//cns
+            endif
+            call broadcast_scalar(status,master_task)
+            if (status == nf90_noerr) then
+               call scatter_global(albcnt(:,:,:,ns), work_g1, master_task, distrb_info, &
+                                   field_loc_noupdate, field_type_noupdate)
+            endif
+
+            if (my_task == master_task) then
+               readstr = readstrF
+               status  = nf90_inq_varid(ncid,'snwcnt'//cns,varid)
+               if (status == nf90_noerr) then
+                  status  = nf90_get_var(ncid,varid,work_g1, &
+                                         count=(/nx_global,ny_global/))
+                  if (status == nf90_noerr) readstr = readstrT
+               endif
+               write(nu_diag,*) subname,trim(readstr),' snwcnt'//cns
+            endif
+            call broadcast_scalar(status,master_task)
+            if (status == nf90_noerr) then
+               call scatter_global(snwcnt(:,:,:,ns), work_g1, master_task, distrb_info, &
+                                   field_loc_noupdate, field_type_noupdate)
+            endif
+
+            do n=1,num_avail_hist_fields_2D
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                     if (status == nf90_noerr) then
+                        status  = nf90_get_var(ncid,varid,work_g1, &
+                                               count=(/nx_global,ny_global/))
+                        if (status == nf90_noerr) readstr = readstrT
+                     endif
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     call scatter_global(a2D(:,:,n,:), work_g1, master_task, distrb_info, &
+                                         field_loc_noupdate, field_type_noupdate)
+                  endif
+               endif
+            enddo ! num_avail_hist_fields_2D
+
+            do n = n2D + 1, n3Dccum
+               nn = n - n2D
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do k = 1, ncat_hist
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k/), &
+                                                  count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a3Dc(:,:,k,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_3Dc
+
+            work_g1(:,:) = c0
+
+            do n = n3Dccum+1, n3Dzcum
+               nn = n - n3Dccum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do k = 1, nzilyr
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k/), &
+                                                  count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a3Dz(:,:,k,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_3Dz
+
+            work_g1(:,:) = c0
+
+            do n = n3Dzcum+1, n3Dbcum
+               nn = n - n3Dzcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do k = 1, nzblyr
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k/), &
+                                                  count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a3Db(:,:,k,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_3Db
+
+            work_g1(:,:) = c0
+
+            do n = n3Dbcum+1, n3Dacum
+               nn = n - n3Dbcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do k = 1, nzalyr
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k/), &
+                                                  count=(/nx_global,ny_global,1/))
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a3Da(:,:,k,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_3Da
+
+            work_g1(:,:) = c0
+
+            do n = n3Dacum+1, n3Dfcum
+               nn = n - n3Dacum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do k = 1, nfsd_hist
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k/), &
+                                                  count=(/nx_global,ny_global,1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a3Df(:,:,k,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_3Df
+
+            work_g1(:,:) = c0
+
+            do n = n3Dfcum+1, n4Dicum
+               nn = n - n3Dfcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do ic = 1, ncat_hist
+                     do k = 1, nzilyr
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k,ic/), &
+                                                  count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a4Di(:,:,k,ic,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                     enddo ! ic
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_4Di
+
+            work_g1(:,:) = c0
+
+            do n = n4Dicum+1, n4Dscum
+               nn = n - n4Dicum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do ic = 1, ncat_hist
+                     do k = 1, nzslyr
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k,ic/), &
+                                                  count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a4Ds(:,:,k,ic,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                     enddo ! ic
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_4Ds
+
+            do n = n4Dscum+1, n4Dfcum
+               nn = n - n4Dscum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  if (my_task == master_task) then
+                     status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
+                  endif
+                  call broadcast_scalar(status,master_task)
+                  if (status == nf90_noerr) then
+                     do ic = 1, ncat_hist
+                     do k = 1, nfsd_hist
+                        if (my_task == master_task) then
+                           status  = nf90_get_var(ncid,varid,work_g1, &
+                                                  start=(/        1,        1,k,ic/), &
+                                                  count=(/nx_global,ny_global,1, 1/))
+                           if (status == nf90_noerr) readstr = readstrT
+                        endif
+                        call broadcast_scalar(status,master_task)
+                        if (status == nf90_noerr) then
+                           call scatter_global(a4Df(:,:,k,ic,nn,:), work_g1, master_task, distrb_info, &
+                                               field_loc_noupdate, field_type_noupdate)
+                        endif
+                     enddo ! k
+                     enddo ! ic
+                  endif ! varid
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif ! histfreq
+            enddo ! num_avail_hist_fields_4Df
+
+            deallocate(work_g1)
+
+            !-----------------------------------------------------------------
+            ! close output dataset
+            !-----------------------------------------------------------------
+
+            if (my_task == master_task) then
+               status = nf90_close(ncid)
+               call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
+                                 file=__FILE__, line=__LINE__)
+               write(nu_diag,*) subname,' Finished reading ',trim(ncfile)
+            endif
+
+         endif ! open file success
+      endif ! hist_avg
+      enddo ! nstreams
+      call ice_timer_stop(timer_readwrite)  ! reading/writing
+
+#else
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine ice_read_hist
+
+!=======================================================================
 ! Defines a (time-dependent) history var in the history file
-! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+! variables have short_name, long_name and units, coordinates and cell_measures attributes,
 !  and are compressed and chunked for 'hdf5'
 
       subroutine ice_hist_field_def(ncid, hfield, lprecision, dimids, ns)
@@ -1284,10 +1761,20 @@
       if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
-           .and.TRIM(hfield%vname(1:9))/='sistreave' &
-           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:5))/='trsig' &
+           .and.TRIM(hfield%vname(1:4))/='divu' &
+           .and.TRIM(hfield%vname(1:5))/='shear' &
+           .and.TRIM(hfield%vname(1:4))/='vort' &
+           .and.TRIM(hfield%vname(1:9))/='frz_onset' &
+           .and.TRIM(hfield%vname(1:9))/='mlt_onset' &
+           .and.TRIM(hfield%vname(1:6))/='aisnap' &
+           .and.TRIM(hfield%vname(1:6))/='hisnap' &
+           .and.TRIM(hfield%vname(1:8))/='sidivvel' &
+           .and.TRIM(hfield%vname(1:10))/='sishearvel' &
+           .and.TRIM(hfield%vname(1:11))/='sistressave' &
+           .and.TRIM(hfield%vname(1:11))/='sistressmax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-             if (hfield%avg_ice_present) then
+             if (trim(hfield%avg_ice_present) /= 'none') then
                 status = nf90_put_att(ncid,varid,'cell_methods','area: time: mean where sea ice (mask=siconc)')
                 call ice_check_nc(status, subname// ' ERROR: defining cell methods for '//hfield%vname, &
                                   file=__FILE__, line=__LINE__)
@@ -1309,8 +1796,10 @@
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &
           .or.TRIM(hfield%vname(1:5))=='trsig' &
-          .or.TRIM(hfield%vname(1:9))=='sistreave' &
-          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:8))=='sidivvel' &
+          .or.TRIM(hfield%vname(1:10))=='sishearvel' &
+          .or.TRIM(hfield%vname(1:11))=='sistressave' &
+          .or.TRIM(hfield%vname(1:11))=='sistressmax' &
           .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &

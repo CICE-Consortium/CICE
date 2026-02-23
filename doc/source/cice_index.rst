@@ -784,6 +784,8 @@ section :ref:`tabnamelist`.
    "wind", "wind speed", "m/s"
    "windmin", "minimum wind speed to compact snow", "10 m/s"
    "write_history", "if true, write history now", "" 
+   "write_histrest", "if true, write out history restart files if needed", ""
+   "write_histrest_now", "write out history restart files now", ""
    "write_ic", "if true, write initial conditions", ""
    "write_restart", "if 1, write restart now", ""
    "**X**", "", ""
