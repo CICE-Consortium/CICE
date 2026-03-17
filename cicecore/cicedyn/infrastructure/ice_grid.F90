@@ -3341,7 +3341,7 @@
          puny
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-            uvmCD
+         uvmCD
 
       type (block) :: &
          this_block           ! block information for current block
@@ -3367,6 +3367,7 @@
       bm = c0
       allocate(uvmCD(nx_block,ny_block,max_blocks), stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+      uvmCD = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
