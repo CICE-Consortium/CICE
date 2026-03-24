@@ -375,6 +375,17 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
+else if (${ICE_MACHINE} =~ betzy*) then
+cat >> ${jobfile} << EOFB
+#SBATCH -J  CICE6
+#SBATCH --nodes ${nnodes}
+#SBATCH --ntasks ${ntasks}
+#SBATCH --qos=devel
+#SBATCH --cpus-per-task ${nthrds}
+#SBATCH --account=nn9481k
+#SBATCH --time=${batchtime}
+EOFB
+
 else if (${ICE_MACHINE} =~ boreas* ) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
