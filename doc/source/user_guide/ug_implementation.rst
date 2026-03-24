@@ -424,9 +424,8 @@ category as a fourth dimension.
 Boundary Conditions
 *******************
 
-Much of the infrastructure used in CICE, including the boundary
-routines, is adopted from POP. The boundary routines perform boundary
-communications between blocks in CICE whether those blocks are not the
+The boundary routines perform boundary
+communications between blocks in CICE whether those blocks are on the
 same or different MPI tasks.  Neighbor data is communicated between 
 blocks via the ice_HaloUpdate method.  The HaloUpdate also computes
 values on the halo at the edge of the grid.
@@ -441,8 +440,13 @@ apply boundary conditions of zero or constant gradient values based on
 interior values near the boundary.  ``cyclic`` boundary conditions communicate
 neighbor data from the opposite side of the grid.  ``open`` boundary conditions
 do not impose any values on the boundary.  This might be useful in cases where
-restoring might be used.  In general, where the boundary is land or where there 
-is no ice on the boundary, the boundary_type settings and boundary conditions play no role.
+external data is specified on the outside boundary.  The ``zero_gradient`` and 
+``linear_extrap`` boundary conditions have been implemented as an interim step 
+toward a regional grid capability. Until restoring options are complete and the 
+regional capability is fully tested, these boundary conditions may produce 
+nonphysical values such as negative ice thickness.
+In general, where the boundary is land or where there is no ice on the boundary, 
+the boundary_type settings and boundary conditions play no role.
 
 In the displaced-pole global grids, the mask (kmt) file has at least one row of 
 grid cells along the north and south boundaries that is land.  Along the east/west 
