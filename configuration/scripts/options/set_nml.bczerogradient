@@ -1,0 +1,3 @@
+ew_boundary_type = 'zero_gradient'
+ns_boundary_type = 'zero_gradient'
+restart_ext = .true.

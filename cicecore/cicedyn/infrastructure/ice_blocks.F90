@@ -216,7 +216,7 @@ contains
 
          if (jblock == nblocks_y .and. &
              (ns_boundary_type == 'tripole' .or. &
-             ns_boundary_type == 'tripoleT')) then
+              ns_boundary_type == 'tripoleT')) then
              all_blocks(n)%tripole = .true.
          else
              all_blocks(n)%tripole = .false.
@@ -234,16 +234,8 @@ contains
                select case (ns_boundary_type)
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) + ny_global
-               case ('open')
-                  ! lower to upper
-               case ('closed')
-                  ! lower to upper
-               case ('tripole')
-                  ! lower to upper
-               case ('tripoleT')
-                  ! lower to upper
                case default
-                  call abort_ice(subname//' ERROR: unknown n-s bndy type')
+                  ! lower to upper
                end select
             endif
 
@@ -258,16 +250,12 @@ contains
                select case (ns_boundary_type)
                case ('cyclic')
                   j_global(j,n) = j_global(j,n) - ny_global
-               case ('open')
-                  ! lower to upper
-               case ('closed')
-                  ! lower to upper
                case ('tripole')
                   j_global(j,n) = -j_global(j,n)  ! negative
                case ('tripoleT')
                   j_global(j,n) = -j_global(j,n)  ! negative
                case default
-                  call abort_ice(subname//' ERROR: unknown n-s bndy type')
+                  ! lower to upper
                end select
 
             !*** set last physical point if padded domain
@@ -290,12 +278,8 @@ contains
                select case (ew_boundary_type)
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) + nx_global
-               case ('open')
-                  ! left to right
-               case ('closed')
-                  ! left to right
                case default
-                  call abort_ice(subname//' ERROR: unknown e-w bndy type')
+                  ! left to right
                end select
             endif
 
@@ -310,12 +294,8 @@ contains
                select case (ew_boundary_type)
                case ('cyclic')
                   i_global(i,n) = i_global(i,n) - nx_global
-               case ('open')
-                  ! left to right
-               case ('closed')
-                  ! left to right
                case default
-                  call abort_ice(subname//' ERROR: unknown e-w bndy type')
+                  ! left to right
                end select
 
             !*** last physical point in padded domain
@@ -431,10 +411,6 @@ end subroutine create_blocks
       jnbr = jBlock + 1
       if (jnbr > nblocks_y) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = 1
          case ('tripole':'tripoleT')
@@ -447,7 +423,7 @@ end subroutine create_blocks
             inbr =  nblocks_x - iBlock + 1
             jnbr = -jBlock
          case default
-            call abort_ice(subname//' ERROR: unknown north boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -457,18 +433,10 @@ end subroutine create_blocks
       jnbr = jBlock - 1
       if (jnbr < 1) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = nblocks_y
-         case ('tripole')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('tripoleT')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//' ERROR: unknown south boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -478,14 +446,10 @@ end subroutine create_blocks
       jnbr = jBlock
       if (inbr > nblocks_x) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//' ERROR: unknown east boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -495,14 +459,10 @@ end subroutine create_blocks
       inbr = iBlock - 1
       if (inbr < 1) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//' ERROR: unknown west boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -512,22 +472,14 @@ end subroutine create_blocks
       jnbr = jBlock + 1
       if (inbr > nblocks_x) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//' ERROR: unknown east boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr > nblocks_y) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = 1
          case ('tripole':'tripoleT')
@@ -541,7 +493,7 @@ end subroutine create_blocks
             if (inbr == 0) inbr = nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//' ERROR: unknown north boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -551,22 +503,14 @@ end subroutine create_blocks
       jnbr = jBlock + 1
       if (inbr < 1) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//' ERROR: unknown west boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr > nblocks_y) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = 1
          case ('tripole':'tripoleT')
@@ -580,7 +524,7 @@ end subroutine create_blocks
             if (inbr > nblocks_x) inbr = 1
             jnbr = -jBlock
          case default
-            call abort_ice(subname//' ERROR: unknown north boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -590,30 +534,18 @@ end subroutine create_blocks
       jnbr = jBlock - 1
       if (inbr > nblocks_x) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = 1
          case default
-            call abort_ice(subname//' ERROR: unknown east boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr < 1) then
          select case(jBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = nblocks_y
-         case ('tripole')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('tripoleT')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//' ERROR: unknown south boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -622,30 +554,18 @@ end subroutine create_blocks
       jnbr = jBlock - 1
       if (inbr < 1) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = nblocks_x
          case default
-            call abort_ice(subname//' ERROR: unknown west boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr < 1) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = nblocks_y
-         case ('tripole')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('tripoleT')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
          case default
-            call abort_ice(subname//' ERROR: unknown south boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -655,14 +575,10 @@ end subroutine create_blocks
       jnbr = jBlock
       if (inbr > nblocks_x) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = inbr - nblocks_x
          case default
-            call abort_ice(subname//' ERROR: unknown east boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -671,14 +587,10 @@ end subroutine create_blocks
       inbr = iBlock - 2
       if (inbr < 1) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = nblocks_x + inbr
          case default
-            call abort_ice(subname//' ERROR: unknown west boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -688,22 +600,14 @@ end subroutine create_blocks
       jnbr = jBlock + 1
       if (inbr > nblocks_x) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = inbr - nblocks_x
          case default
-            call abort_ice(subname//' ERROR: unknown east boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr > nblocks_y) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = jnbr - nblocks_y
          case ('tripole':'tripoleT')
@@ -717,7 +621,7 @@ end subroutine create_blocks
             if (inbr <= 0) inbr = inbr + nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//' ERROR: unknown north boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 
@@ -727,22 +631,14 @@ end subroutine create_blocks
       jnbr = jBlock + 1
       if (inbr < 1) then
          select case(iBoundary)
-         case ('open')
-            inbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            inbr = 0
          case ('cyclic')
             inbr = nblocks_x + inbr
          case default
-            call abort_ice(subname//' ERROR: unknown west boundary')
+            inbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
       if (jnbr > nblocks_y) then
          select case(jBoundary)
-         case ('open')
-            jnbr = 0 ! do not write into the neighbor's ghost cells
-         case ('closed')
-            jnbr = 0
          case ('cyclic')
             jnbr = jnbr + nblocks_y
          case ('tripole':'tripoleT')
@@ -756,7 +652,7 @@ end subroutine create_blocks
             if (inbr > nblocks_x) inbr = inbr - nblocks_x
             jnbr = -jBlock
          case default
-            call abort_ice(subname//' ERROR: unknown north boundary')
+            jnbr = 0 ! do not write into the neighbor's ghost cells
          end select
       endif
 

@@ -5,7 +5,7 @@
       use ice_kinds_mod, only: int_kind, dbl_kind, real_kind, log_kind
       use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot, nghost
       use ice_boundary, only: ice_HaloUpdate, ice_HaloUpdate_stress
-      use ice_constants, only: c0, c1, p5, &
+      use ice_constants, only: c0, c1, c2, p5, &
           field_loc_unknown, field_loc_noupdate, &
           field_loc_center, field_loc_NEcorner, &
           field_loc_Nface, field_loc_Eface, &
@@ -69,10 +69,10 @@
       integer(int_kind), parameter :: nz1 = 3
       integer(int_kind), parameter :: nz2 = 4
       real(dbl_kind)    :: aichk,ajchk,cichk,cjchk,rival,rjval,rsign
-      real(dbl_kind)    :: fillexpected
+      real(dbl_kind)    :: fillexpected,cichk1,cichk2,cjchk1,cjchk2,wgt1,wgt2
       character(len=16) :: locs_name(maxlocs), types_name(maxtypes), fill_name(maxfills)
       integer(int_kind) :: field_loc(maxlocs), field_type(maxtypes)
-      logical :: halofill
+      logical :: halofill, found
       integer(int_kind) :: npes, ierr, ntask, testcnt, tottest, tpcnt, tfcnt
       integer(int_kind) :: errorflag0, gflag, k1m, k2m, ptcntsum, failcntsum
       integer(int_kind), allocatable :: errorflag(:)
@@ -461,8 +461,8 @@
                larrayj1 = (mod(nint(darrayj1),2) == 1)
             endwhere
             if (halofill) then
-               call ice_haloUpdate(larrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=0)
-               call ice_haloUpdate(larrayj1, halo_info, field_loc(nl), field_type(nt), fillvalue=1)
+               call ice_haloUpdate(larrayi1, halo_info, field_loc(nl), field_type(nt), fillvalue=.false.)
+               call ice_haloUpdate(larrayj1, halo_info, field_loc(nl), field_type(nt), fillvalue=.true.)
             else
                call ice_haloUpdate(larrayi1, halo_info, field_loc(nl), field_type(nt))
                call ice_haloUpdate(larrayj1, halo_info, field_loc(nl), field_type(nt))
@@ -486,7 +486,7 @@
             endif
          endif
 
-         write(teststring(testcnt),'(6a8)') trim(halofld),trim(locs_name(nl)),trim(types_name(nt)),trim(fill_name(nf)), &
+         write(teststring(testcnt),'(4a8,2a12)') trim(halofld),trim(locs_name(nl)),trim(types_name(nt)),trim(fill_name(nf)), &
                       trim(ew_boundary_type),trim(ns_boundary_type)
 
          do iblock = 1,numBlocks
@@ -538,7 +538,8 @@
                   endif
 
                else
-                  ! if ew_boundary_type is not cyclic we expect just fill values on outer boundary
+
+                  ! if boundary_type is not cyclic set outer boundary to fill, other special cases below
                   if (ew_boundary_type /= 'cyclic' .and. &
                       ((this_block%i_glob(ib) == 1         .and. i < ib) .or. &  ! west outer face
                        (this_block%i_glob(ie) == nx_global .and. i > ie))) then  ! east outer face
@@ -546,14 +547,13 @@
                      cjchk = fillexpected
                   endif
 
-                  ! if ns_boundary_type is not cyclic we expect just fill values on outer boundary except
+                  ! if boundary_type is not cyclic set outer boundary to fill, other special cases below
                   ! - tripole north edge will be haloed and is updated below, default to fill value for now
                   ! - tripole south edge will be set to the fillvalue or to haloupdate internal default (c0)
                   !   tripole basically assumes south edge is land or always ice free in CICE
                   if (ns_boundary_type /= 'cyclic' .and. &
                       ((this_block%j_glob(jb) == 1         .and. j < jb) .or. &  ! south outer face
                        (this_block%j_glob(je) == ny_global .and. j > je))) then  ! north outer face
-                     ! ns_boundary_type is not cyclic and on outer boundary
                      if ((ns_boundary_type == 'tripole' .or. &
                           ns_boundary_type == 'tripoleT') .and. &
                          .not. halofill) then
@@ -564,6 +564,119 @@
                         cjchk = fillexpected
                      endif
                   endif
+
+                  ! zero_gradient and linear_extrap edges then corners
+                  if (ew_boundary_type == 'zero_gradient' .or. ew_boundary_type == 'linear_extrap') then
+                     wgt1 = c1  ! zero_gradient
+                     wgt2 = c0
+                     if (this_block%i_glob(ib) == 1         .and. i < ib) then  ! West
+                        if (ew_boundary_type == 'linear_extrap') then
+                           wgt1 = real(ib-i+1,dbl_kind)
+                           wgt2 = real(ib-i  ,dbl_kind)   ! wgt1 - 1
+                        endif
+                        cichk = wgt1*cidata_bas(ib,j,k1,k2,iblock) - wgt2*cidata_bas(ib+1,j,k1,k2,iblock)
+                        cjchk = wgt1*cjdata_bas(ib,j,k1,k2,iblock) - wgt2*cjdata_bas(ib+1,j,k1,k2,iblock)
+                     elseif (this_block%i_glob(ie) == nx_global .and. i > ie) then  ! East
+                        if (ew_boundary_type == 'linear_extrap') then
+                           wgt1 = real(i-ie+1,dbl_kind)
+                           wgt2 = real(i-ie  ,dbl_kind)   ! wgt1 - 1
+                        endif
+                        cichk = wgt1*cidata_bas(ie,j,k1,k2,iblock) - wgt2*cidata_bas(ie-1,j,k1,k2,iblock)
+                        cjchk = wgt1*cjdata_bas(ie,j,k1,k2,iblock) - wgt2*cjdata_bas(ie-1,j,k1,k2,iblock)
+                     endif
+                  endif
+
+                  if (ns_boundary_type == 'zero_gradient' .or. ns_boundary_type == 'linear_extrap') then
+                     wgt1 = c1   ! zero_gradient
+                     wgt2 = c0
+                     if (this_block%j_glob(jb) == 1         .and. j < jb) then  ! South
+                        if (ns_boundary_type == 'linear_extrap') then
+                           wgt1 = real(jb-j+1,dbl_kind)
+                           wgt2 = real(jb-j  ,dbl_kind)   ! wgt1 - 1
+                        endif
+                        cichk = wgt1*cidata_bas(i,jb,k1,k2,iblock) - wgt2*cidata_bas(i,jb+1,k1,k2,iblock)
+                        cjchk = wgt1*cjdata_bas(i,jb,k1,k2,iblock) - wgt2*cjdata_bas(i,jb+1,k1,k2,iblock)
+                     elseif (this_block%j_glob(je) == ny_global .and. j > je) then  ! North
+                        if (ns_boundary_type == 'linear_extrap') then
+                           wgt1 = real(j-je+1,dbl_kind)
+                           wgt2 = real(j-je  ,dbl_kind)   ! wgt1 - 1
+                        endif
+                        cichk = wgt1*cidata_bas(i,je,k1,k2,iblock) - wgt2*cidata_bas(i,je-1,k1,k2,iblock)
+                        cjchk = wgt1*cjdata_bas(i,je,k1,k2,iblock) - wgt2*cjdata_bas(i,je-1,k1,k2,iblock)
+                     endif
+
+                     ! Boundary Corners, can come at it either direction, do ns then ew
+                     if (ew_boundary_type == 'zero_gradient' .or. ew_boundary_type == 'linear_extrap') then
+                        wgt1 = c1   ! zero_gradient
+                        wgt2 = c0
+                        found = .false.
+                        if (this_block%i_glob(ib) == 1         .and. i < ib) then
+                           if (this_block%j_glob(jb) == 1         .and. j < jb) then
+                              found = .true.  ! Southwest
+                              if (ns_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(jb-j+1,dbl_kind)
+                                 wgt2 = real(jb-j  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk1 = wgt1*cidata_bas(ib  ,jb,k1,k2,iblock) - wgt2*cidata_bas(ib  ,jb+1,k1,k2,iblock)
+                              cichk2 = wgt1*cidata_bas(ib+1,jb,k1,k2,iblock) - wgt2*cidata_bas(ib+1,jb+1,k1,k2,iblock)
+                              cjchk1 = wgt1*cjdata_bas(ib  ,jb,k1,k2,iblock) - wgt2*cjdata_bas(ib  ,jb+1,k1,k2,iblock)
+                              cjchk2 = wgt1*cjdata_bas(ib+1,jb,k1,k2,iblock) - wgt2*cjdata_bas(ib+1,jb+1,k1,k2,iblock)
+                           elseif (this_block%j_glob(je) == ny_global .and. j > je) then
+                              found = .true.  ! Northwest
+                              if (ns_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(j-je+1,dbl_kind)
+                                 wgt2 = real(j-je  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk1 = wgt1*cidata_bas(ib  ,je,k1,k2,iblock) - wgt2*cidata_bas(ib  ,je-1,k1,k2,iblock)
+                              cichk2 = wgt1*cidata_bas(ib+1,je,k1,k2,iblock) - wgt2*cidata_bas(ib+1,je-1,k1,k2,iblock)
+                              cjchk1 = wgt1*cjdata_bas(ib  ,je,k1,k2,iblock) - wgt2*cjdata_bas(ib  ,je-1,k1,k2,iblock)
+                              cjchk2 = wgt1*cjdata_bas(ib+1,je,k1,k2,iblock) - wgt2*cjdata_bas(ib+1,je-1,k1,k2,iblock)
+                           endif
+                           if (found) then
+                              wgt1 = c1   ! zero_gradient
+                              wgt2 = c0
+                              if (ew_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(ib-i+1,dbl_kind)
+                                 wgt2 = real(ib-i  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk = wgt1*cichk1 - wgt2*cichk2
+                              cjchk = wgt1*cjchk1 - wgt2*cjchk2
+                           endif
+                        elseif (this_block%i_glob(ie) == nx_global .and. i > ie) then
+                           if (this_block%j_glob(jb) == 1         .and. j < jb) then
+                              found = .true.  ! Southeast
+                              if (ns_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(jb-j+1,dbl_kind)
+                                 wgt2 = real(jb-j  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk1 = wgt1*cidata_bas(ie  ,jb,k1,k2,iblock) - wgt2*cidata_bas(ie  ,jb+1,k1,k2,iblock)
+                              cichk2 = wgt1*cidata_bas(ie-1,jb,k1,k2,iblock) - wgt2*cidata_bas(ie-1,jb+1,k1,k2,iblock)
+                              cjchk1 = wgt1*cjdata_bas(ie  ,jb,k1,k2,iblock) - wgt2*cjdata_bas(ie  ,jb+1,k1,k2,iblock)
+                              cjchk2 = wgt1*cjdata_bas(ie-1,jb,k1,k2,iblock) - wgt2*cjdata_bas(ie-1,jb+1,k1,k2,iblock)
+                           elseif (this_block%j_glob(je) == ny_global .and. j > je) then
+                              found = .true.  ! Northeast
+                              if (ns_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(j-je+1,dbl_kind)
+                                 wgt2 = real(j-je  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk1 = wgt1*cidata_bas(ie  ,je,k1,k2,iblock) - wgt2*cidata_bas(ie  ,je-1,k1,k2,iblock)
+                              cichk2 = wgt1*cidata_bas(ie-1,je,k1,k2,iblock) - wgt2*cidata_bas(ie-1,je-1,k1,k2,iblock)
+                              cjchk1 = wgt1*cjdata_bas(ie  ,je,k1,k2,iblock) - wgt2*cjdata_bas(ie  ,je-1,k1,k2,iblock)
+                              cjchk2 = wgt1*cjdata_bas(ie-1,je,k1,k2,iblock) - wgt2*cjdata_bas(ie-1,je-1,k1,k2,iblock)
+                           endif
+                           if (found) then
+                              wgt1 = c1   ! zero_gradient
+                              wgt2 = c0
+                              if (ew_boundary_type == 'linear_extrap') then
+                                 wgt1 = real(i-ie+1,dbl_kind)
+                                 wgt2 = real(i-ie  ,dbl_kind)   ! wgt1 - 1
+                              endif
+                              cichk = wgt1*cichk1 - wgt2*cichk2
+                              cjchk = wgt1*cjchk1 - wgt2*cjchk2
+                           endif
+                        endif
+                     endif
+                  endif  ! zero_gradient, linear_extrap
 
                   if (index(halofld,'STRESS') > 0) then
                      ! only updates on tripole zipper for tripole grids
@@ -765,10 +878,10 @@
          do n = 1,tottest
             if (errorflag(n) == passflag) then
                tpcnt = tpcnt + 1
-               write(6,'(2a,2i8)') 'PASS ',trim(teststring(n)),ptcnt(n),failcnt(n)
+               write(6,'(2a,2i9)') 'PASS ',trim(teststring(n)),ptcnt(n),failcnt(n)
             else
                tfcnt = tfcnt + 1
-               write(6,'(2a,2i8)') 'FAIL ',trim(teststring(n)),ptcnt(n),failcnt(n)
+               write(6,'(2a,2i9)') 'FAIL ',trim(teststring(n)),ptcnt(n),failcnt(n)
             endif
          enddo
          write(6,*) ' '

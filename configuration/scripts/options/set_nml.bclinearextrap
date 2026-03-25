@@ -1,0 +1,3 @@
+ew_boundary_type = 'linear_extrap'
+ns_boundary_type = 'linear_extrap'
+restart_ext = .true.

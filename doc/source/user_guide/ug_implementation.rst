@@ -424,17 +424,28 @@ category as a fourth dimension.
 Boundary Conditions
 *******************
 
-Much of the infrastructure used in CICE, including the boundary
-routines, is adopted from POP. The boundary routines perform boundary
-communications among processors when MPI is in use and among blocks
-whenever there is more than one block per processor.
+The boundary routines perform boundary
+communications between blocks in CICE whether those blocks are on the
+same or different MPI tasks.  Neighbor data is communicated between 
+blocks via the ice_HaloUpdate method.  The HaloUpdate also computes
+values on the halo at the edge of the grid.
 
 Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
-namelist inputs.  Valid values are ``open``, ``closed``, and ``cyclic``.  In addition,
+namelist inputs.  Valid values are ``open``, ``closed``, ``cyclic``, ``zero_gradient``,
+and ``linear_extrap``.  In addition,
 ``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
 ``closed`` imposes a land mask on the boundary with a two gridcell depth
-and is only supported for rectangular grids.  In general,
-where the boundary is land or where there is no ice on the boundary, 
+and is only supported for rectangular grids.  ``zero_gradient`` and ``linear_extrap``
+apply boundary conditions of zero or constant gradient values based on 
+interior values near the boundary.  ``cyclic`` boundary conditions communicate
+neighbor data from the opposite side of the grid.  ``open`` boundary conditions
+do not impose any values on the boundary.  This might be useful in cases where
+external data is specified on the outside boundary.  The ``zero_gradient`` and 
+``linear_extrap`` boundary conditions have been implemented as an interim step 
+toward a regional grid capability. Until restoring options are complete and the 
+regional capability is fully tested, these boundary conditions may produce 
+nonphysical values such as negative ice thickness.
+In general, where the boundary is land or where there is no ice on the boundary, 
 the boundary_type settings and boundary conditions play no role.
 
 In the displaced-pole global grids, the mask (kmt) file has at least one row of 
@@ -444,17 +455,15 @@ this example,
 the appropriate namelist settings are ``ns_boundary_type`` = ``open``,
 ``ew_boundary_type`` = ``cyclic``.
 
-CICE can be run on regional grids with ``open``, ``closed``, or ``cyclic`` 
-boundary conditions.
+CICE can be run on regional grids with ``open``, ``closed``, ``cyclic`` , ``zero_gradient``,
+and ``linear_extrap`` boundary conditions.
 Except for variables describing grid lengths, non-land halo cells along the
 grid edge must be filled with some boundary conditions 
 if ice is present at that location.  The outside halo is handled automatically
-with ``closed`` or ``cyclic`` conditions.  With open boundary conditions, one can imagine 
+with ``closed``, ``cyclic``, ``zero_gradient``, or ``linear_extrap``  conditions.  
+With open boundary conditions, one can imagine 
 several different ways to set the outside boundary including reading values from
-an external file or deriving values on that halo based on the interior 
-solution while specifying zero gradient, constant gradient, specified state,
-zero flux, or other boundary conditions.  Mathematically specified boundary 
-conditions are currently not supported in the CICE model.
+an external file.
 
 The namelist variable ``restore_ice`` turns on a restoring capability on the
 boundary by setting the boundary halo to values read from a file.  The

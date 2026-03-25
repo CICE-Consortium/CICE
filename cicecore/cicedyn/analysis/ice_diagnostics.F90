@@ -1722,7 +1722,7 @@
 
       subroutine debug_ice(iblk, plabeld)
 
-      character (char_len), intent(in) :: plabeld
+      character (len=*), intent(in) :: plabeld
       integer (kind=int_kind), intent(in) :: iblk
 
       ! local
@@ -1772,7 +1772,7 @@
           fsens, flat, evap, flwout, swvdr, swvdf, swidr, swidf, rhoa, &
           frzmlt, sst, sss, Tf, Tref, Qref, Uref, uocn, vocn, strtltxU, strtltyU
 
-      character (len=20), intent(in) :: plabel
+      character (len=*), intent(in) :: plabel
 
       integer (kind=int_kind), intent(in) :: &
           i, j       , & ! horizontal indices
@@ -1791,7 +1791,7 @@
       logical (kind=log_kind) :: tr_fsd, tr_iso, tr_snow
 
       type (block) :: &
-         this_block           ! block information for current block
+           this_block    ! block information for current block
 
       character(len=*), parameter :: subname = '(print_state)'
 
