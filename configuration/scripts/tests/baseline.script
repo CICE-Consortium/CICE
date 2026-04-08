@@ -136,7 +136,8 @@ if (${ICE_BFBCOMP} != ${ICE_SPVAL}) then
     set cnt = 0
     if (${job} =~ [0-9]*) then
       while ($qstatjob)
-        set qstatus = `${ICE_MACHINE_QSTAT} $job | grep $job | wc -l`
+        # historical avoids completed jobs on PBS (-x) and extra $job avoids superfluous header lines
+        set qstatus = `${ICE_MACHINE_QSTAT} $job | grep -iv " historical " | grep $job | wc -l`
 #        ${ICE_MACHINE_QSTAT} $job
 #        echo $job $qstatus
         if ($qstatus == 0) then

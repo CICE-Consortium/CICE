@@ -421,7 +421,7 @@
 
          ! Fill ULAT
          select case(trim(grid_format))
-            case ('mom_nc')
+            case('mom_nc')
 
                if (my_task == master_task) then
                   allocate(work_mom(nx_global*2+1, ny_global*2+1), stat=ierr)
@@ -479,7 +479,7 @@
       ! Fill kmt
       if (trim(kmt_type) =='file') then
          select case(trim(grid_format))
-            case ('mom_nc', 'pop_nc', 'pop_nc_ext', 'geosnc')
+            case('mom_nc', 'pop_nc', 'pop_nc_ext', 'geosnc')
 
                ! mask variable name might be kmt or mask, check both
                call ice_open_nc(kmt_file,fid_kmt)
@@ -610,11 +610,11 @@
          select case (trim(grid_format))
             case('mom_nc')
                call mom_grid        ! derive cice grid from MOM supergrid nc file
-            case ('pop_nc')
+            case('pop_nc')
                call popgrid_nc      ! read POP grid lengths from nc file
-            case ('pop_nc_ext')
+            case('pop_nc_ext')
                call popgrid_nc_ext  ! read POP extended grid lengths from nc file
-            case ('geosnc')
+            case('geosnc')
                call geosgrid_nc     ! read GEOS MOM grid used from nc file
             case default
                call popgrid         ! read POP grid lengths directly
@@ -1894,7 +1894,7 @@
             case('cyclic')
                G_T(nx_global+1,:) = G_T(1,:)
                G_N(nx_global+1,:) = G_N(1,:)
-            case('open')
+            case('open','zero_gradient','linear_extrap')
                do j=1, ny_global+1
                   G_T(nx_global+1,j) = 2 * G_T(nx_global, j) - G_T(nx_global-1, j)
                   G_N(nx_global+1,j) = 2 * G_N(nx_global, j) - G_N(nx_global-1, j)
@@ -1909,15 +1909,15 @@
             im1 = im1 + 2
          enddo
          select case (trim(ns_boundary_type))
-            case ('tripole')
+            case('tripole')
                do i = 1, nx_global+1
                   G_T(i,ny_global+1) = G_T(nx_global+1-i, ny_global)
                   G_E(i,ny_global+1) = G_E(nx_global+1-i, ny_global)
                enddo
-            case ('cyclic')
+            case('cyclic')
                G_T(:,ny_global+1) = G_T(:,1)
                G_E(:,ny_global+1) = G_E(:,1)
-            case ('open')
+            case('open','zero_gradient','linear_extrap')
                do i = 1, nx_global+1
                   G_T(i,ny_global+1) = 2 * G_T(i, ny_global) - G_T(i, ny_global-1)
                   G_E(i,ny_global+1) = 2 * G_E(i, ny_global) - G_E(i, ny_global-1)
@@ -2074,19 +2074,20 @@
             jm1 = jm1 + 2 ; jm2 = jm2 + 2
          enddo
          jm1 = 2 ; jm2 = 3 ! middle , top of first row
-         if (trim(ew_boundary_type) == 'cyclic') then
-            do j = 1, ny_global
-               G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
-               G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
-               jm1 = jm1 + 2 ; jm2 = jm2 + 2
-            enddo
-         else if (trim(ew_boundary_type) == 'open') then
-            do j = 1, ny_global
-               G_dxE(nx_global,j) = 4*work_mom(2*nx_global, jm1) - 2*work_mom(2*nx_global-1, jm1)     !dxE
-               G_dxU(nx_global,j) = 4*work_mom(2*nx_global, jm2) - 2*work_mom(2*nx_global-1, jm2)     !dxU
-               jm1 = jm1 + 2 ; jm2 = jm2 + 2
-            enddo
-         endif
+         select case (trim(ew_boundary_type))
+            case('cyclic')
+               do j = 1, ny_global
+                  G_dxE(nx_global,j) = work_mom(2*nx_global, jm1) + work_mom(1, jm1)     !dxE
+                  G_dxU(nx_global,j) = work_mom(2*nx_global, jm2) + work_mom(1, jm2)     !dxU
+                  jm1 = jm1 + 2 ; jm2 = jm2 + 2
+               enddo
+            case('open','zero_gradient','linear_extrap')
+               do j = 1, ny_global
+                  G_dxE(nx_global,j) = 4*work_mom(2*nx_global, jm1) - 2*work_mom(2*nx_global-1, jm1)     !dxE
+                  G_dxU(nx_global,j) = 4*work_mom(2*nx_global, jm2) - 2*work_mom(2*nx_global-1, jm2)     !dxU
+                  jm1 = jm1 + 2 ; jm2 = jm2 + 2
+               enddo
+         end select
       endif
 
       call scatter_global(dxT, G_dxT, master_task, distrb_info, &
@@ -2168,25 +2169,26 @@
             im1 = im1 + 2 ; im2 = im2 + 2
          enddo
          im1 = 2 ; im2 = 3
-         if (trim(ns_boundary_type)  == 'tripole') then
-            do i = 1, nx_global
-               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)      !dyN
-               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)      !dyU
-               im1 = im1 + 2 ; im2 = im2 + 2
-            enddo
-         else if (trim(ns_boundary_type) == 'cyclic') then
-            do i = 1, nx_global
-               G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)                              !dyN
-               G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)                              !dyU
-               im1 = im1 + 2 ; im2 = im2 + 2
-            enddo
-         else if (trim(ns_boundary_type) == 'open') then
-            do i = 1, nx_global
-               G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)               !dyN
-               G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)               !dyU
-               im1 = im1 + 2 ; im2 = im2 + 2
-            enddo
-         endif
+         select case (trim(ns_boundary_type))
+            case('tripole')
+               do i = 1, nx_global
+                  G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(2*nx_global+2-im1, 2*ny_global)      !dyN
+                  G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(2*nx_global+2-im2, 2*ny_global)      !dyU
+                  im1 = im1 + 2 ; im2 = im2 + 2
+               enddo
+            case('cyclic')
+               do i = 1, nx_global
+                  G_dyN(i,ny_global) = work_mom(im1, 2*ny_global) + work_mom(im1, 1)                              !dyN
+                  G_dyU(i,ny_global) = work_mom(im2, 2*ny_global) + work_mom(im2, 1)                              !dyU
+                  im1 = im1 + 2 ; im2 = im2 + 2
+               enddo
+            case('open','zero_gradient','linear_extrap')
+               do i = 1, nx_global
+                  G_dyN(i,ny_global) = 4*work_mom(im1, 2*ny_global) - 2*work_mom(im1, 2*ny_global-1)               !dyN
+                  G_dyU(i,ny_global) = 4*work_mom(im2, 2*ny_global) - 2*work_mom(im2, 2*ny_global-1)               !dyU
+                  im1 = im1 + 2 ; im2 = im2 + 2
+               enddo
+         end select
       endif
 
       call scatter_global(dyT, G_dyT, master_task, distrb_info, &
@@ -2291,13 +2293,14 @@
          do j = 1, ny_global - 1
             G_tarea(nx_global,j) = work_mom(im1, jm1) + work_mom(im1, jm2) &
                                  + work_mom(im2, jm1) + work_mom(im2, jm2)
-            if (trim(ew_boundary_type) == 'cyclic') then
-               G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
-            else if (trim(ew_boundary_type) == 'open') then
-               G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
-                                    - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
-            endif
+            select case (trim(ew_boundary_type))
+               case('cyclic')
+                  G_uarea(nx_global,j) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                       + work_mom(im3, jm2) + work_mom(im3, jm3)
+               case('open','zero_gradient','linear_extrap')
+                  G_uarea(nx_global,j) = 4*work_mom(im2, jm2) + 4*work_mom(im2, jm3) &
+                                       - 2*work_mom(im1, jm2) - 2*work_mom(im1, jm3)
+            end select
             jm1 = jm1 + 2 ; jm2 = jm2 + 2 ; jm3 = jm3 + 2
          enddo
 
@@ -2307,16 +2310,17 @@
          do i = 1, nx_global -1
             G_tarea(i,ny_global) = work_mom(im1, jm1) + work_mom(im1, jm2) &
                                  + work_mom(im2, jm1) + work_mom(im2, jm2)
-            if (trim(ns_boundary_type) == 'tripole') then
-               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
-                                    + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2)
-            else if (trim(ns_boundary_type) == 'cyclic') then
-               G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
-                                    + work_mom(im3, jm2) + work_mom(im3, jm3)
-            else if (trim(ns_boundary_type) == 'open') then
-               G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
-                                    - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
-            endif
+            select case (trim(ns_boundary_type))
+               case('tripole')
+                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(2*nx_global+1-im2, jm2) &
+                                       + work_mom(im3, jm2) + work_mom(2*nx_global+1-im3, jm2)
+               case('cyclic')
+                  G_uarea(i,ny_global) = work_mom(im2, jm2) + work_mom(im2, jm3) &
+                                       + work_mom(im3, jm2) + work_mom(im3, jm3)
+               case('open','zero_gradient','linear_extrap')
+                  G_uarea(i,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im3, jm2) &
+                                       - 2*work_mom(im2, jm1) - 2*work_mom(im3, jm1)
+            end select
             im1 = im1 + 2 ; im2 = im2 + 2 ; im3 = im3 + 2
          enddo
 
@@ -2327,20 +2331,28 @@
                                        + work_mom(im2, jm1) + work_mom(im2, jm2)
          if (trim(ns_boundary_type) == 'tripole') then
             G_uarea(nx_global,ny_global) = 2*(work_mom(im2, jm2) + work_mom(1, jm2))
-         else if (trim(ns_boundary_type) == 'cyclic' &
-                  .and. trim(ew_boundary_type) == 'cyclic') then
+         else if ((trim(ns_boundary_type) == 'cyclic') .and. &
+                  (trim(ew_boundary_type) == 'cyclic')) then
             G_uarea(nx_global,ny_global) = work_mom(im2, jm2) + work_mom(1, jm2) &
                                           + work_mom(im2, 1) + work_mom(1, 1)
-         else if (trim(ns_boundary_type) == 'cyclic' &
-                  .and. trim(ew_boundary_type) == 'open') then
+         else if ((trim(ns_boundary_type) == 'cyclic') .and. &
+                  (trim(ew_boundary_type) == 'open' .or. &
+                   trim(ew_boundary_type) == 'zero_gradient' .or. &
+                   trim(ew_boundary_type) == 'linear_extrap')) then
             G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(im2, 1) &
                                           - 2*work_mom(im1, jm2) - 2*work_mom(im1, 1)
-         else if (trim(ns_boundary_type) == 'open' &
-                  .and. trim(ew_boundary_type) == 'cyclic') then
+         else if ((trim(ns_boundary_type) == 'open' .or. &
+                   trim(ns_boundary_type) == 'zero_gradient' .or. &
+                   trim(ns_boundary_type) == 'linear_extrap') .and. &
+                  (trim(ew_boundary_type) == 'cyclic')) then
             G_uarea(nx_global,ny_global) = 4*work_mom(im2, jm2) + 4*work_mom(1, jm2) &
                                           - 2*work_mom(im2, jm1) - 2*work_mom(1, jm1)
-         else if (trim(ns_boundary_type) == 'open' &
-                  .and. trim(ew_boundary_type) == 'open') then
+         else if ((trim(ns_boundary_type) == 'open' .or. &
+                   trim(ns_boundary_type) == 'zero_gradient' .or. &
+                   trim(ns_boundary_type) == 'linear_extrap') .and. &
+                  (trim(ew_boundary_type) == 'open' .or. &
+                   trim(ew_boundary_type) == 'zero_gradient' .or. &
+                   trim(ew_boundary_type) == 'linear_extrap')) then
             G_uarea(nx_global,ny_global) = 8*work_mom(im2, jm2) &
                                  - 2*work_mom(im2, jm1) - 2*work_mom(im1, jm2)
          endif
@@ -3281,29 +3293,31 @@
       character(len=*), parameter :: subname = '(global_ext_halo)'
 
       do n = 1,nghost
-         if (ns_boundary_type =='cyclic') then
-            array(:,n)                  = array(:,ny_global+n)
-            array(:,ny_global+nghost+n) = array(:,nghost+n)
-         elseif (ns_boundary_type == 'open') then
-            array(:,n)                  = array(:,nghost+1)
-            array(:,ny_global+nghost+n) = array(:,ny_global+nghost)
-         else
-            array(:,n)                  = c0
-            array(:,ny_global+nghost+n) = c0
-         endif
+         select case (ns_boundary_type)
+            case('cyclic')
+               array(:,n)                  = array(:,ny_global+n)
+               array(:,ny_global+nghost+n) = array(:,nghost+n)
+            case('open','zero_gradient','linear_extrap')
+               array(:,n)                  = array(:,nghost+1)
+               array(:,ny_global+nghost+n) = array(:,ny_global+nghost)
+            case default
+               array(:,n)                  = c0
+               array(:,ny_global+nghost+n) = c0
+         end select
       enddo
 
       do n = 1,nghost
-         if (ew_boundary_type =='cyclic') then
-            array(n                 ,:) = array(nx_global+n,:)
-            array(nx_global+nghost+n,:) = array(nghost+n   ,:)
-         elseif (ew_boundary_type == 'open') then
-            array(n                 ,:) = array(nghost+1        ,:)
-            array(nx_global+nghost+n,:) = array(nx_global+nghost,:)
-         else
-            array(n                 ,:) = c0
-            array(nx_global+nghost+n,:) = c0
-         endif
+         select case (ew_boundary_type)
+            case('cyclic')
+               array(n                 ,:) = array(nx_global+n,:)
+               array(nx_global+nghost+n,:) = array(nghost+n   ,:)
+            case('open','zero_gradient','linear_extrap')
+               array(n                 ,:) = array(nghost+1        ,:)
+               array(nx_global+nghost+n,:) = array(nx_global+nghost,:)
+            case default
+               array(n                 ,:) = c0
+               array(nx_global+nghost+n,:) = c0
+         end select
       enddo
 
       end subroutine global_ext_halo
@@ -3327,7 +3341,7 @@
          puny
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
-            uvmCD
+         uvmCD
 
       type (block) :: &
          this_block           ! block information for current block
@@ -3353,6 +3367,7 @@
       bm = c0
       allocate(uvmCD(nx_block,ny_block,max_blocks), stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
+      uvmCD = c0
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks

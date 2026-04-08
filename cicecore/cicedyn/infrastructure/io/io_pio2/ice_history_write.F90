@@ -14,6 +14,7 @@
 !           Added option for binary output instead of netCDF
 ! 2009 D Bailey and ECH: Generalized for multiple frequency output
 ! 2010 Alison McLaren and ECH: Added 3D capability
+! 2025 T Craig: Add history restart capability
 !
       module ice_history_write
 
@@ -41,7 +42,7 @@
          character (len=20)   :: coordinates
       END TYPE req_attributes
 
-      public :: ice_write_hist
+      public :: ice_write_hist, ice_read_hist
 
       integer (kind=int_kind) :: imtid,jmtid
 
@@ -52,6 +53,7 @@
 !=======================================================================
 !
 ! write average ice quantities or snapshots
+! supports history output, write_ic, and history restarts
 !
 ! author:   Elizabeth C. Hunke, LANL
 
@@ -64,7 +66,8 @@
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: distrb_info, nblocks
-      use ice_domain_size, only: nx_global, ny_global, max_blocks, max_nstrm
+      use ice_domain_size, only: nx_global, ny_global, max_blocks
+      use ice_flux, only: albcnt, snwcnt
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
           hm, bm, uvm, npm, epm, &
@@ -74,7 +77,7 @@
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
       use ice_arrays_column, only: hin_max, floe_rad_c
-      use ice_restart_shared, only: runid
+      use ice_restart_shared, only: runid, restart_dir
       use pio
 
       integer (kind=int_kind), intent(in) :: ns
@@ -82,8 +85,8 @@
       ! local variables
 
       integer (kind=int_kind) :: i,j,k,ic,n,nn, &
-         ncid,status,kmtidi,kmtids,kmtidb, cmtid,timid, &
-         length,nvertexid,ivertex,kmtida,fmtid
+         ncid,status,kmtidi,kmtids,kmtidb,cmtid,timid, &
+         length,nvertexid,ivertex,kmtida,fmtid,lhistprec
       integer (kind=int_kind), dimension(2) :: dimid2
       integer (kind=int_kind), dimension(3) :: dimid3
       integer (kind=int_kind), dimension(4) :: dimidz
@@ -92,6 +95,7 @@
       integer (kind=int_kind), dimension(6) :: dimidex
       real (kind= dbl_kind) :: ltime2
       character (len=8) :: cdate
+      character (len=1) :: cns
       character (len=char_len_long) :: title, cal_units, cal_att
       character (len=char_len) :: time_period_freq = 'none'
       character (len=char_len_long) :: ncfile
@@ -158,12 +162,27 @@
           file=__FILE__, line=__LINE__)
 
       extvars = ''
+
+      write(cns,'(i1.1)') ns
+
+      ! modify history restart output
+      lhistprec = history_precision
+      if (write_histrest_now) then
+         history_precision = 8
+      endif
+
       if (my_task == master_task) then
-        call construct_filename(ncfile,'nc',ns)
+        if (write_histrest_now) then
+           call construct_filename(ncfile,'nc',ns,option='histrest')
+        else
+           call construct_filename(ncfile,'nc',ns)
+        endif
 
         ! add local directory path name to ncfile
         if (write_ic) then
           ncfile = trim(incond_dir)//ncfile
+        elseif (write_histrest_now) then
+          ncfile = trim(restart_dir)//ncfile
         else
           ncfile = trim(history_dir)//ncfile
         endif
@@ -268,14 +287,15 @@
          endif
 
          ! Define coord time_bounds if hist_avg is true
-         ! bounds inherit attributes
          if (hist_avg(ns) .and. .not. write_ic) then
-            time_coord = coord_attributes('time_bounds', 'undefined', 'undefined', 'undefined')
+            time_coord = coord_attributes('time_bounds', 'time interval bounds', trim(cal_units), 'undefined')
 
             dimid2(1) = boundid
             dimid2(2) = timid
 
             call ice_hist_coord_def(File, time_coord, pio_double, dimid2, varid)
+            call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
+                 subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
          endif
 
       endif  ! histfreq(ns)/='g'
@@ -404,15 +424,14 @@
 
       ! bounds fields are required for CF compliance
       ! dimensions (nx,ny,nverts)
-      ! bounds inherit attributes
-      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','und','und','und')
-      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','und','und','und')
-      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','und','und','und')
-      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','und','und','und')
-      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','und','und','und')
-      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','und','und','und')
-      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','und','und','und')
-      var_nverts(n_late_bnds) = coord_attributes('late_bounds','und','und','und')
+      var_nverts(n_lont_bnds) = coord_attributes('lont_bounds','longitude bounds (T-cell)','degrees_east','und')
+      var_nverts(n_latt_bnds) = coord_attributes('latt_bounds','latitude bounds (T-cell)','degrees_north','und')
+      var_nverts(n_lonu_bnds) = coord_attributes('lonu_bounds','longitude bounds (U-cell)','degrees_east','und')
+      var_nverts(n_latu_bnds) = coord_attributes('latu_bounds','latitude bounds (U-cell)','degrees_north','und')
+      var_nverts(n_lonn_bnds) = coord_attributes('lonn_bounds','longitude bounds (N-cell)','degrees_east','und')
+      var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','degrees_north','und')
+      var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','degrees_east','und')
+      var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','degrees_north','und')
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
@@ -467,7 +486,6 @@
       enddo
 
       ! bounds fields with dimensions (nverts,nx,ny)
-      ! bounds inherit attributes
       dimid_nverts(1) = nvertexid
       dimid_nverts(2) = imtid
       dimid_nverts(3) = jmtid
@@ -485,6 +503,13 @@
       dimid3(1) = imtid
       dimid3(2) = jmtid
       dimid3(3) = timid
+
+      if (write_histrest_now) then
+         status = pio_def_var(File, 'time_beg', lprecision, varid)
+         status = pio_def_var(File, 'avgct', lprecision, varid)
+         status = pio_def_var(File, 'albcnt'//cns, lprecision, dimid3, varid)
+         status = pio_def_var(File, 'snwcnt'//cns, lprecision, dimid3, varid)
+      endif
 
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -924,6 +949,79 @@
       ! write variable data
       !-----------------------------------------------------------------
 
+      if (write_histrest_now) then
+         call ice_pio_check(pio_inq_varid(File,'time_beg',varid), &
+                            subname// ' ERROR: getting varid for '//'time_beg', &
+                            file=__FILE__, line=__LINE__)
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+#ifdef CESM1_PIO
+         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
+         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
+         call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+         call ice_pio_check(pio_put_var(File,varid,(/1/),time_beg(ns)), &
+                            subname// ' ERROR: writing variable '//'time_beg', &
+                            file=__FILE__, line=__LINE__)
+
+         call ice_pio_check(pio_inq_varid(File,'avgct',varid), &
+                            subname// ' ERROR: getting varid for '//'avgct', &
+                            file=__FILE__, line=__LINE__)
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+#ifdef CESM1_PIO
+         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
+         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
+         call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+         call ice_pio_check(pio_put_var(File,varid,(/1/),avgct(ns)), &
+                            subname// ' ERROR: writing variable '//'avgct', &
+                            file=__FILE__, line=__LINE__)
+
+         call ice_pio_check(pio_inq_varid(File,'albcnt'//cns,varid), &
+              subname//' ERROR: getting varid for '//'albcnt'//cns,file=__FILE__,line=__LINE__)
+         workd2(:,:,:) = albcnt(:,:,1:nblocks,ns)
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+#ifdef CESM1_PIO
+         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
+         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
+         call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+         if (history_precision == 8) then
+            call pio_write_darray(File, varid, iodesc2d,&
+                                  workd2, status, fillval=spval_dbl)
+         else
+            workr2 = workd2
+            call pio_write_darray(File, varid, iodesc2d,&
+                                  workr2, status, fillval=spval)
+         endif
+         call ice_pio_check(status,subname//' ERROR: writing '//'albcnt'//cns, &
+                            file=__FILE__,line=__LINE__)
+
+         call ice_pio_check(pio_inq_varid(File,'snwcnt'//cns,varid), &
+              subname//' ERROR: getting varid for '//'snwcnt'//cns,file=__FILE__,line=__LINE__)
+         workd2(:,:,:) = snwcnt(:,:,1:nblocks,ns)
+         call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+#ifdef CESM1_PIO
+         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+#else
+         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+#endif
+         call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+         if (history_precision == 8) then
+            call pio_write_darray(File, varid, iodesc2d,&
+                                  workd2, status, fillval=spval_dbl)
+         else
+            workr2 = workd2
+            call pio_write_darray(File, varid, iodesc2d,&
+                                  workr2, status, fillval=spval)
+         endif
+         call ice_pio_check(status,subname//' ERROR: writing '//'snwcnt'//cns, &
+                            file=__FILE__,line=__LINE__)
+
+      endif
+
       ! 2D
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -1136,7 +1234,7 @@
 
       allocate(workd4(nx_block,ny_block,nblocks,nzilyr,ncat_hist))
       allocate(workr4(nx_block,ny_block,nblocks,nzilyr,ncat_hist))
-      ! 4D (categories, fsd)
+      ! 4D (categories, vertical ice)
       do n = n3Dfcum+1, n4Dicum
          nn = n - n3Dfcum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -1173,7 +1271,7 @@
 
       allocate(workd4(nx_block,ny_block,nblocks,nzslyr,ncat_hist))
       allocate(workr4(nx_block,ny_block,nblocks,nzslyr,ncat_hist))
-      ! 4D (categories, vertical ice)
+      ! 4D (categories, vertical snow)
       do n = n4Dicum+1, n4Dscum
          nn = n - n4Dicum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -1211,7 +1309,7 @@
 
       allocate(workd4(nx_block,ny_block,nblocks,nfsd_hist,ncat_hist))
       allocate(workr4(nx_block,ny_block,nblocks,nfsd_hist,ncat_hist))
-      ! 4D (categories, vertical ice)
+      ! 4D (categories, fsd)
       do n = n4Dscum+1, n4Dfcum
          nn = n - n4Dscum
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
@@ -1270,8 +1368,7 @@
 
       call pio_closefile(File)
       if (my_task == master_task) then
-         write(nu_diag,*) ' '
-         write(nu_diag,*) 'Finished writing ',trim(ncfile)
+         write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
       endif
 
       !-----------------------------------------------------------------
@@ -1280,10 +1377,429 @@
 
       call ice_pio_finalize()
 
+      ! reset history parameters
+      if (write_histrest_now) then
+         history_precision = lhistprec
+      endif
+
       first_call = .false.
 
       end subroutine ice_write_hist
 
+
+!=======================================================================
+!
+! read history restarts, only called for history restarts
+!
+! author:   T. Craig Nov 2025
+
+      subroutine ice_read_hist
+
+      use ice_kinds_mod
+      use ice_blocks, only: nx_block, ny_block
+      use ice_broadcast, only: broadcast_scalar
+      use ice_calendar, only: nstreams, histfreq
+      use ice_communicate, only: my_task, master_task
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only: albcnt, snwcnt
+      use ice_history_shared
+      use ice_restart_shared, only: restart_dir
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite
+      use pio
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension(:,:,:),     allocatable :: work2
+      real (kind=dbl_kind), dimension(:,:,:,:),   allocatable :: work3
+      real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: work4
+
+      integer (kind=int_kind) :: i,j,k,n,nn,ns,ncid,status
+      logical (kind=log_kind) :: exists
+      character (char_len_long) :: ncfile
+      character (len=1) :: cns
+      character (len=32) :: readstr
+      character (len=*), parameter :: readstrT = ' read ok:'
+      character (len=*), parameter :: readstrF = ' DID NOT READ:'
+
+      integer (kind=int_kind), parameter :: histprec=8  ! hardwired to double
+
+      type(file_desc_t)     :: File
+      type(io_desc_t)       :: iodesc2d, &
+                               iodesc3dc, iodesc3di, iodesc3db, iodesc3da, iodesc3df, &
+                               iodesc4di, iodesc4ds, iodesc4df
+      type(var_desc_t)      :: varid
+
+      logical (kind=log_kind), save :: first_call = .true.
+
+      character(len=*), parameter :: subname = '(ice_read_hist)'
+
+      call ice_timer_start(timer_readwrite)  ! reading/writing
+      do ns = 1,nstreams
+      if (hist_avg(ns)) then
+
+         write(cns,'(i1.1)') ns
+
+         if (my_task == master_task) then
+            call construct_filename(ncfile,'nc',ns, option='histrest')
+            ncfile = trim(restart_dir)//ncfile
+            write(nu_diag,*) subname,' reading file ',trim(ncfile)
+         endif
+         call broadcast_scalar(ncfile, master_task)
+
+         ! open file
+         inquire(file=trim(ncfile),exist=exists)
+         if (exists) then
+            File%fh=-1
+            call ice_pio_init(mode='read', filename=trim(ncfile), File=File, &
+              fformat=trim(history_format), rearr=trim(history_rearranger), &
+              iotasks=history_iotasks, root=history_root, stride=history_stride, debug=first_call)
+
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+
+            call ice_pio_initdecomp(iodesc=iodesc2d, precision=histprec)
+            call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nzilyr,    iodesc=iodesc3di, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds, precision=histprec)
+            call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df, precision=histprec)
+
+            !-----------------------------------------------------------------
+            ! read variable data
+            !-----------------------------------------------------------------
+
+            readstr = readstrF
+            status = pio_inq_varid(File, 'time_beg', varid)
+            if (status == PIO_NOERR) status  = pio_get_var(File,varid,(/1/),time_beg(ns))
+            if (status == PIO_NOERR) readstr = readstrT
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,trim(readstr),' time_beg'
+            endif
+
+            readstr = readstrF
+            status = pio_inq_varid(File, 'avgct', varid)
+            if (status == PIO_NOERR) status  = pio_get_var(File,varid,(/1/),avgct(ns))
+            if (status == PIO_NOERR) readstr = readstrT
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,trim(readstr),' avgct'
+            endif
+
+            allocate(work2(nx_block,ny_block,max_blocks))
+
+            work2(:,:,:) = c0
+            readstr = readstrF
+            status = pio_inq_varid(File, 'albcnt'//cns, varid)
+            if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
+            if (status == PIO_NOERR) then
+               readstr = readstrT
+               albcnt(:,:,:,ns) = work2(:,:,:)
+            endif
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,trim(readstr),' albcnt'//cns
+            endif
+
+            work2(:,:,:) = c0
+            readstr = readstrF
+            status = pio_inq_varid(File, 'snwcnt'//cns, varid)
+            if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
+            if (status == PIO_NOERR) then
+               readstr = readstrT
+               snwcnt(:,:,:,ns) = work2(:,:,:)
+            endif
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,trim(readstr),' snwcnt'//cns
+            endif
+
+            do n=1,num_avail_hist_fields_2D
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work2(:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     a2D(:,:,n,:) = work2(:,:,:)
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work2)
+            allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
+
+            ! 2D
+            do n = n2D + 1, n3Dccum
+               nn = n - n2D
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3dc, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, ncat_hist
+                        a3Dc(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
+
+            ! 3D (category)
+            do n = n2D + 1, n3Dccum
+               nn = n - n2D
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3dc, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, ncat_hist
+                        a3Dc(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work3(nx_block,ny_block,max_blocks,nzilyr))
+
+            ! 3D (vertical ice)
+            do n = n3Dccum+1, n3Dzcum
+               nn = n - n3Dccum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3di, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, nzilyr
+                        a3Dz(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work3(nx_block,ny_block,max_blocks,nzblyr))
+
+            ! 3D (vertical ice biology)
+            do n = n3Dzcum+1, n3Dbcum
+               nn = n - n3Dzcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3db, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, nzblyr
+                        a3Db(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work3(nx_block,ny_block,max_blocks,nzalyr))
+
+            ! 3D (vertical snow biology)
+            do n = n3Dbcum+1, n3Dacum
+               nn = n - n3Dbcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3da, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, nzalyr
+                        a3Da(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work3(nx_block,ny_block,max_blocks,nfsd_hist))
+
+            ! 3D (fsd)
+            do n = n3Dacum+1, n3Dfcum
+               nn = n - n3Dacum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work3(:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3df, work3, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, nfsd_hist
+                        a3Df(:,:,i,nn,j) = work3(:,:,j,i)
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work3)
+            allocate(work4(nx_block,ny_block,max_blocks,nzilyr,ncat_hist))
+
+            ! 4D (categories, vertical ice)
+            do n = n3Dfcum+1, n4Dicum
+               nn = n - n3Dfcum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work4(:,:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc4di, work4, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, ncat_hist
+                     do k = 1, nzilyr
+                        a4Di(:,:,k,i,nn,j) = work4(:,:,j,k,i)
+                     enddo
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work4)
+            allocate(work4(nx_block,ny_block,max_blocks,nzslyr,ncat_hist))
+
+            ! 4D (categories, vertical snow)
+            do n = n4Dicum+1, n4Dscum
+               nn = n - n4Dicum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work4(:,:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc4ds, work4, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, ncat_hist
+                     do k = 1, nzslyr
+                        a4Ds(:,:,k,i,nn,j) = work4(:,:,j,k,i)
+                     enddo
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work4)
+            allocate(work4(nx_block,ny_block,max_blocks,nfsd_hist,ncat_hist))
+
+            ! 4D (categories, fsd)
+            do n = n4Dscum+1, n4Dfcum
+               nn = n - n4Dscum
+               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
+                  readstr = readstrF
+                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
+                  work4(:,:,:,:,:) = c0
+                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc4df, work4, status)
+                  if (status == PIO_NOERR) then
+                     readstr = readstrT
+                     do j = 1, nblocks
+                     do i = 1, ncat_hist
+                     do k = 1, nfsd_hist
+                        a4Df(:,:,k,i,nn,j) = work4(:,:,j,k,i)
+                     enddo
+                     enddo
+                     enddo
+                  endif
+                  if (my_task == master_task) then
+                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
+                  endif
+               endif
+            enddo
+
+            deallocate(work4)
+
+            !-----------------------------------------------------------------
+            ! clean-up PIO descriptors
+            !-----------------------------------------------------------------
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+
+            call pio_freedecomp(File,iodesc2d)
+            call pio_freedecomp(File,iodesc3dc)
+            call pio_freedecomp(File,iodesc3di)
+            call pio_freedecomp(File,iodesc3db)
+            call pio_freedecomp(File,iodesc3da)
+            call pio_freedecomp(File,iodesc3df)
+            call pio_freedecomp(File,iodesc4di)
+            call pio_freedecomp(File,iodesc4ds)
+            call pio_freedecomp(File,iodesc4df)
+
+            !-----------------------------------------------------------------
+            ! close output dataset
+            !-----------------------------------------------------------------
+
+            call pio_closefile(File)
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' Finished reading ',trim(ncfile)
+            endif
+
+            !-----------------------------------------------------------------
+            ! clean up PIO
+            !-----------------------------------------------------------------
+
+            call ice_pio_finalize()
+
+            first_call = .false.
+
+         endif ! open file success
+      endif ! hist_avg
+      enddo ! nstreams
+      call ice_timer_stop(timer_readwrite)  ! reading/writing
+
+      end subroutine ice_read_hist
 
 !=======================================================================
 ! Defines a coordinate var in the history file
@@ -1351,7 +1867,7 @@
 
 !=======================================================================
 ! Defines a (time-dependent) history var in the history file
-! variables have short_name, long_name and units, coordiantes and cell_measures attributes,
+! variables have short_name, long_name and units, coordinates and cell_measures attributes,
 !  and are compressed and chunked for 'hdf5'
 
       subroutine ice_hist_field_def(File, hfield,lprecision, dimids, ns)
@@ -1425,10 +1941,20 @@
       if (hist_avg(ns) .and. .not. write_ic) then
          if    (TRIM(hfield%vname(1:4))/='sig1' &
            .and.TRIM(hfield%vname(1:4))/='sig2' &
-           .and.TRIM(hfield%vname(1:9))/='sistreave' &
-           .and.TRIM(hfield%vname(1:9))/='sistremax' &
+           .and.TRIM(hfield%vname(1:5))/='trsig' &
+           .and.TRIM(hfield%vname(1:4))/='divu' &
+           .and.TRIM(hfield%vname(1:5))/='shear' &
+           .and.TRIM(hfield%vname(1:4))/='vort' &
+           .and.TRIM(hfield%vname(1:9))/='frz_onset' &
+           .and.TRIM(hfield%vname(1:9))/='mlt_onset' &
+           .and.TRIM(hfield%vname(1:6))/='aisnap' &
+           .and.TRIM(hfield%vname(1:6))/='hisnap' &
+           .and.TRIM(hfield%vname(1:8))/='sidivvel' &
+           .and.TRIM(hfield%vname(1:10))/='sishearvel' &
+           .and.TRIM(hfield%vname(1:11))/='sistressave' &
+           .and.TRIM(hfield%vname(1:11))/='sistressmax' &
            .and.TRIM(hfield%vname(1:4))/='sigP') then
-            if (hfield%avg_ice_present) then
+            if (trim(hfield%avg_ice_present) /= 'none') then
                call ice_pio_check(pio_put_att(File,varid,'cell_methods', &
                     'area: time: mean where sea ice (mask=siconc)'), &
                     subname//' ERROR: defining att cell_methods',file=__FILE__,line=__LINE__)
@@ -1449,8 +1975,10 @@
           .or.TRIM(hfield%vname(1:4))=='sig2' &
           .or.TRIM(hfield%vname(1:4))=='sigP' &
           .or.TRIM(hfield%vname(1:5))=='trsig' &
-          .or.TRIM(hfield%vname(1:9))=='sistreave' &
-          .or.TRIM(hfield%vname(1:9))=='sistremax' &
+          .or.TRIM(hfield%vname(1:8))=='sidivvel' &
+          .or.TRIM(hfield%vname(1:10))=='sishearvel' &
+          .or.TRIM(hfield%vname(1:11))=='sistressave' &
+          .or.TRIM(hfield%vname(1:11))=='sistressmax' &
           .or.TRIM(hfield%vname(1:9))=='mlt_onset' &
           .or.TRIM(hfield%vname(1:9))=='frz_onset' &
           .or.TRIM(hfield%vname(1:6))=='hisnap' &

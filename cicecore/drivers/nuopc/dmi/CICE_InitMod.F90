@@ -89,6 +89,7 @@
           faero_default, alloc_forcing_bgc, fiso_default
       use ice_grid, only: init_grid1, init_grid2, alloc_grid, dealloc_grid
       use ice_history, only: init_hist, accum_hist
+      use ice_history_write, only: ice_read_hist
       use ice_restart_shared, only: restart, runtype
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
@@ -258,6 +259,7 @@
       call init_flux_ocn        ! initialize ocean fluxes sent to coupler
 
       if (write_ic) call accum_hist(dt) ! write initial conditions
+      call ice_read_hist  ! read history restarts
 
       call dealloc_grid         ! deallocate temporary grid arrays
       if (my_task == master_task) then

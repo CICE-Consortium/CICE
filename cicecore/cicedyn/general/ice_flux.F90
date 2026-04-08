@@ -400,6 +400,7 @@
          vatmT   , & ! vatm on T grid (m/s)
          wlat    , & ! lateral heat rate (m/s)
          fsw     , & ! incoming shortwave radiation (W/m^2)
+         fswup   , & ! outgoing shortwave radiation (W/m^2)
          coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv, & ! convergence term for ridging (1/s)
          rdg_shear   ! shear term for ridging (1/s)
@@ -585,6 +586,7 @@
          vatmT      (nx_block,ny_block,max_blocks), & ! vatm on T grid
          wlat       (nx_block,ny_block,max_blocks), & ! lateral melt rate (m/s)
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
+         fswup      (nx_block,ny_block,max_blocks), & ! outgoing shortwave radiation (W/m^2)
          coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
          rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
          rdg_shear  (nx_block,ny_block,max_blocks), & ! shear term for ridging (1/s)
@@ -785,6 +787,7 @@
       vatmT      = c0
       wlat       = c0
       fsw        = c0
+      fswup      = c0
       coszen     = c0
       rdg_conv   = c0
       rdg_shear  = c0
@@ -1070,8 +1073,6 @@
       flat    (:,:,:) = c0
       fswabs  (:,:,:) = c0
       fswint_ai(:,:,:) = c0
-      flwout  (:,:,:) = -stefan_boltzmann*Tffresh**4
-                        ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
       evaps   (:,:,:) = c0
       evapi   (:,:,:) = c0
@@ -1128,6 +1129,7 @@
 
       coszen  (:,:,:) = c0            ! Cosine of the zenith angle
       fsw     (:,:,:) = c0            ! shortwave radiation (W/m^2)
+      fswup   (:,:,:) = c0            ! shortwave radiation (W/m^2)
       scale_factor(:,:,:) = c1        ! shortwave scaling factor
       wind    (:,:,:) = sqrt(uatm(:,:,:)**2 &
                            + vatm(:,:,:)**2)  ! wind speed, (m/s)
@@ -1170,6 +1172,8 @@
       fswabs  (:,:,:) = c0
       flwout  (:,:,:) = c0
       evap    (:,:,:) = c0
+      evaps   (:,:,:) = c0
+      evapi   (:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
       Uref    (:,:,:) = c0
@@ -1563,9 +1567,6 @@
             fsens   (i,j) = fsens   (i,j) * ar
             flat    (i,j) = flat    (i,j) * ar
             fswabs  (i,j) = fswabs  (i,j) * ar
-            ! Special case where aice_init was zero and aice > 0.
-            if (flwout(i,j) > -puny) &
-               flwout  (i,j) = -stefan_boltzmann *(Tf(i,j) + Tffresh)**4
             flwout  (i,j) = flwout  (i,j) * ar
             evap    (i,j) = evap    (i,j) * ar
             Tref    (i,j) = Tref    (i,j) * ar

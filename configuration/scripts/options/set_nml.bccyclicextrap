@@ -1,0 +1,4 @@
+ew_boundary_type  = 'cyclic'
+ns_boundary_type  = 'linear_extrap'
+restart_ext = .true.
+
