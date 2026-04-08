@@ -14,9 +14,9 @@
 #5) build nest set-up
 #       cd {NAME};
 #       ./cice.build
-#6) use this file to creat all needed fields for running the nest
+#6) use this file to create all needed fields for running the nest
 #       cp full2nest.sh /run/dir/nest/
-#7) modefy {PATH2hist} and {PATH2rst} to point to the history and restart directory
+#7) modify {PATH2hist} and {PATH2rst} to point to the history and restart directory
 #8) run full2nest.sh
 #       ./full2nest.sh
 #9) run nest set-up
@@ -34,7 +34,7 @@ PATH2rst="/glade/derecho/scratch/tcraig/CICE_RUNS/${CASE}/restart/"
 # ninest and njnest is the grid size of the nest (do not include halo)
 ninest=12
 njnest=12
-# nis, njs are the full grid indices that align with i=1,j=1 in the nest
+# nis, njs are the full grid indices that align with i=1,j=1 in the nest active grid (not the halo)
 nis=42
 njs=42
 
@@ -62,7 +62,7 @@ rm temp*.nc
 
 # cut extended restart files from full domain restart files
 
-for dd in {01..05}
+for dd in {01..06}
 do
         for ss in 03600 07200 10800 14400 18000 21600 25200 28800 32400 36000 39600 43200 46800 50400 54000 57600 61200 64800 68400 72000 75600 79200 82800 00000
         do
