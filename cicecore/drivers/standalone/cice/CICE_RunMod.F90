@@ -203,7 +203,7 @@
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
-         if (restore_ice) call ice_HaloRestore
+!tcx         if (restore_ice) call ice_HaloRestore
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values

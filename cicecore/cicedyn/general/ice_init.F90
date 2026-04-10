@@ -2929,9 +2929,10 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
-          aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
+          aice0, aice, vice, vsno, trcr, aice_init, &
           n_trcr_strata, nt_strata, trcr_base, uvel, vvel, &
           uvelN, vvelN, uvelE, vvelE
+      use ice_bound_state, only: bound_state
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -3133,7 +3134,8 @@
 
       call bound_state (aicen,        &
                         vicen, vsnon, &
-                        ntrcr, trcrn)
+                        ntrcr, trcrn, &
+                        restore=.false.)
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 

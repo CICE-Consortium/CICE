@@ -41,7 +41,7 @@
       use icepack_intfc, only: icepack_query_parameters, &
           icepack_query_tracer_sizes, icepack_query_tracer_flags, &
           icepack_query_tracer_indices
-      use ice_state, only: aicen, vicen, vsnon, trcrn, bound_state, &
+      use ice_state, only: aicen, vicen, vsnon, trcrn, &
           aice_init, aice0, aice, vice, vsno, trcr, &
           trcr_depend, uvel, vvel, &
           divu, shear, strength
@@ -650,9 +650,12 @@
 !  This subroutine is intended for restoring the ice state to desired
 !  values in halo cells surrounding the grid.
 
-   subroutine ice_HaloRestore
+   subroutine ice_HaloRestore(fields)
 
       use ice_calendar, only: dt
+
+      character (len=*), intent(in), optional :: &
+         fields                ! fields to restore
 
       ! local variables
 
@@ -670,6 +673,9 @@
          clovalue,           & ! local value restoring term, 1 - dt/trest
          puny
 
+      character (len=char_len_long) :: &
+         lfields               ! local fields name
+
       logical (kind=log_kind) :: &
          l_stop                ! if true, abort model
 
@@ -679,6 +685,18 @@
       character(len=*), parameter :: subname = '(ice_HaloRestore)'
 
       if (.not. restore_ice) return
+
+      if (present(fields)) then
+         lfields = trim(fields)
+      else
+         lfields = 'all'
+      endif
+
+      if (lfields /= 'all' .and. lfields /= 'state' .and. &
+          lfields /= 'none') then
+         call abort_ice(error_message=subname//' ERROR: fields option unknown = '//trim(lfields), &
+            file=__FILE__, line=__LINE__)
+      endif
 
       l_stop = .false.
       call ice_timer_start(timer_bound)
@@ -802,12 +820,12 @@
                ! West Edge
                if (this_block%iblock == 1) then
                   call restore_cells(iblk, 1, ilo-1+nfact, 1, ny_block, &
-                       east=.false.,north=.false.,crestore=crestore)
+                       east=.false.,north=.false.,crestore=crestore,fields=lfields)
                endif
                ! East Edge
                if (this_block%iblock == nblocks_x) then
                   call restore_cells(iblk, ihi+1-nfact, ihi+nghost, 1, ny_block, &
-                       east=.true.,north=.false.,crestore=crestore)
+                       east=.true.,north=.false.,crestore=crestore,fields=lfields)
                endif
             endif
 
@@ -815,7 +833,7 @@
             if (trim(ns_boundary_type) /= 'cyclic') then
                if (this_block%jblock == 1) then
                   call restore_cells(iblk, 1, nx_block, 1, jlo-1+nfact, &
-                       east=.false.,north=.false.,crestore=crestore)
+                       east=.false.,north=.false.,crestore=crestore,fields=lfields)
                endif
             endif
 
@@ -825,7 +843,7 @@
                 trim(ns_boundary_type) /= 'tripoleT') then
                if (this_block%jblock == nblocks_y) then
                   call restore_cells(iblk, 1, nx_block, jhi+1-nfact, jhi+nghost, &
-                       east=.false.,north=.true.,crestore=crestore)
+                       east=.false.,north=.true.,crestore=crestore,fields=lfields)
                endif
             endif
 
@@ -844,7 +862,7 @@
 
 !=======================================================================
 
-   subroutine restore_cells(iblk,i1,i2,j1,j2,east,north,crestore)
+   subroutine restore_cells(iblk,i1,i2,j1,j2,east,north,crestore,fields)
 
       integer(kind=int_kind), intent(in) :: &
          iblk,      & ! block id
@@ -856,6 +874,9 @@
 
       real (kind=dbl_kind), intent(in) :: &
          crestore     ! restoring weight in restoring
+
+      character(len=*), intent(in) :: &
+         fields       ! fields to restore
 
       ! local variable
 
@@ -869,7 +890,7 @@
 
       character(len=*), parameter :: subname = '(ice_HaloRestore)'
 
-      if (crestore == c0) return
+      if (crestore == c0 .or. fields == 'none') return
 
       clovalue = c1 - crestore
 
@@ -885,53 +906,73 @@
       if (east ) i1v = i1 - 1
       if (north) j1v = j1 - 1
 
-      ! NE gridcell
-      do i = i1v, i2v
-      do j = j1v, j2v
-         uvel(i,j,iblk) = uvel_rest(i,j,iblk)*crestore + uvel(i,j,iblk)*clovalue
-         vvel(i,j,iblk) = vvel_rest(i,j,iblk)*crestore + vvel(i,j,iblk)*clovalue
-      enddo
-      enddo
+      if (fields == 'state') then
 
-      ! center gridcell
-      do i = i1,i2
-      do j = j1,j2
-         do n = 1, ncat
-            aicen (i,j,n,iblk) = aicen_rest(i,j,n,iblk)*crestore + aicen (i,j,n,iblk)*clovalue
-            vicen (i,j,n,iblk) = vicen_rest(i,j,n,iblk)*crestore + vicen (i,j,n,iblk)*clovalue
-            vsnon (i,j,n,iblk) = vsnon_rest(i,j,n,iblk)*crestore + vsnon (i,j,n,iblk)*clovalue
-            dhsn  (i,j,n,iblk) = dhs_rest  (i,j,n,iblk)*crestore + dhsn  (i,j,n,iblk)*clovalue
-            ffracn(i,j,n,iblk) = ffrac_rest(i,j,n,iblk)*crestore + ffracn(i,j,n,iblk)*clovalue
-            do nt = 1, ntrcr
-               trcrn(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk)*crestore + trcrn(i,j,nt,n,iblk)*clovalue
+         ! center gridcell
+         do i = i1,i2
+         do j = j1,j2
+            do n = 1, ncat
+               aicen (i,j,n,iblk) = aicen_rest(i,j,n,iblk)*crestore + aicen (i,j,n,iblk)*clovalue
+               vicen (i,j,n,iblk) = vicen_rest(i,j,n,iblk)*crestore + vicen (i,j,n,iblk)*clovalue
+               vsnon (i,j,n,iblk) = vsnon_rest(i,j,n,iblk)*crestore + vsnon (i,j,n,iblk)*clovalue
+               do nt = 1, ntrcr
+                  trcrn(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk)*crestore + trcrn(i,j,nt,n,iblk)*clovalue
+               enddo
             enddo
          enddo
-         swvdr(i,j,iblk) = swvdr_rest(i,j,iblk)*crestore + swvdr(i,j,iblk)*clovalue
-         swvdf(i,j,iblk) = swvdf_rest(i,j,iblk)*crestore + swvdf(i,j,iblk)*clovalue
-         swidr(i,j,iblk) = swidr_rest(i,j,iblk)*crestore + swidr(i,j,iblk)*clovalue
-         swidf(i,j,iblk) = swidf_rest(i,j,iblk)*crestore + swidf(i,j,iblk)*clovalue
-         scale_factor(i,j,iblk) = scale_factor_rest(i,j,iblk)*crestore + scale_factor(i,j,iblk)*clovalue
-         strocnxT_iavg(i,j,iblk) = strocnxT_rest(i,j,iblk)*crestore + strocnxT_iavg(i,j,iblk)*clovalue
-         strocnyT_iavg(i,j,iblk) = strocnyT_rest(i,j,iblk)*crestore + strocnyT_iavg(i,j,iblk)*clovalue
-         stressp_1 (i,j,iblk) = stressp_1_rest (i,j,iblk)*crestore + stressp_1 (i,j,iblk)*clovalue
-         stressp_2 (i,j,iblk) = stressp_2_rest (i,j,iblk)*crestore + stressp_2 (i,j,iblk)*clovalue
-         stressp_3 (i,j,iblk) = stressp_3_rest (i,j,iblk)*crestore + stressp_3 (i,j,iblk)*clovalue
-         stressp_4 (i,j,iblk) = stressp_4_rest (i,j,iblk)*crestore + stressp_4 (i,j,iblk)*clovalue
-         stressm_1 (i,j,iblk) = stressm_1_rest (i,j,iblk)*crestore + stressm_1 (i,j,iblk)*clovalue
-         stressm_2 (i,j,iblk) = stressm_2_rest (i,j,iblk)*crestore + stressm_2 (i,j,iblk)*clovalue
-         stressm_3 (i,j,iblk) = stressm_3_rest (i,j,iblk)*crestore + stressm_3 (i,j,iblk)*clovalue
-         stressm_4 (i,j,iblk) = stressm_4_rest (i,j,iblk)*crestore + stressm_4 (i,j,iblk)*clovalue
-         stress12_1(i,j,iblk) = stress12_1_rest(i,j,iblk)*crestore + stress12_1(i,j,iblk)*clovalue
-         stress12_2(i,j,iblk) = stress12_2_rest(i,j,iblk)*crestore + stress12_2(i,j,iblk)*clovalue
-         stress12_3(i,j,iblk) = stress12_3_rest(i,j,iblk)*crestore + stress12_3(i,j,iblk)*clovalue
-         stress12_4(i,j,iblk) = stress12_4_rest(i,j,iblk)*crestore + stress12_4(i,j,iblk)*clovalue
-!         iceUmask  (i,j,iblk) = iceumask_rest  (i,j,iblk)*crestore + iceUmask  (i,j,iblk)*clovalue
-         frz_onset (i,j,iblk) = frz_onset_rest (i,j,iblk)*crestore + frz_onset (i,j,iblk)*clovalue
-         fsnow     (i,j,iblk) = fsnow_rest     (i,j,iblk)*crestore + fsnow     (i,j,iblk)*clovalue
-         sst       (i,j,iblk) = sst_rest       (i,j,iblk)*crestore + sst       (i,j,iblk)*clovalue
-         frzmlt    (i,j,iblk) = frzmelt_rest   (i,j,iblk)*crestore + frzmlt    (i,j,iblk)*clovalue
-      enddo
-      enddo
+         enddo
+
+      else  ! fields == 'all'
+
+         ! NE gridcell
+         do i = i1v, i2v
+         do j = j1v, j2v
+            uvel(i,j,iblk) = uvel_rest(i,j,iblk)*crestore + uvel(i,j,iblk)*clovalue
+            vvel(i,j,iblk) = vvel_rest(i,j,iblk)*crestore + vvel(i,j,iblk)*clovalue
+         enddo
+         enddo
+
+         ! center gridcell
+         do i = i1,i2
+         do j = j1,j2
+            do n = 1, ncat
+               aicen (i,j,n,iblk) = aicen_rest(i,j,n,iblk)*crestore + aicen (i,j,n,iblk)*clovalue
+               vicen (i,j,n,iblk) = vicen_rest(i,j,n,iblk)*crestore + vicen (i,j,n,iblk)*clovalue
+               vsnon (i,j,n,iblk) = vsnon_rest(i,j,n,iblk)*crestore + vsnon (i,j,n,iblk)*clovalue
+               dhsn  (i,j,n,iblk) = dhs_rest  (i,j,n,iblk)*crestore + dhsn  (i,j,n,iblk)*clovalue
+               ffracn(i,j,n,iblk) = ffrac_rest(i,j,n,iblk)*crestore + ffracn(i,j,n,iblk)*clovalue
+               do nt = 1, ntrcr
+                  trcrn(i,j,nt,n,iblk) = trcrn_rest(i,j,nt,n,iblk)*crestore + trcrn(i,j,nt,n,iblk)*clovalue
+               enddo
+            enddo
+            swvdr(i,j,iblk) = swvdr_rest(i,j,iblk)*crestore + swvdr(i,j,iblk)*clovalue
+            swvdf(i,j,iblk) = swvdf_rest(i,j,iblk)*crestore + swvdf(i,j,iblk)*clovalue
+            swidr(i,j,iblk) = swidr_rest(i,j,iblk)*crestore + swidr(i,j,iblk)*clovalue
+            swidf(i,j,iblk) = swidf_rest(i,j,iblk)*crestore + swidf(i,j,iblk)*clovalue
+            scale_factor(i,j,iblk) = scale_factor_rest(i,j,iblk)*crestore + scale_factor(i,j,iblk)*clovalue
+            strocnxT_iavg(i,j,iblk) = strocnxT_rest(i,j,iblk)*crestore + strocnxT_iavg(i,j,iblk)*clovalue
+            strocnyT_iavg(i,j,iblk) = strocnyT_rest(i,j,iblk)*crestore + strocnyT_iavg(i,j,iblk)*clovalue
+            stressp_1 (i,j,iblk) = stressp_1_rest (i,j,iblk)*crestore + stressp_1 (i,j,iblk)*clovalue
+            stressp_2 (i,j,iblk) = stressp_2_rest (i,j,iblk)*crestore + stressp_2 (i,j,iblk)*clovalue
+            stressp_3 (i,j,iblk) = stressp_3_rest (i,j,iblk)*crestore + stressp_3 (i,j,iblk)*clovalue
+            stressp_4 (i,j,iblk) = stressp_4_rest (i,j,iblk)*crestore + stressp_4 (i,j,iblk)*clovalue
+            stressm_1 (i,j,iblk) = stressm_1_rest (i,j,iblk)*crestore + stressm_1 (i,j,iblk)*clovalue
+            stressm_2 (i,j,iblk) = stressm_2_rest (i,j,iblk)*crestore + stressm_2 (i,j,iblk)*clovalue
+            stressm_3 (i,j,iblk) = stressm_3_rest (i,j,iblk)*crestore + stressm_3 (i,j,iblk)*clovalue
+            stressm_4 (i,j,iblk) = stressm_4_rest (i,j,iblk)*crestore + stressm_4 (i,j,iblk)*clovalue
+            stress12_1(i,j,iblk) = stress12_1_rest(i,j,iblk)*crestore + stress12_1(i,j,iblk)*clovalue
+            stress12_2(i,j,iblk) = stress12_2_rest(i,j,iblk)*crestore + stress12_2(i,j,iblk)*clovalue
+            stress12_3(i,j,iblk) = stress12_3_rest(i,j,iblk)*crestore + stress12_3(i,j,iblk)*clovalue
+            stress12_4(i,j,iblk) = stress12_4_rest(i,j,iblk)*crestore + stress12_4(i,j,iblk)*clovalue
+   !         iceUmask  (i,j,iblk) = iceumask_rest  (i,j,iblk)*crestore + iceUmask  (i,j,iblk)*clovalue
+            frz_onset (i,j,iblk) = frz_onset_rest (i,j,iblk)*crestore + frz_onset (i,j,iblk)*clovalue
+            fsnow     (i,j,iblk) = fsnow_rest     (i,j,iblk)*crestore + fsnow     (i,j,iblk)*clovalue
+            sst       (i,j,iblk) = sst_rest       (i,j,iblk)*crestore + sst       (i,j,iblk)*clovalue
+            frzmlt    (i,j,iblk) = frzmelt_rest   (i,j,iblk)*crestore + frzmlt    (i,j,iblk)*clovalue
+         enddo
+         enddo
+
+      endif
 
    end subroutine restore_cells
 !=======================================================================

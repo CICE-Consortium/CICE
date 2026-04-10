@@ -46,7 +46,8 @@
 
       implicit none
       private
-      public :: bound_state, alloc_state
+!      public :: bound_state, alloc_state
+      public :: alloc_state
 
       !-----------------------------------------------------------------
       ! state of the ice aggregated over all categories
@@ -213,6 +214,7 @@
 
       end subroutine alloc_state
 
+#if (1 == 0)
 !=======================================================================
 !
 ! Get ghost cell values for ice state variables in each thickness category.
@@ -288,7 +290,7 @@
       endif
 
       end subroutine bound_state
-
+#endif
 !=======================================================================
 
       end module ice_state

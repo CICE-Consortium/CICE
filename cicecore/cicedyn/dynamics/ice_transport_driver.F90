@@ -258,7 +258,8 @@
       use ice_domain_size, only: ncat, max_blocks
       use ice_blocks, only: nx_block, ny_block, block, get_block, nghost
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
-          uvel, vvel, bound_state, uvelE, vvelN
+          uvel, vvel, uvelE, vvelN
+      use ice_bound_state, only: bound_state
       use ice_grid, only: tarea, grid_ice
       use ice_calendar, only: istep1
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
@@ -712,8 +713,9 @@
           ew_boundary_type, ns_boundary_type
       use ice_domain_size, only: ncat, max_blocks
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
-          uvel, vvel, trcr_depend, bound_state, trcr_base, &
+          uvel, vvel, trcr_depend, trcr_base, &
           n_trcr_strata, nt_strata, uvelE, vvelN
+      use ice_bound_state, only: bound_state
       use ice_flux, only: Tf
       use ice_grid, only: HTE, HTN, tarea, tmask, grid_ice
       use ice_timers, only: ice_timer_start, ice_timer_stop, &
