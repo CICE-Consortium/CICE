@@ -644,7 +644,6 @@ snow_nml
    "``snwgrain``", "logical", "snow metamorophsis flag", "``.false.``"
    "``snwlvlfac``", "real", "fractional increase in snow", "0.3"
    "``snwredist``", "``bulk``", "bulk snow redistribution scheme", "``none``"
-   "", "``ITD``", "ITD snow redistribution scheme", ""
    "", "``ITDrdg``", "ITDrdg snow redistribution scheme", ""
    "", "``none``", "snow redistribution scheme off", ""
    "``snw_aging_table``", "'file'", "read 1D and 3D fields for dry metamorophsis lookup table", "test"
