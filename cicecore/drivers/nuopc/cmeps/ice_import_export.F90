@@ -116,7 +116,6 @@ contains
     integer             :: n
     character(char_len) :: stdname
     character(char_len) :: cvalue
-    logical             :: flds_wiso         ! use case
     logical             :: isPresent, isSet
     character(len=*), parameter :: subname='(ice_import_export:ice_advertise_fields)'
     !-------------------------------------------------------------------------------
@@ -139,18 +138,6 @@ contains
        if (allocated(fswthrun_ai)) then
           deallocate(fswthrun_ai)
        end if
-    end if
-
-    ! Determine if the following attributes are sent by the driver and if so read them in
-    flds_wiso = .false.
-    call NUOPC_CompAttributeGet(gcomp, name='flds_wiso', value=cvalue, &
-         isPresent=isPresent, isSet=isSet, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    if (isPresent .and. isSet) then
-       read(cvalue,*) flds_wiso
-    end if
-    if (my_task == master_task) then
-       write(nu_diag,*)'flds_wiso = ',flds_wiso
     end if
 
     flds_wave = .false.
@@ -178,9 +165,6 @@ contains
     call fldlist_add(fldsToIce_num, fldsToIce, 'So_u'    )
     call fldlist_add(fldsToIce_num, fldsToIce, 'So_v'    )
     call fldlist_add(fldsToIce_num, fldsToIce, 'Fioo_q'  )
-    if (flds_wiso) then
-       call fldlist_add(fldsToIce_num, fldsToIce, 'So_roce_wiso', ungridded_lbound=1, ungridded_ubound=3)
-    end if
 
     ! from atmosphere
     call fldlist_add(fldsToIce_num, fldsToIce, 'Sa_z'       )
@@ -288,15 +272,6 @@ contains
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcpho'  )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_bcphi'  )
     call fldlist_add(fldsFrIce_num , fldsFrIce, 'Fioi_flxdst' )
-
-    if (flds_wiso) then
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Fioi_meltw_wiso', &
-            ungridded_lbound=1, ungridded_ubound=3)
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Faii_evap_wiso', &
-            ungridded_lbound=1, ungridded_ubound=3)
-       call fldlist_add(fldsFrIce_num, fldsFrIce, 'Si_qref_wiso', &
-            ungridded_lbound=1, ungridded_ubound=3)
-    end if
 
     do n = 1,fldsFrIce_num
        call NUOPC_Advertise(exportState, standardName=fldsFrIce(n)%stdname, &
