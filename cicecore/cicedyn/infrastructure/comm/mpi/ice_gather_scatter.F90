@@ -525,7 +525,7 @@
          this_block = get_block(n,n)
 
          call MPI_RECV(msg_buffer, size(msg_buffer), &
-                       mpi_integer, src_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
+                       MPI_INTEGER, src_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_ICE, status, ierr)
 
          do j=this_block%jlo,this_block%jhi
@@ -557,7 +557,7 @@
          nsends = nsends + 1
          src_block = src_dist%blockLocalID(n)
          call MPI_ISEND(ARRAY(1,1,src_block), nx_block*ny_block, &
-                     mpi_integer, dst_task, 3*mpitag_gs+n, &
+                     MPI_INTEGER, dst_task, 3*mpitag_gs+n, &
                      MPI_COMM_ICE, snd_request(nsends), ierr)
        endif
      end do
@@ -2288,7 +2288,7 @@
          end do
 
          call MPI_SEND(msg_buffer, nx_block*ny_block, &
-                       mpi_integer, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
+                       MPI_INTEGER, dst_dist%blockLocation(n)-1, 3*mpitag_gs+n, &
                        MPI_COMM_ICE, ierr)
 
        endif
@@ -2355,7 +2355,7 @@
          nrecvs = nrecvs + 1
          dst_block = dst_dist%blockLocalID(n)
          call MPI_IRECV(ARRAY(1,1,dst_block), nx_block*ny_block, &
-                       mpi_integer, src_task, 3*mpitag_gs+n, &
+                       MPI_INTEGER, src_task, 3*mpitag_gs+n, &
                        MPI_COMM_ICE, rcv_request(nrecvs), ierr)
        endif
      end do
