@@ -49,21 +49,29 @@ if ! [[ ${intfc} =~ 2DL1 ]]; then
     exit -9
   fi
 
+  ctype1="error"
+  ctype2="error"
   dtype="error"
   mtype="error"
   zero="error"
   half="error"
   if [[ ${intfc} =~ R8 ]]; then
+    ctype1="real"
+    ctype2="dbl_kind"
     dtype="real (dbl_kind)"
-    mtype="MPIR8"
+    mtype="mpiR8"
     zero="0._dbl_kind"
     half="(0.5_dbl_kind"
   elif [[ ${intfc} =~ R4 ]]; then
+    ctype1="real"
+    ctype2="real_kind"
     dtype="real (real_kind)"
-    mtype="MPIR4"
+    mtype="mpiR4"
     zero="0._real_kind"
     half="(0.5_real_kind"
   elif [[ ${intfc} =~ I4 ]]; then
+    ctype1="int"
+    ctype2="int_kind"
     dtype="integer (int_kind)"
     mtype="MPI_INTEGER"
     zero="0"
@@ -157,7 +165,7 @@ cat <<EOFF > $file
       sndStatus,          &! MPI status flags
       rcvStatus            ! MPI status flags
 
-   real (dbl_kind), dimension(:,:), allocatable :: &
+   ${dtype}, dimension(:,:), allocatable :: &
       bufSend, bufRecv     ! 4d send,recv buffers
 #endif
 
@@ -259,7 +267,7 @@ cat <<EOFF > $file
 
    do nmsg=1,halo%numMsgRecv
       len = halo%SizeRecv(nmsg)*nz*nt
-      call MPI_IRECV(bufRecv(1,nmsg), len, mpiR8,  &
+      call MPI_IRECV(bufRecv(1,nmsg), len, ${mtype},  &
                      halo%recvTask(nmsg),              &
                      mpitagHalo + halo%recvTask(nmsg), &
                      halo%communicator, rcvRequest(nmsg), ierr)
@@ -291,7 +299,7 @@ cat <<EOFF > $file
       end do
 
       len = halo%SizeSend(nmsg)*nz*nt
-      call MPI_ISEND(bufSend(1,nmsg), len, mpiR8, &
+      call MPI_ISEND(bufSend(1,nmsg), len, ${mtype}, &
                      halo%sendTask(nmsg),             &
                      mpitagHalo + my_task,            &
                      halo%communicator, sndRequest(nmsg), ierr)
@@ -493,7 +501,7 @@ cat <<EOFF > $file
                do j = jlo-nghost,jhi+nghost
                do i = 1,nghost
                   array(i,j${xtrdims},iblk) = array(ilo,j${xtrdims},iblk) - &
-                     real((nghost-i+1),dbl_kind)*(array(ilo+1,j${xtrdims},iblk)-array(ilo,j${xtrdims},iblk))
+                     ${ctype1}((nghost-i+1),${ctype2})*(array(ilo+1,j${xtrdims},iblk)-array(ilo,j${xtrdims},iblk))
                enddo
                enddo
             endif
@@ -510,7 +518,7 @@ cat <<EOFF > $file
                do j = jlo-nghost,jhi+nghost
                do i = 1,nghost
                   array(ihi+i,j${xtrdims},iblk) = array(ihi,j${xtrdims},iblk) + &
-                     real((i),dbl_kind)*(array(ihi,j${xtrdims},iblk)-array(ihi-1,j${xtrdims},iblk))
+                     ${ctype1}((i),${ctype2})*(array(ihi,j${xtrdims},iblk)-array(ihi-1,j${xtrdims},iblk))
                enddo
                enddo
             endif
@@ -527,7 +535,7 @@ cat <<EOFF > $file
                do j = 1,nghost
                do i = ilo-nghost,ihi+nghost
                   array(i,j${xtrdims},iblk) = array(i,jlo${xtrdims},iblk) - &
-                     real((nghost-j+1),dbl_kind)*(array(i,jlo+1${xtrdims},iblk)-array(i,jlo${xtrdims},iblk))
+                     ${ctype1}((nghost-j+1),${ctype2})*(array(i,jlo+1${xtrdims},iblk)-array(i,jlo${xtrdims},iblk))
                enddo
                enddo
             endif
@@ -544,7 +552,7 @@ cat <<EOFF > $file
                do j = 1,nghost
                do i = ilo-nghost,ihi+nghost
                   array(i,jhi+j${xtrdims},iblk) = array(i,jhi${xtrdims},iblk) + &
-                     real((j),dbl_kind)*(array(i,jhi${xtrdims},iblk)-array(i,jhi-1${xtrdims},iblk))
+                     ${ctype1}((j),${ctype2})*(array(i,jhi${xtrdims},iblk)-array(i,jhi-1${xtrdims},iblk))
                enddo
                enddo
             endif
