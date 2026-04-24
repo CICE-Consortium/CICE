@@ -101,10 +101,7 @@
          zetax2T  (:,:,:) , & ! zetax2 = 2*zeta (bulk viscosity)
          zetax2U  (:,:,:) , & ! zetax2T averaged to U points
          etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
-         etax2U   (:,:,:) , & ! etax2T averaged to U points
-         rheofactU(:,:,:)     ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
-                              ! rheofactU is not used but added for consistency with
-                              ! C-grid rheofactN and rheofactE (for call dyn_prep2)
+         etax2U   (:,:,:)     ! etax2T averaged to U points
 
       real (kind=dbl_kind), allocatable :: &
          uocnU    (:,:,:) , & ! i ocean current (m/s)
@@ -169,10 +166,8 @@
                 forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
                 umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
                 umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
-                rheofactU(nx_block,ny_block,max_blocks), & ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
-
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -515,7 +510,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umask     (:,:,iblk), rheofactU (:,:,iblk), &
+                            umask     (:,:,iblk),                       &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -572,7 +567,7 @@
                             indxUi      (:,iblk), indxUj      (:,iblk), &
                             aiU       (:,:,iblk), umass     (:,:,iblk), &
                             umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umaskCD   (:,:,iblk), rheofactU (:,:,iblk), &
+                            umaskCD   (:,:,iblk),                       &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
@@ -622,7 +617,7 @@
                             indxNi      (:,iblk), indxNj      (:,iblk), &
                             aiN       (:,:,iblk), nmass     (:,:,iblk), &
                             nmassdti  (:,:,iblk), fcorN_blk (:,:,iblk), &
-                            nmask     (:,:,iblk), rheofactN (:,:,iblk), &
+                            nmask     (:,:,iblk),                       &
                             uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
                             strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                             ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
@@ -642,7 +637,7 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                             uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
                             uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                            TbN       (:,:,iblk))
+                            TbN       (:,:,iblk), rheofactN (:,:,iblk))
 
             !-----------------------------------------------------------------
             ! more preparation for dynamics on E grid
@@ -655,7 +650,7 @@
                             indxEi      (:,iblk), indxEj      (:,iblk), &
                             aiE       (:,:,iblk), emass     (:,:,iblk), &
                             emassdti  (:,:,iblk), fcorE_blk (:,:,iblk), &
-                            emask     (:,:,iblk), rheofactE (:,:,iblk), &
+                            emask     (:,:,iblk),                       &
                             uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
                             strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                             ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
@@ -675,8 +670,7 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                             uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
                             uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                            TbE       (:,:,iblk))
-
+                            TbE       (:,:,iblk), rheofactE (:,:,iblk))
 
             do i=1,nx_block
             do j=1,ny_block
@@ -2250,6 +2244,7 @@
       end subroutine div_stress_Ex
 
 !=======================================================================
+
       subroutine div_stress_Ey(nx_block, ny_block , &
                                          icell    , &
                                indxi   , indxj    , &
@@ -2305,6 +2300,7 @@
       end subroutine div_stress_Ey
 
 !=======================================================================
+
       subroutine div_stress_Nx(nx_block, ny_block , &
                                          icell    , &
                                indxi   , indxj    , &
@@ -2360,6 +2356,7 @@
       end subroutine div_stress_Nx
 
 !=======================================================================
+
       subroutine div_stress_Ny(nx_block, ny_block , &
                                          icell    , &
                                indxi   , indxj    , &

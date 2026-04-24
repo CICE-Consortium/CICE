@@ -597,7 +597,7 @@
                             indxXi,     indxXj,     &
                             aiX,        Xmass,      &
                             Xmassdti,   fcor,       &
-                            Xmask,      rheofactX,  &
+                            Xmask,                  &
                             uocn,       vocn,       &
                             strairx,    strairy,    &
                             ss_tltx,    ss_tlty,    &
@@ -617,7 +617,7 @@
                             stress12_3, stress12_4, &
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
-                            TbU)
+                            TbU,        rheofactX)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -680,9 +680,11 @@
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty , & ! divergence of internal ice stress, y (N/m^2)
          taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby   , & ! seabed stress, y-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), &
+           optional :: &
          rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
-         
 
       ! local variables
 
@@ -801,10 +803,12 @@
          i = indxXi(ij)
          j = indxXj(ij)
 
-         if ( aiX (i,j) > rheo_area_min ) then
-            rheofactX(i,j) = c1
-         else
-            rheofactX(i,j) = c0
+         if (present(rheofactX)) then
+            if ( aiX (i,j) > rheo_area_min ) then
+               rheofactX(i,j) = c1
+            else
+               rheofactX(i,j) = c0
+            endif
          endif
 
          Xmassdti(i,j) = Xmass(i,j)/dt ! kg/m^2 s

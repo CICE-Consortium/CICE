@@ -1,4 +1,6 @@
 grid_ice = 'C_override_D'
+dyn_area_min    = 0.001d0
+dyn_mass_min    = 0.01d0
 # visc_method=avg_zeta causes some gridcd tests to abort, use avg_strength for now
 visc_method = 'avg_strength'
 
