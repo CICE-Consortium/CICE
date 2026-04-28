@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/mpif08
+setenv ICE_TARGET     mpif08

@@ -169,6 +169,7 @@
          else
             ncfile = trim(history_dir)//ncfile
          endif
+         write(nu_diag,*) subname,' Writing ',trim(ncfile)
 
          ! create file
          if (history_format == 'cdf1') then
@@ -289,7 +290,8 @@
             endif
 
             ! Define coord time_bounds if hist_avg is true
-            if (hist_avg(ns) .and. .not. write_ic) then
+            ! History restarts are snapshots of accumulated data at current time, do not write time bounds
+            if (hist_avg(ns) .and. .not. write_ic .and. .not. write_histrest_now) then
                time_coord = coord_attributes('time_bounds', 'time interval endpoints', trim(cal_units), 'undefined')
 
                dimid(1) = boundid
@@ -741,7 +743,8 @@
 
             ! Some coupled models require the time axis "stamp" to be in the middle
             ! or even beginning of averaging interval.
-            if (hist_avg(ns)) then
+            ! history restarts are snapshots of accumulated data at current time
+            if (hist_avg(ns) .and. .not. write_histrest_now) then
                if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
                if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
             endif
@@ -753,7 +756,8 @@
             call ice_check_nc(status, subname// ' ERROR: writing time variable', &
                               file=__FILE__, line=__LINE__)
 
-            if (hist_avg(ns) .and. .not. write_ic) then
+            ! History restarts are snapshots of accumulated data at current time, do not write time bounds
+            if (hist_avg(ns) .and. .not. write_ic .and. .not. write_histrest_now) then
                status = nf90_inq_varid(ncid,'time_bounds',varid)
                call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
                                  file=__FILE__, line=__LINE__)

@@ -3,6 +3,7 @@ smoke          gx3     8x2           diag1,run5day
 smoke          gx3     4x2x25x29x4   debug,run2day,dslenderX2
 unittest       gx3     1x1           helloworld
 unittest       gx3     1x1           calchk,short
+unittest       gx3     8x1           mpif08,debug
 unittest       gx3     4x1x25x29x4   sumchk
 unittest       gx3     1x1x25x29x16  sumchk
 unittest       tx1     8x1           sumchk

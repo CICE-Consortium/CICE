@@ -13,7 +13,9 @@ FFLAGS_NOOPT:= -O0
 
 ifeq ($(ICE_BLDDEBUG), true)
 # -check uninit is needed on the ld step but it still throws errors in 2023.* and 2024.0.*, likely compiler bug
-  FFLAGS     += -O0 -g  -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+#  FFLAGS     += -O0 -g  -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
+  FFLAGS     += -O0 -check all -check noarg_temp_created -warn -warn noerrors -fp-stack-check -fstack-protector-all -fpe0 -debug -ftrapuv -init=snan,arrays -link_mpi=dbg
+#  LDFLAGS    += -check all
 #  FFLAGS     += -O0 -g -check uninit -check bounds -check pointers -fpe0 -check noarg_temp_created -link_mpi=dbg
 #  LDFLAGS    += -check uninit
 else
