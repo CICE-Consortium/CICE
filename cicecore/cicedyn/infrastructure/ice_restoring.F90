@@ -52,7 +52,7 @@
 
       implicit none
       private
-      public :: ice_HaloRestore_init, ice_HaloRestore, ice_HaloRestore_getbdy
+      public :: ice_restore_init, ice_HaloRestore, ice_restore_getbdy
 
       logical (kind=log_kind), public :: &
          restore_ice                 ! restore ice state if true
@@ -116,7 +116,7 @@
 !  in cells surrounding the grid.
 
 
-   subroutine ice_HaloRestore_init
+   subroutine ice_restore_init
 
 #if (1 == 0)
 !      use ice_flux, only: Tf, Tair, salinz, Tmltz
@@ -133,9 +133,7 @@
       type (block) :: &
          this_block  ! block info for current block
 
-      character(len=*), parameter :: subname = '(ice_HaloRestore_init)'
-
-      if (.not. restore_ice) return
+      character(len=*), parameter :: subname = '(ice_restore_init)'
 
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_warnings_flush(nu_diag)
@@ -282,11 +280,11 @@
 
 !1 == 0      endif
 
-   end subroutine ice_HaloRestore_init
+   end subroutine ice_restore_init
 
 !=======================================================================
 !
-   subroutine ice_HaloRestore_getbdy
+   subroutine ice_restore_getbdy
 
       integer(kind=int_kind) :: &
          k            ! dummy arguments
@@ -300,7 +298,7 @@
       integer (kind=int_kind) :: nt_fsd, nt_isosno, nt_isoice, nt_fbri
       integer (kind=int_kind) :: nt_smice, nt_smliq, nt_rhos, nt_rsnw
 
-      character(len=*), parameter :: subname = '(ice_HaloRestore_getbdy)'
+      character(len=*), parameter :: subname = '(ice_restore_getbdy)'
 
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
          tr_lvl_out=tr_lvl, tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
@@ -383,7 +381,7 @@
 !      stress12_4_rest(:,:,:) = stress12_4_bry(:,:,:)
 !      iceumask_rest(:,:,:) = iceumask_bry(:,:,:)
 
-   end subroutine ice_HaloRestore_getbdy
+   end subroutine ice_restore_getbdy
 
 !=======================================================================
 #if (1 == 0)
@@ -648,7 +646,7 @@
 !  This subroutine is intended for restoring the ice state to desired
 !  values in halo cells surrounding the grid.
 
-   subroutine ice_Restore(setfld)
+   subroutine ice_restore(setfld)
 
 !      use ice_calendar, only: dt
 
@@ -680,7 +678,7 @@
       integer (kind=int_kind) :: &
          istop, jstop, k       ! indices of grid cell where model aborts
 
-      character(len=*), parameter :: subname = '(ice_Restore)'
+      character(len=*), parameter :: subname = '(ice_restore)'
 
       if (.not. restore_ice) return
 
@@ -854,7 +852,7 @@
 
       call ice_timer_stop(timer_bound)
 
-   end subroutine ice_Restore
+   end subroutine ice_restore
 #endif
 !=======================================================================
 !  This subroutine is intended for restoring the ice state to desired

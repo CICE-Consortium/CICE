@@ -142,7 +142,7 @@
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
-      use ice_domain, only: halo_info, nblocks
+      use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
@@ -156,7 +156,7 @@
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
       use ice_restart_driver, only: dumpfile
-      use ice_restoring, only: restore_ice, ice_HaloRestore_getbdy
+      use ice_restoring, only: restore_ice, ice_restore_getbdy
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry, step_prep, step_dyn_wave, step_snow
@@ -203,7 +203,7 @@
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
-      if (restore_ice) call ice_HaloRestore_getbdy()
+      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restore_getbdy()
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
