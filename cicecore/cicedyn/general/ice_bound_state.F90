@@ -67,7 +67,7 @@
       use ice_domain_size, only: max_blocks, ncat
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: halo_info, maskhalo_bound, nblocks
-      use ice_restoring, only: restore_ice, ice_HaloRestore
+      use ice_restoring, only: ice_HaloRestore
 
       integer (kind=int_kind), intent(in) :: &
          ntrcr     ! number of tracers in use
@@ -139,8 +139,8 @@
                               field_loc_center, field_type_scalar)
       endif
 
-      if (lrestore .and. restore_ice) then
-         call ice_HaloRestore(fields='state')
+      if (lrestore) then
+         call ice_HaloRestore(setfld='state')
       endif
 
       end subroutine bound_state

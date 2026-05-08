@@ -19,7 +19,9 @@
       module ice_forcing
 
       use ice_kinds_mod
+#if (1 == 0)
       use ice_boundary, only: ice_HaloUpdate
+#endif
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: halo_info
       use ice_domain_size, only: nilyr, ncat, max_blocks, nx_global,ny_global, &
@@ -781,6 +783,7 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
+#if (1 == 0)
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (swvdr,             halo_info, &
                            field_loc_center,  field_type_scalar, fillvalue=c0)
@@ -791,6 +794,7 @@
       call ice_HaloUpdate (swidf,             halo_info, &
                            field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_timer_stop(timer_bound)
+#endif
 
       call ice_timer_stop(timer_forcing)
 
@@ -5205,8 +5209,8 @@
       character (len=2) ::ncharm,nchard
       character (len=5) ::nchars
       character (len=4) ::nchary
-      !write (nu_diag,*) 'boundary_data'
 
+      character(len=*), parameter :: subname = '(get_forcing_bry)'
 
       dbug=.false.
       if (istep1 > debug_model_step) dbug = .true.  !! debugging
@@ -5315,7 +5319,7 @@
         nrec=1
         dbug = .false.
 
-        write (nu_diag,*) 'data_file: ',data_file
+        if (my_task == master_task) write (nu_diag,*) subname,' read ',data_file
 
         !data_file = 'cice_bdy_restart.nc'
         call ice_open_nc (data_file, fid)

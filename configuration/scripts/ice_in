@@ -325,12 +325,12 @@
     distribution_wght_file = 'unknown'
     ew_boundary_type  = 'cyclic'
     ns_boundary_type  = 'open'
+    set_boundary_flds = 'none'
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
     debug_blocks      = .false.
-    sea_ice_time_bry  = .false.
     bdy_origin        = 'intern'
 /
 

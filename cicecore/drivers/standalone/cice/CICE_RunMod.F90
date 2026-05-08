@@ -156,7 +156,7 @@
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
       use ice_restart_driver, only: dumpfile
-      use ice_restoring, only: restore_ice, ice_HaloRestore
+      use ice_restoring, only: restore_ice, ice_HaloRestore_getbdy
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry, step_prep, step_dyn_wave, step_snow
@@ -203,7 +203,7 @@
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
-!tcx         if (restore_ice) call ice_HaloRestore
+      if (restore_ice) call ice_HaloRestore_getbdy()
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
