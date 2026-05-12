@@ -677,7 +677,7 @@
 
          ! initialize floe size distribution the same in every column and category
          call icepack_init_fsd(ice_ic = ice_ic, &
-            afsd          = afsd)             ! floe size distribution
+                               afsd   = afsd)             ! floe size distribution
 
          do iblk = 1, max_blocks
             do j = 1, ny_block

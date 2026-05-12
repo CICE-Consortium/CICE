@@ -226,6 +226,30 @@
 
 !----------------------------------------------------------------------
 !
+!  perform some basic checks on namelist
+!
+!----------------------------------------------------------------------
+
+   if (ew_boundary_type /= 'open'      .and. &
+       ew_boundary_type /= 'closed'    .and. &
+       ew_boundary_type /= 'cyclic'    .and. &
+       ew_boundary_type /= 'zero_gradient' .and. &
+       ew_boundary_type /= 'linear_extrap')  then
+      call abort_ice(subname//' ERROR: ew_boundary_type unsupported = '//trim(ew_boundary_type), file=__FILE__, line=__LINE__)
+   endif
+
+   if (ns_boundary_type /= 'open'      .and. &
+       ns_boundary_type /= 'closed'    .and. &
+       ns_boundary_type /= 'cyclic'    .and. &
+       ns_boundary_type /= 'tripole'   .and. &
+       ns_boundary_type /= 'tripoleT'  .and. &
+       ns_boundary_type /= 'zero_gradient' .and. &
+       ns_boundary_type /= 'linear_extrap')  then
+      call abort_ice(subname//' ERROR: ns_boundary_type unsupported = '//trim(ns_boundary_type), file=__FILE__, line=__LINE__)
+   endif
+
+!----------------------------------------------------------------------
+!
 ! Set nprocs if not explicitly set to valid value in namelist
 !
 !----------------------------------------------------------------------

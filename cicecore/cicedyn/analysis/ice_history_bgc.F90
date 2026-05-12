@@ -3398,7 +3398,7 @@
 
       use ice_arrays_column, only: PP_net, grow_net, hbri, &
           ice_bio_net, snow_bio_net, fbio_snoice, fbio_atmice, &
-          zfswin
+          upNO, upNH, bTiz, bphi, zfswin, iDi, iki
       use ice_flux_bgc, only: flux_bio, flux_bio_ai, fnit, fsil, &
           famm, fdmsp, fdms, fhum, fdust, falgalN, fdoc, fdic, &
           fdon, ffep, ffed
@@ -3407,6 +3407,8 @@
 
       PP_net        (:,:,:) = c0
       grow_net      (:,:,:) = c0
+      upNO          (:,:,:) = c0
+      upNH          (:,:,:) = c0
       hbri          (:,:,:) = c0
       flux_bio    (:,:,:,:) = c0
       flux_bio_ai (:,:,:,:) = c0
@@ -3414,7 +3416,11 @@
       snow_bio_net(:,:,:,:) = c0
       fbio_snoice (:,:,:,:) = c0
       fbio_atmice (:,:,:,:) = c0
+      bTiz      (:,:,:,:,:) = c0
+      bphi      (:,:,:,:,:) = c0
       zfswin    (:,:,:,:,:) = c0
+      iDi       (:,:,:,:,:) = c0
+      iki       (:,:,:,:,:) = c0
       fnit          (:,:,:) = c0
       fsil          (:,:,:) = c0
       famm          (:,:,:) = c0

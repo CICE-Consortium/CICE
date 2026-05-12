@@ -424,17 +424,28 @@ category as a fourth dimension.
 Boundary Conditions
 *******************
 
-Much of the infrastructure used in CICE, including the boundary
-routines, is adopted from POP. The boundary routines perform boundary
-communications among processors when MPI is in use and among blocks
-whenever there is more than one block per processor.
+The boundary routines perform boundary
+communications between blocks in CICE whether those blocks are on the
+same or different MPI tasks.  Neighbor data is communicated between 
+blocks via the ice_HaloUpdate method.  The HaloUpdate also computes
+values on the halo at the edge of the grid.
 
 Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
-namelist inputs.  Valid values are ``open``, ``closed``, and ``cyclic``.  In addition,
+namelist inputs.  Valid values are ``open``, ``closed``, ``cyclic``, ``zero_gradient``,
+and ``linear_extrap``.  In addition,
 ``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
 ``closed`` imposes a land mask on the boundary with a two gridcell depth
-and is only supported for rectangular grids.  In general,
-where the boundary is land or where there is no ice on the boundary, 
+and is only supported for rectangular grids.  ``zero_gradient`` and ``linear_extrap``
+apply boundary conditions of zero or constant gradient values based on 
+interior values near the boundary.  ``cyclic`` boundary conditions communicate
+neighbor data from the opposite side of the grid.  ``open`` boundary conditions
+do not impose any values on the boundary.  This might be useful in cases where
+external data is specified on the outside boundary.  The ``zero_gradient`` and 
+``linear_extrap`` boundary conditions have been implemented as an interim step 
+toward a regional grid capability. Until restoring options are complete and the 
+regional capability is fully tested, these boundary conditions may produce 
+nonphysical values such as negative ice thickness.
+In general, where the boundary is land or where there is no ice on the boundary, 
 the boundary_type settings and boundary conditions play no role.
 
 In the displaced-pole global grids, the mask (kmt) file has at least one row of 
@@ -444,17 +455,15 @@ this example,
 the appropriate namelist settings are ``ns_boundary_type`` = ``open``,
 ``ew_boundary_type`` = ``cyclic``.
 
-CICE can be run on regional grids with ``open``, ``closed``, or ``cyclic`` 
-boundary conditions.
+CICE can be run on regional grids with ``open``, ``closed``, ``cyclic`` , ``zero_gradient``,
+and ``linear_extrap`` boundary conditions.
 Except for variables describing grid lengths, non-land halo cells along the
 grid edge must be filled with some boundary conditions 
 if ice is present at that location.  The outside halo is handled automatically
-with ``closed`` or ``cyclic`` conditions.  With open boundary conditions, one can imagine 
+with ``closed``, ``cyclic``, ``zero_gradient``, or ``linear_extrap``  conditions.  
+With open boundary conditions, one can imagine 
 several different ways to set the outside boundary including reading values from
-an external file or deriving values on that halo based on the interior 
-solution while specifying zero gradient, constant gradient, specified state,
-zero flux, or other boundary conditions.  Mathematically specified boundary 
-conditions are currently not supported in the CICE model.
+an external file.
 
 The namelist variable ``restore_ice`` turns on a restoring capability on the
 boundary by setting the boundary halo to values read from a file.  The
@@ -1260,7 +1269,7 @@ to the Macros machine file explicity when needed.
 .. _history:
 
 *************
-History files
+History Files
 *************
 
 CICE provides history data output in binary unformatted or netCDF formats via
@@ -1296,8 +1305,8 @@ collected in their own history modules (**ice_history_bgc.F90**,
 **ice_history_drag.F90**, **ice_history_mechred.F90**,
 **ice_history_pond.F90**).
 
-The history modules allow output at different frequencies. Five output
-options (``1``, ``h``, ``d``, ``m``, ``y``) are available simultaneously for ``histfreq``
+The history modules allow output at different frequencies. Six output
+options (``1``, ``h``, ``d``, ``m``, ``y``, ``n``) are available simultaneously for ``histfreq``
 during a run, and each stream must have a unique value for ``histfreq``.  In other words, ``d``
 cannot be used by two different streams.  Each stream has an associated frequency
 set by ``histfreq_n``.  The frequency is
@@ -1396,17 +1405,26 @@ subroutine **define_hist_field**.  ``cona`` and ``conb`` are multiplicative and 
 terms respectively that are hardwired into the source code to convert model units to
 history units.
 
-Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison 
-Project (SIMIP) :cite:`Notz16` have been added as possible history output variables (e.g. 
-``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
-`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and 
-`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_ 
-requested  SIMIP variables provide the names of possible history fields in CICE. 
-However, each of the additional variables can be output at any temporal frequency 
-specified in the **icefields_nml** section of **ice_in** as detailed above.
-Additionally, a new history output variable, ``f_CMIP``, has been added. When ``f_CMIP``
-is added to the **icefields_nml** section of **ice_in** then all SIMIP variables
-will be turned on for output at the frequency specified by ``f_CMIP``. 
+Beginning with CICE v6, history variables requested by the Sea Ice Model Intercomparison
+Project (SIMIP) :cite:`Notz16` are available as history output variables 
+(e.g. ``f_sithick``, ``f_sidmassgrowthbottom``, etc.). The lists of
+`monthly <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SImon.html>`_ and
+`daily <http://clipc-services.ceda.ac.uk/dreq/u/MIPtable::SIday.html>`_
+requested SIMIP variables provide their history field names in CICE.
+These variables have been updated for the  
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_.
+
+The ``f_CMIP`` flag has been removed. This is now a ``set_nml.cmip`` namelist option
+which can be invoked with the ``-s cmip`` option during cice.setup. This optional
+namelist setting will turn on the CMIP data request and turn off CICE duplicates of
+SIMIP variables. However, these can be changed by the user in their case ``ice_in`` file.
+Note that all SIMIP variables have been updated to correspond to the new 
+`CMIP7 data request <https://wcrp-cmip.org/cmip7-data-request-v1-0/>`_. 
+
+Note that some SIMIP variables require division by ice or sub-ice areas, which can be extremely
+small and cause the output variables to appear unphysically large. Please interpret these
+quantities (such as ``sithick``) very carefully. A future release will have an option to mask
+these regions.
 
 It may also be helpful for debugging to increase the precision of the history file
 output from 4 bytes to 8 bytes. This is changed through the ``history_precision``
@@ -1415,8 +1433,35 @@ namelist flag.
 Note that the dpnd pond history fields have not yet been implemented for the topo
 ponds scheme and are turned off in the code.
 
+************************
+History Restart Files
+************************
+
+CICE has a history restart capability.  History restart files are needed and written when 
+a restart file is written while history fields are accumulating.  The implementation dumps 
+accumulated history data, one file per history stream, to the restart directory using
+a naming convention that uses the history filename, appends '_r' plus the ``histfreq`` character
+string and then appends the model time.  This occurs only for streams with 
+``hist_avg = .true.`` and where the accumulator count is greater than zero when the data is 
+written.  Only accumulating data associated with the history stream is written.  This feature
+can be turned off by setting ``write_histrest = .false.`` in namelist.
+
+On restart, CICE looks for appropriate history restart files and reads them if they exist.
+If the files do not exist or fields cannot be read, the model continues with the history
+accumulator set to zero.  Output is written to the log file that indicates which history restart
+files and fields were read and which were not.  In a production run, where the history streams
+are set and unchanging, this should result in bit-for-bit history restart capability.  If
+a user changes the history stream output, CICE will read only files and fields that exist
+and any new fields will initialize with zero accumulation and a potentially erroneous accumluation
+counter.
+
+There is a settings option, **histall10d**, that specifies 10-day and monthly time average
+history streams for all history variables.  For these tests, the test script compares
+the history and history restart output generated to verify bit-for-bit history capability
+for a restart run.
+
 ****************
-Diagnostic files
+Diagnostic Files
 ****************
 
 Like ``histfreq``, the parameter ``diagfreq`` can be used to regulate how often
@@ -1525,7 +1570,7 @@ The timers use *MPI_WTIME* for parallel runs and the F90 intrinsic
 .. _restartfiles:
 
 *************
-Restart files
+Restart Files
 *************
 
 CICE reads and writes restart data in binary unformatted or netCDF formats via

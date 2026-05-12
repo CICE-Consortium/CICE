@@ -96,9 +96,12 @@ Note that the VP solver has not yet been tested on the ``tx1`` grid.
 
 The EVP, rEVP, EAP and VP approaches are all available with the B grid. However, at the moment, only the EVP and rEVP schemes are possible with the C grid.
 
-The dynamics are solved for all gridcells with area concentration greater than ``dyn_area_min`` and mass
-greater than ``dyn_mass_min``.  These parameters are respectively 0.001 and 0.01 by default but can be set in 
-namelist.  Lower values can improve the solution but also lead to instabilities.
+The dynamics are solved for all grid cells with area concentration greater than ``dyn_area_min``
+and mass greater than ``dyn_mass_min``.  These parameters can be set in namelist.  Lower
+values can improve the solution with increased computational expense due to additional
+calculations in grid cells with small amounts of ice, but can also lead to instabilities.
+For this reason, default values in the code and base namelist file are set for the B-grid,
+with different values provided for C-grid tests.
 
 Here we summarize the equations and
 direct the reader to the above references for details.
@@ -183,6 +186,8 @@ However, on the C grid, :math:`u` and :math:`v` are not collocated. When solving
    \begin{aligned}
    u^{k+1} = {\hat{u} + b v^{k}_{int} \over a} \\
    v^{k+1} = {\hat{v} - b u^{k}_{int} \over a}. \end{aligned}
+
+The C- and CD-grid EVP discretizations exhibit instabilities for very small ice concentrations, when the ice should be drifting freely. The internal stress term is multiplied by a factor `rheofactN` or `rheofactE` equal to zero in this case, otherwise equal to 1 for ice areas greater than :math:`10^{-3}` (far below the physical threshold for free drift). This factor is not applied for the B-grid EVP discretization, which has not exhibited this instability. 
 
 .. _revp-momentum:
 

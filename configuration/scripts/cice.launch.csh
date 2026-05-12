@@ -284,6 +284,10 @@ aprun -n ${ntasks} -N ${taskpernodelimit} -d ${nthrds} ./cice >&! \$ICE_RUNLOG_F
 EOFR
 endif
 
+else if (${ICE_MACHCOMP} =~ betzy*) then
+cat >> ${jobfile} << EOFR
+srun -n ${ntasks} -c ${nthrds}  ./cice >&! \$ICE_RUNLOG_FILE
+EOFR
 
 #=======
 else if (${ICE_MACHCOMP} =~ gaea*) then

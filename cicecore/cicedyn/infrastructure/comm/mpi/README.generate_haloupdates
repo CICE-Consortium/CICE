@@ -1,0 +1,80 @@
+
+How to Generate the ice_HaloUpdate subroutines quickly
+
+generate_haloUpdates.sh is a script that can generate the multiple
+ice_HaloUpdate calls in ice_boundary.F90 to keep them all self-consistent.  
+The script uses a template to generate the various haloUpdate subroutines 
+depending on dimension and data type.  It is implemented so it can be
+used in both the mpi and serial directories.
+
+generate_haloUpdates.sh creates a file for each subroutine with a
+name like HaloUpdate2DR8.subr.  Those files are catted into HaloUpdate_all.subr
+in the order those subroutines appear in ice_boundary.F90.  The main
+template in generate_haloUpdates.sh creates all the subroutines except
+the 2DL1 subroutine.  That subroutine is generated directly via a cat
+near the bottom of the script because the 2DL1 implementation is unique.
+It converts the logicals to integers, calls 2DI4, and then converts the 
+integers back to logicals.
+
+Remember that there are mpi and serial version of the ice_boundary.F90
+file and both should be updated and synchronized at the same time.
+
+The recommended usage is described below.
+
+1. Compare mpi and serial versions
+
+  cd cicecore/cicedyn/infrastructure/comm/mpi
+  diff ../serial/ice_boundary.F90 ./ice_boundary.F90
+
+  ! The only difference should be a #define at the top of the file.
+  ! If there are other differences, it suggests someone updated one
+  ! file and not the other.  Try to reconcile this first.
+
+2. Verify the current version of generate_haloUpdates.sh
+
+  cd cicecore/cicedyn/infrastructure/comm/mpi
+  sed -n '/subroutine ice_HaloUpdate2DR8/,/end subroutine ice_HaloUpdate4DI4/p' ice_boundary.F90 >! HaloUpdate_all.current
+  ./generate_haloUpdates.sh
+  diff HaloUpdate_all.current HaloUpdate_all.subr
+
+  ! Verify generate_haloUpdates.sh produces code that matches the current implementation in
+  ! ice_boundary.F90.  If it doesn't, it suggests someone made manual changes to the subroutines 
+  ! in ice_boundary.F90.  Try to reconcile those differences and update generate_haloUpdates.sh first
+
+3. Update generate_haloUpdates.sh and generate new subroutines
+
+  ! Modify generate_haloUpdates.sh to generate updated code then run
+
+  ./generate_haloUpdates.sh
+  diff haloUpdate_all.current haloUpdate_all.subr
+
+  ! Review diffences with the current code (HaloUpdate_all.current)
+
+4. Update ice_boundary.F90
+
+  ! When the changes are reasonable and as expected, edit ice_boundary.F90, cut out the code
+  !  between "subroutine ice_HaloUpdate2DR8" and "end subroutine ice_HaloUpdate4DI4" and replace
+  !  that code with the latest HaloUpdate_all.subr file.  You can do it manually or try
+
+  sed -e '/subroutine ice_HaloUpdate2DR8/,/end subroutine ice_HaloUpdate4DI4/c REPLACEHERE' ice_boundary.F90 >! tmpfile
+  sed -e '/REPLACEHERE/r HaloUpdate_all.subr' -e '/REPLACEHERE/d' tmpfile >! ice_boundary.F90.new
+  rm tmpfile
+  diff ice_boundary.F90 ice_boundary.F90.new
+
+  ! There may be some extra blank lines or subroutine separators that need to be cleaned up at the
+  ! start or end of the replacement code, but then
+
+  mv ice_boundary.F90.new ice_boundary.F90
+
+5. Update serial version of ice_boundary.F90
+
+  ! Copy mpi/ice_boundary.F90 to serial/ice_boundary.F90 and add
+
+  #define SERIAL_REMOVE_MPI
+
+  ! to the top of the serial/ice_boundary.F90 code to turn off MPI in that version
+
+6. Test and test again
+
+  ! Run both single and multi processor tests and iterate until done.
+

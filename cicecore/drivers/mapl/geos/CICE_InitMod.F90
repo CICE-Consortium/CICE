@@ -145,6 +145,7 @@ contains
     use ice_forcing_bgc      , only: get_forcing_bgc, get_atm_bgc
     use ice_forcing_bgc      , only: faero_default, alloc_forcing_bgc, fiso_default
     use ice_history          , only: init_hist, accum_hist
+    use ice_history_write, only: ice_read_hist
     use ice_restart_shared   , only: restart, runtype
     use ice_init             , only: input_data, init_state
     use ice_init_column      , only: init_thermo_vertical, init_shortwave, init_zbgc
@@ -262,6 +263,7 @@ contains
     if (write_ic) then
        call accum_hist(dt)  ! write initial conditions
     end if
+    call ice_read_hist  ! read history restarts
 
     call dealloc_grid         ! deallocate temporary grid arrays
 

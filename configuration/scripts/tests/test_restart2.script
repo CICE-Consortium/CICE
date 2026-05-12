@@ -21,19 +21,24 @@ if ( $res != 0 ) then
   exit 99
 endif
 
-# Prepend 'base_' to the final restart file to save for comparison
+# Compute date of last file in first run
 if ( "${ICE_IOTYPE}" == "binary" ) then
-  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | awk -F'.' '{print $NF}'`
-  foreach file (${ICE_RUNDIR}/restart/*${end_date})
-    set surname = `echo $file | awk -F'/' '{print $NF}'`
-    mv $file ${ICE_RUNDIR}/restart/base_$surname
-  end
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | rev | cut -d "." -f 1 | rev`
 else
-  set test_file = `ls -t1 ${ICE_RUNDIR}/restart | head -1`
-  set test_data = ${ICE_RUNDIR}/restart/${test_file}
-  set base_data = ${ICE_RUNDIR}/restart/base_${test_file}
-  mv ${test_data} ${base_data}
+  set end_date = `ls -t1 ${ICE_RUNDIR}/restart | head -1 | rev | cut -d "." -f 2 | rev`
 endif
+
+# Prepend 'base_' to final restart and history restart files to save for comparison
+foreach file (${ICE_RUNDIR}/restart/*${end_date}*)
+  set surname = `echo $file | awk -F'/' '{print $NF}'`
+  mv $file ${ICE_RUNDIR}/restart/base_$surname
+end
+
+# Prepend 'base_' to all history files to save for comparison
+foreach file (${ICE_RUNDIR}/history/*)
+  set surname = `echo $file | awk -F'/' '{print $NF}'`
+  mv $file ${ICE_RUNDIR}/history/base_$surname
+end
 
 #-----------------------------------------------------------
 # Run the CICE model for the restart simulation

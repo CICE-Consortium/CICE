@@ -123,6 +123,7 @@
       logical (kind=log_kind), public :: &
          use_leap_years , & ! use leap year functionality if true
          write_ic       , & ! write initial condition now
+         write_histrest , & ! write history restarts if needed
          dump_last      , & ! write restart file on last time step
          force_restart_now, & ! force a restart now
          write_history(max_nstrm) ! write history now
@@ -441,6 +442,11 @@
          case ("d", "D")
             if (new_day  .and. histfreq_n(ns)/=0) then
                if (mod(elapsed_days,histfreq_n(ns))==0) &
+                   write_history(ns) = .true.
+            endif
+         case ("n", "N")
+            if (new_day  .and. histfreq_n(ns)/=0) then
+               if (mday == histfreq_n(ns)) &
                    write_history(ns) = .true.
             endif
          case ("h", "H")

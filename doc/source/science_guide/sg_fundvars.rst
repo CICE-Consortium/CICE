@@ -13,7 +13,6 @@ modeling is to describe the evolution of the ice thickness distribution
 (ITD) in time and space.
 
 In addition to an ice thickness distribution, CICE includes an optional capability for a floe size distribution.
-
 Ice floe horizontal size may change through vertical and lateral growth and melting of existing floes, freezing of new ice, wave breaking, and welding of floes in freezing conditions.  The floe size distribution (FSD) is a probability function that characterizes this variability. The scheme is based on the theoretical framework described in :cite:`Horvat15` for a joint floe size and thickness distribution (FSTD), and was implemented by :cite:`Roach18` and :cite:`Roach19`.  The joint floe size distribution is carried as an area-weighted tracer, defined as the fraction of ice belonging to a given thickness category with lateral floe size belong to a given floe size class. This development includes interactions between sea ice and ocean surface waves. Input data on ocean surface wave spectra at a single time is provided for testing, but as with the other CICE datasets, it should not be used for production runs or publications. It is not recommended to use the FSD without ocean surface waves.
 
 Additional information about the ITD and joint FSTD for CICE can be found in the
@@ -113,3 +112,15 @@ the beginning of the timestep. Rather than recompute the albedo and
 shortwave components at the beginning of the next timestep using new
 values of the downwelling shortwave forcing, the shortwave components
 computed at the end of the last timestep are scaled for the new forcing.
+
+In Icepack, residual amounts of ice may be conservatively removed based
+on minimum area and mass parameters ``itd_area_min`` and ``itd_mass_min``.
+Initializing these parameters to CICE's ``dyn_area_min`` and ``dyn_mass_min``
+namelist values ensures consistency between Icepack's column physics and
+CICE's dynamic calculations by avoiding residual ice not handled in either
+place. However, ``dyn_area_min`` and ``dyn_mass_min`` should be relatively
+small to avoid removing too much ice. The default behavior sets the column
+physics (itd) parameters to the dynamics values (from namelist).
+``itd_area_min`` and ``itd_mass_min`` can be added to the namelist file
+**ice_in** and set to different values, if desired. Setting them to zero
+turns off residual zapping completely.

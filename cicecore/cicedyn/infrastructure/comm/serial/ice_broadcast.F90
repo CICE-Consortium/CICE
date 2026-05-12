@@ -16,7 +16,7 @@
 #ifdef SERIAL_REMOVE_MPI
    use ice_communicate, only: MPI_COMM_ICE
 #else
-   use ice_communicate, only: mpiR8, mpir4, MPI_COMM_ICE
+   use ice_communicate, only: mpiR8, mpiR4, MPI_COMM_ICE
 #endif
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted

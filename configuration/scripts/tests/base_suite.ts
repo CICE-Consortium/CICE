@@ -49,6 +49,8 @@ restart        gbox128 4x4        boxrestore,medium
 smoke          gbox128 4x4        boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
+smoke          gbox80  8x2        boxgauss,bclinearextrap,debug
+smoke          gbox80  9x2        boxgauss,bczerogradient,debug
 smoke          gbox12  1x1x12x12x1  boxchan,diag1,debug
 restart        gx3     8x2        modal
 smoke          gx3     8x2        bgcz,diag1,run5day
