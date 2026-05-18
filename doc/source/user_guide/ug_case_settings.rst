@@ -761,7 +761,7 @@ forcing_nml
    "", "``linear_salt``", "linear function of salinity (ktherm=1)",
    "", "``minus1p8``", "constant ocean freezing temperature (:math:`-1.8^{\circ} C`)", ""
    "", "``mushy``", "matches mushy-layer thermo (ktherm=2)", ""
-   "``trestore``", "integer", "sst restoring time scale (days)", "90"
+   "``trestore``", "real", "sst restoring time scale (days)", "90."
    "``ustar_min``", "real", "minimum value of ocean friction velocity in m/s", "0.0005"
    "``update_ocn_f``", "``.false.``", "do not include frazil water/salt fluxes in ocn fluxes", "``.false.``"
    "", "``true``", "include frazil water/salt fluxes in ocn fluxes", ""

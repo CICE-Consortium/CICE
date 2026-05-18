@@ -18,7 +18,7 @@
       use ice_fileunits, only: nu_diag
       use ice_arrays_column, only: restore_bgc, &
          bgc_data_dir, fe_data_type
-      use ice_constants, only: c0, p1
+      use ice_constants, only: c0, c1, p1
       use ice_constants, only: field_loc_center, field_type_scalar
       use ice_exit, only: abort_ice
       use ice_forcing, only: bgc_data_type
@@ -87,7 +87,7 @@
       use ice_calendar, only:  yday
 !     use ice_flux, only: sss
       use ice_flux_bgc, only: sil, nit
-      use ice_forcing, only: trestore, trest, fyear, &
+      use ice_forcing, only: trestore, fyear, &
           read_clim_data_nc, interpolate_data, &
           interp_coeff_monthly, interp_coeff,  &
           read_data_nc_point, c1intp, c2intp
@@ -122,6 +122,9 @@
          nit_file   , & ! nitrate input file
          sil_file       ! silicate input file
 
+      real (dbl_kind) :: &
+         crestore        ! restoring value, dt/trestore
+
       type (block) :: &
          this_block           ! block information for current block
 
@@ -133,6 +136,14 @@
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      if (restore_bgc) then
+         if (trestore == c0) then
+            crestore = c1      ! use data instantaneously
+         else
+            crestore = max(abs(dt/(trestore*secday)),c1)
+         endif
+      endif
 
       if (trim(bgc_data_type) == 'clim') then
 
@@ -244,7 +255,7 @@
                do i = ilo, ihi
 
                   sil(i,j,iblk) = sil(i,j,iblk)  &
-                         + (sildat(i,j,iblk)-sil(i,j,iblk))*dt/trest
+                         + (sildat(i,j,iblk)-sil(i,j,iblk))*crestore
                   ks = 2*icepack_max_algae + icepack_max_doc + 3 + icepack_max_dic
                   ocean_bio_all(i,j,ks,iblk) = sil(i,j,iblk)                       !Sil
                enddo
@@ -325,7 +336,7 @@
                do i = ilo, ihi
 
                   nit(i,j,iblk) = nit(i,j,iblk)  &
-                         + (nitdat(i,j,iblk)-nit(i,j,iblk))*dt/trest
+                         + (nitdat(i,j,iblk)-nit(i,j,iblk))*crestore
                   ks = icepack_max_algae + 1
                   ocean_bio_all(i,j,ks,iblk) = nit(i,j,iblk)                       !nit
                   ks =  2*icepack_max_algae + icepack_max_doc + 7 + icepack_max_dic

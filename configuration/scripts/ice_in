@@ -288,8 +288,13 @@
     nfreq           = 25
     restart_coszen  = .false.
     restore_ice     = .false.
+    restore_flds    = 'none'
+    restore_data    = 'restartfiles'
+    restore_mask    = 'unknown'
+    restore_width   = 0
+    restore_timescale = 0.
     restore_ocn     = .false.
-    trestore        =  90
+    trestore        =  90.
     precip_units    = 'mm_per_month'
     default_season  = 'winter'
     atm_data_type   = 'ncar'
@@ -325,11 +330,13 @@
     distribution_wght_file = 'unknown'
     ew_boundary_type  = 'cyclic'
     ns_boundary_type  = 'open'
+    set_boundary_flds = 'none'
     maskhalo_dyn      = .false.
     maskhalo_remap    = .false.
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
     debug_blocks      = .false.
+    bdy_origin        = 'intern'
 /
 
 &zbgc_nml

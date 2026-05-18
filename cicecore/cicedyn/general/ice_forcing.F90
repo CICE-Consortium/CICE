@@ -19,10 +19,13 @@
       module ice_forcing
 
       use ice_kinds_mod
+#if (1 == 0)
       use ice_boundary, only: ice_HaloUpdate
+#endif
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: halo_info
-      use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global, nfreq
+      use ice_domain_size, only: nilyr, ncat, max_blocks, nx_global,ny_global, &
+                                 nfreq,nslyr
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &
@@ -160,11 +163,8 @@
       logical (kind=log_kind), public :: &
          restore_ocn                 ! restore sst if true
 
-      integer (kind=int_kind), public :: &
-         trestore                    ! restoring time scale (days)
-
       real (kind=dbl_kind), public :: &
-         trest                       ! restoring time scale (sec)
+         trestore                    ! restoring time scale (days)
 
       logical (kind=log_kind), public :: &
          debug_forcing               ! prints forcing debugging output if true
@@ -187,6 +187,9 @@
          snw_drdt0_fname     ! snow table 3d drdt0 field name
 
       ! PRIVATE:
+
+      real (dbl_kind) :: &
+         crestore        ! restoring value, dt/trestore
 
       real (dbl_kind), parameter :: &
          mixed_layer_depth_default = c20  ! default mixed layer depth in m
@@ -412,10 +415,10 @@
       nbits = 64              ! double precision data
 
       if (restore_ocn .or. restore_bgc) then
-         if (trestore == 0) then
-            trest = dt        ! use data instantaneously
+         if (trestore == c0) then
+            crestore = c1      ! use data instantaneously
          else
-            trest = real(trestore,kind=dbl_kind) * secday ! seconds
+            crestore = max(abs(dt/(trestore*secday)),c1)
          endif
       endif
 
@@ -731,6 +734,7 @@
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
+#if (1 == 0)
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (swvdr,             halo_info, &
                            field_loc_center,  field_type_scalar, fillvalue=c0)
@@ -741,6 +745,7 @@
       call ice_HaloUpdate (swidf,             halo_info, &
                            field_loc_center,  field_type_scalar, fillvalue=c0)
       call ice_timer_stop(timer_bound)
+#endif
 
       call ice_timer_stop(timer_forcing)
 
@@ -3629,7 +3634,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sst(i,j,iblk) = sst(i,j,iblk)  &
-                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*dt/trest
+                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*crestore
             enddo
             enddo
          enddo
@@ -4085,7 +4090,7 @@
       if (restore_ocn) then
         do j = 1, ny_block
          do i = 1, nx_block
-           sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*dt/trest
+           sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*crestore
          enddo
         enddo
 !     else sst is only updated in ice_ocean.F
@@ -4288,7 +4293,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sst(i,j,iblk) = sst(i,j,iblk)  &
-                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*dt/trest
+                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*crestore
             enddo
             enddo
          enddo

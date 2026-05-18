@@ -390,7 +390,7 @@ else if (${ICE_MACHINE} =~ boreas* ) then
 cat >> ${jobfile} << EOFB
 #PBS -N ${ICE_CASENAME}
 #PBS -j oe
-#PBS -q ${queue}
+#PBS -q hpc
 #PBS -l select=${nnodes}:ncpus=${corespernode}:mpiprocs=${taskpernodelimit}:ompthreads=${nthrds}
 #PBS -l walltime=${batchtime}
 EOFB
