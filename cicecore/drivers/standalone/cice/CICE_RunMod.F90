@@ -156,7 +156,8 @@
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
       use ice_restart_driver, only: dumpfile
-      use ice_restoring, only: restore_ice, ice_restore_getbdy
+      use ice_restoring, only: restore_ice, ice_restoring_getdata, &
+          ice_restoring_interior
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
           biogeochemistry, step_prep, step_dyn_wave, step_snow
@@ -203,7 +204,7 @@
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
-      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restore_getbdy()
+      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restoring_getdata()
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
@@ -263,6 +264,10 @@
             enddo
             !$OMP END PARALLEL DO
          endif ! ktherm > 0
+
+         ! interior restoring
+         call ice_restoring_interior('state')
+
          ! clean up, update tendency diagnostics
          offset = dt
          call update_state (dt=dt, daidt=daidtt, dvidt=dvidtt, dvsdt=dvsdtt, &
@@ -291,6 +296,10 @@
                enddo ! iblk
             endif
 
+            ! restoring, need to watch ndtd loop, multiple restoring calls 
+            ! of the same fields per timestep are incorrect
+            if (k == ndtd) call ice_restoring_interior('velocity')
+
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
@@ -318,7 +327,7 @@
                call debug_ice (iblk, plabeld)
             enddo
          endif
-        ! if (restore_ice) call ice_HaloRestore
+
          call ice_timer_start(timer_column)  ! column physics
          call ice_timer_start(timer_thermo)  ! thermodynamics
 

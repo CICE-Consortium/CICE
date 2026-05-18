@@ -282,7 +282,7 @@
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_ice, grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_restoring, only: ice_HaloRestore
+      use ice_restoring, only: ice_restoring_halo
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
@@ -906,7 +906,7 @@
                call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                     field_loc_NEcorner, field_type_vector, &
                                     uvel, vvel)
-               call ice_HaloRestore(setfld='velocity')
+               call ice_restoring_halo(setfld='velocity')
 
             enddo  ! sub cycling
          endif ! evp algorithm

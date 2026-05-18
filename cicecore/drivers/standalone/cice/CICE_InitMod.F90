@@ -89,7 +89,7 @@
       use ice_init, only: input_data, init_state
       use ice_init_column, only: init_thermo_vertical, init_shortwave, init_zbgc, input_zbgc, count_tracers
       use ice_kinds_mod
-      use ice_restoring, only: restore_ice, ice_restore_init
+      use ice_restoring, only: restore_ice, ice_restoring_init
       use ice_timers, only: timer_total, init_ice_timers, ice_timer_start
       use ice_transport_driver, only: init_transport
 
@@ -168,7 +168,7 @@
       call init_forcing_ocn(dt) ! initialize sss and sst from data
       call init_state           ! initialize the ice state
       call init_transport       ! initialize horizontal transport
-      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restore_init ! restoring on boundary or interior
+      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restoring_init ! restoring on boundary or interior
 
       call icepack_query_parameters(skl_bgc_out=skl_bgc, z_tracers_out=z_tracers, &
           wave_spec_out=wave_spec, snw_aging_table_out=snw_aging_table)
