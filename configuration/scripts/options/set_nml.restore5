@@ -1,0 +1,7 @@
+restore_ice = .true.
+restore_flds    = 'aicen','vicen'
+restore_data    = 'initial'
+restore_mask    = 'linear'
+restore_width   = 5
+restore_timescale = 3.
+
