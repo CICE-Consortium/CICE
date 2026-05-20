@@ -1980,7 +1980,7 @@
          endif
       endif
 
-      ! "compress" restore_flds data                                                                                                          
+      ! "compress" restore_flds data
 
       num_restore_flds = 0
       do n = 1,max_restore_flds
@@ -2801,8 +2801,8 @@
                write(nu_diag,1000) ' trestore         = ', trestore
          endif
          write(nu_diag,1011) ' restore_ice      = ', restore_ice
+         write(nu_diag,1031) ' restore_data     = ', trim(restore_data)
          if (restore_ice) then
-            write(nu_diag,1031) ' restore_data     = ', trim(restore_data)
             write(nu_diag,1031) ' restore_mask     = ', trim(restore_mask)
             write(nu_diag,1021) ' restore_width    = ', restore_width
             write(nu_diag,1000) ' restore_timescale= ', restore_timescale

@@ -579,8 +579,7 @@
       nprocsX,               &! num of procs in x for global domain
       nprocsY,               &! num of procs in y for global domain
       numBlocksXPerProc,     &! num of blocks per processor in x
-      numBlocksYPerProc,     &! num of blocks per processor in y
-      numBlocksPerProc        ! required number of blocks per processor
+      numBlocksYPerProc       ! num of blocks per processor in y
 
    logical (log_kind) :: &
       lmax_blocks_calc        ! local max_blocks_calc setting

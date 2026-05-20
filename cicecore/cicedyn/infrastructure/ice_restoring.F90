@@ -29,7 +29,7 @@
       use ice_constants, only: c0, c1, c2, p2, p5, c4
       use ice_domain_size, only: nx_global, ny_global, ncat, max_blocks, &
           nilyr, nslyr, nfsd, n_iso, n_aero
-      use ice_domain, only: nblocks, blocks_ice, bdy_origin, &
+      use ice_domain, only: nblocks, blocks_ice, &
           ew_boundary_type, ns_boundary_type, &
           max_set_boundary_flds, num_set_boundary_flds, set_boundary_flds
       use ice_exit, only: abort_ice
@@ -111,6 +111,7 @@
          ilo, ihi, jlo, jhi, & ! physical domain indices
          igmin, igmax,       & ! restoring indices
          jgmin, jgmax,       & ! restoring indices
+         ierr,               & ! error status
          minn,               & ! restoring index
          ntrcr                 ! number of tracers in use
 
@@ -136,12 +137,18 @@
       allocate (aicen_restoring(nx_block,ny_block,ncat,max_blocks), &
                 vicen_restoring(nx_block,ny_block,ncat,max_blocks), &
                 vsnon_restoring(nx_block,ny_block,ncat,max_blocks), &
-                trcrn_restoring(nx_block,ny_block,ntrcr,ncat,max_blocks))
+                trcrn_restoring(nx_block,ny_block,ntrcr,ncat,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory1', &
+         file=__FILE__, line=__LINE__)
 
       allocate (uvel_restoring        (nx_block,ny_block,max_blocks), &
                 vvel_restoring        (nx_block,ny_block,max_blocks), &
                 fval_restoring        (nx_block,ny_block,max_blocks), &
-                mask_restoring        (nx_block,ny_block,max_blocks))
+                mask_restoring        (nx_block,ny_block,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory2', &
+         file=__FILE__, line=__LINE__)
 
       aicen_restoring(:,:,:,:) = c0
       vicen_restoring(:,:,:,:) = c0
@@ -321,7 +328,7 @@
 
       diag = .false.
 
-      filebase = 'cice_bdy_restart'
+      filebase = 'cice_bdy_restart_'
       write(data_file,'(a,i4.4,i2.2,i2.2,i5.5,a)') trim(filebase),myear,mmonth,mday,msec,'.nc'
 
       if (my_task == master_task) write (nu_diag,*) subname,' read ',trim(data_file)
@@ -585,7 +592,8 @@
                ! ice volume, snow volume
                aicen_restoring(i,j,n,iblk) = ainit(n)
                vicen_restoring(i,j,n,iblk) = hinit(n) * ainit(n) ! m
-               vsnon_restoring(i,j,n,iblk) = min(aicen(i,j,n,iblk)*hsno_init,p2*vicen(i,j,n,iblk))
+               vsnon_restoring(i,j,n,iblk) = min(aicen_restoring(i,j,n,iblk)*hsno_init, &
+                                                 p2*vicen_restoring(i,j,n,iblk))
 
                call icepack_init_trcr(Tair=Tair(i,j,iblk), Tf=Tf(i,j,iblk), &
                                       Sprofile=salinz(i,j,:,iblk),          &

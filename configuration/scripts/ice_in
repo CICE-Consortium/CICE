@@ -336,7 +336,6 @@
     maskhalo_bound    = .false.
     add_mpi_barriers  = .false.
     debug_blocks      = .false.
-    bdy_origin        = 'intern'
 /
 
 &zbgc_nml

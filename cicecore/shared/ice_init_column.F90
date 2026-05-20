@@ -2545,7 +2545,7 @@
          R_C2N  (icepack_max_algae), & ! algal C to N (mole/mole)
          R_chl2N(icepack_max_algae), & ! 3 algal chlorophyll to N (mg/mmol)
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory')
+      if (ierr/=0) call abort_ice(subname//' Out of Memory',file=__FILE__, line=__LINE__)
 
       R_C2N(1)     = ratio_C2N_diatoms
       R_C2N(2)     = ratio_C2N_sp
@@ -2874,7 +2874,7 @@
          write (nu_diag,*) subname,' '
          write (nu_diag,*) subname,'nbtrcr > icepack_max_nbtrcr'
          write (nu_diag,*) subname,'nbtrcr, icepack_max_nbtrcr:',nbtrcr, icepack_max_nbtrcr
-         call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
+         call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr',file=__FILE__, line=__LINE__)
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
 

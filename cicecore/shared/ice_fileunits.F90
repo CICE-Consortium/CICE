@@ -283,7 +283,6 @@
 
 !=======================================================================
 
-
 !  This routine enables a user to flush the output from an IO unit
 !  (typically stdout) to force output when the system is buffering
 !  such output.  Because this system function is system dependent,
@@ -344,9 +343,7 @@
              file_str, & ! string in file
              nml_str     ! namelist string to test
 
-        integer(kind=int_kind) :: &
-             i, n ! dummy integers
-
+        character(len=*),parameter :: subname='(goto_nml)'
 
         ! rewind file
         rewind(iunit)

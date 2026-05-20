@@ -46,7 +46,6 @@
 
       implicit none
       private
-!      public :: bound_state, alloc_state
       public :: alloc_state
 
       !-----------------------------------------------------------------
@@ -171,7 +170,8 @@
          trcr      (nx_block,ny_block,ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
          trcrn     (nx_block,ny_block,ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_state): Out of memory1')
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory1', &
+         file=__FILE__, line=__LINE__)
 
       aice  = c0
       aiU   = c0
@@ -205,7 +205,8 @@
          nt_strata(ntrcr,2)   , & ! indices of underlying tracer layers
          trcr_base(ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_state): Out of memory2')
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory2', &
+         file=__FILE__, line=__LINE__)
 
       trcr_depend = 0
       n_trcr_strata = 0

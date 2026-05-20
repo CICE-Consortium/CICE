@@ -347,7 +347,7 @@
          bphi         (nx_block,ny_block,nblyr+2,ncat,max_blocks), & ! porosity of layers
          bTiz         (nx_block,ny_block,nblyr+2,ncat,max_blocks), &    ! layer temperatures interpolated on bio grid (C)
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//': Out of Memory1')
+      if (ierr/=0) call abort_ice(subname//': Out of Memory1',file=__FILE__,line= __LINE__)
 
       Cdn_atm       = c0
       Cdn_ocn       = c0
@@ -423,7 +423,7 @@
          snow_bio_net (nx_block,ny_block,max_nbtrcr,max_blocks), & ! depth integrated snow tracer (mmol/m^2)
          algal_peak   (nx_block,ny_block,max_algae ,max_blocks), & ! vertical location of algal maximum, 0 if no maximum
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//': Out of Memory2')
+      if (ierr/=0) call abort_ice(subname//': Out of Memory2',file=__FILE__,line= __LINE__)
 
       ocean_bio    = c0
       fbio_snoice  = c0
@@ -442,7 +442,7 @@
          icgrid(nilyr+1)            , &  ! interface grid for CICE (shortwave variable)
          swgrid(nilyr+1)            , &  ! grid for ice tracers used in dEdd scheme
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory3')
+      if (ierr/=0) call abort_ice(subname//' Out of Memory3',file=__FILE__,line= __LINE__)
 
       hin_max = c0
       c_hi_range = ''
@@ -468,7 +468,7 @@
          d_afsd_wave    (nx_block,ny_block,nfsd,     max_blocks), & !
          d_afsd_weld    (nx_block,ny_block,nfsd,     max_blocks), & !
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory5')
+      if (ierr/=0) call abort_ice(subname//' Out of Memory5',file=__FILE__,line= __LINE__)
 
       floe_rad_l     = c0
       floe_rad_c     = c0

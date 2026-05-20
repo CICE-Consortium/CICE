@@ -20,8 +20,6 @@ github from a separate repository (`CICE <https://github.com/CICE-Consortium/Ice
 There is also a **configuration/** directory that includes scripts
 for configuring CICE cases.
 
-.. _coupling:
-
 .. _dirstructure:
 
 ~~~~~~~~~~~~~~~~~~~
@@ -427,10 +425,10 @@ Boundary Conditions
 The boundary routines perform boundary
 communications between blocks in CICE whether those blocks are on the
 same or different MPI tasks.  Neighbor data is communicated between 
-blocks via the ice_HaloUpdate method.  The HaloUpdate also computes
+blocks filling halos via the *ice_HaloUpdate* method.  The HaloUpdate also computes
 values on the halo at the edge of the grid.
 
-Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
+The exterior Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
 namelist inputs.  Valid values are ``open``, ``closed``, ``cyclic``, ``zero_gradient``,
 and ``linear_extrap``.  In addition,
 ``tripole`` and ``tripoleT`` are options for the ``ns_boundary_type``.
@@ -439,14 +437,10 @@ and is only supported for rectangular grids.  ``zero_gradient`` and ``linear_ext
 apply boundary conditions of zero or constant gradient values based on 
 interior values near the boundary.  ``cyclic`` boundary conditions communicate
 neighbor data from the opposite side of the grid.  ``open`` boundary conditions
-do not impose any values on the boundary.  This might be useful in cases where
-external data is specified on the outside boundary.  The ``zero_gradient`` and 
-``linear_extrap`` boundary conditions have been implemented as an interim step 
-toward a regional grid capability. Until restoring options are complete and the 
-regional capability is fully tested, these boundary conditions may produce 
-nonphysical values such as negative ice thickness.
-In general, where the boundary is land or where there is no ice on the boundary, 
-the boundary_type settings and boundary conditions play no role.
+do not impose any values on the boundary and should not be used.
+The ``zero_gradient`` and  ``linear_extrap`` boundary conditions provide
+a regional grid capability, but may produce nonphysical values such as negative 
+ice thickness.
 
 In the displaced-pole global grids, the mask (kmt) file has at least one row of 
 grid cells along the north and south boundaries that is land.  Along the east/west 
@@ -455,27 +449,16 @@ this example,
 the appropriate namelist settings are ``ns_boundary_type`` = ``open``,
 ``ew_boundary_type`` = ``cyclic``.
 
-CICE can be run on regional grids with ``open``, ``closed``, ``cyclic`` , ``zero_gradient``,
-and ``linear_extrap`` boundary conditions.
-Except for variables describing grid lengths, non-land halo cells along the
-grid edge must be filled with some boundary conditions 
-if ice is present at that location.  The outside halo is handled automatically
-with ``closed``, ``cyclic``, ``zero_gradient``, or ``linear_extrap``  conditions.  
-With open boundary conditions, one can imagine 
-several different ways to set the outside boundary including reading values from
-an external file.
+For a regional grid, the halo data associated with the exterior boundaries can also be
+specified using the ``set_boundary_flds`` namelist option which takes an array of strings
+that define which fields to set.  The boundary update
+is carried out with a call to *ice_restoring_halo* method in the file **ice_restoring.F90**.
+The exterior boundary data is set with the ``restore_data`` namelist option and the halo
+is always set to the boundary data, not restored, despite some of the naming conventions.
+See :ref:`restoring` for more information about restoring data.
 
-The namelist variable ``restore_ice`` turns on a restoring capability on the
-boundary by setting the boundary halo to values read from a file.  The
-restoring timescale ``trestore`` may be used (it is also used for restoring
-ocean sea surface temperature in stand-alone ice runs). This
-implementation is only intended to provide the “hooks" for a more
-sophisticated treatment.  The rectangular grid option can be used to test
-this configuration. 
-
-For exact restarts using restoring, set ``restart_ext`` = true in namelist
-to use the extended-grid subroutines.
-
+To produce exact restarts with boundary restoring, set ``restart_ext`` = true in namelist
+to generate extended-grid restart files.
 On tripole grids, the order of operations used for calculating elements
 of the stress tensor can differ on either side of the fold, leading to
 round-off differences. Although restarts using the extended grid
@@ -485,6 +468,42 @@ reason, explicit halo updates of the stress tensor are implemented for
 the tripole grid, both within the dynamics calculation and for restarts.
 This has not been implemented yet for tripoleT grids, pending further
 testing.
+
+.. _restoring:
+
+*******************
+Interior Restoring
+*******************
+
+CICE supports interior restoring.  The namelist variable ``restore_ice`` 
+turns on the interior restoring capability.  That interior restoring is controlled by
+the namelists ``restore_data``, ``restore_flds``, ``restore_mask``, ``restore_width``, and
+``restore_timescale``.  The interior restoring is implemented in **ice_restoring.F90** and
+called using the *ice_restoring_interior* method.  In many ways, the interior restoring
+implementation is a framework for creating user defined implementations in the **ice_restoring.F90**
+file.
+
+``restore_data`` sets the restoring data via a call to *ice_restoring_getdata*.  The data
+is stored in arrays named aicen_restoring, uvel_restoring, and similar.  Users just need to
+load those arrays with the restoring data, both for the interior restoring and the exterior
+boundary.  The CICE calendar provides several methods for computing time differences if
+time interpolation is desirable.
+
+``restore_flds`` specifies the interior restoring fields.  This is an array of strings and
+supports only model defined options.  The restoring occurs in subroutine *restore_cells* in 
+**ice_restoring.F90** and the restoring is called from various points in the model timestep
+via a call to subroutine *ice_restoring_interior*.  A similar implementation supports the
+exterior boundary restoring via a call to *ice_restoring_halo* and the namelist ``set_boundary_flds``.
+The interior restoring strength is defined by the ratio of the model timestep to the restoring time.  
+It's important to remember to call the interior restoring only once per timestep for each variable 
+to ensure the restoring forcing is consistent with the namelist settings.
+
+The interior restoring strength is specified by the ``restore_mask``, ``restore_width``, and
+``restore_timescale`` namelist.  These specified where and how strong to restore the interior
+data.
+
+The Consortium is always happy to include updates to the restoring implementation to support 
+particular application specific needs.
 
 *****
 Masks

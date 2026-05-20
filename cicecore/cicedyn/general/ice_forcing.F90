@@ -19,13 +19,9 @@
       module ice_forcing
 
       use ice_kinds_mod
-#if (1 == 0)
-      use ice_boundary, only: ice_HaloUpdate
-#endif
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: halo_info
-      use ice_domain_size, only: nilyr, ncat, max_blocks, nx_global,ny_global, &
-                                 nfreq,nslyr
+      use ice_domain_size, only: ncat, max_blocks, nx_global,ny_global, nfreq
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &
@@ -733,19 +729,6 @@
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
-
-#if (1 == 0)
-      call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (swvdr,             halo_info, &
-                           field_loc_center,  field_type_scalar, fillvalue=c0)
-      call ice_HaloUpdate (swvdf,             halo_info, &
-                           field_loc_center,  field_type_scalar, fillvalue=c0)
-      call ice_HaloUpdate (swidr,             halo_info, &
-                           field_loc_center,  field_type_scalar, fillvalue=c0)
-      call ice_HaloUpdate (swidf,             halo_info, &
-                           field_loc_center,  field_type_scalar, fillvalue=c0)
-      call ice_timer_stop(timer_bound)
-#endif
 
       call ice_timer_stop(timer_forcing)
 

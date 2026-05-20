@@ -66,7 +66,7 @@ for dd in {01..06}
 do
         for ss in 03600 07200 10800 14400 18000 21600 25200 28800 32400 36000 39600 43200 46800 50400 54000 57600 61200 64800 68400 72000 75600 79200 82800 00000
         do
-                ncks --no-abc -F -d ni,$nis,$nie -d nj,$njs,$nje ${PATH2rst}/iced.2005-01-${dd}-${ss}.nc cice_bdy_restart200501${dd}${ss}.nc
+                ncks --no-abc -F -d ni,$nis,$nie -d nj,$njs,$nje ${PATH2rst}/iced.2005-01-${dd}-${ss}.nc cice_bdy_restart_200501${dd}${ss}.nc
         done
 done
 

@@ -35,12 +35,12 @@ endif
 #CPPDEFS    := -DLINUX $(ICE_CPPDEFS)
 
 # Linker flags
-LD         := $(FC)      #                                                                          |  ---------------------------------------------------------------------------------------------------
+LD         := $(FC)
 LDFLAGS    := $(FFLAGS) -v
 
 # Additional flags
-FIXEDFLAGS := -132        #                                                                         |  ---------------------------------------------------------------------------------------------------
-FREEFLAGS  := -FR          #                                                                        |  ---------------------------------------------------------------------------------------------------
+FIXEDFLAGS := -132
+FREEFLAGS  := -FR
 FFLAGS     := -convert big_endian -assume byterecl 
 
 ifeq ($(ICE_THREADED), true) 
