@@ -21,7 +21,7 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: halo_info
-      use ice_domain_size, only: ncat, max_blocks, nx_global,ny_global, nfreq
+      use ice_domain_size, only: ncat, max_blocks, nx_global, ny_global, nfreq
       use ice_communicate, only: my_task, master_task
       use ice_calendar, only: istep, istep1, &
                               msec, mday, mmonth, myear, yday, daycal, &

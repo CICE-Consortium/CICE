@@ -291,7 +291,7 @@
         saltflux_option,ice_ref_salinity,cpl_frazil,    congel_freeze,  &
         restore_ice,    restore_data,    restore_mask,  restore_width,  &
         restore_timescale,               restore_flds,                  &
-        oceanmixed_ice, restore_ocn,   trestore,       &
+        oceanmixed_ice, restore_ocn,     trestore,                      &
         precip_units,   default_season,                                 &
         wave_spec_type, nfreq,           wave_height_type,              &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
