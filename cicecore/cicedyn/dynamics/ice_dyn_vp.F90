@@ -682,6 +682,7 @@
       use ice_grid, only: dxT, dyT, uarear
       use ice_dyn_shared, only: DminTarea, dxhy, dyhx, cxp, cyp, cxm, cym
       use ice_state, only: uvel, vvel, strength
+      use ice_restoring, only: ice_restoring_halo
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       integer (kind=int_kind), intent(in) :: &
@@ -1091,6 +1092,8 @@
          endif
          call ice_timer_stop(timer_bound)
          call unstack_fields(fld2, uvel, vvel)
+
+         call ice_restoring_halo(setfld='velocity')
 
          ! Compute "progress" residual norm
          !$OMP PARALLEL DO PRIVATE(iblk)

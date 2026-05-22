@@ -1096,6 +1096,7 @@
             call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                  field_loc_NEcorner, field_type_vector, &
                                  uvel, vvel)
+            call ice_restoring_halo(setfld='velocity')
 
          enddo                     ! subcycling
 
@@ -1287,6 +1288,7 @@
             call dyn_haloUpdate (halo_info,          halo_info_mask,    &
                                  field_loc_NEcorner, field_type_vector, &
                                  uvel, vvel)
+            call ice_restoring_halo(setfld='velocity')
 
          enddo                     ! subcycling
 
