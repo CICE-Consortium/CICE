@@ -1444,6 +1444,13 @@
          endif
       endif
 
+      if (restore_bgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: restore_bgc is deprecated, do not set it to true'
+            abort_flag = 125
+         endif
+      endif
+
       if (.not. tr_brine) then
          if (solve_zbgc) then
             if (my_task == master_task) then
@@ -1638,7 +1645,6 @@
         if (skl_bgc) then
 
          write(nu_diag,1030) ' bgc_flux_type             = ', bgc_flux_type
-         write(nu_diag,1010) ' restore_bgc               = ', restore_bgc
 
         elseif (z_tracers) then
 

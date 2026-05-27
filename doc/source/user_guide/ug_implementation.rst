@@ -454,7 +454,7 @@ specified using the ``set_boundary_flds`` namelist option which takes an array o
 that define which fields to set.  The boundary update
 is carried out with a call to *ice_restoring_halo* method in the file **ice_restoring.F90**.
 The exterior boundary data is set with the ``restore_data`` namelist option and the halo
-is always set to the boundary data, not restored, despite some of the naming conventions.
+is always explicitly set to the boundary data, not restored, despite some of the naming conventions.
 See :ref:`restoring` for more information about restoring data.
 
 To produce exact restarts with boundary restoring, set ``restart_ext`` = true in namelist
@@ -499,7 +499,7 @@ It's important to remember to call the interior restoring only once per timestep
 to ensure the restoring forcing is consistent with the namelist settings.
 
 The interior restoring strength is specified by the ``restore_mask``, ``restore_width``, and
-``restore_timescale`` namelist.  These specified where and how strong to restore the interior
+``restore_timescale`` namelist.  These specify where and how strong to restore the interior
 data.
 
 The Consortium is always happy to include updates to the restoring implementation to support 

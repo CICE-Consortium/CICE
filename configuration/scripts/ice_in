@@ -348,7 +348,6 @@
     dEdd_algae      = .false.
     solve_zbgc      = .false.
     bgc_flux_type   = 'Jin2006'
-    restore_bgc     = .false.
     restart_bgc     = .false.
     scale_bgc       = .false.
     tr_bgc_Nit      = .false.

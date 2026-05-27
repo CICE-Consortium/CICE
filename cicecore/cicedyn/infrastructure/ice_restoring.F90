@@ -83,14 +83,20 @@
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
          uvel_restoring  , & ! u velocity
-         vvel_restoring  , & ! v velocity
-         fval_restoring      ! restore forcing weight based on restoring time (0.-1.)
+         vvel_restoring      ! v velocity
 
       real (kind=dbl_kind), dimension (:,:,:,:,:), allocatable :: &
          trcrn_restoring     ! tracers
 
+      !-----------------------------------------------------------------
+      ! restoring control fields
+      !-----------------------------------------------------------------
+
       logical (kind=dbl_kind), dimension (:,:,:), allocatable :: &
          mask_restoring      ! mask where restoring is applied
+
+      real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
+         fval_restoring      ! restore forcing weight based on restoring_time (0.-1.)
 
 !=======================================================================
 
@@ -119,7 +125,7 @@
          this_block           ! block info for current block
 
       real (dbl_kind) :: &
-         fval, &              ! fval computed from restore_timescale
+         frestore, &              ! frestore computed from restore_timescale
          secday               ! seconds per day
 
       character(len=*), parameter :: subname = '(ice_restoring_init)'
@@ -166,12 +172,12 @@
 
       if (.not. restore_ice) return
 
-      ! compute interior fval from restore_timescale
+      ! compute interior frestore from restore_timescale
 
       if (restore_timescale == c0) then
-         fval = c1
+         frestore = c1
       else
-         fval = min(abs(dt/(restore_timescale*secday)),c1)
+         frestore = min(dt/(restore_timescale*secday),c1)
       endif
 
       ! compute interior mask_restoring and fval_restoring from
@@ -193,7 +199,7 @@
             if (restore_mask == 'all') then
                ! set restoring everywhere
                mask_restoring(i,j,iblk) = .true.
-               fval_restoring(i,j,iblk) = fval
+               fval_restoring(i,j,iblk) = frestore
 
             elseif (restore_mask == 'none') then
                ! turn off restoring everywhere
@@ -216,9 +222,9 @@
                                 nx_global-this_block%i_glob(i), &
                                 this_block%j_glob(j)-1, &
                                 ny_global-this_block%j_glob(j))
-                     fval_restoring(i,j,iblk) = (c1 - real(minn,dbl_kind) / real(restore_width,kind=dbl_kind)) * fval
+                     fval_restoring(i,j,iblk) = (c1 - real(minn,dbl_kind) / real(restore_width,kind=dbl_kind)) * frestore
                   else
-                     fval_restoring(i,j,iblk) = fval
+                     fval_restoring(i,j,iblk) = frestore
                   endif
 !         write(100+my_task,'(2a,3i4,l4,e16.7)') subname,' fval check ',i,j,iblk,mask_restoring(i,j,iblk),fval_restoring(i,j,iblk)
                endif
@@ -526,6 +532,7 @@
 
       !-----------------------------------------------------------------
       ! initial area and thickness in ice-occupied restoring cells
+      ! These are just placeholders, users should modify as needed
       !-----------------------------------------------------------------
 
       hbar = c2  ! initial ice thickness

@@ -33,7 +33,7 @@
                                 ice_open_nc, ice_read_nc, ice_close_nc
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound, timer_forcing
-      use ice_arrays_column, only: oceanmixed_ice, restore_bgc
+      use ice_arrays_column, only: oceanmixed_ice
       use ice_constants, only: c0, c1, c2, c3, c4, c5, c8, c10, c12, c15, c20, &
                                c180, c360, c365, c1000, c3600
       use ice_constants, only: p001, p01, p1, p2, p25, p5, p6
@@ -185,7 +185,7 @@
       ! PRIVATE:
 
       real (dbl_kind) :: &
-         crestore        ! restoring value, dt/trestore
+         frestore        ! restoring value based on trestore (0.-1.)
 
       real (dbl_kind), parameter :: &
          mixed_layer_depth_default = c20  ! default mixed layer depth in m
@@ -410,11 +410,11 @@
 
       nbits = 64              ! double precision data
 
-      if (restore_ocn .or. restore_bgc) then
+      if (restore_ocn) then
          if (trestore == c0) then
-            crestore = c1      ! use data instantaneously
+            frestore = c1      ! use data instantaneously
          else
-            crestore = max(abs(dt/(trestore*secday)),c1)
+            frestore = max(dt/(trestore*secday),c1)
          endif
       endif
 
@@ -3617,7 +3617,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sst(i,j,iblk) = sst(i,j,iblk)  &
-                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*crestore
+                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*frestore
             enddo
             enddo
          enddo
@@ -4073,7 +4073,7 @@
       if (restore_ocn) then
         do j = 1, ny_block
          do i = 1, nx_block
-           sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*crestore
+           sst(i,j,:) = sst(i,j,:) + (work1(i,j,:)-sst(i,j,:))*frestore
          enddo
         enddo
 !     else sst is only updated in ice_ocean.F
@@ -4276,7 +4276,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                sst(i,j,iblk) = sst(i,j,iblk)  &
-                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*crestore
+                         + (sstdat(i,j,iblk)-sst(i,j,iblk))*frestore
             enddo
             enddo
          enddo

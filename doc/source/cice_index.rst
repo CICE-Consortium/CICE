@@ -604,7 +604,6 @@ section :ref:`tabnamelist`.
    "restart_[tracer]", "if true, read tracer restart file", ""
    "restart_ext", "if true, read/write halo cells in restart file", ""
    "restart_coszen", "if true, read/write coszen in restart file", ""
-   "restore_bgc", "if true, restore nitrate/silicate to data", ""
    "restore_data", "restoring data option", ""
    "restore_flds", "interior retoring field list", ""
    "restore_ice", "if true, restore ice state in the interior", ""
