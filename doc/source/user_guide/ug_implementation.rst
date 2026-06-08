@@ -425,8 +425,8 @@ Boundary Conditions
 The boundary routines perform boundary
 communications between blocks in CICE whether those blocks are on the
 same or different MPI tasks.  Neighbor data is communicated between 
-blocks filling halos via the *ice_HaloUpdate* method.  The HaloUpdate also computes
-values on the halo at the edge of the grid.
+blocks by filling the local block halos via the *ice_HaloUpdate* method.  The HaloUpdate 
+also computes values on the outer halo, at the edge (or outer boundary) of the grid.
 
 The exterior Boundary conditions are defined by the ``ns_boundary_type`` and ``ew_boundary_type``
 namelist inputs.  Valid values are ``open``, ``closed``, ``cyclic``, ``zero_gradient``,
@@ -437,7 +437,9 @@ and is only supported for rectangular grids.  ``zero_gradient`` and ``linear_ext
 apply boundary conditions of zero or constant gradient values based on 
 interior values near the boundary.  ``cyclic`` boundary conditions communicate
 neighbor data from the opposite side of the grid.  ``open`` boundary conditions
-do not impose any values on the boundary and should not be used.
+do not impose any values on the boundary and should only be used if there is never ice 
+at the boundary.  In that case, ``open``, ``closed``,
+``zero_gradient``, and ``linear_extrap`` should produce identical results.
 The ``zero_gradient`` and  ``linear_extrap`` boundary conditions provide
 a regional grid capability, but may produce nonphysical values such as negative 
 ice thickness.
@@ -475,7 +477,8 @@ testing.
 Interior Restoring
 *******************
 
-CICE supports interior restoring.  The namelist variable ``restore_ice`` 
+CICE supports interior restoring, defined as restoring or nudging to a dataset in the active part of 
+the grid.  The namelist variable ``restore_ice`` 
 turns on the interior restoring capability.  That interior restoring is controlled by
 the namelists ``restore_data``, ``restore_flds``, ``restore_mask``, ``restore_width``, and
 ``restore_timescale``.  The interior restoring is implemented in **ice_restoring.F90** and

@@ -289,7 +289,7 @@
     restart_coszen  = .false.
     restore_ice     = .false.
     restore_flds    = 'none'
-    restore_data    = 'restartfiles'
+    restore_data    = 'unknown'
     restore_mask    = 'unknown'
     restore_width   = 0
     restore_timescale = 0.

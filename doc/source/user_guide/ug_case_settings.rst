@@ -771,7 +771,7 @@ forcing_nml
    "", "``vicen``", "restore ice thickness in all categories", ""
    "", "``vsnon``", "restore snow thickness in all categories", ""
    "", "``velocity``", "restore uvel and vvel", ""
-   "``restore_ice``", "logical", "restore ice state along lateral boundaries", "``.false.``"
+   "``restore_ice``", "logical", "restore ice state to data in the interior domain", "``.false.``"
    "``restore_mask``", "``all``", "interior restoring mask at all interior gridpoints at restore timescale", "``none``"
    "", "``constant``", "in sponge layer set by restore_width at restore_timescale", ""
    "", "``linear``", "in sponge layer set by restore_width with linearly decreasing timescale", ""
