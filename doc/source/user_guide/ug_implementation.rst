@@ -437,10 +437,11 @@ and is only supported for rectangular grids.  ``zero_gradient`` and ``linear_ext
 apply boundary conditions of zero or constant gradient values based on 
 interior values near the boundary.  ``cyclic`` boundary conditions communicate
 neighbor data from the opposite side of the grid.  ``open`` boundary conditions
-do not impose any values on the boundary and should only be used if there is never ice 
-at the boundary.  In that case, ``open``, ``closed``,
-``zero_gradient``, and ``linear_extrap`` should produce identical results.
-The ``zero_gradient`` and  ``linear_extrap`` boundary conditions provide
+do not impose any values on the boundary and should only be used if the boundary is in
+land (as is often the case for displaced pole grids in the north/south direction) or more
+generally, if sea ice will never occur on the boundary.  In that case, ``open``, ``closed``,
+``zero_gradient``, and ``linear_extrap`` should produce identical results for that
+boundary.  The ``zero_gradient`` and  ``linear_extrap`` boundary conditions provide
 a regional grid capability, but may produce nonphysical values such as negative 
 ice thickness.
 
