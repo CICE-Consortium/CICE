@@ -56,8 +56,17 @@
       halo_info          ! ghost cell update info
 
    character (char_len), public :: &
-      ew_boundary_type, &! type of domain bndy in each logical
-      ns_boundary_type   !    direction (ew is i, ns is j)
+      ew_boundary_type,  &! type of domain bndy in each logical
+      ns_boundary_type    !    direction (ew is i, ns is j)
+
+   integer (kind=int_kind), parameter, public :: &
+      max_set_boundary_flds = 10
+
+   integer (kind=int_kind), public :: &
+      num_set_boundary_flds
+
+   character (char_len), dimension(max_set_boundary_flds), public :: &
+      set_boundary_flds   ! set outer halo for these fields
 
    logical (kind=log_kind), public :: &
       maskhalo_dyn   , & ! if true, use masked halo updates for dynamics
@@ -113,6 +122,7 @@
 !----------------------------------------------------------------------
 
    integer (int_kind) :: &
+      n, &                  ! counter
       nml_error, &          ! namelist read error flag
       nprocs_x, nprocs_y    ! procs decomposed into blocks
 
@@ -139,6 +149,7 @@
                          distribution_wght_file, &
                          ew_boundary_type,  &
                          ns_boundary_type,  &
+                         set_boundary_flds, &
                          maskhalo_dyn,      &
                          maskhalo_remap,    &
                          maskhalo_bound,    &
@@ -158,6 +169,7 @@
    distribution_wght_file = 'unknown'
    ew_boundary_type  = 'cyclic'
    ns_boundary_type  = 'open'
+   set_boundary_flds = ''
    maskhalo_dyn      = .false.     ! if true, use masked halos for dynamics
    maskhalo_remap    = .false.     ! if true, use masked halos for transport
    maskhalo_bound    = .false.     ! if true, use masked halos for bound_state
@@ -213,6 +225,9 @@
    call broadcast_scalar(distribution_wght_file, master_task)
    call broadcast_scalar(ew_boundary_type,  master_task)
    call broadcast_scalar(ns_boundary_type,  master_task)
+   do n = 1,max_set_boundary_flds
+      call broadcast_scalar(set_boundary_flds(n), master_task)
+   enddo
    call broadcast_scalar(maskhalo_dyn,      master_task)
    call broadcast_scalar(maskhalo_remap,    master_task)
    call broadcast_scalar(maskhalo_bound,    master_task)
@@ -247,6 +262,29 @@
        ns_boundary_type /= 'linear_extrap')  then
       call abort_ice(subname//' ERROR: ns_boundary_type unsupported = '//trim(ns_boundary_type), file=__FILE__, line=__LINE__)
    endif
+
+   do n = 1,max_set_boundary_flds
+      if (set_boundary_flds(n) /= ''      .and. &
+          set_boundary_flds(n) /= 'none'  .and. &
+          set_boundary_flds(n) /= 'state' .and. &
+          set_boundary_flds(n) /= 'aicen' .and. &
+          set_boundary_flds(n) /= 'vicen' .and. &
+          set_boundary_flds(n) /= 'vsnon' .and. &
+          set_boundary_flds(n) /= 'trcrn' .and. &
+          set_boundary_flds(n) /= 'velocity') then
+         call abort_ice(subname//' ERROR: set_boundary_flds unsupported = '//trim(set_boundary_flds(n)), file=__FILE__, line=__LINE__)
+      endif
+   enddo
+
+   ! "compress" set_boundary_flds data
+   num_set_boundary_flds = 0
+   do n = 1,max_set_boundary_flds
+      if (set_boundary_flds(n) /= '' .and. set_boundary_flds(n) /= 'none') then
+         num_set_boundary_flds = num_set_boundary_flds + 1
+         set_boundary_flds(num_set_boundary_flds) = set_boundary_flds(n)
+      endif
+   enddo
+   set_boundary_flds(num_set_boundary_flds+1:max_set_boundary_flds) = ''
 
 !----------------------------------------------------------------------
 !
@@ -313,6 +351,9 @@
      write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
      write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
      write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
+     do n = 1,num_set_boundary_flds
+        write(nu_diag,'(a,a)')   '  set_boundary_flds     = ', trim(set_boundary_flds(n))
+     enddo
      write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
      write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
      write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
@@ -688,9 +729,9 @@
 !----------------------------------------------------------------------
 
    ! update ghost cells on all four boundaries
-   halo_info = ice_HaloCreate(distrb_info,     &
-                        trim(ns_boundary_type),     &
-                        trim(ew_boundary_type),     &
+   halo_info = ice_HaloCreate(distrb_info,       &
+                        trim(ns_boundary_type),  &
+                        trim(ew_boundary_type),  &
                         nx_global)
 
 !----------------------------------------------------------------------

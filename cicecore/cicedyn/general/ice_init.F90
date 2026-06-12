@@ -131,7 +131,9 @@
           algo_nonlin, fpfunc_andacc, dim_andacc, reltol_andacc, &
           damping_andacc, start_andacc, use_mean_vrel, ortho_type
       use ice_transport_driver, only: advection, conserv_check
-      use ice_restoring, only: restore_ice
+      use ice_restoring, only: restore_ice, restore_data, restore_mask, &
+          restore_width, restore_timescale, restore_flds, num_restore_flds, &
+          max_restore_flds
       use ice_timers, only: timer_stats
       use ice_memusage, only: memory_stats
       use ice_fileunits, only: goto_nml
@@ -287,7 +289,9 @@
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
         saltflux_option,ice_ref_salinity,cpl_frazil,    congel_freeze,  &
-        oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
+        restore_ice,    restore_data,    restore_mask,  restore_width,  &
+        restore_timescale,               restore_flds,                  &
+        oceanmixed_ice, restore_ocn,     trestore,                      &
         precip_units,   default_season,                                 &
         wave_spec_type, nfreq,           wave_height_type,              &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
@@ -577,8 +581,13 @@
       ocn_data_dir    = 'unknown_ocn_data_dir'
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
       restore_ocn     = .false.   ! restore sst if true
-      trestore        = 90        ! restoring timescale, days (0 instantaneous)
-      restore_ice     = .false.   ! restore ice state on grid edges if true
+      trestore        = 90._dbl_kind ! restoring timescale, days (0 instantaneous)
+      restore_ice     = .false.   ! restore ice state in interior if true
+      restore_flds    = ''        ! interior fields to restore
+      restore_data    = 'unknown' ! restoring dataset
+      restore_mask    = 'unknown' ! interior restoring mask type
+      restore_width   = 0         ! interior restoring depth from edge
+      restore_timescale = 0       ! interior restoring timescale parameter
       restart_mod     = 'none'    ! restart modification option
       debug_forcing   = .false.   ! true writes diagnostics for input forcing
 
@@ -1200,6 +1209,13 @@
       call broadcast_scalar(restore_ocn,          master_task)
       call broadcast_scalar(trestore,             master_task)
       call broadcast_scalar(restore_ice,          master_task)
+      do n = 1,max_restore_flds
+         call broadcast_scalar(restore_flds(n),   master_task)
+      enddo
+      call broadcast_scalar(restore_data,         master_task)
+      call broadcast_scalar(restore_mask,         master_task)
+      call broadcast_scalar(restore_width,        master_task)
+      call broadcast_scalar(restore_timescale,    master_task)
       call broadcast_scalar(debug_forcing,        master_task)
       call broadcast_array (latpnt(1:2),          master_task)
       call broadcast_array (lonpnt(1:2),          master_task)
@@ -1480,6 +1496,29 @@
               'use ew_boundary_type=closed and/or ns_boundary_type=closed'
          endif
          abort_list = trim(abort_list)//":49"
+      endif
+
+      do n = 1,max_restore_flds
+         if (restore_flds(n) /= ''      .and. &
+             restore_flds(n) /= 'none'  .and. &
+             restore_flds(n) /= 'state' .and. &
+             restore_flds(n) /= 'aicen' .and. &
+             restore_flds(n) /= 'vicen' .and. &
+             restore_flds(n) /= 'vsnon' .and. &
+             restore_flds(n) /= 'trcrn' .and. &
+             restore_flds(n) /= 'velocity') then
+            if (my_task == master_task) then
+               write (nu_diag,*) subname,' ERROR: restore_flds not supported '//trim(restore_flds(n))
+            endif
+            abort_list = trim(abort_list)//":59"
+         endif
+      enddo
+
+      if (restore_ice .and. .not.(restart_ext)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) subname,' ERROR: restore_ice requires restart_ext=T'
+         endif
+         abort_list = trim(abort_list)//":58"
       endif
 
       if (grid_ice == 'CD') then
@@ -1927,9 +1966,10 @@
             if (trim(wave_height_type) /= 'none') wave_spec = .true.
             if (trim(wave_height_type) /= 'internal') then
                ! wave_height_type=coupled is not yet implemented in CICE
-               write (nu_diag,*) 'WARNING: set wave_height_type=internal'
-               call abort_ice(error_message=subname//'Wave configuration', &
-                              file=__FILE__, line=__LINE__)
+               if (my_task == master_task) then
+                  write (nu_diag,*) 'ERROR: set wave_height_type must be set to internal'
+               endif
+               abort_list = trim(abort_list)//":68"
             endif
          endif
          if (.not.(wave_spec)) then
@@ -1939,6 +1979,17 @@
             endif
          endif
       endif
+
+      ! "compress" restore_flds data
+
+      num_restore_flds = 0
+      do n = 1,max_restore_flds
+         if (restore_flds(n) /= '' .and. restore_flds(n) /= 'none') then
+            num_restore_flds = num_restore_flds + 1
+            restore_flds(num_restore_flds) = restore_flds(n)
+         endif
+      enddo
+      restore_flds(num_restore_flds+1:max_restore_flds) = ''
 
       ! compute grid locations for thermo, u and v fields
 
@@ -2440,7 +2491,7 @@
          write(nu_diag,1030) ' fbot_xfer_type   = ', trim(fbot_xfer_type),trim(tmpstr2)
          write(nu_diag,1000) ' ustar_min        = ', ustar_min,' : minimum value of ocean friction velocity'
          write(nu_diag,1000) ' hi_min           = ', hi_min,' : minimum ice thickness allowed (m)'
-         write(nu_diag,1000) ' puny             = ', puny,' : general-use minimum value'
+         write(nu_diag,1003) ' puny             = ', puny,' : general-use minimum value'
          write(nu_diag,*) ' Ice thickness category areas smaller than puny are always removed.'
          write(nu_diag,1003) ' itd_area_min     = ', itd_area_min,' : zap residual ice below a minimum area'
          write(nu_diag,1003) ' itd_mass_min     = ', itd_mass_min,' : zap residual ice below a minimum mass'
@@ -2746,10 +2797,19 @@
              trim(ocn_data_type) /= 'default') then
             write(nu_diag,1031) ' ocn_data_dir     = ', trim(ocn_data_dir)
             write(nu_diag,1011) ' restore_ocn      = ', restore_ocn
+            if (restore_ocn) &
+               write(nu_diag,1000) ' trestore         = ', trestore
          endif
          write(nu_diag,1011) ' restore_ice      = ', restore_ice
-         if (restore_ice .or. restore_ocn) &
-         write(nu_diag,1021) ' trestore         = ', trestore
+         write(nu_diag,1031) ' restore_data     = ', trim(restore_data)
+         if (restore_ice) then
+            write(nu_diag,1031) ' restore_mask     = ', trim(restore_mask)
+            write(nu_diag,1021) ' restore_width    = ', restore_width
+            write(nu_diag,1000) ' restore_timescale= ', restore_timescale
+            do n = 1,num_restore_flds
+               write(nu_diag,1031) ' restore_flds     = ', trim(restore_flds(n))
+            enddo
+         endif
 
          write(nu_diag,*) ' '
          write(nu_diag,'(a31,2f8.2)') 'Diagnostic point 1: lat, lon =', &
@@ -2922,9 +2982,10 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
-          aice0, aice, vice, vsno, trcr, aice_init, bound_state, &
+          aice0, aice, vice, vsno, trcr, aice_init, &
           n_trcr_strata, nt_strata, trcr_base, uvel, vvel, &
           uvelN, vvelN, uvelE, vvelE
+      use ice_bound_state, only: bound_state
 
       integer (kind=int_kind) :: &
          ilo, ihi    , & ! physical domain indices
@@ -3126,7 +3187,8 @@
 
       call bound_state (aicen,        &
                         vicen, vsnon, &
-                        ntrcr, trcrn)
+                        ntrcr, trcrn, &
+                        restore=.false.)
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 

@@ -783,7 +783,8 @@
 !     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
-                           bound_state, trcr_base, nt_strata, n_trcr_strata
+                           trcr_base, nt_strata, n_trcr_strata
+      use ice_bound_state, only: bound_state
       use ice_flux,  only: Tf
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound, timer_updstate
 

@@ -1054,7 +1054,7 @@
 
       subroutine ice_open_nc(filename, fid)
 
-      character (char_len_long), intent(in) :: &
+      character (len=*), intent(in) :: &
          filename      ! netCDF filename
 
       integer (kind=int_kind), intent(out) :: &
