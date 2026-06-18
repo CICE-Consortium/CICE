@@ -1,14 +1,41 @@
 #!/bin/csh -f
 
+# User defined stuff
+
 #source ${MODULESHOME}/init/csh
 
-# User defined stuff
+# Set plot type (box, global, timeseries)
 # Set case and case directory
 # Set files, notes, fstr, and fields
-# Set plot type (box, global, timeseries)
 
-set case = "CICEv6"
-set casedir = "/Users/eclare/cice-dirs/runs/conda_macos_smoke_gbox80"
+#set plotgrid = "global"
+set plotgrid = "box"
+#set plotgrid = "none"
+echo "plotgrid = ${plotgrid}"
+
+set plottimeseries = "true"
+#set plottimeseries = "false"
+echo "plottimeseries = ${plottimeseries}"
+
+if ( ${plotgrid} == 'global' ) then
+
+set case = "CICE6.5.1"
+set casedir = "/glade/derecho/scratch/tcraig/CICE_RUNS/cgx1proda"
+set histdir = "${casedir}/history"
+
+set files = ("${histdir}/iceh.2012-03.nc" \
+             "${histdir}/iceh.2012-09.nc" )
+set notes = ("2012 March Mean" \
+             "2012 Sept Mean" )
+set fstrs = ("Mar12" \
+             "Sep12" )
+
+set fields = ("aice" "hi" "hs")
+
+else if ( ${plotgrid} == 'box' ) then
+
+set case = "52cb686_remap"
+set casedir = "/Users/eclare/cice-dirs/runs/conda_macos_smoke_gbox80_1x1_boxslotcyl.52cb686_remap"
 set histdir = "${casedir}/history"
 
 set files = ("${histdir}/iceh_ic.2005-01-01-00000.nc" \
@@ -51,20 +78,21 @@ set fstrs = ("ic" \
              "11days" \
              "12days" )
 
-set fields = ("aice" "hi" "hs")
+set fields = ("aice" "hi")
 
-set gridtype = "box"
-#set gridtype = "global"
-echo "gridtype = ${gridtype}"
+endif
 
-set plottimeseries = "false"
-#set plottimeseries = "true"
-echo "plottimeseries = ${plottimeseries}"
-
+# End user defined stuff
 echo " "
 
+# Plot timeseries
+if ( ${plottimeseries} == 'true' ) then
+    echo ./timeseries.py \"${casedir}\" --case \"${case}\" --grid
+    ./timeseries.py "${casedir}" --case "${case}" --grid
+endif
+
 # Plot global or box domain
-if ( ${gridtype} == 'global' ) then
+if ( ${plotgrid} == 'global' ) then
 
 #conda config --add channels conda-forge
 #conda config --set channel_priority strict
@@ -88,7 +116,7 @@ while ($cnt < ${#files})
   end
 end
 
-else if ( ${gridtype} == 'box' ) then
+else if ( ${plotgrid} == 'box' ) then
 
 set cnt = 0
 while ($cnt < ${#files})
@@ -105,12 +133,6 @@ end
 endif
 
 echo " "
-
-# Plot timeseries
-if ( ${plottimeseries} == 'true' ) then
-    echo ./timeseries.py \"${casedir}\" --case \"${case}\" --grid
-    ./timeseries.py "${casedir}" --case "${case}" --grid
-endif
 
 echo "DONE"
 
