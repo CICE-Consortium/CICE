@@ -19,6 +19,7 @@ ktherm = -1
 kdyn   = -1
 kridge = -1
 ktransport = 1
+advection = 'remap'
 atm_data_type = 'box2001'
 ocn_data_type = 'box2001'
 ice_data_type = 'boxslotcyl'
