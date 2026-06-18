@@ -2,14 +2,14 @@
 
 # User defined stuff
 
-#source ${MODULESHOME}/init/csh
+source ${MODULESHOME}/init/csh
 
 # Set plot type (box, global, timeseries)
 # Set case and case directory
 # Set files, notes, fstr, and fields
 
-#set plotgrid = "global"
-set plotgrid = "box"
+set plotgrid = "global"
+#set plotgrid = "box"
 #set plotgrid = "none"
 echo "plotgrid = ${plotgrid}"
 
