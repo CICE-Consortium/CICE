@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 if ( $#argv < 1 ) then
   echo "$0 requires one argument, none passed"

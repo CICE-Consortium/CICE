@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 echo " "
 set tmpfile = create_fails.tmp
@@ -30,7 +30,7 @@ rm $tmpfile
 cat results.log | grep ' run' | grep -v "#" | grep -v PASS | cut -f 2 -d " " | grep -v _decomp_ | sort -u >! $tmpfile
 cat results.log | grep ' run' | grep -v "#" | grep -v PASS | cut -f 2 -d " " | grep _decomp_  | rev | cut -d _ -f 2- | rev | sort -u >> $tmpfile
 
-echo "#/usr/bin/env csh -f" >! $runfile
+echo "#/usr/bin/env -S csh -f" >! $runfile
 foreach line ( "`cat $tmpfile`" )
   #echo $line
   echo "cd ${line}.${delim}; ./*.submit; cd ../; sleep 5" >> $runfile

@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 #echo "hello"
 

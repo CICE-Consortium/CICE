@@ -1,4 +1,4 @@
-#!/usr/bin/env csh -f
+#!/usr/bin/env -S csh -f
 
 source ./cice.settings
 source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} -nomodules || exit 2
