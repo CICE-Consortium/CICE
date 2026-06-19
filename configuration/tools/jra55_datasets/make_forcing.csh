@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/usr/bin/env csh -f
 # -----
 # This is a script that worked on NCAR's cheyenne in March, 2021.
 # It converts raw JRA55 datasets to a format that CICE can use.

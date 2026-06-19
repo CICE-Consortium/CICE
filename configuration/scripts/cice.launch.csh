@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env csh -f
 
 #echo ${0}
 echo "running cice.launch.csh"

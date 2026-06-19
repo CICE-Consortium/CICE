@@ -1,3 +1,4 @@
+#!/usr/bin/env csh -f
 
 #--- cice.lcov.csh ---
 

@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env csh -f
 
 if ( $1 != "" ) then
   echo "running cice.batch.csh (creating ${1})"
@@ -16,7 +16,7 @@ source ${ICE_SCRIPTS}/setup_machparams.csh
 #==========================================
 
 cat >! ${jobfile} << EOF0
-#!/bin/csh -f 
+#!/usr/bin/env csh -f 
 EOF0
 
 #==========================================

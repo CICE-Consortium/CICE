@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env csh -f
 
 #echo ${0}
 echo "running cice.run.setup.csh"
@@ -121,7 +121,7 @@ chmod +x ${jobfile}
 #==========================================
 
 cat >! ${subfile} << EOFS
-#!/bin/csh -f 
+#!/usr/bin/env csh -f 
 
 ${ICE_MACHINE_SUBMIT} ./${jobfile}
 echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case

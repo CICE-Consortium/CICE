@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env csh -f
 
 if ($#argv == 0) then
   echo "${0}: Running results.csh"

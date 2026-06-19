@@ -1,4 +1,4 @@
-#!/bin/csh 
+#!/usr/bin/env csh -f
 
 # This was a script on gordon
 # This script should only be run on hardware with the gnu compiler
