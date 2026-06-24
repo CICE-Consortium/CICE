@@ -121,6 +121,7 @@
       use ice_grid, only: tmask, umask, dxT, dyT, dxU, dyU, &
           tarear, uarear, grid_average_X2Y, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
+      use ice_restoring, only: ice_restoring_halo
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
@@ -519,6 +520,8 @@
          endif
          call ice_timer_stop(timer_bound)
          call unstack_fields(fld2, uvel, vvel)
+
+         call ice_restoring_halo(setfld='velocity')
 
       enddo                     ! subcycling
 

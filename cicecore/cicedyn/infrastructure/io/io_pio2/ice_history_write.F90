@@ -281,7 +281,8 @@
          call ice_hist_coord_def(File, time_coord, pio_double, (/timid/), varid)
          call ice_pio_check(pio_put_att(File,varid,'calendar',cal_att), &
                  subname//' ERROR: defining att calendar: '//cal_att,file=__FILE__,line=__LINE__)
-         if (hist_avg(ns) .and. .not. write_ic) then
+         ! History restarts are snapshots of accumulated data at current time, do not write time bounds
+         if (hist_avg(ns) .and. .not. write_ic .and. .not. write_histrest_now) then
             call ice_pio_check(pio_put_att(File,varid,'bounds','time_bounds'), &
                  subname//' ERROR: defining att bounds time_bounds',file=__FILE__,line=__LINE__)
          endif
@@ -723,7 +724,8 @@
 
          ! Some coupled models require the time axis "stamp" to be in the middle
          ! or even beginning of averaging interval.
-         if (hist_avg(ns)) then
+         ! history restarts are snapshots of accumulated data at current time
+         if (hist_avg(ns) .and. .not. write_histrest_now) then
             if (trim(hist_time_axis) == "begin" ) ltime2 = time_beg(ns)
             if (trim(hist_time_axis) == "middle") ltime2 = p5*(time_beg(ns)+time_end(ns))
          endif
@@ -733,7 +735,8 @@
          call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
               subname//' ERROR: setting var time',file=__FILE__,line=__LINE__)
 
-         if (hist_avg(ns) .and. .not. write_ic) then
+         ! History restarts are snapshots of accumulated data at current time, do not write time bounds
+         if (hist_avg(ns) .and. .not. write_ic .and. .not. write_histrest_now) then
             call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
                  subname//' ERROR: getting time_bounds' ,file=__FILE__,line=__LINE__)
             time_bounds=(/time_beg(ns),time_end(ns)/)

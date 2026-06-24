@@ -46,7 +46,7 @@
 
       implicit none
       private
-      public :: bound_state, alloc_state
+      public :: alloc_state
 
       !-----------------------------------------------------------------
       ! state of the ice aggregated over all categories
@@ -170,7 +170,8 @@
          trcr      (nx_block,ny_block,ntrcr,max_blocks) , & ! ice tracers: 1: surface temperature of ice/snow (C)
          trcrn     (nx_block,ny_block,ntrcr,ncat,max_blocks) , & ! tracers: 1: surface temperature of ice/snow (C)
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_state): Out of memory1')
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory1', &
+         file=__FILE__, line=__LINE__)
 
       aice  = c0
       aiU   = c0
@@ -204,7 +205,8 @@
          nt_strata(ntrcr,2)   , & ! indices of underlying tracer layers
          trcr_base(ntrcr,3)   , & ! = 0 or 1 depending on tracer dependency, (1) aice, (2) vice, (3) vsno
          stat=ierr)
-      if (ierr/=0) call abort_ice('(alloc_state): Out of memory2')
+      if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory2', &
+         file=__FILE__, line=__LINE__)
 
       trcr_depend = 0
       n_trcr_strata = 0
@@ -212,82 +214,6 @@
       trcr_base = c0
 
       end subroutine alloc_state
-
-!=======================================================================
-!
-! Get ghost cell values for ice state variables in each thickness category.
-! NOTE: This subroutine cannot be called from inside a block loop!
-!
-! author: William H. Lipscomb, LANL
-
-      subroutine bound_state (aicen,        &
-                              vicen, vsnon, &
-                              ntrcr, trcrn)
-
-      use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
-          ice_HaloDestroy
-      use ice_domain, only: halo_info, maskhalo_bound, nblocks
-
-      integer (kind=int_kind), intent(in) :: &
-         ntrcr     ! number of tracers in use
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat,max_blocks), intent(inout) :: &
-         aicen , & ! fractional ice area
-         vicen , & ! volume per unit area of ice          (m)
-         vsnon     ! volume per unit area of snow         (m)
-
-      real (kind=dbl_kind), intent(inout), dimension(:,:,:,:,:) :: &  ! (nx_block,ny_block,ntrcr,ncat,max_blocks)
-         trcrn     ! ice tracers
-
-      ! local variables
-
-      integer (kind=int_kind) :: i, j, n, iblk
-
-      integer (kind=int_kind), &
-         dimension(nx_block,ny_block,max_blocks) :: halomask
-
-      type (ice_halo) :: halo_info_aicemask
-
-      character(len=*), parameter :: subname = '(bound_state)'
-
-      call ice_HaloUpdate (aicen,            halo_info, &
-                           field_loc_center, field_type_scalar)
-
-      if (maskhalo_bound) then
-         halomask(:,:,:) = 0
-
-         !$OMP PARALLEL DO PRIVATE(iblk,n,i,j)
-         do iblk = 1, nblocks
-         do n = 1, ncat
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (aicen(i,j,n,iblk) > c0) halomask(i,j,iblk) = 1
-         enddo
-         enddo
-         enddo
-         enddo
-         !$OMP END PARALLEL DO
-
-         call ice_HaloMask(halo_info_aicemask, halo_info, halomask)
-
-         call ice_HaloUpdate (trcrn(:,:,:,:,:), halo_info_aicemask, &
-                              field_loc_center, field_type_scalar)
-         call ice_HaloUpdate (vicen,            halo_info_aicemask, &
-                              field_loc_center, field_type_scalar)
-         call ice_HaloUpdate (vsnon,            halo_info_aicemask, &
-                              field_loc_center, field_type_scalar)
-         call ice_HaloDestroy(halo_info_aicemask)
-
-      else
-         call ice_HaloUpdate (trcrn(:,:,:,:,:), halo_info, &
-                              field_loc_center, field_type_scalar)
-         call ice_HaloUpdate (vicen,            halo_info, &
-                              field_loc_center, field_type_scalar)
-         call ice_HaloUpdate (vsnon,            halo_info, &
-                              field_loc_center, field_type_scalar)
-      endif
-
-      end subroutine bound_state
 
 !=======================================================================
 

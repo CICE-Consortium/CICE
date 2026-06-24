@@ -135,7 +135,7 @@
       use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
-      use ice_domain, only: halo_info, nblocks
+      use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn
@@ -149,7 +149,8 @@
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_bgc, write_restart_hbrine
       use ice_restart_driver, only: dumpfile
-      use ice_restoring, only: restore_ice, ice_HaloRestore
+      use ice_restoring, only: restore_ice, ice_restoring_getdata, &
+          ice_restoring_interior
       use ice_state, only: trcrn
       use ice_step_mod, only: prep_radiation, step_therm1, step_therm2, &
           update_state, step_dyn_horiz, step_dyn_ridge, step_radiation, &
@@ -195,7 +196,7 @@
       ! restoring on grid boundaries
       !-----------------------------------------------------------------
 
-         if (restore_ice) call ice_HaloRestore
+      if (restore_ice .or. num_set_boundary_flds > 0) call ice_restoring_getdata()
 
       !-----------------------------------------------------------------
       ! initialize diagnostics and save initial state values
@@ -236,6 +237,9 @@
          enddo ! iblk
          !$OMP END PARALLEL DO
 
+         ! interior restoring
+         call ice_restoring_interior('state')
+
          ! clean up, update tendency diagnostics
          offset = dt
          call update_state (dt=dt, daidt=daidtt, dvidt=dvidtt, dvsdt=dvsdtt, &
@@ -256,6 +260,10 @@
 
             ! momentum, stress, transport
             call step_dyn_horiz (dt_dyn)
+
+            ! restoring, need to watch ndtd loop, multiple restoring calls 
+            ! of the same fields per timestep are incorrect
+            if (k == ndtd) call ice_restoring_interior('velocity')
 
             ! ridging
             !$OMP PARALLEL DO PRIVATE(iblk)

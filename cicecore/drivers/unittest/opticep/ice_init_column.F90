@@ -677,7 +677,7 @@
 
          ! initialize floe size distribution the same in every column and category
          call icepack_init_fsd(ice_ic = ice_ic, &
-            afsd          = afsd)             ! floe size distribution
+                               afsd   = afsd)             ! floe size distribution
 
          do iblk = 1, max_blocks
             do j = 1, ny_block
@@ -1444,6 +1444,13 @@
          endif
       endif
 
+      if (restore_bgc) then
+         if (my_task == master_task) then
+            write(nu_diag,*) 'ERROR: restore_bgc is deprecated, do not set it to true'
+            abort_flag = 125
+         endif
+      endif
+
       if (.not. tr_brine) then
          if (solve_zbgc) then
             if (my_task == master_task) then
@@ -1638,7 +1645,6 @@
         if (skl_bgc) then
 
          write(nu_diag,1030) ' bgc_flux_type             = ', bgc_flux_type
-         write(nu_diag,1010) ' restore_bgc               = ', restore_bgc
 
         elseif (z_tracers) then
 
@@ -2545,7 +2551,7 @@
          R_C2N  (icepack_max_algae), & ! algal C to N (mole/mole)
          R_chl2N(icepack_max_algae), & ! 3 algal chlorophyll to N (mg/mmol)
          stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' Out of Memory')
+      if (ierr/=0) call abort_ice(subname//' Out of Memory',file=__FILE__, line=__LINE__)
 
       R_C2N(1)     = ratio_C2N_diatoms
       R_C2N(2)     = ratio_C2N_sp
@@ -2857,7 +2863,7 @@
       call icepack_init_zbgc( &
 !opt         zbgc_init_frac_in=zbgc_init_frac, tau_ret_in=tau_ret, tau_rel_in=tau_rel, &
 !opt         zbgc_frac_init_in=zbgc_frac_init, bgc_tracer_type_in=bgc_tracer_type)
-             )
+         )
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2875,7 +2881,7 @@
          write (nu_diag,*) subname,' '
          write (nu_diag,*) subname,'nbtrcr > icepack_max_nbtrcr'
          write (nu_diag,*) subname,'nbtrcr, icepack_max_nbtrcr:',nbtrcr, icepack_max_nbtrcr
-         call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr')
+         call abort_ice (subname//'ERROR: nbtrcr > icepack_max_nbtrcr',file=__FILE__, line=__LINE__)
       endif
       if (.NOT. dEdd_algae) nbtrcr_sw = 1
 

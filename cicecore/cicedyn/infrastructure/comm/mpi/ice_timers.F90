@@ -63,6 +63,7 @@
 #endif
       timer_bound,            &! boundary updates
       timer_bundbound,        &! boundary updates bundling
+      timer_restore,          &! restoring timer
       timer_bgc,              &! biogeochemistry
       timer_forcing,          &! forcing
       timer_evp1dcore,        &! timer only loop
@@ -194,6 +195,7 @@
    call get_ice_timer(timer_hist      , 'History  ' ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound     , 'Bound'     ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bundbound , 'Bundbound' ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_restore   , 'Restore'   ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc       , 'BGC'       ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_forcing   , 'Forcing'   ,nblocks,distrb_info%nprocs)
 #if (defined CESMCOUPLED)

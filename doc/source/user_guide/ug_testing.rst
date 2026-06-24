@@ -742,6 +742,7 @@ The following are brief descriptions of some of the current unit tests,
  - **helloworld** is a simple test that writes out helloworld and uses no CICE infrastructure.
    This tests exists to demonstrate how to build a unit test by specifying the object files directly
    in the Makefile
+ - **mpif08** is a simple standalone unit test that checks whether the mpi_f08 module is available.
  - **optargs** is a unit test that tests passing optional arguments down a calling tree and verifying
    that the optional attribute is preserved correctly.
  - **opticep** is a cice test that turns off the icepack optional arguments passed into icepack.  This
