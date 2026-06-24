@@ -1225,11 +1225,11 @@
 !            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          ! optional
-         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
 !          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
 !                            file=__FILE__, line=__LINE__)
 !         write(nu_diag,*) subname,' missingvalue= ',missingvalue
+         if (status /= nf90_noerr) missingvalue = spval_dbl
          allocate(mask(nx,ny))
          if ( ieee_is_nan(missingvalue) ) then
             mask = ieee_is_nan(work_g1)
