@@ -34,7 +34,7 @@
          character (len=11)   :: short_name
          character (len=45)   :: long_name
          character (len=30)   :: units
-         character (len=8)    :: axis
+         character (len=9)    :: axis
       END TYPE coord_attributes
 
       TYPE req_attributes         ! req'd netcdf attributes
@@ -1516,6 +1516,7 @@
                write(nu_diag,*) subname,trim(readstr),' snwcnt'//cns
             endif
 
+            ! 2D
             do n=1,num_avail_hist_fields_2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
                   readstr = readstrF
@@ -1535,32 +1536,6 @@
             deallocate(work2)
             allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
 
-            ! 2D
-            do n = n2D + 1, n3Dccum
-               nn = n - n2D
-               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
-                  readstr = readstrF
-                  status = pio_inq_varid(File,avail_hist_fields(n)%vname,varid)
-                  work3(:,:,:,:) = c0
-                  if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc3dc, work3, status)
-                  if (status == PIO_NOERR) then
-                     readstr = readstrT
-                     do j = 1, nblocks
-                     do i = 1, ncat_hist
-                        a3Dc(:,:,i,nn,j) = work3(:,:,j,i)
-                     enddo
-                     enddo
-                  endif
-                  if (my_task == master_task) then
-                     write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
-                  endif
-               endif
-            enddo
-
-            deallocate(work3)
-            allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
-
-            ! 3D (category)
             do n = n2D + 1, n3Dccum
                nn = n - n2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
