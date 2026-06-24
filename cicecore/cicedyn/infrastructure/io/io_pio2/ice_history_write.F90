@@ -1536,6 +1536,7 @@
             deallocate(work2)
             allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
 
+            ! 3D (category)
             do n = n2D + 1, n3Dccum
                nn = n - n2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
