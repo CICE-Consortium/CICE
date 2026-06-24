@@ -92,7 +92,7 @@
       ! restoring control fields
       !-----------------------------------------------------------------
 
-      logical (kind=dbl_kind), dimension (:,:,:), allocatable :: &
+      logical (kind=log_kind), dimension (:,:,:), allocatable :: &
          mask_restoring      ! mask where restoring is applied
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
