@@ -33,7 +33,7 @@ contains
     use ice_init          , only: input_data
     use ice_init_column   , only: input_zbgc, count_tracers
     use ice_grid          , only: init_grid1, alloc_grid
-    use ice_domain        , only: init_domain_blocks, num_set_boundary_flds
+    use ice_domain        , only: init_domain_blocks
     use ice_arrays_column , only: alloc_arrays_column
     use ice_state         , only: alloc_state
     use ice_flux_bgc      , only: alloc_flux_bgc
@@ -92,6 +92,7 @@ contains
     use ice_init             , only: input_data, init_state
     use ice_init_column      , only: init_thermo_vertical, init_shortwave, init_zbgc
     use ice_restoring        , only: restore_ice, ice_restoring_init
+    use ice_domain           , only: num_set_boundary_flds
     use ice_timers           , only: timer_total, init_ice_timers, ice_timer_start
     use ice_transport_driver , only: init_transport
     use ice_arrays_column    , only: wavefreq, dwavefreq

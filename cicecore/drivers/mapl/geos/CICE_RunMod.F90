@@ -112,7 +112,7 @@
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
-      use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
+      use ice_domain, only: halo_info, nblocks
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
@@ -1031,7 +1031,7 @@
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
-      use ice_domain, only: halo_info, nblocks
+      use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
       use ice_flux, only: scale_factor, init_history_therm, &
