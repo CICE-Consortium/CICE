@@ -1215,21 +1215,19 @@
       !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,'(2a,i8,a,i8,2a)') &
-             subname,' fid= ',fid, ', lnrec = ',lnrec, &
-             ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
+         write(nu_diag,'(2a,i8,a,i8,2a)') &
+            subname,' fid= ',fid, ', lnrec = ',lnrec, &
+            ', varname = ',trim(varname)
+!         status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+!         write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
+!         do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
 !            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          ! optional
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
-!          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
-!                            file=__FILE__, line=__LINE__)
-!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          if (status /= nf90_noerr) missingvalue = spval_dbl
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          allocate(mask(nx,ny))
          if ( ieee_is_nan(missingvalue) ) then
             mask = ieee_is_nan(work_g1)
@@ -1406,20 +1404,19 @@
       !-------------------------------------------------------------------
 
       if (my_task==master_task .and. diag) then
-           write(nu_diag,'(2a,i8,a,i8,2a)') &
-              subname,' fid= ',fid, ', lnrec = ',lnrec, &
-             ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
+         write(nu_diag,'(2a,i8,a,i8,2a)') &
+            subname,' fid= ',fid, ', lnrec = ',lnrec, &
+            ', varname = ',trim(varname)
+!         status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+!         write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
+!         do id=1,ndim
 !            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
 !            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
 !         enddo
          ! optional
-         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
-!          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
-!                            file=__FILE__, line=__LINE__)
+         if (status /= nf90_noerr) missingvalue = spval_dbl
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          allocate(mask(nx,ny))
          do n=1,ncat
             if ( ieee_is_nan(missingvalue) ) then
@@ -1611,18 +1608,17 @@
       if (my_task==master_task .and. diag) then
          write(nu_diag,'(2a,i8,a,i8,2a)') &
             subname,' fid= ',fid, ', lnrec = ',lnrec, &
-           ', varname = ',trim(varname)
-         status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-         write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
-         do id=1,ndim
-            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
-         enddo
+            ', varname = ',trim(varname)
+!         status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+!         write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
+!         do id=1,ndim
+!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
+!         enddo
          ! optional
-         missingvalue = spval_dbl
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
-!          call ice_check_nc(status, subname//' ERROR: Missing _FillValue', &
-!                            file=__FILE__, line=__LINE__)
+         if (status /= nf90_noerr) missingvalue = spval_dbl
+!         write(nu_diag,*) subname,' missingvalue= ',missingvalue
          allocate(mask(nx,ny))
          do n=1,ncat
             if ( ieee_is_nan(missingvalue) ) then
