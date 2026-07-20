@@ -1,6 +1,13 @@
 #!/bin/csh -f
 
-# User defined stuff
+# This script can be modified as needed.
+# By default, the script is set up to create March and September plots for the global case:
+#   ./cice.setup -m derecho -e intel -g gx1 -p 128x1 -s gx1prod,long,run8year --case casename
+# The script can be edited to plot output from box cases, e.g.
+#   ./cice.setup -m conda -e macos --test smoke -s boxslotcyl --grid gbox80 -p 1x1 --testid 52cb686_remap
+# Plots of daily box output are currently set up in the script below.
+
+#### User defined ########################################
 
 source ${MODULESHOME}/init/csh
 
@@ -82,7 +89,8 @@ set fields = ("aice" "hi")
 
 endif
 
-# End user defined stuff
+#### End user defined ########################################
+
 echo " "
 
 # Plot timeseries
