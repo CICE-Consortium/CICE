@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # This script can be modified as needed.
 # By default, the script is set up to create March and September plots for the global case:
