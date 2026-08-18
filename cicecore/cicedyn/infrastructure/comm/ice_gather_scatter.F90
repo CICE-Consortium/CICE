@@ -15,7 +15,9 @@
 !              infrastructure, added specialized routine scatter_global_stress
 ! Jul, 2026: T. Craig significant cleanup
 
+#ifndef NO_MPI
    use mpi   ! MPI Fortran module
+#endif
    use ice_kinds_mod
    use ice_communicate, only: my_task
 #ifndef NO_MPI

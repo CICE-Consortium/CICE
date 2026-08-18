@@ -8,7 +8,9 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
+#ifndef NO_MPI
    use mpi   ! MPI Fortran module
+#endif
    use ice_kinds_mod
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
