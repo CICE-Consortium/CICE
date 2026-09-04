@@ -1992,6 +1992,14 @@
 !
 ! author: JF Lemieux, ECCC
 ! Nov 2021
+! Sep 2026: added calculation of Deltapp
+
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! DeltaT and DeltappT are called Delta_FG and Delta_G 
+! in Lemieux et al. paper. 
 
     subroutine deformationsC_T (nx_block,   ny_block,   &
                                 icellT,                 &
@@ -2048,7 +2056,8 @@
 
       real (kind=dbl_kind) :: &
         tmp       , & ! useful combination
-        shearTsqr     ! strain rates squared at T point
+        shearTsqr , & ! strain rates squared at T point
+        DeltappTsqr   ! Deltapp squared at T point
 
       character(len=*), parameter :: subname = '(deformations_T2)'
 
@@ -2084,9 +2093,10 @@
                     / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
 
          DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+         DeltappTsqr = divT(i,j)**2 + epp2i*(tensionT(i,j)**2 + shearTsqr)
 
          divu(i,j) = divT(i,j) * tarear(i,j)
-         tmp = DeltaT(i,j) * tarear(i,j)
+         tmp = ( DeltappTsqr/DeltaT(i,j) ) * tarear(i,j)
          rdg_conv(i,j)  = -min(divu(i,j),c0)
          rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
 
