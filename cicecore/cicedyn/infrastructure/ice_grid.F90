@@ -76,7 +76,17 @@
          grid_type        !  current options are rectangular (default),
                           !  displaced_pole, tripole, regional
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
+         tarea  , & ! area of T-cell (m^2), valid in halo
+         uarea  , & ! area of U-cell (m^2), valid in halo
+         narea  , & ! area of N-cell (m^2), valid in halo
+         earea  , & ! area of E-cell (m^2), valid in halo
+         tarear , & ! 1/tarea, valid in halo
+         uarear , & ! 1/uarea, valid in halo
+         narear , & ! 1/narea, valid in halo
+         earear , & ! 1/earea, valid in halo
          dxT    , & ! width of T-cell through the middle (m)
          dyT    , & ! height of T-cell through the middle (m)
          dxU    , & ! width of U-cell through the middle (m)
@@ -87,16 +97,12 @@
          dyE    , & ! height of E-cell through the middle (m)
          HTE    , & ! length of eastern edge of T-cell (m)
          HTN    , & ! length of northern edge of T-cell (m)
-         tarea  , & ! area of T-cell (m^2), valid in halo
-         uarea  , & ! area of U-cell (m^2), valid in halo
-         narea  , & ! area of N-cell (m^2), valid in halo
-         earea  , & ! area of E-cell (m^2), valid in halo
-         tarear , & ! 1/tarea, valid in halo
-         uarear , & ! 1/uarea, valid in halo
-         narear , & ! 1/narea, valid in halo
-         earear , & ! 1/earea, valid in halo
          tarean , & ! area of NH T-cells
-         tareas , & ! area of SH T-cells
+         tareas     ! area of SH T-cells
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          ULON   , & ! longitude of velocity pts, NE corner of T pts (radians)
          ULAT   , & ! latitude of velocity pts, NE corner of T pts (radians)
          TLON   , & ! longitude of temp (T) pts (radians)
@@ -106,10 +112,7 @@
          ELON   , & ! longitude of center of east face of T pts (radians)
          ELAT   , & ! latitude of center of east face of T pts (radians)
          ANGLE  , & ! for conversions between POP grid and lat/lon
-         ANGLET , & ! ANGLE converted to T-cells, valid in halo
-         bathymetry      , & ! ocean depth, for grounding keels and bergs (m)
-         ocn_gridcell_frac   ! ocean gridcell fraction
-                             ! gridcell value of [1 - (land fraction)] (T-cell)
+         ANGLET     ! ANGLE converted to T-cells, valid in halo
 
       real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          G_HTE  , & ! length of eastern edge of T-cell (global ext.)
@@ -129,8 +132,10 @@
          lonrefrect, & ! lower left lon for rectgrid
          latrefrect    ! lower left lat for rectgrid
 
-      ! Corners of grid boxes for history output
-      real (kind=dbl_kind), dimension (:,:,:,:), allocatable, public :: &
+      ! Corners of grid boxes for history output.  The i and j dimensions are
+      ! flattened: element (n,i,j,iblk) lives at (n,(j-1)*nx_block + i,iblk),
+      ! where n is the corner index (1:4)
+      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          lont_bounds, & ! longitude of gridbox corners for T point
          latt_bounds, & ! latitude of gridbox corners for T point
          lonu_bounds, & ! longitude of gridbox corners for U point
@@ -140,14 +145,18 @@
          lone_bounds, & ! longitude of gridbox corners for E point
          late_bounds    ! latitude of gridbox corners for E point
 
-      ! masks
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      ! masks whose i and j dimensions are flattened: element (i,j,iblk) of the
+      ! block layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          hm     , & ! land/boundary mask, thickness (T-cell)
-         bm     , & ! task/block id
          uvm    , & ! land/boundary mask (U-cell)
          npm    , & ! land/boundary mask (N-cell)
          epm    , & ! land/boundary mask (E-cell)
-         kmt        ! ocean topography mask for bathymetry (T-cell)
+         bm     , & ! task/block id
+         kmt    , & ! ocean topography mask for bathymetry (T-cell)
+         bathymetry, & ! ocean depth, for grounding keels and bergs (m)
+         ocn_gridcell_frac ! ocean gridcell fraction
+                           ! gridcell value of [1 - (land fraction)] (T-cell)
 
       logical (kind=log_kind), public :: &
          grid_outfile,   & ! flag to write out one-time grid history file
@@ -155,7 +164,9 @@
          save_ghte_ghtn, & ! flag for saving global hte and htn during initialization
          scale_dxdy        ! flag to apply scale factor to vary dx/dy in rectgrid
 
-      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      logical (kind=log_kind), dimension (:,:), allocatable, public :: &
          tmask  , & ! land/boundary mask, thickness (T-cell)
          umask  , & ! land/boundary mask  (U-cell) (1 if all surrounding T cells are ocean)
          umaskCD, & ! land/boundary mask  (U-cell) (1 if at least two surrounding T cells are ocean)
@@ -165,7 +176,9 @@
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
       logical (kind=log_kind), private :: &
@@ -176,9 +189,28 @@
 
       interface grid_average_X2Y
          module procedure grid_average_X2Y_base , &
+                          grid_average_X2Y_base_2d, &
+                          grid_average_X2Y_base_3d2d, &
+                          grid_average_X2Y_base_2d3d, &
                           grid_average_X2Y_userwghts, &
                           grid_average_X2Y_NEversion
       end interface
+
+      ! The X2YS/X2YA/X2YF helpers below are overloaded on the shape of their
+      ! weight arguments.  The _3d specifics take (i,j,iblk) weights; the _w1f
+      ! and _w2f specifics take a weight whose i and j dimensions are flattened,
+      ! i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk) at
+      ! ((j-1)*nx_block + i, iblk).
+      interface grid_average_X2YS
+         module procedure grid_average_X2YS_3d, &
+                          grid_average_X2YS_flat
+      end interface
+
+      interface grid_average_X2YA
+         module procedure grid_average_X2YA_3d, &
+                          grid_average_X2YA_w1f
+      end interface
+
 
 !=======================================================================
 
@@ -195,61 +227,61 @@
       character(len=*), parameter :: subname = '(alloc_grid)'
 
       allocate( &
-         dxT      (nx_block,ny_block,max_blocks), & ! width of T-cell through the middle (m)
-         dyT      (nx_block,ny_block,max_blocks), & ! height of T-cell through the middle (m)
-         dxU      (nx_block,ny_block,max_blocks), & ! width of U-cell through the middle (m)
-         dyU      (nx_block,ny_block,max_blocks), & ! height of U-cell through the middle (m)
-         dxN      (nx_block,ny_block,max_blocks), & ! width of N-cell through the middle (m)
-         dyN      (nx_block,ny_block,max_blocks), & ! height of N-cell through the middle (m)
-         dxE      (nx_block,ny_block,max_blocks), & ! width of E-cell through the middle (m)
-         dyE      (nx_block,ny_block,max_blocks), & ! height of E-cell through the middle (m)
-         HTE      (nx_block,ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
-         HTN      (nx_block,ny_block,max_blocks), & ! length of northern edge of T-cell (m)
-         tarea    (nx_block,ny_block,max_blocks), & ! area of T-cell (m^2)
-         uarea    (nx_block,ny_block,max_blocks), & ! area of U-cell (m^2)
-         narea    (nx_block,ny_block,max_blocks), & ! area of N-cell (m^2)
-         earea    (nx_block,ny_block,max_blocks), & ! area of E-cell (m^2)
-         tarear   (nx_block,ny_block,max_blocks), & ! 1/tarea
-         uarear   (nx_block,ny_block,max_blocks), & ! 1/uarea
-         narear   (nx_block,ny_block,max_blocks), & ! 1/narea
-         earear   (nx_block,ny_block,max_blocks), & ! 1/earea
-         tarean   (nx_block,ny_block,max_blocks), & ! area of NH T-cells
-         tareas   (nx_block,ny_block,max_blocks), & ! area of SH T-cells
-         ULON     (nx_block,ny_block,max_blocks), & ! longitude of U pts, NE corner (radians)
-         ULAT     (nx_block,ny_block,max_blocks), & ! latitude of U pts, NE corner (radians)
-         TLON     (nx_block,ny_block,max_blocks), & ! longitude of T pts (radians)
-         TLAT     (nx_block,ny_block,max_blocks), & ! latitude of T pts (radians)
-         NLON     (nx_block,ny_block,max_blocks), & ! longitude of N pts, N face (radians)
-         NLAT     (nx_block,ny_block,max_blocks), & ! latitude of N pts, N face (radians)
-         ELON     (nx_block,ny_block,max_blocks), & ! longitude of E pts, E face (radians)
-         ELAT     (nx_block,ny_block,max_blocks), & ! latitude of E pts, E face (radians)
-         ANGLE    (nx_block,ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
-         ANGLET   (nx_block,ny_block,max_blocks), & ! ANGLE converted to T-cells
-         bathymetry(nx_block,ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
-         ocn_gridcell_frac(nx_block,ny_block,max_blocks),& ! only relevant for lat-lon grids
-         hm       (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
-         bm       (nx_block,ny_block,max_blocks), & ! task/block id
-         uvm      (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
-         npm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
-         epm      (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
-         kmt      (nx_block,ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
-         tmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
-         umask    (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
-         umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
-         nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
-         emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
-         opmask   (nx_block,ny_block,max_blocks), & ! land/boundary orphan mask (atm ocean/ice cell)
-         lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
-         lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
-         rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
-         lont_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for T point
-         latt_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for T point
-         lonu_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for U point
-         latu_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for U point
-         lonn_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for N point
-         latn_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for N point
-         lone_bounds(4,nx_block,ny_block,max_blocks), & ! longitude of gridbox corners for E point
-         late_bounds(4,nx_block,ny_block,max_blocks), & ! latitude of gridbox corners for E point
+         dxT      (nx_block*ny_block,max_blocks), & ! width of T-cell through the middle (m)
+         dyT      (nx_block*ny_block,max_blocks), & ! height of T-cell through the middle (m)
+         dxU      (nx_block*ny_block,max_blocks), & ! width of U-cell through the middle (m)
+         dyU      (nx_block*ny_block,max_blocks), & ! height of U-cell through the middle (m)
+         dxN      (nx_block*ny_block,max_blocks), & ! width of N-cell through the middle (m)
+         dyN      (nx_block*ny_block,max_blocks), & ! height of N-cell through the middle (m)
+         dxE      (nx_block*ny_block,max_blocks), & ! width of E-cell through the middle (m)
+         dyE      (nx_block*ny_block,max_blocks), & ! height of E-cell through the middle (m)
+         HTE      (nx_block*ny_block,max_blocks), & ! length of eastern edge of T-cell (m)
+         HTN      (nx_block*ny_block,max_blocks), & ! length of northern edge of T-cell (m)
+         tarea    (nx_block*ny_block,max_blocks), & ! area of T-cell (m^2)
+         uarea    (nx_block*ny_block,max_blocks), & ! area of U-cell (m^2)
+         narea    (nx_block*ny_block,max_blocks), & ! area of N-cell (m^2)
+         earea    (nx_block*ny_block,max_blocks), & ! area of E-cell (m^2)
+         tarear   (nx_block*ny_block,max_blocks), & ! 1/tarea
+         uarear   (nx_block*ny_block,max_blocks), & ! 1/uarea
+         narear   (nx_block*ny_block,max_blocks), & ! 1/narea
+         earear   (nx_block*ny_block,max_blocks), & ! 1/earea
+         tarean   (nx_block*ny_block,max_blocks), & ! area of NH T-cells
+         tareas   (nx_block*ny_block,max_blocks), & ! area of SH T-cells
+         ULON     (nx_block*ny_block,max_blocks), & ! longitude of U pts, NE corner (radians)
+         ULAT     (nx_block*ny_block,max_blocks), & ! latitude of U pts, NE corner (radians)
+         TLON     (nx_block*ny_block,max_blocks), & ! longitude of T pts (radians)
+         TLAT     (nx_block*ny_block,max_blocks), & ! latitude of T pts (radians)
+         NLON     (nx_block*ny_block,max_blocks), & ! longitude of N pts, N face (radians)
+         NLAT     (nx_block*ny_block,max_blocks), & ! latitude of N pts, N face (radians)
+         ELON     (nx_block*ny_block,max_blocks), & ! longitude of E pts, E face (radians)
+         ELAT     (nx_block*ny_block,max_blocks), & ! latitude of E pts, E face (radians)
+         ANGLE    (nx_block*ny_block,max_blocks), & ! for conversions between POP grid and lat/lon
+         ANGLET   (nx_block*ny_block,max_blocks), & ! ANGLE converted to T-cells
+         bathymetry(nx_block*ny_block,max_blocks),& ! ocean depth, for grounding keels and bergs (m)
+         ocn_gridcell_frac(nx_block*ny_block,max_blocks),& ! only relevant for lat-lon grids
+         hm       (nx_block*ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         bm       (nx_block*ny_block,max_blocks), & ! task/block id
+         uvm      (nx_block*ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         npm      (nx_block*ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         epm      (nx_block*ny_block,max_blocks), & ! land/boundary mask (E-cell)
+         kmt      (nx_block*ny_block,max_blocks), & ! ocean topography mask for bathymetry (T-cell)
+         tmask    (nx_block*ny_block,max_blocks), & ! land/boundary mask, thickness (T-cell)
+         umask    (nx_block*ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         umaskCD  (nx_block*ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
+         nmask    (nx_block*ny_block,max_blocks), & ! land/boundary mask (N-cell)
+         emask    (nx_block*ny_block,max_blocks), & ! land/boundary mask (E-cell)
+         opmask   (nx_block*ny_block,max_blocks), & ! land/boundary orphan mask (atm ocean/ice cell)
+         lmask_n  (nx_block*ny_block,max_blocks), & ! northern hemisphere mask
+         lmask_s  (nx_block*ny_block,max_blocks), & ! southern hemisphere mask
+         rndex_global(nx_block*ny_block,max_blocks), & ! global index for local subdomain (dbl)
+         lont_bounds(4,nx_block*ny_block,max_blocks), & ! longitude of gridbox corners for T point
+         latt_bounds(4,nx_block*ny_block,max_blocks), & ! latitude of gridbox corners for T point
+         lonu_bounds(4,nx_block*ny_block,max_blocks), & ! longitude of gridbox corners for U point
+         latu_bounds(4,nx_block*ny_block,max_blocks), & ! latitude of gridbox corners for U point
+         lonn_bounds(4,nx_block*ny_block,max_blocks), & ! longitude of gridbox corners for N point
+         latn_bounds(4,nx_block*ny_block,max_blocks), & ! latitude of gridbox corners for N point
+         lone_bounds(4,nx_block*ny_block,max_blocks), & ! longitude of gridbox corners for E point
+         late_bounds(4,nx_block*ny_block,max_blocks), & ! latitude of gridbox corners for E point
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory1', file=__FILE__, line=__LINE__)
 
@@ -284,7 +316,7 @@
       ANGLE     = c0
       ANGLET    = c0
       bathymetry = c0
-      ocn_gridcell_frac(:,:,:) = -c1   ! special value to start, will be ignored unless set elsewhere
+      ocn_gridcell_frac = -c1   ! special value to start, will be ignored unless set elsewhere
       hm        = c0
       bm        = c0
       uvm       = c0
@@ -572,13 +604,16 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk,      &
+         ij,              &      ! 1D index of (i,j) in the block
          ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
          ierr
 
       real (kind=dbl_kind) :: &
          angle_0, angle_w, angle_s, angle_sw, pi
 
-      logical (kind=log_kind), dimension(nx_block,ny_block,max_blocks):: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      logical (kind=log_kind), dimension(nx_block*ny_block,max_blocks):: &
          out_of_range
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
@@ -630,8 +665,8 @@
       endif
 
       if (trim(kmt_type) =='none') then
-         kmt(:,:,:) = c1
-         hm(:,:,:)  = c1
+         kmt = c1
+         hm = c1
       else if (trim(kmt_type) =='file') then
          select case (trim(grid_format))
             case('mom_nc', 'pop_nc' ,'geosnc')
@@ -679,10 +714,10 @@
          do iblk = 1, nblocks
             do j = 1,ny_block
             do i = 1,nx_block
-               tarea(i,j,iblk) = dxT(i,j,iblk)*dyT(i,j,iblk)
-               uarea(i,j,iblk) = dxU(i,j,iblk)*dyU(i,j,iblk)
-               narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
-               earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
+               tarea((j-1)*nx_block+i,iblk) = dxT((j-1)*nx_block+i,iblk)*dyT((j-1)*nx_block+i,iblk)
+               uarea((j-1)*nx_block+i,iblk) = dxU((j-1)*nx_block+i,iblk)*dyU((j-1)*nx_block+i,iblk)
+               narea((j-1)*nx_block+i,iblk) = dxN((j-1)*nx_block+i,iblk)*dyN((j-1)*nx_block+i,iblk)
+               earea((j-1)*nx_block+i,iblk) = dxE((j-1)*nx_block+i,iblk)*dyE((j-1)*nx_block+i,iblk)
             enddo
             enddo
          enddo
@@ -694,25 +729,25 @@
 
          do j = 1,ny_block
          do i = 1,nx_block
-            if (tarea(i,j,iblk) > c0) then
-               tarear(i,j,iblk) = c1/tarea(i,j,iblk)
+            if (tarea((j-1)*nx_block+i,iblk) > c0) then
+               tarear((j-1)*nx_block+i,iblk) = c1/tarea((j-1)*nx_block+i,iblk)
             else
-               tarear(i,j,iblk) = c0 ! possible on boundaries
+               tarear((j-1)*nx_block+i,iblk) = c0 ! possible on boundaries
             endif
-            if (uarea(i,j,iblk) > c0) then
-               uarear(i,j,iblk) = c1/uarea(i,j,iblk)
+            if (uarea((j-1)*nx_block+i,iblk) > c0) then
+               uarear((j-1)*nx_block+i,iblk) = c1/uarea((j-1)*nx_block+i,iblk)
             else
-               uarear(i,j,iblk) = c0 ! possible on boundaries
+               uarear((j-1)*nx_block+i,iblk) = c0 ! possible on boundaries
             endif
-            if (narea(i,j,iblk) > c0) then
-               narear(i,j,iblk) = c1/narea(i,j,iblk)
+            if (narea((j-1)*nx_block+i,iblk) > c0) then
+               narear((j-1)*nx_block+i,iblk) = c1/narea((j-1)*nx_block+i,iblk)
             else
-               narear(i,j,iblk) = c0 ! possible on boundaries
+               narear((j-1)*nx_block+i,iblk) = c0 ! possible on boundaries
             endif
-            if (earea(i,j,iblk) > c0) then
-               earear(i,j,iblk) = c1/earea(i,j,iblk)
+            if (earea((j-1)*nx_block+i,iblk) > c0) then
+               earear((j-1)*nx_block+i,iblk) = c1/earea((j-1)*nx_block+i,iblk)
             else
-               earear(i,j,iblk) = c0 ! possible on boundaries
+               earear((j-1)*nx_block+i,iblk) = c0 ! possible on boundaries
             endif
 
          enddo
@@ -789,7 +824,7 @@
       if (.not. (l_readCenter)) then
          ANGLET = c0
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block, &
          !$OMP                     angle_0,angle_w,angle_s,angle_sw)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
@@ -800,18 +835,19 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               angle_0  = ANGLE(i  ,j  ,iblk) !   w----0
-               angle_w  = ANGLE(i-1,j  ,iblk) !   |    |
-               angle_s  = ANGLE(i,  j-1,iblk) !   |    |
-               angle_sw = ANGLE(i-1,j-1,iblk) !   sw---s
-               ANGLET(i,j,iblk) = atan2(p25*(sin(angle_0)+ &
-                                             sin(angle_w)+ &
-                                             sin(angle_s)+ &
-                                             sin(angle_sw)),&
-                                        p25*(cos(angle_0)+ &
-                                             cos(angle_w)+ &
-                                             cos(angle_s)+ &
-                                             cos(angle_sw)))
+               ij = (j-1)*nx_block + i
+               angle_0  = ANGLE(ij            ,iblk) !   w----0
+               angle_w  = ANGLE(ij          -1,iblk) !   |    |
+               angle_s  = ANGLE(ij-nx_block   ,iblk) !   |    |
+               angle_sw = ANGLE(ij-nx_block-1 ,iblk) !   sw---s
+               ANGLET(ij,iblk) = atan2(p25*(sin(angle_0)+ &
+                                           sin(angle_w)+ &
+                                           sin(angle_s)+ &
+                                           sin(angle_sw)),&
+                                       p25*(cos(angle_0)+ &
+                                           cos(angle_w)+ &
+                                           cos(angle_s)+ &
+                                           cos(angle_sw)))
             enddo
             enddo
          enddo
@@ -822,7 +858,7 @@
            trim(grid_type) == 'rectangular') .and. &
           (.not. (l_readCenter))) then
          ! for W boundary extrapolate from interior
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
@@ -833,7 +869,8 @@
             i = ilo
             if (this_block%i_glob(i) == 1) then
                do j = jlo, jhi
-                  ANGLET(i,j,iblk) = c2*ANGLET(i+1,j,iblk)-ANGLET(i+2,j,iblk)
+                  ij = (j-1)*nx_block + i
+                  ANGLET(ij,iblk) = c2*ANGLET(ij+1,iblk)-ANGLET(ij+2,iblk)
                enddo
             endif
          enddo
@@ -913,6 +950,7 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
+         ij, &           ! 1D index of (i,j) in the block
          ilo,ihi,jlo,jhi ! beginning and end of physical domain
 
       integer (kind=int_kind) :: &
@@ -932,8 +970,8 @@
 
       diag = .true.       ! write diagnostic info
 
-      kmt(:,:,:) = c0
-      hm (:,:,:) = c0
+      kmt = c0
+      hm = c0
 
       if (filetype == 'bin') then
          call ice_open(nu_kmt,kmt_file,32)
@@ -959,7 +997,7 @@
          call abort_ice(subname//' ERROR: invalid filetype='//trim(filetype), file=__FILE__, line=__LINE__)
       endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -969,15 +1007,16 @@
          do j = jlo, jhi
          do i = ilo, ihi
             ! force grid cells to land if ocn_gridcell_frac is defined
-            if (ocn_gridcell_frac(i,j,iblk) >= c0 .and. &
-                ocn_gridcell_frac(i,j,iblk) < puny) then
-               kmt(i,j,iblk)  = c0
+            ij = (j-1)*nx_block + i
+            if (ocn_gridcell_frac(ij,iblk) >= c0 .and. &
+                ocn_gridcell_frac(ij,iblk) < puny) then
+               kmt(ij,iblk)  = c0
             endif
          enddo
          enddo
          do j = 1,ny_block
          do i = 1,nx_block
-            if (kmt(i,j,iblk) >= p5) hm(i,j,iblk) = c1
+            if (kmt((j-1)*nx_block+i,iblk) >= p5) hm((j-1)*nx_block+i,iblk) = c1
          enddo
          enddo
       enddo
@@ -1225,7 +1264,7 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
+         i, j, iblk, ijb, &     ! ijb is the 1D index of (i,j) within the block
          ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
          fid_grid , &           ! file id for netCDF grid file
          ierr
@@ -1329,7 +1368,7 @@
       endif
       call scatter_global(HTN, work_g1x, master_task, distrb_info, grid_ext=.true.)
 
-      dxN(:,:,:) = HTN(:,:,:)
+      dxN = HTN
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -1338,9 +1377,11 @@
          jhi = this_block%jhi
          do j = jlo, jhi
          do i = ilo, ihi
-            dxU(i,j,iblk) = p5*(HTN(i,j,iblk)+HTN(i+1,j,iblk))
-            dxT(i,j,iblk) = p5*(HTN(i,j,iblk)+HTN(i,j-1,iblk))
-            dxE(i,j,iblk) = p25*(HTN(i,j,iblk)+HTN(i+1,j,iblk)+HTN(i,j-1,iblk)+HTN(i+1,j-1,iblk))
+            ijb = (j-1)*nx_block + i
+            dxU(ijb,iblk) = p5*(HTN(ijb,iblk)+HTN(ijb+1,iblk))
+            dxT(ijb,iblk) = p5*(HTN(ijb,iblk)+HTN(ijb-nx_block,iblk))
+            dxE(ijb,iblk) = p25*(HTN(ijb,iblk)+HTN(ijb+1,iblk) &
+                               + HTN(ijb-nx_block,iblk)+HTN(ijb-nx_block+1,iblk))
          enddo
          enddo
       enddo
@@ -1367,7 +1408,7 @@
          G_HTE = work_g1x
       endif
       call scatter_global(HTE, work_g1x, master_task, distrb_info, grid_ext=.true.)
-      dyE(:,:,:) = HTE(:,:,:)
+      dyE = HTE
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -1376,9 +1417,11 @@
          jhi = this_block%jhi
          do j = jlo, jhi
          do i = ilo, ihi
-            dyU(i,j,iblk) = p5*(HTE(i,j,iblk)+HTE(i,j+1,iblk))
-            dyT(i,j,iblk) = p5*(HTE(i,j,iblk)+HTE(i-1,j,iblk))
-            dyN(i,j,iblk) = p25*(HTE(i,j,iblk)+HTE(i-1,j,iblk)+HTE(i,j+1,iblk)+HTE(i-1,j+1,iblk))
+            ijb = (j-1)*nx_block + i
+            dyU(ijb,iblk) = p5*(HTE(ijb,iblk)+HTE(ijb+nx_block,iblk))
+            dyT(ijb,iblk) = p5*(HTE(ijb,iblk)+HTE(ijb-1,iblk))
+            dyN(ijb,iblk) = p25*(HTE(ijb,iblk)+HTE(ijb-1,iblk) &
+                               + HTE(ijb+nx_block,iblk)+HTE(ijb+nx_block-1,iblk))
          enddo
          enddo
       enddo
@@ -1423,7 +1466,7 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk
+         i, j, iblk, ijb
 
       integer (kind=int_kind) :: &
          ni, nj, ncid, dimid, varid, ier
@@ -1600,14 +1643,14 @@
          do j = jlo, jhi
          do i = ilo, ihi
             ! Convert from degrees to radians
-            TLON(i,j,iblk) = pi*TLON(i,j,iblk)/180._dbl_kind
+            TLON((j-1)*nx_block+i,iblk) = pi*TLON((j-1)*nx_block+i,iblk)/180._dbl_kind
 
             ! Convert from degrees to radians
-            TLAT(i,j,iblk) = pi*TLAT(i,j,iblk)/180._dbl_kind
+            TLAT((j-1)*nx_block+i,iblk) = pi*TLAT((j-1)*nx_block+i,iblk)/180._dbl_kind
 
             ! Convert from radians^2 to m^2
             ! (area in domain file is in radians^2 and tarea is in m^2)
-            tarea(i,j,iblk) = tarea(i,j,iblk) * (radius*radius)
+            tarea((j-1)*nx_block+i,iblk) = tarea((j-1)*nx_block+i,iblk) * (radius*radius)
          end do
          end do
       end do
@@ -1626,7 +1669,7 @@
       ! TLAT.
       !-----------------------------------------------------------------
 
-     !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,i,j)
+     !$OMP PARALLEL DO PRIVATE(iblk,this_block,ilo,ihi,jlo,jhi,i,j,ijb)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -1637,43 +1680,44 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
+            ijb = (j-1)*nx_block + i
             if (ny_global == 1) then
-               uarea(i,j,iblk)  = tarea(i,j,  iblk)
+               uarea(ijb,iblk)  = tarea(ijb,iblk)
             else
-               uarea(i,j,iblk)  = p25*  &
-                                 (tarea(i,j,  iblk) + tarea(i+1,j,  iblk) &
-                                + tarea(i,j+1,iblk) + tarea(i+1,j+1,iblk))
+               uarea(ijb,iblk)  = p25*  &
+                                 (tarea(ijb           ,iblk) + tarea(ijb         +1,iblk) &
+                                + tarea(ijb+nx_block  ,iblk) + tarea(ijb+nx_block+1,iblk))
             endif
-            tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
-            uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
+            tarear(ijb,iblk) = c1/tarea(ijb,iblk)
+            uarear(ijb,iblk) = c1/uarea(ijb,iblk)
 
             if (single_column) then
-               ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/nj)
+               ULAT  (ijb,iblk) = TLAT(ijb,iblk)+(pi/nj)
             else
                if (ny_global == 1) then
-                  ULAT  (i,j,iblk) = TLAT(i,j,iblk)
+                  ULAT  (ijb,iblk) = TLAT(ijb,iblk)
                else
-                  ULAT  (i,j,iblk) = TLAT(i,j,iblk)+(pi/ny_global)
+                  ULAT  (ijb,iblk) = TLAT(ijb,iblk)+(pi/ny_global)
                endif
             endif
-            ULON  (i,j,iblk) = c0
-            NLON  (i,j,iblk) = c0
-            NLAT  (i,j,iblk) = c0
-            ELON  (i,j,iblk) = c0
-            ELAT  (i,j,iblk) = c0
-            ANGLE (i,j,iblk) = c0
+            ULON  (ijb,iblk) = c0
+            NLON  (ijb,iblk) = c0
+            NLAT  (ijb,iblk) = c0
+            ELON  (ijb,iblk) = c0
+            ELAT  (ijb,iblk) = c0
+            ANGLE (ijb,iblk) = c0
 
-            ANGLET(i,j,iblk) = c0
-            HTN   (i,j,iblk) = 1.e36_dbl_kind
-            HTE   (i,j,iblk) = 1.e36_dbl_kind
-            dxT   (i,j,iblk) = 1.e36_dbl_kind
-            dyT   (i,j,iblk) = 1.e36_dbl_kind
-            dxU   (i,j,iblk) = 1.e36_dbl_kind
-            dyU   (i,j,iblk) = 1.e36_dbl_kind
-            dxN   (i,j,iblk) = 1.e36_dbl_kind
-            dyN   (i,j,iblk) = 1.e36_dbl_kind
-            dxE   (i,j,iblk) = 1.e36_dbl_kind
-            dyE   (i,j,iblk) = 1.e36_dbl_kind
+            ANGLET(ijb,iblk) = c0
+            HTN   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            HTE   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dxT   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dyT   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dxU   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dyU   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dxN   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dyN   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dxE   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+            dyE   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
          enddo
          enddo
       enddo
@@ -1959,11 +2003,13 @@
       ! so use mom_bounds(G_TLON, lonu_bounds)
 
       real (kind=dbl_kind), dimension(:,:), intent(in) :: G_corners
-      real (kind=dbl_kind), dimension(:,:,:,:), intent(out) :: bounds
+      ! bounds has its i and j dimensions flattened: element (n,i,j,iblk) lives
+      ! at (n,(j-1)*nx_block + i,iblk)
+      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: bounds
 
       ! local vars
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block,max_blocks) :: &
          work_bounds
 
       character(len=*), parameter :: subname = '(mom_bounds)'
@@ -1973,19 +2019,19 @@
       call scatter_global(work_bounds, G_corners(1:nx_global, 1:ny_global), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(1,:,:,:) = work_bounds(:,:,:)
+      bounds(1,:,:) = work_bounds(:,:)
       call scatter_global(work_bounds, G_corners(2:nx_global+1, 1:ny_global), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(2,:,:,:) = work_bounds(:,:,:)
+      bounds(2,:,:) = work_bounds(:,:)
       call scatter_global(work_bounds, G_corners(2:nx_global+1, 2:ny_global+1), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(3,:,:,:) = work_bounds(:,:,:)
+      bounds(3,:,:) = work_bounds(:,:)
       call scatter_global(work_bounds, G_corners(1:nx_global, 2:ny_global+1), &
                          master_task, distrb_info, &
                          field_loc_NEcorner, field_type_scalar)
-      bounds(4,:,:,:) = work_bounds(:,:,:)
+      bounds(4,:,:) = work_bounds(:,:)
 
       end subroutine mom_bounds
 
@@ -1998,7 +2044,8 @@
       real (kind=dbl_kind), dimension(:,:), intent(inout) :: G_U, G_T, G_E, G_N
          ! global grids
 
-      real (kind=dbl_kind), dimension(:,:,:), intent(out) :: U, T, E, N ! local grids
+      ! local grids, i and j flattened: element (i,j,iblk) at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: U, T, E, N
 
       real (kind=dbl_kind) :: deg_to_rad , pi
 
@@ -2122,7 +2169,7 @@
       if (save_ghte_ghtn) then
          call gather_global(G_HTN, HTN, master_task, distrb_info, grid_ext=.true.)
       endif
-      dxN(:,:,:) = HTN(:,:,:)
+      dxN = HTN
       call scatter_global(dxE, G_dxE, master_task, distrb_info, &
                            field_loc_center, field_type_scalar)
       call ice_HaloExtrapolate(dxE, distrb_info, &
@@ -2227,7 +2274,7 @@
       if (save_ghte_ghtn) then
          call gather_global(G_HTE, HTE, master_task, distrb_info, grid_ext=.true.)
       endif
-      dyE(:,:,:) = HTE(:,:,:)
+      dyE = HTE
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
             field_loc_NEcorner, field_type_scalar)
       call ice_HaloExtrapolate(dyU, distrb_info, &
@@ -2273,8 +2320,8 @@
 
          do j = 1,ny_block
          do i = 1,nx_block
-            narea(i,j,iblk) = dxN(i,j,iblk)*dyN(i,j,iblk)
-            earea(i,j,iblk) = dxE(i,j,iblk)*dyE(i,j,iblk)
+            narea((j-1)*nx_block+i,iblk) = dxN((j-1)*nx_block+i,iblk)*dyN((j-1)*nx_block+i,iblk)
+            earea((j-1)*nx_block+i,iblk) = dxE((j-1)*nx_block+i,iblk)*dyE((j-1)*nx_block+i,iblk)
          enddo
          enddo
       enddo
@@ -2614,9 +2661,9 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      hm (:,:,:) = c0
-      kmt(:,:,:) = c0
-      angle(:,:,:) = c0   ! "square with the world"
+      hm = c0
+      kmt = c0
+      angle = c0          ! "square with the world"
 
       allocate(work_g1(nx_global,ny_global))
 
@@ -3152,7 +3199,7 @@
 
       ! dxN = HTN
 
-      dxN(:,:,:) = HTN(:,:,:)   ! dxN
+      dxN = HTN   ! dxN
 
       ! dxE = average of 4 surrounding HTNs
 
@@ -3292,7 +3339,7 @@
 
       ! dyE = HTE
 
-      dyE(:,:,:) = HTE(:,:,:)
+      dyE = HTE
 
       deallocate(work_g2, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
@@ -3354,13 +3401,16 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk, &
+         ij, &                   ! 1D index of (i,j) in the block
          ilo,ihi,jlo,jhi, &      ! beginning and end of physical domain
          ierr
 
       real (kind=dbl_kind) :: &
          puny
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable :: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
          uvmCD
 
       type (block) :: &
@@ -3385,11 +3435,11 @@
       !-----------------------------------------------------------------
 
       bm = c0
-      allocate(uvmCD(nx_block,ny_block,max_blocks), stat=ierr)
+      allocate(uvmCD(nx_block*ny_block,max_blocks), stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       uvmCD = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -3399,13 +3449,14 @@
 
          do j = jlo, jhi
          do i = ilo, ihi
-            uvm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,  iblk), &
-                                 hm(i,j+1,iblk), hm(i+1,j+1,iblk))
-            npm(i,j,iblk) = min (hm(i,j,  iblk), hm(i,j+1,iblk))
-            epm(i,j,iblk) = min (hm(i,j,  iblk), hm(i+1,j,iblk))
-            bm(i,j,iblk) = my_task + iblk/100.0_dbl_kind
-            uvmCD(i,j,iblk) = (hm(i,j,  iblk)+hm(i+1,j,  iblk) &
-                            +  hm(i,j+1,iblk)+hm(i+1,j+1,iblk))
+            ij = (j-1)*nx_block + i
+            uvm(ij,iblk) = min (hm(ij           ,iblk), hm(ij         +1,iblk), &
+                                hm(ij+nx_block  ,iblk), hm(ij+nx_block+1,iblk))
+            npm(ij,iblk) = min (hm(ij,iblk), hm(ij+nx_block,iblk))
+            epm(ij,iblk) = min (hm(ij,iblk), hm(ij         +1,iblk))
+            bm(ij,iblk) = my_task + iblk/100.0_dbl_kind
+            uvmCD(ij,iblk) = (hm(ij           ,iblk)+hm(ij         +1,iblk) &
+                           +  hm(ij+nx_block  ,iblk)+hm(ij+nx_block+1,iblk))
          enddo
          enddo
       enddo
@@ -3426,7 +3477,7 @@
                            field_loc_center,   field_type_scalar)
       call ice_timer_stop(timer_bound)
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -3435,28 +3486,29 @@
          jhi = this_block%jhi
 
          ! needs to cover halo (no halo update for logicals)
-         tmask(:,:,iblk)   = .false.
-         umask(:,:,iblk)   = .false.
-         umaskCD(:,:,iblk) = .false.
-         nmask(:,:,iblk)   = .false.
-         emask(:,:,iblk)   = .false.
-         opmask(:,:,iblk)  = .false.
+         tmask(:,iblk)     = .false.
+         umask(:,iblk)     = .false.
+         umaskCD(:,iblk)   = .false.
+         nmask(:,iblk)     = .false.
+         emask(:,iblk)     = .false.
+         opmask(:,iblk)    = .false.
          do j = jlo-nghost, jhi+nghost
          do i = ilo-nghost, ihi+nghost
-            if ( hm(i,j,iblk)   > p5  ) tmask  (i,j,iblk)   = .true.
-            if (uvm(i,j,iblk)   > p5  ) umask  (i,j,iblk)   = .true.
-            if (uvmCD(i,j,iblk) > c1p5) umaskCD(i,j,iblk)   = .true.
-            if (npm(i,j,iblk)   > p5  ) nmask  (i,j,iblk)   = .true.
-            if (epm(i,j,iblk)   > p5  ) emask  (i,j,iblk)   = .true.
-            if (ocn_gridcell_frac(i,j,iblk) > puny .and. .not. tmask(i,j,iblk)) &
-                opmask(i,j,iblk) = .true.
+            ij = (j-1)*nx_block + i
+            if ( hm(ij,iblk)   > p5  ) tmask  (ij,iblk)    = .true.
+            if (uvm(ij,iblk)   > p5  ) umask  (ij,iblk)    = .true.
+            if (uvmCD(ij,iblk) > c1p5) umaskCD(ij,iblk)    = .true.
+            if (npm(ij,iblk)   > p5  ) nmask  (ij,iblk)    = .true.
+            if (epm(ij,iblk)   > p5  ) emask  (ij,iblk)    = .true.
+            if (ocn_gridcell_frac(ij,iblk) > puny .and. .not. tmask(ij,iblk)) &
+                opmask(ij,iblk) = .true.
          enddo
          enddo
 
       enddo
       !$OMP END PARALLEL DO
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -3468,28 +3520,28 @@
       ! create hemisphere masks
       !-----------------------------------------------------------------
 
-         lmask_n(:,:,iblk) = .false.
-         lmask_s(:,:,iblk) = .false.
+         lmask_n(:,iblk) = .false.
+         lmask_s(:,iblk) = .false.
 
-         tarean(:,:,iblk) = c0
-         tareas(:,:,iblk) = c0
+         tarean(:,iblk) = c0
+         tareas(:,iblk) = c0
 
          do j = jlo,jhi
          do i = ilo,ihi
 
-            if (ULAT(i,j,iblk) >= -puny) then
-               lmask_n(i,j,iblk) = .true. ! N. Hem.
+            ij = (j-1)*nx_block + i
+
+            if (ULAT(ij,iblk) >= -puny) then
+               lmask_n(ij,iblk) = .true. ! N. Hem.
             else
-               lmask_s(i,j,iblk) = .true. ! S. Hem.
+               lmask_s(ij,iblk) = .true. ! S. Hem.
             endif
 
             ! N hemisphere area mask (m^2)
-            if (lmask_n(i,j,iblk)) tarean(i,j,iblk) = tarea(i,j,iblk) &
-                                                    * hm(i,j,iblk)
+            if (lmask_n(ij,iblk)) tarean(ij,iblk) = tarea(ij,iblk) * hm(ij,iblk)
 
             ! S hemisphere area mask (m^2)
-            if (lmask_s(i,j,iblk)) tareas(i,j,iblk) = tarea(i,j,iblk) &
-                                                    * hm(i,j,iblk)
+            if (lmask_s(ij,iblk)) tareas(ij,iblk) = tarea(ij,iblk) * hm(ij,iblk)
 
          enddo
          enddo
@@ -3512,6 +3564,7 @@
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
+           ij               , & ! 1D index of (i,j) in the block
            ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
       real (kind=dbl_kind) :: &
@@ -3532,10 +3585,10 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      TLAT(:,:,:) = c0
-      TLON(:,:,:) = c0
+      TLAT = c0
+      TLON = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
       !$OMP                     tx,ty,tz,da)
       do iblk = 1, nblocks
@@ -3548,25 +3601,27 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            z1 = cos(ULAT(i-1,j-1,iblk))
-            x1 = cos(ULON(i-1,j-1,iblk))*z1
-            y1 = sin(ULON(i-1,j-1,iblk))*z1
-            z1 = sin(ULAT(i-1,j-1,iblk))
+            ij = (j-1)*nx_block + i
 
-            z2 = cos(ULAT(i,j-1,iblk))
-            x2 = cos(ULON(i,j-1,iblk))*z2
-            y2 = sin(ULON(i,j-1,iblk))*z2
-            z2 = sin(ULAT(i,j-1,iblk))
+            z1 = cos(ULAT(ij-nx_block-1,iblk))
+            x1 = cos(ULON(ij-nx_block-1,iblk))*z1
+            y1 = sin(ULON(ij-nx_block-1,iblk))*z1
+            z1 = sin(ULAT(ij-nx_block-1,iblk))
 
-            z3 = cos(ULAT(i-1,j,iblk))
-            x3 = cos(ULON(i-1,j,iblk))*z3
-            y3 = sin(ULON(i-1,j,iblk))*z3
-            z3 = sin(ULAT(i-1,j,iblk))
+            z2 = cos(ULAT(ij-nx_block,iblk))
+            x2 = cos(ULON(ij-nx_block,iblk))*z2
+            y2 = sin(ULON(ij-nx_block,iblk))*z2
+            z2 = sin(ULAT(ij-nx_block,iblk))
 
-            z4 = cos(ULAT(i,j,iblk))
-            x4 = cos(ULON(i,j,iblk))*z4
-            y4 = sin(ULON(i,j,iblk))*z4
-            z4 = sin(ULAT(i,j,iblk))
+            z3 = cos(ULAT(ij-1,iblk))
+            x3 = cos(ULON(ij-1,iblk))*z3
+            y3 = sin(ULON(ij-1,iblk))*z3
+            z3 = sin(ULAT(ij-1,iblk))
+
+            z4 = cos(ULAT(ij,iblk))
+            x4 = cos(ULON(ij,iblk))*z4
+            y4 = sin(ULON(ij,iblk))*z4
+            z4 = sin(ULAT(ij,iblk))
 
             ! ---------
             ! TLON/TLAT 4 pt computation (pts 1, 2, 3, 4)
@@ -3580,11 +3635,11 @@
             tz = tz/da
 
             ! TLON in radians East
-            TLON(i,j,iblk) = c0
-            if (tx /= c0 .or. ty /= c0) TLON(i,j,iblk) = atan2(ty,tx)
+            TLON(ij,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) TLON(ij,iblk) = atan2(ty,tx)
 
             ! TLAT in radians North
-            TLAT(i,j,iblk) = asin(tz)
+            TLAT(ij,iblk) = asin(tz)
 
          enddo                  ! i
          enddo                  ! j
@@ -3594,7 +3649,7 @@
       if (trim(grid_type) == 'regional' .or. &
           trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
@@ -3605,10 +3660,11 @@
             i = ilo
             if (this_block%i_glob(i) == 1) then
                do j = jlo, jhi
-                  TLON(i,j,iblk) = c2*TLON(i+1,j,iblk) - &
-                                      TLON(i+2,j,iblk)
-                  TLAT(i,j,iblk) = c2*TLAT(i+1,j,iblk) - &
-                                      TLAT(i+2,j,iblk)
+                  ij = (j-1)*nx_block + i
+                  TLON(ij,iblk) = c2*TLON(ij+1,iblk) - &
+                                     TLON(ij+2,iblk)
+                  TLAT(ij,iblk) = c2*TLAT(ij+1,iblk) - &
+                                     TLAT(ij+2,iblk)
                enddo
             endif
          enddo
@@ -3642,6 +3698,7 @@
 
       integer (kind=int_kind) :: &
            i, j, iblk       , & ! horizontal indices
+           ij               , & ! 1D index of (i,j) in the block
            ilo,ihi,jlo,jhi      ! beginning and end of physical domain
 
       real (kind=dbl_kind) :: &
@@ -3662,12 +3719,12 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      NLAT(:,:,:) = c0
-      NLON(:,:,:) = c0
-      ELAT(:,:,:) = c0
-      ELON(:,:,:) = c0
+      NLAT = c0
+      NLON = c0
+      ELAT = c0
+      ELON = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block, &
       !$OMP                     x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4, &
       !$OMP                     tx,ty,tz,da)
       do iblk = 1, nblocks
@@ -3680,25 +3737,27 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            z1 = cos(ULAT(i-1,j-1,iblk))
-            x1 = cos(ULON(i-1,j-1,iblk))*z1
-            y1 = sin(ULON(i-1,j-1,iblk))*z1
-            z1 = sin(ULAT(i-1,j-1,iblk))
+            ij = (j-1)*nx_block + i
 
-            z2 = cos(ULAT(i,j-1,iblk))
-            x2 = cos(ULON(i,j-1,iblk))*z2
-            y2 = sin(ULON(i,j-1,iblk))*z2
-            z2 = sin(ULAT(i,j-1,iblk))
+            z1 = cos(ULAT(ij-nx_block-1,iblk))
+            x1 = cos(ULON(ij-nx_block-1,iblk))*z1
+            y1 = sin(ULON(ij-nx_block-1,iblk))*z1
+            z1 = sin(ULAT(ij-nx_block-1,iblk))
 
-            z3 = cos(ULAT(i-1,j,iblk))
-            x3 = cos(ULON(i-1,j,iblk))*z3
-            y3 = sin(ULON(i-1,j,iblk))*z3
-            z3 = sin(ULAT(i-1,j,iblk))
+            z2 = cos(ULAT(ij-nx_block,iblk))
+            x2 = cos(ULON(ij-nx_block,iblk))*z2
+            y2 = sin(ULON(ij-nx_block,iblk))*z2
+            z2 = sin(ULAT(ij-nx_block,iblk))
 
-            z4 = cos(ULAT(i,j,iblk))
-            x4 = cos(ULON(i,j,iblk))*z4
-            y4 = sin(ULON(i,j,iblk))*z4
-            z4 = sin(ULAT(i,j,iblk))
+            z3 = cos(ULAT(ij-1,iblk))
+            x3 = cos(ULON(ij-1,iblk))*z3
+            y3 = sin(ULON(ij-1,iblk))*z3
+            z3 = sin(ULAT(ij-1,iblk))
+
+            z4 = cos(ULAT(ij,iblk))
+            x4 = cos(ULON(ij,iblk))*z4
+            y4 = sin(ULON(ij,iblk))*z4
+            z4 = sin(ULAT(ij,iblk))
 
             ! ---------
             ! NLON/NLAT 2 pt computation (pts 3, 4)
@@ -3712,11 +3771,11 @@
             tz = tz/da
 
             ! NLON in radians East
-            NLON(i,j,iblk) = c0
-            if (tx /= c0 .or. ty /= c0) NLON(i,j,iblk) = atan2(ty,tx)
+            NLON(ij,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) NLON(ij,iblk) = atan2(ty,tx)
 
             ! NLAT in radians North
-            NLAT(i,j,iblk) = asin(tz)
+            NLAT(ij,iblk) = asin(tz)
 
             ! ---------
             ! ELON/ELAT 2 pt computation (pts 2, 4)
@@ -3730,11 +3789,11 @@
             tz = tz/da
 
             ! ELON in radians East
-            ELON(i,j,iblk) = c0
-            if (tx /= c0 .or. ty /= c0) ELON(i,j,iblk) = atan2(ty,tx)
+            ELON(ij,iblk) = c0
+            if (tx /= c0 .or. ty /= c0) ELON(ij,iblk) = atan2(ty,tx)
 
             ! ELAT in radians North
-            ELAT(i,j,iblk) = asin(tz)
+            ELAT(ij,iblk) = asin(tz)
 
          enddo                  ! i
          enddo                  ! j
@@ -3744,7 +3803,7 @@
       if (trim(grid_type) == 'regional' .or. &
           trim(grid_type) == 'rectangular') then
          ! for W boundary extrapolate from interior
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
@@ -3755,10 +3814,11 @@
             i = ilo
             if (this_block%i_glob(i) == 1) then
                do j = jlo, jhi
-                  NLON(i,j,iblk) = c1p5*TLON(i+1,j,iblk) - &
-                                     p5*TLON(i+2,j,iblk)
-                  NLAT(i,j,iblk) = c1p5*TLAT(i+1,j,iblk) - &
-                                     p5*TLAT(i+2,j,iblk)
+                  ij = (j-1)*nx_block + i
+                  NLON(ij,iblk) = c1p5*TLON(ij+1,iblk) - &
+                                    p5*TLON(ij+2,iblk)
+                  NLAT(ij,iblk) = c1p5*TLAT(ij+1,iblk) - &
+                                    p5*TLAT(ij+2,iblk)
                enddo
             endif
          enddo
@@ -3859,6 +3919,114 @@
       endif
 
       end subroutine grid_average_X2Y_base
+
+!=======================================================================
+! Shifts quantities from one grid to another, for arrays whose i and j
+! dimensions are flattened, i.e. dimension(nx_block*ny_block,max_blocks),
+! where element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk).
+! The arrays are aliased to rank 3 and handed to grid_average_X2Y_base,
+! so no data is copied.
+! NOTE: Input array includes ghost cells that must be updated before
+!       calling this routine.
+
+      subroutine grid_average_X2Y_base_2d(type,work1,grid1,work2,grid2)
+
+      character(len=*) , intent(in) :: &
+         type, grid1, grid2
+
+      ! TARGET and CONTIGUOUS are required to alias these to rank 3 below
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         work1(:,:)
+
+      real (kind=dbl_kind), intent(out), target, contiguous :: &
+         work2(:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         work1_3d(:,:,:) , & ! rank-3 alias of work1
+         work2_3d(:,:,:)     ! rank-3 alias of work2
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_base_2d)'
+
+      if (size(work1,dim=1) /= nx_block*ny_block .or. &
+          size(work2,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      work1_3d(1:nx_block,1:ny_block,1:size(work1,dim=2)) => work1
+      work2_3d(1:nx_block,1:ny_block,1:size(work2,dim=2)) => work2
+
+      call grid_average_X2Y_base(type,work1_3d,grid1,work2_3d,grid2)
+
+      end subroutine grid_average_X2Y_base_2d
+
+!=======================================================================
+! As grid_average_X2Y_base_2d, for a rank-3 input and a flattened output.
+
+      subroutine grid_average_X2Y_base_3d2d(type,work1,grid1,work2,grid2)
+
+      character(len=*) , intent(in) :: &
+         type, grid1, grid2
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:)
+
+      ! TARGET and CONTIGUOUS are required to alias this to rank 3 below
+      real (kind=dbl_kind), intent(out), target, contiguous :: &
+         work2(:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         work2_3d(:,:,:)     ! rank-3 alias of work2
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_base_3d2d)'
+
+      if (size(work2,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      work2_3d(1:nx_block,1:ny_block,1:size(work2,dim=2)) => work2
+
+      call grid_average_X2Y_base(type,work1,grid1,work2_3d,grid2)
+
+      end subroutine grid_average_X2Y_base_3d2d
+
+!=======================================================================
+! As grid_average_X2Y_base_2d, for a flattened input and a rank-3 output.
+
+      subroutine grid_average_X2Y_base_2d3d(type,work1,grid1,work2,grid2)
+
+      character(len=*) , intent(in) :: &
+         type, grid1, grid2
+
+      ! TARGET and CONTIGUOUS are required to alias this to rank 3 below
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         work1(:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         work1_3d(:,:,:)     ! rank-3 alias of work1
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_base_2d3d)'
+
+      if (size(work1,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      work1_3d(1:nx_block,1:ny_block,1:size(work1,dim=2)) => work1
+
+      call grid_average_X2Y_base(type,work1_3d,grid1,work2,grid2)
+
+      end subroutine grid_average_X2Y_base_2d3d
 
 !=======================================================================
 ! Shifts quantities from one grid to another
@@ -4176,7 +4344,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2YS(dir,work1,wght1,mask1,work2)
+      subroutine grid_average_X2YS_3d(dir,work1,wght1,mask1,work2)
 
       character(len=*) , intent(in) :: &
          dir
@@ -4201,7 +4369,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2YS)'
+      character(len=*), parameter :: subname = '(grid_average_X2YS_3d)'
 
       work2(:,:,:) = c0
 
@@ -4395,7 +4563,50 @@
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
       end select
 
-      end subroutine grid_average_X2YS
+      end subroutine grid_average_X2YS_3d
+
+!=======================================================================
+! Flat overload of grid_average_X2YS.  wght1 and mask1 have their i and j
+! dimensions flattened, i.e. dimension(nx_block*ny_block,max_blocks), with
+! element (i,j,iblk) at ((j-1)*nx_block + i, iblk).  A rank-3 view is
+! remapped onto it and handed to the rank-3 specific; no copy is made.
+
+      subroutine grid_average_X2YS_flat(dir,work1,wght1,mask1,work2)
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:)
+
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         wght1(:,:), &
+         mask1(:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         wght1_3d(:,:,:), & ! rank-3 view of wght1
+         mask1_3d(:,:,:)    ! rank-3 view of mask1
+
+      character(len=*), parameter :: subname = '(grid_average_X2YS_flat)'
+
+      if (size(wght1,dim=1) /= nx_block*ny_block .or. &
+          size(mask1,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      wght1_3d(1:nx_block,1:ny_block,1:size(wght1,dim=2)) => wght1
+      mask1_3d(1:nx_block,1:ny_block,1:size(mask1,dim=2)) => mask1
+
+      call grid_average_X2YS_3d(dir,work1,wght1_3d,mask1_3d,work2)
+
+      end subroutine grid_average_X2YS_flat
+
 
 !=======================================================================
 ! Shifts quantities from one grid to another
@@ -4405,7 +4616,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2YA(dir,work1,wght1,work2)
+      subroutine grid_average_X2YA_3d(dir,work1,wght1,work2)
 
       character(len=*) , intent(in) :: &
          dir
@@ -4429,7 +4640,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2YA)'
+      character(len=*), parameter :: subname = '(grid_average_X2YA_3d)'
 
       work2(:,:,:) = c0
 
@@ -4623,7 +4834,46 @@
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
       end select
 
-      end subroutine grid_average_X2YA
+      end subroutine grid_average_X2YA_3d
+
+!=======================================================================
+! Flat-weight overload of grid_average_X2YA.  wght1 has its i and j
+! dimensions flattened, i.e. dimension(nx_block*ny_block,max_blocks), with
+! element (i,j,iblk) at ((j-1)*nx_block + i, iblk).  A rank-3 view is
+! remapped onto it and handed to the rank-3 specific; no copy is made.
+
+      subroutine grid_average_X2YA_w1f(dir,work1,wght1,work2)
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:)
+
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         wght1(:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         wght1_3d(:,:,:)      ! rank-3 view of wght1
+
+      character(len=*), parameter :: subname = '(grid_average_X2YA_w1f)'
+
+      if (size(wght1,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      wght1_3d(1:nx_block,1:ny_block,1:size(wght1,dim=2)) => wght1
+
+      call grid_average_X2YA_3d(dir,work1,wght1_3d,work2)
+
+      end subroutine grid_average_X2YA_w1f
+
 
 !=======================================================================
 ! Shifts quantities from one grid to another
@@ -4633,7 +4883,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2YF(dir,work1,wght1,work2,wght2)
+      subroutine grid_average_X2YF_core(dir,work1,wght1,work2,wght2)
 
       character(len=*) , intent(in) :: &
          dir
@@ -4655,7 +4905,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2YF)'
+      character(len=*), parameter :: subname = '(grid_average_X2YF_core)'
 
       work2(:,:,:) = c0
 
@@ -4825,7 +5075,50 @@
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
       end select
 
+      end subroutine grid_average_X2YF_core
+
+!=======================================================================
+! Flux-conserving shift, flat-weight entry point.  wght1 and wght2 have their
+! i and j dimensions flattened, i.e. dimension(nx_block*ny_block,max_blocks),
+! with element (i,j,iblk) at ((j-1)*nx_block + i, iblk).  Rank-3 views are
+! remapped onto them and handed to the core; no copy is made.
+
+      subroutine grid_average_X2YF(dir,work1,wght1,work2,wght2)
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1(:,:,:)
+
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         wght1(:,:), &
+         wght2(:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         wght1_3d(:,:,:), & ! rank-3 view of wght1
+         wght2_3d(:,:,:)    ! rank-3 view of wght2
+
+      character(len=*), parameter :: subname = '(grid_average_X2YF)'
+
+      if (size(wght1,dim=1) /= nx_block*ny_block .or. &
+          size(wght2,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      wght1_3d(1:nx_block,1:ny_block,1:size(wght1,dim=2)) => wght1
+      wght2_3d(1:nx_block,1:ny_block,1:size(wght2,dim=2)) => wght2
+
+      call grid_average_X2YF_core(dir,work1,wght1_3d,work2,wght2_3d)
+
       end subroutine grid_average_X2YF
+
 
 !=======================================================================
 ! Shifts quantities from one grid to another
@@ -4835,7 +5128,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2Y_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
+      subroutine grid_average_X2Y_2_core(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
 
       character(len=*) , intent(in) :: &
          dir
@@ -4860,7 +5153,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2Y_2)'
+      character(len=*), parameter :: subname = '(grid_average_X2Y_2_core)'
 
       work2(:,:,:) = c0
 
@@ -4970,7 +5263,58 @@
             call abort_ice(subname//' ERROR: unknown option '//trim(dir), file=__FILE__, line=__LINE__)
       end select
 
+      end subroutine grid_average_X2Y_2_core
+
+!=======================================================================
+! Two-source shift, flat entry point.  wght1a/wght1b and mask1a/mask1b have their
+! i and j dimensions flattened, i.e. dimension(nx_block*ny_block,max_blocks),
+! with element (i,j,iblk) at ((j-1)*nx_block + i, iblk).  Rank-3 views are
+! remapped onto them and handed to the core; no copy is made.
+
+      subroutine grid_average_X2Y_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
+
+      character(len=*) , intent(in) :: &
+         dir
+
+      real (kind=dbl_kind), intent(in) :: &
+         work1a(:,:,:), &
+         work1b(:,:,:)
+
+      real (kind=dbl_kind), intent(in), target, contiguous :: &
+         wght1a(:,:), mask1a(:,:), &
+         wght1b(:,:), mask1b(:,:)
+
+      real (kind=dbl_kind), intent(out) :: &
+         work2(:,:,:)
+
+      ! local variables
+
+      real (kind=dbl_kind), pointer :: &
+         wght1a_3d(:,:,:), & ! rank-3 view of wght1a
+         wght1b_3d(:,:,:), & ! rank-3 view of wght1b
+         mask1a_3d(:,:,:), & ! rank-3 view of mask1a
+         mask1b_3d(:,:,:)    ! rank-3 view of mask1b
+
+      character(len=*), parameter :: subname = '(grid_average_X2Y_2)'
+
+      if (size(wght1a,dim=1) /= nx_block*ny_block .or. &
+          size(wght1b,dim=1) /= nx_block*ny_block .or. &
+          size(mask1a,dim=1) /= nx_block*ny_block .or. &
+          size(mask1b,dim=1) /= nx_block*ny_block) then
+         call abort_ice(subname//' ERROR: first dimension is not nx_block*ny_block', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      wght1a_3d(1:nx_block,1:ny_block,1:size(wght1a,dim=2)) => wght1a
+      wght1b_3d(1:nx_block,1:ny_block,1:size(wght1b,dim=2)) => wght1b
+      mask1a_3d(1:nx_block,1:ny_block,1:size(mask1a,dim=2)) => mask1a
+      mask1b_3d(1:nx_block,1:ny_block,1:size(mask1b,dim=2)) => mask1b
+
+      call grid_average_X2Y_2_core(dir,work1a,wght1a_3d,mask1a_3d, &
+                                       work1b,wght1b_3d,mask1b_3d,work2)
+
       end subroutine grid_average_X2Y_2
+
 
 !=======================================================================
 ! Compute the minimum of adjacent values of a field at specific indices,
@@ -5049,13 +5393,19 @@
 
       integer (kind=int_kind) :: &
          i,j,iblk,icorner,& ! index counters
+         ij,              & ! 1D index of (i,j) in the block
          ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
          ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+      ! block-local buffer, i and j flattened: element (i,j) at (j-1)*nx_block + i
+      real (kind=dbl_kind), dimension(:), allocatable :: &
+         work_l1
+
+      ! i and j flattened: element (i,j,iblk) at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (nx_block*ny_block,max_blocks) :: &
          work1
 
       real (kind=dbl_kind) :: &
@@ -5076,10 +5426,10 @@
       ! (1) SW corner, (2) SE corner, (3) NE corner, (4) NW corner
       !-------------------------------------------------------------
 
-      latu_bounds(:,:,:,:) = c0
-      lonu_bounds(:,:,:,:) = c0
+      latu_bounds = c0
+      lonu_bounds = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -5090,15 +5440,17 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            latu_bounds(1,i,j,iblk)=TLAT(i  ,j  ,iblk)*rad_to_deg
-            latu_bounds(2,i,j,iblk)=TLAT(i+1,j  ,iblk)*rad_to_deg
-            latu_bounds(3,i,j,iblk)=TLAT(i+1,j+1,iblk)*rad_to_deg
-            latu_bounds(4,i,j,iblk)=TLAT(i  ,j+1,iblk)*rad_to_deg
+            ij = (j-1)*nx_block + i
 
-            lonu_bounds(1,i,j,iblk)=TLON(i  ,j  ,iblk)*rad_to_deg
-            lonu_bounds(2,i,j,iblk)=TLON(i+1,j  ,iblk)*rad_to_deg
-            lonu_bounds(3,i,j,iblk)=TLON(i+1,j+1,iblk)*rad_to_deg
-            lonu_bounds(4,i,j,iblk)=TLON(i  ,j+1,iblk)*rad_to_deg
+            latu_bounds(1,ij,iblk)=TLAT(ij           ,iblk)*rad_to_deg
+            latu_bounds(2,ij,iblk)=TLAT(ij         +1,iblk)*rad_to_deg
+            latu_bounds(3,ij,iblk)=TLAT(ij+nx_block+1,iblk)*rad_to_deg
+            latu_bounds(4,ij,iblk)=TLAT(ij+nx_block  ,iblk)*rad_to_deg
+
+            lonu_bounds(1,ij,iblk)=TLON(ij           ,iblk)*rad_to_deg
+            lonu_bounds(2,ij,iblk)=TLON(ij         +1,iblk)*rad_to_deg
+            lonu_bounds(3,ij,iblk)=TLON(ij+nx_block+1,iblk)*rad_to_deg
+            lonu_bounds(4,ij,iblk)=TLON(ij+nx_block  ,iblk)*rad_to_deg
 
          enddo
          enddo
@@ -5116,7 +5468,7 @@
       endif
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
-      work1(:,:,:) = latu_bounds(2,:,:,:)
+      work1(:,:) = latu_bounds(2,:,:)
 !     work_g2 = c0
 
       call gather_global(work_g2, work1, master_task, distrb_info)
@@ -5129,9 +5481,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latu_bounds(2,:,:,:) = work1(:,:,:)
+      latu_bounds(2,:,:) = work1(:,:)
 
-      work1(:,:,:) = latu_bounds(3,:,:,:)
+      work1(:,:) = latu_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5146,9 +5498,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latu_bounds(3,:,:,:) = work1(:,:,:)
+      latu_bounds(3,:,:) = work1(:,:)
 
-      work1(:,:,:) = latu_bounds(4,:,:,:)
+      work1(:,:) = latu_bounds(4,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5159,9 +5511,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latu_bounds(4,:,:,:) = work1(:,:,:)
+      latu_bounds(4,:,:) = work1(:,:)
 
-      work1(:,:,:) = lonu_bounds(2,:,:,:)
+      work1(:,:) = lonu_bounds(2,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -5172,9 +5524,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonu_bounds(2,:,:,:) = work1(:,:,:)
+      lonu_bounds(2,:,:) = work1(:,:)
 
-      work1(:,:,:) = lonu_bounds(3,:,:,:)
+      work1(:,:) = lonu_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5189,9 +5541,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonu_bounds(3,:,:,:) = work1(:,:,:)
+      lonu_bounds(3,:,:) = work1(:,:)
 
-      work1(:,:,:) = lonu_bounds(4,:,:,:)
+      work1(:,:) = lonu_bounds(4,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5202,7 +5554,7 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonu_bounds(4,:,:,:) = work1(:,:,:)
+      lonu_bounds(4,:,:) = work1(:,:)
 
       deallocate(work_g2, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc errro', file=__FILE__, line=__LINE__)
@@ -5211,22 +5563,22 @@
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      allocate(work_l1(nx_block*ny_block), stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
-            work_g2(:,:) = lont_bounds(icorner,:,:,iblk) + c360
-            where (work_g2 > c360) work_g2 = work_g2 - c360
-            where (work_g2 < c0 )  work_g2 = work_g2 + c360
-            lont_bounds(icorner,:,:,iblk) = work_g2(:,:)
-            work_g2(:,:) = lonu_bounds(icorner,:,:,iblk) + c360
-            where (work_g2 > c360) work_g2 = work_g2 - c360
-            where (work_g2 < c0 )  work_g2 = work_g2 + c360
-            lonu_bounds(icorner,:,:,iblk) = work_g2(:,:)
+            work_l1(:) = lont_bounds(icorner,:,iblk) + c360
+            where (work_l1 > c360) work_l1 = work_l1 - c360
+            where (work_l1 < c0 )  work_l1 = work_l1 + c360
+            lont_bounds(icorner,:,iblk) = work_l1(:)
+            work_l1(:) = lonu_bounds(icorner,:,iblk) + c360
+            where (work_l1 > c360) work_l1 = work_l1 - c360
+            where (work_l1 < c0 )  work_l1 = work_l1 + c360
+            lonu_bounds(icorner,:,iblk) = work_l1(:)
          enddo
       enddo
-      deallocate(work_g2, stat=ierr)
+      deallocate(work_l1, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       end subroutine gridbox_corners
@@ -5245,13 +5597,19 @@
 
       integer (kind=int_kind) :: &
          i,j,iblk,icorner,& ! index counters
+         ij,              & ! 1D index of (i,j) in the block
          ilo,ihi,jlo,jhi , &   ! beginning and end of physical domain
          ierr
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g2
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+      ! block-local buffer, i and j flattened: element (i,j) at (j-1)*nx_block + i
+      real (kind=dbl_kind), dimension(:), allocatable :: &
+         work_l1
+
+      ! i and j flattened: element (i,j,iblk) at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (nx_block*ny_block,max_blocks) :: &
          work1
 
       real (kind=dbl_kind) :: &
@@ -5273,12 +5631,12 @@
       ! for E pt: (1) S edge, (2) S edge i+1, (3) N edge, i+1 (4) N edge
       !-------------------------------------------------------------
 
-      latn_bounds(:,:,:,:) = c0
-      lonn_bounds(:,:,:,:) = c0
-      late_bounds(:,:,:,:) = c0
-      lone_bounds(:,:,:,:) = c0
+      latn_bounds = c0
+      lonn_bounds = c0
+      late_bounds = c0
+      lone_bounds = c0
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
          ilo = this_block%ilo
@@ -5289,25 +5647,27 @@
          do j = jlo, jhi
          do i = ilo, ihi
 
-            latn_bounds(1,i,j,iblk)=ELAT(i-1,j  ,iblk)*rad_to_deg
-            latn_bounds(2,i,j,iblk)=ELAT(i  ,j  ,iblk)*rad_to_deg
-            latn_bounds(3,i,j,iblk)=ELAT(i  ,j+1,iblk)*rad_to_deg
-            latn_bounds(4,i,j,iblk)=ELAT(i-1,j+1,iblk)*rad_to_deg
+            ij = (j-1)*nx_block + i
 
-            lonn_bounds(1,i,j,iblk)=ELON(i-1,j  ,iblk)*rad_to_deg
-            lonn_bounds(2,i,j,iblk)=ELON(i  ,j  ,iblk)*rad_to_deg
-            lonn_bounds(3,i,j,iblk)=ELON(i  ,j+1,iblk)*rad_to_deg
-            lonn_bounds(4,i,j,iblk)=ELON(i-1,j+1,iblk)*rad_to_deg
+            latn_bounds(1,ij,iblk)=ELAT(ij         -1,iblk)*rad_to_deg
+            latn_bounds(2,ij,iblk)=ELAT(ij           ,iblk)*rad_to_deg
+            latn_bounds(3,ij,iblk)=ELAT(ij+nx_block  ,iblk)*rad_to_deg
+            latn_bounds(4,ij,iblk)=ELAT(ij+nx_block-1,iblk)*rad_to_deg
 
-            late_bounds(1,i,j,iblk)=NLAT(i  ,j-1,iblk)*rad_to_deg
-            late_bounds(2,i,j,iblk)=NLAT(i+1,j-1,iblk)*rad_to_deg
-            late_bounds(3,i,j,iblk)=NLAT(i+1,j  ,iblk)*rad_to_deg
-            late_bounds(4,i,j,iblk)=NLAT(i  ,j  ,iblk)*rad_to_deg
+            lonn_bounds(1,ij,iblk)=ELON(ij         -1,iblk)*rad_to_deg
+            lonn_bounds(2,ij,iblk)=ELON(ij           ,iblk)*rad_to_deg
+            lonn_bounds(3,ij,iblk)=ELON(ij+nx_block  ,iblk)*rad_to_deg
+            lonn_bounds(4,ij,iblk)=ELON(ij+nx_block-1,iblk)*rad_to_deg
 
-            lone_bounds(1,i,j,iblk)=NLON(i  ,j-1,iblk)*rad_to_deg
-            lone_bounds(2,i,j,iblk)=NLON(i+1,j-1,iblk)*rad_to_deg
-            lone_bounds(3,i,j,iblk)=NLON(i+1,j  ,iblk)*rad_to_deg
-            lone_bounds(4,i,j,iblk)=NLON(i  ,j  ,iblk)*rad_to_deg
+            late_bounds(1,ij,iblk)=NLAT(ij-nx_block  ,iblk)*rad_to_deg
+            late_bounds(2,ij,iblk)=NLAT(ij-nx_block+1,iblk)*rad_to_deg
+            late_bounds(3,ij,iblk)=NLAT(ij         +1,iblk)*rad_to_deg
+            late_bounds(4,ij,iblk)=NLAT(ij           ,iblk)*rad_to_deg
+
+            lone_bounds(1,ij,iblk)=NLON(ij-nx_block  ,iblk)*rad_to_deg
+            lone_bounds(2,ij,iblk)=NLON(ij-nx_block+1,iblk)*rad_to_deg
+            lone_bounds(3,ij,iblk)=NLON(ij         +1,iblk)*rad_to_deg
+            lone_bounds(4,ij,iblk)=NLON(ij           ,iblk)*rad_to_deg
 
          enddo
          enddo
@@ -5327,7 +5687,7 @@
 
       ! latn_bounds
 
-      work1(:,:,:) = latn_bounds(1,:,:,:)
+      work1(:,:) = latn_bounds(1,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -5338,9 +5698,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latn_bounds(1,:,:,:) = work1(:,:,:)
+      latn_bounds(1,:,:) = work1(:,:)
 
-      work1(:,:,:) = latn_bounds(3,:,:,:)
+      work1(:,:) = latn_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5351,9 +5711,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latn_bounds(3,:,:,:) = work1(:,:,:)
+      latn_bounds(3,:,:) = work1(:,:)
 
-      work1(:,:,:) = latn_bounds(4,:,:,:)
+      work1(:,:) = latn_bounds(4,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5368,11 +5728,11 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      latn_bounds(4,:,:,:) = work1(:,:,:)
+      latn_bounds(4,:,:) = work1(:,:)
 
       ! lonn_bounds
 
-      work1(:,:,:) = lonn_bounds(1,:,:,:)
+      work1(:,:) = lonn_bounds(1,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -5383,9 +5743,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonn_bounds(1,:,:,:) = work1(:,:,:)
+      lonn_bounds(1,:,:) = work1(:,:)
 
-      work1(:,:,:) = lonn_bounds(3,:,:,:)
+      work1(:,:) = lonn_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5396,9 +5756,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonn_bounds(3,:,:,:) = work1(:,:,:)
+      lonn_bounds(3,:,:) = work1(:,:)
 
-      work1(:,:,:) = lonn_bounds(4,:,:,:)
+      work1(:,:) = lonn_bounds(4,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5413,11 +5773,11 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lonn_bounds(4,:,:,:) = work1(:,:,:)
+      lonn_bounds(4,:,:) = work1(:,:)
 
       ! late_bounds
 
-      work1(:,:,:) = late_bounds(1,:,:,:)
+      work1(:,:) = late_bounds(1,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5428,9 +5788,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      late_bounds(1,:,:,:) = work1(:,:,:)
+      late_bounds(1,:,:) = work1(:,:)
 
-      work1(:,:,:) = late_bounds(2,:,:,:)
+      work1(:,:) = late_bounds(2,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5445,9 +5805,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      late_bounds(2,:,:,:) = work1(:,:,:)
+      late_bounds(2,:,:) = work1(:,:)
 
-      work1(:,:,:) = late_bounds(3,:,:,:)
+      work1(:,:) = late_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -5458,11 +5818,11 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      late_bounds(3,:,:,:) = work1(:,:,:)
+      late_bounds(3,:,:) = work1(:,:)
 
       ! lone_bounds
 
-      work1(:,:,:) = lone_bounds(1,:,:,:)
+      work1(:,:) = lone_bounds(1,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5473,9 +5833,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lone_bounds(1,:,:,:) = work1(:,:,:)
+      lone_bounds(1,:,:) = work1(:,:)
 
-      work1(:,:,:) = lone_bounds(2,:,:,:)
+      work1(:,:) = lone_bounds(2,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do i = 1, nx_global
@@ -5490,9 +5850,9 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lone_bounds(2,:,:,:) = work1(:,:,:)
+      lone_bounds(2,:,:) = work1(:,:)
 
-      work1(:,:,:) = lone_bounds(3,:,:,:)
+      work1(:,:) = lone_bounds(3,:,:)
       call gather_global(work_g2, work1, master_task, distrb_info)
       if (my_task == master_task) then
          do j = 1, ny_global
@@ -5503,7 +5863,7 @@
       call scatter_global(work1, work_g2, &
                           master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
-      lone_bounds(3,:,:,:) = work1(:,:,:)
+      lone_bounds(3,:,:) = work1(:,:)
 
       deallocate(work_g2, stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Dealloc error', file=__FILE__, line=__LINE__)
@@ -5512,22 +5872,22 @@
       ! Convert longitude to Degrees East >0 for history output
       !----------------------------------------------------------------
 
-      allocate(work_g2(nx_block,ny_block), stat=ierr)  ! not used as global here
+      allocate(work_l1(nx_block*ny_block), stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
       !OMP fails in this loop
       do iblk = 1, nblocks
          do icorner = 1, 4
-            work_g2(:,:) = lonn_bounds(icorner,:,:,iblk) + c360
-            where (work_g2 > c360) work_g2 = work_g2 - c360
-            where (work_g2 < c0 )  work_g2 = work_g2 + c360
-            lonn_bounds(icorner,:,:,iblk) = work_g2(:,:)
-            work_g2(:,:) = lone_bounds(icorner,:,:,iblk) + c360
-            where (work_g2 > c360) work_g2 = work_g2 - c360
-            where (work_g2 < c0 )  work_g2 = work_g2 + c360
-            lone_bounds(icorner,:,:,iblk) = work_g2(:,:)
+            work_l1(:) = lonn_bounds(icorner,:,iblk) + c360
+            where (work_l1 > c360) work_l1 = work_l1 - c360
+            where (work_l1 < c0 )  work_l1 = work_l1 + c360
+            lonn_bounds(icorner,:,iblk) = work_l1(:)
+            work_l1(:) = lone_bounds(icorner,:,iblk) + c360
+            where (work_l1 > c360) work_l1 = work_l1 - c360
+            where (work_l1 < c0 )  work_l1 = work_l1 + c360
+            lone_bounds(icorner,:,iblk) = work_l1(:)
          enddo
       enddo
-      deallocate(work_g2, stat=ierr)
+      deallocate(work_l1, stat=ierr)
 
       end subroutine gridbox_edges
 
@@ -5542,14 +5902,17 @@
 
       subroutine gridbox_verts(work,vbounds)
 
-      real (kind=dbl_kind), dimension(:,:,:), intent(in) :: &
+      ! work is assumed shape, with its i and j dimensions flattened: element
+      ! (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
          work
 
-      real (kind=dbl_kind), dimension(4,nx_block,ny_block,max_blocks), intent(out) :: &
+      real (kind=dbl_kind), dimension(4,nx_block*ny_block,max_blocks), intent(out) :: &
          vbounds
 
       integer (kind=int_kind) :: &
          iblk,i,j,ilo,ihi,jlo,jhi, &      ! index counters
+         ij, &                            ! 1D index of (i,j) in the block
          ierr
 
       type (block) :: &
@@ -5574,10 +5937,11 @@
          jhi = this_block%jhi
          do j = jlo, jhi
          do i = ilo, ihi
-            vbounds(1,i,j,iblk) = work(i-1,j-1,iblk)*rad_to_deg
-            vbounds(2,i,j,iblk) = work(i  ,j-1,iblk)*rad_to_deg
-            vbounds(3,i,j,iblk) = work(i  ,j  ,iblk)*rad_to_deg
-            vbounds(4,i,j,iblk) = work(i-1,j  ,iblk)*rad_to_deg
+            ij = (j-1)*nx_block + i
+            vbounds(1,ij,iblk) = work(ij-nx_block-1,iblk)*rad_to_deg
+            vbounds(2,ij,iblk) = work(ij-nx_block  ,iblk)*rad_to_deg
+            vbounds(3,ij,iblk) = work(ij           ,iblk)*rad_to_deg
+            vbounds(4,ij,iblk) = work(ij         -1,iblk)*rad_to_deg
          enddo
          enddo
       enddo
@@ -5592,7 +5956,8 @@
       subroutine get_bathymetry
 
       integer (kind=int_kind) :: &
-         i, j, k, iblk      ! loop indices
+         i, j, k, iblk    , & ! loop indices
+         ij                   ! 1D index of (i,j) in the block
 
       integer (kind=int_kind), parameter :: &
          nlevel = 40        ! number of layers (gx3 grid)
@@ -5643,10 +6008,11 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               k = min(nint(kmt(i,j,iblk)),nlevel)
+               ij = (j-1)*nx_block + i
+               k = min(nint(kmt(ij,iblk)),nlevel)
                if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error', &
                                     file=__FILE__, line=__LINE__)
-               if (k > 0) bathymetry(i,j,iblk) = depth(k)
+               if (k > 0) bathymetry(ij,iblk) = depth(k)
             enddo
             enddo
          enddo
@@ -5670,7 +6036,8 @@
       subroutine get_bathymetry_popfile
 
       integer (kind=int_kind) :: &
-         i, j, k, iblk      ! loop indices
+         i, j, k, iblk    , & ! loop indices
+         ij                   ! 1D index of (i,j) in the block
 
       integer (kind=int_kind) :: &
          ntmp, nlevel   , & ! number of levels (max KMT)
@@ -5748,9 +6115,10 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            k = nint(kmt(i,j,iblk))
+            ij = (j-1)*nx_block + i
+            k = nint(kmt(ij,iblk))
             if (k > nlevel) call abort_ice(subname//' kmt gt nlevel error', file=__FILE__, line=__LINE__)
-            if (k > 0) bathymetry(i,j,iblk) = depth(k)
+            if (k > 0) bathymetry(ij,iblk) = depth(k)
          enddo
          enddo
       enddo

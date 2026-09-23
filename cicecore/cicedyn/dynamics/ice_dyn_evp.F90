@@ -46,6 +46,13 @@
           dyn_prep1, dyn_prep2, dyn_finish, &
           ndte, yield_curve, ecci, denom1, arlx1i, fcor_blk, fcorE_blk, fcorN_blk, &
           uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
+          dynOff, dynCnt, dynMap, dynNbr, dynMaxCnt, &
+          uvel_slot, vvel_slot, aiU_slot, fmU_slot, TbU_slot, &
+          umassdti_slot, waterxU_slot, wateryU_slot, &
+          forcexU_slot, forceyU_slot, &
+          pack_to_slots, unpack_from_slots, &
+          nbr_W, nbr_S, nbr_SW, nbr_E, nbr_N, nbr_NE, &
+          skipT, skipU, skipN, skipE, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, revp
       use ice_fileunits, only: nu_diag
@@ -62,14 +69,12 @@
          ss_tltxN (:,:,:) , & ! sea surface slope, x-direction (m/m)
          ss_tltyN (:,:,:) , & ! sea surface slope, y-direction (m/m)
          cdn_ocnN (:,:,:) , & ! ocn drag coefficient
-         waterxN  (:,:,:) , & ! for ocean stress calculation, x (m/s)
-         wateryN  (:,:,:) , & ! for ocean stress calculation, y (m/s)
-         forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
-         forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         aiN      (:,:,:) , & ! ice fraction on N-grid
+         waterxN  (:,:)   , & ! for ocean stress calculation, x (m/s)
+         wateryN  (:,:)   , & ! for ocean stress calculation, y (m/s)
+         forcexN  (:,:)   , & ! work array: combined atm stress and ocn tilt, x
+         forceyN  (:,:)   , & ! work array: combined atm stress and ocn tilt, y
          rheofactN(:,:,:) , & ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
-         nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
-         nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
+         nmassdti (:,:)       ! mass of N-cell/dte (kg/m^2 s)
 ! all c or d
       real (kind=dbl_kind), allocatable :: &
          uocnE    (:,:,:) , & ! i ocean current (m/s)
@@ -77,14 +82,21 @@
          ss_tltxE (:,:,:) , & ! sea surface slope, x-direction (m/m)
          ss_tltyE (:,:,:) , & ! sea surface slope, y-direction (m/m)
          cdn_ocnE (:,:,:) , & ! ocn drag coefficient
-         waterxE  (:,:,:) , & ! for ocean stress calculation, x (m/s)
-         wateryE  (:,:,:) , & ! for ocean stress calculation, y (m/s)
-         forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
-         forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         aiE      (:,:,:) , & ! ice fraction on E-grid
+         waterxE  (:,:)   , & ! for ocean stress calculation, x (m/s)
+         wateryE  (:,:)   , & ! for ocean stress calculation, y (m/s)
+         forcexE  (:,:)   , & ! work array: combined atm stress and ocn tilt, x
+         forceyE  (:,:)   , & ! work array: combined atm stress and ocn tilt, y
          rheofactE(:,:,:) , & ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
-         emass    (:,:,:) , & ! total mass of ice and snow (E grid)
-         emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
+         emassdti (:,:)       ! mass of E-cell/dte (kg/m^2 s)
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk).
+      ! TARGET is required: these are the targets of the rank-3 aliases below
+      real (kind=dbl_kind), allocatable, target :: &
+         nmass    (:,:)   , & ! total mass of ice and snow (N grid)
+         emass    (:,:)   , & ! total mass of ice and snow (E grid)
+         aiN      (:,:)   , & ! ice fraction on N-grid
+         aiE      (:,:)       ! ice fraction on E-grid
 
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          ratiodxN    , & ! - dxN(i+1,j)   / dxN(i,j)
@@ -94,14 +106,14 @@
 
       real (kind=dbl_kind), allocatable :: &
          strengthU(:,:,:) , & ! strength averaged to U points
-         divergU  (:,:,:) , & ! div array on U points, differentiate from divu
-         tensionU (:,:,:) , & ! tension array on U points
-         shearU   (:,:,:) , & ! shear array on U points
-         deltaU   (:,:,:) , & ! delta array on U points
-         zetax2T  (:,:,:) , & ! zetax2 = 2*zeta (bulk viscosity)
-         zetax2U  (:,:,:) , & ! zetax2T averaged to U points
-         etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
-         etax2U   (:,:,:)     ! etax2T averaged to U points
+         divergU  (:,:) , & ! div array on U points, differentiate from divu
+         tensionU (:,:) , & ! tension array on U points
+         shearU   (:,:) , & ! shear array on U points
+         deltaU   (:,:) , & ! delta array on U points
+         zetax2T  (:,:) , & ! zetax2 = 2*zeta (bulk viscosity)
+         zetax2U  (:,:) , & ! zetax2T averaged to U points
+         etax2T   (:,:) , & ! etax2  = 2*eta  (shear viscosity)
+         etax2U   (:,:)     ! etax2T averaged to U points
 
       real (kind=dbl_kind), allocatable :: &
          uocnU    (:,:,:) , & ! i ocean current (m/s)
@@ -109,13 +121,21 @@
          ss_tltxU (:,:,:) , & ! sea surface slope, x-direction (m/m)
          ss_tltyU (:,:,:) , & ! sea surface slope, y-direction (m/m)
          cdn_ocnU (:,:,:) , & ! ocn drag coefficient
-         tmass    (:,:,:) , & ! total mass of ice and snow (kg/m^2)
-         waterxU  (:,:,:) , & ! for ocean stress calculation, x (m/s)
-         wateryU  (:,:,:) , & ! for ocean stress calculation, y (m/s)
-         forcexU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
-         forceyU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         umass    (:,:,:) , & ! total mass of ice and snow (u grid)
-         umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
+         waterxU  (:,:)   , & ! for ocean stress calculation, x (m/s)
+         wateryU  (:,:)   , & ! for ocean stress calculation, y (m/s)
+         forcexU  (:,:)   , & ! work array: combined atm stress and ocn tilt, x
+         forceyU  (:,:)       ! work array: combined atm stress and ocn tilt, y
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), allocatable, target :: &
+         umass    (:,:)   , & ! total mass of ice and snow (u grid)
+         umassdti (:,:)       ! mass of U-cell/dte (kg/m^2 s)
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), allocatable, target :: &
+         tmass    (:,:)       ! total mass of ice and snow (kg/m^2)
 
       public :: evp, init_evp
 
@@ -145,6 +165,7 @@
 
       integer (kind=int_kind) :: &
          i, j, iblk            , & ! block index
+         ijb                   , & ! 1D index of (i,j) in the flattened block layout
          ilo,ihi,jlo,jhi           ! beginning and end of physical domain
 
 
@@ -159,27 +180,27 @@
                 ss_tltxU (nx_block,ny_block,max_blocks), & ! sea surface slope, x-direction (m/m)
                 ss_tltyU (nx_block,ny_block,max_blocks), & ! sea surface slope, y-direction (m/m)
                 cdn_ocnU (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
-                tmass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
-                waterxU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
-                wateryU  (nx_block,ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
-                forcexU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
-                forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
-                umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
-                umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                tmass    (nx_block*ny_block,max_blocks), & ! total mass of ice and snow (kg/m^2)
+                waterxU  (nx_block*ny_block,max_blocks), & ! for ocean stress calculation, x (m/s)
+                wateryU  (nx_block*ny_block,max_blocks), & ! for ocean stress calculation, y (m/s)
+                forcexU  (nx_block*ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, x
+                forceyU  (nx_block*ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
+                umass    (nx_block*ny_block,max_blocks), & ! total mass of ice and snow (u grid)
+                umassdti (nx_block*ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          allocate( strengthU(nx_block,ny_block,max_blocks), &
-                   divergU  (nx_block,ny_block,max_blocks), &
-                   tensionU (nx_block,ny_block,max_blocks), &
-                   shearU   (nx_block,ny_block,max_blocks), &
-                   deltaU   (nx_block,ny_block,max_blocks), &
-                   zetax2T  (nx_block,ny_block,max_blocks), &
-                   zetax2U  (nx_block,ny_block,max_blocks), &
-                   etax2T   (nx_block,ny_block,max_blocks), &
-                   etax2U   (nx_block,ny_block,max_blocks), &
+                   divergU  (nx_block*ny_block,max_blocks), &
+                   tensionU (nx_block*ny_block,max_blocks), &
+                   shearU   (nx_block*ny_block,max_blocks), &
+                   deltaU   (nx_block*ny_block,max_blocks), &
+                   zetax2T  (nx_block*ny_block,max_blocks), &
+                   zetax2U  (nx_block*ny_block,max_blocks), &
+                   etax2T   (nx_block*ny_block,max_blocks), &
+                   etax2U   (nx_block*ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory U evp')
 
@@ -188,13 +209,13 @@
                    ss_tltxN (nx_block,ny_block,max_blocks), &
                    ss_tltyN (nx_block,ny_block,max_blocks), &
                    cdn_ocnN (nx_block,ny_block,max_blocks), &
-                   waterxN  (nx_block,ny_block,max_blocks), &
-                   wateryN  (nx_block,ny_block,max_blocks), &
-                   forcexN  (nx_block,ny_block,max_blocks), &
-                   forceyN  (nx_block,ny_block,max_blocks), &
-                   aiN      (nx_block,ny_block,max_blocks), &
-                   nmass    (nx_block,ny_block,max_blocks), &
-                   nmassdti (nx_block,ny_block,max_blocks), &
+                   waterxN  (nx_block*ny_block,max_blocks), &
+                   wateryN  (nx_block*ny_block,max_blocks), &
+                   forcexN  (nx_block*ny_block,max_blocks), &
+                   forceyN  (nx_block*ny_block,max_blocks), &
+                   aiN      (nx_block*ny_block,max_blocks), &
+                   nmass    (nx_block*ny_block,max_blocks), &
+                   nmassdti (nx_block*ny_block,max_blocks), &
                    rheofactN(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
@@ -204,13 +225,13 @@
                    ss_tltxE (nx_block,ny_block,max_blocks), &
                    ss_tltyE (nx_block,ny_block,max_blocks), &
                    cdn_ocnE (nx_block,ny_block,max_blocks), &
-                   waterxE  (nx_block,ny_block,max_blocks), &
-                   wateryE  (nx_block,ny_block,max_blocks), &
-                   forcexE  (nx_block,ny_block,max_blocks), &
-                   forceyE  (nx_block,ny_block,max_blocks), &
-                   aiE      (nx_block,ny_block,max_blocks), &
-                   emass    (nx_block,ny_block,max_blocks), &
-                   emassdti (nx_block,ny_block,max_blocks), &
+                   waterxE  (nx_block*ny_block,max_blocks), &
+                   wateryE  (nx_block*ny_block,max_blocks), &
+                   forcexE  (nx_block*ny_block,max_blocks), &
+                   forceyE  (nx_block*ny_block,max_blocks), &
+                   aiE      (nx_block*ny_block,max_blocks), &
+                   emass    (nx_block*ny_block,max_blocks), &
+                   emassdti (nx_block*ny_block,max_blocks), &
                    rheofactE(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
@@ -222,7 +243,7 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory ratio')
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ijb,ilo,ihi,jlo,jhi,this_block)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
             ilo = this_block%ilo
@@ -232,8 +253,9 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               ratiodxN (i,j,iblk) = - dxN(i+1,j  ,iblk) / dxN(i,j,iblk)
-               ratiodyE (i,j,iblk) = - dyE(i  ,j+1,iblk) / dyE(i,j,iblk)
+               ijb = (j-1)*nx_block + i
+               ratiodxN (i,j,iblk) = - dxN(ijb+1       ,iblk) / dxN(ijb,iblk)
+               ratiodyE (i,j,iblk) = - dyE(ijb+nx_block,iblk) / dyE(ijb,iblk)
                ratiodxNr(i,j,iblk) =   c1 / ratiodxN(i,j,iblk)
                ratiodyEr(i,j,iblk) =   c1 / ratiodyE(i,j,iblk)
             enddo
@@ -260,6 +282,7 @@
 
       use ice_arrays_column, only: Cdn_ocn
       use ice_boundary, only: ice_halo, ice_HaloMask, ice_HaloUpdate, &
+          ice_HaloUpdate2DR8_compressed, ice_HaloUpdate3DR8_compressed, &
           ice_HaloDestroy, ice_HaloUpdate_stress
       use ice_blocks, only: block, get_block, nx_block, ny_block, ns_boundary_type
       use ice_domain, only: nblocks, blocks_ice, halo_info, maskhalo_dyn
@@ -284,7 +307,7 @@
           dxE, dxN, dxT, dxU, dyE, dyN, dyT, dyU, &
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_ice, grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_restoring, only: ice_restoring_halo
+      use ice_restoring, only: ice_restoring_halo, restore_ice
       use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
@@ -294,7 +317,7 @@
           DminTarea, visc_method, deformations, deformationsC_T, deformationsCD_T, &
           strain_rates_U, dxhy, dyhx, cxp, cyp, cxm, cym, &
           iceTmask, iceUmask, iceEmask, iceNmask, &
-          dyn_haloUpdate, fld2, fld3, fld4
+          dyn_haloUpdate, fld2, fld3, fld4, fld2c
       use ice_dyn_evp1d, only: dyn_evp1d_run
 
       real (kind=dbl_kind), intent(in) :: &
@@ -324,7 +347,10 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
+      ! i and j flattened: element (i,j,n) at ((j-1)*nx_block + i, n)
+      ! compressed, indexed by block-local slot; element 0 is the "no such
+      ! neighbour" slot the stepu stencil falls back on
+      real (kind=dbl_kind), dimension(0:dynMaxCnt,8):: &
          strtmp       ! stress combinations for momentum equation
 
       logical (kind=log_kind) :: &
@@ -350,14 +376,14 @@
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
          strengthU(:,:,:) = c0
-         divergU  (:,:,:) = c0
-         tensionU (:,:,:) = c0
-         shearU   (:,:,:) = c0
-         deltaU   (:,:,:) = c0
-         zetax2T  (:,:,:) = c0
-         zetax2U  (:,:,:) = c0
-         etax2T   (:,:,:) = c0
-         etax2U   (:,:,:) = c0
+         divergU  (:,:) = c0
+         tensionU (:,:) = c0
+         shearU   (:,:) = c0
+         deltaU   (:,:) = c0
+         zetax2T  (:,:) = c0
+         zetax2U  (:,:) = c0
+         etax2T   (:,:) = c0
+         etax2U   (:,:) = c0
 
       endif
 
@@ -405,8 +431,8 @@
          call dyn_prep1 (nx_block,           ny_block,           &
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
-                         vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         tmass   (:,:,iblk), iceTmask(:,:,iblk))
+                         vsno    (:,:,iblk), tmask   (:,  iblk), &
+                         tmass   (:,iblk),   iceTmask(:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
@@ -439,14 +465,14 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          call grid_average_X2Y('S', tmass    , 'T'          , emass   , 'E')
-         call grid_average_X2Y('S', aice_init, 'T'          , aie     , 'E')
+         call grid_average_X2Y('S', aice_init, 'T'          , aiE     , 'E')
          call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnE, 'E')
          call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnE   , 'E')
          call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnE   , 'E')
          call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxE, 'E')
          call grid_average_X2Y('S', ss_tlty  , grid_ocn_dynv, ss_tltyE, 'E')
          call grid_average_X2Y('S', tmass    , 'T'          , nmass   , 'N')
-         call grid_average_X2Y('S', aice_init, 'T'          , ain     , 'N')
+         call grid_average_X2Y('S', aice_init, 'T'          , aiN     , 'N')
          call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnN, 'N')
          call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnN   , 'N')
          call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnN   , 'N')
@@ -508,29 +534,30 @@
                             icellT        (iblk), icellU        (iblk), &
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             indxUi      (:,iblk), indxUj      (:,iblk), &
-                            aiU       (:,:,iblk), umass     (:,:,iblk), &
-                            umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umask     (:,:,iblk),                       &
+                            aiU       (:,iblk),   umass     (:,iblk),   &
+                            umassdti  (:,iblk),   fcor_blk  (:,iblk)  , &
+                            umask     (:,iblk)  ,                       &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                            iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
-                            fmU       (:,:,iblk), dt                  , &
+                            iceTmask  (:,iblk),   iceUmask  (:,iblk),   &
+                            fmU       (:,iblk), dt                  , &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
                             strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
-                            taubxU    (:,:,iblk), taubyU    (:,:,iblk), &
-                            waterxU   (:,:,iblk), wateryU   (:,:,iblk), &
-                            forcexU   (:,:,iblk), forceyU   (:,:,iblk), &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                            uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
+                            taubxU    (:,iblk)  , taubyU    (:,iblk)  , &
+                            waterxU   (:,iblk)  , wateryU   (:,iblk)  , &
+                            forcexU   (:,iblk)  , forceyU   (:,iblk)  , &
+                            stressp_1 (:,iblk), stressp_2 (:,iblk), &
+                            stressp_3 (:,iblk), stressp_4 (:,iblk), &
+                            stressm_1 (:,iblk), stressm_2 (:,iblk), &
+                            stressm_3 (:,iblk), stressm_4 (:,iblk), &
+                            stress12_1(:,iblk), stress12_2(:,iblk), &
+                            stress12_3(:,iblk), stress12_4(:,iblk), &
+                            uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                            TbU       (:,:,iblk))
+                           dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                            TbU       (:,iblk))
 
             !-----------------------------------------------------------------
             ! ice strength
@@ -565,29 +592,30 @@
                             icellT        (iblk), icellU        (iblk), &
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             indxUi      (:,iblk), indxUj      (:,iblk), &
-                            aiU       (:,:,iblk), umass     (:,:,iblk), &
-                            umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
-                            umaskCD   (:,:,iblk),                       &
+                            aiU       (:,iblk),   umass     (:,iblk),   &
+                            umassdti  (:,iblk),   fcor_blk  (:,iblk)  , &
+                            umaskCD   (:,iblk)  ,                       &
                             uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                             strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                             ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                            iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
-                            fmU       (:,:,iblk), dt,                   &
+                            iceTmask  (:,iblk),   iceUmask  (:,iblk),   &
+                            fmU       (:,iblk), dt,                   &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
                             strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
-                            taubxU    (:,:,iblk), taubyU    (:,:,iblk), &
-                            waterxU   (:,:,iblk), wateryU   (:,:,iblk), &
-                            forcexU   (:,:,iblk), forceyU   (:,:,iblk), &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                            uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
+                            taubxU    (:,iblk)  , taubyU    (:,iblk)  , &
+                            waterxU   (:,iblk)  , wateryU   (:,iblk)  , &
+                            forcexU   (:,iblk)  , forceyU   (:,iblk)  , &
+                            stressp_1 (:,iblk), stressp_2 (:,iblk), &
+                            stressp_3 (:,iblk), stressp_4 (:,iblk), &
+                            stressm_1 (:,iblk), stressm_2 (:,iblk), &
+                            stressm_3 (:,iblk), stressm_4 (:,iblk), &
+                            stress12_1(:,iblk), stress12_2(:,iblk), &
+                            stress12_3(:,iblk), stress12_4(:,iblk), &
+                            uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                            TbU       (:,:,iblk))
+                           dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                            TbU       (:,iblk))
 
             !-----------------------------------------------------------------
             ! ice strength
@@ -615,29 +643,30 @@
                             icellT        (iblk), icellN        (iblk), &
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             indxNi      (:,iblk), indxNj      (:,iblk), &
-                            aiN       (:,:,iblk), nmass     (:,:,iblk), &
-                            nmassdti  (:,:,iblk), fcorN_blk (:,:,iblk), &
-                            nmask     (:,:,iblk),                       &
+                            aiN       (:,iblk),   nmass     (:,iblk),   &
+                            nmassdti  (:,iblk),   fcorN_blk (:,iblk)  , &
+                            nmask     (:,iblk)  ,                       &
                             uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
                             strairxN  (:,:,iblk), strairyN  (:,:,iblk), &
                             ss_tltxN  (:,:,iblk), ss_tltyN  (:,:,iblk), &
-                            iceTmask  (:,:,iblk), iceNmask  (:,:,iblk), &
-                            fmN       (:,:,iblk), dt                  , &
+                            iceTmask  (:,iblk),   iceNmask  (:,iblk),   &
+                            fmN       (:,iblk), dt                  , &
                             strtltxN  (:,:,iblk), strtltyN  (:,:,iblk), &
                             strocnxN  (:,:,iblk), strocnyN  (:,:,iblk), &
                             strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
-                            taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
-                            waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
-                            forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                            uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                            taubxN    (:,iblk)  , taubyN    (:,iblk)  , &
+                            waterxN   (:,iblk)  , wateryN   (:,iblk)  , &
+                            forcexN   (:,iblk)  , forceyN   (:,iblk)  , &
+                            stressp_1 (:,iblk), stressp_2 (:,iblk), &
+                            stressp_3 (:,iblk), stressp_4 (:,iblk), &
+                            stressm_1 (:,iblk), stressm_2 (:,iblk), &
+                            stressm_3 (:,iblk), stressm_4 (:,iblk), &
+                            stress12_1(:,iblk), stress12_2(:,iblk), &
+                            stress12_3(:,iblk), stress12_4(:,iblk), &
+                            uvelN_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvelN_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                             uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                            TbN       (:,:,iblk), rheofactN (:,:,iblk))
+                           dynMap(:,iblk), skipN(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                            TbN       (:,iblk), rheofactN (:,:,iblk))
 
             !-----------------------------------------------------------------
             ! more preparation for dynamics on E grid
@@ -648,41 +677,42 @@
                             icellT        (iblk), icellE        (iblk), &
                             indxTi      (:,iblk), indxTj      (:,iblk), &
                             indxEi      (:,iblk), indxEj      (:,iblk), &
-                            aiE       (:,:,iblk), emass     (:,:,iblk), &
-                            emassdti  (:,:,iblk), fcorE_blk (:,:,iblk), &
-                            emask     (:,:,iblk),                       &
+                            aiE       (:,iblk),   emass     (:,iblk),   &
+                            emassdti  (:,iblk),   fcorE_blk (:,iblk)  , &
+                            emask     (:,iblk)  ,                       &
                             uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
                             strairxE  (:,:,iblk), strairyE  (:,:,iblk), &
                             ss_tltxE  (:,:,iblk), ss_tltyE  (:,:,iblk), &
-                            iceTmask  (:,:,iblk), iceEmask  (:,:,iblk), &
-                            fmE       (:,:,iblk), dt                  , &
+                            iceTmask  (:,iblk),   iceEmask  (:,iblk),   &
+                            fmE       (:,iblk), dt                  , &
                             strtltxE  (:,:,iblk), strtltyE  (:,:,iblk), &
                             strocnxE  (:,:,iblk), strocnyE  (:,:,iblk), &
                             strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
-                            taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
-                            waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
-                            forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
-                            stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                            stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                            stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                            stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                            stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                            stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                            uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                            taubxE    (:,iblk)  , taubyE    (:,iblk)  , &
+                            waterxE   (:,iblk)  , wateryE   (:,iblk)  , &
+                            forcexE   (:,iblk)  , forceyE   (:,iblk)  , &
+                            stressp_1 (:,iblk), stressp_2 (:,iblk), &
+                            stressp_3 (:,iblk), stressp_4 (:,iblk), &
+                            stressm_1 (:,iblk), stressm_2 (:,iblk), &
+                            stressm_3 (:,iblk), stressm_4 (:,iblk), &
+                            stress12_1(:,iblk), stress12_2(:,iblk), &
+                            stress12_3(:,iblk), stress12_4(:,iblk), &
+                            uvelE_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvelE_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                             uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                            TbE       (:,:,iblk), rheofactE (:,:,iblk))
+                           dynMap(:,iblk), skipE(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                            TbE       (:,iblk), rheofactE (:,:,iblk))
 
             do i=1,nx_block
             do j=1,ny_block
-               if (.not.iceUmask(i,j,iblk)) then
-                  stresspU (i,j,iblk) = c0
-                  stressmU (i,j,iblk) = c0
-                  stress12U(i,j,iblk) = c0
+               if (.not.iceUmask((j-1)*nx_block+i,iblk)) then
+                  stresspU ((j-1)*nx_block+i,iblk) = c0
+                  stressmU ((j-1)*nx_block+i,iblk) = c0
+                  stress12U((j-1)*nx_block+i,iblk) = c0
                endif
-               if (.not.iceTmask(i,j,iblk)) then
-                  stresspT (i,j,iblk) = c0
-                  stressmT (i,j,iblk) = c0
-                  stress12T(i,j,iblk) = c0
+               if (.not.iceTmask((j-1)*nx_block+i,iblk)) then
+                  stresspT ((j-1)*nx_block+i,iblk) = c0
+                  stressmT ((j-1)*nx_block+i,iblk) = c0
+                  stress12T((j-1)*nx_block+i,iblk) = c0
                endif
             enddo
             enddo
@@ -707,8 +737,8 @@
          if (grid_ice == 'C') then
             call grid_average_X2Y('A', uvelE, 'E', uvelN, 'N')
             call grid_average_X2Y('A', vvelN, 'N', vvelE, 'E')
-            uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
-            vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
+            uvelN(:,:,:) = uvelN(:,:,:)*reshape(npm, shape(uvelN))
+            vvelE(:,:,:) = vvelE(:,:,:)*reshape(epm, shape(vvelE))
          endif
 
          call ice_timer_start(timer_bound)
@@ -720,8 +750,8 @@
 
          call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
          call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
-         uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
-         vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+         uvel(:,:,:) = uvel(:,:,:)*reshape(uvm, shape(uvel))
+         vvel(:,:,:) = vvel(:,:,:)*reshape(uvm, shape(vvel))
       endif
 
       call ice_timer_start(timer_bound)
@@ -738,9 +768,15 @@
       if (maskhalo_dyn) then
          halomask = 0
          if (grid_ice == 'B') then
-            where (iceUmask) halomask = 1
+            do iblk = 1, nblocks
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (iceUmask((j-1)*nx_block+i,iblk)) halomask(i,j,iblk) = 1
+               enddo
+               enddo
+            enddo
          elseif (grid_ice == 'C' .or. grid_ice == 'CD') then
-            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,i,j) SCHEDULE(runtime)
+            !$OMP PARALLEL DO PRIVATE(iblk,ilo,ihi,jlo,jhi,this_block,i,j,ij) SCHEDULE(runtime)
             do iblk = 1, nblocks
                this_block = get_block(blocks_ice(iblk),iblk)
                ilo = this_block%ilo
@@ -749,11 +785,12 @@
                jhi = this_block%jhi
                do j = jlo,jhi
                do i = ilo,ihi
-                  if (iceTmask(i  ,j  ,iblk) .or. &
-                      iceTmask(i-1,j  ,iblk) .or. &
-                      iceTmask(i+1,j  ,iblk) .or. &
-                      iceTmask(i  ,j-1,iblk) .or. &
-                      iceTmask(i  ,j+1,iblk)) then
+                  ij = (j-1)*nx_block + i
+                  if (iceTmask(ij         ,iblk) .or. &
+                      iceTmask(ij-1       ,iblk) .or. &
+                      iceTmask(ij+1       ,iblk) .or. &
+                      iceTmask(ij-nx_block,iblk) .or. &
+                      iceTmask(ij+nx_block,iblk)) then
                      halomask(i,j,iblk) = 1
                   endif
                enddo
@@ -783,7 +820,7 @@
                                                  icellU    (iblk),                 &
                                                  indxUi  (:,iblk), indxUj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,:,iblk), TbU (:,:,iblk))
+                                                 hwater(:,iblk), TbU (:,iblk))
                enddo
                !$OMP END PARALLEL DO
 
@@ -794,7 +831,7 @@
                                                   icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
                                                   icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
                                                   aicen(:,:,:,iblk), vicen(:,:,:,iblk)        , &
-                                                  hwater (:,:,iblk), TbU    (:,:,iblk))
+                                                  hwater (:,iblk), TbU    (:,iblk))
                enddo
                !$OMP END PARALLEL DO
             endif
@@ -808,13 +845,13 @@
                                                  icellE    (iblk),                 &
                                                  indxEi  (:,iblk), indxEj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,:,iblk), TbE (:,:,iblk), &
+                                                 hwater(:,iblk), TbE (:,iblk), &
                                                  grid_location='E')
                   call seabed_stress_factor_LKD (nx_block        , ny_block,       &
                                                  icellN    (iblk),                 &
                                                  indxNi  (:,iblk), indxNj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,:,iblk), TbN (:,:,iblk), &
+                                                 hwater(:,iblk), TbN (:,iblk), &
                                                  grid_location='N')
                enddo
                !$OMP END PARALLEL DO
@@ -826,8 +863,8 @@
                                                   icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
                                                   icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
                                                   aicen(:,:,:,iblk), vicen(:,:,:,iblk)        , &
-                                                  hwater (:,:,iblk), TbU    (:,:,iblk)        , &
-                                                  TbE    (:,:,iblk), TbN    (:,:,iblk)        , &
+                                                  hwater (:,iblk), TbU    (:,iblk)        , &
+                                                  TbE    (:,iblk), TbN    (:,iblk)        , &
                                                   icellE(iblk), indxEi(:,iblk), indxEj(:,iblk), &
                                                   icellN(iblk), indxNi(:,iblk), indxNj(:,iblk)  )
                enddo
@@ -848,13 +885,36 @@
                                stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
                                stress12_1, stress12_2, stress12_3, stress12_4, &
                                strength  ,                                     &
-                               cdn_ocnU  , aiu       , uocnU     , vocnU     , &
+                               cdn_ocnU  , aiU       , uocnU     , vocnU     , &
                                waterxU   , wateryU   , forcexU   , forceyU   , &
                                umassdti  , fmU       , strintxU  , strintyU  , &
                                Tbu       , taubxU    , taubyU    , uvel      , &
-                               vvel      , icetmask  , iceUmask)
+                               vvel      , iceTmask  , iceUmask)
 
          else ! evp_algorithm == standard_2d (Standard CICE)
+
+            ! Pack the velocities into the compressed layout once, subcycle on
+            ! them there, and unpack once at the end.  uvel/vvel themselves
+            ! stay in the block layout for restart, history, transport and the
+            ! couplers; only the ndte subcycles run compressed.
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
+               call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               ! constant through the subcycling, so packed once and never
+               ! unpacked; the block-layout originals stay for the consumers
+               ! outside the dynamics
+               call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(TbU (:,iblk), dynMap(:,iblk), TbU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(umassdti(:,iblk), dynMap(:,iblk), umassdti_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(waterxU(:,iblk), dynMap(:,iblk), waterxU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(wateryU(:,iblk), dynMap(:,iblk), wateryU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(forcexU(:,iblk), dynMap(:,iblk), forcexU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(forceyU(:,iblk), dynMap(:,iblk), forceyU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+            enddo
+            !$OMP END PARALLEL DO
+
             do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
@@ -866,20 +926,22 @@
                   call stress (nx_block            , ny_block            , &
                                                      icellT        (iblk), &
                                indxTi      (:,iblk), indxTj      (:,iblk), &
-                               uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                               dxT       (:,:,iblk), dyT       (:,:,iblk), &
-                               dxhy      (:,:,iblk), dyhx      (:,:,iblk), &
-                               cxp       (:,:,iblk), cyp       (:,:,iblk), &
-                               cxm       (:,:,iblk), cym       (:,:,iblk), &
-                                                     DminTarea (:,:,iblk), &
+                               uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                               dxT       (:, iblk), dyT       (:, iblk), &
+                               dxhy      (:,iblk), dyhx      (:,iblk), &
+                               cxp       (:,iblk), cyp       (:,iblk), &
+                               cxm       (:,iblk), cym       (:,iblk), &
+                                                     DminTarea (:,iblk)  , &
                                strength  (:,:,iblk),                       &
-                               stressp_1 (:,:,iblk), stressp_2 (:,:,iblk), &
-                               stressp_3 (:,:,iblk), stressp_4 (:,:,iblk), &
-                               stressm_1 (:,:,iblk), stressm_2 (:,:,iblk), &
-                               stressm_3 (:,:,iblk), stressm_4 (:,:,iblk), &
-                               stress12_1(:,:,iblk), stress12_2(:,:,iblk), &
-                               stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
-                               strtmp    (:,:,:))
+                               stressp_1 (:,iblk), stressp_2 (:,iblk), &
+                               stressp_3 (:,iblk), stressp_4 (:,iblk), &
+                               stressm_1 (:,iblk), stressm_2 (:,iblk), &
+                               stressm_3 (:,iblk), stressm_4 (:,iblk), &
+                               stress12_1(:,iblk), stress12_2(:,iblk), &
+                               stress12_3(:,iblk), stress12_4(:,iblk), &
+                               dynMap  (:,iblk),                      &
+                               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
+                               strtmp    (:,:))
 
                   !-----------------------------------------------------------------
                   ! momentum equation
@@ -887,29 +949,67 @@
                   call stepu (nx_block           , ny_block          , &
                               icellU       (iblk), Cdn_ocnU(:,:,iblk), &
                               indxUi     (:,iblk), indxUj    (:,iblk), &
-                              aiU      (:,:,iblk), strtmp  (:,:,:),    &
+                              aiU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), strtmp  (:,:),      &
                               uocnU    (:,:,iblk), vocnU   (:,:,iblk), &
-                              waterxU  (:,:,iblk), wateryU (:,:,iblk), &
-                              forcexU  (:,:,iblk), forceyU (:,:,iblk), &
-                              umassdti (:,:,iblk), fmU     (:,:,iblk), &
-                              uarear   (:,:,iblk),                     &
+                              waterxU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), wateryU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                              forcexU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), forceyU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                              umassdti_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), fmU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                              uarear   (:,iblk)  ,                     &
                               strintxU (:,:,iblk), strintyU(:,:,iblk), &
-                              taubxU   (:,:,iblk), taubyU  (:,:,iblk), &
-                              uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
-                              uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                              TbU      (:,:,iblk))
+                              taubxU   (:,iblk)  , taubyU  (:,iblk)  , &
+                              uvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),  &
+                              uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                             dynMap(:,iblk), &
+                              dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
+                              TbU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
 
                enddo  ! iblk
                !$OMP END PARALLEL DO
 
-               ! U fields at NE corner
-               ! calls ice_haloUpdate, controls bundles and masks
-               call dyn_haloUpdate (halo_info,          halo_info_mask,    &
-                                    field_loc_NEcorner, field_type_vector, &
-                                    uvel, vvel)
-               call ice_restoring_halo(setfld='velocity')
+               ! U fields at NE corner.  Exchanged in the compressed layout,
+               ! so the velocities stay compressed across all ndte subcycles,
+               ! and bundled, so the pair costs one message rather than two --
+               ! the compressed counterpart of what stack_fields does for the
+               ! block layout.
+               call ice_timer_start(timer_bound)
+               call stack_fields(uvel_slot, vvel_slot, fld2c)
+               if (maskhalo_dyn) then
+                  call ice_HaloUpdate3DR8_compressed(fld2c, halo_info_mask, &
+                       field_loc_NEcorner, field_type_vector, dynMap, dynOff)
+               else
+                  call ice_HaloUpdate3DR8_compressed(fld2c, halo_info, &
+                       field_loc_NEcorner, field_type_vector, dynMap, dynOff)
+               endif
+               call unstack_fields(fld2c, uvel_slot, vvel_slot)
+               call ice_timer_stop(timer_bound)
+
+               ! ice_restoring_halo works on the block layout and returns
+               ! immediately unless restoring is switched on, so convert
+               ! around it only in that case
+               if (restore_ice) then
+                  !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+                  do iblk = 1, nblocks
+                     call unpack_from_slots(uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), uvel(:,:,iblk))
+                     call unpack_from_slots(vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), vvel(:,:,iblk))
+                  enddo
+                  !$OMP END PARALLEL DO
+                  call ice_restoring_halo(setfld='velocity')
+                  !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+                  do iblk = 1, nblocks
+                     call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+                     call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+                  enddo
+                  !$OMP END PARALLEL DO
+               endif
 
             enddo  ! sub cycling
+
+            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+            do iblk = 1, nblocks
+               call unpack_from_slots(uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), uvel(:,:,iblk))
+               call unpack_from_slots(vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), vvel(:,:,iblk))
+            enddo
+            !$OMP END PARALLEL DO
          endif ! evp algorithm
 
          !-----------------------------------------------------------------
@@ -922,11 +1022,11 @@
                                icellT      (iblk),                      &
                                indxTi    (:,iblk), indxTj     (:,iblk), &
                                uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                               dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                               dxU     (:,:,iblk), dyU      (:,:,iblk), &
-                               cxp     (:,:,iblk), cyp      (:,:,iblk), &
-                               cxm     (:,:,iblk), cym      (:,:,iblk), &
-                               tarear  (:,:,iblk), vort     (:,:,iblk), &
+                               dxT     (:, iblk), dyT      (:, iblk), &
+                               dxU     (:, iblk), dyU      (:, iblk), &
+                               cxp     (:,iblk), cyp      (:,iblk), &
+                               cxm     (:,iblk), cym      (:,iblk), &
+                               tarear  (:,  iblk), vort     (:,:,iblk), &
                                shear   (:,:,iblk), divu     (:,:,iblk), &
                                rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
          enddo
@@ -949,13 +1049,13 @@
                                     uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
                                     uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
                                     uvel    (:,:,iblk), vvel     (:,:,iblk), &
-                                    dxE     (:,:,iblk), dyN      (:,:,iblk), &
-                                    dxU     (:,:,iblk), dyU      (:,:,iblk), &
+                                    dxE     (:, iblk), dyN      (:, iblk), &
+                                    dxU     (:, iblk), dyU      (:, iblk), &
                                     ratiodxN(:,:,iblk), ratiodxNr(:,:,iblk), &
                                     ratiodyE(:,:,iblk), ratiodyEr(:,:,iblk), &
-                                    epm     (:,:,iblk), npm      (:,:,iblk), &
-                                    divergU (:,:,iblk), tensionU (:,:,iblk), &
-                                    shearU  (:,:,iblk), deltaU   (:,:,iblk)  )
+                                    epm     (:, iblk), npm      (:, iblk), &
+                                    divergU (:,iblk), tensionU (:,iblk), &
+                                    shearU  (:,iblk), deltaU   (:,iblk)  )
 
             enddo  ! iblk
             !$OMP END PARALLEL DO
@@ -972,13 +1072,13 @@
                                indxTi      (:,iblk), indxTj      (:,iblk), &
                                uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
                                uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                               dxN       (:,:,iblk), dyE       (:,:,iblk), &
-                               dxT       (:,:,iblk), dyT       (:,:,iblk), &
-                               uarea     (:,:,iblk), DminTarea (:,:,iblk), &
-                               strength  (:,:,iblk), shearU    (:,:,iblk), &
-                               zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
-                               stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                               stress12T (:,:,iblk))
+                               dxN       (:, iblk), dyE       (:, iblk), &
+                               dxT       (:, iblk), dyT       (:, iblk), &
+                               uarea     (:,  iblk), DminTarea (:,iblk)  , &
+                               strength  (:,:,iblk), shearU    (:,iblk), &
+                               zetax2T   (:,iblk), etax2T    (:,iblk), &
+                               stresspT  (:,iblk), stressmT  (:,iblk), &
+                               stress12T (:,iblk))
 
             enddo
             !$OMP END PARALLEL DO
@@ -999,10 +1099,10 @@
                call stressC_U (nx_block           , ny_block            , &
                                                     icellU        (iblk), &
                               indxUi      (:,iblk), indxUj      (:,iblk), &
-                              uarea     (:,:,iblk),                       &
-                              etax2U    (:,:,iblk), deltaU    (:,:,iblk), &
-                              strengthU (:,:,iblk), shearU    (:,:,iblk), &
-                              stress12U (:,:,iblk))
+                              uarea     (:,  iblk),                       &
+                              etax2U    (:,iblk), deltaU    (:,iblk), &
+                              strengthU (:,:,iblk), shearU    (:,iblk), &
+                              stress12U (:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -1017,20 +1117,20 @@
                call div_stress_Ex (nx_block            , ny_block            , &
                                                          icellE        (iblk), &
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
-                                   dxE       (:,:,iblk), dyE       (:,:,iblk), &
-                                   dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
-                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                   stress12U (:,:,iblk), strintxE  (:,:,iblk)  )
+                                   dxE       (:, iblk), dyE       (:, iblk), &
+                                   dxU       (:, iblk), dyT       (:, iblk), &
+                                   earear    (:,  iblk), rheofactE (:,:,iblk), &
+                                   stresspT  (:,iblk), stressmT  (:,iblk), &
+                                   stress12U (:,iblk), strintxE  (:,:,iblk)  )
 
                call div_stress_Ny (nx_block            , ny_block            , &
                                                          icellN        (iblk), &
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
-                                   dxN       (:,:,iblk), dyN       (:,:,iblk), &
-                                   dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
-                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                   stress12U (:,:,iblk), strintyN  (:,:,iblk)  )
+                                   dxN       (:, iblk), dyN       (:, iblk), &
+                                   dxT       (:, iblk), dyU       (:, iblk), &
+                                   narear    (:,  iblk), rheofactN (:,:,iblk), &
+                                   stresspT  (:,iblk), stressmT  (:,iblk), &
+                                   stress12U (:,iblk), strintyN  (:,:,iblk)  )
 
             enddo
             !$OMP END PARALLEL DO
@@ -1041,26 +1141,28 @@
                 call stepu_C (nx_block            , ny_block            , & ! u, E point
                               icellE        (iblk), Cdn_ocnE  (:,:,iblk), &
                               indxEi      (:,iblk), indxEj      (:,iblk), &
-                                                    aiE       (:,:,iblk), &
+                                                    aiE       (:,iblk),   &
                               uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                              waterxE   (:,:,iblk), forcexE   (:,:,iblk), &
-                              emassdti  (:,:,iblk), fmE       (:,:,iblk), &
-                              strintxE  (:,:,iblk), taubxE    (:,:,iblk), &
-                              uvelE_init(:,:,iblk),                       &
+                              waterxE   (:,iblk)  , forcexE   (:,iblk)  , &
+                              emassdti  (:,iblk),   fmE       (:,iblk), &
+                              strintxE  (:,:,iblk), taubxE    (:,iblk)  , &
+                              uvelE_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),                         &
                               uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                                 TbE       (:,:,iblk))
+                             dynMap(:,iblk), &
+                                 TbE       (:,iblk))
 
                 call stepv_C (nx_block,             ny_block,             & ! v, N point
                               icellN        (iblk), Cdn_ocnN  (:,:,iblk), &
                               indxNi      (:,iblk), indxNj      (:,iblk), &
-                                                    aiN       (:,:,iblk), &
+                                                    aiN       (:,iblk),   &
                               uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                              wateryN   (:,:,iblk), forceyN   (:,:,iblk), &
-                              nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
-                              strintyN  (:,:,iblk), taubyN    (:,:,iblk), &
-                              vvelN_init(:,:,iblk),                       &
+                              wateryN   (:,iblk)  , forceyN   (:,iblk)  , &
+                              nmassdti  (:,iblk),   fmN       (:,iblk), &
+                              strintyN  (:,:,iblk), taubyN    (:,iblk)  , &
+                              vvelN_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),                         &
                               uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                              TbN       (:,:,iblk))
+                             dynMap(:,iblk), &
+                              TbN       (:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -1074,8 +1176,8 @@
 
             call grid_average_X2Y('A', uvelE, 'E', uvelN, 'N')
             call grid_average_X2Y('A', vvelN, 'N', vvelE, 'E')
-            uvelN(:,:,:) = uvelN(:,:,:)*npm(:,:,:)
-            vvelE(:,:,:) = vvelE(:,:,:)*epm(:,:,:)
+            uvelN(:,:,:) = uvelN(:,:,:)*reshape(npm, shape(uvelN))
+            vvelE(:,:,:) = vvelE(:,:,:)*reshape(epm, shape(vvelE))
 
             ! calls ice_haloUpdate, controls bundles and masks
             call dyn_haloUpdate (halo_info,       halo_info_mask,    &
@@ -1088,8 +1190,8 @@
             call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
             call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
 
-            uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
-            vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+            uvel(:,:,:) = uvel(:,:,:)*reshape(uvm, shape(uvel))
+            vvel(:,:,:) = vvel(:,:,:)*reshape(uvm, shape(vvel))
             ! U fields at NE corner
             ! calls ice_haloUpdate, controls bundles and masks
             call dyn_haloUpdate (halo_info,          halo_info_mask,    &
@@ -1110,10 +1212,10 @@
                                   indxTi    (:,iblk), indxTj     (:,iblk), &
                                   uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
                                   uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                  dxN     (:,:,iblk), dyE      (:,:,iblk), &
-                                  dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                  tarear  (:,:,iblk), uarea    (:,:,iblk), &
-                                  shearU  (:,:,iblk), vort     (:,:,iblk), &
+                                  dxN     (:, iblk), dyE      (:, iblk), &
+                                  dxT     (:, iblk), dyT      (:, iblk), &
+                                  tarear  (:,  iblk), uarea    (:,  iblk), &
+                                  shearU  (:,iblk), vort     (:,:,iblk), &
                                   shear   (:,:,iblk), divu     (:,:,iblk), &
                                   rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
          enddo
@@ -1130,13 +1232,13 @@
                                 indxTi      (:,iblk), indxTj      (:,iblk), &
                                 uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
                                 uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                                dxN       (:,:,iblk), dyE       (:,:,iblk), &
-                                dxT       (:,:,iblk), dyT       (:,:,iblk), &
-                                                      DminTarea (:,:,iblk), &
+                                dxN       (:, iblk), dyE       (:, iblk), &
+                                dxT       (:, iblk), dyT       (:, iblk), &
+                                                      DminTarea (:,iblk)  , &
                                 strength  (:,:,iblk),                       &
-                                zetax2T   (:,:,iblk), etax2T    (:,:,iblk), &
-                                stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                stress12T (:,:,iblk) )
+                                zetax2T   (:,iblk), etax2T    (:,iblk), &
+                                stresspT  (:,iblk), stressmT  (:,iblk), &
+                                stress12T (:,iblk) )
 
             enddo
             !$OMP END PARALLEL DO
@@ -1165,24 +1267,24 @@
                                     uvelE    (:,:,iblk), vvelE    (:,:,iblk), &
                                     uvelN    (:,:,iblk), vvelN    (:,:,iblk), &
                                     uvel     (:,:,iblk), vvel     (:,:,iblk), &
-                                    dxE      (:,:,iblk), dyN      (:,:,iblk), &
-                                    dxU      (:,:,iblk), dyU      (:,:,iblk), &
+                                    dxE      (:, iblk), dyN      (:, iblk), &
+                                    dxU      (:, iblk), dyU      (:, iblk), &
                                     ratiodxN (:,:,iblk), ratiodxNr(:,:,iblk), &
                                     ratiodyE (:,:,iblk), ratiodyEr(:,:,iblk), &
-                                    epm      (:,:,iblk), npm      (:,:,iblk), &
-                                    divergU  (:,:,iblk), tensionU (:,:,iblk), &
-                                    shearU   (:,:,iblk), DeltaU   (:,:,iblk)  )
+                                    epm      (:, iblk), npm      (:, iblk), &
+                                    divergU  (:,iblk), tensionU (:,iblk), &
+                                    shearU   (:,iblk), DeltaU   (:,iblk)  )
 
                call stressCD_U     (nx_block           , ny_block           , &
                                                          icellU       (iblk), &
                                     indxUi     (:,iblk), indxUj     (:,iblk), &
-                                    uarea    (:,:,iblk),                      &
-                                    zetax2U  (:,:,iblk), etax2U   (:,:,iblk), &
+                                    uarea    (:,  iblk),                      &
+                                    zetax2U  (:,iblk), etax2U   (:,iblk), &
                                     strengthU(:,:,iblk),                      &
-                                    divergU  (:,:,iblk), tensionU (:,:,iblk), &
-                                    shearU   (:,:,iblk), DeltaU   (:,:,iblk), &
-                                    stresspU (:,:,iblk), stressmU (:,:,iblk), &
-                                    stress12U(:,:,iblk))
+                                    divergU  (:,iblk), tensionU (:,iblk), &
+                                    shearU   (:,iblk), DeltaU   (:,iblk), &
+                                    stresspU (:,iblk), stressmU (:,iblk), &
+                                    stress12U(:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -1200,38 +1302,38 @@
                call div_stress_Ex (nx_block            , ny_block            , &
                                                          icellE        (iblk), &
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
-                                   dxE       (:,:,iblk), dyE       (:,:,iblk), &
-                                   dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
-                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                   stress12U (:,:,iblk), strintxE  (:,:,iblk)  )
+                                   dxE       (:, iblk), dyE       (:, iblk), &
+                                   dxU       (:, iblk), dyT       (:, iblk), &
+                                   earear    (:,  iblk), rheofactE (:,:,iblk), &
+                                   stresspT  (:,iblk), stressmT  (:,iblk), &
+                                   stress12U (:,iblk), strintxE  (:,:,iblk)  )
 
                call div_stress_Ey (nx_block            , ny_block            , &
                                                          icellE        (iblk), &
                                    indxEi      (:,iblk), indxEj      (:,iblk), &
-                                   dxE       (:,:,iblk), dyE       (:,:,iblk), &
-                                   dxU       (:,:,iblk), dyT       (:,:,iblk), &
-                                   earear    (:,:,iblk), rheofactE (:,:,iblk), &
-                                   stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
-                                   stress12T (:,:,iblk), strintyE  (:,:,iblk)  )
+                                   dxE       (:, iblk), dyE       (:, iblk), &
+                                   dxU       (:, iblk), dyT       (:, iblk), &
+                                   earear    (:,  iblk), rheofactE (:,:,iblk), &
+                                   stresspU  (:,iblk), stressmU  (:,iblk), &
+                                   stress12T (:,iblk), strintyE  (:,:,iblk)  )
 
                call div_stress_Nx (nx_block            , ny_block            , &
                                                          icellN        (iblk), &
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
-                                   dxN       (:,:,iblk), dyN       (:,:,iblk), &
-                                   dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
-                                   stresspU  (:,:,iblk), stressmU  (:,:,iblk), &
-                                   stress12T (:,:,iblk), strintxN  (:,:,iblk)  )
+                                   dxN       (:, iblk), dyN       (:, iblk), &
+                                   dxT       (:, iblk), dyU       (:, iblk), &
+                                   narear    (:,  iblk), rheofactN (:,:,iblk), &
+                                   stresspU  (:,iblk), stressmU  (:,iblk), &
+                                   stress12T (:,iblk), strintxN  (:,:,iblk)  )
 
                call div_stress_Ny (nx_block            , ny_block            , &
                                                          icellN        (iblk), &
                                    indxNi      (:,iblk), indxNj      (:,iblk), &
-                                   dxN       (:,:,iblk), dyN       (:,:,iblk), &
-                                   dxT       (:,:,iblk), dyU       (:,:,iblk), &
-                                   narear    (:,:,iblk), rheofactN (:,:,iblk), &
-                                   stresspT  (:,:,iblk), stressmT  (:,:,iblk), &
-                                   stress12U (:,:,iblk), strintyN  (:,:,iblk)  )
+                                   dxN       (:, iblk), dyN       (:, iblk), &
+                                   dxT       (:, iblk), dyU       (:, iblk), &
+                                   narear    (:,  iblk), rheofactN (:,:,iblk), &
+                                   stresspT  (:,iblk), stressmT  (:,iblk), &
+                                   stress12U (:,iblk), strintyN  (:,:,iblk)  )
 
             enddo
             !$OMP END PARALLEL DO
@@ -1242,30 +1344,32 @@
                call stepuv_CD (nx_block            , ny_block            , & ! E point
                                icellE        (iblk), Cdn_ocnE  (:,:,iblk), &
                                indxEi      (:,iblk), indxEj      (:,iblk), &
-                                                     aiE       (:,:,iblk), &
+                                                     aiE       (:,iblk),   &
                                uocnE     (:,:,iblk), vocnE     (:,:,iblk), &
-                               waterxE   (:,:,iblk), wateryE   (:,:,iblk), &
-                               forcexE   (:,:,iblk), forceyE   (:,:,iblk), &
-                               emassdti  (:,:,iblk), fmE       (:,:,iblk), &
+                               waterxE   (:,iblk)  , wateryE   (:,iblk)  , &
+                               forcexE   (:,iblk)  , forceyE   (:,iblk)  , &
+                               emassdti  (:,iblk),   fmE       (:,iblk), &
                                strintxE  (:,:,iblk), strintyE  (:,:,iblk), &
-                               taubxE    (:,:,iblk), taubyE    (:,:,iblk), &
-                               uvelE_init(:,:,iblk), vvelE_init(:,:,iblk), &
+                               taubxE    (:,iblk)  , taubyE    (:,iblk)  , &
+                               uvelE_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvelE_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                                uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
-                               TbE       (:,:,iblk))
+                              dynMap(:,iblk), &
+                               TbE       (:,iblk))
 
                call stepuv_CD (nx_block            , ny_block            , & ! N point
                                icellN        (iblk), Cdn_ocnN  (:,:,iblk), &
                                indxNi      (:,iblk), indxNj      (:,iblk), &
-                                                     aiN       (:,:,iblk), &
+                                                     aiN       (:,iblk),   &
                                uocnN     (:,:,iblk), vocnN     (:,:,iblk), &
-                               waterxN   (:,:,iblk), wateryN   (:,:,iblk), &
-                               forcexN   (:,:,iblk), forceyN   (:,:,iblk), &
-                               nmassdti  (:,:,iblk), fmN       (:,:,iblk), &
+                               waterxN   (:,iblk)  , wateryN   (:,iblk)  , &
+                               forcexN   (:,iblk)  , forceyN   (:,iblk)  , &
+                               nmassdti  (:,iblk),   fmN       (:,iblk), &
                                strintxN  (:,:,iblk), strintyN  (:,:,iblk), &
-                               taubxN    (:,:,iblk), taubyN    (:,:,iblk), &
-                               uvelN_init(:,:,iblk), vvelN_init(:,:,iblk), &
+                               taubxN    (:,iblk)  , taubyN    (:,iblk)  , &
+                               uvelN_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvelN_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                                uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
-                               TbN       (:,:,iblk))
+                              dynMap(:,iblk), &
+                               TbN       (:,iblk))
             enddo
             !$OMP END PARALLEL DO
 
@@ -1280,8 +1384,8 @@
             call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
             call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
 
-            uvel(:,:,:) = uvel(:,:,:)*uvm(:,:,:)
-            vvel(:,:,:) = vvel(:,:,:)*uvm(:,:,:)
+            uvel(:,:,:) = uvel(:,:,:)*reshape(uvm, shape(uvel))
+            vvel(:,:,:) = vvel(:,:,:)*reshape(uvm, shape(vvel))
                ! U fields at NE corner
                ! calls ice_haloUpdate, controls bundles and masks
             call dyn_haloUpdate (halo_info,          halo_info_mask,    &
@@ -1302,9 +1406,9 @@
                                    indxTi    (:,iblk), indxTj     (:,iblk), &
                                    uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
                                    uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                   dxN     (:,:,iblk), dyE      (:,:,iblk), &
-                                   dxT     (:,:,iblk), dyT      (:,:,iblk), &
-                                   tarear  (:,:,iblk), vort     (:,:,iblk), &
+                                   dxN     (:, iblk), dyE      (:, iblk), &
+                                   dxT     (:, iblk), dyT      (:, iblk), &
+                                   tarear  (:,  iblk), vort     (:,:,iblk), &
                                    shear   (:,:,iblk), divu     (:,:,iblk), &
                                    rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
          enddo
@@ -1399,7 +1503,7 @@
                indxUi    (:,iblk), indxUj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
-               aiU     (:,:,iblk), fmU     (:,:,iblk), &
+               aiU     (:,iblk),   fmU     (:,iblk), &
                strocnxU(:,:,iblk), strocnyU(:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
@@ -1415,7 +1519,7 @@
                   indxNi    (:,iblk), indxNj    (:,iblk), &
                   uvelN   (:,:,iblk), vvelN   (:,:,iblk), &
                   uocnN   (:,:,iblk), vocnN   (:,:,iblk), &
-                  aiN     (:,:,iblk), fmN     (:,:,iblk), &
+                  aiN     (:,iblk),   fmN     (:,iblk), &
                   strocnxN(:,:,iblk), strocnyN(:,:,iblk))
 
             call dyn_finish                               &
@@ -1424,7 +1528,7 @@
                   indxEi    (:,iblk), indxEj    (:,iblk), &
                   uvelE   (:,:,iblk), vvelE   (:,:,iblk), &
                   uocnE   (:,:,iblk), vocnE   (:,:,iblk), &
-                  aiE     (:,:,iblk), fmE     (:,:,iblk), &
+                  aiE     (:,iblk),   fmE     (:,iblk), &
                   strocnxE(:,:,iblk), strocnyE(:,:,iblk))
 
          enddo
@@ -1469,6 +1573,7 @@
                          stressm_3,  stressm_4,  &
                          stress12_1, stress12_2, &
                          stress12_3, stress12_4, &
+                         Xmap,       nbr,        &
                          str )
 
       use ice_dyn_shared, only: strain_rates, visc_replpress
@@ -1481,10 +1586,18 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         strength , & ! ice strength (N/m)
+      ! uvel and vvel are COMPRESSED: this block's slice, indexed from 0 so
+      ! element 0 is the block's dead slot
+      real (kind=dbl_kind), dimension (0:), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
+         vvel         ! y-component of velocity (m/s)
+
+      ! nbr(is,d) is the block-local slot one step in direction d from is
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr          ! neighbour slots
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+         strength , & ! ice strength (N/m)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
          dxhy     , & ! 0.5*(HTE - HTW)
@@ -1492,21 +1605,28 @@
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
-         cxm      , & ! 0.5*HTN - 1.5*HTS
-         DminTarea    ! deltaminEVP*tarea
+         cxm          ! 0.5*HTN - 1.5*HTS
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          stressp_1, stressp_2, stressp_3, stressp_4 , & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4 , & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4    ! sigma12
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(out) :: &
+      ! str is COMPRESSED and indexed by BLOCK-LOCAL slot; element 0 is the
+      ! "no such neighbour" slot the stencil in stepu falls back on
+      real (kind=dbl_kind), dimension(0:,:), intent(out) :: &
          str          ! stress combinations
+
+      ! Xmap holds each cell's block-local slot, see ice_dyn_shared
+      integer (kind=int_kind), dimension(nx_block*ny_block), intent(in) :: &
+         Xmap
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb            , & ! 1D index of (i,j) in the block
+         is                 ! block-local compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
         divune, divunw, divuse, divusw            , & ! divergence
@@ -1527,17 +1647,24 @@
         str12ew, str12we, str12ns, str12sn        , &
         strp_tmp, strm_tmp
 
+      ! DminTarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         DminTarea    ! deltaminEVP*tarea
+
       character(len=*), parameter :: subname = '(stress)'
 
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
 
-      str(:,:,:) = c0
+      str(:,:) = c0
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
+          is  = Xmap(ijb)
 
          !-----------------------------------------------------------------
          ! strain rates
@@ -1545,8 +1672,11 @@
          !-----------------------------------------------------------------
 
          call strain_rates (nx_block,   ny_block,   &
-                            i,          j,          &
-                            uvel,       vvel,       &
+                            ijb,                    &
+                            uvel(is),   uvel(nbr(is,nbr_W)),  &
+                            uvel(nbr(is,nbr_S)), uvel(nbr(is,nbr_SW)), &
+                            vvel(is),   vvel(nbr(is,nbr_W)),  &
+                            vvel(nbr(is,nbr_S)), vvel(nbr(is,nbr_SW)), &
                             dxT,        dyT,        &
                             cxp,        cyp,        &
                             cxm,        cym,        &
@@ -1563,16 +1693,16 @@
          ! viscosities and replacement pressure
          !-----------------------------------------------------------------
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), Deltane, &
+         call visc_replpress (strength(ijb), DminTarea(ijb), Deltane, &
                               zetax2ne, etax2ne, rep_prsne)
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), Deltanw, &
+         call visc_replpress (strength(ijb), DminTarea(ijb), Deltanw, &
                               zetax2nw, etax2nw, rep_prsnw)
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), Deltasw, &
+         call visc_replpress (strength(ijb), DminTarea(ijb), Deltasw, &
                               zetax2sw, etax2sw, rep_prssw)
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), Deltase, &
+         call visc_replpress (strength(ijb), DminTarea(ijb), Deltase, &
                               zetax2se, etax2se, rep_prsse)
 
          !-----------------------------------------------------------------
@@ -1581,31 +1711,31 @@
          !-----------------------------------------------------------------
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
-         stressp_1 (i,j) = (stressp_1 (i,j)*(c1-arlx1i*revp) &
+         stressp_1 (ijb) = (stressp_1 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*(zetax2ne*divune - rep_prsne)) * denom1
-         stressp_2 (i,j) = (stressp_2 (i,j)*(c1-arlx1i*revp) &
+         stressp_2 (ijb) = (stressp_2 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*(zetax2nw*divunw - rep_prsnw)) * denom1
-         stressp_3 (i,j) = (stressp_3 (i,j)*(c1-arlx1i*revp) &
+         stressp_3 (ijb) = (stressp_3 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*(zetax2sw*divusw - rep_prssw)) * denom1
-         stressp_4 (i,j) = (stressp_4 (i,j)*(c1-arlx1i*revp) &
+         stressp_4 (ijb) = (stressp_4 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*(zetax2se*divuse - rep_prsse)) * denom1
 
-         stressm_1 (i,j) = (stressm_1 (i,j)*(c1-arlx1i*revp) &
+         stressm_1 (ijb) = (stressm_1 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*etax2ne*tensionne) * denom1
-         stressm_2 (i,j) = (stressm_2 (i,j)*(c1-arlx1i*revp) &
+         stressm_2 (ijb) = (stressm_2 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*etax2nw*tensionnw) * denom1
-         stressm_3 (i,j) = (stressm_3 (i,j)*(c1-arlx1i*revp) &
+         stressm_3 (ijb) = (stressm_3 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*etax2sw*tensionsw) * denom1
-         stressm_4 (i,j) = (stressm_4 (i,j)*(c1-arlx1i*revp) &
+         stressm_4 (ijb) = (stressm_4 (ijb)*(c1-arlx1i*revp) &
                            + arlx1i*etax2se*tensionse) * denom1
 
-         stress12_1(i,j) = (stress12_1(i,j)*(c1-arlx1i*revp) &
+         stress12_1(ijb) = (stress12_1(ijb)*(c1-arlx1i*revp) &
                            + arlx1i*p5*etax2ne*shearne) * denom1
-         stress12_2(i,j) = (stress12_2(i,j)*(c1-arlx1i*revp) &
+         stress12_2(ijb) = (stress12_2(ijb)*(c1-arlx1i*revp) &
                            + arlx1i*p5*etax2nw*shearnw) * denom1
-         stress12_3(i,j) = (stress12_3(i,j)*(c1-arlx1i*revp) &
+         stress12_3(ijb) = (stress12_3(ijb)*(c1-arlx1i*revp) &
                            + arlx1i*p5*etax2sw*shearsw) * denom1
-         stress12_4(i,j) = (stress12_4(i,j)*(c1-arlx1i*revp) &
+         stress12_4(ijb) = (stress12_4(ijb)*(c1-arlx1i*revp) &
                            + arlx1i*p5*etax2se*shearse) * denom1
 
          !-----------------------------------------------------------------
@@ -1623,119 +1753,119 @@
 !         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
 !            file=__FILE__, line=__LINE__)
 
-!         stressp_1(i,j) = sign(max(abs(stressp_1(i,j)),puny),stressp_1(i,j))
-!         stressp_2(i,j) = sign(max(abs(stressp_2(i,j)),puny),stressp_2(i,j))
-!         stressp_3(i,j) = sign(max(abs(stressp_3(i,j)),puny),stressp_3(i,j))
-!         stressp_4(i,j) = sign(max(abs(stressp_4(i,j)),puny),stressp_4(i,j))
+!         stressp_1(ijb) = sign(max(abs(stressp_1(ijb)),puny),stressp_1(ijb))
+!         stressp_2(ijb) = sign(max(abs(stressp_2(ijb)),puny),stressp_2(ijb))
+!         stressp_3(ijb) = sign(max(abs(stressp_3(ijb)),puny),stressp_3(ijb))
+!         stressp_4(ijb) = sign(max(abs(stressp_4(ijb)),puny),stressp_4(ijb))
 
-!         stressm_1(i,j) = sign(max(abs(stressm_1(i,j)),puny),stressm_1(i,j))
-!         stressm_2(i,j) = sign(max(abs(stressm_2(i,j)),puny),stressm_2(i,j))
-!         stressm_3(i,j) = sign(max(abs(stressm_3(i,j)),puny),stressm_3(i,j))
-!         stressm_4(i,j) = sign(max(abs(stressm_4(i,j)),puny),stressm_4(i,j))
+!         stressm_1(ijb) = sign(max(abs(stressm_1(ijb)),puny),stressm_1(ijb))
+!         stressm_2(ijb) = sign(max(abs(stressm_2(ijb)),puny),stressm_2(ijb))
+!         stressm_3(ijb) = sign(max(abs(stressm_3(ijb)),puny),stressm_3(ijb))
+!         stressm_4(ijb) = sign(max(abs(stressm_4(ijb)),puny),stressm_4(ijb))
 
-!         stress12_1(i,j) = sign(max(abs(stress12_1(i,j)),puny),stress12_1(i,j))
-!         stress12_2(i,j) = sign(max(abs(stress12_2(i,j)),puny),stress12_2(i,j))
-!         stress12_3(i,j) = sign(max(abs(stress12_3(i,j)),puny),stress12_3(i,j))
-!         stress12_4(i,j) = sign(max(abs(stress12_4(i,j)),puny),stress12_4(i,j))
+!         stress12_1(ijb) = sign(max(abs(stress12_1(ijb)),puny),stress12_1(ijb))
+!         stress12_2(ijb) = sign(max(abs(stress12_2(ijb)),puny),stress12_2(ijb))
+!         stress12_3(ijb) = sign(max(abs(stress12_3(ijb)),puny),stress12_3(ijb))
+!         stress12_4(ijb) = sign(max(abs(stress12_4(ijb)),puny),stress12_4(ijb))
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
-         ssigpn  = stressp_1(i,j) + stressp_2(i,j)
-         ssigps  = stressp_3(i,j) + stressp_4(i,j)
-         ssigpe  = stressp_1(i,j) + stressp_4(i,j)
-         ssigpw  = stressp_2(i,j) + stressp_3(i,j)
-         ssigp1  =(stressp_1(i,j) + stressp_3(i,j))*p055
-         ssigp2  =(stressp_2(i,j) + stressp_4(i,j))*p055
+         ssigpn  = stressp_1(ijb) + stressp_2(ijb)
+         ssigps  = stressp_3(ijb) + stressp_4(ijb)
+         ssigpe  = stressp_1(ijb) + stressp_4(ijb)
+         ssigpw  = stressp_2(ijb) + stressp_3(ijb)
+         ssigp1  =(stressp_1(ijb) + stressp_3(ijb))*p055
+         ssigp2  =(stressp_2(ijb) + stressp_4(ijb))*p055
 
-         ssigmn  = stressm_1(i,j) + stressm_2(i,j)
-         ssigms  = stressm_3(i,j) + stressm_4(i,j)
-         ssigme  = stressm_1(i,j) + stressm_4(i,j)
-         ssigmw  = stressm_2(i,j) + stressm_3(i,j)
-         ssigm1  =(stressm_1(i,j) + stressm_3(i,j))*p055
-         ssigm2  =(stressm_2(i,j) + stressm_4(i,j))*p055
+         ssigmn  = stressm_1(ijb) + stressm_2(ijb)
+         ssigms  = stressm_3(ijb) + stressm_4(ijb)
+         ssigme  = stressm_1(ijb) + stressm_4(ijb)
+         ssigmw  = stressm_2(ijb) + stressm_3(ijb)
+         ssigm1  =(stressm_1(ijb) + stressm_3(ijb))*p055
+         ssigm2  =(stressm_2(ijb) + stressm_4(ijb))*p055
 
-         ssig12n = stress12_1(i,j) + stress12_2(i,j)
-         ssig12s = stress12_3(i,j) + stress12_4(i,j)
-         ssig12e = stress12_1(i,j) + stress12_4(i,j)
-         ssig12w = stress12_2(i,j) + stress12_3(i,j)
-         ssig121 =(stress12_1(i,j) + stress12_3(i,j))*p111
-         ssig122 =(stress12_2(i,j) + stress12_4(i,j))*p111
+         ssig12n = stress12_1(ijb) + stress12_2(ijb)
+         ssig12s = stress12_3(ijb) + stress12_4(ijb)
+         ssig12e = stress12_1(ijb) + stress12_4(ijb)
+         ssig12w = stress12_2(ijb) + stress12_3(ijb)
+         ssig121 =(stress12_1(ijb) + stress12_3(ijb))*p111
+         ssig122 =(stress12_2(ijb) + stress12_4(ijb))*p111
 
-         csigpne = p111*stressp_1(i,j) + ssigp2 + p027*stressp_3(i,j)
-         csigpnw = p111*stressp_2(i,j) + ssigp1 + p027*stressp_4(i,j)
-         csigpsw = p111*stressp_3(i,j) + ssigp2 + p027*stressp_1(i,j)
-         csigpse = p111*stressp_4(i,j) + ssigp1 + p027*stressp_2(i,j)
+         csigpne = p111*stressp_1(ijb) + ssigp2 + p027*stressp_3(ijb)
+         csigpnw = p111*stressp_2(ijb) + ssigp1 + p027*stressp_4(ijb)
+         csigpsw = p111*stressp_3(ijb) + ssigp2 + p027*stressp_1(ijb)
+         csigpse = p111*stressp_4(ijb) + ssigp1 + p027*stressp_2(ijb)
 
-         csigmne = p111*stressm_1(i,j) + ssigm2 + p027*stressm_3(i,j)
-         csigmnw = p111*stressm_2(i,j) + ssigm1 + p027*stressm_4(i,j)
-         csigmsw = p111*stressm_3(i,j) + ssigm2 + p027*stressm_1(i,j)
-         csigmse = p111*stressm_4(i,j) + ssigm1 + p027*stressm_2(i,j)
+         csigmne = p111*stressm_1(ijb) + ssigm2 + p027*stressm_3(ijb)
+         csigmnw = p111*stressm_2(ijb) + ssigm1 + p027*stressm_4(ijb)
+         csigmsw = p111*stressm_3(ijb) + ssigm2 + p027*stressm_1(ijb)
+         csigmse = p111*stressm_4(ijb) + ssigm1 + p027*stressm_2(ijb)
 
-         csig12ne = p222*stress12_1(i,j) + ssig122 &
-                  + p055*stress12_3(i,j)
-         csig12nw = p222*stress12_2(i,j) + ssig121 &
-                  + p055*stress12_4(i,j)
-         csig12sw = p222*stress12_3(i,j) + ssig122 &
-                  + p055*stress12_1(i,j)
-         csig12se = p222*stress12_4(i,j) + ssig121 &
-                  + p055*stress12_2(i,j)
+         csig12ne = p222*stress12_1(ijb) + ssig122 &
+                  + p055*stress12_3(ijb)
+         csig12nw = p222*stress12_2(ijb) + ssig121 &
+                  + p055*stress12_4(ijb)
+         csig12sw = p222*stress12_3(ijb) + ssig122 &
+                  + p055*stress12_1(ijb)
+         csig12se = p222*stress12_4(ijb) + ssig121 &
+                  + p055*stress12_2(ijb)
 
-         str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+         str12ew = p5*dxT(ijb)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxT(ijb)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyT(ijb)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyT(ijb)*(p333*ssig12s + p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
-         strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
-         strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
+         strp_tmp  = p25*dyT(ijb)*(p333*ssigpn  + p166*ssigps)
+         strm_tmp  = p25*dyT(ijb)*(p333*ssigmn  + p166*ssigms)
 
          ! northeast (i,j)
-         str(i,j,1) = -strp_tmp - strm_tmp - str12ew &
-              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+         str(is,1) = -strp_tmp - strm_tmp - str12ew &
+              + dxhy(ijb)*(-csigpne + csigmne) + dyhx(ijb)*csig12ne
 
          ! northwest (i+1,j)
-         str(i,j,2) = strp_tmp + strm_tmp - str12we &
-              + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
+         str(is,2) = strp_tmp + strm_tmp - str12we &
+              + dxhy(ijb)*(-csigpnw + csigmnw) + dyhx(ijb)*csig12nw
 
-         strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
+         strp_tmp  = p25*dyT(ijb)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyT(ijb)*(p333*ssigms  + p166*ssigmn)
 
          ! southeast (i,j+1)
-         str(i,j,3) = -strp_tmp - strm_tmp + str12ew &
-              + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
+         str(is,3) = -strp_tmp - strm_tmp + str12ew &
+              + dxhy(ijb)*(-csigpse + csigmse) + dyhx(ijb)*csig12se
 
          ! southwest (i+1,j+1)
-         str(i,j,4) = strp_tmp + strm_tmp + str12we &
-              + dxhy(i,j)*(-csigpsw + csigmsw) + dyhx(i,j)*csig12sw
+         str(is,4) = strp_tmp + strm_tmp + str12we &
+              + dxhy(ijb)*(-csigpsw + csigmsw) + dyhx(ijb)*csig12sw
 
          !-----------------------------------------------------------------
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
-         strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
+         strp_tmp  = p25*dxT(ijb)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxT(ijb)*(p333*ssigme  + p166*ssigmw)
 
          ! northeast (i,j)
-         str(i,j,5) = -strp_tmp + strm_tmp - str12ns &
-              - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
+         str(is,5) = -strp_tmp + strm_tmp - str12ns &
+              - dyhx(ijb)*(csigpne + csigmne) + dxhy(ijb)*csig12ne
 
          ! southeast (i,j+1)
-         str(i,j,6) = strp_tmp - strm_tmp - str12sn &
-              - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
+         str(is,6) = strp_tmp - strm_tmp - str12sn &
+              - dyhx(ijb)*(csigpse + csigmse) + dxhy(ijb)*csig12se
 
-         strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
+         strp_tmp  = p25*dxT(ijb)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxT(ijb)*(p333*ssigmw  + p166*ssigme)
 
          ! northwest (i+1,j)
-         str(i,j,7) = -strp_tmp + strm_tmp + str12ns &
-              - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
+         str(is,7) = -strp_tmp + strm_tmp + str12ns &
+              - dyhx(ijb)*(csigpnw + csigmnw) + dxhy(ijb)*csig12nw
 
          ! southwest (i+1,j+1)
-         str(i,j,8) = strp_tmp - strm_tmp + str12sn &
-              - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
+         str(is,8) = strp_tmp - strm_tmp + str12sn &
+              - dyhx(ijb)*(csigpsw + csigmsw) + dxhy(ijb)*csig12sw
 
       enddo                     ! ij
 
@@ -1778,7 +1908,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the E point
          uvelN    , & ! x-component of velocity (m/s) at the N point
@@ -1788,11 +1918,14 @@
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
          strength , & ! ice strength (N/m)
-         shearU   , & ! shearU local for this routine
-         uarea    , & ! area of u cell
-         DminTarea    ! deltaminEVP*tarea
+         shearU       ! shearU local for this routine
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! uarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         uarea        ! area of U-cell (m^2)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2T   , & ! etax2  = 2*eta  (shear viscosity)
          stresspT , & ! sigma11+sigma22
@@ -1802,9 +1935,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
         divT      , & ! divergence at T point
         tensionT      ! tension at T point
 
@@ -1815,6 +1949,11 @@
         uareaavgr , & ! 1 / uarea avg
         rep_prsT      ! replacement pressure at T point
 
+      ! DminTarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         DminTarea    ! deltaminEVP*tarea
+
       character(len=*), parameter :: subname = '(stressC_T)'
 
       !-----------------------------------------------------------------
@@ -1824,43 +1963,44 @@
       call strain_rates_T (nx_block   , ny_block     , &
                            icellT     ,                &
                            indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:,:), vvelE   (:,:), &
-                           uvelN (:,:), vvelN   (:,:), &
-                           dxN   (:,:), dyE     (:,:), &
-                           dxT   (:,:), dyT     (:,:), &
-                           divT  (:,:), tensionT(:,:))
+                           uvelE (:)  , vvelE   (:)  , &
+                           uvelN (:)  , vvelN   (:)  , &
+                           dxN   (:)  , dyE     (:)  , &
+                           dxT   (:)  , dyT     (:)  , &
+                           divT  (:)  , tensionT(:)  )
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! Square of shear strain rate at T obtained from interpolation of
          ! U point values (Bouillon et al., 2013, Kimmritz et al., 2016
          !-----------------------------------------------------------------
 
-         uareaavgr = c1/(uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+         uareaavgr = c1/(uarea(ijb)+uarea(ijb-nx_block)+uarea(ijb-nx_block-1)+uarea(ijb-1))
 
-         shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
-                    + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
-                    + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
-                    + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
+         shearTsqr = (shearU(ijb)**2 * uarea(ijb           )  &
+                    + shearU(ijb-nx_block)**2 * uarea(ijb-nx_block  )  &
+                    + shearU(ijb-nx_block-1)**2 * uarea(ijb-nx_block-1)  &
+                    + shearU(ijb-1)**2 * uarea(ijb         -1)) &
                     * uareaavgr
 
-         shearT    = (shearU(i  ,j  )    * uarea(i  ,j  )  &
-                    + shearU(i  ,j-1)    * uarea(i  ,j-1)  &
-                    + shearU(i-1,j-1)    * uarea(i-1,j-1)  &
-                    + shearU(i-1,j  )    * uarea(i-1,j  )) &
+         shearT    = (shearU(ijb)    * uarea(ijb           )  &
+                    + shearU(ijb-nx_block)    * uarea(ijb-nx_block  )  &
+                    + shearU(ijb-nx_block-1)    * uarea(ijb-nx_block-1)  &
+                    + shearU(ijb-1)    * uarea(ijb         -1)) &
                     * uareaavgr
 
-         DeltaT = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+         DeltaT = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearTsqr))
 
          !-----------------------------------------------------------------
          ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT, &
-                              zetax2T (i,j), etax2T(i,j), rep_prsT)
+         call visc_replpress (strength(ijb), DminTarea(ijb), DeltaT, &
+                              zetax2T (ijb), etax2T(ijb), rep_prsT)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -1868,14 +2008,14 @@
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-         stresspT(i,j)  = (stresspT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
+         stresspT(ijb)  = (stresspT (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*(zetax2T(ijb)*divT(ijb) - rep_prsT)) * denom1
 
-         stressmT(i,j)  = (stressmT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
+         stressmT(ijb)  = (stressmT (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*etax2T(ijb)*tensionT(ijb)) * denom1
 
-         stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2T(i,j)*shearT    ) * denom1
+         stress12T(ijb) = (stress12T(ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*p5*etax2T(ijb)*shearT    ) * denom1
 
       enddo                     ! ij
 
@@ -1913,20 +2053,25 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uarea    , & ! area of U point
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          etax2U   , & ! 2*eta at the U point
          shearU   , & ! shearU array
          deltaU   , & ! deltaU array
          strengthU    ! ice strength at the U point
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! uarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         uarea        ! area of U point
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          stress12U    ! sigma12
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind) :: &
          lzetax2U , & ! bulk viscosity at U point
@@ -1947,21 +2092,23 @@
          do ij = 1, icellU
             i = indxUi(ij)
             j = indxUj(ij)
-            stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
-                             + arlx1i*p5*etax2U(i,j)*shearU(i,j)) * denom1
+            ijb = (j-1)*nx_block + i
+            stress12U(ijb) = (stress12U(ijb)*(c1-arlx1i*revp) &
+                             + arlx1i*p5*etax2U(ijb)*shearU(ijb)) * denom1
          enddo
 
       elseif (visc_method == 'avg_strength') then
          do ij = 1, icellU
             i = indxUi(ij)
             j = indxUj(ij)
-            DminUarea = deltaminEVP*uarea(i,j)
+            ijb = (j-1)*nx_block + i
+            DminUarea = deltaminEVP*uarea((j-1)*nx_block+i)
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
-            call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
+            call visc_replpress (strengthU(ijb), DminUarea, deltaU(ijb), &
                                  lzetax2U      , letax2U  , lrep_prsU)
-            stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
-                             + arlx1i*p5*letax2U*shearU(i,j)) * denom1
+            stress12U(ijb) = (stress12U(ijb)*(c1-arlx1i*revp) &
+                             + arlx1i*p5*letax2U*shearU(ijb)) * denom1
          enddo
 
       endif
@@ -1998,7 +2145,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -2007,10 +2154,9 @@
          dyE      , & ! height of E-cell through the middle (m)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
-         strength , & ! ice strength (N/m)
-         DminTarea    ! deltaminEVP*tarea
+         strength     ! ice strength (N/m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          zetax2T  , & ! zetax2 = 2*zeta (bulk viscosity)
          etax2T   , & ! etax2  = 2*eta  (shear viscosity)
          stresspT , & ! sigma11+sigma22
@@ -2020,9 +2166,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
         shearT    , & ! shear at T point
@@ -2030,6 +2177,11 @@
 
       real (kind=dbl_kind) :: &
         rep_prsT      ! replacement pressure at T point
+
+      ! DminTarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         DminTarea    ! deltaminEVP*tarea
 
       character(len=*), parameter :: subname = '(stressCD_T)'
 
@@ -2041,23 +2193,24 @@
       call strain_rates_T (nx_block   , ny_block     , &
                            icellT     ,                &
                            indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:,:), vvelE   (:,:), &
-                           uvelN (:,:), vvelN   (:,:), &
-                           dxN   (:,:), dyE     (:,:), &
-                           dxT   (:,:), dyT     (:,:), &
-                           divT  (:,:), tensionT(:,:), &
-                           shearT(:,:), DeltaT  (:,:))
+                           uvelE (:)  , vvelE   (:)  , &
+                           uvelN (:)  , vvelN   (:)  , &
+                           dxN   (:)  , dyE     (:)  , &
+                           dxT   (:)  , dyT     (:)  , &
+                           divT  (:)  , tensionT(:)  , &
+                           shearT(:)  , DeltaT  (:)  )
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! viscosities and replacement pressure at T point
          !-----------------------------------------------------------------
 
-         call visc_replpress (strength(i,j), DminTarea(i,j), DeltaT(i,j), &
-                              zetax2T (i,j), etax2T(i,j), rep_prsT)
+         call visc_replpress (strength(ijb), DminTarea(ijb), DeltaT(ijb), &
+                              zetax2T (ijb), etax2T(ijb), rep_prsT)
 
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
@@ -2065,14 +2218,14 @@
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-         stresspT(i,j)  = (stresspT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*(zetax2T(i,j)*divT(i,j) - rep_prsT)) * denom1
+         stresspT(ijb)  = (stresspT (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*(zetax2T(ijb)*divT(ijb) - rep_prsT)) * denom1
 
-         stressmT(i,j)  = (stressmT (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*etax2T(i,j)*tensionT(i,j)) * denom1
+         stressmT(ijb)  = (stressmT (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*etax2T(ijb)*tensionT(ijb)) * denom1
 
-         stress12T(i,j) = (stress12T(i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*etax2T(i,j)*shearT(i,j)) * denom1
+         stress12T(ijb) = (stress12T(ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*p5*etax2T(ijb)*shearT(ijb)) * denom1
 
       enddo                     ! ij
 
@@ -2106,8 +2259,7 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uarea    , & ! area of U-cell (m^2)
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          zetax2U  , & ! 2*zeta at U point
          etax2U   , & ! 2*eta at U point
          strengthU, & ! ice strength at U point
@@ -2116,7 +2268,12 @@
          shearU   , & ! shear at U point
          deltaU       ! delt at U point
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! uarea is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         uarea        ! area of U-cell (m^2)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          stresspU , & ! sigma11+sigma22
          stressmU , & ! sigma11-sigma22
          stress12U    ! sigma12
@@ -2124,7 +2281,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind) :: &
         lzetax2U  , & ! bulk viscosity at U point
@@ -2137,6 +2295,7 @@
       do ij = 1, icellU
          i = indxUi(ij)
          j = indxUj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! viscosities and replacement pressure at U point
@@ -2145,15 +2304,15 @@
          !-----------------------------------------------------------------
 
          if (visc_method == 'avg_zeta') then
-            lzetax2U  = zetax2U(i,j)
-            letax2U   = etax2U(i,j)
-            lrep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU(i,j)
+            lzetax2U  = zetax2U(ijb)
+            letax2U   = etax2U(ijb)
+            lrep_prsU = (c1-Ktens)/(c1+Ktens)*lzetax2U*deltaU(ijb)
 
          elseif (visc_method == 'avg_strength') then
-            DminUarea = deltaminEVP*uarea(i,j)
+            DminUarea = deltaminEVP*uarea((j-1)*nx_block+i)
             ! only need etax2U here, but other terms are calculated with etax2U
             ! minimal extra calculations here even though it seems like there is
-            call visc_replpress (strengthU(i,j), DminUarea, deltaU(i,j), &
+            call visc_replpress (strengthU(ijb), DminUarea, deltaU(ijb), &
                                  lzetax2U      , letax2U  , lrep_prsU )
          endif
 
@@ -2163,14 +2322,14 @@
 
          ! NOTE: for comp. efficiency 2 x zeta and 2 x eta are used in the code
 
-         stresspU(i,j)  = (stresspU (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*(lzetax2U*divergU(i,j) - lrep_prsU)) * denom1
+         stresspU(ijb)  = (stresspU (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*(lzetax2U*divergU(ijb) - lrep_prsU)) * denom1
 
-         stressmU(i,j)  = (stressmU (i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*letax2U*tensionU(i,j)) * denom1
+         stressmU(ijb)  = (stressmU (ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*letax2U*tensionU(ijb)) * denom1
 
-         stress12U(i,j) = (stress12U(i,j)*(c1-arlx1i*revp) &
-                          + arlx1i*p5*letax2U*shearU(i,j)) * denom1
+         stress12U(ijb) = (stress12U(ijb)*(c1-arlx1i*revp) &
+                          + arlx1i*p5*letax2U*shearU(ijb)) * denom1
 
       enddo                     ! ij
 
@@ -2215,8 +2374,12 @@
          dyE     , & ! height of E or N-cell through the middle (m)
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
-         arear   , & ! earear or narear
          rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
+
+      ! arear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         arear       ! earear or narear
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2229,14 +2392,15 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, ijb
 
       character(len=*), parameter :: subname = '(div_stress_Ex)'
 
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strintx(i,j) = rheofactE(i,j) * arear(i,j) * &
+         ijb = (j-1)*nx_block + i
+         strintx(i,j) = rheofactE(i,j) * arear(ijb) * &
               ( p5 * dyE(i,j)  * ( stressp(i+1,j  )  - stressp (i  ,j  ) ) &
               + (p5/ dyE(i,j)) * ( (dyT(i+1,j  )**2) * stressm (i+1,j  )   &
                                   -(dyT(i  ,j  )**2) * stressm (i  ,j  ) ) &
@@ -2271,8 +2435,12 @@
          dyE     , & ! height of E or N-cell through the middle (m)
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
-         arear   , & ! earear or narear
          rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
+
+      ! arear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         arear       ! earear or narear
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
@@ -2285,14 +2453,15 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, ijb
 
       character(len=*), parameter :: subname = '(div_stress_Ey)'
 
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strinty(i,j) = rheofactE(i,j) * arear(i,j) * &
+         ijb = (j-1)*nx_block + i
+         strinty(i,j) = rheofactE(i,j) * arear(ijb) * &
               ( p5 * dxE(i,j)  * ( stressp(i  ,j  )  - stressp (i  ,j-1) ) &
               - (p5/ dxE(i,j)) * ( (dxU(i  ,j  )**2) * stressm (i  ,j  )   &
                                   -(dxU(i  ,j-1)**2) * stressm (i  ,j-1) ) &
@@ -2327,8 +2496,12 @@
          dyN     , & ! height of E or N-cell through the middle (m)
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
-         arear   , & ! earear or narear
          rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
+
+      ! arear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         arear       ! earear or narear
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2341,14 +2514,15 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, ijb
 
       character(len=*), parameter :: subname = '(div_stress_Nx)'
 
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strintx(i,j) = rheofactN(i,j) * arear(i,j) * &
+         ijb = (j-1)*nx_block + i
+         strintx(i,j) = rheofactN(i,j) * arear(ijb) * &
               ( p5 * dyN(i,j)  * ( stressp(i  ,j  )  - stressp (i-1,j  ) ) &
               + (p5/ dyN(i,j)) * ( (dyU(i  ,j  )**2) * stressm (i  ,j  )   &
                                   -(dyU(i-1,j  )**2) * stressm (i-1,j  ) ) &
@@ -2383,8 +2557,12 @@
          dyN     , & ! height of E or N-cell through the middle (m)
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
-         arear   , & ! earear or narear
          rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
+
+      ! arear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         arear       ! earear or narear
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
@@ -2397,14 +2575,15 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, ijb
 
       character(len=*), parameter :: subname = '(div_stress_Ny)'
 
       do ij = 1, icell
          i = indxi(ij)
          j = indxj(ij)
-         strinty(i,j) = rheofactN(i,j) * arear(i,j) * &
+         ijb = (j-1)*nx_block + i
+         strinty(i,j) = rheofactN(i,j) * arear(ijb) * &
               ( p5 * dxN(i,j)  * ( stressp(i  ,j+1)  - stressp (i  ,j  ) ) &
               - (p5/ dxN(i,j)) * ( (dxT(i  ,j+1)**2) * stressm (i  ,j+1)   &
                                   -(dxT(i  ,j  )**2) * stressm (i  ,j  ) ) &

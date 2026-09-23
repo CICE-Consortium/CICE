@@ -2982,7 +2982,7 @@
       use ice_boundary, only: ice_HaloUpdate
       use ice_constants, only: field_loc_Nface, field_loc_Eface, field_type_scalar
       use ice_state, only: trcr_depend, aicen, trcrn, vicen, vsnon, &
-          aice0, aice, vice, vsno, trcr, aice_init, &
+          aice0, aice, vice, vsno, trcr, aice_init3d, &
           n_trcr_strata, nt_strata, trcr_base, uvel, vvel, &
           uvelN, vvelN, uvelE, vvelE
       use ice_bound_state, only: bound_state
@@ -3167,10 +3167,10 @@
          call set_state_var (nx_block,            ny_block,            &
                              ilo, ihi,            jlo, jhi,            &
                              iglob,               jglob,               &
-                             ice_ic,              tmask(:,:,    iblk), &
-                             umask(:,:,    iblk), &
-                             ULON (:,:,    iblk), &
-                             TLAT (:,:,    iblk), &
+                             ice_ic,              tmask(:,      iblk), &
+                             umask(:,      iblk), &
+                             ULON (:,      iblk), &
+                             TLAT (:,      iblk), &
                              Tair (:,:,    iblk), sst  (:,:,    iblk), &
                              Tf   (:,:,    iblk),                      &
                              salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
@@ -3226,7 +3226,7 @@
             trcr(i,j,it,iblk) = c0
          enddo
 
-         if (tmask(i,j,iblk)) &
+         if (tmask((j-1)*nx_block+i,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
@@ -3242,7 +3242,7 @@
                                    nt_strata     = nt_strata(:,:),   &
                                    Tf            = Tf(i,j,iblk))
 
-         aice_init(i,j,iblk) = aice(i,j,iblk)
+         aice_init3d(i,j,iblk) = aice(i,j,iblk)
 
       enddo
       enddo
@@ -3293,9 +3293,15 @@
       character(len=char_len_long), intent(in) :: &
          ice_ic      ! method of ice cover initialization
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
-         tmask  , & ! true for ice/ocean cells
+      ! umask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(in) :: &
          umask      ! for U points
+
+      ! tmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(in) :: &
+         tmask      ! true for ice/ocean cells
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          ULON   , & ! longitude of velocity pts (radians)
@@ -3409,7 +3415,7 @@
             aicen(i,j,n) = c0
             vicen(i,j,n) = c0
             vsnon(i,j,n) = c0
-            if (tmask(i,j)) then
+            if (tmask((j-1)*nx_block+i)) then
                trcrn(i,j,nt_Tsfc,n) = Tf(i,j)  ! surface temperature
             else
                trcrn(i,j,nt_Tsfc,n) = c0       ! at land grid cells (for clean history/restart files)
@@ -3526,7 +3532,7 @@
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (tmask(i,j)) then
+               if (tmask((j-1)*nx_block+i)) then
                   ! check if grid point is inside slotted cylinder
                   in_slot = (dxrect*real(iglob(i)-1, kind=dbl_kind) >= center_x - width/c2) .and. &
                             (dxrect*real(iglob(i)-1, kind=dbl_kind) <= center_x + width/c2) .and. &
@@ -3552,7 +3558,7 @@
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (tmask(i,j)) then
+               if (tmask((j-1)*nx_block+i)) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
@@ -3615,7 +3621,7 @@
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (tmask(i,j)) then
+               if (tmask((j-1)*nx_block+i)) then
                   ! place ice in high latitudes where ocean sfc is cold
 #ifdef CESMCOUPLED
                   ! Option to use Tair instead.
@@ -3734,7 +3740,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
 
-               if (umask(i,j)) then
+               if (umask((j-1)*nx_block+i)) then
                   uvel(i,j) =  c2*max_vel*(real(jglob(j), kind=dbl_kind) - p5) &
                             / real(ny_global - 1, kind=dbl_kind) - max_vel
                   vvel(i,j) = -c2*max_vel*(real(iglob(i), kind=dbl_kind) - p5) &

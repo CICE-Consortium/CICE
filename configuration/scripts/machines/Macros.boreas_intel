@@ -41,7 +41,7 @@ LDFLAGS    := $(FFLAGS) -v
 # Additional flags
 FIXEDFLAGS := -132
 FREEFLAGS  := -FR
-FFLAGS     := -convert big_endian -assume byterecl 
+FFLAGS     := -convert big_endian -assume byterecl -fp-model precise -no-fma
 
 ifeq ($(ICE_THREADED), true) 
    LDFLAGS += -qopenmp

@@ -109,7 +109,7 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not.tmask(i,j,iblk) .and. .not.opmask(i,j,iblk)) trcrn(i,j,:,:,iblk) = c0
+            if (.not.tmask((j-1)*nx_block+i,iblk) .and. .not.opmask((j-1)*nx_block+i,iblk)) trcrn(i,j,:,:,iblk) = c0
          enddo
          enddo
       enddo
@@ -223,7 +223,7 @@
             do j = 1, ny_block
             do i = 1, nx_block
                work1(i,j,iblk) = c0
-               if (iceUmask(i,j,iblk)) work1(i,j,iblk) = c1
+               if (iceUmask((j-1)*nx_block+i,iblk)) work1(i,j,iblk) = c1
             enddo
             enddo
          enddo
@@ -237,7 +237,7 @@
                do j = 1, ny_block
                do i = 1, nx_block
                   work1(i,j,iblk) = c0
-                  if (iceNmask(i,j,iblk)) work1(i,j,iblk) = c1
+                  if (iceNmask((j-1)*nx_block+i,iblk)) work1(i,j,iblk) = c1
                enddo
                enddo
             enddo
@@ -249,7 +249,7 @@
                do j = 1, ny_block
                do i = 1, nx_block
                   work1(i,j,iblk) = c0
-                  if (iceEmask(i,j,iblk)) work1(i,j,iblk) = c1
+                  if (iceEmask((j-1)*nx_block+i,iblk)) work1(i,j,iblk) = c1
                enddo
                enddo
             enddo
@@ -296,7 +296,7 @@
           stresspU, stressmU, stress12U
       use ice_flux, only: coszen, Tf
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
-          aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
+          aice0, aicen, vicen, vsnon, trcrn, aice_init3d, uvel, vvel, &
           uvelE, vvelE, uvelN, vvelN, &
           trcr_base, nt_strata, n_trcr_strata
       use icepack_itd, only: cleanup_itd  !for restart_mod
@@ -548,12 +548,12 @@
             call read_restart_field(nu_restart,0,work1,'ruf8', &
                 'iceumask',1,diag,field_loc_center, field_type_scalar)
 
-            iceUmask(:,:,:) = .false.
+            iceUmask(:,:) = .false.
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block
                do i = 1, nx_block
-                  if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
+                  if (work1(i,j,iblk) > p5) iceUmask((j-1)*nx_block+i,iblk) = .true.
                enddo
                enddo
             enddo
@@ -565,12 +565,12 @@
                call read_restart_field(nu_restart,0,work1,'ruf8', &
                     'icenmask',1,diag,field_loc_center, field_type_scalar)
 
-               iceNmask(:,:,:) = .false.
+               iceNmask(:,:) = .false.
                !$OMP PARALLEL DO PRIVATE(iblk,i,j)
                do iblk = 1, nblocks
                   do j = 1, ny_block
                   do i = 1, nx_block
-                     if (work1(i,j,iblk) > p5) iceNmask(i,j,iblk) = .true.
+                     if (work1(i,j,iblk) > p5) iceNmask((j-1)*nx_block+i,iblk) = .true.
                   enddo
                   enddo
                enddo
@@ -581,12 +581,12 @@
                call read_restart_field(nu_restart,0,work1,'ruf8', &
                     'iceemask',1,diag,field_loc_center, field_type_scalar)
 
-               iceEmask(:,:,:) = .false.
+               iceEmask(:,:) = .false.
                !$OMP PARALLEL DO PRIVATE(iblk,i,j)
                do iblk = 1, nblocks
                   do j = 1, ny_block
                   do i = 1, nx_block
-                     if (work1(i,j,iblk) > p5) iceEmask(i,j,iblk) = .true.
+                     if (work1(i,j,iblk) > p5) iceEmask((j-1)*nx_block+i,iblk) = .true.
                   enddo
                   enddo
                enddo
@@ -617,7 +617,7 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not.tmask(i,j,iblk) .and. .not.opmask(i,j,iblk)) trcrn(i,j,nt_Tsfc,:,iblk) = c0
+            if (.not.tmask((j-1)*nx_block+i,iblk) .and. .not.opmask((j-1)*nx_block+i,iblk)) trcrn(i,j,nt_Tsfc,:,iblk) = c0
          enddo
          enddo
       enddo
@@ -642,34 +642,34 @@
       do iblk = 1, nblocks
          do j = 1, nghost
          do i = 1, nx_block
-            stressp_1 (i,j,iblk) = c0
-            stressp_2 (i,j,iblk) = c0
-            stressp_3 (i,j,iblk) = c0
-            stressp_4 (i,j,iblk) = c0
-            stressm_1 (i,j,iblk) = c0
-            stressm_2 (i,j,iblk) = c0
-            stressm_3 (i,j,iblk) = c0
-            stressm_4 (i,j,iblk) = c0
-            stress12_1(i,j,iblk) = c0
-            stress12_2(i,j,iblk) = c0
-            stress12_3(i,j,iblk) = c0
-            stress12_4(i,j,iblk) = c0
+            stressp_1 ((j-1)*nx_block+i,iblk) = c0
+            stressp_2 ((j-1)*nx_block+i,iblk) = c0
+            stressp_3 ((j-1)*nx_block+i,iblk) = c0
+            stressp_4 ((j-1)*nx_block+i,iblk) = c0
+            stressm_1 ((j-1)*nx_block+i,iblk) = c0
+            stressm_2 ((j-1)*nx_block+i,iblk) = c0
+            stressm_3 ((j-1)*nx_block+i,iblk) = c0
+            stressm_4 ((j-1)*nx_block+i,iblk) = c0
+            stress12_1((j-1)*nx_block+i,iblk) = c0
+            stress12_2((j-1)*nx_block+i,iblk) = c0
+            stress12_3((j-1)*nx_block+i,iblk) = c0
+            stress12_4((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
          do j = 1, ny_block
          do i = 1, nghost
-            stressp_1 (i,j,iblk) = c0
-            stressp_2 (i,j,iblk) = c0
-            stressp_3 (i,j,iblk) = c0
-            stressp_4 (i,j,iblk) = c0
-            stressm_1 (i,j,iblk) = c0
-            stressm_2 (i,j,iblk) = c0
-            stressm_3 (i,j,iblk) = c0
-            stressm_4 (i,j,iblk) = c0
-            stress12_1(i,j,iblk) = c0
-            stress12_2(i,j,iblk) = c0
-            stress12_3(i,j,iblk) = c0
-            stress12_4(i,j,iblk) = c0
+            stressp_1 ((j-1)*nx_block+i,iblk) = c0
+            stressp_2 ((j-1)*nx_block+i,iblk) = c0
+            stressp_3 ((j-1)*nx_block+i,iblk) = c0
+            stressp_4 ((j-1)*nx_block+i,iblk) = c0
+            stressm_1 ((j-1)*nx_block+i,iblk) = c0
+            stressm_2 ((j-1)*nx_block+i,iblk) = c0
+            stressm_3 ((j-1)*nx_block+i,iblk) = c0
+            stressm_4 ((j-1)*nx_block+i,iblk) = c0
+            stress12_1((j-1)*nx_block+i,iblk) = c0
+            stress12_2((j-1)*nx_block+i,iblk) = c0
+            stress12_3((j-1)*nx_block+i,iblk) = c0
+            stress12_4((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
          ! TODO: CD-grid ?
@@ -694,7 +694,7 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) &
+         if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
@@ -710,7 +710,7 @@
                                    nt_strata     = nt_strata,     &
                                    Tf            = Tf(i,j,iblk))
 
-         aice_init(i,j,iblk) = aice(i,j,iblk)
+         aice_init3d(i,j,iblk) = aice(i,j,iblk)
       enddo
       enddo
 
@@ -751,7 +751,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               if (tmask(i,j,iblk)) then
+               if (tmask((j-1)*nx_block+i,iblk)) then
 
                   call cleanup_itd(dt,    hin_max,             &
                        aicen(i,j,:,iblk), trcrn(i,j,:,:,iblk), &
@@ -787,7 +787,7 @@
                                    nt_strata     = nt_strata,     &
                                    Tf            = Tf(i,j,iblk))
 
-                  aice_init(i,j,iblk) = aice(i,j,iblk)
+                  aice_init3d(i,j,iblk) = aice(i,j,iblk)
 
                endif  ! tmask
             enddo     ! i
@@ -821,7 +821,7 @@
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_read_write, only: ice_open, ice_read
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
-          aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
+          aice0, aicen, vicen, vsnon, trcrn, aice_init3d, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
 
       character (*), optional :: ice_ic
@@ -1058,12 +1058,12 @@
       call ice_read(nu_restart,0,work1,'ruf8',diag, &
                     field_loc_center, field_type_scalar)
 
-      iceUmask(:,:,:) = .false.
+      iceUmask(:,:) = .false.
       !$OMP PARALLEL DO PRIVATE(iblk,i,j)
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            if (work1(i,j,iblk) > p5) iceUmask(i,j,iblk) = .true.
+            if (work1(i,j,iblk) > p5) iceUmask((j-1)*nx_block+i,iblk) = .true.
          enddo
          enddo
       enddo
@@ -1090,34 +1090,34 @@
       do iblk = 1, nblocks
          do j = 1, nghost
          do i = 1, nx_block
-            stressp_1 (i,j,iblk) = c0
-            stressp_2 (i,j,iblk) = c0
-            stressp_3 (i,j,iblk) = c0
-            stressp_4 (i,j,iblk) = c0
-            stressm_1 (i,j,iblk) = c0
-            stressm_2 (i,j,iblk) = c0
-            stressm_3 (i,j,iblk) = c0
-            stressm_4 (i,j,iblk) = c0
-            stress12_1(i,j,iblk) = c0
-            stress12_2(i,j,iblk) = c0
-            stress12_3(i,j,iblk) = c0
-            stress12_4(i,j,iblk) = c0
+            stressp_1 ((j-1)*nx_block+i,iblk) = c0
+            stressp_2 ((j-1)*nx_block+i,iblk) = c0
+            stressp_3 ((j-1)*nx_block+i,iblk) = c0
+            stressp_4 ((j-1)*nx_block+i,iblk) = c0
+            stressm_1 ((j-1)*nx_block+i,iblk) = c0
+            stressm_2 ((j-1)*nx_block+i,iblk) = c0
+            stressm_3 ((j-1)*nx_block+i,iblk) = c0
+            stressm_4 ((j-1)*nx_block+i,iblk) = c0
+            stress12_1((j-1)*nx_block+i,iblk) = c0
+            stress12_2((j-1)*nx_block+i,iblk) = c0
+            stress12_3((j-1)*nx_block+i,iblk) = c0
+            stress12_4((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
          do j = 1, ny_block
          do i = 1, nghost
-            stressp_1 (i,j,iblk) = c0
-            stressp_2 (i,j,iblk) = c0
-            stressp_3 (i,j,iblk) = c0
-            stressp_4 (i,j,iblk) = c0
-            stressm_1 (i,j,iblk) = c0
-            stressm_2 (i,j,iblk) = c0
-            stressm_3 (i,j,iblk) = c0
-            stressm_4 (i,j,iblk) = c0
-            stress12_1(i,j,iblk) = c0
-            stress12_2(i,j,iblk) = c0
-            stress12_3(i,j,iblk) = c0
-            stress12_4(i,j,iblk) = c0
+            stressp_1 ((j-1)*nx_block+i,iblk) = c0
+            stressp_2 ((j-1)*nx_block+i,iblk) = c0
+            stressp_3 ((j-1)*nx_block+i,iblk) = c0
+            stressp_4 ((j-1)*nx_block+i,iblk) = c0
+            stressm_1 ((j-1)*nx_block+i,iblk) = c0
+            stressm_2 ((j-1)*nx_block+i,iblk) = c0
+            stressm_3 ((j-1)*nx_block+i,iblk) = c0
+            stressm_4 ((j-1)*nx_block+i,iblk) = c0
+            stress12_1((j-1)*nx_block+i,iblk) = c0
+            stress12_2((j-1)*nx_block+i,iblk) = c0
+            stress12_3((j-1)*nx_block+i,iblk) = c0
+            stress12_4((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
       enddo
@@ -1141,7 +1141,7 @@
 
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) &
+         if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
@@ -1157,7 +1157,7 @@
                                    nt_strata     = nt_strata,     &
                                    Tf            = Tf(i,j,iblk))
 
-         aice_init(i,j,iblk) = aice(i,j,iblk)
+         aice_init3d(i,j,iblk) = aice(i,j,iblk)
       enddo
       enddo
 
@@ -1316,7 +1316,7 @@
               aice_o = work1(i,j,iblk) ! obs.  ice concentration
               aice_m = aice(i,j,iblk)  ! model ice concentration
 
-              if     (.not.tmask(i,j,iblk)) then
+              if     (.not.tmask((j-1)*nx_block+i,iblk)) then
                  ! land - do nothing
               elseif (aice_o.gt.p01 .and. &
                    abs(aice_o-aice_m).le.p01) then

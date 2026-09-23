@@ -30,6 +30,7 @@
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
                 dyn_haloUpdate, &
+                pack_to_slots, unpack_from_slots, &
                 stack_fields, unstack_fields
 
       ! namelist parameters
@@ -88,39 +89,176 @@
          brlx            ! beta   for momentum
 
       real (kind=dbl_kind), allocatable, public :: &
-         fcor_blk(:,:,:)     ! Coriolis parameter (1/s)
+         fcor_blk(:,:)       ! Coriolis parameter (1/s)
 
       real (kind=dbl_kind), allocatable, public :: &
-         fcorE_blk(:,:,:), & ! Coriolis parameter at E points (1/s)
-         fcorN_blk(:,:,:)    ! Coriolis parameter at N points  (1/s)
+         fcorE_blk(:,:)  , & ! Coriolis parameter at E points (1/s)
+         fcorN_blk(:,:)      ! Coriolis parameter at N points  (1/s)
 
       real (kind=dbl_kind), allocatable, public :: &
          fld2(:,:,:,:), & ! 2 bundled fields
          fld3(:,:,:,:), & ! 3 bundled fields
          fld4(:,:,:,:)    ! 4 bundled fields
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      ! bundle for COMPRESSED fields: (slot, field), slot 0 being each block's
+      ! dead slot.  The compressed counterpart of fld2, so that the velocities
+      ! cross the halo in one message instead of one each.
+      real (kind=dbl_kind), allocatable, public :: &
+         fld2c(:,:)       ! 2 bundled compressed fields
+
+      ! ---------------------------------------------------------------------
+      ! Compressed (ragged) storage on the static mask.
+      !
+      ! ONE list serves every grid location.  The static masks are set once in
+      ! makemask and never change, so a cell's slot is fixed for the whole run:
+      !
+      !   dynCnt(iblk)    slots held by block iblk
+      !   dynOff(iblk)    first slot of block iblk, minus one
+      !   dynMap(ij,iblk) block-local slot of cell ij, zero if not stored
+      !   dynTot          total slots over all local blocks
+      !
+      ! so cell (i,j,iblk) lives at dynOff(iblk) + dynMap((j-1)*nx_block+i,iblk),
+      ! whether it is being used as a T, U, N or E quantity.
+      !
+      ! The list is built from the union of the masks the run needs, the way
+      ! ice_dyn_evp1d builds its own from Tmask (or Tmask .or. Umask): a single
+      ! list is what lets a U-point kernel read a T-point array, which is
+      ! exactly what stepu does when it sums str over the four surrounding T
+      ! cells.  Separate per-location lists cannot express that without
+      ! cross-grid index tables.
+      !
+      ! Activity is NOT carried by the ordering but by the skip flags below,
+      ! one per grid location over the same slots -- again as in evp1d, whose
+      ! skipTcell/skipUcell both run over its single 1..nActive list.
+      !
+      ! The GHOST RING IS INCLUDED: stencil kernels and halo exchanges need the
+      ! ghost cells to be addressable, and makemask sets the masks over the
+      ! same range.
+      ! ---------------------------------------------------------------------
+      integer (kind=int_kind), dimension (:), allocatable, public :: &
+         dynOff, dynCnt     ! per-block offset and length
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      integer (kind=int_kind), dimension (:,:), allocatable, public :: &
+         dynMap             ! block-local slot of each cell, 0 if not stored
+
+      integer (kind=int_kind), public :: &
+         dynTot         , & ! total compressed length over all local blocks
+         dynMaxCnt          ! largest dynCnt over the local blocks, for sizing
+                            ! per-block scratch indexed by block-local slot
+
+      ! set each timestep from the dynamic ice masks: .true. means the slot
+      ! carries no ice of that kind this step, so the kernels leave it alone
+      logical (kind=log_kind), dimension (:), allocatable, public :: &
+         skipT, skipU, skipN, skipE
+
+      ! ---------------------------------------------------------------------
+      ! Neighbour slots.
+      !
+      ! Once compressed a neighbour is no longer at ijb+-1 or ijb+-nx_block,
+      ! so stencil kernels need its slot looked up.  Xnbr(is,d) holds the slot
+      ! of the cell one step in direction d from slot is, or 0 where that
+      ! neighbour falls outside the block or is not in the static mask.
+      ! Because the layout is static these are built once, at allocation.
+      !
+      ! These are the six directions the 1d kernels use.  ice_dyn_evp1d holds
+      ! the same set under historical names whose spelling does not match the
+      ! offset; the correspondence is
+      !
+      !     here     offset     ice_dyn_evp1d
+      !     nbr_W    (-1, 0)    ee
+      !     nbr_SW   (-1,-1)    ne
+      !     nbr_S    ( 0,-1)    se
+      !     nbr_E    (+1, 0)    nw
+      !     nbr_NE   (+1,+1)    sw
+      !     nbr_N    ( 0,+1)    sse
+      !
+      ! Slot 0 means "no such neighbour".  A kernel must either skip such a
+      ! cell or index an array whose element 0 is held at zero, which is what
+      ! the block layout carried at land points.
+      ! ---------------------------------------------------------------------
+      integer (kind=int_kind), parameter, public :: &
+         nbr_W   = 1, & ! (-1, 0)
+         nbr_SW  = 2, & ! (-1,-1)
+         nbr_S   = 3, & ! ( 0,-1)
+         nbr_E   = 4, & ! (+1, 0)
+         nbr_NE  = 5, & ! (+1,+1)
+         nbr_N   = 6, & ! ( 0,+1)
+         nbr_num = 6    ! number of directions held
+
+      ! shape (dynTot, nbr_num), so dynNbr(:,d) is contiguous and one
+      ! direction can be passed as a contiguous rank-1 argument
+      integer (kind=int_kind), dimension (:,:), allocatable, public :: &
+         dynNbr
+
+      ! Compressed working copies of the velocities, indexed from 0 so that
+      ! each block's dead slot is addressable.  uvel/vvel themselves stay in
+      ! the block layout: they are state, read by restart, history,
+      ! diagnostics and the couplers.  These are packed once per timestep,
+      ! subcycled on, and unpacked again.
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         uvel_slot       , & ! x-component of velocity (m/s), compressed
+         vvel_slot           ! y-component of velocity (m/s), compressed
+
+      ! Compressed working copies of the U-point coefficients stepu reads.
+      ! Unlike the velocities these are CONSTANT through the subcycling --
+      ! aiU comes from grid_average_X2Y, fmU from dyn_prep2 and TbU from the
+      ! seabed stress, all before the loop -- so they are packed once and
+      ! never unpacked, and need no halo.  They are indexed from 0 like the
+      ! velocities purely so that pack_to_slots and the dynOff:dynOff+dynCnt
+      ! slicing are the same everywhere; no stencil reads them, so the dead
+      ! slot is never actually addressed.  The block-layout
+      ! originals stay untouched for the consumers that blocked compressing
+      ! them outright: grid_average_X2Y and ice_step_mod read aiU over the
+      ! whole block, and fmU feeds the strcorx/strcory history fields.
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         aiU_slot        , & ! ice fraction on U grid, compressed
+         fmU_slot        , & ! Coriolis parameter * mass in U cell, compressed
+         TbU_slot            ! seabed stress factor (N/m^2), compressed
+
+      ! The dyn_prep2 work arrays, likewise compressed for stepu and likewise
+      ! constant through the subcycling.  The block-layout originals must
+      ! stay: they are handed WHOLE to dyn_evp1d_run, whose gather_dyn calls
+      ! gather_global and needs the block layout.  These are additional
+      ! copies, not a relayout of those arrays -- see the note on their
+      ! dyn_prep2 declarations.
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         umassdti_slot   , & ! mass of U-cell/dt (kg/m^2 s), compressed
+         waterxU_slot    , & ! ocean stress coefficient, x, compressed
+         wateryU_slot    , & ! ocean stress coefficient, y, compressed
+         forcexU_slot    , & ! atm stress + ocn tilt, x, compressed
+         forceyU_slot        ! atm stress + ocn tilt, y, compressed
+
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
          uvel_init       , & ! x-component of velocity (m/s), beginning of timestep
          vvel_init           ! y-component of velocity (m/s), beginning of timestep
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
          uvelN_init      , & ! x-component of velocity (m/s), beginning of timestep
          vvelN_init          ! y-component of velocity (m/s), beginning of timestep
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
          uvelE_init      , & ! x-component of velocity (m/s), beginning of timestep
          vvelE_init          ! y-component of velocity (m/s), beginning of timestep
 
-      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-         iceTmask, &   ! ice extent mask (T-cell)
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      logical (kind=log_kind), dimension (:,:), allocatable, public :: &
          iceUmask, &   ! ice extent mask (U-cell)
          iceNmask, &   ! ice extent mask (N-cell)
          iceEmask      ! ice extent mask (E-cell)
 
-      real (kind=dbl_kind), allocatable, public :: &
-         DminTarea(:,:,:)    ! deltamin * tarea (m^2/s)
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      logical (kind=log_kind), dimension (:,:), allocatable, target, public :: &
+         iceTmask      ! ice extent mask (T-cell)
 
-      real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
+      real (kind=dbl_kind), allocatable, public :: &
+         DminTarea(:,:)      ! deltamin * tarea (m^2/s)
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          cyp    , & ! 1.5*HTE(i,j)-0.5*HTW(i,j) = 1.5*HTE(i,j)-0.5*HTE(i-1,j)
          cxp    , & ! 1.5*HTN(i,j)-0.5*HTS(i,j) = 1.5*HTN(i,j)-0.5*HTN(i,j-1)
          cym    , & ! 0.5*HTE(i,j)-1.5*HTW(i,j) = 0.5*HTE(i,j)-1.5*HTE(i-1,j)
@@ -154,18 +292,30 @@
          module procedure dyn_haloUpdate3
          module procedure dyn_haloUpdate4
          module procedure dyn_haloUpdate5
+         module procedure dyn_haloUpdate1_flat
+         module procedure dyn_haloUpdate2_flat
+         module procedure dyn_haloUpdate3_flat
+         module procedure dyn_haloUpdate4_flat
       end interface
 
       interface stack_fields
+         module procedure stack_fields2_compressed
          module procedure stack_fields2
          module procedure stack_fields3
+         module procedure stack_fields3_flat
+         module procedure stack_fields2_flat
+         module procedure stack_fields4_flat
          module procedure stack_fields4
          module procedure stack_fields5
       end interface
 
       interface unstack_fields
+         module procedure unstack_fields2_compressed
          module procedure unstack_fields2
          module procedure unstack_fields3
+         module procedure unstack_fields3_flat
+         module procedure unstack_fields2_flat
+         module procedure unstack_fields4_flat
          module procedure unstack_fields4
          module procedure unstack_fields5
       end interface
@@ -180,17 +330,76 @@
 !
       subroutine alloc_dyn_shared
 
+      use ice_grid, only: tmask, umask, umaskCD, nmask, emask
+
       integer (int_kind) :: ierr
+
+      ! union of every static mask this run needs, so that one list can serve
+      ! all grid locations
+      logical (kind=log_kind), dimension(:,:), allocatable :: mask_any
 
       character(len=*), parameter :: subname = '(alloc_dyn_shared)'
 
+      ! ------------------------------------------------------------------
+      ! One compressed list for the whole dynamics.  dyn_prep2 is handed
+      ! umask on a B grid and umaskCD on a C/CD grid, so take whichever this
+      ! run will actually use, unioned with the T mask (and with N and E
+      ! where those grids exist).  A shared list is what allows a U-point
+      ! kernel to read a T-point array such as str.
+      ! ------------------------------------------------------------------
+      allocate(mask_any(nx_block*ny_block,max_blocks), &
+               dynOff(max_blocks), dynCnt(max_blocks), &
+               dynMap(nx_block*ny_block,max_blocks), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+
+      if (grid_ice == 'B') then
+         mask_any = tmask .or. umask
+      else
+         mask_any = tmask .or. umaskCD .or. nmask .or. emask
+      endif
+
+      call set_ragged_layout(mask_any, dynOff, dynCnt, dynTot, dynMap)
+      deallocate(mask_any)
+      dynMaxCnt = max(maxval(dynCnt), 1)
+
+      allocate(skipT(dynTot), skipU(dynTot), dynNbr(dynTot,nbr_num), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      skipT = .true.
+      skipU = .true.
+      call set_neighbours(dynMap, dynOff, dynCnt, dynNbr)
+
+      allocate(uvel_slot(0:dynTot), vvel_slot(0:dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      uvel_slot = c0
+      vvel_slot = c0
+
+      allocate(fld2c(0:dynTot,2), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      fld2c = c0
+
+      allocate(aiU_slot(0:dynTot), fmU_slot(0:dynTot), TbU_slot(0:dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      aiU_slot = c0
+      fmU_slot = c0
+      TbU_slot = c0
+
+      allocate(umassdti_slot(0:dynTot), waterxU_slot(0:dynTot), &
+               wateryU_slot(0:dynTot), forcexU_slot(0:dynTot), &
+               forceyU_slot(0:dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      umassdti_slot = c0
+      waterxU_slot  = c0
+      wateryU_slot  = c0
+      forcexU_slot  = c0
+      forceyU_slot  = c0
+
       allocate( &
-         uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
-         vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-         iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
-         iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
-         fcor_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
-         DminTarea (nx_block,ny_block,max_blocks), & !
+         uvel_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
+         vvel_init (dynTot), & ! y-component of velocity (m/s), beginning of timestep
+         iceTmask  (nx_block*ny_block,max_blocks), & ! T mask for dynamics
+         iceUmask  (nx_block*ny_block,max_blocks), & ! U mask for dynamics
+         fcor_blk  (nx_block*ny_block,max_blocks), & ! Coriolis
+         DminTarea (nx_block*ny_block,max_blocks), & !
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -213,10 +422,10 @@
       fld4 = c0
 
       allocate( &
-         cyp(nx_block,ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
-         cxp(nx_block,ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
-         cym(nx_block,ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
-         cxm(nx_block,ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
+         cyp(nx_block*ny_block,max_blocks), & ! 1.5*HTE - 0.5*HTW
+         cxp(nx_block*ny_block,max_blocks), & ! 1.5*HTN - 0.5*HTS
+         cym(nx_block*ny_block,max_blocks), & ! 0.5*HTE - 1.5*HTW
+         cxm(nx_block*ny_block,max_blocks), & ! 0.5*HTN - 1.5*HTS
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -227,8 +436,8 @@
 
       if (grid_ice == 'B' .and. evp_algorithm == "standard_2d") then
          allocate( &
-            dxhy(nx_block,ny_block,max_blocks), & ! 0.5*(HTE - HTW)
-            dyhx(nx_block,ny_block,max_blocks), & ! 0.5*(HTN - HTS)
+            dxhy(nx_block*ny_block,max_blocks), & ! 0.5*(HTE - HTW)
+            dyhx(nx_block*ny_block,max_blocks), & ! 0.5*(HTN - HTS)
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
          dxhy = c0
@@ -236,15 +445,21 @@
       endif
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         ! N and E share the one list; only their activity flags differ
+         allocate(skipN(dynTot), skipE(dynTot), stat=ierr)
+         if (ierr/=0) call abort_ice(subname//': Out of memory')
+         skipN = .true.
+         skipE = .true.
+
          allocate( &
-            uvelE_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
-            vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-            uvelN_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
-            vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-            iceEmask   (nx_block,ny_block,max_blocks), & ! T mask for dynamics
-            iceNmask   (nx_block,ny_block,max_blocks), & ! U mask for dynamics
-            fcorE_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
-            fcorN_blk  (nx_block,ny_block,max_blocks), &   ! Coriolis
+            uvelE_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
+            vvelE_init (dynTot), & ! y-component of velocity (m/s), beginning of timestep
+            uvelN_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
+            vvelN_init (dynTot), & ! y-component of velocity (m/s), beginning of timestep
+            iceEmask   (nx_block*ny_block,max_blocks), & ! T mask for dynamics
+            iceNmask   (nx_block*ny_block,max_blocks), & ! U mask for dynamics
+            fcorE_blk  (nx_block*ny_block,max_blocks), & ! Coriolis
+            fcorN_blk  (nx_block*ny_block,max_blocks), &   ! Coriolis
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
          uvelE_init  = c0
@@ -258,6 +473,229 @@
       endif
 
       end subroutine alloc_dyn_shared
+
+!=======================================================================
+! Build the compressed layout for one grid location from its static mask.
+!
+! Assigns every masked cell of every block a slot that is fixed for the
+! run, and records it in map so that writers iterating over (i,j) can find
+! it.  The whole block is scanned, ghost ring included, because stencil
+! kernels and halo exchanges have to be able to address ghost cells.
+!
+! The mask is static -- makemask sets it once -- so this runs only at
+! allocation and the slot ordering never changes.  That is what allows
+! neighbour index arrays to be precomputed later, the way ice_dyn_evp1d
+! precomputes ee/ne/se/nw/sw/sse against its own static list.
+
+      subroutine set_ragged_layout(mask, off, cnt, total, map)
+
+      use ice_domain, only: nblocks
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      logical (kind=log_kind), dimension(:,:), intent(in) :: &
+         mask               ! static mask selecting the cells to store
+
+      integer (kind=int_kind), dimension(:), intent(out) :: &
+         off            , & ! first slot of each block, minus one
+         cnt                ! number of slots held by each block
+
+      integer (kind=int_kind), intent(out) :: &
+         total              ! total number of slots
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      integer (kind=int_kind), dimension(:,:), intent(out) :: &
+         map                ! block-local slot of each cell, 0 if not stored
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk     ! horizontal and block indices
+
+      character(len=*), parameter :: subname = '(set_ragged_layout)'
+
+      off(:)   = 0
+      cnt(:)   = 0
+      map(:,:) = 0
+
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            if (mask(ij,iblk)) then
+               cnt(iblk)    = cnt(iblk) + 1
+               map(ij,iblk) = cnt(iblk)
+            endif
+         enddo
+         enddo
+      enddo
+
+      ! Each block gets a DEAD SLOT of its own at index off(iblk), never
+      ! assigned to a cell and held at zero.  Kernels are handed the slice
+      ! arr(off(iblk) : off(iblk)+cnt(iblk)) declared dimension(0:), so slice
+      ! element 0 is that dead slot and a missing neighbour needs no branch.
+      ! Without the reservation, slice element 0 would alias the previous
+      ! block's last cell.
+      total = 0
+      do iblk = 1, nblocks
+         off(iblk) = total
+         total = total + cnt(iblk) + 1
+      enddo
+
+      ! a task may legitimately own no masked cells at all; keep the
+      ! allocation non-zero so slicing stays well defined
+      total = max(total, 1)
+
+      end subroutine set_ragged_layout
+
+!=======================================================================
+! Build the neighbour-slot table for one compressed layout.
+!
+! For every stored cell, records the BLOCK-LOCAL slot of its neighbour in
+! each of the six directions the 1d kernels use, or 0 where that neighbour
+! lies outside the block or is not in the static mask.  The row is indexed
+! by global slot, so a per-block slice of the table is indexed 1:dynCnt and
+! its values are in the same 1:dynCnt range -- both sides block-local, which
+! is what the kernels receive.
+!
+! Neighbours are resolved in (i,j) and then mapped, never by arithmetic on
+! the flat index: ijb+1 at i = nx_block would silently wrap onto the first
+! cell of the next row.  Bounds are therefore checked per direction.
+!
+! A neighbour always belongs to the same block, so its slot lies inside that
+! block's contiguous range.  Ghost cells carry slots of their own, which is
+! why the layout includes the ghost ring; a halo update refreshes them
+! between subcycles exactly as it does in the block layout.
+
+      subroutine set_neighbours(map, off, cnt, nbr)
+
+      use ice_domain, only: nblocks
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      integer (kind=int_kind), dimension(:,:), intent(in) :: &
+         map                ! block-local slot of each cell, 0 if not stored
+
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         off            , & ! first slot of each block, minus one
+         cnt                ! number of slots held by each block
+
+      integer (kind=int_kind), dimension(:,:), intent(out) :: &
+         nbr                ! (slot, direction) -> neighbour slot, 0 if none
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk , & ! horizontal and block indices
+         is             , & ! slot of the cell being filled
+         d                  ! direction
+
+      integer (kind=int_kind), dimension(nbr_num) :: &
+         di, dj             ! offset of each direction
+
+      integer (kind=int_kind) :: &
+         ii, jj             ! neighbour cell indices
+
+      character(len=*), parameter :: subname = '(set_neighbours)'
+
+      di(nbr_W ) = -1 ; dj(nbr_W ) =  0
+      di(nbr_SW) = -1 ; dj(nbr_SW) = -1
+      di(nbr_S ) =  0 ; dj(nbr_S ) = -1
+      di(nbr_E ) = +1 ; dj(nbr_E ) =  0
+      di(nbr_NE) = +1 ; dj(nbr_NE) = +1
+      di(nbr_N ) =  0 ; dj(nbr_N ) = +1
+
+      nbr(:,:) = 0
+
+      do iblk = 1, nblocks
+         if (cnt(iblk) == 0) cycle
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            if (map(ij,iblk) == 0) cycle
+            is = off(iblk) + map(ij,iblk)
+
+            do d = 1, nbr_num
+               ii = i + di(d)
+               jj = j + dj(d)
+               if (ii < 1 .or. ii > nx_block) cycle
+               if (jj < 1 .or. jj > ny_block) cycle
+               if (map((jj-1)*nx_block + ii, iblk) == 0) cycle
+               ! store the BLOCK-LOCAL slot: a neighbour never leaves its own
+               ! block, and block-local values compose with the per-block
+               ! slices the kernels are handed
+               nbr(is,d) = map((jj-1)*nx_block + ii, iblk)
+            enddo
+         enddo
+         enddo
+      enddo
+
+      end subroutine set_neighbours
+
+!=======================================================================
+! Pack one block of a block-layout field into its compressed slots.
+!
+! Cells outside the static mask have no slot and are dropped; they carry no
+! information the dynamics uses.  The block's dead slot is zeroed so that a
+! missing-neighbour lookup reads zero.
+
+      subroutine pack_to_slots(arr, map, comp)
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
+         arr                ! one block in the block layout
+
+      ! flattened: element (i,j) is at (j-1)*nx_block + i
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         map                ! block-local slot of each cell, 0 if not stored
+
+      ! this block's slice, so element 0 is the block's dead slot
+      real (kind=dbl_kind), dimension(0:), intent(inout) :: &
+         comp               ! compressed values
+
+      integer (kind=int_kind) :: i, j, m
+
+      character(len=*), parameter :: subname = '(pack_to_slots)'
+
+      comp(0) = c0
+      do j = 1, ny_block
+      do i = 1, nx_block
+         m = map((j-1)*nx_block + i)
+         if (m > 0) comp(m) = arr(i,j)
+      enddo
+      enddo
+
+      end subroutine pack_to_slots
+
+!=======================================================================
+! Scatter one block's compressed slots back into the block layout.
+!
+! Cells with no slot are left untouched: they were never part of the
+! compressed field, and in the block layout they hold whatever the masked-out
+! initialisation left there.
+
+      subroutine unpack_from_slots(comp, map, arr)
+
+      ! this block's slice, so element 0 is the block's dead slot
+      real (kind=dbl_kind), dimension(0:), intent(in) :: &
+         comp               ! compressed values
+
+      ! flattened: element (i,j) is at (j-1)*nx_block + i
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         map                ! block-local slot of each cell, 0 if not stored
+
+      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
+         arr                ! one block in the block layout
+
+      integer (kind=int_kind) :: i, j, m
+
+      character(len=*), parameter :: subname = '(unpack_from_slots)'
+
+      do j = 1, ny_block
+      do i = 1, nx_block
+         m = map((j-1)*nx_block + i)
+         if (m > 0) arr(i,j) = comp(m)
+      enddo
+      enddo
+
+      end subroutine unpack_from_slots
 
 !=======================================================================
 ! Initialize parameters and variables needed for the dynamics
@@ -285,6 +723,8 @@
 
       integer (kind=int_kind) :: &
          i, j  ,             & ! indices
+         ij    ,             & ! 1D index of (i,j) in the block
+         ijb   ,             & ! 1D index of (i,j) in the flattened block layout
          ilo, ihi, jlo, jhi, & !min and max index for interior of blocks
          nprocs,             & ! number of processors
          iblk                  ! block index
@@ -316,10 +756,12 @@
          write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
       endif
 
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
+
+         ij = (j-1)*nx_block + i
 
          ! velocity
          uvel(i,j,iblk) = c0    ! m/s
@@ -334,62 +776,62 @@
 
          ! Coriolis parameter
          if (trim(coriolis) == 'constant') then
-            fcor_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+            fcor_blk(ij,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
          else if (trim(coriolis) == 'zero') then
-            fcor_blk(i,j,iblk) = c0
+            fcor_blk(ij,iblk) = c0
          else
-            fcor_blk(i,j,iblk) = c2*omega*sin(ULAT(i,j,iblk)) ! 1/s
+            fcor_blk(ij,iblk) = c2*omega*sin(ULAT(ij,iblk)) ! 1/s
          endif
 
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
             if (trim(coriolis) == 'constant') then
-               fcorE_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
-               fcorN_blk(i,j,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+               fcorE_blk(ij,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
+               fcorN_blk(ij,iblk) = 1.46e-4_dbl_kind ! Hibler 1979, N. Hem; 1/s
             else if (trim(coriolis) == 'zero') then
-               fcorE_blk(i,j,iblk) = c0
-               fcorN_blk(i,j,iblk) = c0
+               fcorE_blk(ij,iblk) = c0
+               fcorN_blk(ij,iblk) = c0
             else
-               fcorE_blk(i,j,iblk) = c2*omega*sin(ELAT(i,j,iblk)) ! 1/s
-               fcorN_blk(i,j,iblk) = c2*omega*sin(NLAT(i,j,iblk)) ! 1/s
+               fcorE_blk(ij,iblk) = c2*omega*sin(ELAT(ij,iblk)) ! 1/s
+               fcorN_blk(ij,iblk) = c2*omega*sin(NLAT(ij,iblk)) ! 1/s
             endif
 
          endif
 
          ! stress tensor,  kg/s^2
-         stressp_1 (i,j,iblk) = c0
-         stressp_2 (i,j,iblk) = c0
-         stressp_3 (i,j,iblk) = c0
-         stressp_4 (i,j,iblk) = c0
-         stressm_1 (i,j,iblk) = c0
-         stressm_2 (i,j,iblk) = c0
-         stressm_3 (i,j,iblk) = c0
-         stressm_4 (i,j,iblk) = c0
-         stress12_1(i,j,iblk) = c0
-         stress12_2(i,j,iblk) = c0
-         stress12_3(i,j,iblk) = c0
-         stress12_4(i,j,iblk) = c0
+         stressp_1 (ij,iblk) = c0
+         stressp_2 (ij,iblk) = c0
+         stressp_3 (ij,iblk) = c0
+         stressp_4 (ij,iblk) = c0
+         stressm_1 (ij,iblk) = c0
+         stressm_2 (ij,iblk) = c0
+         stressm_3 (ij,iblk) = c0
+         stressm_4 (ij,iblk) = c0
+         stress12_1(ij,iblk) = c0
+         stress12_2(ij,iblk) = c0
+         stress12_3(ij,iblk) = c0
+         stress12_4(ij,iblk) = c0
 
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
-            stresspT  (i,j,iblk) = c0
-            stressmT  (i,j,iblk) = c0
-            stress12T (i,j,iblk) = c0
-            stresspU  (i,j,iblk) = c0
-            stressmU  (i,j,iblk) = c0
-            stress12U (i,j,iblk) = c0
+            stresspT  (ij,iblk) = c0
+            stressmT  (ij,iblk) = c0
+            stress12T (ij,iblk) = c0
+            stresspU  (ij,iblk) = c0
+            stressmU  (ij,iblk) = c0
+            stress12U (ij,iblk) = c0
          endif
 
          if (kdyn == 1) then
-            DminTarea(i,j,iblk) = deltaminEVP*tarea(i,j,iblk)
+            DminTarea(ij,iblk) = deltaminEVP*tarea((j-1)*nx_block+i,iblk)
          elseif (kdyn == 3) then
-            DminTarea(i,j,iblk) = deltaminVP*tarea(i,j,iblk)
+            DminTarea(ij,iblk) = deltaminVP*tarea((j-1)*nx_block+i,iblk)
          endif
 
          ! ice extent mask on velocity points
-         iceUmask(i,j,iblk) = .false.
+         iceUmask(ij,iblk) = .false.
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
-            iceEmask(i,j,iblk) = .false.
-            iceNmask(i,j,iblk) = .false.
+            iceEmask(ij,iblk) = .false.
+            iceNmask(ij,iblk) = .false.
          end if
       enddo                     ! i
       enddo                     ! j
@@ -406,8 +848,8 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               dxhy(i,j,iblk) = p5*(HTE(i,j,iblk) - HTE(i-1,j,iblk))
-               dyhx(i,j,iblk) = p5*(HTN(i,j,iblk) - HTN(i,j-1,iblk))
+               dxhy((j-1)*nx_block+i,iblk) = p5*(HTE((j-1)*nx_block+i,iblk) - HTE((j-1)*nx_block+i-1,iblk))
+               dyhx((j-1)*nx_block+i,iblk) = p5*(HTN((j-1)*nx_block+i,iblk) - HTN((j-2)*nx_block+i,iblk))
             enddo
             enddo
          enddo
@@ -429,11 +871,12 @@
         jhi = this_block%jhi
         do j = jlo, jhi+1
         do i = ilo, ihi+1
-           cyp(i,j,iblk) = (c1p5*HTE(i,j,iblk) - p5*HTE(i-1,j,iblk))
-           cxp(i,j,iblk) = (c1p5*HTN(i,j,iblk) - p5*HTN(i,j-1,iblk))
+           ijb = (j-1)*nx_block + i
+           cyp(ijb,iblk) = (c1p5*HTE(ijb,iblk) - p5*HTE(ijb-1,iblk))
+           cxp(ijb,iblk) = (c1p5*HTN(ijb,iblk) - p5*HTN(ijb-nx_block,iblk))
             ! match order of operations in cyp, cxp for tripole grids
-           cym(i,j,iblk) = -(c1p5*HTE(i-1,j,iblk) - p5*HTE(i,j,iblk))
-           cxm(i,j,iblk) = -(c1p5*HTN(i,j-1,iblk) - p5*HTN(i,j,iblk))
+           cym(ijb,iblk) = -(c1p5*HTE(ijb-1,iblk) - p5*HTE(ijb,iblk))
+           cxm(ijb,iblk) = -(c1p5*HTN(ijb-nx_block,iblk) - p5*HTN(ijb,iblk))
         enddo
         enddo
      enddo
@@ -501,29 +944,37 @@
          nx_block, ny_block, & ! block dimensions
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! all array arguments are assumed shape, so the actual arguments must be
+      ! array sections of the right rank: (nx_block,ny_block) for the rank-2
+      ! inputs and (nx_block*ny_block) for the flattened arguments, the latter
+      ! in Fortran storage order so that element (i,j) is stored at
+      ! (j-1)*nx_block+i
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
          aice    , & ! concentration of ice
          vice    , & ! volume per unit area of ice          (m)
          vsno        ! volume per unit area of snow         (m)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
+      logical (kind=log_kind), dimension (:), intent(in) :: &
          Tmask       ! land/boundary mask, thickness (T-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
          Tmass       ! total mass of ice and snow (kg/m^2)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(out) :: &
+      logical (kind=log_kind), dimension (:), intent(out) :: &
          iceTmask    ! ice extent mask (T-cell)
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j
+         i, j, ij       , & ! i, j and the matching 1D index into the block
+         ijsub          , & ! 1D index over the physical domain only
+         nisub, njsub       ! i and j extent of the physical domain
 
       real (kind=dbl_kind) :: &
          rhoi, rhos
 
-      logical (kind=log_kind), dimension(nx_block,ny_block) :: &
+      logical (kind=log_kind), dimension(nx_block*ny_block) :: &
          tmphm               ! temporary mask
 
       character(len=*), parameter :: subname = '(dyn_prep1)'
@@ -533,47 +984,56 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do j = 1, ny_block
-      do i = 1, nx_block
+      ! whole block, ghost cells included
+      do ij = 1, nx_block*ny_block
+
+         j = (ij-1)/nx_block + 1
+         i = ij - (j-1)*nx_block
 
          !-----------------------------------------------------------------
          ! total mass of ice and snow, centered in T-cell
          ! NOTE: vice and vsno must be up to date in all grid cells,
          !       including ghost cells
          !-----------------------------------------------------------------
-         if (Tmask(i,j)) then
-            Tmass(i,j) = (rhoi*vice(i,j) + rhos*vsno(i,j)) ! kg/m^2
+         if (Tmask(ij)) then
+            Tmass(ij) = (rhoi*vice(i,j) + rhos*vsno(i,j)) ! kg/m^2
          else
-            Tmass(i,j) = c0
+            Tmass(ij) = c0
          endif
 
          !-----------------------------------------------------------------
          ! ice extent mask (T-cells)
          !-----------------------------------------------------------------
-         tmphm(i,j) = Tmask(i,j) .and. (aice (i,j) > dyn_area_min) &
-                                 .and. (Tmass(i,j) > dyn_mass_min)
+         tmphm(ij) = Tmask(ij) .and. (aice (i,j) > dyn_area_min) &
+                                .and. (Tmass(ij)  > dyn_mass_min)
 
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
          !-----------------------------------------------------------------
-         iceTmask (i,j) = .false.
+         iceTmask (ij) = .false.
 
       enddo
-      enddo
 
-      do j = jlo, jhi
-      do i = ilo, ihi
+      ! physical domain only: ilo:ihi within 1:nx_block, jlo:jhi within 1:ny_block,
+      ! so ijsub runs over the subdomain and ij is its index in the full block
+      nisub = ihi - ilo + 1
+      njsub = jhi - jlo + 1
+
+      do ijsub = 1, nisub*njsub
+
+         j  = (ijsub-1)/nisub + jlo
+         i  = ijsub - (j-jlo)*nisub + ilo - 1
+         ij = (j-1)*nx_block + i
 
          ! extend ice extent mask (T-cells) to points around pack
-         if (tmphm(i-1,j+1) .or. tmphm(i,j+1) .or. tmphm(i+1,j+1) .or. &
-             tmphm(i-1,j)   .or. tmphm(i,j)   .or. tmphm(i+1,j)   .or. &
-             tmphm(i-1,j-1) .or. tmphm(i,j-1) .or. tmphm(i+1,j-1) ) then
-            iceTmask(i,j) = .true.
+         if (tmphm(ij+nx_block-1) .or. tmphm(ij+nx_block) .or. tmphm(ij+nx_block+1) .or. &
+             tmphm(ij-1)          .or. tmphm(ij)          .or. tmphm(ij+1)          .or. &
+             tmphm(ij-nx_block-1) .or. tmphm(ij-nx_block) .or. tmphm(ij-nx_block+1) ) then
+            iceTmask(ij) = .true.
          endif
 
-         if (.not.Tmask(i,j)) iceTmask(i,j) = .false.
+         if (.not.Tmask(ij)) iceTmask(ij) = .false.
 
-      enddo
       enddo
 
       end subroutine dyn_prep1
@@ -615,6 +1075,7 @@
                             stress12_3, stress12_4, &
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
+                            Xmap,       skipX,      &
                             TbU,        rheofactX)
 
       integer (kind=int_kind), intent(in) :: &
@@ -631,19 +1092,29 @@
          indxXi  , & ! compressed index in i-direction on X grid, grid depends on call
          indxXj      ! compressed index in j-direction
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! Xmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(in) :: &
          Xmask       ! land/boundary mask, thickness (X-grid-cell)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! iceTmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(in) :: &
          iceTmask    ! ice extent mask (T-cell)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! iceXmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(inout) :: &
          iceXmask    ! ice extent mask (X-grid-cell)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! Xmass and Xmassdti are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
          aiX     , & ! ice fraction on u-grid (X grid)
          Xmass   , & ! total mass of ice and snow (X grid)
-         fcor    , & ! Coriolis parameter (1/s)
+         fcor        ! Coriolis parameter (1/s)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          strairx , & ! stress on ice by air, x-direction
          strairy , & ! stress on ice by air, y-direction
          uocn    , & ! ocean current, x-direction (m/s)
@@ -654,15 +1125,25 @@
       real (kind=dbl_kind), intent(in) :: &
          dt          ! time step
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
-         TbU,      & ! seabed stress factor (N/m^2)
+      ! uvel_init and vvel_init are COMPRESSED: cell ij of this block lives at
+      ! slot Xmap(ij), see the layout description in this module's header
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
          uvel_init,& ! x-component of velocity (m/s), beginning of time step
-         vvel_init,& ! y-component of velocity (m/s), beginning of time step
-         Xmassdti, & ! mass of X-grid-cell/dt (kg/m^2 s)
-         waterx  , & ! for ocean stress calculation, x (m/s)
-         watery  , & ! for ocean stress calculation, y (m/s)
-         forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey      ! work array: combined atm stress and ocn tilt, y
+         vvel_init   ! y-component of velocity (m/s), beginning of time step
+
+      ! Xmap is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is at (j-1)*nx_block+i, holding that cell's static
+      ! compressed slot, or 0 if the cell is not in the static mask
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap        ! static compressed slot of each cell
+
+      ! skipX runs over this block's compressed slots: .true. where the slot
+      ! carries no ice this step, so the kernels leave it alone
+      logical (kind=log_kind), dimension (:), intent(out) :: &
+         skipX       ! inactive-slot flag
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+         TbU         ! seabed stress factor (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
@@ -676,18 +1157,37 @@
          strocnx , & ! ice-ocean stress, x-direction
          strocny , & ! ice-ocean stress, y-direction
          strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         strinty     ! divergence of internal ice stress, y (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), &
            optional :: &
          rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
 
+      ! These five are in the BLOCK layout -- 1D over the block in Fortran
+      ! storage order, element (i,j) at (j-1)*nx_block+i -- and must stay that
+      ! way.  They are handed WHOLE to dyn_evp1d_run, whose gather_dyn calls
+      ! gather_global and so requires the block layout.  Index THESE with ijb,
+      ! never with a slot: they are allocated nx_block*ny_block in both evp and
+      ! vp, so writing them at a compressed slot instead is in bounds and the
+      ! compiler cannot see it -- it just puts every value at the wrong cell.
+      ! That was the fff0dcd bug.
+      !
+      ! stepu does read them by slot, but through the separate umassdti_slot /
+      ! waterxU_slot / wateryU_slot / forcexU_slot / forceyU_slot copies packed
+      ! after this routine returns.  Those are additional arrays; they do not
+      ! relayout these, and gather_dyn keeps seeing the block layout.
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
+         Xmassdti, & ! mass of X-grid-cell/dt (kg/m^2 s)
+         waterx  , & ! for ocean stress calculation, x (m/s)
+         watery  , & ! for ocean stress calculation, y (m/s)
+         forcex  , & ! work array: combined atm stress and ocn tilt, x
+         forcey      ! work array: combined atm stress and ocn tilt, y
+
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind) :: &
          gravit
@@ -695,24 +1195,35 @@
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceXmask_old      ! old-time iceXmask
 
+      ! taubx and tauby are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
       character(len=*), parameter :: subname = '(dyn_prep2)'
 
       !-----------------------------------------------------------------
       ! Initialize
       !-----------------------------------------------------------------
 
+      ! compressed arrays are cleared over their own extent; every slot starts
+      ! inactive and is switched on below only where there is ice
+      waterx   (:) = c0
+      watery   (:) = c0
+      forcex   (:) = c0
+      forcey   (:) = c0
+      Xmassdti (:) = c0
+      skipX    (:) = .true.
+
       do j = 1, ny_block
       do i = 1, nx_block
-         waterx   (i,j) = c0
-         watery   (i,j) = c0
-         forcex   (i,j) = c0
-         forcey   (i,j) = c0
-         Xmassdti (i,j) = c0
+         ijb = (j-1)*nx_block + i
          TbU      (i,j) = c0
-         taubx    (i,j) = c0
-         tauby    (i,j) = c0
+         taubx    (ijb) = c0
+         tauby    (ijb) = c0
 
-         if (.not.iceTmask(i,j)) then
+         if (.not.iceTmask(ijb)) then
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -738,7 +1249,8 @@
       icellT = 0
       do j = jlo, jhi+1
       do i = ilo, ihi+1
-         if (iceTmask(i,j)) then
+         ijb = (j-1)*nx_block + i
+         if (iceTmask(ijb)) then
             icellT = icellT + 1
             indxTi(icellT) = i
             indxTj(icellT) = j
@@ -756,12 +1268,13 @@
 
       do j = jlo, jhi
       do i = ilo, ihi
-         iceXmask_old(i,j) = iceXmask(i,j) ! save
+         ijb = (j-1)*nx_block + i
+         iceXmask_old(i,j) = iceXmask(ijb) ! save
          ! ice extent mask (U-cells)
-         iceXmask(i,j) = (Xmask(i,j)) .and. (aiX  (i,j) > dyn_area_min) &
-                                      .and. (Xmass(i,j) > dyn_mass_min)
+         iceXmask(ijb) = (Xmask(ijb)) .and. (aiX  (ijb) > dyn_area_min) &
+                                      .and. (Xmass(ijb) > dyn_mass_min)
 
-         if (iceXmask(i,j)) then
+         if (iceXmask(ijb)) then
             icellX = icellX + 1
             indxXi(icellX) = i
             indxXj(icellX) = j
@@ -771,6 +1284,11 @@
                uvel(i,j) = uocn(i,j)
                vvel(i,j) = vocn(i,j)
             endif
+
+            ! compressed: this cell owns slot Xmap(ijb) for the whole run
+            uvel_init(Xmap(ijb)) = uvel(i,j)
+            vvel_init(Xmap(ijb)) = vvel(i,j)
+            skipX    (Xmap(ijb)) = .false.
          else
             ! set velocity and stresses to zero for masked-out points
             uvel(i,j)    = c0
@@ -781,8 +1299,6 @@
             strocny(i,j) = c0
          endif
 
-         uvel_init(i,j) = uvel(i,j)
-         vvel_init(i,j) = vvel(i,j)
       enddo
       enddo
 
@@ -800,22 +1316,23 @@
       do ij = 1, icellX
          i = indxXi(ij)
          j = indxXj(ij)
+         ijb = (j-1)*nx_block + i
 
          if (present(rheofactX)) then
-            if ( aiX (i,j) > rheo_area_min ) then
+            if ( aiX (ijb) > rheo_area_min ) then
                rheofactX(i,j) = c1
             else
                rheofactX(i,j) = c0
             endif
          endif
 
-         Xmassdti(i,j) = Xmass(i,j)/dt ! kg/m^2 s
+         Xmassdti(ijb) = Xmass(ijb)/dt ! kg/m^2 s
 
-         fm(i,j) = fcor(i,j)*Xmass(i,j)   ! Coriolis * mass
+         fm(i,j) = fcor(ijb)*Xmass(ijb)   ! Coriolis * mass
 
          ! for ocean stress
-         waterx(i,j) = uocn(i,j)*cosw - vocn(i,j)*sinw*sign(c1,fm(i,j))
-         watery(i,j) = vocn(i,j)*cosw + uocn(i,j)*sinw*sign(c1,fm(i,j))
+         waterx(ijb) = uocn(i,j)*cosw - vocn(i,j)*sinw*sign(c1,fm(i,j))
+         watery(ijb) = vocn(i,j)*cosw + uocn(i,j)*sinw*sign(c1,fm(i,j))
 
          ! combine tilt with wind stress
          if (trim(ssh_stress) == 'geostrophic') then
@@ -823,15 +1340,15 @@
             strtltx(i,j) = -fm(i,j)*vocn(i,j)
             strtlty(i,j) =  fm(i,j)*uocn(i,j)
          elseif (trim(ssh_stress) == 'coupled') then
-            strtltx(i,j) = -gravit*Xmass(i,j)*ss_tltx(i,j)
-            strtlty(i,j) = -gravit*Xmass(i,j)*ss_tlty(i,j)
+            strtltx(i,j) = -gravit*Xmass(ijb)*ss_tltx(i,j)
+            strtlty(i,j) = -gravit*Xmass(ijb)*ss_tlty(i,j)
          else
             call abort_ice(subname//' ERROR: unknown ssh_stress='//trim(ssh_stress), &
                file=__FILE__, line=__LINE__)
          endif
 
-         forcex(i,j) = strairx(i,j) + strtltx(i,j)
-         forcey(i,j) = strairy(i,j) + strtlty(i,j)
+         forcex(ijb) = strairx(i,j) + strtltx(i,j)
+         forcey(ijb) = strairy(i,j) + strtlty(i,j)
       enddo
 
       end subroutine dyn_prep2
@@ -855,6 +1372,7 @@
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
+                        Xmap,       nbr,      &
                         TbU)
 
       integer (kind=int_kind), intent(in) :: &
@@ -865,33 +1383,49 @@
          indxUi  , & ! compressed index in i-direction
          indxUj      ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         TbU,      & ! seabed stress factor (N/m^2)
-         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
+      ! aiX, fm and TbU are COMPRESSED: this block's slice, indexed from 0 to
+      ! match the velocities.  They are constant through the subcycling, so
+      ! the caller packs them once before the loop.
+      real (kind=dbl_kind), dimension (0:), intent(in) :: &
          aiX     , & ! ice fraction on X-grid
+         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
+         TbU     , & ! seabed stress factor (N/m^2)
+         Umassdti, & ! mass of U-cell/dt (kg/m^2 s)
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey  , & ! work array: combined atm stress and ocn tilt, y
-         Umassdti, & ! mass of U-cell/dt (kg/m^2 s)
-         uocn    , & ! ocean current, x-direction (m/s)
-         vocn    , & ! ocean current, y-direction (m/s)
-         fm      , & ! Coriolis param. * mass in U-cell (kg/s)
+         forcey      ! work array: combined atm stress and ocn tilt, y
+
+      ! uvel_init/vvel_init are compressed but indexed from 1; uarear is a
+      ! grid array in the block layout, read at ijb
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
+         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uocn    , & ! ocean current, x-direction (m/s)
+         vocn        ! ocean current, y-direction (m/s)
+
+      ! str is COMPRESSED and indexed by BLOCK-LOCAL slot.  Element 0 is the
+      ! "no such neighbour" slot and is held at zero, which is what the block
+      ! layout carried at land points, so the stencil below needs no branch.
+      real (kind=dbl_kind), dimension(0:,:), intent(in) :: &
          str         ! temporary
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! nbr(is,d) is the block-local slot one step in direction d from slot is
+      integer (kind=int_kind), dimension(:,:), intent(in) :: &
+         nbr         ! neighbour slots
+
+      ! uvel and vvel are COMPRESSED: this block's slice, indexed from 0 so
+      ! element 0 is the block's dead slot
+      real (kind=dbl_kind), dimension (0:), intent(inout) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
          strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         strinty     ! divergence of internal ice stress, y (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Cw          ! ocean-ice neutral drag coefficient
@@ -899,7 +1433,9 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij          , & ! ij is the compressed cell counter
+         ijb                 , & ! 1D index of (i,j) in the block
+         is                      ! compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
          uold, vold        , & ! old-time uvel, vvel
@@ -908,6 +1444,18 @@
          taux, tauy        , & ! part of ocean stress term
          Cb                , & ! complete seabed (basal) stress coeff
          rhow                  !
+
+      ! taubx and tauby are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
+      ! Xmap is 1D over the block in Fortran storage order and holds each
+      ! cell's static compressed slot; the compressed arrays above are
+      ! addressed through it
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepu)'
 
@@ -923,44 +1471,51 @@
       do ij =1, icellU
          i = indxUi(ij)
          j = indxUj(ij)
+         ijb = (j-1)*nx_block + i
+         is  = Xmap(ijb)
 
-         uold = uvel(i,j)
-         vold = vvel(i,j)
+         uold = uvel(is)
+         vold = vvel(is)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(is)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(i,j) ! NOTE this is not the entire
-         tauy = vrel*watery(i,j) ! ocn stress term
+         taux = vrel*waterx(is) ! NOTE this is not the entire
+         tauy = vrel*watery(is) ! ocn stress term
 
-         Cb  = TbU(i,j) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
+         Cb  = TbU(is) / (sqrt(uold**2 + vold**2) + u0) ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*Umassdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*Umassdti(is) + vrel * cosw + Cb ! kg/m^2 s
 
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+         ccb = fm(is) + sign(c1,fm(is)) * vrel * sinw ! kg/m^2 s
 
          ab2 = cca**2 + ccb**2
 
          ! divergence of the internal stress tensor
-         strintx(i,j) = uarear(i,j)* &
-             (str(i,j,1) + str(i+1,j,2) + str(i,j+1,3) + str(i+1,j+1,4))
-         strinty(i,j) = uarear(i,j)* &
-             (str(i,j,5) + str(i,j+1,6) + str(i+1,j,7) + str(i+1,j+1,8))
+         ! sum over the four T cells around this U point: (0,0), (+1,0),
+         ! (0,+1), (+1,+1).  A missing neighbour resolves to slot 0, which
+         ! holds zero, matching what the block layout held at land.
+         strintx(i,j) = uarear(ijb)* &
+             (str(is             ,1) + str(nbr(is,nbr_E) ,2)  &
+            + str(nbr(is,nbr_N),3) + str(nbr(is,nbr_NE),4))
+         strinty(i,j) = uarear(ijb)* &
+             (str(is             ,5) + str(nbr(is,nbr_N) ,6)  &
+            + str(nbr(is,nbr_E),7) + str(nbr(is,nbr_NE),8))
 
          ! finally, the velocity components
-         cc1 = strintx(i,j) + forcex(i,j) + taux &
-             + Umassdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
-         cc2 = strinty(i,j) + forcey(i,j) + tauy &
-             + Umassdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+         cc1 = strintx(i,j) + forcex(is) + taux &
+             + Umassdti(is)*(brlx*uold + revp*uvel_init(is))
+         cc2 = strinty(i,j) + forcey(is) + tauy &
+             + Umassdti(is)*(brlx*vold + revp*vvel_init(is))
 
-         uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
-         vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
+         uvel(is) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
+         vvel(is) = (cca*cc2 - ccb*cc1) / ab2
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         taubx(i,j) = -uvel(i,j)*Cb
-         tauby(i,j) = -vvel(i,j)*Cb
+         taubx(ijb) = -uvel(is)*Cb
+         tauby(ijb) = -vvel(is)*Cb
       enddo                     ! ij
 
       end subroutine stepu
@@ -980,6 +1535,7 @@
                             taubx,      tauby,    &
                             uvel_init,  vvel_init,&
                             uvel,       vvel,     &
+                            Xmap,                 &
                             Tb)
 
       integer (kind=int_kind), intent(in) :: &
@@ -990,16 +1546,20 @@
          indxi   , & ! compressed index in i-direction
          indxj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Tb,       & ! seabed stress factor (N/m^2)
+      ! aiX and massdti are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         aiX     , & ! ice fraction on X-grid
+         massdti , & ! mass of [EN]-cell/dt (kg/m^2 s)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiX     , & ! ice fraction on X-grid
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey  , & ! work array: combined atm stress and ocn tilt, y
-         massdti , & ! mass of [EN]-cell/dt (kg/m^2 s)
+         forcey      ! work array: combined atm stress and ocn tilt, y
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         Tb,       & ! seabed stress factor (N/m^2)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in [EN]-cell (kg/s)
@@ -1010,17 +1570,15 @@
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
-
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Cw          ! ocean-ice neutral drag coefficient
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb              , & ! 1D index of (i,j) in the block
+         is                   ! compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1030,6 +1588,18 @@
          taux, tauy         , & ! part of ocean stress term
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
+
+      ! taubx and tauby are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
+         taubx   , & ! seabed stress, x-direction (N/m^2)
+         tauby       ! seabed stress, y-direction (N/m^2)
+
+      ! Xmap is 1D over the block in Fortran storage order and holds each
+      ! cell's static compressed slot; the compressed arrays above are
+      ! addressed through it
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepuv_CD)'
 
@@ -1046,37 +1616,40 @@
          i = indxi(ij)
          j = indxj(ij)
 
+         ijb = (j-1)*nx_block + i
+         is  = Xmap(ijb)
+
          uold = uvel(i,j)
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiX(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(i,j) ! NOTE this is not the entire
-         tauy = vrel*watery(i,j) ! ocn stress term
+         taux = vrel*waterx(ijb) ! NOTE this is not the entire
+         tauy = vrel*watery(ijb) ! ocn stress term
 
          ccc = sqrt(uold**2 + vold**2) + u0
          Cb  = Tb(i,j) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
 
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
          ab2 = cca**2 + ccb**2
 
          ! compute the velocity components
-         cc1 = strintx(i,j) + forcex(i,j) + taux &
-             + massdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
-         cc2 = strinty(i,j) + forcey(i,j) + tauy &
-             + massdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+         cc1 = strintx(i,j) + forcex(ijb) + taux &
+             + massdti(ijb)*(brlx*uold + revp*uvel_init(is))
+         cc2 = strinty(i,j) + forcey(ijb) + tauy &
+             + massdti(ijb)*(brlx*vold + revp*vvel_init(is))
          uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         taubx(i,j) = -uvel(i,j)*Cb
-         tauby(i,j) = -vvel(i,j)*Cb
+         taubx(ijb) = -uvel(i,j)*Cb
+         tauby(ijb) = -vvel(i,j)*Cb
 
       enddo                     ! ij
 
@@ -1095,6 +1668,7 @@
                           strintx,    taubx,    &
                           uvel_init,            &
                           uvel,       vvel,     &
+                          Xmap,                 &
                           Tb)
 
       integer (kind=int_kind), intent(in) :: &
@@ -1105,13 +1679,17 @@
          indxi   , & ! compressed index in i-direction
          indxj       ! compressed index in j-direction
 
+      ! aiE and massdti are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         aiE     , & ! ice fraction on E-grid
+         massdti , & ! mass of e-cell/dt (kg/m^2 s)
+         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
+         waterx  , & ! for ocean stress calculation, x (m/s)
+         forcex      ! work array: combined atm stress and ocn tilt, x
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
-         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         aiE     , & ! ice fraction on E-grid
-         waterx  , & ! for ocean stress calculation, x (m/s)
-         forcex  , & ! work array: combined atm stress and ocn tilt, x
-         massdti , & ! mass of e-cell/dt (kg/m^2 s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in e-cell (kg/s)
@@ -1119,14 +1697,20 @@
          Cw      , & ! ocean-ice neutral drag coefficient
          vvel        ! y-component of velocity (m/s) interpolated to E location
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         uvel    , & ! x-component of velocity (m/s)
+      ! taubx is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
          taubx       ! seabed stress, x-direction (N/m^2)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         uvel        ! x-component of velocity (m/s)
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb              , & ! 1D index of (i,j) in the block
+         is                   ! compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1135,6 +1719,12 @@
          taux               , & ! part of ocean stress term
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
+
+      ! Xmap is 1D over the block in Fortran storage order and holds each
+      ! cell's static compressed slot; the compressed arrays above are
+      ! addressed through it
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepu_C)'
 
@@ -1151,31 +1741,34 @@
          i = indxi(ij)
          j = indxj(ij)
 
+         ijb = (j-1)*nx_block + i
+         is  = Xmap(ijb)
+
          uold = uvel(i,j)
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiE(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiE(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(i,j) ! NOTE this is not the entire
+         taux = vrel*waterx(ijb) ! NOTE this is not the entire
 
          ccc = sqrt(uold**2 + vold**2) + u0
          Cb  = Tb(i,j) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
 
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
          ! compute the velocity components
-         cc1 = strintx(i,j) + forcex(i,j) + taux &
-             + massdti(i,j)*(brlx*uold + revp*uvel_init(i,j))
+         cc1 = strintx(i,j) + forcex(ijb) + taux &
+             + massdti(ijb)*(brlx*uold + revp*uvel_init(is))
 
          uvel(i,j) = (ccb*vold + cc1) / cca ! m/s
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         taubx(i,j) = -uvel(i,j)*Cb
+         taubx(ijb) = -uvel(i,j)*Cb
 
       enddo                     ! ij
 
@@ -1194,6 +1787,7 @@
                           strinty,    tauby,    &
                           vvel_init,            &
                           uvel,       vvel,     &
+                          Xmap,                 &
                           Tb)
 
       integer (kind=int_kind), intent(in) :: &
@@ -1204,13 +1798,17 @@
          indxi   , & ! compressed index in i-direction
          indxj       ! compressed index in j-direction
 
+      ! aiN and massdti are assumed shape, 1D over the block in Fortran
+      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         aiN     , & ! ice fraction on N-grid
+         massdti , & ! mass of n-cell/dt (kg/m^2 s)
+         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
+         watery  , & ! for ocean stress calculation, y (m/s)
+         forcey      ! work array: combined atm stress and ocn tilt, y
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          Tb,       & ! seabed stress factor (N/m^2)
-         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
-         aiN     , & ! ice fraction on N-grid
-         watery  , & ! for ocean stress calculation, y (m/s)
-         forcey  , & ! work array: combined atm stress and ocn tilt, y
-         massdti , & ! mass of n-cell/dt (kg/m^2 s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in n-cell (kg/s)
@@ -1218,14 +1816,20 @@
          Cw      , & ! ocean-ice neutral drag coefficient
          uvel        ! x-component of velocity (m/s) interpolated to N location
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         vvel    , & ! y-component of velocity (m/s)
+      ! tauby is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
          tauby       ! seabed stress, y-direction (N/m^2)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+         vvel        ! y-component of velocity (m/s)
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb              , & ! 1D index of (i,j) in the block
+         is                   ! compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1234,6 +1838,12 @@
          tauy               , & ! part of ocean stress term
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
+
+      ! Xmap is 1D over the block in Fortran storage order and holds each
+      ! cell's static compressed slot; the compressed arrays above are
+      ! addressed through it
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepv_C)'
 
@@ -1250,31 +1860,34 @@
          i = indxi(ij)
          j = indxj(ij)
 
+         ijb = (j-1)*nx_block + i
+         is  = Xmap(ijb)
+
          uold = uvel(i,j)
          vold = vvel(i,j)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiN(i,j)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
+         vrel = aiN(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
                                            (vocn(i,j) - vold)**2)  ! m/s
          ! ice/ocean stress
-         tauy = vrel*watery(i,j) ! NOTE this is not the entire ocn stress
+         tauy = vrel*watery(ijb) ! NOTE this is not the entire ocn stress
 
          ccc = sqrt(uold**2 + vold**2) + u0
          Cb  = Tb(i,j) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(i,j) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
 
          ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
 
          ! compute the velocity components
-         cc2 = strinty(i,j) + forcey(i,j) + tauy &
-             + massdti(i,j)*(brlx*vold + revp*vvel_init(i,j))
+         cc2 = strinty(i,j) + forcey(ijb) + tauy &
+             + massdti(ijb)*(brlx*vold + revp*vvel_init(is))
 
          vvel(i,j) = (-ccb*uold + cc2) / cca
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         tauby(i,j) = -vvel(i,j)*Cb
+         tauby(ijb) = -vvel(i,j)*Cb
 
       enddo                     ! ij
 
@@ -1302,12 +1915,16 @@
          indxUi  , & ! compressed index in i-direction
          indxUj      ! compressed index in j-direction
 
+      ! aiX is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         aiX         ! ice fraction on X-grid
+
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel    , & ! y-component of velocity (m/s)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
-         aiX     , & ! ice fraction on X-grid
          fm          ! Coriolis param. * mass in U-cell (kg/s)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1320,7 +1937,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind) :: &
          vrel    , & !
@@ -1337,17 +1955,18 @@
       do ij =1, icellU
          i = indxUi(ij)
          j = indxUj(ij)
+         ijb = (j-1)*nx_block + i
 
           vrel = rhow*Cw(i,j)*sqrt((uocn(i,j) - uvel(i,j))**2 + &
                  (vocn(i,j) - vvel(i,j))**2)  ! m/s
 
 !        strocnx(i,j) = strocnx(i,j) &
-!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiX(i,j)
+!                     - vrel*(uvel(i,j)*cosw - vvel(i,j)*sinw) * aiX(ijb)
 !        strocny(i,j) = strocny(i,j) &
-!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiX(i,j)
+!                     - vrel*(vvel(i,j)*cosw + uvel(i,j)*sinw) * aiX(ijb)
 
          ! update strocnx to most recent iterate and complete the term
-         vrel = vrel * aiX(i,j)
+         vrel = vrel * aiX(ijb)
          strocnx(i,j) = vrel*((uocn(i,j) - uvel(i,j))*cosw &
                             - (vocn(i,j) - vvel(i,j))*sinw*sign(c1,fm(i,j)))
          strocny(i,j) = vrel*((vocn(i,j) - vvel(i,j))*cosw &
@@ -1417,7 +2036,8 @@
          hcu           ! critical thickness at u location (m)
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
       character(len=char_len) :: &
          l_grid_location ! local version of 'grid_location'
@@ -1773,7 +2393,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
          dxT      , & ! width of T-cell through the middle (m)
@@ -1783,10 +2403,14 @@
          cyp      , & ! 1.5*HTE - 0.5*HTW
          cxp      , & ! 1.5*HTN - 0.5*HTS
          cym      , & ! 0.5*HTE - 1.5*HTW
-         cxm      , & ! 0.5*HTN - 1.5*HTS
+         cxm          ! 0.5*HTN - 1.5*HTS
+
+      ! tarear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -1796,7 +2420,7 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij, ijb
 
       real (kind=dbl_kind) :: &                       ! at each corner :
         divune, divunw, divuse, divusw            , & ! divergence
@@ -1813,14 +2437,18 @@
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
          call strain_rates (nx_block,   ny_block,   &
-                            i,          j,          &
-                            uvel,       vvel,       &
+                            ijb,                    &
+                               uvel(ijb),  uvel(ijb-1),          &
+                               uvel(ijb-nx_block), uvel(ijb-nx_block-1), &
+                               vvel(ijb),  vvel(ijb-1),          &
+                               vvel(ijb-nx_block), vvel(ijb-nx_block-1), &
                             dxT,        dyT,        &
                             cxp,        cyp,        &
                             cxm,        cym,        &
@@ -1835,23 +2463,23 @@
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
-         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
-         rdg_conv(i,j)  = -min(divu(i,j),c0)
-         rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
+         divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(ijb)
+         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(ijb)
+         rdg_conv(ijb)  = -min(divu(ijb),c0)
+         rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(i,j) = p25*tarear(i,j)*sqrt( &
+         shear(ijb) = p25*tarear(ijb)*sqrt( &
                       (tensionne + tensionnw + tensionse + tensionsw)**2 + &
                       (shearne   + shearnw   + shearse   + shearsw  )**2)
 
          ! vorticity
-         dvdxn = dyU(i,j)*vvel(i,j) - dyU(i-1,j)*vvel(i-1,j)
-         dvdxs = dyU(i,j-1)*vvel(i,j-1) - dyU(i-1,j-1)*vvel(i-1,j-1)
-         dudye = dxU(i,j)*uvel(i,j) - dxU(i,j-1)*uvel(i,j-1)
-         dudyw = dxU(i-1,j)*uvel(i-1,j) - dxU(i-1,j-1)*uvel(i-1,j-1)
-         vort(i,j) = p5*tarear(i,j)*(dvdxn + dvdxs - dudye - dudyw)
+         dvdxn = dyU(ijb)*vvel(ijb) - dyU(ijb-1)*vvel(ijb-1)
+         dvdxs = dyU(ijb-nx_block)*vvel(ijb-nx_block) - dyU(ijb-nx_block-1)*vvel(ijb-nx_block-1)
+         dudye = dxU(ijb)*uvel(ijb) - dxU(ijb-nx_block)*uvel(ijb-nx_block)
+         dudyw = dxU(ijb-1)*uvel(ijb-1) - dxU(ijb-nx_block-1)*uvel(ijb-nx_block-1)
+         vort(ijb) = p5*tarear(ijb)*(dvdxn + dvdxs - dudye - dudyw)
 
       enddo                     ! ij
 
@@ -1884,7 +2512,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -1895,7 +2523,7 @@
          dyT      , & ! height of T-cell through the middle (m)
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -1905,9 +2533,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
         shearT    , & ! shear at T point
@@ -1926,31 +2555,32 @@
       call strain_rates_T (nx_block   ,   ny_block   , &
                            icellT     ,                &
                            indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:,:), vvelE   (:,:), &
-                           uvelN (:,:), vvelN   (:,:), &
-                           dxN   (:,:), dyE     (:,:), &
-                           dxT   (:,:), dyT     (:,:), &
-                           divT  (:,:), tensionT(:,:), &
-                           shearT(:,:), DeltaT  (:,:)  )
+                           uvelE (:)  , vvelE   (:)  , &
+                           uvelN (:)  , vvelN   (:)  , &
+                           dxN   (:)  , dyE     (:)  , &
+                           dxT   (:)  , dyT     (:)  , &
+                           divT  (:)  , tensionT(:)  , &
+                           shearT(:)  , DeltaT  (:)    )
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         divu(i,j) = divT(i,j) * tarear(i,j)
-         tmp = Deltat(i,j) * tarear(i,j)
-         rdg_conv(i,j)  = -min(divu(i,j),c0)
-         rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
+         divu(ijb) = divT(ijb) * tarear(ijb)
+         tmp = Deltat(ijb) * tarear(ijb)
+         rdg_conv(ijb)  = -min(divu(ijb),c0)
+         rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(i,j) = tarear(i,j)*sqrt( tensionT(i,j)**2 + shearT(i,j)**2 )
+         shear(ijb) = tarear(ijb)*sqrt( tensionT(ijb)**2 + shearT(ijb)**2 )
          ! vorticity
-         vort (i,j) = tarear(i,j)*( ( dyE(i,j)*vvelE(i,j) - dyE(i-1,j)*vvelE(i-1,j) ) &
-                                  - ( dxN(i,j)*uvelN(i,j) - dxN(i,j-1)*uvelN(i,j-1)) )
+         vort (ijb) = tarear(ijb)*( ( dyE(ijb)*vvelE(ijb) - dyE(ijb-1)*vvelE(ijb-1) ) &
+                                  - ( dxN(ijb)*uvelN(ijb) - dxN(ijb-nx_block)*uvelN(ijb-nx_block)) )
 
       enddo                     ! ij
 
@@ -1985,7 +2615,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -1998,7 +2628,7 @@
          uarea    , & ! area of u cell
          shearU       ! shearU
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -2008,9 +2638,10 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij
+         i, j, ij       , & ! ij is the compressed cell counter
+         ijb                ! 1D index of (i,j) in the block
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
         shearT    , & ! shear at T point
@@ -2030,42 +2661,43 @@
       call strain_rates_T (nx_block   ,   ny_block   , &
                            icellT     ,                &
                            indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:,:), vvelE   (:,:), &
-                           uvelN (:,:), vvelN   (:,:), &
-                           dxN   (:,:), dyE     (:,:), &
-                           dxT   (:,:), dyT     (:,:), &
-                           divT  (:,:), tensionT(:,:), &
-                           shearT(:,:), DeltaT  (:,:)  )
+                           uvelE (:)  , vvelE   (:)  , &
+                           uvelN (:)  , vvelN   (:)  , &
+                           dxN   (:)  , dyE     (:)  , &
+                           dxT   (:)  , dyT     (:)  , &
+                           divT  (:)  , tensionT(:)  , &
+                           shearT(:)  , DeltaT  (:)    )
 
       ! DeltaT is calc by strain_rates_T but replaced by calculation below.
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
 
-         shearTsqr = (shearU(i  ,j  )**2 * uarea(i  ,j  )  &
-                    + shearU(i  ,j-1)**2 * uarea(i  ,j-1)  &
-                    + shearU(i-1,j-1)**2 * uarea(i-1,j-1)  &
-                    + shearU(i-1,j  )**2 * uarea(i-1,j  )) &
-                    / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
+         shearTsqr = (shearU(ijb)**2 * uarea(ijb)  &
+                    + shearU(ijb-nx_block)**2 * uarea(ijb-nx_block)  &
+                    + shearU(ijb-nx_block-1)**2 * uarea(ijb-nx_block-1)  &
+                    + shearU(ijb-1)**2 * uarea(ijb-1)) &
+                    / (uarea(ijb)+uarea(ijb-nx_block)+uarea(ijb-nx_block-1)+uarea(ijb-1))
 
-         DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+         DeltaT(ijb) = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearTsqr))
 
-         divu(i,j) = divT(i,j) * tarear(i,j)
-         tmp = DeltaT(i,j) * tarear(i,j)
-         rdg_conv(i,j)  = -min(divu(i,j),c0)
-         rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
+         divu(ijb) = divT(ijb) * tarear(ijb)
+         tmp = DeltaT(ijb) * tarear(ijb)
+         rdg_conv(ijb)  = -min(divu(ijb),c0)
+         rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only...maybe we dont want to use shearTsqr here????
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(i,j) = tarear(i,j)*sqrt( tensionT(i,j)**2 + shearT(i,j)**2 )
+         shear(ijb) = tarear(ijb)*sqrt( tensionT(ijb)**2 + shearT(ijb)**2 )
          ! vorticity
-         vort (i,j) = tarear(i,j)*( ( dyE(i,j)*vvelE(i,j) - dyE(i-1,j)*vvelE(i-1,j) ) &
-                                  - ( dxN(i,j)*uvelN(i,j) - dxN(i,j-1)*uvelN(i,j-1)) )
+         vort (ijb) = tarear(ijb)*( ( dyE(ijb)*vvelE(ijb) - dyE(ijb-1)*vvelE(ijb-1) ) &
+                                  - ( dxN(ijb)*uvelN(ijb) - dxN(ijb-nx_block)*uvelN(ijb-nx_block)) )
 
       enddo                     ! ij
 
@@ -2079,8 +2711,11 @@
 ! 2019: subroutine created by Philippe Blain, ECCC
 
       subroutine strain_rates (nx_block,   ny_block,   &
-                               i,          j,          &
-                               uvel,       vvel,       &
+                               ijb,                    &
+                               uvel00,     uvelW,      &
+                               uvelS,      uvelSW,     &
+                               vvel00,     vvelW,      &
+                               vvelS,      vvelSW,     &
                                dxT,        dyT,        &
                                cxp,        cyp,        &
                                cxm,        cym,        &
@@ -2097,11 +2732,26 @@
          nx_block, ny_block    ! block dimensions
 
       integer (kind=int_kind), intent(in) :: &
-         i, j                  ! indices
+         ijb                   ! 1D index of (i,j) in the block
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
+      ! the i and j dimensions are flattened: element (i,j) is stored at
+      ! (j-1)*nx_block + i, so neighbours are ijb+-1 (i+-1), ijb+-nx_block (j+-1)
+      ! The velocity stencil arrives as values, not as arrays plus an index:
+      ! this routine is called both with block-layout and with compressed
+      ! velocities, and only the caller knows how to reach a neighbour.
+      ! The four are the cell itself and its W (-1,0), S (0,-1) and
+      ! SW (-1,-1) neighbours.
+      real (kind=dbl_kind), intent(in) :: &
+         uvel00   , & ! x-velocity at (i  ,j  ) (m/s)
+         uvelW    , & ! x-velocity at (i-1,j  )
+         uvelS    , & ! x-velocity at (i  ,j-1)
+         uvelSW   , & ! x-velocity at (i-1,j-1)
+         vvel00   , & ! y-velocity at (i  ,j  )
+         vvelW    , & ! y-velocity at (i-1,j  )
+         vvelS    , & ! y-velocity at (i  ,j-1)
+         vvelSW       ! y-velocity at (i-1,j-1)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
          cyp      , & ! 1.5*HTE - 0.5*HTW
@@ -2123,34 +2773,34 @@
       !-----------------------------------------------------------------
 
       ! divergence  =  e_11 + e_22
-      divune    = cyp(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                + cxp(i,j)*vvel(i  ,j  ) - dxT(i,j)*vvel(i  ,j-1)
-      divunw    = cym(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                + cxp(i,j)*vvel(i-1,j  ) - dxT(i,j)*vvel(i-1,j-1)
-      divusw    = cym(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                + cxm(i,j)*vvel(i-1,j-1) + dxT(i,j)*vvel(i-1,j  )
-      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                + cxm(i,j)*vvel(i  ,j-1) + dxT(i,j)*vvel(i  ,j  )
+      divune    = cyp(ijb)*uvel00 - dyT(ijb)*uvelW &
+                + cxp(ijb)*vvel00 - dxT(ijb)*vvelS
+      divunw    = cym(ijb)*uvelW + dyT(ijb)*uvel00 &
+                + cxp(ijb)*vvelW - dxT(ijb)*vvelSW
+      divusw    = cym(ijb)*uvelSW + dyT(ijb)*uvelS &
+                + cxm(ijb)*vvelSW + dxT(ijb)*vvelW
+      divuse    = cyp(ijb)*uvelS - dyT(ijb)*uvelSW &
+                + cxm(ijb)*vvelS + dxT(ijb)*vvel00
 
       ! tension strain rate  =  e_11 - e_22
-      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                +  cxm(i,j)*vvel(i  ,j  ) + dxT(i,j)*vvel(i  ,j-1)
-      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                +  cxm(i,j)*vvel(i-1,j  ) + dxT(i,j)*vvel(i-1,j-1)
-      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                +  cxp(i,j)*vvel(i-1,j-1) - dxT(i,j)*vvel(i-1,j  )
-      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                +  cxp(i,j)*vvel(i  ,j-1) - dxT(i,j)*vvel(i  ,j  )
+      tensionne = -cym(ijb)*uvel00 - dyT(ijb)*uvelW &
+                +  cxm(ijb)*vvel00 + dxT(ijb)*vvelS
+      tensionnw = -cyp(ijb)*uvelW + dyT(ijb)*uvel00 &
+                +  cxm(ijb)*vvelW + dxT(ijb)*vvelSW
+      tensionsw = -cyp(ijb)*uvelSW + dyT(ijb)*uvelS &
+                +  cxp(ijb)*vvelSW - dxT(ijb)*vvelW
+      tensionse = -cym(ijb)*uvelS - dyT(ijb)*uvelSW &
+                +  cxp(ijb)*vvelS - dxT(ijb)*vvel00
 
       ! shearing strain rate  =  2*e_12
-      shearne = -cym(i,j)*vvel(i  ,j  ) - dyT(i,j)*vvel(i-1,j  ) &
-              -  cxm(i,j)*uvel(i  ,j  ) - dxT(i,j)*uvel(i  ,j-1)
-      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyT(i,j)*vvel(i  ,j  ) &
-              -  cxm(i,j)*uvel(i-1,j  ) - dxT(i,j)*uvel(i-1,j-1)
-      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyT(i,j)*vvel(i  ,j-1) &
-              -  cxp(i,j)*uvel(i-1,j-1) + dxT(i,j)*uvel(i-1,j  )
-      shearse = -cym(i,j)*vvel(i  ,j-1) - dyT(i,j)*vvel(i-1,j-1) &
-              -  cxp(i,j)*uvel(i  ,j-1) + dxT(i,j)*uvel(i  ,j  )
+      shearne = -cym(ijb)*vvel00 - dyT(ijb)*vvelW &
+              -  cxm(ijb)*uvel00 - dxT(ijb)*uvelS
+      shearnw = -cyp(ijb)*vvelW + dyT(ijb)*vvel00 &
+              -  cxm(ijb)*uvelW - dxT(ijb)*uvelSW
+      shearsw = -cyp(ijb)*vvelSW + dyT(ijb)*vvelS &
+              -  cxp(ijb)*uvelSW + dxT(ijb)*uvelW
+      shearse = -cym(ijb)*vvelS - dyT(ijb)*vvelSW &
+              -  cxp(ijb)*uvelS + dxT(ijb)*uvel00
 
       ! Delta (in the denominator of zeta, eta)
       Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
@@ -2184,7 +2834,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -2194,7 +2844,7 @@
          dxT      , & ! width of T-cell through the middle (m)
          dyT          ! height of T-cell through the middle (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
          divT     , & ! divergence at T point
          tensionT , & ! tension at T point
          shearT   , & ! shear at T point
@@ -2203,7 +2853,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         ij, i, j                  ! indices
+         ij, i, j               , & ! ij is the compressed cell counter
+         ijb                        ! 1D index of (i,j) in the block
 
       character(len=*), parameter :: subname = '(strain_rates_Tdtsd)'
 
@@ -2222,19 +2873,20 @@
                              dxT,        dyT,      &
                              divT,       tensionT  )
 
-      shearT  (:,:) = c0
-      deltaT  (:,:) = c0
+      shearT  (:) = c0
+      deltaT  (:) = c0
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          ! shearing strain rate  =  2*e_12
-         shearT(i,j) = (dxT(i,j)**2)*(uvelN(i,j)/dxN(i,j) - uvelN(i,j-1)/dxN(i,j-1)) &
-                     + (dyT(i,j)**2)*(vvelE(i,j)/dyE(i,j) - vvelE(i-1,j)/dyE(i-1,j))
+         shearT(ijb) = (dxT(ijb)**2)*(uvelN(ijb)/dxN(ijb) - uvelN(ijb-nx_block)/dxN(ijb-nx_block)) &
+                     + (dyT(ijb)**2)*(vvelE(ijb)/dyE(ijb) - vvelE(ijb-1)/dyE(ijb-1))
 
          ! Delta (in the denominator of zeta, eta)
-         DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearT(i,j)**2))
+         DeltaT(ijb) = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearT(ijb)**2))
 
       enddo
 
@@ -2263,7 +2915,7 @@
          indxTi   , & ! compressed index in i-direction
          indxTj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -2273,14 +2925,15 @@
          dxT      , & ! width of T-cell through the middle (m)
          dyT          ! height of T-cell through the middle (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
          divT     , & ! divergence at T point
          tensionT     ! tension at T point
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         ij, i, j                  ! indices
+         ij, i, j               , & ! ij is the compressed cell counter
+         ijb                        ! 1D index of (i,j) in the block
 
       character(len=*), parameter :: subname = '(strain_rates_Tdt)'
 
@@ -2289,20 +2942,21 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      divT    (:,:) = c0
-      tensionT(:,:) = c0
+      divT    (:) = c0
+      tensionT(:) = c0
 
       do ij = 1, icellT
          i = indxTi(ij)
          j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
 
          ! divergence  =  e_11 + e_22
-         divT    (i,j)= dyE(i,j)*uvelE(i  ,j  ) - dyE(i-1,j)*uvelE(i-1,j  ) &
-                      + dxN(i,j)*vvelN(i  ,j  ) - dxN(i,j-1)*vvelN(i  ,j-1)
+         divT    (ijb)= dyE(ijb)*uvelE(ijb) - dyE(ijb-1)*uvelE(ijb-1) &
+                      + dxN(ijb)*vvelN(ijb) - dxN(ijb-nx_block)*vvelN(ijb-nx_block)
 
          ! tension strain rate  =  e_11 - e_22
-         tensionT(i,j) = (dyT(i,j)**2)*(uvelE(i,j)/dyE(i,j) - uvelE(i-1,j)/dyE(i-1,j)) &
-                       - (dxT(i,j)**2)*(vvelN(i,j)/dxN(i,j) - vvelN(i,j-1)/dxN(i,j-1))
+         tensionT(ijb) = (dyT(ijb)**2)*(uvelE(ijb)/dyE(ijb) - uvelE(ijb-1)/dyE(ijb-1)) &
+                       - (dxT(ijb)**2)*(vvelN(ijb)/dxN(ijb) - vvelN(ijb-nx_block)/dxN(ijb-nx_block))
 
       enddo
 
@@ -2336,7 +2990,7 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -2354,7 +3008,7 @@
          epm      , & ! E-cell mask
          npm          ! N-cell mask
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out):: &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
          divergU  , & ! divergence at U point
          tensionU , & ! tension at U point
          shearU   , & ! shear at U point
@@ -2363,7 +3017,8 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         ij, i, j                  ! indices
+         ij, i, j               , & ! ij is the compressed cell counter
+         ijb                        ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind) :: &
         uNip1j, uNij, vEijp1, vEij, uEijp1, uEij, vNip1j, vNij
@@ -2375,53 +3030,54 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      divergU (:,:) = c0
-      tensionU(:,:) = c0
-      shearU  (:,:) = c0
-      deltaU  (:,:) = c0
+      divergU (:) = c0
+      tensionU(:) = c0
+      shearU  (:) = c0
+      deltaU  (:) = c0
 
       do ij = 1, icellU
          i = indxUi(ij)
          j = indxUj(ij)
+         ijb = (j-1)*nx_block + i
 
-         uNip1j = uvelN(i+1,j) * npm(i+1,j) &
-                +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * uvelN(i,j)
-         uNij   = uvelN(i,j) * npm(i,j) &
-                +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * uvelN(i+1,j)
-         vEijp1 = vvelE(i,j+1) * epm(i,j+1) &
-                +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * vvelE(i,j)
-         vEij   = vvelE(i,j) * epm(i,j) &
-                +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * vvelE(i,j+1)
+         uNip1j = uvelN(ijb+1) * npm(ijb+1) &
+                +(npm(ijb)-npm(ijb+1)) * npm(ijb)   * ratiodxN(ijb)  * uvelN(ijb)
+         uNij   = uvelN(ijb) * npm(ijb) &
+                +(npm(ijb+1)-npm(ijb)) * npm(ijb+1) * ratiodxNr(ijb) * uvelN(ijb+1)
+         vEijp1 = vvelE(ijb+nx_block) * epm(ijb+nx_block) &
+                +(epm(ijb)-epm(ijb+nx_block)) * epm(ijb)   * ratiodyE(ijb)  * vvelE(ijb)
+         vEij   = vvelE(ijb) * epm(ijb) &
+                +(epm(ijb+nx_block)-epm(ijb)) * epm(ijb+nx_block) * ratiodyEr(ijb) * vvelE(ijb+nx_block)
 
          ! divergence  =  e_11 + e_22
-         divergU (i,j) = dyU(i,j) * ( uNip1j - uNij ) &
-                       + uvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                       + dxU(i,j) * ( vEijp1 - vEij ) &
-                       + vvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+         divergU (ijb) = dyU(ijb) * ( uNip1j - uNij ) &
+                       + uvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) ) &
+                       + dxU(ijb) * ( vEijp1 - vEij ) &
+                       + vvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) )
 
          ! tension strain rate  =  e_11 - e_22
-         tensionU(i,j) = dyU(i,j) * ( uNip1j - uNij ) &
-                       - uvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) ) &
-                       - dxU(i,j) * ( vEijp1 - vEij ) &
-                       + vvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) )
+         tensionU(ijb) = dyU(ijb) * ( uNip1j - uNij ) &
+                       - uvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) ) &
+                       - dxU(ijb) * ( vEijp1 - vEij ) &
+                       + vvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) )
 
-         uEijp1 = uvelE(i,j+1) * epm(i,j+1) &
-                +(epm(i,j)-epm(i,j+1)) * epm(i,j)   * ratiodyE(i,j)  * uvelE(i,j)
-         uEij   = uvelE(i,j) * epm(i,j) &
-                +(epm(i,j+1)-epm(i,j)) * epm(i,j+1) * ratiodyEr(i,j) * uvelE(i,j+1)
-         vNip1j = vvelN(i+1,j) * npm(i+1,j) &
-                +(npm(i,j)-npm(i+1,j)) * npm(i,j)   * ratiodxN(i,j)  * vvelN(i,j)
-         vNij   = vvelN(i,j) * npm(i,j) &
-                +(npm(i+1,j)-npm(i,j)) * npm(i+1,j) * ratiodxNr(i,j) * vvelN(i+1,j)
+         uEijp1 = uvelE(ijb+nx_block) * epm(ijb+nx_block) &
+                +(epm(ijb)-epm(ijb+nx_block)) * epm(ijb)   * ratiodyE(ijb)  * uvelE(ijb)
+         uEij   = uvelE(ijb) * epm(ijb) &
+                +(epm(ijb+nx_block)-epm(ijb)) * epm(ijb+nx_block) * ratiodyEr(ijb) * uvelE(ijb+nx_block)
+         vNip1j = vvelN(ijb+1) * npm(ijb+1) &
+                +(npm(ijb)-npm(ijb+1)) * npm(ijb)   * ratiodxN(ijb)  * vvelN(ijb)
+         vNij   = vvelN(ijb) * npm(ijb) &
+                +(npm(ijb+1)-npm(ijb)) * npm(ijb+1) * ratiodxNr(ijb) * vvelN(ijb+1)
 
          ! shearing strain rate  =  2*e_12
-         shearU(i,j)   = dxU(i,j) * ( uEijp1 - uEij ) &
-                       - uvelU(i,j) * ( dxE(i,j+1) - dxE(i,j) ) &
-                       + dyU(i,j) * ( vNip1j - vNij ) &
-                       - vvelU(i,j) * ( dyN(i+1,j) - dyN(i,j) )
+         shearU(ijb)   = dxU(ijb) * ( uEijp1 - uEij ) &
+                       - uvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) ) &
+                       + dyU(ijb) * ( vNip1j - vNij ) &
+                       - vvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) )
 
          ! Delta (in the denominator of zeta, eta)
-         DeltaU(i,j)   = sqrt(divergU(i,j)**2 + e_factor*(tensionU(i,j)**2 + shearU(i,j)**2))
+         DeltaU(ijb)   = sqrt(divergU(ijb)**2 + e_factor*(tensionU(ijb)**2 + shearU(ijb)**2))
 
       enddo
 
@@ -2853,6 +3509,49 @@
       end subroutine stack_fields3
 
 !=======================================================================
+! Load fields into array for boundary updates, where the fields have their
+! i and j dimensions flattened, i.e. dimension(nx_block*ny_block,max_blocks),
+! with element (i,j,iblk) at ((j-1)*nx_block + i, iblk)
+
+      subroutine stack_fields3_flat(fld1, fld2, fld3, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
+         fld1    , & ! flattened fields to stack
+         fld2    , & !
+         fld3        !
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields3_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fldbundle(i,j,1,iblk) = fld1(ij,iblk)
+            fldbundle(i,j,2,iblk) = fld2(ij,iblk)
+            fldbundle(i,j,3,iblk) = fld3(ij,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields3_flat
+
+!=======================================================================
 ! Load fields into array for boundary updates
 
       subroutine stack_fields4(fld1, fld2, fld3, fld4, fldbundle)
@@ -2997,6 +3696,50 @@
       end subroutine unstack_fields3
 
 !=======================================================================
+! Unload fields from array after boundary updates, where the fields have
+! their i and j dimensions flattened, i.e.
+! dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk) at
+! ((j-1)*nx_block + i, iblk)
+
+      subroutine unstack_fields3_flat(fldbundle, fld1, fld2, fld3)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
+         fld1    , & ! flattened fields to unstack
+         fld2    , & !
+         fld3        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields3_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fld1(ij,iblk) = fldbundle(i,j,1,iblk)
+            fld2(ij,iblk) = fldbundle(i,j,2,iblk)
+            fld3(ij,iblk) = fldbundle(i,j,3,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields3_flat
+
+!=======================================================================
 ! Unload fields from array after boundary updates
 
       subroutine unstack_fields4(fldbundle, fld1, fld2, fld3, fld4)
@@ -3071,6 +3814,465 @@
       call ice_timer_stop(timer_bundbound)
 
       end subroutine unstack_fields5
+
+!=======================================================================
+! Do a halo update on 1 flattened field
+
+      subroutine dyn_haloUpdate1_flat(halo_info, halo_info_mask, field_loc, field_type, fld1)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info  , &  ! standard unmasked halo
+         halo_info_mask  ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc  ,  & ! field loc
+         field_type      ! field_type
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), intent(inout) :: &
+         fld1            !
+
+      ! local variables
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate1_flat)'
+
+      call ice_timer_start(timer_bound)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate1_flat
+
+!=======================================================================
+! Do a halo update on 2 flattened fields
+
+      subroutine dyn_haloUpdate2_flat(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info  , &  ! standard unmasked halo
+         halo_info_mask  ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc  ,  & ! field loc
+         field_type      ! field_type
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), intent(inout) :: &
+         fld1        , & ! fields to halo
+         fld2            !
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,2,max_blocks) :: &
+         fldbundle       ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate2_flat)'
+
+      call ice_timer_start(timer_bound)
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate2_flat
+
+!=======================================================================
+! Do a halo update on 3 flattened fields
+
+      subroutine dyn_haloUpdate3_flat(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info  , &  ! standard unmasked halo
+         halo_info_mask  ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc  ,  & ! field loc
+         field_type      ! field_type
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), intent(inout) :: &
+         fld1        , & ! fields to halo
+         fld2        , & ! fields to halo
+         fld3            !
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,3,max_blocks) :: &
+         fldbundle       ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate3_flat)'
+
+      call ice_timer_start(timer_bound)
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fld3, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2, fld3)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate3_flat
+
+!=======================================================================
+! Do a halo update on 4 flattened fields
+
+      subroutine dyn_haloUpdate4_flat(halo_info, halo_info_mask, field_loc, field_type, fld1, fld2, fld3, fld4)
+
+      use ice_boundary, only: ice_halo, ice_HaloUpdate
+      use ice_domain, only: maskhalo_dyn, halo_dynbundle
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
+
+      type (ice_halo), intent(in) :: &
+         halo_info  , &  ! standard unmasked halo
+         halo_info_mask  ! masked halo
+
+      integer (kind=int_kind), intent(in) :: &
+         field_loc  ,  & ! field loc
+         field_type      ! field_type
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension (:,:), intent(inout) :: &
+         fld1        , & ! fields to halo
+         fld2        , & ! fields to halo
+         fld3        , & ! fields to halo
+         fld4            !
+
+      ! local variables
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,4,max_blocks) :: &
+         fldbundle       ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(dyn_haloUpdate4_flat)'
+
+      call ice_timer_start(timer_bound)
+      if (halo_dynbundle) then
+
+         call stack_fields(fld1, fld2, fld3, fld4, fldbundle)
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fldbundle, halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fldbundle, halo_info     , &
+                                 field_loc, field_type)
+         endif
+         call unstack_fields(fldbundle, fld1, fld2, fld3, fld4)
+
+      else
+
+         if (maskhalo_dyn) then
+            call ice_HaloUpdate (fld1     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info_mask, &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info_mask, &
+                                 field_loc, field_type)
+         else
+            call ice_HaloUpdate (fld1     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld2     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld3     , halo_info     , &
+                                 field_loc, field_type)
+            call ice_HaloUpdate (fld4     , halo_info     , &
+                                 field_loc, field_type)
+         endif
+
+      endif
+      call ice_timer_stop(timer_bound)
+
+      end subroutine dyn_haloUpdate4_flat
+
+!=======================================================================
+! Load 2 flattened fields into a bundle
+
+!=======================================================================
+! Bundle two COMPRESSED fields so they cross the halo in one message.
+!
+! The compressed counterpart of stack_fields2.  Both operands and the bundle
+! are indexed by compressed slot, and the whole extent is copied including
+! slot 0 -- each block's dead slot -- so the dead slots stay zero in the
+! bundle and the stencils keep reading zero for a missing neighbour.
+!
+! No OpenMP here: this is a straight whole-array copy over the compressed
+! extent, which has no block dimension to thread over.
+
+      subroutine stack_fields2_compressed(fld1, fld2, fldbundle)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      ! compressed: indexed by slot, element 0 is a block's dead slot
+      real (kind=dbl_kind), dimension (0:), intent(in) :: &
+         fld1    , & !
+         fld2        !
+
+      ! (slot, field)
+      real (kind=dbl_kind), dimension (0:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(stack_fields2_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fldbundle(:,1) = fld1(:)
+      fldbundle(:,2) = fld2(:)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields2_compressed
+
+!=======================================================================
+! Unbundle two COMPRESSED fields.  See stack_fields2_compressed.
+
+      subroutine unstack_fields2_compressed(fldbundle, fld1, fld2)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      ! (slot, field)
+      real (kind=dbl_kind), dimension (0:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates
+
+      ! compressed: indexed by slot, element 0 is a block's dead slot
+      real (kind=dbl_kind), dimension (0:), intent(out) :: &
+         fld1    , & !
+         fld2        !
+
+      character(len=*), parameter :: subname = '(unstack_fields2_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fld1(:) = fldbundle(:,1)
+      fld2(:) = fldbundle(:,2)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields2_compressed
+
+!=======================================================================
+
+      subroutine stack_fields2_flat(fld1, fld2, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
+         fld1    , & !
+         fld2        !
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields2_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fldbundle(i,j,1,iblk) = fld1(ij,iblk)
+            fldbundle(i,j,2,iblk) = fld2(ij,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields2_flat
+
+!=======================================================================
+! Load 4 flattened fields into a bundle
+
+      subroutine stack_fields4_flat(fld1, fld2, fld3, fld4, fldbundle)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
+         fld1    , & !
+         fld2    , & !
+         fld3    , & !
+         fld4        !
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(stack_fields4_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fldbundle(i,j,1,iblk) = fld1(ij,iblk)
+            fldbundle(i,j,2,iblk) = fld2(ij,iblk)
+            fldbundle(i,j,3,iblk) = fld3(ij,iblk)
+            fldbundle(i,j,4,iblk) = fld4(ij,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields4_flat
+
+!=======================================================================
+! Unload 2 flattened fields from a bundle
+
+      subroutine unstack_fields2_flat(fldbundle, fld1, fld2)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
+         fld1    , & !
+         fld2        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields2_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fld1(ij,iblk) = fldbundle(i,j,1,iblk)
+            fld2(ij,iblk) = fldbundle(i,j,2,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields2_flat
+
+!=======================================================================
+! Unload 4 flattened fields from a bundle
+
+      subroutine unstack_fields4_flat(fldbundle, fld1, fld2, fld3, fld4)
+
+      use ice_domain, only: nblocks
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:,:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates (i,j,n,iblk)
+
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
+         fld1    , & !
+         fld2    , & !
+         fld3    , & !
+         fld4        !
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, & ! horizontal indices, ij is the 1D index in the block
+         iblk        ! block index
+
+      character(len=*), parameter :: subname = '(unstack_fields4_flat)'
+
+      call ice_timer_start(timer_bundbound)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            fld1(ij,iblk) = fldbundle(i,j,1,iblk)
+            fld2(ij,iblk) = fldbundle(i,j,2,iblk)
+            fld3(ij,iblk) = fldbundle(i,j,3,iblk)
+            fld4(ij,iblk) = fldbundle(i,j,4,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields4_flat
 
 !=======================================================================
 

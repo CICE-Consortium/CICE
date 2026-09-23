@@ -791,30 +791,30 @@
             SELECT CASE (var_coord(i)%short_name)
                CASE ('TLON')
                   ! Convert T grid longitude from -180 -> 180 to 0 to 360
-                  work1 = TLON*rad_to_deg + c360
+                  work1 = reshape(TLON, shape(work1))*rad_to_deg + c360
                   where (work1 > c360) work1 = work1 - c360
                   where (work1 < c0 )  work1 = work1 + c360
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('TLAT')
-                  work1 = TLAT*rad_to_deg
+                  work1 = reshape(TLAT, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('ULON')
-                  work1 = ULON*rad_to_deg
+                  work1 = reshape(ULON, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('ULAT')
-                  work1 = ULAT*rad_to_deg
+                  work1 = reshape(ULAT, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('NLON')
-                  work1 = NLON*rad_to_deg
+                  work1 = reshape(NLON, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('NLAT')
-                  work1 = NLAT*rad_to_deg
+                  work1 = reshape(NLAT, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('ELON')
-                  work1 = ELON*rad_to_deg
+                  work1 = reshape(ELON, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
                CASE ('ELAT')
-                  work1 = ELAT*rad_to_deg
+                  work1 = reshape(ELAT, shape(work1))*rad_to_deg
                   call gather_global(work_g1,work1,master_task,distrb_info)
             END SELECT
 
@@ -940,49 +940,49 @@
             SELECT CASE (var_nverts(i)%short_name)
                CASE ('lont_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = lont_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(lont_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('latt_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = latt_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(latt_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('lonu_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = lonu_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(lonu_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('latu_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = latu_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(latu_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('lonn_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = lonn_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(lonn_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('latn_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = latn_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(latn_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('lone_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = lone_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(lone_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo
                CASE ('late_bounds')
                   do ivertex = 1, nverts
-                     work1(:,:,:) = late_bounds(ivertex,:,:,:)
+                     work1(:,:,:) = reshape(late_bounds(ivertex,:,:), shape(work1))
                      call gather_global(work_g1, work1, master_task, distrb_info)
                      if (my_task == master_task) work1_3(ivertex,:,:) = work_g1(:,:)
                   enddo

@@ -27,7 +27,7 @@ module ice_import_export
   use ice_flux           , only : send_i2x_per_cat
   use ice_flux           , only : sss, Tf, wind, fsw
   use ice_state          , only : vice, vsno, aice, aicen, trcr, trcrn
-  use ice_state          , only : Tsfcn_init, aice_init, uvel, vvel
+  use ice_state          , only : Tsfcn_init, aice_init3d, uvel, vvel
   use ice_grid           , only : tlon, tlat, tarea, tmask, umask, anglet, ocn_gridcell_frac, hm
   use ice_grid           , only : dxu, dyu, dxE, dyE, dxN, dyN, nmask, emask
   use ice_grid           , only : dxT, dyT
@@ -131,7 +131,7 @@ contains
           j1 = j - nghost
           do i = ilo, ihi
              i1 = i - nghost
-             ocn_gridcell_frac(i,j,iblk)  = real(fro(i1, j1), kind=dbl_kind)
+             ocn_gridcell_frac((j-1)*nx_block+i,iblk)  = real(fro(i1, j1), kind=dbl_kind)
           enddo
        enddo
     enddo
@@ -351,16 +351,16 @@ contains
           j1 = j - nghost
           do i = ilo, ihi
              i1 = i - nghost
-                if(tmask(i,j,iblk)) then
+                if(tmask((j-1)*nx_block+i,iblk)) then
                    workx  = real(taux(i1, j1), kind=dbl_kind)
                    worky  = real(tauy(i1, j1), kind=dbl_kind)
-                   strairxT(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                                      + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
-                   strairyT(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
-                                      - workx*sin(ANGLET(i,j,iblk))
+                   strairxT(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                                      + worky*sin(ANGLET((j-1)*nx_block+i,iblk))   ! note strax, stray, wind
+                   strairyT(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) & !  are on the T-grid here
+                                      - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
                    ! multiply by aice to properly treat free drift
-                   strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init(i,j,iblk)
-                   strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init(i,j,iblk)
+                   strairxT(i,j,iblk) = strairxT(i,j,iblk) * aice_init3d(i,j,iblk)
+                   strairyT(i,j,iblk) = strairyT(i,j,iblk) * aice_init3d(i,j,iblk)
                    ssh(i,j,iblk)      = real(slv(i1,j1), kind=dbl_kind)
                 else
                    strairxT(i,j,iblk) = c0
@@ -368,19 +368,19 @@ contains
                    ssh(i,j,iblk)      = c0
                 endif
                 if(trim(grid_ocn) == 'A') then
-                   if(tmask(i,j,iblk)) then
+                   if(tmask((j-1)*nx_block+i,iblk)) then
                      workx = real(uoa(i1,j1), kind=dbl_kind)
                      worky = real(voa(i1,j1), kind=dbl_kind)
-                     uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                                    + worky*sin(ANGLET(i,j,iblk))   ! note strax, stray, wind
-                     vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & !  are on the T-grid here
-                                    - workx*sin(ANGLET(i,j,iblk))
+                     uocn(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                                    + worky*sin(ANGLET((j-1)*nx_block+i,iblk))   ! note strax, stray, wind
+                     vocn(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) & !  are on the T-grid here
+                                    - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
                    else
                      uocn(i,j,iblk) = c0
                      vocn(i,j,iblk) = c0
                    endif
                 elseif(trim(grid_ice) == 'B') then
-                   if(umask(i,j,iblk)) then
+                   if(umask((j-1)*nx_block+i,iblk)) then
                      uocn(i,j,iblk) = real(uob(i1,j1), kind=dbl_kind)
                      vocn(i,j,iblk) = real(vob(i1,j1), kind=dbl_kind)
                    else
@@ -388,12 +388,12 @@ contains
                      vocn(i,j,iblk) = c0
                    endif
                 elseif(trim(grid_ice) == 'C') then
-                   if(emask(i,j,iblk)) then
+                   if(emask((j-1)*nx_block+i,iblk)) then
                      uocn(i,j,iblk) = real(uoc(i1,j1), kind=dbl_kind)
                    else
                      uocn(i,j,iblk) = c0
                    endif
-                   if(nmask(i,j,iblk)) then
+                   if(nmask((j-1)*nx_block+i,iblk)) then
                      vocn(i,j,iblk) = real(voc(i1,j1), kind=dbl_kind)
                    else
                      vocn(i,j,iblk) = c0
@@ -421,11 +421,11 @@ contains
        do j = jlo, jhi
        do i = ilo, ihi
            if(trim(grid_ocn) == 'A') then
-             if(tmask(i,j,iblk)) then
+             if(tmask((j-1)*nx_block+i,iblk)) then
                 slp_L = ssh(I,j,iblk) - ssh(I-1,j,iblk)
-                if(.not. emask(i-1,j,iblk)) slp_L = c0
+                if(.not. emask((j-1)*nx_block+i-1,iblk)) slp_L = c0
                 slp_R = ssh(I+1,j,iblk) - ssh(I,j,iblk)
-                if(.not. emask(i,j,iblk)) slp_R = c0
+                if(.not. emask((j-1)*nx_block+i,iblk)) slp_R = c0
                 slp_C = p5 * (slp_L + slp_R)
                 if ( (slp_L * slp_R) > c0 ) then
                   ! This limits the slope so that the edge values are bounded by the
@@ -438,12 +438,12 @@ contains
                   ! larger extreme values.
                   slope = c0
                 endif
-                ss_tltx(i,j,iblk) = slope / dxT(i,j,iblk)
+                ss_tltx(i,j,iblk) = slope / dxT((j-1)*nx_block+i,iblk)
 
                 slp_L = ssh(I,j,iblk) - ssh(I,j-1,iblk)
-                if(.not. nmask(i,j-1,iblk)) slp_L = c0
+                if(.not. nmask((j-2)*nx_block+i,iblk)) slp_L = c0
                 slp_R = ssh(I,j+1,iblk) - ssh(I,j,iblk)
-                if(.not. nmask(i,j,iblk)) slp_R = c0
+                if(.not. nmask((j-1)*nx_block+i,iblk)) slp_R = c0
                 slp_C = p5 * (slp_L + slp_R)
                 if ( (slp_L * slp_R) > c0 ) then
                   ! This limits the slope so that the edge values are bounded by the
@@ -456,33 +456,33 @@ contains
                   ! larger extreme values.
                   slope = c0
                 endif
-                ss_tlty(i,j,iblk) = slope / dyT(i,j,iblk)
+                ss_tlty(i,j,iblk) = slope / dyT((j-1)*nx_block+i,iblk)
              else
                 ss_tltx(i,j,iblk) = c0
                 ss_tlty(i,j,iblk) = c0
              endif
            elseif(trim(grid_ice) == 'B') then
-             if(umask(i,j,iblk)) then
+             if(umask((j-1)*nx_block+i,iblk)) then
                 ss_tltx(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)-ssh(i,j+1,iblk)  &
                                        +ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
-                                       /dxu(i,j,iblk)
+                                       /dxu((j-1)*nx_block+i,iblk)
                 ss_tlty(i,j,iblk) = p5*(ssh(i+1,j+1,iblk)+ssh(i,j+1,iblk)  &
                                        -ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
-                                       /dyu(i,j,iblk)
+                                       /dyu((j-1)*nx_block+i,iblk)
              else
                 ss_tltx(i,j,iblk) = c0
                 ss_tlty(i,j,iblk) = c0
              endif
            elseif(trim(grid_ice) == 'C') then
-             if(emask(i,j,iblk)) then
+             if(emask((j-1)*nx_block+i,iblk)) then
                 ss_tltx(i,j,iblk) = (ssh(i+1,j  ,iblk)-ssh(i,j  ,iblk)) &
-                                     /dxE(i,j,iblk)
+                                     /dxE((j-1)*nx_block+i,iblk)
              else
                 ss_tltx(i,j,iblk) = c0
              endif
-             if(nmask(i,j,iblk)) then
+             if(nmask((j-1)*nx_block+i,iblk)) then
                 ss_tlty(i,j,iblk) = (ssh(i,j+1,iblk) - ssh(i,j  ,iblk)) &
-                                     /dyN(i,j,iblk)
+                                     /dyN((j-1)*nx_block+i,iblk)
              else
                 ss_tlty(i,j,iblk) = c0
              endif
@@ -531,18 +531,18 @@ contains
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
              workx        = strocnxT_iavg(i,j,iblk)                            ! N/m^2
              worky        = strocnyT_iavg(i,j,iblk)                            ! N/m^2
-             tauxo(i1,j1) = real(workx*cos(ANGLET(i,j,iblk)) - &
-                                 worky*sin(ANGLET(i,j,iblk)), kind=real_kind)
-             tauyo(i1,j1) = real(worky*cos(ANGLET(i,j,iblk)) + &
-                                 workx*sin(ANGLET(i,j,iblk)), kind=real_kind)
+             tauxo(i1,j1) = real(workx*cos(ANGLET((j-1)*nx_block+i,iblk)) - &
+                                 worky*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
+             tauyo(i1,j1) = real(worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + &
+                                 workx*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
              workx        = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
                                + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
              worky        = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
                                + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
-             ui(i1,j1)    = real(workx*cos(ANGLET(i,j,iblk)) - &
-                                 worky*sin(ANGLET(i,j,iblk)), kind=real_kind)
-             vi(i1,j1)    = real(worky*cos(ANGLET(i,j,iblk)) + &
-                                 workx*sin(ANGLET(i,j,iblk)), kind=real_kind)
+             ui(i1,j1)    = real(workx*cos(ANGLET((j-1)*nx_block+i,iblk)) - &
+                                 worky*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
+             vi(i1,j1)    = real(worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + &
+                                 workx*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
           enddo
        enddo
     enddo

@@ -456,7 +456,7 @@ subroutine ice_prescribed_phys
    do iblk = 1,nblocks
    do j = 1,ny_block
    do i = 1,nx_block
-      if (tmask(i,j,iblk)) then
+      if (tmask((j-1)*nx_block+i,iblk)) then
          if (ice_cov(i,j,iblk) .lt. eps04) ice_cov(i,j,iblk) = c0
          if (ice_cov(i,j,iblk) .gt. c1)    ice_cov(i,j,iblk) = c1
       else
@@ -470,7 +470,7 @@ subroutine ice_prescribed_phys
    do j = 1,ny_block
    do i = 1,nx_block
 
-      if (tmask(i,j,iblk)) then   ! Over ocean points
+      if (tmask((j-1)*nx_block+i,iblk)) then   ! Over ocean points
 
          !--------------------------------------------------------------
          ! Place ice where ice concentration > .0001
@@ -482,9 +482,9 @@ subroutine ice_prescribed_phys
             !----------------------------------------------------------
             ! Set ice thickness in each hemisphere
             !----------------------------------------------------------
-            if(TLAT(i,j,iblk)*rad_to_deg > 40.0_dbl_kind) then
+            if(TLAT((j-1)*nx_block+i,iblk)*rad_to_deg > 40.0_dbl_kind) then
               hi  = 2.0_dbl_kind
-            else if(TLAT(i,j,iblk)*rad_to_deg < -40.0_dbl_kind) then
+            else if(TLAT((j-1)*nx_block+i,iblk)*rad_to_deg < -40.0_dbl_kind) then
               hi  = 1.0_dbl_kind
             end if
 
@@ -548,7 +548,7 @@ subroutine ice_prescribed_phys
       !--------------------------------------------------------------------
       ! compute aggregate ice state and open water area
       !--------------------------------------------------------------------
-      if (tmask(i,j,iblk)) &
+      if (tmask((j-1)*nx_block+i,iblk)) &
          call icepack_aggregate(aicen = aicen(i,j,:,iblk),         &
                                 trcrn = trcrn(i,j,1:ntrcr,:,iblk), &
                                 vicen = vicen(i,j,:,iblk),         &
@@ -575,7 +575,7 @@ subroutine ice_prescribed_phys
    do iblk = 1, nblocks
    do j = 1, ny_block
      do i = 1, nx_block
-       aice_init(i,j,iblk) = aice(i,j,iblk)
+       aice_init3d(i,j,iblk) = aice(i,j,iblk)
      enddo
    enddo
    enddo

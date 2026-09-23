@@ -555,7 +555,7 @@
             aicen_restoring(i,j,n,iblk) = c0
             vicen_restoring(i,j,n,iblk) = c0
             vsnon_restoring(i,j,n,iblk) = c0
-            if (tmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk)) then
                trcrn_restoring(i,j,nt_Tsfc,n,iblk) = Tf(i,j,iblk)  ! surface temperature
             else
                trcrn_restoring(i,j,nt_Tsfc,n,iblk) = c0  ! on land gridcells
@@ -630,12 +630,12 @@
          do n = 1, ncat
          do j = 1, ny_block
          do i = 1, nx_block
-            aicen_restoring(i,j,n,iblk) = aicen_restoring(i,j,n,iblk) * hm(i,j,iblk)
-            vicen_restoring(i,j,n,iblk) = vicen_restoring(i,j,n,iblk) * hm(i,j,iblk)
-            vsnon_restoring(i,j,n,iblk) = vsnon_restoring(i,j,n,iblk) * hm(i,j,iblk)
+            aicen_restoring(i,j,n,iblk) = aicen_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
+            vicen_restoring(i,j,n,iblk) = vicen_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
+            vsnon_restoring(i,j,n,iblk) = vsnon_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
             do nt = 1, ntrcr
                trcrn_restoring(i,j,nt,n,iblk) = trcrn_restoring(i,j,nt,n,iblk) &
-                                                            * hm(i,j,iblk)
+                                                            * hm((j-1)*nx_block+i,iblk)
             enddo
          enddo
          enddo

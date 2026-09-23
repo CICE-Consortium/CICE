@@ -337,7 +337,7 @@
                endif
             enddo
 
-            if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) then
                call icepack_step_radiation (dt=dt,                             &
                           fbri=fbri(:),                                        &
                           aicen=aicen(i,j,:,iblk),                             &
@@ -352,7 +352,7 @@
                           bgcNn=trcrn(i,j,nt_bgc_N(1):nt_bgc_N(1)+n_algae*(nblyr+3)-1,:,iblk), &
                           zaeron=trcrn(i,j,nt_zaero(1):nt_zaero(1)+n_zaero*(nblyr+3)-1,:,iblk), &
                           trcrn_bgcsw=ztrcr_sw,                                &
-                          TLAT=TLAT(i,j,iblk), TLON=TLON(i,j,iblk),            &
+                          TLAT=TLAT((j-1)*nx_block+i,iblk), TLON=TLON((j-1)*nx_block+i,iblk),            &
                           calendar_type=calendar_type,                         &
                           days_per_year=days_per_year,                         &
                           nextsw_cday=nextsw_cday, yday=yday,                  &

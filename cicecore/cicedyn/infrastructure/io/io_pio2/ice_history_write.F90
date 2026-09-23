@@ -757,21 +757,21 @@
             SELECT CASE (var_coord(i)%short_name)
                CASE ('TLON')
                  ! Convert T grid longitude from -180 -> 180 to 0 to 360
-                    workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
+                    workd2(:,:,:) = mod(reshape(tlon(:,1:nblocks), shape(workd2))*rad_to_deg + c360, c360)
                CASE ('TLAT')
-                 workd2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(tlat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ULON')
-                 workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(ulon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ULAT')
-                 workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(ulat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('NLON')
-                 workd2(:,:,:) = nlon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(nlon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('NLAT')
-                 workd2(:,:,:) = nlat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(nlat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ELON')
-                 workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(elon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ELAT')
-                 workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(elat(:,1:nblocks), shape(workd2))*rad_to_deg
             END SELECT
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d, &
@@ -824,47 +824,47 @@
          if (igrd(i) .or. histfreq(ns)=='g') then
             SELECT CASE (var_grd(i)%req%short_name)
                CASE ('tmask')
-                  workd2 = hm(:,:,1:nblocks)
+                  workd2 = reshape(hm(:,1:nblocks), shape(workd2))
                CASE ('umask')
-                  workd2 = uvm(:,:,1:nblocks)
+                  workd2 = reshape(uvm(:,1:nblocks), shape(workd2))
                CASE ('nmask')
-                  workd2 = npm(:,:,1:nblocks)
+                  workd2 = reshape(npm(:,1:nblocks), shape(workd2))
                CASE ('emask')
-                  workd2 = epm(:,:,1:nblocks)
+                  workd2 = reshape(epm(:,1:nblocks), shape(workd2))
                CASE ('blkmask')
-                  workd2 = bm(:,:,1:nblocks)
+                  workd2 = reshape(bm(:,1:nblocks), shape(workd2))
                CASE ('tarea')
-                  workd2 = tarea(:,:,1:nblocks)
+                  workd2 = reshape(tarea(:,1:nblocks), shape(workd2))
                CASE ('uarea')
-                  workd2 = uarea(:,:,1:nblocks)
+                  workd2 = reshape(uarea(:,1:nblocks), shape(workd2))
                CASE ('narea')
-                  workd2 = narea(:,:,1:nblocks)
+                  workd2 = reshape(narea(:,1:nblocks), shape(workd2))
                CASE ('earea')
-                  workd2 = earea(:,:,1:nblocks)
+                  workd2 = reshape(earea(:,1:nblocks), shape(workd2))
                CASE ('dxt')
-                  workd2 = dxT(:,:,1:nblocks)
+                  workd2 = reshape(dxT(:,1:nblocks), shape(workd2))
                CASE ('dyt')
-                  workd2 = dyT(:,:,1:nblocks)
+                  workd2 = reshape(dyT(:,1:nblocks), shape(workd2))
                CASE ('dxu')
-                  workd2 = dxU(:,:,1:nblocks)
+                  workd2 = reshape(dxU(:,1:nblocks), shape(workd2))
                CASE ('dyu')
-                  workd2 = dyU(:,:,1:nblocks)
+                  workd2 = reshape(dyU(:,1:nblocks), shape(workd2))
                CASE ('dxn')
-                  workd2 = dxN(:,:,1:nblocks)
+                  workd2 = reshape(dxN(:,1:nblocks), shape(workd2))
                CASE ('dyn')
-                  workd2 = dyN(:,:,1:nblocks)
+                  workd2 = reshape(dyN(:,1:nblocks), shape(workd2))
                CASE ('dxe')
-                  workd2 = dxE(:,:,1:nblocks)
+                  workd2 = reshape(dxE(:,1:nblocks), shape(workd2))
                CASE ('dye')
-                  workd2 = dyE(:,:,1:nblocks)
+                  workd2 = reshape(dyE(:,1:nblocks), shape(workd2))
                CASE ('HTN')
-                  workd2 = HTN(:,:,1:nblocks)
+                  workd2 = reshape(HTN(:,1:nblocks), shape(workd2))
                CASE ('HTE')
-                  workd2 = HTE(:,:,1:nblocks)
+                  workd2 = reshape(HTE(:,1:nblocks), shape(workd2))
                CASE ('ANGLE')
-                  workd2 = ANGLE(:,:,1:nblocks)
+                  workd2 = reshape(ANGLE(:,1:nblocks), shape(workd2))
                CASE ('ANGLET')
-                  workd2 = ANGLET(:,:,1:nblocks)
+                  workd2 = reshape(ANGLET(:,1:nblocks), shape(workd2))
             END SELECT
             call ice_pio_check(pio_inq_varid(File, var_grd(i)%req%short_name, varid), &
                  subname//' ERROR: getting '//var_grd(i)%req%short_name,file=__FILE__,line=__LINE__)
@@ -894,35 +894,35 @@
             SELECT CASE (var_nverts(i)%short_name)
                CASE ('lont_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lont_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latt_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latt_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lonu_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lonu_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latu_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latu_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lonn_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lonn_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latn_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latn_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lone_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lone_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('late_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(late_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
             END SELECT
 

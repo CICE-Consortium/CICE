@@ -32,7 +32,7 @@
 
       implicit none
 
-      integer(int_kind) :: i, j, n, ib, ie, jb, je, iblock
+      integer(int_kind) :: i, j, n, ib, ie, jb, je, iblock, ijb
       integer(int_kind) :: iglob, jglob
       integer(int_kind) :: blockID, numBlocks
       type (block) :: this_block
@@ -110,22 +110,22 @@
          errtolijind(n+1:n+nbase(1)) = 0.03_dbl_kind
          errtolarea (n+1:n+nbase(1)) = 0.003_dbl_kind
       endif
-      n=n+1; avgname(n) = 'T2TA' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'T2UA' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'T2NA' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'T2EA' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'U2TA' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'U2UA' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'U2NA' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'U2EA' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'N2TA' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'N2UA' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'N2NA' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'N2EA' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'E2TA' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'E2UA' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'E2NA' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'E2EA' ; dmask(:,:,:,n) = emask(:,:,:)
+      n=n+1; avgname(n) = 'T2TA' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2UA' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2NA' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2EA' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2TA' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2UA' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2NA' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2EA' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2TA' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2UA' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2NA' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2EA' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2TA' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2UA' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2NA' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2EA' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
 
       errtolconst(n+1:n+nbase(2)) = 0.00001_dbl_kind
       errtolijind(n+1:n+nbase(2)) = 0.51_dbl_kind
@@ -133,22 +133,22 @@
       if (nx_global > 200 .and. ny_global > 200) then
          errtolarea (n+1:n+nbase(2)) = 0.06_dbl_kind
       endif
-      n=n+1; avgname(n) = 'T2TS' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'T2US' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'T2NS' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'T2ES' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'U2TS' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'U2US' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'U2NS' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'U2ES' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'N2TS' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'N2US' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'N2NS' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'N2ES' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'E2TS' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'E2US' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'E2NS' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'E2ES' ; dmask(:,:,:,n) = emask(:,:,:)
+      n=n+1; avgname(n) = 'T2TS' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2US' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2NS' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2ES' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2TS' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2US' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2NS' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2ES' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2TS' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2US' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2NS' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2ES' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2TS' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2US' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2NS' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2ES' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
 
      if (nbase(3) > 0) then
       errtolconst(n+1:n+nbase(3)) = 0.0065_dbl_kind
@@ -158,22 +158,22 @@
          errtolijind(n+1:n+nbase(3)) = 0.22_dbl_kind
          errtolarea (n+1:n+nbase(3)) = 0.004_dbl_kind
       endif
-      n=n+1; avgname(n) = 'T2TF' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'T2UF' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'T2NF' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'T2EF' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'U2TF' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'U2UF' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'U2NF' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'U2EF' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'N2TF' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'N2UF' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'N2NF' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'N2EF' ; dmask(:,:,:,n) = emask(:,:,:)
-      n=n+1; avgname(n) = 'E2TF' ; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'E2UF' ; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'E2NF' ; dmask(:,:,:,n) = nmask(:,:,:)
-      n=n+1; avgname(n) = 'E2EF' ; dmask(:,:,:,n) = emask(:,:,:)
+      n=n+1; avgname(n) = 'T2TF' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2UF' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2NF' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'T2EF' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2TF' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2UF' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2NF' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'U2EF' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2TF' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2UF' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2NF' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'N2EF' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2TF' ; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2UF' ; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2NF' ; dmask(:,:,:,n) = reshape(nmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'E2EF' ; dmask(:,:,:,n) = reshape(emask, (/nx_block,ny_block,max_blocks/))
      endif
 
       errtolconst(n+1:n+nbase(4)) = 0.00001_dbl_kind
@@ -183,10 +183,10 @@
          errtolijind(n+1:n+nbase(4)) = 0.26_dbl_kind
          errtolarea (n+1:n+nbase(4)) = 0.03_dbl_kind
       endif
-      n=n+1; avgname(n) = 'NE2TS'; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'EN2TS'; dmask(:,:,:,n) = tmask(:,:,:)
-      n=n+1; avgname(n) = 'NE2US'; dmask(:,:,:,n) = umask(:,:,:)
-      n=n+1; avgname(n) = 'EN2US'; dmask(:,:,:,n) = umask(:,:,:)
+      n=n+1; avgname(n) = 'NE2TS'; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'EN2TS'; dmask(:,:,:,n) = reshape(tmask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'NE2US'; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
+      n=n+1; avgname(n) = 'EN2US'; dmask(:,:,:,n) = reshape(umask, (/nx_block,ny_block,max_blocks/))
 
       if (n /= mtests) then
         call abort_ice(subname//' n ne mtests')
@@ -464,6 +464,7 @@
                   errorflag(testcnt) = failflag
                   errorflag0         = failflag
                   write(100+my_task,*) ''
+                  ijb = (j-1)*nx_block + i
                   write(100+my_task,100) 'error ijind '//trim(avgname(n)),my_task,iblock,i,j,iglob,jglob
                   write(100+my_task,101) 'array2x, err',array2x(i,j,iblock),errx
                   write(100+my_task,101) 'array1x j+1 ',array1x(i-1,j+1,iblock),array1x(i,j+1,iblock),array1x(i+1,j+1,iblock)
@@ -473,16 +474,22 @@
                   write(100+my_task,101) 'array1y j+1 ',array1y(i-1,j+1,iblock),array1y(i,j+1,iblock),array1y(i+1,j+1,iblock)
                   write(100+my_task,101) 'array1y j   ',array1y(i-1,j  ,iblock),array1y(i,j  ,iblock),array1y(i+1,j  ,iblock)
                   write(100+my_task,101) 'array1y j-1 ',array1y(i-1,j-1,iblock),array1y(i,j-1,iblock),array1y(i+1,j-1,iblock)
-                  write(100+my_task,101) 'tarea       ',tarea(i,j,iblock)
-                  write(100+my_task,101) 'uarea   j+1 ',uarea  (i-1,j+1,iblock),uarea  (i,j+1,iblock),uarea  (i+1,j+1,iblock)
-                  write(100+my_task,101) 'uarea   j   ',uarea  (i-1,j  ,iblock),uarea  (i,j  ,iblock),uarea  (i+1,j  ,iblock)
-                  write(100+my_task,101) 'uarea   j-1 ',uarea  (i-1,j-1,iblock),uarea  (i,j-1,iblock),uarea  (i+1,j-1,iblock)
-                  write(100+my_task,101) 'hm      j+1 ',hm     (i-1,j+1,iblock),hm     (i,j+1,iblock),hm     (i+1,j+1,iblock)
-                  write(100+my_task,101) 'hm      j   ',hm     (i-1,j  ,iblock),hm     (i,j  ,iblock),hm     (i+1,j  ,iblock)
-                  write(100+my_task,101) 'hm      j-1 ',hm     (i-1,j-1,iblock),hm     (i,j-1,iblock),hm     (i+1,j-1,iblock)
-                  write(100+my_task,101) 'uvm     j+1 ',uvm    (i-1,j+1,iblock),uvm    (i,j+1,iblock),uvm    (i+1,j+1,iblock)
-                  write(100+my_task,101) 'uvm     j   ',uvm    (i-1,j  ,iblock),uvm    (i,j  ,iblock),uvm    (i+1,j  ,iblock)
-                  write(100+my_task,101) 'uvm     j-1 ',uvm    (i-1,j-1,iblock),uvm    (i,j-1,iblock),uvm    (i+1,j-1,iblock)
+                  write(100+my_task,101) 'tarea       ',tarea(ijb,iblock)
+                  write(100+my_task,101) 'uarea   j+1 ', &
+                     uarea(ijb+nx_block-1,iblock),uarea(ijb+nx_block,iblock),uarea(ijb+nx_block+1,iblock)
+                  write(100+my_task,101) 'uarea   j   ', &
+                     uarea(ijb         -1,iblock),uarea(ijb         ,iblock),uarea(ijb         +1,iblock)
+                  write(100+my_task,101) 'uarea   j-1 ', &
+                     uarea(ijb-nx_block-1,iblock),uarea(ijb-nx_block,iblock),uarea(ijb-nx_block+1,iblock)
+                  write(100+my_task,101) 'hm      j+1 ',hm(ijb+nx_block-1,iblock),hm(ijb+nx_block,iblock),hm(ijb+nx_block+1,iblock)
+                  write(100+my_task,101) 'hm      j   ',hm(ijb         -1,iblock),hm(ijb         ,iblock),hm(ijb         +1,iblock)
+                  write(100+my_task,101) 'hm      j-1 ',hm(ijb-nx_block-1,iblock),hm(ijb-nx_block,iblock),hm(ijb-nx_block+1,iblock)
+                  write(100+my_task,101) 'uvm     j+1 ', &
+                     uvm(ijb+nx_block-1,iblock),uvm(ijb+nx_block,iblock),uvm(ijb+nx_block+1,iblock)
+                  write(100+my_task,101) 'uvm     j   ', &
+                     uvm(ijb         -1,iblock),uvm(ijb         ,iblock),uvm(ijb         +1,iblock)
+                  write(100+my_task,101) 'uvm     j-1 ', &
+                     uvm(ijb-nx_block-1,iblock),uvm(ijb-nx_block,iblock),uvm(ijb-nx_block+1,iblock)
                endif
              enddo
             enddo
@@ -545,27 +552,27 @@
          mask1   = -999.
          wght1   = -999.
          if     (avgname(n)(1:2) == 'T2') then
-            array1x = tarea
-            wght1 = tarea
-            mask1 = hm
+            array1x = reshape(tarea, shape(array1x))
+            wght1 = reshape(tarea, shape(wght1))
+            mask1 = reshape(hm, shape(mask1))
          elseif (avgname(n)(1:2) == 'U2') then
-            array1x = uarea
-            wght1 = uarea
-            mask1 = uvm
+            array1x = reshape(uarea, shape(array1x))
+            wght1 = reshape(uarea, shape(wght1))
+            mask1 = reshape(uvm, shape(mask1))
          elseif (avgname(n)(1:2) == 'E2') then
-            array1x = earea
-            wght1 = earea
-            mask1 = epm
+            array1x = reshape(earea, shape(array1x))
+            wght1 = reshape(earea, shape(wght1))
+            mask1 = reshape(epm, shape(mask1))
          elseif (avgname(n)(1:2) == 'N2') then
-            array1x = narea
-            wght1 = narea
-            mask1 = npm
+            array1x = reshape(narea, shape(array1x))
+            wght1 = reshape(narea, shape(wght1))
+            mask1 = reshape(npm, shape(mask1))
          elseif (avgname(n)(1:3) == 'NE2') then
-            array1x = narea
-            arraysx = earea
+            array1x = reshape(narea, shape(array1x))
+            arraysx = reshape(earea, shape(arraysx))
          elseif (avgname(n)(1:3) == 'EN2') then
-            array1x = earea
-            arraysx = narea
+            array1x = reshape(earea, shape(array1x))
+            arraysx = reshape(narea, shape(arraysx))
          else
             call abort_ice(subname//' avgname not supported 1x = '//trim(avgname(n)))
          endif
@@ -573,14 +580,14 @@
          array2y = -999.
          if     (avgname(n)(2:3) == '2T' .or. &
                  avgname(n)(3:4) == '2T') then
-            array2y = tarea
+            array2y = reshape(tarea, shape(array2y))
          elseif (avgname(n)(2:3) == '2U' .or. &
                  avgname(n)(3:4) == '2U') then
-            array2y = uarea
+            array2y = reshape(uarea, shape(array2y))
          elseif (avgname(n)(2:3) == '2E') then
-            array2y = earea
+            array2y = reshape(earea, shape(array2y))
          elseif (avgname(n)(2:3) == '2N') then
-            array2y = narea
+            array2y = reshape(narea, shape(array2y))
          else
             call abort_ice(subname//' avgname not supported 2y = '//trim(avgname(n)))
          endif

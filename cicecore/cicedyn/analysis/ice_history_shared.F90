@@ -767,6 +767,7 @@
 
       interface accum_hist_field ! generic interface
            module procedure accum_hist_field_2D, &
+                            accum_hist_field_2D_flat, &
                             accum_hist_field_3D, &
                             accum_hist_field_4D
       end interface
@@ -1061,7 +1062,7 @@
 
       subroutine accum_hist_field_2D(id, iblk, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
       use ice_grid, only: tmask
@@ -1101,7 +1102,7 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (tmask((j-1)*nx_block+i,iblk)) then
              field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(i,j)
           endif
        enddo
@@ -1113,6 +1114,65 @@
       end subroutine accum_hist_field_2D
 
 !=======================================================================
+! As accum_hist_field_2D, for a field_accum whose i and j dimensions are
+! flattened, i.e. dimension(nx_block*ny_block), with element (i,j) at
+! (j-1)*nx_block + i
+
+      subroutine accum_hist_field_2D_flat(id, iblk, field_accum, field)
+
+      use ice_blocks, only: block, get_block, nx_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array for use in
+                           ! later routines
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         field_accum(:)
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_flat)'
+
+      !---------------------------------------------------------------
+      ! increment field
+      !---------------------------------------------------------------
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          if (tmask((j-1)*nx_block+i,iblk)) then
+             field(i,j,idns, iblk) = field(i,j,idns, iblk) &
+                                   + field_accum((j-1)*nx_block + i)
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_flat
+
+!=======================================================================
 
 !     Accumulates a history field
 !
@@ -1121,7 +1181,7 @@
 
       subroutine accum_hist_field_3D(id, iblk, ndim, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
       use ice_grid, only: tmask
@@ -1165,7 +1225,7 @@
        do k = 1, ndim
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (tmask((j-1)*nx_block+i,iblk)) then
              field(i,j,k,idns,iblk) = field(i,j,k,idns,iblk) + field_accum(i,j,k)
           endif
        enddo
@@ -1186,7 +1246,7 @@
 
       subroutine accum_hist_field_4D(id, iblk, ndim3, ndim4, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
       use ice_grid, only: tmask
@@ -1232,7 +1292,7 @@
        do n = 1, ndim3
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (tmask((j-1)*nx_block+i,iblk)) then
              field(i,j,n,k,idns,iblk) = field(i,j,n,k,idns,iblk) + field_accum(i,j,n,k)
           endif
        enddo

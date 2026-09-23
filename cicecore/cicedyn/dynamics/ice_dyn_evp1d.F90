@@ -139,18 +139,31 @@ module ice_dyn_evp1d
 
     ! nx_block, ny_block, max_blocks
     real(kind=dbl_kind)   , dimension(:,:,:), intent(inout) :: &
+      L_strintxU  , L_strintyU  , L_uvel      , L_vvel
+
+    ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
+    ! lives at ((j-1)*nx_block + i, iblk)
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) ::  &
       L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 ,  &
       L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 ,  &
       L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4,  &
-      L_strintxU  , L_strintyU  , L_uvel      , L_vvel      ,  &
       L_taubxU    , L_taubyU
     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) ::    &
       L_strength  ,                                            &
-      L_cdn_ocn   , L_aiu       , L_uocn     , L_vocn   ,      &
-      L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU,      &
-      L_umassdti  , L_fmU       , L_Tbu
-    logical(kind=log_kind), dimension(:,:,:), intent(in) ::    &
-      L_iceUmask  , L_iceTmask
+      L_cdn_ocn   , L_uocn      , L_vocn
+    ! flattened as above
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
+      L_fmU       , L_Tbu
+
+    ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
+    ! lives at ((j-1)*nx_block + i, iblk)
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
+      L_aiu       , L_umassdti  ,                              &
+      L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU
+    ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
+    ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+    logical(kind=log_kind), dimension(:,:), intent(in) ::      &
+      L_iceTmask  , L_iceUmask
 
     ! local variables
 
@@ -183,7 +196,7 @@ module ice_dyn_evp1d
                     L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
                     L_umassdti  , L_fmU       ,                             &
                     L_Tbu       , L_uvel      , L_vvel      ,               &
-                    L_icetmask  , L_iceUmask  ,                             &
+                    L_iceTmask  , L_iceUmask  ,                             &
                     G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
                     G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
                     G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
@@ -668,16 +681,28 @@ module ice_dyn_evp1d
 
      ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
+        L_strength  ,                                           &
+        L_cdn_ocn   , L_uocn      , L_vocn      ,               &
+        L_uvel      , L_vvel
+
+     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
+     ! lives at ((j-1)*nx_block + i, iblk)
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
         L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
         L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
-        L_strength  ,                                           &
-        L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
-        L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-        L_umassdti  , L_fmU       ,                             &
-        L_Tbu       , L_uvel      , L_vvel
-     logical(kind=log_kind), dimension(:,:,:), intent(in)  ::   &
-        L_iceUmask  , L_iceTmask
+        L_fmU       , L_Tbu
+
+     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
+     ! lives at ((j-1)*nx_block + i, iblk)
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
+        L_aiu       , L_umassdti  ,                             &
+        L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU
+
+     ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
+     ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+     logical(kind=log_kind), dimension(:,:), intent(in)  ::     &
+        L_iceTmask  , L_iceUmask
 
      ! nx, ny
      real(kind=dbl_kind)   , dimension(:,:), intent(out) ::     &
@@ -752,10 +777,14 @@ module ice_dyn_evp1d
 
      ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+        L_strintxU  , L_strintyU  , L_uvel      , L_vvel
+
+     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
+     ! lives at ((j-1)*nx_block + i, iblk)
+     real(kind=dbl_kind), dimension(:,:)  , intent(out) ::      &
         L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
         L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
-        L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
         L_taubxU    , L_taubyU
 
      ! nx, ny
