@@ -1206,8 +1206,7 @@ An option (``free_drift_approx`` = true) sets the internal stress term in the
 momentum equation to zero in cells where the ice area fraction is less than
 ``rheo_area_min = 1.e-3``, well below the area fraction at which the ice should
 begin experiencing free drift. This approximation should be turned on for
-EVP discretizations for C- and CD-grids, and is also available for B-grids. It
-has not been implemented for the EAP and VP rheologies.
+EVP discretizations. It has not been implemented for the EAP and VP rheologies.
 
 .. _modelio:
 

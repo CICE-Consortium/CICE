@@ -429,7 +429,7 @@
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
       dyn_area_min = 1.e-11_dbl_kind ! minimum ice area concentration to activate dynamics
       dyn_mass_min = 1.e-10_dbl_kind ! minimum ice mass to activate dynamics (kg/m^2)
-      free_drift_approx = .false.    ! if true, set internal stress term to 0 for small areas
+      free_drift_approx = .true.     ! if true, set internal stress term to 0 for small areas
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
