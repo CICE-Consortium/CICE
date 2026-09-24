@@ -681,8 +681,7 @@
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby       ! seabed stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), &
-           optional :: &
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
          rheofactX   ! 1, except 0 where aiU <= rheo_area_min
 
       ! local variables
