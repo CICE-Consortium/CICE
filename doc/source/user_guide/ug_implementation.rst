@@ -1202,6 +1202,12 @@ relaxation parameter ``arlx1i`` effectively sets the damping timescale in
 the problem, and ``brlx`` represents the effective subcycling
 :cite:`Bouillon13` (see Section :ref:`revp`).
 
+An option (``free_drift_approx`` = true) sets the internal stress term in the
+momentum equation to zero in cells where the ice area fraction is less than
+``rheo_area_min = 1.e-3``, well below the area fraction at which the ice should
+begin experiencing free drift. This approximation should be turned on for
+EVP discretizations. It has not been implemented for the EAP and VP rheologies.
+
 .. _modelio:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~

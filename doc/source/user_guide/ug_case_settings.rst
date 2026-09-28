@@ -537,6 +537,7 @@ dynamics_nml
    "``elasticDamp``", "real", "elastic damping parameter", "0.36"
    "``evp_algorithm``", "``standard_2d``", "standard 2d EVP memory parallel solver", "standard_2d"
    "", "``shared_mem_1d``", "1d shared memory solver", ""
+   "``free_drift_approx``", "``logical``", "set internal stress to 0 for small areas", ""
    "``kdyn``", "``-1``", "dynamics algorithm OFF", "1"
    "", "``0``", "dynamics OFF", ""
    "", "``1``", "EVP dynamics", ""

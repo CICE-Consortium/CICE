@@ -55,7 +55,8 @@
 
       implicit none
       private
-! all c or cd
+
+      ! C or CD grid
       real (kind=dbl_kind), allocatable :: &
          uocnN    (:,:,:) , & ! i ocean current (m/s)
          vocnN    (:,:,:) , & ! j ocean current (m/s)
@@ -67,10 +68,10 @@
          forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiN      (:,:,:) , & ! ice fraction on N-grid
-         rheofactN(:,:,:) , & ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
+         rheofactN(:,:,:) , & ! 1, except 0 where aiN <= rheo_area_min
          nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
          nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
-! all c or d
+
       real (kind=dbl_kind), allocatable :: &
          uocnE    (:,:,:) , & ! i ocean current (m/s)
          vocnE    (:,:,:) , & ! j ocean current (m/s)
@@ -82,7 +83,7 @@
          forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          aiE      (:,:,:) , & ! ice fraction on E-grid
-         rheofactE(:,:,:) , & ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
+         rheofactE(:,:,:) , & ! 1, except 0 where aiE <= rheo_area_min
          emass    (:,:,:) , & ! total mass of ice and snow (E grid)
          emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
 
@@ -103,6 +104,7 @@
          etax2T   (:,:,:) , & ! etax2  = 2*eta  (shear viscosity)
          etax2U   (:,:,:)     ! etax2T averaged to U points
 
+      ! B grid
       real (kind=dbl_kind), allocatable :: &
          uocnU    (:,:,:) , & ! i ocean current (m/s)
          vocnU    (:,:,:) , & ! j ocean current (m/s)
@@ -115,7 +117,8 @@
          forcexU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyU  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
          umass    (:,:,:) , & ! total mass of ice and snow (u grid)
-         umassdti (:,:,:)     ! mass of U-cell/dte (kg/m^2 s)
+         umassdti (:,:,:) , & ! mass of U-cell/dte (kg/m^2 s)
+         rheofactU(:,:,:)     ! 1, except 0 where aiU <= rheo_area_min
 
       public :: evp, init_evp
 
@@ -166,8 +169,11 @@
                 forceyU  (nx_block,ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
                 umass    (nx_block,ny_block,max_blocks), & ! total mass of ice and snow (u grid)
                 umassdti (nx_block,ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                rheofactU(nx_block,ny_block,max_blocks), & ! 1, except 0 where aiU <= rheo_area_min
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
+
+      rheofactU(:,:,:) = c1
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -199,6 +205,8 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
 
+         rheofactN(:,:,:) = c1
+
          allocate( uocnE    (nx_block,ny_block,max_blocks), &
                    vocnE    (nx_block,ny_block,max_blocks), &
                    ss_tltxE (nx_block,ny_block,max_blocks), &
@@ -214,6 +222,8 @@
                    rheofactE(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
+
+         rheofactE(:,:,:) = c1
 
          allocate( ratiodxN (nx_block,ny_block,max_blocks), &
                    ratiodyE (nx_block,ny_block,max_blocks), &
@@ -530,7 +540,7 @@
                             stress12_3(:,:,iblk), stress12_4(:,:,iblk), &
                             uvel_init (:,:,iblk), vvel_init (:,:,iblk), &
                             uvel      (:,:,iblk), vvel      (:,:,iblk), &
-                            TbU       (:,:,iblk))
+                            TbU       (:,:,iblk), rheofactU (:,:,iblk))
 
             !-----------------------------------------------------------------
             ! ice strength
@@ -855,6 +865,7 @@
                                vvel      , icetmask  , iceUmask)
 
          else ! evp_algorithm == standard_2d (Standard CICE)
+
             do ksub = 1,ndte        ! subcycling
 
                !$OMP PARALLEL DO PRIVATE(iblk,strtmp) SCHEDULE(runtime)
@@ -897,7 +908,7 @@
                               taubxU   (:,:,iblk), taubyU  (:,:,iblk), &
                               uvel_init(:,:,iblk), vvel_init(:,:,iblk),&
                               uvel     (:,:,iblk), vvel    (:,:,iblk), &
-                              TbU      (:,:,iblk))
+                              TbU      (:,:,iblk), rheofactU(:,:,iblk))
 
                enddo  ! iblk
                !$OMP END PARALLEL DO
@@ -2216,7 +2227,7 @@
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
          arear   , & ! earear or narear
-         rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
+         rheofactE   ! 1, except 0 where aiE <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2272,7 +2283,7 @@
          dxU     , & ! width of T or U-cell through the middle (m)
          dyT     , & ! height of T or U-cell through the middle (m)
          arear   , & ! earear or narear
-         rheofactE   ! mult. factor = 1, set to 0 if aiE <= rheo_area_min
+         rheofactE   ! 1, except 0 where aiE <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
@@ -2328,7 +2339,7 @@
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
          arear   , & ! earear or narear
-         rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
+         rheofactN   ! 1, except 0 where aiN <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strintx calculation
@@ -2384,7 +2395,7 @@
          dxT     , & ! width of T or U-cell through the middle (m)
          dyU     , & ! height of T or U-cell through the middle (m)
          arear   , & ! earear or narear
-         rheofactN   ! mult. factor = 1, set to 0 if aiN <= rheo_area_min
+         rheofactN   ! 1, except 0 where aiN <= rheo_area_min
 
       real (kind=dbl_kind), optional, dimension (nx_block,ny_block), intent(in) :: &
          stressp , & ! stressp  (U or T) used for strinty calculation
