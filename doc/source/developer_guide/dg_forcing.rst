@@ -86,9 +86,9 @@ JRA55 and JRA55do Atmosphere Forcing
 
 The current default atmosphere forcing for gx3, gx1, tx1 and tx1m standalone grids for
 Consortium testing is the JRA55 forcing
-dataset :cite:`Tsujino18`.  The Consortium has released 5 years of forcing data, 
-2005-2009 for gx3, gx1, tx1 and tx1m grids.  Each year is a separate file and 
-the dataset is on a gregorian time axis which includes leap days.
+dataset :cite:`Tsujino18`.  The Consortium has released at least 5 years of JRA55 and JRA55do forcing data, 
+2005-2009 for gx3, gx1, and tx1 grids plus 1 year of JRA55do forcing data, 2005 for the tx1m grid.  
+Each year is a separate file and the dataset is on a gregorian time axis which includes leap days.
 
 .. _fig-jra55data:
 
