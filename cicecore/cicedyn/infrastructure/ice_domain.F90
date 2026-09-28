@@ -405,12 +405,12 @@
       igm1,igp1,jgm1,jgp1,&! global indices
       ninfo              ,&! ice_distributionGet check
       np, nlb, m         ,&! debug blocks temporaries
-      work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
       fid                ,&! file id
       varid              ,&! var id
-      status               ! netcdf return code
+      status             ,&! netcdf return code
 #endif
+      work_unit            ! size of quantized work unit
 
    real (dbl_kind) :: &
       puny, &              ! puny limit
