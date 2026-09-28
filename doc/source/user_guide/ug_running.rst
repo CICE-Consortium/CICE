@@ -341,7 +341,7 @@ Some of the options are
 
 ``short``, ``medium``, ``long`` which change the batch time limit
 
-``gx3``, ``gx1``, ``tx1``, ``tx1m`` are associate with grid specific settings
+``gx3``, ``gx1``, ``tx1``, ``tx1m`` are associated with grid specific settings
 
 ``diag1`` which turns on diagnostics each timestep
 
