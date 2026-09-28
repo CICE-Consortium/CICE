@@ -775,11 +775,11 @@ EOF
 
     if (${docase} == 0) then
       set soptions = ""
-      # Create sorted array and remove duplicates and "none"
+      # Create sorted array and remove duplicates and "none" and others
       set setsarray = `echo ${sets_tmp} | sed 's/,/ /g' | fmt -1 | sort -u`
       if ("${setsarray}" != "") then
         foreach field (${setsarray})
-          if (${field} != "none") then
+          if (${field} != "none" && ${field} != "buildincremental") then
             set soptions = ${soptions}"_"${field}
           endif
         end

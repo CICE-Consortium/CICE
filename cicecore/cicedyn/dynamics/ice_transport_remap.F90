@@ -39,7 +39,7 @@
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: istep1
-      use ice_communicate, only: my_task
+      use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
           eps13, eps16, &
           field_loc_center, field_type_scalar, &
@@ -269,7 +269,27 @@
 
       subroutine init_remap
 
+      use ice_blocks, only: nghost, ew_boundary_type, ns_boundary_type
+
       character(len=*), parameter :: subname = '(init_remap)'
+
+      ! check that if open boundaries are used, nghost > 1
+      ! this was moved from initialization to support unit testing
+      ! with open bcs and nghost=1 and support for upwind advection and nghost=1
+      if ((ew_boundary_type == 'open'          .or. &
+           ew_boundary_type == 'zero_gradient' .or. &
+           ew_boundary_type == 'linear_extrap' .or. &
+           ns_boundary_type == 'open'          .or. &
+           ns_boundary_type == 'zero_gradient' .or. &
+           ns_boundary_type == 'linear_extrap') .and. &
+          (nghost == 1)) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: regional bcs require nghost>=2 in remap advection'
+            write(nu_diag,*) subname//' boundary types = '//trim(ew_boundary_type)//' '//trim(ns_boundary_type)
+            write(nu_diag,*) subname//' with nghost = ', nghost
+         endif
+         call abort_ice(subname//' ERROR: regional bcs require nghost >= 2 in remap advection', file=__FILE__, line=__LINE__)
+      endif
 
       !-------------------------------------------------------------------
       ! Set logical l_edge_flux_adj depending of the grid type.
@@ -1517,8 +1537,8 @@
          dpy(i,j) = -dt*vvel(i,j)
 
          ! Check for values out of bounds (more than one grid cell away)
-         if (dpx(i,j) < -HTN(i,j) .or. dpx(i,j) > HTN(i+1,j) .or.   &
-             dpy(i,j) < -HTE(i,j) .or. dpy(i,j) > HTE(i,j+1)) then
+         if ((dpx(i,j) > c0 .and. (dpx(i,j) < -HTN(i,j) .or. dpx(i,j) > HTN(i+1,j))) .or.   &
+             (dpy(i,j) > c0 .and. (dpy(i,j) < -HTE(i,j) .or. dpy(i,j) > HTE(i,j+1)))) then
             l_stop = .true.
             istop = i
             jstop = j

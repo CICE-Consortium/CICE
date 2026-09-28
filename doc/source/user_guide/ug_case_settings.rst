@@ -390,6 +390,7 @@ domain_nml
    "``maskhalo_bound``", "logical", "mask unused halo cells for boundary updates", "``.false.``"
    "``max_blocks``", "integer", "maximum number of blocks per MPI task for memory allocation", "-1"
    "", "``-1``", "find number of blocks per MPI task automatically", ""
+   "``nghost``", "integer", "size of the block halo", "1"
    "``nprocs``", "integer", "number of MPI tasks to use", "-1"
    "", "``-1``", "find number of MPI tasks automatically", ""
    "``ns_boundary_type``", "``closed``", "force two gridcell wide land mask on y-direction boundaries for rectangular grids", "``cyclic``"

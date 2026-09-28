@@ -323,6 +323,7 @@
     ny_global         = 116
     block_size_x      = 25
     block_size_y      = 29
+    nghost            = 1
     max_blocks        = -1
     processor_shape   = 'slenderX2'
     distribution_type = 'cartesian'
