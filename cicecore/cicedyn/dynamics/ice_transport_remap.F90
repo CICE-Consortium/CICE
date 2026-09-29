@@ -276,10 +276,8 @@
       ! check that if open boundaries are used, nghost > 1
       ! this was moved from initialization to support unit testing
       ! with open bcs and nghost=1 and support for upwind advection and nghost=1
-      if ((ew_boundary_type == 'open'          .or. &
-           ew_boundary_type == 'zero_gradient' .or. &
+      if ((ew_boundary_type == 'zero_gradient' .or. &
            ew_boundary_type == 'linear_extrap' .or. &
-           ns_boundary_type == 'open'          .or. &
            ns_boundary_type == 'zero_gradient' .or. &
            ns_boundary_type == 'linear_extrap') .and. &
           (nghost == 1)) then
