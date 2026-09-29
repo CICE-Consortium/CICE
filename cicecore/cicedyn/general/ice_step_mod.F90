@@ -250,6 +250,7 @@
       use ice_grid, only: lmask_n, lmask_s, tmask, opmask
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, vsnon_init
+      use ice_diagnostics, only: diagnostic_abort
 #ifdef CICE_IN_NEMO
       use ice_state, only: aice_init
 #endif
@@ -619,12 +620,14 @@
             enddo
          endif ! tr_aero
 
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            ! print location (global i/j, lat/lon) and ice state and abort
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_therm1 aborted')
+         endif
+
       enddo ! i
       enddo ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       end subroutine step_therm1
 
