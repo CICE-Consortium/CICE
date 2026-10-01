@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 if (-e poll_queue.env) then
   source poll_queue.env
