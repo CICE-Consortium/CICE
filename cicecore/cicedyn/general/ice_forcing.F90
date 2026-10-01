@@ -28,6 +28,7 @@
                               daymo, days_per_year, compute_days_between
       use ice_fileunits, only: nu_diag, nu_forcing
       use ice_exit, only: abort_ice
+      use ice_diagnostics, only: diagnostic_abort
       use ice_read_write, only: ice_open, ice_read, ice_check_nc, &
                                 ice_get_ncvarsize, ice_read_vec_nc, &
                                 ice_open_nc, ice_read_nc, ice_close_nc
@@ -589,14 +590,15 @@
          do j = 1, ny_block
          do i = 1, nx_block
             Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_sea_freezing_temperature aborted')
+            endif
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       end subroutine ocn_freezing_temperature
 

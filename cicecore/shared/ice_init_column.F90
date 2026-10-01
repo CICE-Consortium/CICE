@@ -19,6 +19,7 @@
       use ice_fileunits, only: nu_nml, nml_filename, get_fileunit, &
                                release_fileunit, flush_fileunit
       use ice_exit, only: abort_ice
+      use ice_diagnostics, only: diagnostic_abort
       use icepack_intfc, only: icepack_max_don, icepack_max_doc, icepack_max_dic
       use icepack_intfc, only: icepack_max_algae, icepack_max_aero, icepack_max_fe
       use icepack_intfc, only: icepack_max_nbtrcr
@@ -383,6 +384,11 @@
                           rsnow=rsnow(:,:), &
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
+
+               call icepack_warnings_flush(nu_diag)
+               if (icepack_warnings_aborted()) then
+                  call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
+               endif
             endif
 
       !-----------------------------------------------------------------

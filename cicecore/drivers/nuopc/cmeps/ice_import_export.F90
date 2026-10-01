@@ -31,6 +31,7 @@ module ice_import_export
   use ice_mesh_mod       , only : ocn_gridcell_frac
   use ice_boundary       , only : ice_HaloUpdate
   use ice_fileunits      , only : nu_diag, flush_fileunit
+  use ice_diagnostics    , only : diagnostic_abort
   use ice_communicate    , only : my_task, master_task, MPI_COMM_ICE
   use ice_prescribed_mod , only : prescribed_ice
   use ice_shr_methods    , only : chkerr, state_reset
@@ -824,6 +825,11 @@ contains
        do j = 1,ny_block
           do i = 1,nx_block
             Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_sea_freezing_temperature aborted')
+            endif
           end do
        end do
     end do
