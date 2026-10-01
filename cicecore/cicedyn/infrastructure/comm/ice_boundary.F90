@@ -3400,7 +3400,7 @@ contains
 
    ! element 0 of dimension 1 is the "not stored" slot, held at zero;
    ! dimension 2 is the field index within the bundle
-   real (dbl_kind), dimension(0:,:), intent(inout) :: &
+   real (dbl_kind), dimension(:,:), intent(inout) :: &
       array                ! compressed field(s) whose halo needs updating
 
 !-----------------------------------------------------------------------
@@ -3501,8 +3501,22 @@ contains
 
    nz = size(array, dim=2)
 
-   ! the dead slot must stay zero: the stencils rely on it
-   array(0,:) = 0._dbl_kind
+   ! Every block's dead slot must stay zero: the stencils read it whenever a
+   ! neighbour is missing.  Blocks are packed with spacing cnt+1, so block n's
+   ! dead slot sits at off(n+1), and the last block's is the final element.
+   !
+   ! off is dimensioned max_blocks but set_ragged_layout fills only 1..nblocks,
+   ! leaving the tail at the 0 it was initialised to -- so entries beyond the
+   ! real block count must be skipped, not written.
+   !
+   ! This was "array(0,:) = 0" under the old 0-based layout, which only ever
+   ! covered block 1 -- off(1) is 0 -- so the cover is now complete rather than
+   ! partial.  The invariant is really maintained by pack_to_slots, which zeroes
+   ! comp(size(comp)); this is belt and braces.
+   do iblk = 2, size(off)
+      if (off(iblk) > 0) array(off(iblk),:) = 0._dbl_kind
+   enddo
+   array(size(array,1),:) = 0._dbl_kind
 
 !-----------------------------------------------------------------------
 !
@@ -3567,11 +3581,22 @@ contains
          jSrc     = halo%sendAddr(2,n,nmsg)
          srcBlock = halo%sendAddr(3,n,nmsg)
 
+         ! A source cell with no slot is land.  Under the old 0-based layout
+         ! array(0) was the dead slot and read as zero; now there is no element
+         ! 0, so say the zero out loud.  Zero is what the block layout carries
+         ! at land, so this matches ice_HaloUpdate2DR8 either way.
          isrcs = cslot(iSrc,jSrc,srcBlock)
-         do k=1,nz
-            i = i + 1
-            bufSend(i,nmsg) = array(isrcs,k)
-         end do
+         if (isrcs > 0) then
+            do k=1,nz
+               i = i + 1
+               bufSend(i,nmsg) = array(isrcs,k)
+            end do
+         else
+            do k=1,nz
+               i = i + 1
+               bufSend(i,nmsg) = c0
+            end do
+         endif
       end do
 
       do n=i+1,bufSizeSend*nz
@@ -3682,13 +3707,21 @@ contains
             idsts = cslot(iDst,jDst,dstBlock)
             if (idsts > 0) then
                isrcs = cslot(iSrc,jSrc,srcBlock)
-               array(idsts,:) = array(isrcs,:)
+               if (isrcs > 0) then
+                  array(idsts,:) = array(isrcs,:)
+               else
+                  array(idsts,:) = c0   ! source is land
+               endif
             endif
          else if (dstBlock < 0) then ! tripole copy into buffer
             isrcs = cslot(iSrc,jSrc,srcBlock)
             do l=1,nt
             do k=1,nz
-               bufTripole(iDst,jDst,k,l) = array(isrcs,k)
+               if (isrcs > 0) then
+                  bufTripole(iDst,jDst,k,l) = array(isrcs,k)
+               else
+                  bufTripole(iDst,jDst,k,l) = c0   ! source is land
+               endif
             end do
             end do
          endif
@@ -3767,8 +3800,9 @@ contains
 ! before applying zero_gradient/linear_extrap in other direction
 !
 ! Mirrors the block-layout routine exactly.  A ghost cell with no slot is
-! skipped; an interior cell with no slot reads as zero, since array(0) is
-! held at zero, which is what the block layout carries at land.
+! skipped; an interior cell with no slot reads as zero, which cval returns
+! explicitly -- the layout is 1-based, so there is no element 0 to lean on --
+! and zero is what the block layout carries at land.
 !
 !-----------------------------------------------------------------------
 
@@ -4065,10 +4099,19 @@ contains
 
  contains
 
-   ! value of field kk at cell (i,j) of block blk, zero if it has no slot
+   ! value of field kk at cell (i,j) of block blk, zero if it has no slot.
+   ! The zero is explicit now: the compressed arrays are 1-based, so there is
+   ! no element 0 to read.  A cell with no slot is land, which is what the
+   ! block layout holds there, so this matches ice_HaloUpdate2DR8.
    real (dbl_kind) function cval(ii,jj,blk,kk)
       integer (int_kind), intent(in) :: ii,jj,blk,kk
-      cval = array(cslot(ii,jj,blk),kk)
+      integer (int_kind) :: s
+      s = cslot(ii,jj,blk)
+      if (s > 0) then
+         cval = array(s,kk)
+      else
+         cval = c0
+      endif
    end function cval
 
    ! store v in field kk at cell (i,j) of block blk, if it has a slot
@@ -4129,7 +4172,7 @@ contains
       fillValue            ! value to put in ghost cells with no neighbour
 
    ! TARGET and CONTIGUOUS are required to alias this to rank 2 below
-   real (dbl_kind), dimension(0:), intent(inout), target, contiguous :: &
+   real (dbl_kind), dimension(:), intent(inout), target, contiguous :: &
       array                ! compressed field whose halo needs updating
 
    real (dbl_kind), pointer :: &
@@ -4137,7 +4180,10 @@ contains
 
    character(len=*), parameter :: subname = '(ice_HaloUpdate2DR8_compressed)'
 
-   array_2d(0:ubound(array,dim=1),1:1) => array
+   ! 1-based to match the compressed layout: the target has size(array)
+   ! elements, so a 0:ubound view would ask for one more than exists and
+   ! would hand the 3d routine a 0-based array it no longer expects.
+   array_2d(1:size(array),1:1) => array
 
    call ice_HaloUpdate3DR8_compressed(array_2d, halo, fieldLoc, fieldKind, &
                                       map, off, fillValue)

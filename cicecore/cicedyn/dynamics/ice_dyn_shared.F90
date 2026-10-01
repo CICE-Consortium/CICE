@@ -173,9 +173,12 @@
       !     nbr_NE   (+1,+1)    sw
       !     nbr_N    ( 0,+1)    sse
       !
-      ! Slot 0 means "no such neighbour".  A kernel must either skip such a
-      ! cell or index an array whose element 0 is held at zero, which is what
-      ! the block layout carried at land points.
+      ! A missing neighbour is the block's DEAD SLOT, the last element of the
+      ! block's span (cnt+1), held at zero -- which is what the block layout
+      ! carried at land points.  So a kernel may read it without a branch.
+      ! The slices are 1-BASED: ice_dyn_core1d's kernels take assumed-shape
+      ! dummies, which rebase to 1 whatever the actual's bounds, so a 0-based
+      ! slice would silently shift every neighbour index by one.
       ! ---------------------------------------------------------------------
       integer (kind=int_kind), parameter, public :: &
          nbr_W   = 1, & ! (-1, 0)
@@ -191,8 +194,14 @@
       integer (kind=int_kind), dimension (:,:), allocatable, public :: &
          dynNbr
 
-      ! Compressed working copies of the velocities, indexed from 0 so that
-      ! each block's dead slot is addressable.  uvel/vvel themselves stay in
+      ! Reverse of dynMap: dynIJ(slot) is the cell (j-1)*nx_block+i that owns
+      ! that slot.  Kernels loop over slots and need the block index only for
+      ! the few block-layout outputs they still write.
+      integer (kind=int_kind), dimension (:), allocatable, public :: &
+         dynIJ
+
+      ! Compressed working copies of the velocities; each block's span runs
+      ! 1..cnt with its dead slot last, so it is addressable without a branch.  uvel/vvel themselves stay in
       ! the block layout: they are state, read by restart, history,
       ! diagnostics and the couplers.  These are packed once per timestep,
       ! subcycled on, and unpacked again.
@@ -204,9 +213,9 @@
       ! Unlike the velocities these are CONSTANT through the subcycling --
       ! aiU comes from grid_average_X2Y, fmU from dyn_prep2 and TbU from the
       ! seabed stress, all before the loop -- so they are packed once and
-      ! never unpacked, and need no halo.  They are indexed from 0 like the
-      ! velocities purely so that pack_to_slots and the dynOff:dynOff+dynCnt
-      ! slicing are the same everywhere; no stencil reads them, so the dead
+      ! never unpacked, and need no halo.  They carry a dead slot like the
+      ! velocities purely so that pack_to_slots and the per-block slicing are
+      ! the same everywhere; no stencil reads them, so the dead
       ! slot is never actually addressed.  The block-layout
       ! originals stay untouched for the consumers that blocked compressing
       ! them outright: grid_average_X2Y and ice_step_mod read aiU over the
@@ -222,6 +231,16 @@
       ! gather_global and needs the block layout.  These are additional
       ! copies, not a relayout of those arrays -- see the note on their
       ! dyn_prep2 declarations.
+      ! uarear is a grid metric and never changes at all; it is repacked with
+      ! the rest each timestep only to keep one code path, at the cost of one
+      ! extra sweep per block.  uocnU/vocnU/cdn_ocnU are the first arrays
+      ! compressed here that were still rank-3 rather than flat.
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         uocnU_slot      , & ! ocean current, x, compressed
+         vocnU_slot      , & ! ocean current, y, compressed
+         cdn_ocnU_slot   , & ! ocean-ice neutral drag coefficient, compressed
+         uarear_slot         ! 1/uarea, compressed
+
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          umassdti_slot   , & ! mass of U-cell/dt (kg/m^2 s), compressed
          waterxU_slot    , & ! ocean stress coefficient, x, compressed
@@ -368,30 +387,42 @@
       skipU = .true.
       call set_neighbours(dynMap, dynOff, dynCnt, dynNbr)
 
-      allocate(uvel_slot(0:dynTot), vvel_slot(0:dynTot), stat=ierr)
+      allocate(dynIJ(dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      call set_slot_cells(dynMap, dynOff, dynCnt, dynIJ)
+
+      allocate(uvel_slot(dynTot), vvel_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       uvel_slot = c0
       vvel_slot = c0
 
-      allocate(fld2c(0:dynTot,2), stat=ierr)
+      allocate(fld2c(dynTot,2), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       fld2c = c0
 
-      allocate(aiU_slot(0:dynTot), fmU_slot(0:dynTot), TbU_slot(0:dynTot), stat=ierr)
+      allocate(aiU_slot(dynTot), fmU_slot(dynTot), TbU_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       aiU_slot = c0
       fmU_slot = c0
       TbU_slot = c0
 
-      allocate(umassdti_slot(0:dynTot), waterxU_slot(0:dynTot), &
-               wateryU_slot(0:dynTot), forcexU_slot(0:dynTot), &
-               forceyU_slot(0:dynTot), stat=ierr)
+      allocate(umassdti_slot(dynTot), waterxU_slot(dynTot), &
+               wateryU_slot(dynTot), forcexU_slot(dynTot), &
+               forceyU_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       umassdti_slot = c0
       waterxU_slot  = c0
       wateryU_slot  = c0
       forcexU_slot  = c0
       forceyU_slot  = c0
+
+      allocate(uocnU_slot(dynTot), vocnU_slot(dynTot), &
+               cdn_ocnU_slot(dynTot), uarear_slot(dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      uocnU_slot    = c0
+      vocnU_slot    = c0
+      cdn_ocnU_slot = c0
+      uarear_slot   = c0
 
       allocate( &
          uvel_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
@@ -529,12 +560,16 @@
          enddo
       enddo
 
-      ! Each block gets a DEAD SLOT of its own at index off(iblk), never
-      ! assigned to a cell and held at zero.  Kernels are handed the slice
-      ! arr(off(iblk) : off(iblk)+cnt(iblk)) declared dimension(0:), so slice
-      ! element 0 is that dead slot and a missing neighbour needs no branch.
-      ! Without the reservation, slice element 0 would alias the previous
-      ! block's last cell.
+      ! Each block gets a DEAD SLOT of its own at index off(iblk)+cnt(iblk)+1,
+      ! never assigned to a cell and held at zero.  Kernels are handed the slice
+      ! arr(off(iblk)+1 : off(iblk)+cnt(iblk)+1) declared dimension(:), so the
+      ! slice is 1-BASED -- real cells at 1..cnt, dead slot last -- and a
+      ! missing neighbour needs no branch because set_neighbours points it at
+      ! cnt+1.  1-based matters: ice_dyn_core1d's kernels take assumed-shape
+      ! dummies, which rebase to 1 whatever the actual's bounds, so a 0-based
+      ! slice would silently shift every neighbour index by one.
+      ! The spacing below (cnt+1 per block) is what reserves the dead slot;
+      ! without it a block's last index would alias the next block's first.
       total = 0
       do iblk = 1, nblocks
          off(iblk) = total
@@ -603,7 +638,7 @@
       di(nbr_NE) = +1 ; dj(nbr_NE) = +1
       di(nbr_N ) =  0 ; dj(nbr_N ) = +1
 
-      nbr(:,:) = 0
+      nbr(:,:) = 0   ! overwritten per stored cell below
 
       do iblk = 1, nblocks
          if (cnt(iblk) == 0) cycle
@@ -612,6 +647,10 @@
             ij = (j-1)*nx_block + i
             if (map(ij,iblk) == 0) cycle
             is = off(iblk) + map(ij,iblk)
+
+            ! default every direction to this block's dead slot, so a missing
+            ! neighbour reads zero with no branch in the kernels
+            nbr(is,:) = cnt(iblk) + 1
 
             do d = 1, nbr_num
                ii = i + di(d)
@@ -631,6 +670,51 @@
       end subroutine set_neighbours
 
 !=======================================================================
+! Invert the compressed layout: record which cell owns each slot.
+!
+! set_ragged_layout maps cell -> slot, which is what a writer iterating over
+! (i,j) needs.  A kernel that iterates over SLOTS needs the other direction,
+! to address the block-layout arrays it still has to write.  Dead slots are
+! left at zero and are never looked up.
+
+      subroutine set_slot_cells(map, off, cnt, ijmap)
+
+      use ice_domain, only: nblocks
+
+      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
+      integer (kind=int_kind), dimension(:,:), intent(in) :: &
+         map                ! block-local slot of each cell, 0 if not stored
+
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         off            , & ! first slot of each block, minus one
+         cnt                ! number of slots held by each block
+
+      integer (kind=int_kind), dimension(:), intent(out) :: &
+         ijmap              ! (j-1)*nx_block+i of the cell owning each slot
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, ij, iblk     ! horizontal and block indices
+
+      character(len=*), parameter :: subname = '(set_slot_cells)'
+
+      ijmap(:) = 0
+
+      do iblk = 1, nblocks
+         if (cnt(iblk) == 0) cycle
+         do j = 1, ny_block
+         do i = 1, nx_block
+            ij = (j-1)*nx_block + i
+            if (map(ij,iblk) == 0) cycle
+            ijmap(off(iblk) + map(ij,iblk)) = ij
+         enddo
+         enddo
+      enddo
+
+      end subroutine set_slot_cells
+
+!=======================================================================
 ! Pack one block of a block-layout field into its compressed slots.
 !
 ! Cells outside the static mask have no slot and are dropped; they carry no
@@ -646,15 +730,15 @@
       integer (kind=int_kind), dimension(:), intent(in) :: &
          map                ! block-local slot of each cell, 0 if not stored
 
-      ! this block's slice, so element 0 is the block's dead slot
-      real (kind=dbl_kind), dimension(0:), intent(inout) :: &
+      ! this block's slice, 1-based: real cells at 1..cnt, dead slot last
+      real (kind=dbl_kind), dimension(:), intent(inout) :: &
          comp               ! compressed values
 
       integer (kind=int_kind) :: i, j, m
 
       character(len=*), parameter :: subname = '(pack_to_slots)'
 
-      comp(0) = c0
+      comp(size(comp)) = c0   ! the dead slot
       do j = 1, ny_block
       do i = 1, nx_block
          m = map((j-1)*nx_block + i)
@@ -673,8 +757,8 @@
 
       subroutine unpack_from_slots(comp, map, arr)
 
-      ! this block's slice, so element 0 is the block's dead slot
-      real (kind=dbl_kind), dimension(0:), intent(in) :: &
+      ! this block's slice, 1-based: cells 1..cnt, dead slot last
+      real (kind=dbl_kind), dimension(:), intent(in) :: &
          comp               ! compressed values
 
       ! flattened: element (i,j) is at (j-1)*nx_block + i
@@ -703,7 +787,7 @@
 
       subroutine init_dyn_shared (dt)
 
-      use ice_blocks, only: block, get_block, ns_boundary_type
+      use ice_blocks, only: block, get_block, ns_boundary_type, nghost
       use ice_boundary, only: ice_halo, ice_haloUpdate
       use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info
       use ice_flux, only: &
@@ -738,6 +822,17 @@
       if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d' .and. &
           (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT')) then
          call abort_ice(subname//' ERROR: evp_alg shared mem 1d not supported with tripole', &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      ! calc_halo_parent builds the 1d halo assuming a single ghost layer: it
+      ! pairs i==nx-nghost with ifind=1 and i==1+nghost with ifind=nx, which
+      ! only spans one layer.  With nghost > 1 the outer layers would simply
+      ! never be filled -- wrong answers, not a crash -- so refuse rather than
+      ! run.  nghost is a parameter today, so this is a guard against someone
+      ! raising it, matching the TODO in calc_halo_parent.
+      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d' .and. nghost > 1) then
+         call abort_ice(subname//' ERROR: evp_alg shared mem 1d not supported with nghost > 1', &
             file=__FILE__, line=__LINE__)
       endif
 
@@ -1076,7 +1171,10 @@
                             uvel_init,  vvel_init,  &
                             uvel,       vvel,       &
                             Xmap,       skipX,      &
-                            TbU,        rheofactX)
+                            TbU,        rheofactX,  &
+                            Xmassdti_slot, waterx_slot, &
+                            watery_slot,   forcex_slot, &
+                            forcey_slot)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1183,6 +1281,23 @@
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
+      ! Compressed copies of the five above, for the momentum kernel.  These
+      ! are ADDITIONAL arrays: the block-layout originals are still written in
+      ! full and still go whole to dyn_evp1d_run, so the rule stated above is
+      ! not weakened.  Filling them here rather than packing afterwards saves a
+      ! second traversal of the block -- the values are already to hand.
+      !
+      ! Each is this block's slice arr(off(iblk)+1:off(iblk)+cnt(iblk)+1), so
+      ! element m is block-local slot m and the last element is the dead slot,
+      ! exactly what pack_to_slots writes.  Optional because only the B-grid
+      ! momentum kernel consumes them; the C/CD, eap and vp callers omit them.
+      real (kind=dbl_kind), dimension (:), intent(out), optional :: &
+         Xmassdti_slot, & ! Xmassdti at the cell's compressed slot
+         waterx_slot  , & ! waterx   at the cell's compressed slot
+         watery_slot  , & ! watery   at the cell's compressed slot
+         forcex_slot  , & ! forcex   at the cell's compressed slot
+         forcey_slot      ! forcey   at the cell's compressed slot
+
       ! local variables
 
       integer (kind=int_kind) :: &
@@ -1194,6 +1309,11 @@
 
       logical (kind=log_kind), dimension(nx_block,ny_block) :: &
          iceXmask_old      ! old-time iceXmask
+
+      ! the five compressed copies are supplied together or not at all, so one
+      ! test taken once keeps the momentum loop free of present() checks
+      logical (kind=log_kind) :: &
+         do_slots          ! fill the compressed copies as well
 
       ! taubx and tauby are assumed shape, 1D over the block in Fortran
       ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
@@ -1215,6 +1335,20 @@
       forcey   (:) = c0
       Xmassdti (:) = c0
       skipX    (:) = .true.
+
+      ! The compressed copies are cleared over their own extent, dead slot
+      ! included.  That reproduces pack_to_slots exactly: it sets the dead slot
+      ! to zero and then copies every cell that owns a slot, and the block
+      ! arrays it copies from have just been zeroed here, so the slots of cells
+      ! without ice this step end up at zero either way.
+      do_slots = present(Xmassdti_slot)
+      if (do_slots) then
+         Xmassdti_slot(:) = c0
+         waterx_slot  (:) = c0
+         watery_slot  (:) = c0
+         forcex_slot  (:) = c0
+         forcey_slot  (:) = c0
+      endif
 
       do j = 1, ny_block
       do i = 1, nx_block
@@ -1349,6 +1483,16 @@
 
          forcex(ijb) = strairx(i,j) + strtltx(i,j)
          forcey(ijb) = strairy(i,j) + strtlty(i,j)
+
+         ! copy, never relayout: the block arrays above keep every value, and
+         ! these are read back from them so the two cannot drift apart
+         if (do_slots) then
+            Xmassdti_slot(Xmap(ijb)) = Xmassdti(ijb)
+            waterx_slot  (Xmap(ijb)) = waterx  (ijb)
+            watery_slot  (Xmap(ijb)) = watery  (ijb)
+            forcex_slot  (Xmap(ijb)) = forcex  (ijb)
+            forcey_slot  (Xmap(ijb)) = forcey  (ijb)
+         endif
       enddo
 
       end subroutine dyn_prep2
@@ -1360,8 +1504,9 @@
 ! author: Elizabeth C. Hunke, LANL
 
       subroutine stepu (nx_block,   ny_block, &
-                        icellU,     Cw,       &
-                        indxUi,     indxUj,   &
+                        ncells,     ksub,     &
+                        Cw,                   &
+                        skipme,     Xij,      &
                         aiX,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
@@ -1372,21 +1517,31 @@
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
-                        Xmap,       nbr,      &
+                        nbr,                  &
                         TbU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceUmask is true
+         ksub              , & ! subcycling step
+         ncells                ! slots held by this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxUi  , & ! compressed index in i-direction
-         indxUj      ! compressed index in j-direction
+      ! skipme(is) is .true. where the slot carries no ice this step, and Xij
+      ! gives the block index (j-1)*nx_block+i of the cell owning the slot.
+      ! Together they replace the icellU / indxUi / indxUj / Xmap chain: this
+      ! kernel iterates over slots, the way ice_dyn_core1d's does.
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme      ! inactive-slot flag
 
-      ! aiX, fm and TbU are COMPRESSED: this block's slice, indexed from 0 to
-      ! match the velocities.  They are constant through the subcycling, so
-      ! the caller packs them once before the loop.
-      real (kind=dbl_kind), dimension (0:), intent(in) :: &
+      integer (kind=int_kind), dimension (:), intent(in), contiguous :: &
+         Xij         ! block index of the cell owning each slot
+
+      ! Every coefficient this kernel reads is COMPRESSED: this block's slice,
+      ! 1-based, cells 1..cnt with the dead slot last, matching the velocities.  All of them are constant
+      ! through the subcycling -- the grid metric uarear is constant outright
+      ! -- so the caller packs them once before the loop.  With these there is
+      ! no rank-2 read left in the loop body, which is what allows the cell
+      ! loop itself to run on slots.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          aiX     , & ! ice fraction on X-grid
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
          TbU     , & ! seabed stress factor (N/m^2)
@@ -1394,32 +1549,30 @@
          waterx  , & ! for ocean stress calculation, x (m/s)
          watery  , & ! for ocean stress calculation, y (m/s)
          forcex  , & ! work array: combined atm stress and ocn tilt, x
-         forcey      ! work array: combined atm stress and ocn tilt, y
-
-      ! uvel_init/vvel_init are compressed but indexed from 1; uarear is a
-      ! grid array in the block layout, read at ijb
-      real (kind=dbl_kind), dimension (:), intent(in) :: &
-         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
-         vvel_init,& ! y-component of velocity (m/s), beginning of timestep
+         forcey  , & ! work array: combined atm stress and ocn tilt, y
+         uocn    , & ! ocean current, x-direction (m/s)
+         vocn    , & ! ocean current, y-direction (m/s)
+         Cw      , & ! ocean-ice neutral drag coefficient
          uarear      ! 1/uarea
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uocn    , & ! ocean current, x-direction (m/s)
-         vocn        ! ocean current, y-direction (m/s)
+      ! uvel_init/vvel_init are compressed but indexed from 1
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         uvel_init,& ! x-component of velocity (m/s), beginning of timestep
+         vvel_init   ! y-component of velocity (m/s), beginning of timestep
 
       ! str is COMPRESSED and indexed by BLOCK-LOCAL slot.  Element 0 is the
       ! "no such neighbour" slot and is held at zero, which is what the block
       ! layout carried at land points, so the stencil below needs no branch.
-      real (kind=dbl_kind), dimension(0:,:), intent(in) :: &
+      real (kind=dbl_kind), dimension(:,:), intent(in), contiguous :: &
          str         ! temporary
 
       ! nbr(is,d) is the block-local slot one step in direction d from slot is
       integer (kind=int_kind), dimension(:,:), intent(in) :: &
          nbr         ! neighbour slots
 
-      ! uvel and vvel are COMPRESSED: this block's slice, indexed from 0 so
-      ! element 0 is the block's dead slot
-      real (kind=dbl_kind), dimension (0:), intent(inout) :: &
+      ! uvel and vvel are COMPRESSED: this block's slice, 1-based, so cells
+      ! are 1..cnt and the last element is the block's dead slot
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
@@ -1427,18 +1580,24 @@
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty     ! divergence of internal ice stress, y (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         Cw          ! ocean-ice neutral drag coefficient
-
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij          , & ! ij is the compressed cell counter
          ijb                 , & ! 1D index of (i,j) in the block
-         is                      ! compressed slot of (i,j)
+         is                  , & ! compressed slot of (i,j)
+         isE, isN, isNE          ! its E, N and NE neighbour slots
 
       real (kind=dbl_kind) :: &
          uold, vold        , & ! old-time uvel, vvel
+         strintx_tmp       , & ! divergence of internal stress, x, this cell
+         strinty_tmp       , & ! divergence of internal stress, y, this cell
+         tmp_str2_E        , & ! the six neighbour stresses, loaded up front
+         tmp_str3_N        , & !
+         tmp_str4_NE       , & !
+         tmp_str6_N        , & !
+         tmp_str7_E        , & !
+         tmp_str8_NE       , & !
          vrel              , & ! relative ice-ocean velocity
          cca,ccb,ab2,cc1,cc2,& ! intermediate variables
          taux, tauy        , & ! part of ocean stress term
@@ -1447,15 +1606,9 @@
 
       ! taubx and tauby are assumed shape, 1D over the block in Fortran
       ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(inout) :: &
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby       ! seabed stress, y-direction (N/m^2)
-
-      ! Xmap is 1D over the block in Fortran storage order and holds each
-      ! cell's static compressed slot; the compressed arrays above are
-      ! addressed through it
-      integer (kind=int_kind), dimension (:), intent(in) :: &
-         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepu)'
 
@@ -1468,18 +1621,15 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icellU
-         i = indxUi(ij)
-         j = indxUj(ij)
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
+      do is = 1, ncells
+         if (skipme(is)) cycle
 
          uold = uvel(is)
          vold = vvel(is)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(is)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
-                                           (vocn(i,j) - vold)**2)  ! m/s
+         vrel = aiX(is)*rhow*Cw(is)*sqrt((uocn(is) - uold)**2 + &
+                                           (vocn(is) - vold)**2)  ! m/s
          ! ice/ocean stress
          taux = vrel*waterx(is) ! NOTE this is not the entire
          tauy = vrel*watery(is) ! ocn stress term
@@ -1496,26 +1646,52 @@
          ! sum over the four T cells around this U point: (0,0), (+1,0),
          ! (0,+1), (+1,+1).  A missing neighbour resolves to slot 0, which
          ! holds zero, matching what the block layout held at land.
-         strintx(i,j) = uarear(ijb)* &
-             (str(is             ,1) + str(nbr(is,nbr_E) ,2)  &
-            + str(nbr(is,nbr_N),3) + str(nbr(is,nbr_NE),4))
-         strinty(i,j) = uarear(ijb)* &
-             (str(is             ,5) + str(nbr(is,nbr_N) ,6)  &
-            + str(nbr(is,nbr_E),7) + str(nbr(is,nbr_NE),8))
+         ! The three neighbour slots are read once each and the six stresses
+         ! loaded up front, as ice_dyn_core1d's stepu_1d does.  Each slot was
+         ! fetched twice before -- str(nbr(is,nbr_E),2) and
+         ! str(nbr(is,nbr_E),7) -- so this halves the nbr loads, and it lets
+         ! the six dependent str loads issue before any is needed.
+         isE  = nbr(is,nbr_E )
+         isN  = nbr(is,nbr_N )
+         isNE = nbr(is,nbr_NE)
+
+         tmp_str2_E  = str(isE ,2)
+         tmp_str3_N  = str(isN ,3)
+         tmp_str4_NE = str(isNE,4)
+         tmp_str6_N  = str(isN ,6)
+         tmp_str7_E  = str(isE ,7)
+         tmp_str8_NE = str(isNE,8)
+
+         strintx_tmp = uarear(is)* &
+             (str(is,1) + tmp_str2_E + tmp_str3_N + tmp_str4_NE)
+         strinty_tmp = uarear(is)* &
+             (str(is,5) + tmp_str6_N + tmp_str7_E + tmp_str8_NE)
 
          ! finally, the velocity components
-         cc1 = strintx(i,j) + forcex(is) + taux &
+         cc1 = strintx_tmp + forcex(is) + taux &
              + Umassdti(is)*(brlx*uold + revp*uvel_init(is))
-         cc2 = strinty(i,j) + forcey(is) + tauy &
+         cc2 = strinty_tmp + forcey(is) + tauy &
              + Umassdti(is)*(brlx*vold + revp*vvel_init(is))
 
          uvel(is) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(is) = (cca*cc2 - ccb*cc1) / ab2
 
-         ! calculate seabed stress component for outputs
-         ! only needed on last iteration.
-         taubx(ijb) = -uvel(is)*Cb
-         tauby(ijb) = -vvel(is)*Cb
+         ! strintx/strinty and taubx/tauby are OUTPUTS, not state: nothing
+         ! reads them between subcycles, here or anywhere else, so only the
+         ! last subcycle's values are ever seen.  Storing them once instead of
+         ! ndte times removes four array writes and two reads per cell per
+         ! subcycle, and leaves the result identical.  The comment below has
+         ! said "only needed on last iteration" about taubx/tauby all along.
+         if (ksub == ndte) then
+            ijb = Xij(is)
+            i   = mod(ijb-1, nx_block) + 1
+            j   = (ijb-1)/nx_block + 1
+            strintx(i,j) = strintx_tmp
+            strinty(i,j) = strinty_tmp
+            ! seabed stress component, for outputs
+            taubx(ijb)   = -uvel(is)*Cb
+            tauby(ijb)   = -vvel(is)*Cb
+         endif
       enddo                     ! ij
 
       end subroutine stepu
@@ -4068,13 +4244,13 @@
 
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
 
-      ! compressed: indexed by slot, element 0 is a block's dead slot
-      real (kind=dbl_kind), dimension (0:), intent(in) :: &
+      ! compressed: indexed by slot; each block's dead slot is its last
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
          fld1    , & !
          fld2        !
 
       ! (slot, field)
-      real (kind=dbl_kind), dimension (0:,:), intent(out) :: &
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
          fldbundle   ! work array for boundary updates
 
       character(len=*), parameter :: subname = '(stack_fields2_compressed)'
@@ -4094,11 +4270,11 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
 
       ! (slot, field)
-      real (kind=dbl_kind), dimension (0:,:), intent(in) :: &
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
          fldbundle   ! work array for boundary updates
 
-      ! compressed: indexed by slot, element 0 is a block's dead slot
-      real (kind=dbl_kind), dimension (0:), intent(out) :: &
+      ! compressed: indexed by slot; each block's dead slot is its last
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
          fld1    , & !
          fld2        !
 

@@ -69,7 +69,8 @@ module ice_dyn_core1d
 
   ! arguments ------------------------------------------------------------------
   subroutine stress_1d (ee, ne, se, lb, ub,                              &
-                        uvel, vvel, dxT, dyT, skipme, strength,          &
+                        uvel, vvel, dxT, dyT, DminTarea,                 &
+                        dxhy, dyhx, skipme, strength,                    &
                         hte, htn, htem1, htnm1,                          &
                         stressp_1,  stressp_2,  stressp_3,  stressp_4,   &
                         stressm_1,  stressm_2,  stressm_3,  stressm_4,   &
@@ -81,7 +82,7 @@ module ice_dyn_core1d
                               p222, p25, p333, p5
 
     use ice_dyn_shared, only: arlx1i, denom1, revp,         &
-                              deltaminEVP, visc_replpress
+                              visc_replpress
     !
     implicit none
     ! arguments ------------------------------------------------------------------
@@ -94,6 +95,9 @@ module ice_dyn_core1d
       vvel     , & ! y-component of velocity (m/s)
       dxT      , & ! width of T-cell through the middle (m)
       dyT      , & ! height of T-cell through the middle (m)
+      DminTarea, & ! deltamin * tarea (m^2/s)
+      dxhy     , & ! 0.5*(HTE(i,j) - HTE(i-1,j))
+      dyhx     , & ! 0.5*(HTN(i,j) - HTN(i,j-1))
       hte      , &
       htn      , &
       htem1    , &
@@ -133,7 +137,7 @@ module ice_dyn_core1d
       tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se,            &
       tmp_uvel_cc, tmp_vvel_cc, tmp_dxT, tmp_dyT,       &
       tmp_cxp, tmp_cyp, tmp_cxm, tmp_cym,               &
-      tmp_strength, tmp_DminTarea, tmparea,             &
+      tmp_strength, tmp_DminTarea,                      &
       tmp_dxhy, tmp_dyhx
 
     character(len=*), parameter :: subname = '(stress_1d)'
@@ -163,14 +167,15 @@ module ice_dyn_core1d
     !$omp         tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se      , &
     !$omp         tmp_uvel_cc, tmp_vvel_cc, tmp_dxT, tmp_dyT , &
     !$omp         tmp_cxp, tmp_cyp, tmp_cxm, tmp_cym         , &
-    !$omp         tmp_strength, tmp_DminTarea, tmparea       , &
+    !$omp         tmp_strength, tmp_DminTarea                , &
     !$omp         tmp_dxhy, tmp_dyhx)                          &
-    !$omp  shared(uvel,vvel,dxT,dyT,htn,hte,htnm1,htem1      , &
+    !$omp  shared(uvel,vvel,dxT,dyT,DminTarea,dxhy,dyhx      , &
+    !$omp         htn,hte,htnm1,htem1                        , &
     !$omp         str1,str2,str3,str4,str5,str6,str7,str8    , &
     !$omp         stressp_1,stressp_2,stressp_3,stressp_4    , &
     !$omp         stressm_1,stressm_2,stressm_3,stressm_4    , &
     !$omp         stress12_1,stress12_2,stress12_3,stress12_4, &
-    !$omp         deltaminEVP, arlx1i, denom1, e_factor      , &
+    !$omp         arlx1i, denom1, e_factor                   , &
     !$omp         epp2i, capping,                              &
     !$omp         skipme,strength,ee,se,ne,lb,ub,revp)
 #endif
@@ -193,10 +198,18 @@ module ice_dyn_core1d
       tmp_cxm       = -(c1p5 * htnm1(iw) - p5 * htn(iw))
       tmp_cym       = -(c1p5 * htem1(iw) - p5 * hte(iw))
       tmp_strength  = strength(iw)
-      tmparea       = dxT(iw) * dyT(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
-      tmp_DminTarea = deltaminEVP * tmparea
-      tmp_dxhy      = p5 * (hte(iw) - htem1(iw))
-      tmp_dyhx      = p5 * (htn(iw) - htnm1(iw))
+      ! DminTarea is deltamin*tarea, taken from the caller rather than rebuilt
+      ! here as deltamin*dxT*dyT.  Those agree only where tarea happens to be
+      ! dxT*dyT, which init_grid2 sets but latlongrid and the MOM supergrid do
+      ! not -- on a MOM grid tarea is a sum of four sub-areas.  Reading the same
+      ! array the 2d kernel reads makes the two agree on every grid.
+      tmp_DminTarea = DminTarea(iw)
+      ! dxhy and dyhx are supplied rather than rebuilt from hte/htn here, so
+      ! this kernel and the 2d one read the same quantity from the same place.
+      ! The caller decides how they are formed; evp1d still builds them as
+      ! p5*(HTE - HTEm1) off its gathered grid, so its values are unchanged.
+      tmp_dxhy      = dxhy(iw)
+      tmp_dyhx      = dyhx(iw)
 
       !--------------------------------------------------------------------------
       ! strain rates - NOTE these are actually strain rates * area  (m^2/s)

@@ -10,7 +10,22 @@ smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
-smoke          gx3     1x8        diag1,run5day,evp1d
+# EVP 1d vs 2d.  Nothing in the suite had ever compared the two solvers against
+# each other, and that gap is how stress_eap stayed wrong until c6df487 and how
+# the MOM-supergrid DminTarea divergence survived until 03bc112: a restart test
+# compares a run to itself, so a systematic error cancels.  Each pair below is
+# the same grid, PE layout and length, differing only in evp_algorithm.
+#
+# The debug pair is the definitive one.  At -O0 neither path is vectorised or
+# reassociated, so a difference is algorithmic.  The optimised pair can differ
+# by an ULP purely because the two code paths vectorise differently, so read it
+# second.
+#
+# NB: these are meaningless in a sweep that forces evp_algorithm globally --
+# both halves would then run the 1d solver and compare it with itself.
+smoke          gx3     1x4        debug,diag1,run2day,evp1d smoke_gx3_1x4_debug_diag1_run2day
+smoke          gx3     1x8        diag1,run5day
+smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_run5day
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do

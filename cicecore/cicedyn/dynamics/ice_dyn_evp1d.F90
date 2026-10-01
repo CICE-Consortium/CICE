@@ -42,7 +42,8 @@ module ice_dyn_evp1d
 
   ! Grid
   real   (kind=dbl_kind), allocatable, dimension(:)   :: &
-     HTE_1d,HTN_1d, HTEm1_1d,HTNm1_1d, dxT_1d, dyT_1d, uarear_1d
+     HTE_1d,HTN_1d, HTEm1_1d,HTNm1_1d, dxT_1d, dyT_1d, uarear_1d, &
+     DminTarea_1d, dxhy_1d, dyhx_1d
 
   ! time varying
   real(kind=dbl_kind)   , allocatable, dimension(:)   ::                  &
@@ -63,6 +64,12 @@ module ice_dyn_evp1d
   integer(kind=int_kind)                              ::                       &
     n_inner_east, n_inner_west, n_inner_north, n_inner_south
 
+  ! The four direction lists above flattened into one (src,dst) pair list,
+  ! built once at init.  See calc_halo_parent for why the order matters.
+  integer(kind=int_kind), allocatable, dimension(:)   ::                       &
+    halo_src, halo_dst
+  integer(kind=int_kind)                              :: n_halo
+
 !=============================================================================
   contains
 !=============================================================================
@@ -78,7 +85,8 @@ module ice_dyn_evp1d
 
     ! local variables
 
-    real(kind=dbl_kind)   , allocatable, dimension(:,:) :: G_dyT, G_dxT, G_uarear
+    real(kind=dbl_kind)   , allocatable, dimension(:,:) :: G_dyT, G_dxT, G_uarear, &
+                                                           G_DminTarea
     logical(kind=log_kind), allocatable, dimension(:,:) :: G_tmask
 
     integer(kind=int_kind) :: ierr
@@ -88,13 +96,14 @@ module ice_dyn_evp1d
     nx=nx_global+2*nghost
     ny=ny_global+2*nghost
 
-    allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny),stat=ierr)
+    allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny), &
+             G_DminTarea(nx,ny),stat=ierr)
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
     ! gather from blks to global
-    call gather_static(G_uarear, G_dxT, G_dyT, G_tmask)
+    call gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_tmask)
 
     ! calculate number of water points (T and U). Only needed for the static version
     ! tmask in ocean/ice
@@ -105,11 +114,26 @@ module ice_dyn_evp1d
       call calc_navel(nActive, navel)
       call evp1d_alloc_static_navel(navel)
       call numainit(1,nActive,navel)
-      call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT)
+      call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT, &
+                              G_DminTarea)
       call evp1d_alloc_static_halo()
+      ! The halo pairing is pure geometry -- indxTij, na0, navel and the
+      ! boundary types -- so it is built once here.  It used to be rebuilt
+      ! every timestep from dyn_evp1d_run solely because the inner lists were
+      ! filtered by skipUcell, and that filter is redundant: every outer ghost
+      ! is permanently skipped (set_skipMe forces i==nx and j==ny, and
+      ! iceUmask is never halo-updated so the i==1/j==1 ghosts keep the .false.
+      ! set in init_dyn_shared), so stepu_1d never writes one and its velocity
+      ! holds the gathered value throughout the subcycling.  That gathered
+      ! value already equals the cyclic partner's, because ice_dyn_evp halo
+      ! updates uvel/vvel immediately before dyn_evp1d_run and gather_global
+      ! with grid_ext copies the block ghosts in.  So copying a skipped pair
+      ! writes the value already there, and dropping the filter changes
+      ! nothing while removing an O(n_inner*n_outer) search per timestep.
+      call calc_halo_parent(nActive, navel)
     endif
 
-    deallocate(G_dyT,G_dxT,G_uarear,G_tmask,stat=ierr)
+    deallocate(G_dyT,G_dxT,G_uarear,G_tmask,G_DminTarea,stat=ierr)
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
     endif
@@ -220,8 +244,6 @@ module ice_dyn_evp1d
                               G_umassdti  , G_fmU       ,                                 &
                               G_Tbu       , G_uvel     , G_vvel)
 
-       call calc_halo_parent(Nactive,navel)
-
        ! map from cpu to gpu (to) and back.
        ! This could be optimized considering which variables change from time step to time step
        ! and which are constant.
@@ -234,7 +256,9 @@ module ice_dyn_evp1d
        call ice_timer_start(timer_evp1dcore)
 #ifdef _OPENMP_TARGET
        !$omp target data map(to: ee, ne, se, nw, sw, sse, skipUcell, skipTcell,&
-       !$omp                 strength, dxT_1d, dyT_1d, HTE_1d,HTN_1d,HTEm1_1d, &
+       !$omp                 strength, dxT_1d, dyT_1d, DminTarea_1d,           &
+       !$omp                 dxhy_1d, dyhx_1d,                                 &
+       !$omp                 HTE_1d,HTN_1d,HTEm1_1d,                           &
        !$omp                 HTNm1_1d,forcexU, forceyU, umassdti, fmU,         &
        !$omp                 uarear_1d,uvel_init, vvel_init, Tbu, Cb,          &
        !$omp                 str1, str2, str3, str4, str5, str6, str7, str8,   &
@@ -257,7 +281,8 @@ module ice_dyn_evp1d
 
        do ksub = 1,ndte        ! subcycling
           call stress_1d (ee, ne, se, 1, nActive,                                    &
-                          uvel, vvel, dxT_1d, dyT_1d, skipTcell, strength,           &
+                          uvel, vvel, dxT_1d, dyT_1d, DminTarea_1d,                  &
+                          dxhy_1d, dyhx_1d, skipTcell, strength,                     &
                           HTE_1d, HTN_1d, HTEm1_1d, HTNm1_1d,                        &
                           stressp_1,  stressp_2,  stressp_3,  stressp_4,             &
                           stressm_1,  stressm_2,  stressm_3,  stressm_4,             &
@@ -388,6 +413,9 @@ module ice_dyn_evp1d
               HTNm1_1d  (1:na0), &
               dxT_1d    (1:na0), &
               dyT_1d    (1:na0), &
+              DminTarea_1d(1:na0), &
+              dxhy_1d   (1:na0), &
+              dyhx_1d   (1:na0), &
               strength  (1:na0), &
               stressp_1 (1:na0), &
               stressp_2 (1:na0), &
@@ -469,6 +497,12 @@ module ice_dyn_evp1d
     allocate(halo_parent_outer_east (ny), halo_parent_outer_west (ny), &
              halo_parent_outer_north(nx), halo_parent_outer_south(nx), &
              stat=ierr)
+
+    if (ierr/=0) then
+       call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
+    endif
+
+    allocate(halo_src(2*nx + 2*ny), halo_dst(2*nx + 2*ny), stat=ierr)
 
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
@@ -625,17 +659,19 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine gather_static(G_uarear, G_dxT, G_dyT, G_Tmask)
+  subroutine gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_Tmask)
 
      ! In standalone  distrb_info is an integer. Not needed anyway
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : gather_global
      use ice_domain, only : distrb_info
      use ice_grid, only: dyT, dxT, uarear, tmask
+     use ice_dyn_shared, only: DminTarea
      implicit none
 
      ! nx, ny
-     real(kind=dbl_kind)   , dimension(:,:), intent(out) :: G_uarear, G_dxT, G_dyT
+     real(kind=dbl_kind)   , dimension(:,:), intent(out) :: G_uarear, G_dxT, G_dyT, &
+                                                            G_DminTarea
      logical(kind=log_kind), dimension(:,:), intent(out) :: G_Tmask
 
      character(len=*), parameter :: subname = '(gather_static)'
@@ -643,12 +679,17 @@ module ice_dyn_evp1d
      G_uarear = c0
      G_dyT = c0
      G_dxT = c0
+     G_DminTarea = c0
      G_tmask = .false.
 
      ! copy from distributed I_* to G_*
      call gather_global(G_uarear, uarear, master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_dxT   , dxT   , master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_dyT   , dyT   , master_task, distrb_info, grid_ext=.true.)
+     ! DminTarea is deltamin*tarea, set once in init_dyn_shared.  It is gathered
+     ! rather than rebuilt from dxT*dyT because tarea is only that product on the
+     ! init_grid2 path; on a MOM supergrid it is a sum of four sub-areas.
+     call gather_global(G_DminTarea, DminTarea, master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_Tmask , Tmask , master_task, distrb_info, grid_ext=.true.)
 
   end subroutine gather_static
@@ -823,12 +864,14 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine convert_2d_1d_init(na0, G_HTE, G_HTN, G_uarear,  G_dxT, G_dyT)
+  subroutine convert_2d_1d_init(na0, G_HTE, G_HTN, G_uarear,  G_dxT, G_dyT, &
+                                G_DminTarea)
 
      implicit none
 
      integer(kind=int_kind), intent(in) ::  na0
-     real (kind=dbl_kind), dimension(:, :), intent(in) :: G_HTE, G_HTN, G_uarear, G_dxT, G_dyT
+     real (kind=dbl_kind), dimension(:, :), intent(in) :: G_HTE, G_HTN, G_uarear, G_dxT, G_dyT, &
+                                                          G_DminTarea
 
      ! local variables
 
@@ -893,10 +936,30 @@ module ice_dyn_evp1d
         uarear_1d(iw)  = G_uarear(i, j)
         dxT_1d(iw)     = G_dxT(i, j)
         dyT_1d(iw)     = G_dyT(i, j)
+        DminTarea_1d(iw) = G_DminTarea(i, j)
         HTE_1d(iw)     = G_HTE(i, j)
         HTN_1d(iw)     = G_HTN(i, j)
         HTEm1_1d(iw)   = G_HTE(i - 1, j)
         HTNm1_1d(iw)   = G_HTN(i, j - 1)
+        ! stress_1d used to form these inline each subcycle.  Building them
+        ! here from the same gathered grid keeps every value identical while
+        ! letting the kernel take them as arguments, the way the 2d one does.
+        !
+        ! NOT gathered from ice_dyn_shared's dxhy/dyhx.  Both the allocation
+        ! (ice_dyn_shared.F90:465) and the computation (:914) are guarded by
+        ! evp_algorithm == "standard_2d", so on this path those arrays are
+        ! never ALLOCATED -- gathering them is not "reads zeros", it is a
+        ! reference to an unallocated allocatable.  Where they do exist they
+        ! also differ from what is built here: computed over ilo:ihi and then
+        ! halo-updated with fillValue=c1 (:930), so at a true domain edge they
+        ! hold 1.0 rather than anything derived from HTE/HTN.
+        !
+        ! Both of those are upstream behaviour, unchanged at 12181ec.  Do not
+        ! "fix" them to make one canonical copy serve both solvers: the
+        ! fillValue would change 2d EVP results at domain-edge cells and move
+        ! the branch off bit-for-bit against the baseline.
+        dxhy_1d(iw)    = p5 * (G_HTE(i, j) - G_HTE(i - 1, j))
+        dyhx_1d(iw)    = p5 * (G_HTN(i, j) - G_HTN(i, j - 1))
      end do
 
   end subroutine convert_2d_1d_init
@@ -1246,6 +1309,9 @@ module ice_dyn_evp1d
         cdn_ocn(iw)=c0
         dxT_1d(iw)=c0
         dyT_1d(iw)=c0
+        DminTarea_1d(iw)=c0
+        dxhy_1d(iw)=c0
+        dyhx_1d(iw)=c0
         fmU(iw)=c0
         forcexU(iw)=c0
         forceyU(iw)=c0
@@ -1307,24 +1373,12 @@ module ice_dyn_evp1d
 
      character(len=*), parameter :: subname = '(evp1d_halo_update)'
 
-!TILL    !$omp parallel do schedule(runtime) private(iw)
-     do iw = 1, n_inner_east
-        uvel(halo_parent_outer_east(iw)) = uvel(halo_inner_east(iw))
-        vvel(halo_parent_outer_east(iw)) = vvel(halo_inner_east(iw))
-     end do
-! western halo
-     do iw = 1, n_inner_west
-        uvel(halo_parent_outer_west(iw)) = uvel(halo_inner_west(iw))
-        vvel(halo_parent_outer_west(iw)) = vvel(halo_inner_west(iw))
-     end do
-     do iw = 1, n_inner_south
-        uvel(halo_parent_outer_south(iw)) = uvel(halo_inner_south(iw))
-        vvel(halo_parent_outer_south(iw)) = vvel(halo_inner_south(iw))
-     end do
-! western halo
-     do iw = 1, n_inner_north
-        uvel(halo_parent_outer_north(iw)) = uvel(halo_inner_north(iw))
-        vvel(halo_parent_outer_north(iw)) = vvel(halo_inner_north(iw))
+! One sequential pass over the pair list built in calc_halo_parent.  Not
+! parallelised and not to be: east/west destinations are north/south sources
+! at the corners, so the pairs are order-dependent.  See calc_halo_parent.
+     do iw = 1, n_halo
+        uvel(halo_dst(iw)) = uvel(halo_src(iw))
+        vvel(halo_dst(iw)) = vvel(halo_src(iw))
      end do
 
   end subroutine evp1d_halo_update
@@ -1411,12 +1465,12 @@ module ice_dyn_evp1d
         ! Some parts assume nghost = 1
         ! INNER EAST
         if (trim(ew_boundary_type) == 'cyclic') then
-           if ((.not. skipUcell(iw)) .and. (i==nx-nghost)) then
+           if (i==nx-nghost) then
               n_inner_east=n_inner_east+1
               ifind = 1
               ind_inner_east(n_inner_east)  = ifind     + (j - 1) * nx
               halo_inner_east(n_inner_east) = iw
-           else if ((.not. skipUcell(iw)) .and. (i==1+nghost)) then
+           else if (i==1+nghost) then
               n_inner_west=n_inner_west+1
               ifind = nx
               ind_inner_west(n_inner_west)  = ifind     + (j - 1) * nx
@@ -1424,12 +1478,12 @@ module ice_dyn_evp1d
            endif
         endif
         if (trim(ns_boundary_type) == 'cyclic') then
-           if ((.not. skipUcell(iw)) .and. (j==1+nghost)) then
+           if (j==1+nghost) then
               n_inner_south=n_inner_south+1
               jfind = ny
               ind_inner_south(n_inner_south)  = i     + (jfind - 1) * nx
               halo_inner_south(n_inner_south) = iw
-           else if ((.not. skipUcell(iw)) .and. (j==ny-nghost)) then
+           else if (j==ny-nghost) then
               n_inner_north=n_inner_north+1
               jfind = 1
               ind_inner_north(n_inner_north)  = i     + (jfind - 1) * nx
@@ -1522,6 +1576,56 @@ module ice_dyn_evp1d
            end do
         end do
      endif
+
+     !-----------------------------------------------------------------
+     ! Flatten the four direction lists into one (src,dst) pair list.
+     !
+     ! Pairs whose parent never matched are dropped here.  The match loops
+     ! leave halo_parent_outer_*(i) at 0 when the partner cell is absent from
+     ! indxTij -- that happens where the partner's own neighbour is land, so
+     ! it never entered navel -- and uvel/vvel are allocated 1:navel, so
+     ! copying to a zero index would write element 0, out of bounds.
+     !
+     ! ORDER IS LOAD-BEARING, and the loop consuming this list MUST stay
+     ! sequential.  East and west are appended before south and north so that
+     ! a corner ghost is filled by the E/W pass and then read as a SOURCE by
+     ! the N/S pass: (1,ny-1), say, can be an east destination and a north
+     ! source.  That chain is what makes a bi-cyclic corner come out right,
+     ! and it is equally why this cannot be parallelised over the pair index.
+     !-----------------------------------------------------------------
+     n_halo = 0
+
+     do i = 1, n_inner_east
+        if (halo_parent_outer_east(i) > 0) then
+           n_halo = n_halo + 1
+           halo_src(n_halo) = halo_inner_east(i)
+           halo_dst(n_halo) = halo_parent_outer_east(i)
+        endif
+     end do
+
+     do i = 1, n_inner_west
+        if (halo_parent_outer_west(i) > 0) then
+           n_halo = n_halo + 1
+           halo_src(n_halo) = halo_inner_west(i)
+           halo_dst(n_halo) = halo_parent_outer_west(i)
+        endif
+     end do
+
+     do i = 1, n_inner_south
+        if (halo_parent_outer_south(i) > 0) then
+           n_halo = n_halo + 1
+           halo_src(n_halo) = halo_inner_south(i)
+           halo_dst(n_halo) = halo_parent_outer_south(i)
+        endif
+     end do
+
+     do i = 1, n_inner_north
+        if (halo_parent_outer_north(i) > 0) then
+           n_halo = n_halo + 1
+           halo_src(n_halo) = halo_inner_north(i)
+           halo_dst(n_halo) = halo_parent_outer_north(i)
+        endif
+     end do
 
   end subroutine calc_halo_parent
 

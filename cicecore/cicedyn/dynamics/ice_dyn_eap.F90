@@ -111,6 +111,7 @@
           uvel_slot, vvel_slot, aiU_slot, fmU_slot, TbU_slot, &
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
+          uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, dynIJ, &
           pack_to_slots, unpack_from_slots, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
@@ -181,9 +182,9 @@
       real (kind=dbl_kind), dimension (nx_block*ny_block,max_blocks), target :: &
          tmass          ! total mass of ice and snow (kg/m^2)
 
-      ! compressed, indexed by block-local slot; element 0 is the "no such
-      ! neighbour" slot the stepu stencil falls back on
-      real (kind=dbl_kind), dimension(0:dynMaxCnt,8):: &
+      ! compressed, indexed by block-local slot 1..cnt; the LAST element is
+      ! the "no such neighbour" dead slot the stepu stencil falls back on
+      real (kind=dbl_kind), dimension(dynMaxCnt+1,8):: &
          strtmp         ! stress combinations for momentum equation
 
       logical (kind=log_kind) :: &
@@ -449,17 +450,21 @@
       ! vvel stay in the block layout for everything outside the dynamics.
       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
-         call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+         call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          ! constant through the subcycling, so packed once and never unpacked
-         call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(TbU (:,iblk), dynMap(:,iblk), TbU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(umassdti(:,iblk), dynMap(:,iblk), umassdti_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(waterxU(:,iblk), dynMap(:,iblk), waterxU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(wateryU(:,iblk), dynMap(:,iblk), wateryU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(forcexU(:,iblk), dynMap(:,iblk), forcexU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-         call pack_to_slots(forceyU(:,iblk), dynMap(:,iblk), forceyU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+         call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(TbU (:,iblk), dynMap(:,iblk), TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(umassdti(:,iblk), dynMap(:,iblk), umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(waterxU(:,iblk), dynMap(:,iblk), waterxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(wateryU(:,iblk), dynMap(:,iblk), wateryU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(forcexU(:,iblk), dynMap(:,iblk), forcexU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(forceyU(:,iblk), dynMap(:,iblk), forceyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(uocnU(:,:,iblk), dynMap(:,iblk), uocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(vocnU(:,:,iblk), dynMap(:,iblk), vocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(Cdn_ocnU(:,:,iblk), dynMap(:,iblk), cdn_ocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(uarear(:,iblk), dynMap(:,iblk), uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
       enddo
       !$OMP END PARALLEL DO
 
@@ -478,8 +483,8 @@
                               icellT        (iblk),                       &
                               indxTi      (:,iblk), indxTj      (:,iblk), &
                               arlx1i,               denom1,               &
-                              uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
-                              vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
+                              uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
                               dxT       (:, iblk), dyT       (:, iblk), &
                               dxU       (:, iblk), dyU       (:, iblk), &
@@ -517,21 +522,22 @@
 
 !            call ice_timer_start(timer_tmp2,iblk)
             call stepu (nx_block,            ny_block,            &
-                        icellU       (iblk), Cdn_ocnU (:,:,iblk), &
-                        indxUi     (:,iblk), indxUj     (:,iblk), &
-                        aiU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), strtmp   (:,:),      &
-                        uocnU    (:,:,iblk), vocnU    (:,:,iblk), &
-                        waterxU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), wateryU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
-                        forcexU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), forceyU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
-                        umassdti_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), fmU_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
-                        uarear   (:,iblk)  ,                      &
+                        dynCnt       (iblk), ksub,                &
+                        cdn_ocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),  &
+                        skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                        dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                        aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), strtmp   (:,:),      &
+                        uocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        waterxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), wateryU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        forcexU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), forceyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), fmU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),    &
                         strintxU (:,:,iblk), strintyU (:,:,iblk), &
                         taubxU   (:,iblk)  , taubyU   (:,iblk)  , &
                         uvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
-                        uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), &
-                       dynMap(:,iblk), &
+                        uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
-                        TbU_slot (dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+                        TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 !            call ice_timer_stop(timer_tmp2,iblk)
 
             !-----------------------------------------------------------------
@@ -578,15 +584,15 @@
          if (restore_ice) then
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
-               call unpack_from_slots(uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), uvel(:,:,iblk))
-               call unpack_from_slots(vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), vvel(:,:,iblk))
+               call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
+               call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
             enddo
             !$OMP END PARALLEL DO
             call ice_restoring_halo(setfld='velocity')
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
-               call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
-               call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)))
+               call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+               call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             enddo
             !$OMP END PARALLEL DO
          endif
@@ -595,8 +601,8 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
-         call unpack_from_slots(uvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), uvel(:,:,iblk))
-         call unpack_from_slots(vvel_slot(dynOff(iblk):dynOff(iblk)+dynCnt(iblk)), dynMap(:,iblk), vvel(:,:,iblk))
+         call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
+         call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
       enddo
       !$OMP END PARALLEL DO
 
@@ -1284,11 +1290,12 @@
          arlx1i   , & ! dte/2T (original) or 1/alpha1 (revised)
          denom1       ! constant for stress equation
 
-      ! uvel and vvel are COMPRESSED: this block's slice, indexed from 0 so
-      ! element 0 is the block's dead slot.  They must be the compressed
+      ! uvel and vvel are COMPRESSED: this block's slice, 1-based, so cells
+      ! are 1..cnt and the last element is the block's dead slot.  They must
+      ! be the compressed
       ! velocities, not the block-layout ones: stepu subcycles on the slots
       ! and the block arrays are stale until the subcycling ends.
-      real (kind=dbl_kind), dimension (0:), intent(in) :: &
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel         ! y-component of velocity (m/s)
 
@@ -1311,7 +1318,7 @@
 
       ! tarear is assumed shape, 1D over the block in Fortran storage order,
       ! i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(in) :: &
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          tarear       ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
@@ -1340,7 +1347,7 @@
 !        rdg_shear    ! shear term for ridging (1/s)
 
       ! COMPRESSED, indexed by block-local slot
-      real (kind=dbl_kind), dimension (0:,:), intent(out) :: &
+      real (kind=dbl_kind), dimension (:,:), intent(out), contiguous :: &
          strtmp       ! stress combinations
 
       ! Xmap holds each cell's block-local slot, see ice_dyn_shared
@@ -1351,6 +1358,7 @@
 
       integer (kind=int_kind) :: &
          i, j, ij, ijb, &
+         isW, isS, isSW, & ! W, S and SW neighbour slots
          is             ! block-local compressed slot of (i,j)
 
       real (kind=dbl_kind) :: &
@@ -1394,16 +1402,22 @@
          is  = Xmap(ijb)
 
          ! the velocity stencil, read from the compressed slots.  A missing
-         ! neighbour is slot 0, held at zero, which is what the block layout
-         ! carried at land.
+         ! neighbour is the block's dead slot, the last one, held at zero --
+         ! which is what the block layout carried at land.
+         ! each neighbour slot was fetched twice, once for uvel and once for
+         ! vvel; read them once instead
+         isW  = nbr(is,nbr_W )
+         isS  = nbr(is,nbr_S )
+         isSW = nbr(is,nbr_SW)
+
          u00 = uvel(is)
-         uW  = uvel(nbr(is,nbr_W ))
-         uS  = uvel(nbr(is,nbr_S ))
-         uSW = uvel(nbr(is,nbr_SW))
+         uW  = uvel(isW)
+         uS  = uvel(isS)
+         uSW = uvel(isSW)
          v00 = vvel(is)
-         vW  = vvel(nbr(is,nbr_W ))
-         vS  = vvel(nbr(is,nbr_S ))
-         vSW = vvel(nbr(is,nbr_SW))
+         vW  = vvel(isW)
+         vS  = vvel(isS)
+         vSW = vvel(isSW)
 
          !-----------------------------------------------------------------
          ! strain rates
