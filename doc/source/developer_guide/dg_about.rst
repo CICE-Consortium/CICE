@@ -65,13 +65,30 @@ Overall, CICE code should be implemented as follows,
 
        use icepack_intfc, only: icepack_init_parameters
 
-  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack, **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and **icepack_warnings_aborted** should be check to abort on an Icepack error as follows,
+  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack,
+    **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and
+    **icepack_warnings_aborted** should be checked to abort on an Icepack error as follows,
 
     .. code-block:: fortran
 
        call icepack_physics()
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+
+    For Icepack calls within i,j loops, call ``diagnostic_abort`` instead, which also writes the
+    location (global i/j, lat/lon) and ice state of the failing grid cell before aborting,
+
+    .. code-block:: fortran
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          call icepack_physics()
+          call icepack_warnings_flush(nu_diag)
+          if (icepack_warnings_aborted()) then
+             call diagnostic_abort(i, j, iblk, subname//' icepack_physics aborted')
+          endif
+       enddo
+       enddo
 
   * Use ``ice_check_nc`` or ``ice_pio_check`` after netcdf or pio calls to check for return errors.
 

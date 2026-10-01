@@ -1742,7 +1742,7 @@
          ! if debug point is messed up, abort
          if (debug_model_i < 0 .or. debug_model_j < 0 .or. &
              debug_model_iblk < 0 .or. debug_model_task < 0) then
-            call abort_ice (subname//'ERROR: debug_model_[i,j,iblk,mytask] not set correctly')
+            call abort_ice (subname//' ERROR: debug_model_[i,j,iblk,mytask] not set correctly')
          endif
 
          ! write out debug info
@@ -1805,8 +1805,9 @@
            rad_to_deg_out=rad_to_deg, puny_out=puny, rhoi_out=rhoi, lfresh_out=lfresh, &
            rhos_out=rhos, cp_ice_out=cp_ice)
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      ! icepack_warnings_aborted() is deliberately not checked here, so that
+      ! print_state can write diagnostics (e.g. for several points) after
+      ! icepack has aborted.
 
       this_block = get_block(blocks_ice(iblk),iblk)
 
@@ -1960,17 +1961,10 @@
 
       ! local variables
 
-      real (kind=dbl_kind) :: rad_to_deg
-
       type (block) :: &
          this_block      ! block information for current block
 
       character(len=*), parameter :: subname = '(diagnostic_abort)'
-
-      call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       this_block = get_block(blocks_ice(iblk),iblk)
 
@@ -1983,7 +1977,7 @@
          write (nu_diag,*) subname,' Global block:', this_block%block_id
       endif
       call flush_fileunit(nu_diag)
-      call abort_ice (subname//'ERROR: '//trim(stop_label))
+      call abort_ice (subname//' ERROR: '//trim(stop_label))
 
       end subroutine diagnostic_abort
 

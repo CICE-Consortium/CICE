@@ -21,6 +21,7 @@
       use ice_domain, only: halo_info, nblocks, blocks_ice
       use ice_domain_size, only: max_blocks
       use ice_exit, only: abort_ice
+      use ice_diagnostics, only: diagnostic_abort
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_prep_radiation
@@ -203,12 +204,13 @@
                         fswpenln = fswpenln(i,j,:,:,iblk), &
                         Sswabsn  = Sswabsn (i,j,:,:,iblk), Iswabsn  = Iswabsn (i,j,:,:,iblk))
 
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_prep_radiation aborted')
+            endif
+
          enddo               ! i
          enddo               ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_sw,iblk)     ! shortwave
 
@@ -566,6 +568,11 @@
 !opt                      dpnd_initialn=dpnd_initialn(i,j,:,iblk), &
 !opt                      dpnd_dlidn   = dpnd_dlidn  (i,j,:,iblk), &
                       yday=yday)
+
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_therm1 aborted')
+         endif
 !opt                      prescribed_ice=prescribed_ice)
 
       !-----------------------------------------------------------------
@@ -623,10 +630,6 @@
 
       enddo ! i
       enddo ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       end subroutine step_therm1
 
@@ -762,14 +765,15 @@
 !opt                      d_afsd_weld = d_afsd_weld(i,j,:,iblk), &
 !opt                      dpnd_melt   = dpnd_melt  (i,j,  iblk))
                       )
+
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_therm2 aborted')
+         endif
          endif ! tmask
 
       enddo                     ! i
       enddo                     ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       end subroutine step_therm2
 
@@ -949,6 +953,11 @@
                                            trcrn       = trcrn          (i,j,:,:,iblk), &
                                            d_afsd_wave = d_afsd_wave    (i,j,:,  iblk), &
                                            wave_height = wave_sig_ht    (i,j,    iblk))
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_step_wavefracture aborted')
+            endif
          end do ! i
          end do ! j
       end do    ! iblk
@@ -1163,14 +1172,15 @@
                          Tf        = Tf       (i,j,  iblk) &
 !opt                         dpnd_ridge=dpnd_ridge(i,j,  iblk))
                          )
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_step_ridge aborted')
+            endif
          endif ! tmask
 
       enddo ! i
       enddo ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_ridge,iblk)
       call ice_timer_stop(timer_column,iblk)
@@ -1268,6 +1278,11 @@
                      fhocn  = fhocn   (i,j,iblk),        &
                      fsloss = fsloss  (i,j,iblk),        &
                      fsnow  = fsnow   (i,j,iblk))
+
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_snow aborted')
+         endif
       enddo
       enddo
 
@@ -1452,6 +1467,11 @@
                          dhsn     =dhsn     (i,j,:  ,iblk), ffracn  =ffracn(i,j,:,iblk),     &
 !opt                         rsnow    =rsnow        (:,:),      &
                          l_print_point=l_print_point)
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
+            endif
          endif
 
          if (dEdd_algae .and. (tr_zaero .or. tr_bgc_N)) then
@@ -1464,10 +1484,6 @@
 
       enddo ! i
       enddo ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       deallocate(ztrcr_sw)
       deallocate(rsnow)
@@ -1588,11 +1604,12 @@
                          shcoef  = shcoef     (i,j),      &
                          Cdn_atm = Cdn_atm    (i,j,iblk), &
                          Cdn_atm_ratio_n = Cdn_atm_ratio(i,j,iblk))
-         enddo ! ij
 
-         call icepack_warnings_flush(nu_diag)
-         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-            file=__FILE__, line=__LINE__)
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_atm_boundary aborted')
+            endif
+         enddo ! ij
 
       !-----------------------------------------------------------------
       ! Ocean albedo
@@ -1625,11 +1642,12 @@
                                       fswthru  =fswthru  (i,j,iblk), hmix  =hmix  (i,j,iblk), &
                                       Tf       =Tf       (i,j,iblk), qdp   =qdp   (i,j,iblk), &
                                       frzmlt   =frzmlt   (i,j,iblk), dt    =dt)
-      enddo                    ! ij
 
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            call diagnostic_abort(i, j, iblk, subname//' icepack_ocn_mixed_layer aborted')
+         endif
+      enddo                    ! ij
 
       end subroutine ocean_mixed_layer
 
@@ -1772,12 +1790,13 @@
                               trcrn        = trcrn       (i,j,:,:,      iblk), &
                               vsnon_init   = vsnon_init  (i,j,:,        iblk))
 
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) then
+            call diagnostic_abort(i, j, iblk, subname//' icepack_biogeochemistry aborted')
+         endif
+
       enddo               ! i
       enddo               ! j
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_bgc,iblk) ! biogeochemistry
 

@@ -54,6 +54,7 @@
       use ice_global_reductions, only: global_sum
       use ice_grid, only: dxT, dyT, uarear
       use ice_exit, only: abort_ice
+      use ice_diagnostics, only: diagnostic_abort
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 
@@ -390,14 +391,15 @@
                                        aicen = aicen      (i,j,:,iblk), &
                                        vicen = vicen      (i,j,:,iblk), &
                                        strength = strength(i,j,  iblk))
+
+            call icepack_warnings_flush(nu_diag)
+            if (icepack_warnings_aborted()) then
+               call diagnostic_abort(i, j, iblk, subname//' icepack_ice_strength aborted')
+            endif
          enddo  ! ij
 
       enddo  ! iblk
       !$OMP END PARALLEL DO
-
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
 
       call ice_timer_start(timer_bound)
       call ice_HaloUpdate (strength,           halo_info, &
