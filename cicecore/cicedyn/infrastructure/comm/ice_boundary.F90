@@ -8114,7 +8114,7 @@ contains
             !*** update
 
             if (jeSrc - jbSrc + 1 < halo%tripoleRows) then
-               call abort_ice(subname//'ERROR: not enough points in block for tripole')
+               call abort_ice(subname//'ERROR: not enough points in block for tripole, change y block size')
                return
             endif
 
