@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Compare the CICE files via binary cmp diff
 #-----------------------------------------------------------

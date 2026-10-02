@@ -8,11 +8,13 @@ unittest       gx3     8x1           mpif08,debug
 #
 unittest       gx3     4x1x25x29x4   sumchk
 unittest       gx3     1x1x25x29x16  sumchk
+unittest       gx3     32x1x5x4      sumchk
 unittest       tx1     8x1           sumchk
 unittest       tx1     8x1           sumchk,bctripolet
 unittest       gx3     4x1x25x29x4   sumchk,nghost2
 unittest       tx1     8x1           sumchk,nghost2
 unittest       tx1     8x1           sumchk,bctripolet,nghost2
+unittest       tx1m    12x1          sumchk
 #
 unittest       gx3     4x1           bcstchk
 unittest       gx3     1x1           bcstchk
@@ -65,6 +67,7 @@ unittest       tx1     4x2x65x45x10  halochk,dwblockall
 unittest       tx1     4x2x65x45     halochk,dwblockall
 unittest       tx1     4x2x57x43x12  halochk,dwblockall,bctripolet
 unittest       tx1     4x2x57x43     halochk,dwblockall,bctripolet
+unittest       tx1m    16x1          halochk,dwblockall
 #
 unittest       gbox80  4x2x14x12     halochk,bccyclic,debug,nghost2
 unittest       gbox80  1x1x23x14     halochk,bctripole,nghost2
@@ -108,6 +111,7 @@ unittest       tx1     4x2           gathscatchk,bctripolet,debug
 unittest       tx1     4x2           gathscatchk,bctripolet,dwblockall
 unittest       tx1     4x2x50x50     gathscatchk,bctripolet,debug
 unittest       tx1     1x1x50x50     gathscatchk,bctripolet
+unittest       tx1m    8x2           gathscatchk,debug
 #
 unittest       gx3     4x2x12x13     gathscatchk,debug,nghost2
 unittest       gbox80  1x1x17x14     gathscatchk,bccyclic,nghost2

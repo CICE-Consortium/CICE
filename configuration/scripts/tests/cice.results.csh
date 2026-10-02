@@ -1,3 +1,4 @@
+#!/usr/bin/env -S csh -f
 
 #--- cice.results.csh --- 
 

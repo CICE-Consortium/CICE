@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 #set pd0 = `date -u "+%s%N"`
 
@@ -501,7 +501,7 @@ else
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 rm -f suite.jobs
@@ -536,7 +536,7 @@ endif
 EOF0
 
   cat >! ${tsdir}/results.csh << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 rm -f results.log
 echo "#------- " >> results.log
 echo "#repo = ${remote}" >> results.log
@@ -555,7 +555,7 @@ echo "#------- " >> results.log
 EOF0
 
 cat >! ${tsdir}/report_codecov.csh << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 source ${ICE_SCRIPTS}/machines/env.${machcomp}
 

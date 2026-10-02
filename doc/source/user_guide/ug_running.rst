@@ -291,7 +291,7 @@ specifies the compilation environment associated with the machine.  This should 
   specifies a batch queue name.  This is optional.  See :ref:`queue` for more information.
 
 ``--grid``, ``-g`` GRID
-  specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, and tx1 are supported. (default = gx3)
+  specifies the grid.  This is a string and for the current CICE driver, gx1, gx3, tx1 and tx1m are supported. (default = gx3)
 
 ``--set``,  ``-s`` SET1,SET2,SET3
   specifies the optional settings for the case.  The settings for ``--suite`` are defined in the suite file.  Multiple settings can be specified by providing a comma deliminated set of values without spaces between settings.  The available settings are in **configurations/scripts/options** and ``cice.setup --help`` will also list them.  These settings files can change either the namelist values or overall case settings (such as the debug flag).  For cases and tests (not suites), settings defined in **~/.cice_set** (if it exists) will be included in the --set options.  This behaviour can be overridden with the `--ignore-user-set`` command line option.
@@ -341,7 +341,7 @@ Some of the options are
 
 ``short``, ``medium``, ``long`` which change the batch time limit
 
-``gx3``, ``gx1``, ``tx1`` are associate with grid specific settings
+``gx3``, ``gx1``, ``tx1``, ``tx1m`` are associated with grid specific settings
 
 ``diag1`` which turns on diagnostics each timestep
 
