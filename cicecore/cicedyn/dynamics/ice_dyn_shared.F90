@@ -17,12 +17,32 @@
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
       use ice_exit, only: abort_ice
-      use ice_grid, only: grid_ice
+      ! The ragged layout lives in ice_grid now -- it is derived from the grid
+      ! masks, and keeping it there lets the grid metrics that are compressed
+      ! once per run be packed where they are created.  Re-exported here so the
+      ! solvers that import it from ice_dyn_shared are unchanged.
+      use ice_grid, only: grid_ice,                                   &
+                          dynOff, dynCnt, dynTot, dynMaxCnt,          &
+                          dynMap, dynNbr, dynIJ,                      &
+                          set_ragged_layout, set_neighbours,          &
+                          set_slot_cells, pack_to_slots,              &
+                          unpack_from_slots,                          &
+                          nbr_W, nbr_SW, nbr_S, nbr_E, nbr_NE, nbr_N, &
+                          nbr_NW, nbr_SE, nbr_num,                     &
+                          uarear_slot, dxN_slot, dyE_slot, uarea_slot, &
+                          tarea_slot, earea_slot, narea_slot, hm_slot
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
 
       implicit none
       private
+
+      ! re-exported from ice_grid, which owns the ragged layout
+      public :: dynOff, dynCnt, dynTot, dynMaxCnt, dynMap, dynNbr, dynIJ
+      public :: nbr_W, nbr_SW, nbr_S, nbr_E, nbr_NE, nbr_N, nbr_NW, nbr_SE
+      public :: nbr_num
+      public :: uarear_slot, dxN_slot, dyE_slot, uarea_slot
+      public :: tarea_slot, earea_slot, narea_slot, hm_slot
       public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
                 principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
@@ -135,16 +155,9 @@
       ! ghost cells to be addressable, and makemask sets the masks over the
       ! same range.
       ! ---------------------------------------------------------------------
-      integer (kind=int_kind), dimension (:), allocatable, public :: &
-         dynOff, dynCnt     ! per-block offset and length
 
       ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-      integer (kind=int_kind), dimension (:,:), allocatable, public :: &
-         dynMap             ! block-local slot of each cell, 0 if not stored
 
-      integer (kind=int_kind), public :: &
-         dynTot         , & ! total compressed length over all local blocks
-         dynMaxCnt          ! largest dynCnt over the local blocks, for sizing
                             ! per-block scratch indexed by block-local slot
 
       ! set each timestep from the dynamic ice masks: .true. means the slot
@@ -180,28 +193,26 @@
       ! dummies, which rebase to 1 whatever the actual's bounds, so a 0-based
       ! slice would silently shift every neighbour index by one.
       ! ---------------------------------------------------------------------
-      integer (kind=int_kind), parameter, public :: &
-         nbr_W   = 1, & ! (-1, 0)
-         nbr_SW  = 2, & ! (-1,-1)
-         nbr_S   = 3, & ! ( 0,-1)
-         nbr_E   = 4, & ! (+1, 0)
-         nbr_NE  = 5, & ! (+1,+1)
-         nbr_N   = 6, & ! ( 0,+1)
-         nbr_num = 6    ! number of directions held
+      ! These are COMPASS directions.  Do not confuse nbr_NW below with the
+      ! core1d dummy named nw, which is this table's nbr_E -- core1d names its
+      ! neighbour arguments after the stress corner they feed, not the compass.
+      !
+      ! NW and SE exist for grid_average_X2Y on the C and CD grids: the E2NA
+      ! shift averages over (0,0), N, W, NW and N2EA over (0,0), S, E, SE.
+      ! Nothing on the B grid reads them, so they cost one unused column pair
+      ! in dynNbr there -- two integers per slot, a few MB on a large grid,
+      ! against the complexity of making nbr_num depend on grid_ice.
 
       ! shape (dynTot, nbr_num), so dynNbr(:,d) is contiguous and one
       ! direction can be passed as a contiguous rank-1 argument
-      integer (kind=int_kind), dimension (:,:), allocatable, public :: &
-         dynNbr
 
       ! Reverse of dynMap: dynIJ(slot) is the cell (j-1)*nx_block+i that owns
       ! that slot.  Kernels loop over slots and need the block index only for
       ! the few block-layout outputs they still write.
-      integer (kind=int_kind), dimension (:), allocatable, public :: &
-         dynIJ
 
       ! Compressed working copies of the velocities; each block's span runs
-      ! 1..cnt with its dead slot last, so it is addressable without a branch.  uvel/vvel themselves stay in
+      ! 1..cnt with its dead slot last, so it is addressable without a branch.
+      ! uvel/vvel themselves stay in
       ! the block layout: they are state, read by restart, history,
       ! diagnostics and the couplers.  These are packed once per timestep,
       ! subcycled on, and unpacked again.
@@ -238,8 +249,30 @@
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          uocnU_slot      , & ! ocean current, x, compressed
          vocnU_slot      , & ! ocean current, y, compressed
-         cdn_ocnU_slot   , & ! ocean-ice neutral drag coefficient, compressed
-         uarear_slot         ! 1/uarea, compressed
+         cdn_ocnU_slot       ! ocean-ice neutral drag coefficient, compressed
+
+      ! C and CD grids.  Allocated only for those grids, beside skipN/skipE.
+      !
+      ! Which of these are compressed follows the same rule as the B grid:
+      ! compress what the subcycling changes AND a stencil reads at a
+      ! neighbour; everything else keeps block indexing through dynIJ(is).
+      ! The one addition is a grid metric read at a NEIGHBOUR -- dxN, dyE and
+      ! uarea -- because reaching those block-wise would need
+      ! dynIJ(nbr(is,d)), a second indirection per access.  Those are constant,
+      ! so they are packed once and never unpacked, like uarear_slot.
+      !
+      ! Stencils, all inside the six directions dynNbr already holds:
+      !   strain_rates_T  S on uvelN,dxN   W on vvelE,dyE
+      !   stressC_T       W, S, SW on shearU, uarea
+      !   div_stress_E*   S, E             div_stress_N*  W, N
+      !
+      ! Copy, never relayout: the block-layout originals stay written in full.
+      real (kind=dbl_kind), dimension (:), allocatable, public :: &
+         uvelE_slot      , & ! x-component of E-point velocity, compressed
+         vvelE_slot      , & ! y-component of E-point velocity, compressed
+         uvelN_slot      , & ! x-component of N-point velocity, compressed
+         vvelN_slot      , & ! y-component of N-point velocity, compressed
+         shearU_slot         ! shear at the U point, compressed
 
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          umassdti_slot   , & ! mass of U-cell/dt (kg/m^2 s), compressed
@@ -355,41 +388,17 @@
 
       ! union of every static mask this run needs, so that one list can serve
       ! all grid locations
-      logical (kind=log_kind), dimension(:,:), allocatable :: mask_any
 
       character(len=*), parameter :: subname = '(alloc_dyn_shared)'
 
-      ! ------------------------------------------------------------------
-      ! One compressed list for the whole dynamics.  dyn_prep2 is handed
-      ! umask on a B grid and umaskCD on a C/CD grid, so take whichever this
-      ! run will actually use, unioned with the T mask (and with N and E
-      ! where those grids exist).  A shared list is what allows a U-point
-      ! kernel to read a T-point array such as str.
-      ! ------------------------------------------------------------------
-      allocate(mask_any(nx_block*ny_block,max_blocks), &
-               dynOff(max_blocks), dynCnt(max_blocks), &
-               dynMap(nx_block*ny_block,max_blocks), stat=ierr)
-      if (ierr/=0) call abort_ice(subname//': Out of memory')
-
-      if (grid_ice == 'B') then
-         mask_any = tmask .or. umask
-      else
-         mask_any = tmask .or. umaskCD .or. nmask .or. emask
-      endif
-
-      call set_ragged_layout(mask_any, dynOff, dynCnt, dynTot, dynMap)
-      deallocate(mask_any)
-      dynMaxCnt = max(maxval(dynCnt), 1)
-
-      allocate(skipT(dynTot), skipU(dynTot), dynNbr(dynTot,nbr_num), stat=ierr)
+      ! The ragged layout itself is built by init_ragged_layout in ice_grid,
+      ! at the end of init_grid2, because it is derived from the grid masks and
+      ! because the grid metrics compressed once per run are packed there too.
+      ! By the time any solver calls this, dynTot and dynMap are set.
+      allocate(skipT(dynTot), skipU(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       skipT = .true.
       skipU = .true.
-      call set_neighbours(dynMap, dynOff, dynCnt, dynNbr)
-
-      allocate(dynIJ(dynTot), stat=ierr)
-      if (ierr/=0) call abort_ice(subname//': Out of memory')
-      call set_slot_cells(dynMap, dynOff, dynCnt, dynIJ)
 
       allocate(uvel_slot(dynTot), vvel_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
@@ -417,12 +426,11 @@
       forceyU_slot  = c0
 
       allocate(uocnU_slot(dynTot), vocnU_slot(dynTot), &
-               cdn_ocnU_slot(dynTot), uarear_slot(dynTot), stat=ierr)
+               cdn_ocnU_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       uocnU_slot    = c0
       vocnU_slot    = c0
       cdn_ocnU_slot = c0
-      uarear_slot   = c0
 
       allocate( &
          uvel_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
@@ -482,6 +490,17 @@
          skipN = .true.
          skipE = .true.
 
+         allocate(uvelE_slot(dynTot), vvelE_slot(dynTot), &
+                  uvelN_slot(dynTot), vvelN_slot(dynTot), &
+                  shearU_slot(dynTot),                    &
+                  stat=ierr)
+         if (ierr/=0) call abort_ice(subname//': Out of memory')
+         uvelE_slot  = c0
+         vvelE_slot  = c0
+         uvelN_slot  = c0
+         vvelN_slot  = c0
+         shearU_slot = c0
+
          allocate( &
             uvelE_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
             vvelE_init (dynTot), & ! y-component of velocity (m/s), beginning of timestep
@@ -505,281 +524,214 @@
 
       end subroutine alloc_dyn_shared
 
-!=======================================================================
-! Build the compressed layout for one grid location from its static mask.
-!
-! Assigns every masked cell of every block a slot that is fixed for the
-! run, and records it in map so that writers iterating over (i,j) can find
-! it.  The whole block is scanned, ghost ring included, because stencil
-! kernels and halo exchanges have to be able to address ghost cells.
-!
-! The mask is static -- makemask sets it once -- so this runs only at
-! allocation and the slot ordering never changes.  That is what allows
-! neighbour index arrays to be precomputed later, the way ice_dyn_evp1d
-! precomputes ee/ne/se/nw/sw/sse against its own static list.
 
-      subroutine set_ragged_layout(mask, off, cnt, total, map)
 
-      use ice_domain, only: nblocks
 
-      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-      logical (kind=log_kind), dimension(:,:), intent(in) :: &
-         mask               ! static mask selecting the cells to store
 
-      integer (kind=int_kind), dimension(:), intent(out) :: &
-         off            , & ! first slot of each block, minus one
-         cnt                ! number of slots held by each block
-
-      integer (kind=int_kind), intent(out) :: &
-         total              ! total number of slots
-
-      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-      integer (kind=int_kind), dimension(:,:), intent(out) :: &
-         map                ! block-local slot of each cell, 0 if not stored
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij, iblk     ! horizontal and block indices
-
-      character(len=*), parameter :: subname = '(set_ragged_layout)'
-
-      off(:)   = 0
-      cnt(:)   = 0
-      map(:,:) = 0
-
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ij = (j-1)*nx_block + i
-            if (mask(ij,iblk)) then
-               cnt(iblk)    = cnt(iblk) + 1
-               map(ij,iblk) = cnt(iblk)
-            endif
-         enddo
-         enddo
-      enddo
-
-      ! Each block gets a DEAD SLOT of its own at index off(iblk)+cnt(iblk)+1,
-      ! never assigned to a cell and held at zero.  Kernels are handed the slice
-      ! arr(off(iblk)+1 : off(iblk)+cnt(iblk)+1) declared dimension(:), so the
-      ! slice is 1-BASED -- real cells at 1..cnt, dead slot last -- and a
-      ! missing neighbour needs no branch because set_neighbours points it at
-      ! cnt+1.  1-based matters: ice_dyn_core1d's kernels take assumed-shape
-      ! dummies, which rebase to 1 whatever the actual's bounds, so a 0-based
-      ! slice would silently shift every neighbour index by one.
-      ! The spacing below (cnt+1 per block) is what reserves the dead slot;
-      ! without it a block's last index would alias the next block's first.
-      total = 0
-      do iblk = 1, nblocks
-         off(iblk) = total
-         total = total + cnt(iblk) + 1
-      enddo
-
-      ! a task may legitimately own no masked cells at all; keep the
-      ! allocation non-zero so slicing stays well defined
-      total = max(total, 1)
-
-      end subroutine set_ragged_layout
 
 !=======================================================================
-! Build the neighbour-slot table for one compressed layout.
+! Compressed counterparts of grid_average_X2Y, for the C and CD subcycle.
 !
-! For every stored cell, records the BLOCK-LOCAL slot of its neighbour in
-! each of the six directions the 1d kernels use, or 0 where that neighbour
-! lies outside the block or is not in the static mask.  The row is indexed
-! by global slot, so a per-block slice of the table is indexed 1:dynCnt and
-! its values are in the same 1:dynCnt range -- both sides block-local, which
-! is what the kernels receive.
+! ADDITIVE, not a conversion.  grid_average_X2Y has some 200 call sites
+! across the model -- ice_step_mod, ice_diagnostics, ice_forcing, vp, and the
+! gridavgchk unit test -- so the block-layout family stays exactly as it is.
+! These cover only the five shifts the C/CD subcycle performs:
 !
-! Neighbours are resolved in (i,j) and then mapped, never by arithmetic on
-! the flat index: ijb+1 at i = nx_block would silently wrap onto the first
-! cell of the next row.  Bounds are therefore checked per direction.
+!   T2US  NE   strength, etax2T -> U     masked   (X2YS)
+!   E2UA  N    uvelE -> uvel             area     (X2YA)
+!   N2UA  E    vvelN -> vvel             area     (X2YA)
+!   E2NA  NW   uvelE -> uvelN            area     (X2YA)
+!   N2EA  SE   vvelN -> vvelE            area     (X2YA)
 !
-! A neighbour always belongs to the same block, so its slot lies inside that
-! block's contiguous range.  Ghost cells carry slots of their own, which is
-! why the layout includes the ghost ring; a halo update refreshes them
-! between subcycles exactly as it does in the block layout.
-
-      subroutine set_neighbours(map, off, cnt, nbr)
-
-      use ice_domain, only: nblocks
-
-      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-      integer (kind=int_kind), dimension(:,:), intent(in) :: &
-         map                ! block-local slot of each cell, 0 if not stored
-
-      integer (kind=int_kind), dimension(:), intent(in) :: &
-         off            , & ! first slot of each block, minus one
-         cnt                ! number of slots held by each block
-
-      integer (kind=int_kind), dimension(:,:), intent(out) :: &
-         nbr                ! (slot, direction) -> neighbour slot, 0 if none
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij, iblk , & ! horizontal and block indices
-         is             , & ! slot of the cell being filled
-         d                  ! direction
-
-      integer (kind=int_kind), dimension(nbr_num) :: &
-         di, dj             ! offset of each direction
-
-      integer (kind=int_kind) :: &
-         ii, jj             ! neighbour cell indices
-
-      character(len=*), parameter :: subname = '(set_neighbours)'
-
-      di(nbr_W ) = -1 ; dj(nbr_W ) =  0
-      di(nbr_SW) = -1 ; dj(nbr_SW) = -1
-      di(nbr_S ) =  0 ; dj(nbr_S ) = -1
-      di(nbr_E ) = +1 ; dj(nbr_E ) =  0
-      di(nbr_NE) = +1 ; dj(nbr_NE) = +1
-      di(nbr_N ) =  0 ; dj(nbr_N ) = +1
-
-      nbr(:,:) = 0   ! overwritten per stored cell below
-
-      do iblk = 1, nblocks
-         if (cnt(iblk) == 0) cycle
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ij = (j-1)*nx_block + i
-            if (map(ij,iblk) == 0) cycle
-            is = off(iblk) + map(ij,iblk)
-
-            ! default every direction to this block's dead slot, so a missing
-            ! neighbour reads zero with no branch in the kernels
-            nbr(is,:) = cnt(iblk) + 1
-
-            do d = 1, nbr_num
-               ii = i + di(d)
-               jj = j + dj(d)
-               if (ii < 1 .or. ii > nx_block) cycle
-               if (jj < 1 .or. jj > ny_block) cycle
-               if (map((jj-1)*nx_block + ii, iblk) == 0) cycle
-               ! store the BLOCK-LOCAL slot: a neighbour never leaves its own
-               ! block, and block-local values compose with the per-block
-               ! slices the kernels are handed
-               nbr(is,d) = map((jj-1)*nx_block + ii, iblk)
-            enddo
-         enddo
-         enddo
-      enddo
-
-      end subroutine set_neighbours
-
-!=======================================================================
-! Invert the compressed layout: record which cell owns each slot.
+! They live here rather than in ice_grid because they need dynMap, dynOff and
+! dynNbr, and ice_dyn_shared already uses ice_grid -- the other way round
+! would be circular.
 !
-! set_ragged_layout maps cell -> slot, which is what a writer iterating over
-! (i,j) needs.  A kernel that iterates over SLOTS needs the other direction,
-! to address the block-layout arrays it still has to write.  Dead slots are
-! left at zero and are never looked up.
-
-      subroutine set_slot_cells(map, off, cnt, ijmap)
-
-      use ice_domain, only: nblocks
-
-      ! flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-      integer (kind=int_kind), dimension(:,:), intent(in) :: &
-         map                ! block-local slot of each cell, 0 if not stored
-
-      integer (kind=int_kind), dimension(:), intent(in) :: &
-         off            , & ! first slot of each block, minus one
-         cnt                ! number of slots held by each block
-
-      integer (kind=int_kind), dimension(:), intent(out) :: &
-         ijmap              ! (j-1)*nx_block+i of the cell owning each slot
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, ij, iblk     ! horizontal and block indices
-
-      character(len=*), parameter :: subname = '(set_slot_cells)'
-
-      ijmap(:) = 0
-
-      do iblk = 1, nblocks
-         if (cnt(iblk) == 0) cycle
-         do j = 1, ny_block
-         do i = 1, nx_block
-            ij = (j-1)*nx_block + i
-            if (map(ij,iblk) == 0) cycle
-            ijmap(off(iblk) + map(ij,iblk)) = ij
-         enddo
-         enddo
-      enddo
-
-      end subroutine set_slot_cells
-
-!=======================================================================
-! Pack one block of a block-layout field into its compressed slots.
+! The block loop is kept rather than iterating slots: the originals run over
+! the PHYSICAL domain only, ilo:ihi by jlo:jhi, and the compressed layout also
+! holds ghost cells, so a plain slot sweep would cover cells the original never
+! touches.  This is the same shape stress uses: keep the loop, derive the slot.
 !
-! Cells outside the static mask have no slot and are dropped; they carry no
-! information the dynamics uses.  The block's dead slot is zeroed so that a
-! missing-neighbour lookup reads zero.
-
-      subroutine pack_to_slots(arr, map, comp)
-
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in) :: &
-         arr                ! one block in the block layout
-
-      ! flattened: element (i,j) is at (j-1)*nx_block + i
-      integer (kind=int_kind), dimension(:), intent(in) :: &
-         map                ! block-local slot of each cell, 0 if not stored
-
-      ! this block's slice, 1-based: real cells at 1..cnt, dead slot last
-      real (kind=dbl_kind), dimension(:), intent(inout) :: &
-         comp               ! compressed values
-
-      integer (kind=int_kind) :: i, j, m
-
-      character(len=*), parameter :: subname = '(pack_to_slots)'
-
-      comp(size(comp)) = c0   ! the dead slot
-      do j = 1, ny_block
-      do i = 1, nx_block
-         m = map((j-1)*nx_block + i)
-         if (m > 0) comp(m) = arr(i,j)
-      enddo
-      enddo
-
-      end subroutine pack_to_slots
-
-!=======================================================================
-! Scatter one block's compressed slots back into the block layout.
+! SUMMATION ORDER IS PRESERVED EXACTLY.  It differs per direction -- NW sums
+! W, self, NW, N; SE sums S, SE, self, E -- and reordering would cost
+! bit-for-bit agreement with the block-layout routine.
 !
-! Cells with no slot are left untouched: they were never part of the
-! compressed field, and in the block layout they hold whatever the masked-out
-! initialisation left there.
+! dynNbr holds BLOCK-LOCAL slots, so a global index is dynOff(iblk) + nbr.
 
-      subroutine unpack_from_slots(comp, map, arr)
+      subroutine grid_average_X2YA_compressed(dir, work1, wght1, work2)
 
-      ! this block's slice, 1-based: cells 1..cnt, dead slot last
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: nblocks, blocks_ice
+
+      character(len=*), intent(in) :: &
+         dir            ! shift direction: N, E, NW or SE
+
       real (kind=dbl_kind), dimension(:), intent(in) :: &
-         comp               ! compressed values
+         work1      , & ! field to shift, compressed
+         wght1          ! weights, compressed
 
-      ! flattened: element (i,j) is at (j-1)*nx_block + i
-      integer (kind=int_kind), dimension(:), intent(in) :: &
-         map                ! block-local slot of each cell, 0 if not stored
+      real (kind=dbl_kind), dimension(:), intent(out) :: &
+         work2          ! shifted field, compressed
 
-      real (kind=dbl_kind), dimension(nx_block,ny_block), intent(inout) :: &
-         arr                ! one block in the block layout
+      integer (kind=int_kind) :: &
+         i, j, iblk, ijb, m, is, isN, isE, isW, isS, isNW, isSE, off
+      integer (kind=int_kind) :: ilo,ihi,jlo,jhi
+      type (block) :: this_block
+      real (kind=dbl_kind) :: wtmp
 
-      integer (kind=int_kind) :: i, j, m
+      character(len=*), parameter :: subname = '(grid_average_X2YA_compressed)'
 
-      character(len=*), parameter :: subname = '(unpack_from_slots)'
+      work2(:) = c0
 
-      do j = 1, ny_block
-      do i = 1, nx_block
-         m = map((j-1)*nx_block + i)
-         if (m > 0) arr(i,j) = comp(m)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ijb,m,is,isN,isE,isW,isS,isNW,isSE, &
+      !$OMP                     off,ilo,ihi,jlo,jhi,this_block,wtmp) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         if (dynCnt(iblk) == 0) cycle
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         off = dynOff(iblk)
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            ijb = (j-1)*nx_block + i
+            m   = dynMap(ijb,iblk)
+            if (m == 0) cycle
+            is  = off + m
+
+            select case (trim(dir))
+
+            case('N')
+               isN = off + dynNbr(is,nbr_N)
+               wtmp = (wght1(is) + wght1(isN))
+               if (wtmp /= c0) &
+               work2(is) = (work1(is )*wght1(is )  &
+                          + work1(isN)*wght1(isN)) &
+                          / wtmp
+
+            case('E')
+               isE = off + dynNbr(is,nbr_E)
+               wtmp = (wght1(is) + wght1(isE))
+               if (wtmp /= c0) &
+               work2(is) = (work1(is )*wght1(is )  &
+                          + work1(isE)*wght1(isE)) &
+                          / wtmp
+
+            case('NW')
+               isW  = off + dynNbr(is,nbr_W )
+               isNW = off + dynNbr(is,nbr_NW)
+               isN  = off + dynNbr(is,nbr_N )
+               wtmp = (wght1(isW )  &
+                     + wght1(is  )  &
+                     + wght1(isNW)  &
+                     + wght1(isN ))
+               if (wtmp /= c0) &
+               work2(is) = (work1(isW )*wght1(isW )  &
+                          + work1(is  )*wght1(is  )  &
+                          + work1(isNW)*wght1(isNW)  &
+                          + work1(isN )*wght1(isN )) &
+                          / wtmp
+
+            case('SE')
+               isS  = off + dynNbr(is,nbr_S )
+               isSE = off + dynNbr(is,nbr_SE)
+               isE  = off + dynNbr(is,nbr_E )
+               wtmp = (wght1(isS )  &
+                     + wght1(isSE)  &
+                     + wght1(is  )  &
+                     + wght1(isE ))
+               if (wtmp /= c0) &
+               work2(is) = (work1(isS )*wght1(isS )  &
+                          + work1(isSE)*wght1(isSE)  &
+                          + work1(is  )*wght1(is  )  &
+                          + work1(isE )*wght1(isE )) &
+                          / wtmp
+
+            case default
+               call abort_ice(subname//' ERROR: unsupported dir='//trim(dir), &
+                  file=__FILE__, line=__LINE__)
+            end select
+
+         enddo
+         enddo
       enddo
-      enddo
+      !$OMP END PARALLEL DO
 
-      end subroutine unpack_from_slots
+      end subroutine grid_average_X2YA_compressed
+
+!=======================================================================
+! Masked counterpart, for the T2US shift.  Only NE is needed.
+
+      subroutine grid_average_X2YS_compressed(dir, work1, wght1, mask1, work2)
+
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: nblocks, blocks_ice
+
+      character(len=*), intent(in) :: &
+         dir            ! shift direction: NE
+
+      real (kind=dbl_kind), dimension(:), intent(in) :: &
+         work1      , & ! field to shift, compressed
+         wght1      , & ! weights, compressed
+         mask1          ! mask, compressed
+
+      real (kind=dbl_kind), dimension(:), intent(out) :: &
+         work2          ! shifted field, compressed
+
+      integer (kind=int_kind) :: &
+         i, j, iblk, ijb, m, is, isE, isN, isNE, off
+      integer (kind=int_kind) :: ilo,ihi,jlo,jhi
+      type (block) :: this_block
+      real (kind=dbl_kind) :: wtmp
+
+      character(len=*), parameter :: subname = '(grid_average_X2YS_compressed)'
+
+      work2(:) = c0
+
+      if (trim(dir) /= 'NE') then
+         call abort_ice(subname//' ERROR: unsupported dir='//trim(dir), &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ijb,m,is,isE,isN,isNE,off, &
+      !$OMP                     ilo,ihi,jlo,jhi,this_block,wtmp) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         if (dynCnt(iblk) == 0) cycle
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+         off = dynOff(iblk)
+
+         do j = jlo, jhi
+         do i = ilo, ihi
+            ijb = (j-1)*nx_block + i
+            m   = dynMap(ijb,iblk)
+            if (m == 0) cycle
+            is   = off + m
+            isE  = off + dynNbr(is,nbr_E )
+            isN  = off + dynNbr(is,nbr_N )
+            isNE = off + dynNbr(is,nbr_NE)
+
+            wtmp = (mask1(is  )*wght1(is  )  &
+                  + mask1(isE )*wght1(isE )  &
+                  + mask1(isN )*wght1(isN )  &
+                  + mask1(isNE)*wght1(isNE))
+            if (wtmp /= c0) &
+            work2(is) = (mask1(is  )*work1(is  )*wght1(is  )  &
+                       + mask1(isE )*work1(isE )*wght1(isE )  &
+                       + mask1(isN )*work1(isN )*wght1(isN )  &
+                       + mask1(isNE)*work1(isNE)*wght1(isNE)) &
+                       / wtmp
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine grid_average_X2YS_compressed
 
 !=======================================================================
 ! Initialize parameters and variables needed for the dynamics
