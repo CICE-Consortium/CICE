@@ -374,8 +374,30 @@ Lines that begin with # or are blank are ignored.  For example,
    restart  col  1x1  pondlvl  
    restart  col  1x1  pondtopo  
 
-The argument to ``--suite`` defines the test suite (.ts) filename and that argument 
-can contain a path.  
+.. _bfbcompmiss:
+
+A note on MISS results from the fifth column
+    Each test runs its own bit-for-bit comparison at the end of its own batch
+    job.  If the test named in the fifth column has not finished by then, its
+    restart directory is still empty, the comparison finds nothing to read,
+    and the result is reported as ``MISS ... missing-data`` rather than as a
+    pass or a failure.
+
+    Listing the comparison target earlier in the suite file does not prevent
+    this.  The tests are submitted in order but run concurrently, so a target
+    that is slower than the test comparing against it can still finish second.
+
+    A ``MISS`` on a fifth-column comparison is therefore not a result, and in
+    particular it is not evidence that anything is wrong.  Once both tests have
+    finished, compare the two restart files directly::
+
+      cmp <target_case>/restart/iced.* <test_case>/restart/iced.*
+
+    Silence means bit-for-bit.  Equal file sizes with differing modification
+    times is the signature of this race rather than of a real problem.
+
+The argument to ``--suite`` defines the test suite (.ts) filename and that argument
+can contain a path.
 **cice.setup** 
 will look for the filename in the local directory, in **configuration/scripts/tests/**, 
 or in the path defined by the ``--suite`` option.

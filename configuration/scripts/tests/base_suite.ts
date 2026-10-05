@@ -26,6 +26,26 @@ smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_
 smoke          gx3     1x4        debug,diag1,run2day,evp1d smoke_gx3_1x4_debug_diag1_run2day
 smoke          gx3     1x8        diag1,run5day
 smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_run5day
+#
+# And one pair that writes output while running the 1d solver.  evp1d scatters
+# the twelve stresses back only when a file is due, so this reaches a path the
+# two pairs above never take.
+#
+# Be clear about what it does and does not prove.  comparebfb compares iced*
+# restart files only -- no history file is bit-compared anywhere in CICE, and
+# they carry creation timestamps so they never could be.  So the restart half
+# of the gate is verified: stale stresses would land in iced* and this would
+# fail.  The history half runs but its output is not checked, and a fault
+# confined to it would be invisible to the whole suite.  That is a limit of the
+# machinery, not of this test; keep the gate condition simple for that reason.
+#
+# histall is still the right option: it enables f_sig1, f_sig2, f_sigP and
+# f_trsig, read inside the write_history gate, AND f_strintx, f_strinty and
+# f_taubx, which ice_history accumulates every timestep -- so both halves of
+# the scatter decision, deferred and not-deferred, are exercised.  run2day
+# dumps a restart at day 2, which is what gives comparebfb something to read.
+smoke          gx3     4x4        histall,run2day
+smoke          gx3     4x4        histall,run2day,evp1d     smoke_gx3_4x4_histall_run2day
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do

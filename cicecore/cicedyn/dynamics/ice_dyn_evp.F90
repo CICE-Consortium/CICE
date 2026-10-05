@@ -894,13 +894,14 @@
 
          if (evp_algorithm == "shared_mem_1d" ) then
 
-            call dyn_evp1d_run(stressp_1 , stressp_2, stressp_3  , stressp_4 , &
+            call dyn_evp1d_run(dt        ,                                     &
+                               stressp_1 , stressp_2, stressp_3  , stressp_4 , &
                                stressm_1 , stressm_2 , stressm_3 , stressm_4 , &
                                stress12_1, stress12_2, stress12_3, stress12_4, &
                                strength  ,                                     &
                                cdn_ocnU  , aiU       , uocnU     , vocnU     , &
                                waterxU   , wateryU   , forcexU   , forceyU   , &
-                               umassdti  , fmU       , strintxU  , strintyU  , &
+                               umass     , strintxU  , strintyU  , &
                                Tbu       , taubxU    , taubyU    , uvel      , &
                                vvel      , iceTmask  , iceUmask)
 

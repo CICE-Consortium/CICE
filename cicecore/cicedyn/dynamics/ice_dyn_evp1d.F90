@@ -43,11 +43,12 @@ module ice_dyn_evp1d
   ! Grid
   real   (kind=dbl_kind), allocatable, dimension(:)   :: &
      HTE_1d,HTN_1d, HTEm1_1d,HTNm1_1d, dxT_1d, dyT_1d, uarear_1d, &
-     DminTarea_1d, dxhy_1d, dyhx_1d
+     DminTarea_1d, dxhy_1d, dyhx_1d, fcor_1d
 
   ! time varying
   real(kind=dbl_kind)   , allocatable, dimension(:)   ::                  &
     cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,   &
+    umass,                                                                &
     strintxU,strintyU,uvel_init,vvel_init, strength, uvel, vvel,          &
     stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,     &
     stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -70,6 +71,13 @@ module ice_dyn_evp1d
     halo_src, halo_dst
   integer(kind=int_kind)                              :: n_halo
 
+  ! The 1d stresses are subcycle state and persist between timesteps, so
+  ! gather_dyn does not fetch them.  They must still be seeded once from the
+  ! block arrays, because dyn_evp1d_init runs BEFORE the restart read: on a
+  ! restarted run the block copies carry the file values while the 1d arrays
+  ! are still zero.  One gather on the first call covers that and a cold start.
+  logical(kind=log_kind), save :: stresses_seeded = .false.
+
 !=============================================================================
   contains
 !=============================================================================
@@ -86,7 +94,7 @@ module ice_dyn_evp1d
     ! local variables
 
     real(kind=dbl_kind)   , allocatable, dimension(:,:) :: G_dyT, G_dxT, G_uarear, &
-                                                           G_DminTarea
+                                                           G_DminTarea, G_fcor
     logical(kind=log_kind), allocatable, dimension(:,:) :: G_tmask
 
     integer(kind=int_kind) :: ierr
@@ -97,13 +105,13 @@ module ice_dyn_evp1d
     ny=ny_global+2*nghost
 
     allocate(G_dyT(nx,ny),G_dxT(nx,ny),G_uarear(nx,ny),G_tmask(nx,ny), &
-             G_DminTarea(nx,ny),stat=ierr)
+             G_DminTarea(nx,ny), G_fcor(nx,ny),stat=ierr)
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
     ! gather from blks to global
-    call gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_tmask)
+    call gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_fcor, G_tmask)
 
     ! calculate number of water points (T and U). Only needed for the static version
     ! tmask in ocean/ice
@@ -115,7 +123,7 @@ module ice_dyn_evp1d
       call evp1d_alloc_static_navel(navel)
       call numainit(1,nActive,navel)
       call convert_2d_1d_init(nActive,G_HTE, G_HTN, G_uarear, G_dxT, G_dyT, &
-                              G_DminTarea)
+                              G_DminTarea, G_fcor)
       call evp1d_alloc_static_halo()
       ! The halo pairing is pure geometry -- indxTij, na0, navel and the
       ! boundary types -- so it is built once here.  It used to be rebuilt
@@ -133,7 +141,7 @@ module ice_dyn_evp1d
       call calc_halo_parent(nActive, navel)
     endif
 
-    deallocate(G_dyT,G_dxT,G_uarear,G_tmask,G_DminTarea,stat=ierr)
+    deallocate(G_dyT,G_dxT,G_uarear,G_tmask,G_DminTarea,G_fcor,stat=ierr)
     if (ierr/=0) then
        call abort_ice(subname//' ERROR: deallocating', file=__FILE__, line=__LINE__)
     endif
@@ -142,16 +150,18 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine dyn_evp1d_run(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+  subroutine dyn_evp1d_run(dt          ,                                           &
+                           L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                            L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
                            L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
                            L_strength,                                             &
                            L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                            L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                           L_umassdti  , L_fmU       , L_strintxU  , L_strintyU  , &
+                           L_umass     , L_strintxU  , L_strintyU  , &
                            L_Tbu       , L_taubxU    , L_taubyU    , L_uvel      , &
                            L_vvel      , L_icetmask  , L_iceUmask)
 
+    use ice_calendar, only : write_history, write_restart, write_ic
     use ice_dyn_shared, only : ndte
     use ice_dyn_core1d, only : stress_1d, stepu_1d, calc_diag_1d
     use ice_timers    , only : ice_timer_start, ice_timer_stop, timer_evp1dcore
@@ -172,17 +182,19 @@ module ice_dyn_evp1d
       L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 ,  &
       L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4,  &
       L_taubxU    , L_taubyU
+    real(kind=dbl_kind), intent(in) :: dt   ! dynamics timestep
+
     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) ::    &
       L_strength  ,                                            &
       L_cdn_ocn   , L_uocn      , L_vocn
     ! flattened as above
     real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
-      L_fmU       , L_Tbu
+      L_umass     , L_Tbu
 
     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
     ! lives at ((j-1)*nx_block + i, iblk)
     real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
-      L_aiu       , L_umassdti  ,                              &
+      L_aiu       ,                                            &
       L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU
     ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
     ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
@@ -199,7 +211,7 @@ module ice_dyn_evp1d
       G_strength,                                              &
       G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      ,  &
       G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   ,  &
-      G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  ,  &
+      G_umass     , G_strintxU  , G_strintyU  ,  &
       G_Tbu       , G_uvel     , G_vvel       , G_taubxU    ,  &
       G_taubyU                  ! G_taubxU and G_taubyU are post processed from Cb
     logical(kind=log_kind), dimension (nx,ny) ::                 &
@@ -207,42 +219,69 @@ module ice_dyn_evp1d
 
     character(len=*), parameter :: subname = '(dyn_evp1d_run)'
 
-    integer(kind=int_kind) :: ksub
+    integer(kind=int_kind) :: ksub, iw
+    logical(kind=log_kind) :: do_seed
 
     real   (kind=dbl_kind) :: rhow
 
     ! From 3d to 2d on master task
-    call gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-                    L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-                    L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+    call gather_dyn(&
                     L_strength,                                             &
                     L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
-                    L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                    L_umassdti  , L_fmU       ,                             &
-                    L_Tbu       , L_uvel      , L_vvel      ,               &
+                    L_forcexU   , L_forceyU   , &
+
+                    L_umass     , L_Tbu       , L_uvel      , L_vvel      ,               &
                     L_iceTmask  , L_iceUmask  ,                             &
-                    G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-                    G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-                    G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
                     G_strength  ,                                           &
                     G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
-                    G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                    G_umassdti  , G_fmU       ,                             &
-                    G_Tbu       , G_uvel      , G_vvel      ,               &
+                    G_forcexU   , G_forceyU   , &
+
+                    G_umass     , G_Tbu       , G_uvel      , G_vvel      ,               &
                     G_iceTmask,  G_iceUmask)
+
+    ! One-time seed; see stresses_seeded above.
+    !
+    ! do_seed is taken on EVERY task and the module flag is cleared on every
+    ! task too, immediately after the collective.  Setting the flag inside the
+    ! master-only block below leaves it .false. on every other rank, so they
+    ! keep calling a collective that the master has stopped entering -- which
+    ! is a hang on any run with more than one task, and invisible on one.
+    do_seed = .not. stresses_seeded
+    if (do_seed) then
+       call gather_stresses(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+                            L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+                            L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+                            G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+                            G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+                            G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4)
+    endif
+    stresses_seeded = .true.
 
     if (my_task == master_task) then
        call set_skipMe(G_iceTmask, G_iceUmask,nActive)
+
+       if (do_seed) then
+          do iw = 1, nActive
+             stressp_1 (iw) = G_stressp_1 (indxti(iw), indxtj(iw))
+             stressp_2 (iw) = G_stressp_2 (indxti(iw), indxtj(iw))
+             stressp_3 (iw) = G_stressp_3 (indxti(iw), indxtj(iw))
+             stressp_4 (iw) = G_stressp_4 (indxti(iw), indxtj(iw))
+             stressm_1 (iw) = G_stressm_1 (indxti(iw), indxtj(iw))
+             stressm_2 (iw) = G_stressm_2 (indxti(iw), indxtj(iw))
+             stressm_3 (iw) = G_stressm_3 (indxti(iw), indxtj(iw))
+             stressm_4 (iw) = G_stressm_4 (indxti(iw), indxtj(iw))
+             stress12_1(iw) = G_stress12_1(indxti(iw), indxtj(iw))
+             stress12_2(iw) = G_stress12_2(indxti(iw), indxtj(iw))
+             stress12_3(iw) = G_stress12_3(indxti(iw), indxtj(iw))
+             stress12_4(iw) = G_stress12_4(indxti(iw), indxtj(iw))
+          enddo
+       endif
        ! Map from 2d to 1d
-       call convert_2d_1d_dyn(nActive,                                                    &
-                              G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4,     &
-                              G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4,     &
-                              G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4,     &
+       call convert_2d_1d_dyn(nActive, dt,                                                    &
                               G_strength,                                                 &
                               G_cdn_ocn   , G_aiu       , G_uocn     ,  G_vocn     ,      &
-                              G_waterxU   , G_wateryU   , G_forcexU  , G_forceyU   ,      &
-                              G_umassdti  , G_fmU       ,                                 &
-                              G_Tbu       , G_uvel     , G_vvel)
+                              G_forcexU  , G_forceyU   ,      &
+                              G_umass     , G_Tbu       , G_uvel     , G_vvel)
 
        ! map from cpu to gpu (to) and back.
        ! This could be optimized considering which variables change from time step to time step
@@ -321,22 +360,35 @@ module ice_dyn_evp1d
                               G_strength  ,                                           &
                               G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
                               G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                              G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  , &
+                              G_strintxU  , G_strintyU  , &
                               G_Tbu       , G_uvel      , G_vvel      , G_taubxU    , &
                               G_taubyU)
 
     endif ! master_task
 
-    call scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-                     L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-                     L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+    call scatter_dyn(&
                      L_strintxU  , L_strintyU  ,  L_uvel     , L_vvel      , &
                      L_taubxU    , L_taubyU    ,                             &
-                     G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-                     G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-                     G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                      G_taubxU    , G_taubyU)
+
+    ! The twelve stresses go back only when a file is due.  Nothing outside
+    ! the dynamics reads them in between -- ice_history touches them only
+    ! inside its own write_history gate -- and the 1d arrays carry the state
+    ! onward, so scattering every timestep was writing values no one read.
+    !
+    ! strintxU, strintyU, taubxU and taubyU are NOT deferred, above: history
+    ! accumulates those into a running average every timestep
+    ! (accum_hist_field, before that gate), so they really are consumed each
+    ! step rather than only at write time.
+    if (any(write_history) .or. write_restart == 1 .or. write_ic) then
+       call scatter_stresses(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+                             L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+                             L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+                             G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+                             G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+                             G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4)
+    endif
     ! calculate number of active points. allocate if initial or if array size should increase
     ! call calc_nActiveTU(iceTmask_log,nActive, iceUmask)
     ! if (nActiveold ==0) then ! first
@@ -415,6 +467,7 @@ module ice_dyn_evp1d
               dyT_1d    (1:na0), &
               DminTarea_1d(1:na0), &
               dxhy_1d   (1:na0), &
+              fcor_1d   (1:na0), &
               dyhx_1d   (1:na0), &
               strength  (1:na0), &
               stressp_1 (1:na0), &
@@ -440,6 +493,7 @@ module ice_dyn_evp1d
              waterxU  (1:na0), wateryU  (1:na0), &
              forcexU  (1:na0), forceyU  (1:na0), &
              umassdti (1:na0), fmU      (1:na0), &
+             umass    (1:na0),                   &
              uarear_1d(1:na0),                   &
              strintxU (1:na0), strintyU (1:na0), &
              Tbu      (1:na0), Cb       (1:na0), &
@@ -659,19 +713,19 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_Tmask)
+  subroutine gather_static(G_uarear, G_dxT, G_dyT, G_DminTarea, G_fcor, G_Tmask)
 
      ! In standalone  distrb_info is an integer. Not needed anyway
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : gather_global
      use ice_domain, only : distrb_info
      use ice_grid, only: dyT, dxT, uarear, tmask
-     use ice_dyn_shared, only: DminTarea
+     use ice_dyn_shared, only: DminTarea, fcor_blk
      implicit none
 
      ! nx, ny
      real(kind=dbl_kind)   , dimension(:,:), intent(out) :: G_uarear, G_dxT, G_dyT, &
-                                                            G_DminTarea
+                                                            G_DminTarea, G_fcor
      logical(kind=log_kind), dimension(:,:), intent(out) :: G_Tmask
 
      character(len=*), parameter :: subname = '(gather_static)'
@@ -680,6 +734,7 @@ module ice_dyn_evp1d
      G_dyT = c0
      G_dxT = c0
      G_DminTarea = c0
+     G_fcor = c0
      G_tmask = .false.
 
      ! copy from distributed I_* to G_*
@@ -690,124 +745,186 @@ module ice_dyn_evp1d
      ! rather than rebuilt from dxT*dyT because tarea is only that product on the
      ! init_grid2 path; on a MOM supergrid it is a sum of four sub-areas.
      call gather_global(G_DminTarea, DminTarea, master_task, distrb_info, grid_ext=.true.)
+     ! Coriolis is constant, so it is a static like the metrics above.  With it
+     ! here, fmU and umassdti need not be gathered every timestep: dyn_prep2
+     ! forms them as fcor*umass and umass/dt, so umass alone yields both.
+     call gather_global(G_fcor     , fcor_blk , master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_Tmask , Tmask , master_task, distrb_info, grid_ext=.true.)
 
   end subroutine gather_static
 
-!=============================================================================
 
-  subroutine gather_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-                        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-                        L_stress12_1, L_stress12_2, L_stress12_3,L_stress12_4 , &
-                        L_strength  ,                                           &
-                        L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
-                        L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                        L_umassdti  , L_fmU       ,                             &
-                        L_Tbu       , L_uvel      , L_vvel      ,               &
-                        L_icetmask  , L_iceUmask  ,                             &
-                        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-                        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-                        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
-                        G_strength,                                             &
-                        G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
-                        G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                        G_umassdti  , G_fmU       ,                             &
-                        G_Tbu       , G_uvel      , G_vvel      ,               &
-                        G_iceTmask,  G_iceUmask)
+!=============================================================================
+! Gather only the twelve stresses.  Used once per run, to seed the 1d arrays
+! from the block layout -- see stresses_seeded.  Separate from gather_dyn so
+! the steady-state path carries no stress gathers at all.
+
+  subroutine gather_stresses(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+                             L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+                             L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+                             G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+                             G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+                             G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4)
 
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : gather_global
      use ice_domain, only : distrb_info
      implicit none
 
+     ! i and j flattened: element (i,j,iblk) at ((j-1)*nx_block + i, iblk)
+     real(kind=dbl_kind), dimension(:,:), intent(in)  ::        &
+        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4
+
+     real(kind=dbl_kind), dimension(:,:), intent(out) ::        &
+        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4
+
+     character(len=*), parameter :: subname = '(gather_stresses)'
+
+     call gather_global(G_stressp_1 , L_stressp_1 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressp_2 , L_stressp_2 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressp_3 , L_stressp_3 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressp_4 , L_stressp_4 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressm_1 , L_stressm_1 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressm_2 , L_stressm_2 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressm_3 , L_stressm_3 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stressm_4 , L_stressm_4 , master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stress12_1, L_stress12_1, master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stress12_2, L_stress12_2, master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stress12_3, L_stress12_3, master_task, distrb_info, c0, grid_ext=.true.)
+     call gather_global(G_stress12_4, L_stress12_4, master_task, distrb_info, c0, grid_ext=.true.)
+
+  end subroutine gather_stresses
+
+!=============================================================================
+
+  ! The twelve stresses are NOT gathered.  They are subcycle state that lives
+  ! in the module-level 1d arrays and persists between timesteps, so gathering
+  ! them every step only re-fetched what was already there -- 12 of the 46
+  ! collectives this routine and scatter_dyn cost per timestep.  The one thing
+  ! that did arrive by that route is dyn_prep2's zeroing of cells with no ice,
+  ! and convert_2d_1d_dyn now does that directly on the 1d arrays instead.
+  ! waterxU and wateryU are not gathered either: dyn_prep2 forms them as pure
+  ! functions of uocn, vocn and fmU, all three of which arrive here anyway, so
+  ! convert_2d_1d_dyn recomputes them from the same operands instead.
+  subroutine gather_dyn(L_strength  ,                                           &
+                        L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
+                        L_forcexU   , L_forceyU   , &
+                        L_umass     , L_Tbu       , L_uvel      , L_vvel      ,               &
+                        L_icetmask  , L_iceUmask  ,                             &
+                        G_strength,                                             &
+                        G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
+                        G_forcexU   , G_forceyU   , &
+                        G_umass     , G_Tbu       , G_uvel      , G_vvel      ,               &
+                        G_iceTmask,  G_iceUmask)
+     use ice_communicate, only : master_task
+     use ice_gather_scatter, only : gather_global
+     use ice_domain, only : distrb_info
+     implicit none
      ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
         L_strength  ,                                           &
         L_cdn_ocn   , L_uocn      , L_vocn      ,               &
         L_uvel      , L_vvel
-
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
      real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
-        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
-        L_fmU       , L_Tbu
-
+        L_umass     , L_Tbu
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
      real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
-        L_aiu       , L_umassdti  ,                             &
-        L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU
-
+        L_aiu       , &
+        L_forcexU   , L_forceyU
      ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
      ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
      logical(kind=log_kind), dimension(:,:), intent(in)  ::     &
         L_iceTmask  , L_iceUmask
-
      ! nx, ny
      real(kind=dbl_kind)   , dimension(:,:), intent(out) ::     &
-        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
         G_strength,                                             &
         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
-        G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-        G_umassdti  , G_fmU       ,                             &
-        G_Tbu       , G_uvel      , G_vvel
+        G_forcexU   , G_forceyU   , &
+        G_umass     , G_Tbu       , G_uvel      , G_vvel
      logical(kind=log_kind), dimension(:,:), intent(out) ::     &
         G_iceUmask  , G_iceTmask
-
      character(len=*), parameter :: subname = '(gather_dyn)'
-
      ! copy from distributed I_* to G_*
-     call gather_global(G_stressp_1 ,     L_stressp_1,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressp_2 ,     L_stressp_2,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressp_3 ,     L_stressp_3,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressp_4 ,     L_stressp_4,     master_task, distrb_info,c0, grid_ext=.true.)
 
-     call gather_global(G_stressm_1 ,     L_stressm_1,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressm_2 ,     L_stressm_2,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressm_3 ,     L_stressm_3,     master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stressm_4 ,     L_stressm_4,     master_task, distrb_info,c0, grid_ext=.true.)
-
-     call gather_global(G_stress12_1,     L_stress12_1,    master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stress12_2,     L_stress12_2,    master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stress12_3,     L_stress12_3,    master_task, distrb_info,c0, grid_ext=.true.)
-     call gather_global(G_stress12_4,     L_stress12_4,    master_task, distrb_info,c0, grid_ext=.true.)
      call gather_global(G_strength  ,     L_strength  ,    master_task, distrb_info,c0, grid_ext=.true.)
-
      call gather_global(G_cdn_ocn   ,     L_cdn_ocn   ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_aiu       ,     L_aiu       ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_uocn      ,     L_uocn      ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_vocn      ,     L_vocn      ,     master_task, distrb_info, grid_ext=.true.)
-
-     call gather_global(G_waterxU   ,     L_waterxU   ,     master_task, distrb_info, grid_ext=.true.)
-     call gather_global(G_wateryU   ,     L_wateryU   ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_forcexU   ,     L_forcexU   ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_forceyU   ,     L_forceyU   ,     master_task, distrb_info, grid_ext=.true.)
-
-     call gather_global(G_umassdti  ,     L_umassdti  ,     master_task, distrb_info, grid_ext=.true.)
-     call gather_global(G_fmU       ,     L_fmU       ,     master_task, distrb_info, grid_ext=.true.)
-
+     ! umass alone: fmU is fcor*umass and umassdti is umass/dt, and fcor is a
+     ! static gathered once, so one field here replaces the two that were.
+     call gather_global(G_umass     ,     L_umass     ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
      call gather_global(G_vvel      ,     L_vvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
      call gather_global(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info, grid_ext=.true.)
-
   end subroutine gather_dyn
+
+
+!=============================================================================
+! Scatter the twelve stresses back to the block layout.  Called only when a
+! history or restart file is due: nothing outside the dynamics reads them in
+! between -- ice_history touches them only inside its write_history gate, and
+! the 1d arrays carry the state onward regardless.
+
+  subroutine scatter_stresses(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+                              L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+                              L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
+                              G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+                              G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+                              G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4)
+
+     use ice_communicate, only : master_task
+     use ice_gather_scatter, only : scatter_global
+     use ice_domain, only : distrb_info
+     implicit none
+
+     real(kind=dbl_kind), dimension(:,:), intent(out) ::        &
+        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
+        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
+        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4
+
+     real(kind=dbl_kind), dimension(:,:), intent(in)  ::        &
+        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
+        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
+        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4
+
+     character(len=*), parameter :: subname = '(scatter_stresses)'
+
+     call scatter_global(L_stressp_1 , G_stressp_1 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_2 , G_stressp_2 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_3 , G_stressp_3 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_4 , G_stressp_4 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_1 , G_stressm_1 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_2 , G_stressm_2 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_3 , G_stressm_3 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_4 , G_stressm_4 , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_1, G_stress12_1, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_2, G_stress12_2, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_3, G_stress12_3, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_4, G_stress12_4, master_task, distrb_info, grid_ext=.true.)
+
+  end subroutine scatter_stresses
 
 !=============================================================================
 
-  subroutine scatter_dyn(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-                         L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-                         L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
-                         L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
+  ! The twelve stresses are NOT scattered here -- scatter_stresses does that,
+  ! and only when a file is due.  strintxU, strintyU, taubxU and taubyU ARE,
+  ! every timestep: ice_history accumulates them into a running average
+  ! (accum_hist_field, before the write_history gate), so unlike the stresses
+  ! they are consumed every step rather than only at write time.
+  subroutine scatter_dyn(                         L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
                          L_taubxU    , L_taubyU    ,                             &
-                         G_stressp_1 , G_stressp_2 , G_stressp_3 ,  G_stressp_4, &
-                         G_stressm_1 , G_stressm_2 , G_stressm_3 ,  G_stressm_4, &
-                         G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
                          G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                          G_taubxU    , G_taubyU )
 
@@ -823,35 +940,17 @@ module ice_dyn_evp1d
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
      real(kind=dbl_kind), dimension(:,:)  , intent(out) ::      &
-        L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
-        L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
-        L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
         L_taubxU    , L_taubyU
 
      ! nx, ny
      real(kind=dbl_kind), dimension(:,:), intent(in) ::         &
-        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-        G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
         G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
         G_taubxU    , G_taubyU
 
      character(len=*), parameter :: subname = '(scatter_dyn)'
 
-     call scatter_global(L_stressp_1,  G_stressp_1,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressp_2,  G_stressp_2,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressp_3,  G_stressp_3,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressp_4,  G_stressp_4,  master_task, distrb_info, grid_ext=.true.)
 
-     call scatter_global(L_stressm_1,  G_stressm_1,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressm_2,  G_stressm_2,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressm_3,  G_stressm_3,  master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stressm_4,  G_stressm_4,  master_task, distrb_info, grid_ext=.true.)
 
-     call scatter_global(L_stress12_1, G_stress12_1, master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stress12_2, G_stress12_2, master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stress12_3, G_stress12_3, master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_stress12_4, G_stress12_4, master_task, distrb_info, grid_ext=.true.)
 
      call scatter_global(L_strintxU  , G_strintxU  , master_task, distrb_info, grid_ext=.true.)
      call scatter_global(L_strintyU  , G_strintyU  , master_task, distrb_info, grid_ext=.true.)
@@ -865,13 +964,13 @@ module ice_dyn_evp1d
 !=============================================================================
 
   subroutine convert_2d_1d_init(na0, G_HTE, G_HTN, G_uarear,  G_dxT, G_dyT, &
-                                G_DminTarea)
+                                G_DminTarea, G_fcor)
 
      implicit none
 
      integer(kind=int_kind), intent(in) ::  na0
      real (kind=dbl_kind), dimension(:, :), intent(in) :: G_HTE, G_HTN, G_uarear, G_dxT, G_dyT, &
-                                                          G_DminTarea
+                                                          G_DminTarea, G_fcor
 
      ! local variables
 
@@ -937,6 +1036,7 @@ module ice_dyn_evp1d
         dxT_1d(iw)     = G_dxT(i, j)
         dyT_1d(iw)     = G_dyT(i, j)
         DminTarea_1d(iw) = G_DminTarea(i, j)
+        fcor_1d(iw)      = G_fcor(i, j)
         HTE_1d(iw)     = G_HTE(i, j)
         HTN_1d(iw)     = G_HTN(i, j)
         HTEm1_1d(iw)   = G_HTE(i - 1, j)
@@ -966,72 +1066,85 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine convert_2d_1d_dyn(na0         ,                                           &
-                               G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4 , &
-                               G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4 , &
-                               G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4, &
+  subroutine convert_2d_1d_dyn(na0         , dt          ,                                           &
                                G_strength  , G_cdn_ocn   , G_aiu       , G_uocn      , &
-                               G_vocn      , G_waterxU   , G_wateryU   , G_forcexU   , &
-                               G_forceyU   , G_umassdti  , G_fmU       ,  G_Tbu      , &
-                               G_uvel      , G_vvel      )
-
+                               G_vocn      , G_forcexU   , &
+                               G_forceyU   , &
+                               G_umass     , G_Tbu       , G_uvel      , G_vvel      )
+     use ice_dyn_shared, only: cosw, sinw
      implicit none
-
      integer(kind=int_kind), intent(in) ::  na0
-
+     real(kind=dbl_kind), intent(in) :: dt   ! dynamics timestep
      ! nx, ny
      real(kind=dbl_kind), dimension(:, :), intent(in) :: &
-        G_stressp_1 , G_stressp_2 , G_stressp_3 , G_stressp_4, &
-        G_stressm_1 , G_stressm_2 , G_stressm_3 , G_stressm_4, &
-        G_stress12_1, G_stress12_2, G_stress12_3,G_stress12_4, &
         G_strength  , G_cdn_ocn   , G_aiu       , G_uocn     , &
-        G_vocn      , G_waterxU   , G_wateryU   , G_forcexU  , &
-        G_forceyU   , G_umassdti  , G_fmU       , G_Tbu      , &
-        G_uvel      , G_vvel
-
+        G_vocn      , G_forcexU  , &
+        G_forceyU   , G_Tbu      , &
+        G_umass     , G_uvel      , G_vvel
      integer(kind=int_kind) ::  lo, up, iw, i, j
      character(len=*), parameter :: subname = '(convert_2d_1d_dyn)'
-
      lo=1
      up=na0
      do iw = 1, na0
         ! get 2D indices
         i = indxti(iw)
         j = indxtj(iw)
+        ! The stresses are not copied in: they persist in the 1d arrays, which
+        ! is why gather_dyn no longer gathers them.  What did arrive that way is
+        ! dyn_prep2's zeroing of cells carrying no ice, so do it here instead --
+        ! skipTcell is exactly dyn_prep2's .not. iceTmask condition.  Without
+        ! this a cell that loses its ice would keep its stress and resume from
+        ! it on re-icing.
+        if (skipTcell(iw)) then
+           stressp_1 (iw) = c0 ; stressp_2 (iw) = c0
+           stressp_3 (iw) = c0 ; stressp_4 (iw) = c0
+           stressm_1 (iw) = c0 ; stressm_2 (iw) = c0
+           stressm_3 (iw) = c0 ; stressm_4 (iw) = c0
+           stress12_1(iw) = c0 ; stress12_2(iw) = c0
+           stress12_3(iw) = c0 ; stress12_4(iw) = c0
+        endif
         ! map
-        stressp_1(iw)  = G_stressp_1(i, j)
-        stressp_2(iw)  = G_stressp_2(i, j)
-        stressp_3(iw)  = G_stressp_3(i, j)
-        stressp_4(iw)  = G_stressp_4(i, j)
-        stressm_1(iw)  = G_stressm_1(i, j)
-        stressm_2(iw)  = G_stressm_2(i, j)
-        stressm_3(iw)  = G_stressm_3(i, j)
-        stressm_4(iw)  = G_stressm_4(i, j)
-        stress12_1(iw) = G_stress12_1(i, j)
-        stress12_2(iw) = G_stress12_2(i, j)
-        stress12_3(iw) = G_stress12_3(i, j)
-        stress12_4(iw) = G_stress12_4(i, j)
         strength(iw)   = G_strength(i,j)
         cdn_ocn(iw)    = G_cdn_ocn(i, j)
         aiu(iw)        = G_aiu(i, j)
         uocn(iw)       = G_uocn(i, j)
         vocn(iw)       = G_vocn(i, j)
-        waterxU(iw)    = G_waterxU(i, j)
-        wateryU(iw)    = G_wateryU(i, j)
         forcexU(iw)    = G_forcexU(i, j)
         forceyU(iw)    = G_forceyU(i, j)
-        umassdti(iw)   = G_umassdti(i, j)
-        fmU(iw)        = G_fmU(i, j)
         strintxU(iw)   = C0
         strintyU(iw)   = C0
+        umass(iw)      = G_umass(i, j)
         Tbu(iw)        = G_Tbu(i, j)
         Cb(iw)         = c0
         uvel(iw)       = G_uvel(i,j)
         vvel(iw)       = G_vvel(i,j)
         uvel_init(iw)  = G_uvel(i,j)
         vvel_init(iw)  = G_vvel(i,j)
-     end do
 
+        ! Derived from the fields copied in just above, so this MUST follow
+        ! them: fmU and umassdti from umass and the static fcor, then waterxU
+        ! and wateryU from uocn, vocn and that fmU.  Same expressions and
+        ! operands as dyn_prep2, so bit-for-bit:
+        !   fm       = fcor*umass          umassdti = umass/dt
+        !   waterx   = uocn*cosw - vocn*sinw*sign(c1,fm)
+        !   watery   = vocn*cosw + uocn*sinw*sign(c1,fm)
+        ! dyn_prep2 fills all four only at its active U cells, so the inactive
+        ! ones read zero here.  It does not zero fm itself, so a block-layout
+        ! inactive cell keeps a stale value there -- but nothing reads fm at a
+        ! skipped cell, since stepu cycles on skipUcell, so zeroing is both
+        ! safe and clearer than reproducing a staleness no one observes.
+        if (skipUcell(iw)) then
+           fmU     (iw) = c0
+           umassdti(iw) = c0
+           waterxU (iw) = c0
+           wateryU (iw) = c0
+        else
+           fmU     (iw) = fcor_1d(iw) * umass(iw)
+           umassdti(iw) = umass(iw) / dt
+           waterxU (iw) = uocn(iw)*cosw - vocn(iw)*sinw*sign(c1,fmU(iw))
+           wateryU (iw) = vocn(iw)*cosw + uocn(iw)*sinw*sign(c1,fmU(iw))
+        endif
+     end do
      ! Halos can potentially have values of u and v
      do iw=na0+1,navel
         j = int((indxTij(iw) - 1) / (nx)) + 1
@@ -1039,7 +1152,6 @@ module ice_dyn_evp1d
         uvel(iw)=G_uvel(i,j)
         vvel(iw)=G_vvel(i,j)
      end do
-
   end subroutine convert_2d_1d_dyn
 
 !=============================================================================
@@ -1051,7 +1163,7 @@ module ice_dyn_evp1d
                                G_strength,                                             &
                                G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
                                G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-                               G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  , &
+                               G_strintxU  , G_strintyU  , &
                                G_Tbu       , G_uvel      , G_vvel      , G_taubxU    , &
                                G_taubyU)
 
@@ -1066,7 +1178,7 @@ module ice_dyn_evp1d
         G_strength,                                             &
         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
         G_waterxU   , G_wateryU   , G_forcexU   , G_forceyU   , &
-        G_umassdti  , G_fmU       , G_strintxU  , G_strintyU  , &
+        G_strintxU  , G_strintyU  , &
         G_Tbu       , G_uvel      , G_vvel      , G_taubxU    , &
         G_taubyU
 
@@ -1094,8 +1206,6 @@ module ice_dyn_evp1d
      G_wateryU    = c0
      G_forcexU    = c0
      G_forceyU    = c0
-     G_umassdti   = c0
-     G_fmU        = c0
      G_strintxU   = c0
      G_strintyU   = c0
      G_Tbu        = c0
