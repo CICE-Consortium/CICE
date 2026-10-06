@@ -75,20 +75,24 @@ Overall, CICE code should be implemented as follows,
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
-    For Icepack calls within i,j loops, call ``diagnostic_abort`` instead, which also writes the
-    location (global i/j, lat/lon) and ice state of the failing grid cell before aborting,
+    For Icepack calls within i,j loops, check **icepack_warnings_aborted** inside the loop and call
+    ``diagnostic_abort``, which writes the Icepack messages, the location (global i/j, lat/lon) and
+    ice state of the failing grid cell before aborting.  Flush the Icepack messages once after the
+    loop, since **icepack_warnings_flush** contains an OpenMP critical region and is costly to call
+    for every grid cell in threaded runs,
 
     .. code-block:: fortran
 
        do j = jlo, jhi
        do i = ilo, ihi
           call icepack_physics()
-          call icepack_warnings_flush(nu_diag)
           if (icepack_warnings_aborted()) then
              call diagnostic_abort(i, j, iblk, subname//' icepack_physics aborted')
           endif
        enddo
        enddo
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
   * Use ``ice_check_nc`` or ``ice_pio_check`` after netcdf or pio calls to check for return errors.
 

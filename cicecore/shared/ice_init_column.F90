@@ -385,7 +385,6 @@
                           l_print_point=l_print_point,                         &
                           initonly = .true.)
 
-               call icepack_warnings_flush(nu_diag)
                if (icepack_warnings_aborted()) then
                   call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
                endif
@@ -405,6 +404,10 @@
 
          enddo ! i
          enddo ! j
+
+         call icepack_warnings_flush(nu_diag)
+         if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+            file=__FILE__, line=__LINE__)
 
       !-----------------------------------------------------------------
       ! Aggregate albedos

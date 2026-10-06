@@ -264,7 +264,6 @@ contains
           do i = 1,nx_block
             Tf(i,j,iblk) = icepack_sea_freezing_temperature(sss(i,j,iblk))
 
-            call icepack_warnings_flush(nu_diag)
             if (icepack_warnings_aborted()) then
                call diagnostic_abort(i, j, iblk, subname//' icepack_sea_freezing_temperature aborted')
             endif
@@ -272,6 +271,10 @@ contains
        end do
     end do
     !$OMP END PARALLEL DO
+
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+       file=__FILE__, line=__LINE__)
 
     deallocate(afldu)
     deallocate(afld)
