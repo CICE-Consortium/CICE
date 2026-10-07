@@ -22,6 +22,12 @@ which, in this code base, they almost always do.  Expect benign hits where
 they deliberately differ (nActive -> na0); the ones to read are two dummies of
 the SAME kind appearing in swapped order.
 
+A deliberate swap looks exactly like an accidental one.  ice_grid's
+grid_average_X2Y_2 is the known benign case: its EN2* branches pass work1b
+before work1a on purpose, so that an E-then-N argument order maps onto the
+N-then-E routine, with each weight staying paired to its own field.  Eight
+hits there are expected and correct.
+
 By default only transpositions and argument-count mismatches are reported.
 Pass --all to see plain renames too.  Count mismatches are usually just
 OPTIONAL dummies being omitted, which is legal and common here -- the

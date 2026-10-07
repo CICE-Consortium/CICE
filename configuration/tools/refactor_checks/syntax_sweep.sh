@@ -69,7 +69,10 @@ echo "=== sweep comm=$COMM io=$IO : $OK / $TOTAL compiled ==="
 if [ -n "${REMAIN// /}" ]; then
    for f in $REMAIN; do
       echo "--- FAILED: $(basename "$f")"
-      grep -E "Error|Fatal" "$WORK/$(basename "$f").err" | head -6
+      # gfortran puts the line number, the source line and the caret ABOVE the
+      # Error: line, so grepping for "Error" alone throws away the only part
+      # that says where. Show the whole first few diagnostics instead.
+      head -40 "$WORK/$(basename "$f").err"
    done
    exit 1
 fi

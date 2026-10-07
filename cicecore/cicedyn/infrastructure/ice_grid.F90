@@ -280,7 +280,42 @@
          tarea_slot  , & ! T-cell area        C/CD, weight for T2US
          earea_slot  , & ! E-cell area        C/CD, weight for E2UA, E2NA
          narea_slot  , & ! N-cell area        C/CD, weight for N2UA, N2EA
-         hm_slot         ! T-cell land mask   C/CD, mask for T2US
+         hm_slot     , & ! T-cell land mask   C/CD, mask for T2US
+         ! The four below are read at a neighbour by div_stress_*: Ex and Ey
+         ! take dxU and dyT to the S and E, Nx and Ny take dxT and dyU to the
+         ! W and N.  Everything else those kernels touch is pointwise and so
+         ! stays block-indexed through dynIJ(is).
+         dxU_slot    , & ! width of U-cell    C/CD, div_stress_Ex, div_stress_Ey
+         dyT_slot    , & ! height of T-cell   C/CD, div_stress_Ex, div_stress_Ey
+         dxT_slot    , & ! width of T-cell    C/CD, div_stress_Nx, div_stress_Ny
+         dyU_slot    , & ! height of U-cell   C/CD, div_stress_Nx, div_stress_Ny
+         ! strain_rates_U reaches E for the N-point quantities and N for the
+         ! E-point ones, so these four go with it.  epm and npm are real 0/1
+         ! masks, not logicals, and are used arithmetically in that kernel.
+         dxE_slot    , & ! width of E-cell    C/CD, strain_rates_U
+         dyN_slot    , & ! height of N-cell   C/CD, strain_rates_U
+         epm_slot    , & ! E-point land mask  C/CD, strain_rates_U
+         npm_slot    , & ! N-point land mask  C/CD, strain_rates_U
+         uvm_slot    , & ! U-point land mask  C/CD, masks uvel/vvel after
+                         ! the E2UA and N2UA shifts
+         ! ------------------------------------------------------------------
+         ! Precomputed WEIGHT SUMS -- the denominators of the area-weighted
+         ! averages.  These exist because the block path sums the weight at a
+         ! NEIGHBOUR, and tarea/uarea/earea/narea are geometry: real and
+         ! nonzero even over land.  A compressed sum cannot reproduce that,
+         ! since an unmapped neighbour has no slot and pack_to_slots zeroes
+         ! the dead one, so the denominator came out short and the average
+         ! wrong.  Summed here in BLOCK space, where every neighbour is a real
+         ! array element, in the SAME ORDER the kernels used.
+         !
+         ! It is also cheaper: the sum leaves the subcycle entirely, so
+         ! stressC_T drops three adds and three slot reads per cell per pass.
+         uareaavg_slot,& ! uarea over the 4 U cells of a T cell, stressC_T
+         wsumN_slot  , & ! E2UA  : earea(is) + earea(isN)
+         wsumE_slot  , & ! N2UA  : narea(is) + narea(isE)
+         wsumNW_slot , & ! E2NA  : earea over W, self, NW, N
+         wsumSE_slot , & ! N2EA  : narea over S, SE, self, E
+         wsumNE_slot     ! T2US  : hm*tarea over self, E, N, NE
 
 
       contains
@@ -6555,7 +6590,7 @@
       use ice_domain_size, only: max_blocks
 
       logical (kind=log_kind), dimension(:,:), allocatable :: mask_any
-      integer (kind=int_kind) :: ierr, iblk
+      integer (kind=int_kind) :: ierr, iblk, i, j, ijb, m
 
       character(len=*), parameter :: subname = '(init_ragged_layout)'
 
@@ -6576,6 +6611,38 @@
       else
          mask_any = tmask .or. umaskCD .or. nmask .or. emask
       endif
+
+      ! ------------------------------------------------------------------
+      ! The whole ghost region joins the map, whatever the masks say.
+      !
+      ! dyn_prep2 builds icellT and icellU over ilo..ihi+1 and jlo..jhi+1 --
+      ! deliberately one cell INTO the ghost region, where the stresses are
+      ! needed -- and ice_HaloUpdate has already written iceTmask and
+      ! iceUmask there, without re-applying the ".and. Tmask" test that
+      ! dyn_prep1 applies to interior cells.
+      !
+      ! With a cyclic boundary that ghost mirrors a real interior cell, so
+      ! tmask covers it and nothing goes wrong.  With an open or
+      ! extrapolating boundary (zero_gradient, linear_extrap) the ghost is
+      ! synthesised from the local edge rule instead, and its static tmask
+      ! can be false -- so icellT could name a cell with no slot.  A
+      ! slot-indexed kernel cannot represent that: Xmap(ijb) is 0 and stress
+      ! indexed nbr(0,...), which is what aborted
+      ! gbox80 ... bclinearextrap ... with "Subscript #1 of NBR has value 0".
+      !
+      ! Safe to add unconditionally.  stress opens with str(:,:) = c0, so a
+      ! slot that is mapped but never written holds exactly what the dead
+      ! slot held, and the configurations that already pass are unchanged.
+      ! The cost is the land part of each block's ghost rim, a few percent.
+      ! ------------------------------------------------------------------
+      do j = 1, ny_block
+      do i = 1, nx_block
+         if (i <= nghost .or. i > nx_block-nghost .or. &
+             j <= nghost .or. j > ny_block-nghost) then
+            mask_any((j-1)*nx_block+i,1:nblocks) = .true.
+         endif
+      enddo
+      enddo
 
       call set_ragged_layout(mask_any, dynOff, dynCnt, dynTot, dynMap)
       deallocate(mask_any)
@@ -6602,11 +6669,24 @@
       allocate(uarear_slot(dynTot), dxN_slot(dynTot), dyE_slot(dynTot), &
                uarea_slot(dynTot), tarea_slot(dynTot),                  &
                earea_slot(dynTot), narea_slot(dynTot), hm_slot(dynTot), &
+               dxU_slot(dynTot), dyT_slot(dynTot),                      &
+               dxT_slot(dynTot), dyU_slot(dynTot),                      &
+               dxE_slot(dynTot), dyN_slot(dynTot),                      &
+               epm_slot(dynTot), npm_slot(dynTot), uvm_slot(dynTot),   &
+               uareaavg_slot(dynTot), wsumN_slot(dynTot),              &
+               wsumE_slot(dynTot), wsumNW_slot(dynTot),                &
+               wsumSE_slot(dynTot), wsumNE_slot(dynTot),               &
                stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       uarear_slot = c0 ; dxN_slot   = c0 ; dyE_slot   = c0
       uarea_slot  = c0 ; tarea_slot = c0
       earea_slot  = c0 ; narea_slot = c0 ; hm_slot    = c0
+      dxU_slot    = c0 ; dyT_slot   = c0
+      dxT_slot    = c0 ; dyU_slot   = c0
+      dxE_slot    = c0 ; dyN_slot   = c0
+      epm_slot    = c0 ; npm_slot   = c0 ; uvm_slot = c0
+      uareaavg_slot = c0 ; wsumN_slot  = c0 ; wsumE_slot  = c0
+      wsumNW_slot   = c0 ; wsumSE_slot = c0 ; wsumNE_slot = c0
 
       do iblk = 1, nblocks
          if (dynCnt(iblk) == 0) cycle
@@ -6626,6 +6706,98 @@
               narea_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(hm    (:,iblk), dynMap(:,iblk), &
               hm_slot    (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dxU   (:,iblk), dynMap(:,iblk), &
+              dxU_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dyT   (:,iblk), dynMap(:,iblk), &
+              dyT_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dxT   (:,iblk), dynMap(:,iblk), &
+              dxT_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dyU   (:,iblk), dynMap(:,iblk), &
+              dyU_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dxE   (:,iblk), dynMap(:,iblk), &
+              dxE_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(dyN   (:,iblk), dynMap(:,iblk), &
+              dyN_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(epm   (:,iblk), dynMap(:,iblk), &
+              epm_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(npm   (:,iblk), dynMap(:,iblk), &
+              npm_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(uvm   (:,iblk), dynMap(:,iblk), &
+              uvm_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+      enddo
+
+      ! ⚠ dyE and dxN are DIVIDED BY at a neighbour, in
+      ! strain_rates_Tdt_compressed and _Tdtsd_compressed.  pack_to_slots
+      ! zeroes each block's dead slot, so a cell whose W or S neighbour is
+      ! unmapped evaluated 0/0 -- an FP invalid, which aborted every C/CD run
+      ! with dynamics in it.  The block path never hits this: dyE and dxN are
+      ! real distances, nonzero even over land.
+      !
+      ! Setting the dead slot to c1 reproduces the block answer exactly.  The
+      ! numerator there is a velocity at an unmapped cell, which is zero in
+      ! both layouts, so the term is 0/1 = 0 against the block's 0/dyE = 0.
+      !
+      ! ONLY these two.  uarea, tarea, earea, narea and hm are SUMMED or used
+      ! as weights, never divided by, and a nonzero dead slot would corrupt
+      ! those sums.
+      do iblk = 1, nblocks
+         if (dynCnt(iblk) == 0) cycle
+         dyE_slot(dynOff(iblk)+dynCnt(iblk)+1) = c1
+         dxN_slot(dynOff(iblk)+dynCnt(iblk)+1) = c1
+      enddo
+
+      ! The weight sums, in block space.  Term order matches each kernel
+      ! exactly: these are floating-point sums and reordering them costs
+      ! bit-for-bit agreement.
+      !
+      ! ⚠ The two groups need DIFFERENT ranges, which is what the first
+      ! version of this got wrong.  uareaavg's stencil reaches only BACKWARD
+      ! (ijb-1, ijb-nx_block, ijb-nx_block-1), so it is safe out to
+      ! i=nx_block, j=ny_block -- and it has to go that far, because
+      ! stressC_T runs over icellT, which dyn_prep2 builds over ilo..ihi+1,
+      ! jlo..jhi+1, i.e. one cell INTO the ghosts.  Stopping short left those
+      ! slots at c0 and stressC_T divided by zero.
+      !
+      ! The five grid_average sums reach FORWARD (ijb+1, ijb+nx_block), so
+      ! they must stop one short -- and may, because
+      ! grid_average_*_compressed loops ilo..ihi, jlo..jhi only.
+      do iblk = 1, nblocks
+         if (dynCnt(iblk) == 0) cycle
+         do j = 2, ny_block
+         do i = 2, nx_block
+            ijb = (j-1)*nx_block + i
+            m   = dynMap(ijb,iblk)
+            if (m < 1 .or. m > dynCnt(iblk)) cycle
+            m = dynOff(iblk) + m
+            uareaavg_slot(m) = uarea(ijb           ,iblk) &
+                             + uarea(ijb-nx_block  ,iblk) &
+                             + uarea(ijb-nx_block-1,iblk) &
+                             + uarea(ijb         -1,iblk)
+         enddo
+         enddo
+
+         do j = 2, ny_block-1
+         do i = 2, nx_block-1
+            ijb = (j-1)*nx_block + i
+            m   = dynMap(ijb,iblk)
+            if (m < 1 .or. m > dynCnt(iblk)) cycle
+            m = dynOff(iblk) + m
+            wsumN_slot (m) = earea(ijb,iblk) + earea(ijb+nx_block,iblk)
+            wsumE_slot (m) = narea(ijb,iblk) + narea(ijb+1       ,iblk)
+            wsumNW_slot(m) = earea(ijb-1         ,iblk) &
+                           + earea(ijb           ,iblk) &
+                           + earea(ijb+nx_block-1,iblk) &
+                           + earea(ijb+nx_block  ,iblk)
+            wsumSE_slot(m) = narea(ijb-nx_block  ,iblk) &
+                           + narea(ijb-nx_block+1,iblk) &
+                           + narea(ijb           ,iblk) &
+                           + narea(ijb+1         ,iblk)
+            wsumNE_slot(m) = hm(ijb           ,iblk)*tarea(ijb           ,iblk) &
+                           + hm(ijb+1         ,iblk)*tarea(ijb+1         ,iblk) &
+                           + hm(ijb+nx_block  ,iblk)*tarea(ijb+nx_block  ,iblk) &
+                           + hm(ijb+nx_block+1,iblk)*tarea(ijb+nx_block+1,iblk)
+         enddo
+         enddo
       enddo
 
       end subroutine init_ragged_layout

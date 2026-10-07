@@ -134,6 +134,7 @@
           nbr_W, nbr_S, nbr_SW, &
           dynMaxCnt, skipU, arlx1i, &
           uvel_slot, vvel_slot, aiU_slot, fmU_slot, TbU_slot, &
+          strintxU_slot, strintyU_slot, taubxU_slot, taubyU_slot, &
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
           uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, dynIJ, &
@@ -579,19 +580,20 @@
             !-----------------------------------------------------------------
 
 !            call ice_timer_start(timer_tmp2,iblk)
-            call stepu (nx_block,            ny_block,            &
-                        dynCnt       (iblk), ksub,                &
+            call stepu (&
+                        dynCnt       (iblk),                      &
                         cdn_ocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),  &
                         skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                        dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                         aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), strtmp   (:,:),      &
                         uocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vocnU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         waterxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), wateryU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         forcexU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), forceyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), fmU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),    &
-                        strintxU (:,:,iblk), strintyU (:,:,iblk), &
-                        taubxU   (:,iblk)  , taubyU   (:,iblk)  , &
+                        strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        taubxU_slot  (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        taubyU_slot  (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         uvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                         uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
@@ -648,23 +650,8 @@
          call unstack_fields(fld2c, uvel_slot, vvel_slot)
          call ice_timer_stop(timer_bound)
 
-         ! ice_restoring_halo works on the block layout and returns at once
-         ! unless restoring is on, so convert around it only in that case
-         if (restore_ice) then
-            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
-            do iblk = 1, nblocks
-               call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
-               call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
-            enddo
-            !$OMP END PARALLEL DO
-            call ice_restoring_halo(setfld='velocity')
-            !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
-            do iblk = 1, nblocks
-               call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-               call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            enddo
-            !$OMP END PARALLEL DO
-         endif
+         call ice_restoring_halo(setfld='velocity', &
+                                 uvel_s=uvel_slot, vvel_s=vvel_slot)
 
       enddo                     ! subcycling
 
@@ -672,6 +659,11 @@
       do iblk = 1, nblocks
          call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
          call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
+         ! outputs only; stepu writes slots every pass, this is their one write
+         call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,:,iblk))
+         call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,:,iblk))
+         call unpack_from_slots(taubxU_slot  (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), taubxU  (:,iblk))
+         call unpack_from_slots(taubyU_slot  (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), taubyU  (:,iblk))
 
          ! hand the subcycle state back to the block layout for restart,
          ! history and the diagnostics below

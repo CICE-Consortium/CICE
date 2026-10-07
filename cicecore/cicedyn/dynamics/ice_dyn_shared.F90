@@ -30,7 +30,11 @@
                           nbr_W, nbr_SW, nbr_S, nbr_E, nbr_NE, nbr_N, &
                           nbr_NW, nbr_SE, nbr_num,                     &
                           uarear_slot, dxN_slot, dyE_slot, uarea_slot, &
-                          tarea_slot, earea_slot, narea_slot, hm_slot
+                          tarea_slot, earea_slot, narea_slot, hm_slot, &
+                          dxU_slot, dyT_slot, dxT_slot, dyU_slot, &
+                          dxE_slot, dyN_slot, epm_slot, npm_slot, uvm_slot, &
+                          uareaavg_slot, wsumN_slot, wsumE_slot, &
+                          wsumNW_slot, wsumSE_slot, wsumNE_slot
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
 
@@ -43,11 +47,20 @@
       public :: nbr_num
       public :: uarear_slot, dxN_slot, dyE_slot, uarea_slot
       public :: tarea_slot, earea_slot, narea_slot, hm_slot
+      public :: dxU_slot, dyT_slot, dxT_slot, dyU_slot
+      public :: dxE_slot, dyN_slot, epm_slot, npm_slot, uvm_slot
+      public :: uareaavg_slot, wsumN_slot, wsumE_slot
+      public :: wsumNW_slot, wsumSE_slot, wsumNE_slot
+      ! NB the *_slot arrays already carry the public attribute on their own
+      ! declarations; repeating them here is an ACCESS conflict (and the ifort
+      ! #6251 class that bit f1aab62).  Only the procedures need listing.
+      public :: grid_average_X2YA_compressed, grid_average_X2YS_compressed
       public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
                 principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 deformations, deformationsC_T, deformationsCD_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
+                strain_rates_Tdt_compressed, strain_rates_Tdtsd_compressed, &
                 visc_replpress, &
                 dyn_haloUpdate, &
                 pack_to_slots, unpack_from_slots, &
@@ -124,7 +137,9 @@
       ! dead slot.  The compressed counterpart of fld2, so that the velocities
       ! cross the halo in one message instead of one each.
       real (kind=dbl_kind), allocatable, public :: &
-         fld2c(:,:)       ! 2 bundled compressed fields
+         fld2c(:,:)   , & ! 2 bundled compressed fields
+         fld3c(:,:)   , & ! 3 bundled compressed fields
+         fld4c(:,:)       ! 4 bundled compressed fields
 
       ! ---------------------------------------------------------------------
       ! Compressed (ragged) storage on the static mask.
@@ -272,7 +287,76 @@
          vvelE_slot      , & ! y-component of E-point velocity, compressed
          uvelN_slot      , & ! x-component of N-point velocity, compressed
          vvelN_slot      , & ! y-component of N-point velocity, compressed
-         shearU_slot         ! shear at the U point, compressed
+         shearU_slot     , & ! shear at the U point, compressed
+         ! The T-point stresses stressC_T writes and div_stress_* reads one
+         ! cell away (S/E for the E kernels, W/N for the N ones), plus the
+         ! U-point shear stress stressC_U writes and the same kernels read.
+         ! zetax2T, etax2T, divergU, tensionU, deltaU, strengthU, etax2U,
+         ! strintxE and strintyN are all read POINTWISE, so they stay block
+         ! indexed via dynIJ(is) and are deliberately absent here.
+         stresspT_slot   , & ! sigma11+sigma22 at T, compressed
+         stressmT_slot   , & ! sigma11-sigma22 at T, compressed
+         stress12T_slot  , & ! sigma12 at T, compressed
+         stress12U_slot  , & ! sigma12 at U, compressed
+         ! CD only: div_stress_Ey and div_stress_Nx read these at a neighbour
+         stresspU_slot   , & ! sigma11+sigma22 at U, compressed
+         stressmU_slot   , & ! sigma11-sigma22 at U, compressed
+         ! The viscosities and strength.  NOTHING outside the dynamics reads
+         ! zetax2T, etax2T, zetax2U, etax2U or strengthU -- checked across the
+         ! tree -- so these need no block form at all; they are compressed
+         ! because grid_average_X2YS_compressed shifts T to U on them.
+         zetax2T_slot    , & ! 2*zeta at T, compressed
+         etax2T_slot     , & ! 2*eta  at T, compressed
+         zetax2U_slot    , & ! 2*zeta at U, compressed
+         etax2U_slot     , & ! 2*eta  at U, compressed
+         strength_slot   , & ! ice strength at T, compressed
+         strengthU_slot  , & ! ice strength at U, compressed
+         ! div_stress_* writes these and the step kernels read them in the
+         ! same pass, so they are pure subcycle state.  The block arrays of
+         ! the same name are diagnostics -- history reads them through
+         ! f_strintx/f_strinty -- and are written ONCE after the subcycle,
+         ! the same treatment 136e861 gave the B grid's strintxU/strintyU.
+         strintxE_slot   , & ! div of internal stress, x at E, compressed
+         strintyE_slot   , & ! div of internal stress, y at E, compressed
+         strintxN_slot   , & ! div of internal stress, x at N, compressed
+         strintyN_slot   , & ! div of internal stress, y at N, compressed
+         ! Seabed stress, written by the step kernels purely for output.
+         ! Same treatment as strint*: slot while subcycling, unpacked once.
+         taubxE_slot     , & ! seabed stress, x at E, compressed
+         taubyE_slot     , & ! seabed stress, y at E, compressed
+         taubxN_slot     , & ! seabed stress, x at N, compressed
+         taubyN_slot     , & ! seabed stress, y at N, compressed
+         ! The per-cell coefficients the step kernels read.  All are constant
+         ! through the subcycling -- dyn_prep1/dyn_prep2 set them before the
+         ! loop -- so the driver packs them once.  With these compressed there
+         ! is no rank-2 read left in stepu_C/stepv_C/stepuv_CD, which is what
+         ! lets their cell loop run on slots like the B grid's stepu.
+         aiE_slot           , & ! ice fraction
+         cdn_ocnE_slot      , & ! ocean-ice neutral drag coefficient
+         uocnE_slot         , & ! ocean current, x (m/s)
+         vocnE_slot         , & ! ocean current, y (m/s)
+         waterxE_slot       , & ! for ocean stress, x (m/s)
+         wateryE_slot       , & ! for ocean stress, y (m/s)
+         forcexE_slot       , & ! atm stress + ocn tilt, x
+         forceyE_slot       , & ! atm stress + ocn tilt, y
+         emassdti_slot      , & ! mass of cell/dt (kg/m^2 s)
+         fmE_slot           , & ! Coriolis param. * mass (kg/s)
+         TbE_slot           , & ! seabed stress factor (N/m^2)
+         aiN_slot           , & ! ice fraction
+         cdn_ocnN_slot      , & ! ocean-ice neutral drag coefficient
+         uocnN_slot         , & ! ocean current, x (m/s)
+         vocnN_slot         , & ! ocean current, y (m/s)
+         waterxN_slot       , & ! for ocean stress, x (m/s)
+         wateryN_slot       , & ! for ocean stress, y (m/s)
+         forcexN_slot       , & ! atm stress + ocn tilt, x
+         forceyN_slot       , & ! atm stress + ocn tilt, y
+         nmassdti_slot      , & ! mass of cell/dt (kg/m^2 s)
+         fmN_slot           , & ! Coriolis param. * mass (kg/s)
+         TbN_slot           , & ! seabed stress factor (N/m^2)
+         strintxU_slot   , & ! div of internal stress, x at U, compressed
+         strintyU_slot   , & ! div of internal stress, y at U, compressed
+         taubxU_slot     , & ! seabed stress, x at U, compressed
+         taubyU_slot         ! seabed stress, y at U, compressed
 
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          umassdti_slot   , & ! mass of U-cell/dt (kg/m^2 s), compressed
@@ -352,6 +436,8 @@
 
       interface stack_fields
          module procedure stack_fields2_compressed
+         module procedure stack_fields3_compressed
+         module procedure stack_fields4_compressed
          module procedure stack_fields2
          module procedure stack_fields3
          module procedure stack_fields3_flat
@@ -363,6 +449,8 @@
 
       interface unstack_fields
          module procedure unstack_fields2_compressed
+         module procedure unstack_fields3_compressed
+         module procedure unstack_fields4_compressed
          module procedure unstack_fields2
          module procedure unstack_fields3
          module procedure unstack_fields3_flat
@@ -405,9 +493,17 @@
       uvel_slot = c0
       vvel_slot = c0
 
-      allocate(fld2c(dynTot,2), stat=ierr)
+      allocate(fld2c(dynTot,2), fld3c(dynTot,3), fld4c(dynTot,4), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       fld2c = c0
+      fld3c = c0
+      fld4c = c0
+
+      allocate(strintxU_slot(dynTot), strintyU_slot(dynTot), &
+               taubxU_slot(dynTot), taubyU_slot(dynTot), stat=ierr)
+      if (ierr/=0) call abort_ice(subname//': Out of memory')
+      strintxU_slot = c0 ; strintyU_slot = c0
+      taubxU_slot   = c0 ; taubyU_slot   = c0
 
       allocate(aiU_slot(dynTot), fmU_slot(dynTot), TbU_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
@@ -493,6 +589,38 @@
          allocate(uvelE_slot(dynTot), vvelE_slot(dynTot), &
                   uvelN_slot(dynTot), vvelN_slot(dynTot), &
                   shearU_slot(dynTot),                    &
+                  stresspT_slot(dynTot), stressmT_slot(dynTot),  &
+                  stress12T_slot(dynTot), stress12U_slot(dynTot), &
+                  stresspU_slot(dynTot), stressmU_slot(dynTot), &
+                  zetax2T_slot(dynTot), etax2T_slot(dynTot), &
+                  zetax2U_slot(dynTot), etax2U_slot(dynTot), &
+                  strength_slot(dynTot), strengthU_slot(dynTot), &
+                  strintxE_slot(dynTot), strintyE_slot(dynTot), &
+                  strintxN_slot(dynTot), strintyN_slot(dynTot), &
+                  taubxE_slot(dynTot), taubyE_slot(dynTot), &
+                  taubxN_slot(dynTot), taubyN_slot(dynTot), &
+                  aiE_slot(dynTot), &
+                  cdn_ocnE_slot(dynTot), &
+                  uocnE_slot(dynTot), &
+                  vocnE_slot(dynTot), &
+                  waterxE_slot(dynTot), &
+                  wateryE_slot(dynTot), &
+                  forcexE_slot(dynTot), &
+                  forceyE_slot(dynTot), &
+                  emassdti_slot(dynTot), &
+                  fmE_slot(dynTot), &
+                  TbE_slot(dynTot), &
+                  aiN_slot(dynTot), &
+                  cdn_ocnN_slot(dynTot), &
+                  uocnN_slot(dynTot), &
+                  vocnN_slot(dynTot), &
+                  waterxN_slot(dynTot), &
+                  wateryN_slot(dynTot), &
+                  forcexN_slot(dynTot), &
+                  forceyN_slot(dynTot), &
+                  nmassdti_slot(dynTot), &
+                  fmN_slot(dynTot), &
+                  TbN_slot(dynTot), &
                   stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
          uvelE_slot  = c0
@@ -500,6 +628,41 @@
          uvelN_slot  = c0
          vvelN_slot  = c0
          shearU_slot = c0
+         stresspT_slot  = c0
+         stressmT_slot  = c0
+         stress12T_slot = c0
+         stress12U_slot = c0
+         stresspU_slot  = c0
+         stressmU_slot  = c0
+         zetax2T_slot   = c0 ; etax2T_slot    = c0
+         zetax2U_slot   = c0 ; etax2U_slot    = c0
+         strength_slot  = c0 ; strengthU_slot = c0
+         strintxE_slot  = c0 ; strintyE_slot  = c0
+         strintxN_slot  = c0 ; strintyN_slot  = c0
+         taubxE_slot    = c0 ; taubyE_slot    = c0
+         taubxN_slot    = c0 ; taubyN_slot    = c0
+         aiE_slot = c0
+         cdn_ocnE_slot = c0
+         uocnE_slot = c0
+         vocnE_slot = c0
+         waterxE_slot = c0
+         wateryE_slot = c0
+         forcexE_slot = c0
+         forceyE_slot = c0
+         emassdti_slot = c0
+         fmE_slot = c0
+         TbE_slot = c0
+         aiN_slot = c0
+         cdn_ocnN_slot = c0
+         uocnN_slot = c0
+         vocnN_slot = c0
+         waterxN_slot = c0
+         wateryN_slot = c0
+         forcexN_slot = c0
+         forceyN_slot = c0
+         nmassdti_slot = c0
+         fmN_slot = c0
+         TbN_slot = c0
 
          allocate( &
             uvelE_init (dynTot), & ! x-component of velocity (m/s), beginning of timestep
@@ -558,7 +721,7 @@
 !
 ! dynNbr holds BLOCK-LOCAL slots, so a global index is dynOff(iblk) + nbr.
 
-      subroutine grid_average_X2YA_compressed(dir, work1, wght1, work2)
+      subroutine grid_average_X2YA_compressed(dir, work1, wght1, wsum, work2)
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
@@ -568,7 +731,8 @@
 
       real (kind=dbl_kind), dimension(:), intent(in) :: &
          work1      , & ! field to shift, compressed
-         wght1          ! weights, compressed
+         wght1      , & ! weights, compressed
+         wsum           ! precomputed weight sum -- see ice_grid
 
       real (kind=dbl_kind), dimension(:), intent(out) :: &
          work2          ! shifted field, compressed
@@ -605,7 +769,7 @@
 
             case('N')
                isN = off + dynNbr(is,nbr_N)
-               wtmp = (wght1(is) + wght1(isN))
+               wtmp = wsum(is)
                if (wtmp /= c0) &
                work2(is) = (work1(is )*wght1(is )  &
                           + work1(isN)*wght1(isN)) &
@@ -613,7 +777,7 @@
 
             case('E')
                isE = off + dynNbr(is,nbr_E)
-               wtmp = (wght1(is) + wght1(isE))
+               wtmp = wsum(is)
                if (wtmp /= c0) &
                work2(is) = (work1(is )*wght1(is )  &
                           + work1(isE)*wght1(isE)) &
@@ -623,10 +787,7 @@
                isW  = off + dynNbr(is,nbr_W )
                isNW = off + dynNbr(is,nbr_NW)
                isN  = off + dynNbr(is,nbr_N )
-               wtmp = (wght1(isW )  &
-                     + wght1(is  )  &
-                     + wght1(isNW)  &
-                     + wght1(isN ))
+               wtmp = wsum(is)
                if (wtmp /= c0) &
                work2(is) = (work1(isW )*wght1(isW )  &
                           + work1(is  )*wght1(is  )  &
@@ -638,10 +799,7 @@
                isS  = off + dynNbr(is,nbr_S )
                isSE = off + dynNbr(is,nbr_SE)
                isE  = off + dynNbr(is,nbr_E )
-               wtmp = (wght1(isS )  &
-                     + wght1(isSE)  &
-                     + wght1(is  )  &
-                     + wght1(isE ))
+               wtmp = wsum(is)
                if (wtmp /= c0) &
                work2(is) = (work1(isS )*wght1(isS )  &
                           + work1(isSE)*wght1(isSE)  &
@@ -664,7 +822,7 @@
 !=======================================================================
 ! Masked counterpart, for the T2US shift.  Only NE is needed.
 
-      subroutine grid_average_X2YS_compressed(dir, work1, wght1, mask1, work2)
+      subroutine grid_average_X2YS_compressed(dir, work1, wght1, mask1, wsum, work2)
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
@@ -675,7 +833,8 @@
       real (kind=dbl_kind), dimension(:), intent(in) :: &
          work1      , & ! field to shift, compressed
          wght1      , & ! weights, compressed
-         mask1          ! mask, compressed
+         mask1      , & ! mask, compressed
+         wsum           ! precomputed weight sum -- see ice_grid
 
       real (kind=dbl_kind), dimension(:), intent(out) :: &
          work2          ! shifted field, compressed
@@ -716,10 +875,7 @@
             isN  = off + dynNbr(is,nbr_N )
             isNE = off + dynNbr(is,nbr_NE)
 
-            wtmp = (mask1(is  )*wght1(is  )  &
-                  + mask1(isE )*wght1(isE )  &
-                  + mask1(isN )*wght1(isN )  &
-                  + mask1(isNE)*wght1(isNE))
+            wtmp = wsum(is)
             if (wtmp /= c0) &
             work2(is) = (mask1(is  )*work1(is  )*wght1(is  )  &
                        + mask1(isE )*work1(isE )*wght1(isE )  &
@@ -1455,37 +1611,31 @@
 !
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine stepu (nx_block,   ny_block, &
-                        ncells,     ksub,     &
+      subroutine stepu (&
+                        ncells,               &
                         Cw,                   &
-                        skipme,     Xij,      &
+                        skipme,               &
                         aiX,        str,      &
                         uocn,       vocn,     &
                         waterx,     watery,   &
                         forcex,     forcey,   &
                         Umassdti,   fm,       &
                         uarear,               &
-                        strintx,    strinty,  &
-                        taubx,      tauby,    &
+                        strintx_s,  strinty_s,&
+                        taubx_s,    tauby_s,  &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
                         nbr,                  &
                         TbU)
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         ksub              , & ! subcycling step
          ncells                ! slots held by this block
 
-      ! skipme(is) is .true. where the slot carries no ice this step, and Xij
-      ! gives the block index (j-1)*nx_block+i of the cell owning the slot.
+      ! skipme(is) is .true. where the slot carries no ice this step.
       ! Together they replace the icellU / indxUi / indxUj / Xmap chain: this
       ! kernel iterates over slots, the way ice_dyn_core1d's does.
       logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
          skipme      ! inactive-slot flag
-
-      integer (kind=int_kind), dimension (:), intent(in), contiguous :: &
-         Xij         ! block index of the cell owning each slot
 
       ! Every coefficient this kernel reads is COMPRESSED: this block's slice,
       ! 1-based, cells 1..cnt with the dead slot last, matching the velocities.  All of them are constant
@@ -1528,16 +1678,16 @@
          uvel    , & ! x-component of velocity (m/s)
          vvel        ! y-component of velocity (m/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty     ! divergence of internal ice stress, y (N/m^2)
+      ! compressed, output only -- see the store at the end of the loop
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         strintx_s , & ! divergence of internal ice stress, x (N/m^2)
+         strinty_s     ! divergence of internal ice stress, y (N/m^2)
 
       ! local variables
 
       integer (kind=int_kind) :: &
          i, j, ij          , & ! ij is the compressed cell counter
-         ijb                 , & ! 1D index of (i,j) in the block
-         is                  , & ! compressed slot of (i,j)
+         is                  , & ! compressed slot
          isE, isN, isNE          ! its E, N and NE neighbour slots
 
       real (kind=dbl_kind) :: &
@@ -1556,11 +1706,10 @@
          Cb                , & ! complete seabed (basal) stress coeff
          rhow                  !
 
-      ! taubx and tauby are assumed shape, 1D over the block in Fortran
-      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      ! compressed, output only -- see the store at the end of the loop
       real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
+         taubx_s , & ! seabed stress, x-direction (N/m^2)
+         tauby_s     ! seabed stress, y-direction (N/m^2)
 
       character(len=*), parameter :: subname = '(stepu)'
 
@@ -1628,22 +1777,17 @@
          uvel(is) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
          vvel(is) = (cca*cc2 - ccb*cc1) / ab2
 
-         ! strintx/strinty and taubx/tauby are OUTPUTS, not state: nothing
-         ! reads them between subcycles, here or anywhere else, so only the
-         ! last subcycle's values are ever seen.  Storing them once instead of
-         ! ndte times removes four array writes and two reads per cell per
-         ! subcycle, and leaves the result identical.  The comment below has
-         ! said "only needed on last iteration" about taubx/tauby all along.
-         if (ksub == ndte) then
-            ijb = Xij(is)
-            i   = mod(ijb-1, nx_block) + 1
-            j   = (ijb-1)/nx_block + 1
-            strintx(i,j) = strintx_tmp
-            strinty(i,j) = strinty_tmp
-            ! seabed stress component, for outputs
-            taubx(ijb)   = -uvel(is)*Cb
-            tauby(ijb)   = -vvel(is)*Cb
-         endif
+         ! These four are OUTPUT ONLY -- history reads them, nothing in the
+         ! subcycle does.  They used to be written to the block arrays under
+         ! "if (ksub == ndte)", which needed ksub and ndte passed in and cost
+         ! a divide and a mod per cell to rebuild (i,j) from the slot.  Writing
+         ! slots instead makes the guard pointless: the last pass's value is
+         ! simply what is left there, and the driver unpacks once after the
+         ! loop.  No branch, no index arithmetic.
+         strintx_s(is) = strintx_tmp
+         strinty_s(is) = strinty_tmp
+         taubx_s  (is) = -uvel(is)*Cb
+         tauby_s  (is) = -vvel(is)*Cb
       enddo                     ! ij
 
       end subroutine stepu
@@ -1651,31 +1795,31 @@
 !=======================================================================
 ! Integration of the momentum equation to find velocity (u,v) at E and N locations
 
-      subroutine stepuv_CD (nx_block,   ny_block, &
-                            icell,      Cw,       &
-                            indxi,      indxj,    &
+      subroutine stepuv_CD (ncells,     skipme,   &
+                            Cw,                   &
                                         aiX,      &
                             uocn,       vocn,     &
                             waterx,     watery,   &
                             forcex,     forcey,   &
                             massdti,    fm,       &
-                            strintx,    strinty,  &
-                            taubx,      tauby,    &
+                            strintx_s,  strinty_s,&
+                            taubx_s,    tauby_s,  &
                             uvel_init,  vvel_init,&
-                            uvel,       vvel,     &
-                            Xmap,                 &
+                            uvel_s,     vvel_s,   &
                             Tb)
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icell                 ! total count when ice[en]mask is true
+         ncells                ! number of slots in this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxi   , & ! compressed index in i-direction
-         indxj       ! compressed index in j-direction
+      ! skipme(is) is .true. where the slot carries no ice this step
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme      ! inactive-slot flag
 
-      ! aiX and massdti are assumed shape, 1D over the block in Fortran
-      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
+      ! Every coefficient below is COMPRESSED, this block's slice.  All are
+      ! constant through the subcycling, so the caller packs them once; with
+      ! them there is no rank-2 read left in the loop, which is what lets the
+      ! cell loop run on slots exactly as the B grid's stepu does.
+      ! aiX and massdti are compressed like the rest
       real (kind=dbl_kind), dimension (:), intent(in) :: &
          aiX     , & ! ice fraction on X-grid
          massdti , & ! mass of [EN]-cell/dt (kg/m^2 s)
@@ -1686,27 +1830,31 @@
          forcex  , & ! work array: combined atm stress and ocn tilt, x
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
-         fm      , & ! Coriolis param. * mass in [EN]-cell (kg/s)
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         strinty     ! divergence of internal ice stress, y (N/m^2)
+         fm          ! Coriolis param. * mass in [EN]-cell (kg/s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         uvel    , & ! x-component of velocity (m/s)
-         vvel        ! y-component of velocity (m/s)
+      ! compressed, written by div_stress_* in the same pass
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         strintx_s , & ! divergence of internal ice stress, x (N/m^2)
+         strinty_s     ! divergence of internal ice stress, y (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! Compressed: the velocities are what the subcycle carries between the
+      ! step kernels, strain_rates_U and the stress kernels, so they stay in
+      ! slots for the whole loop rather than round-tripping through blocks.
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         uvel_s  , & ! x-component of velocity (m/s)
+         vvel_s      ! y-component of velocity (m/s)
+
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          Cw          ! ocean-ice neutral drag coefficient
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij       , & ! ij is the compressed cell counter
-         ijb              , & ! 1D index of (i,j) in the block
-         is                   ! compressed slot of (i,j)
+         is                   ! compressed slot
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1717,17 +1865,10 @@
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
 
-      ! taubx and tauby are assumed shape, 1D over the block in Fortran
-      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(inout) :: &
-         taubx   , & ! seabed stress, x-direction (N/m^2)
-         tauby       ! seabed stress, y-direction (N/m^2)
-
-      ! Xmap is 1D over the block in Fortran storage order and holds each
-      ! cell's static compressed slot; the compressed arrays above are
-      ! addressed through it
-      integer (kind=int_kind), dimension (:), intent(in) :: &
-         Xmap        ! static compressed slot of each cell
+      ! compressed, output only: written every pass, unpacked once after
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         taubx_s , & ! seabed stress, x-direction (N/m^2)
+         tauby_s     ! seabed stress, y-direction (N/m^2)
 
       character(len=*), parameter :: subname = '(stepuv_CD)'
 
@@ -1740,44 +1881,40 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icell
-         i = indxi(ij)
-         j = indxj(ij)
+      do is = 1, ncells
+         if (skipme(is)) cycle
 
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
-
-         uold = uvel(i,j)
-         vold = vvel(i,j)
+         uold = uvel_s(is)
+         vold = vvel_s(is)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiX(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
-                                           (vocn(i,j) - vold)**2)  ! m/s
+         vrel = aiX(is)*rhow*Cw(is)*sqrt((uocn(is) - uold)**2 + &
+                                           (vocn(is) - vold)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(ijb) ! NOTE this is not the entire
-         tauy = vrel*watery(ijb) ! ocn stress term
+         taux = vrel*waterx(is) ! NOTE this is not the entire
+         tauy = vrel*watery(is) ! ocn stress term
 
          ccc = sqrt(uold**2 + vold**2) + u0
-         Cb  = Tb(i,j) / ccc ! for seabed stress
+         Cb  = Tb(is) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(is) + vrel * cosw + Cb ! kg/m^2 s
 
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+         ccb = fm(is) + sign(c1,fm(is)) * vrel * sinw ! kg/m^2 s
 
          ab2 = cca**2 + ccb**2
 
          ! compute the velocity components
-         cc1 = strintx(i,j) + forcex(ijb) + taux &
-             + massdti(ijb)*(brlx*uold + revp*uvel_init(is))
-         cc2 = strinty(i,j) + forcey(ijb) + tauy &
-             + massdti(ijb)*(brlx*vold + revp*vvel_init(is))
-         uvel(i,j) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
-         vvel(i,j) = (cca*cc2 - ccb*cc1) / ab2
+         cc1 = strintx_s(is) + forcex(is) + taux &
+             + massdti(is)*(brlx*uold + revp*uvel_init(is))
+         cc2 = strinty_s(is) + forcey(is) + tauy &
+             + massdti(is)*(brlx*vold + revp*vvel_init(is))
+         uvel_s(is) = (cca*cc1 + ccb*cc2) / ab2 ! m/s
+         vvel_s(is) = (cca*cc2 - ccb*cc1) / ab2
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         taubx(ijb) = -uvel(i,j)*Cb
-         tauby(ijb) = -vvel(i,j)*Cb
+         taubx_s(is) = -uvel_s(is)*Cb
+         tauby_s(is) = -vvel_s(is)*Cb
 
       enddo                     ! ij
 
@@ -1786,59 +1923,64 @@
 !=======================================================================
 ! Integration of the momentum equation to find velocity u at E location on C grid
 
-      subroutine stepu_C (nx_block,   ny_block, &
-                          icell,      Cw,       &
-                          indxi,      indxj,    &
+      subroutine stepu_C (ncells,     skipme,   &
+                          Cw,                   &
                                       aiE,      &
                           uocn,       vocn,     &
                           waterx,     forcex,   &
                           massdti,    fm,       &
-                          strintx,    taubx,    &
+                          strintx_s,  taubx_s,  &
                           uvel_init,            &
-                          uvel,       vvel,     &
-                          Xmap,                 &
+                          uvel_s,     vvel_s,   &
                           Tb)
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icell                 ! total count when ice[en]mask is true
+         ncells                ! number of slots in this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxi   , & ! compressed index in i-direction
-         indxj       ! compressed index in j-direction
+      ! skipme(is) is .true. where the slot carries no ice this step
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme      ! inactive-slot flag
 
-      ! aiE and massdti are assumed shape, 1D over the block in Fortran
-      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(in) :: &
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          aiE     , & ! ice fraction on E-grid
          massdti , & ! mass of e-cell/dt (kg/m^2 s)
          uvel_init,& ! x-component of velocity (m/s), beginning of timestep
          waterx  , & ! for ocean stress calculation, x (m/s)
          forcex      ! work array: combined atm stress and ocn tilt, x
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! Every coefficient below is COMPRESSED, this block's slice.  All are
+      ! constant through the subcycling, so the caller packs them once; with
+      ! them there is no rank-2 read left in the loop, which is what lets the
+      ! cell loop run on slots exactly as the B grid's stepu does.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in e-cell (kg/s)
-         strintx , & ! divergence of internal ice stress, x (N/m^2)
-         Cw      , & ! ocean-ice neutral drag coefficient
-         vvel        ! y-component of velocity (m/s) interpolated to E location
+         Cw          ! ocean-ice neutral drag coefficient
 
-      ! taubx is assumed shape, 1D over the block in Fortran storage order,
-      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(inout) :: &
-         taubx       ! seabed stress, x-direction (N/m^2)
+      ! compressed, written by div_stress_Ex in the same pass
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         strintx_s   ! divergence of internal ice stress, x (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         uvel        ! x-component of velocity (m/s)
+      ! Compressed: the velocities are what the subcycle carries between
+      ! stepu_C, strain_rates_U and the stress kernels, so they stay in slots
+      ! for the whole loop rather than round-tripping through the block form.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         vvel_s      ! y-component of velocity (m/s) interpolated to E location
+
+      ! compressed, output only: written every pass, unpacked once after the
+      ! subcycle.  Nothing reads it in between, here or anywhere else.
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         taubx_s     ! seabed stress, x-direction (N/m^2)
+
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         uvel_s      ! x-component of velocity (m/s)
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij       , & ! ij is the compressed cell counter
-         ijb              , & ! 1D index of (i,j) in the block
-         is                   ! compressed slot of (i,j)
+         is                   ! compressed slot
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1847,12 +1989,6 @@
          taux               , & ! part of ocean stress term
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
-
-      ! Xmap is 1D over the block in Fortran storage order and holds each
-      ! cell's static compressed slot; the compressed arrays above are
-      ! addressed through it
-      integer (kind=int_kind), dimension (:), intent(in) :: &
-         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepu_C)'
 
@@ -1865,38 +2001,34 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icell
-         i = indxi(ij)
-         j = indxj(ij)
+      do is = 1, ncells
+         if (skipme(is)) cycle
 
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
-
-         uold = uvel(i,j)
-         vold = vvel(i,j)
+         uold = uvel_s(is)
+         vold = vvel_s(is)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiE(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
-                                           (vocn(i,j) - vold)**2)  ! m/s
+         vrel = aiE(is)*rhow*Cw(is)*sqrt((uocn(is) - uold)**2 + &
+                                           (vocn(is) - vold)**2)  ! m/s
          ! ice/ocean stress
-         taux = vrel*waterx(ijb) ! NOTE this is not the entire
+         taux = vrel*waterx(is) ! NOTE this is not the entire
 
          ccc = sqrt(uold**2 + vold**2) + u0
-         Cb  = Tb(i,j) / ccc ! for seabed stress
+         Cb  = Tb(is) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(is) + vrel * cosw + Cb ! kg/m^2 s
 
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+         ccb = fm(is) + sign(c1,fm(is)) * vrel * sinw ! kg/m^2 s
 
          ! compute the velocity components
-         cc1 = strintx(i,j) + forcex(ijb) + taux &
-             + massdti(ijb)*(brlx*uold + revp*uvel_init(is))
+         cc1 = strintx_s(is) + forcex(is) + taux &
+             + massdti(is)*(brlx*uold + revp*uvel_init(is))
 
-         uvel(i,j) = (ccb*vold + cc1) / cca ! m/s
+         uvel_s(is) = (ccb*vold + cc1) / cca ! m/s
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         taubx(ijb) = -uvel(i,j)*Cb
+         taubx_s(is) = -uvel_s(is)*Cb
 
       enddo                     ! ij
 
@@ -1905,59 +2037,64 @@
 !=======================================================================
 ! Integration of the momentum equation to find velocity v at N location on C grid
 
-      subroutine stepv_C (nx_block,   ny_block, &
-                          icell,      Cw,       &
-                          indxi,      indxj,    &
+      subroutine stepv_C (ncells,     skipme,   &
+                          Cw,                   &
                                       aiN,      &
                           uocn,       vocn,     &
                           watery,     forcey,   &
                           massdti,    fm,       &
-                          strinty,    tauby,    &
+                          strinty_s,  tauby_s,  &
                           vvel_init,            &
-                          uvel,       vvel,     &
-                          Xmap,                 &
+                          uvel_s,     vvel_s,   &
                           Tb)
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icell                 ! total count when ice[en]mask is true
+         ncells                ! number of slots in this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxi   , & ! compressed index in i-direction
-         indxj       ! compressed index in j-direction
+      ! skipme(is) is .true. where the slot carries no ice this step
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme      ! inactive-slot flag
 
-      ! aiN and massdti are assumed shape, 1D over the block in Fortran
-      ! storage order, i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(in) :: &
+      ! Every coefficient below is COMPRESSED, this block's slice.  All are
+      ! constant through the subcycling, so the caller packs them once; with
+      ! them there is no rank-2 read left in the loop, which is what lets the
+      ! cell loop run on slots exactly as the B grid's stepu does.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          aiN     , & ! ice fraction on N-grid
          massdti , & ! mass of n-cell/dt (kg/m^2 s)
          vvel_init,& ! y-component of velocity (m/s), beginning of timestep
          watery  , & ! for ocean stress calculation, y (m/s)
          forcey      ! work array: combined atm stress and ocn tilt, y
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          Tb,       & ! seabed stress factor (N/m^2)
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in n-cell (kg/s)
-         strinty , & ! divergence of internal ice stress, y (N/m^2)
-         Cw      , & ! ocean-ice neutral drag coefficient
-         uvel        ! x-component of velocity (m/s) interpolated to N location
+         Cw          ! ocean-ice neutral drag coefficient
 
-      ! tauby is assumed shape, 1D over the block in Fortran storage order,
-      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
-      real (kind=dbl_kind), dimension (:), intent(inout) :: &
-         tauby       ! seabed stress, y-direction (N/m^2)
+      ! compressed, written by div_stress_Ny in the same pass
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         strinty_s   ! divergence of internal ice stress, y (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         vvel        ! y-component of velocity (m/s)
+      ! Compressed: the velocities are what the subcycle carries between the
+      ! step kernels, strain_rates_U and the stress kernels, so they stay in
+      ! slots for the whole loop rather than round-tripping through blocks.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         uvel_s      ! x-component of velocity (m/s) interpolated to N location
+
+      ! compressed, output only: written every pass, unpacked once after the
+      ! subcycle.  Nothing reads it in between, here or anywhere else.
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         tauby_s     ! seabed stress, y-direction (N/m^2)
+
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         vvel_s      ! y-component of velocity (m/s)
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij       , & ! ij is the compressed cell counter
-         ijb              , & ! 1D index of (i,j) in the block
-         is                   ! compressed slot of (i,j)
+         is                   ! compressed slot
 
       real (kind=dbl_kind) :: &
          uold, vold         , & ! old-time uvel, vvel
@@ -1966,12 +2103,6 @@
          tauy               , & ! part of ocean stress term
          Cb                 , & ! complete seabed (basal) stress coeff
          rhow                   !
-
-      ! Xmap is 1D over the block in Fortran storage order and holds each
-      ! cell's static compressed slot; the compressed arrays above are
-      ! addressed through it
-      integer (kind=int_kind), dimension (:), intent(in) :: &
-         Xmap        ! static compressed slot of each cell
 
       character(len=*), parameter :: subname = '(stepv_C)'
 
@@ -1984,38 +2115,34 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      do ij =1, icell
-         i = indxi(ij)
-         j = indxj(ij)
+      do is = 1, ncells
+         if (skipme(is)) cycle
 
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
-
-         uold = uvel(i,j)
-         vold = vvel(i,j)
+         uold = uvel_s(is)
+         vold = vvel_s(is)
 
          ! (magnitude of relative ocean current)*rhow*drag*aice
-         vrel = aiN(ijb)*rhow*Cw(i,j)*sqrt((uocn(i,j) - uold)**2 + &
-                                           (vocn(i,j) - vold)**2)  ! m/s
+         vrel = aiN(is)*rhow*Cw(is)*sqrt((uocn(is) - uold)**2 + &
+                                           (vocn(is) - vold)**2)  ! m/s
          ! ice/ocean stress
-         tauy = vrel*watery(ijb) ! NOTE this is not the entire ocn stress
+         tauy = vrel*watery(is) ! NOTE this is not the entire ocn stress
 
          ccc = sqrt(uold**2 + vold**2) + u0
-         Cb  = Tb(i,j) / ccc ! for seabed stress
+         Cb  = Tb(is) / ccc ! for seabed stress
          ! revp = 0 for classic evp, 1 for revised evp
-         cca = (brlx + revp)*massdti(ijb) + vrel * cosw + Cb ! kg/m^2 s
+         cca = (brlx + revp)*massdti(is) + vrel * cosw + Cb ! kg/m^2 s
 
-         ccb = fm(i,j) + sign(c1,fm(i,j)) * vrel * sinw ! kg/m^2 s
+         ccb = fm(is) + sign(c1,fm(is)) * vrel * sinw ! kg/m^2 s
 
          ! compute the velocity components
-         cc2 = strinty(i,j) + forcey(ijb) + tauy &
-             + massdti(ijb)*(brlx*vold + revp*vvel_init(is))
+         cc2 = strinty_s(is) + forcey(is) + tauy &
+             + massdti(is)*(brlx*vold + revp*vvel_init(is))
 
-         vvel(i,j) = (-ccb*uold + cc2) / cca
+         vvel_s(is) = (-ccb*uold + cc2) / cca
 
          ! calculate seabed stress component for outputs
          ! only needed on last iteration.
-         tauby(ijb) = -vvel(i,j)*Cb
+         tauby_s(is) = -vvel_s(is)*Cb
 
       enddo                     ! ij
 
@@ -3091,24 +3218,221 @@
       end subroutine strain_rates_Tdt
 
 !=======================================================================
+! Compressed form of strain_rates_Tdt, for the C/CD subcycle.
+!
+! ADDITIVE, like grid_average_X2Y*_compressed: the block version above is
+! still what deformationsC_T and deformationsCD_T call, and those run after
+! the subcycle on block arrays, so converting them is not needed to put the
+! subcycle on slots.  ⚠ The two share their arithmetic -- change one and the
+! other must change with it, or C/CD stops being bit-for-bit with itself.
+!
+! The stencil is W on uvelE/dyE and S on vvelN/dxN, both already in dynNbr.
+! dxT and dyT are read POINTWISE and so stay block-indexed; divT and
+! tensionT are consumed pointwise by the caller and stay block-indexed too.
+
+      subroutine strain_rates_Tdt_compressed (nx_block,   ny_block, &
+                                   icellT,               &
+                                   indxTi,     indxTj,   &
+                                   nbr,        Xmap,     &
+                                   uvelE_s,    vvelN_s,  &
+                                   dxN_s,      dyE_s,    &
+                                   dxT,        dyT,      &
+                                   divT,       tensionT  )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, &  ! block dimensions
+         icellT
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
+
+      ! nbr(is,d) is the block-local slot one step in direction d from slot is
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr          ! neighbour slots
+
+      ! Xmap is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap         ! static compressed slot of each cell
+
+      ! Compressed, block-local slots 1..cnt with the dead slot last.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         uvelE_s  , & ! x-component of velocity at the E point, compressed
+         vvelN_s  , & ! y-component of velocity at the N point, compressed
+         dxN_s    , & ! width of N-cell through the middle (m), compressed
+         dyE_s        ! height of E-cell through the middle (m), compressed
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT          ! height of T-cell through the middle (m)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
+         divT     , & ! divergence at T point
+         tensionT     ! tension at T point
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ij, i, j               , & ! ij is the compressed cell counter
+         ijb                    , & ! 1D index of (i,j) in the block
+         is, isW, isS               ! own, W and S neighbour slots
+
+      character(len=*), parameter :: subname = '(strain_rates_Tdt_compressed)'
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      divT    (:) = c0
+      tensionT(:) = c0
+
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
+
+         is  = Xmap(ijb)
+         isW = nbr(is,nbr_W)
+         isS = nbr(is,nbr_S)
+
+         ! divergence  =  e_11 + e_22
+         divT    (ijb)= dyE_s(is)*uvelE_s(is) - dyE_s(isW)*uvelE_s(isW) &
+                      + dxN_s(is)*vvelN_s(is) - dxN_s(isS)*vvelN_s(isS)
+
+         ! tension strain rate  =  e_11 - e_22
+         tensionT(ijb) = (dyT(ijb)**2)*(uvelE_s(is)/dyE_s(is) - uvelE_s(isW)/dyE_s(isW)) &
+                       - (dxT(ijb)**2)*(vvelN_s(is)/dxN_s(is) - vvelN_s(isS)/dxN_s(isS))
+
+      enddo
+
+      end subroutine strain_rates_Tdt_compressed
+
+!=======================================================================
+! Compressed form of strain_rates_Tdtsd, for the CD subcycle.  Same additive
+! reasoning and the same ⚠ as strain_rates_Tdt_compressed above.
+!
+! Note the stencil is the MIRROR of Tdt's: Tdt reads uvelE to the W and vvelN
+! to the S, this reads uvelN to the S and vvelE to the W.  Getting those the
+! wrong way round is type-correct and silent, which is what kernel_equiv.py
+! exists to catch.
+
+      subroutine strain_rates_Tdtsd_compressed (nx_block, ny_block, &
+                                   icellT,               &
+                                   indxTi,     indxTj,   &
+                                   nbr,        Xmap,     &
+                                   uvelE_s,    vvelE_s,  &
+                                   uvelN_s,    vvelN_s,  &
+                                   dxN_s,      dyE_s,    &
+                                   dxT,        dyT,      &
+                                   divT,       tensionT, &
+                                   shearT,     deltaT    )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block, &  ! block dimensions
+         icellT
+
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         indxTi   , & ! compressed index in i-direction
+         indxTj       ! compressed index in j-direction
+
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr          ! neighbour slots
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap         ! static compressed slot of each cell
+
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         uvelE_s  , & ! x-component of velocity (m/s) at the E point
+         vvelE_s  , & ! y-component of velocity (m/s) at the E point
+         uvelN_s  , & ! x-component of velocity (m/s) at the N point
+         vvelN_s  , & ! y-component of velocity (m/s) at the N point
+         dxN_s    , & ! width of N-cell through the middle (m)
+         dyE_s        ! height of E-cell through the middle (m)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT          ! height of T-cell through the middle (m)
+
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
+         divT     , & ! divergence at T point
+         tensionT , & ! tension at T point
+         shearT   , & ! shear at T point
+         deltaT       ! delt at T point
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         ij, i, j               , & ! ij is the compressed cell counter
+         ijb                    , & ! 1D index of (i,j) in the block
+         is, isW, isS               ! own, W and S neighbour slots
+
+      character(len=*), parameter :: subname = '(strain_rates_Tdtsd_compressed)'
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      ! compute divT, tensionT
+      call strain_rates_Tdt_compressed (nx_block, ny_block, &
+                             icellT,               &
+                             indxTi,     indxTj,   &
+                             nbr,        Xmap,     &
+                             uvelE_s,    vvelN_s,  &
+                             dxN_s,      dyE_s,    &
+                             dxT,        dyT,      &
+                             divT,       tensionT  )
+
+      shearT  (:) = c0
+      deltaT  (:) = c0
+
+      do ij = 1, icellT
+         i = indxTi(ij)
+         j = indxTj(ij)
+         ijb = (j-1)*nx_block + i
+
+         is  = Xmap(ijb)
+         isW = nbr(is,nbr_W)
+         isS = nbr(is,nbr_S)
+
+         ! shearing strain rate  =  2*e_12
+         shearT(ijb) = (dxT(ijb)**2)*(uvelN_s(is)/dxN_s(is) - uvelN_s(isS)/dxN_s(isS)) &
+                     + (dyT(ijb)**2)*(vvelE_s(is)/dyE_s(is) - vvelE_s(isW)/dyE_s(isW))
+
+         ! Delta (in the denominator of zeta, eta)
+         DeltaT(ijb) = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearT(ijb)**2))
+
+      enddo
+
+      end subroutine strain_rates_Tdtsd_compressed
+
+!=======================================================================
 ! Compute strain rates at the U point including boundary conditions
 !
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-      subroutine strain_rates_U (nx_block,   ny_block,  &
+!=======================================================================
+! Compressed form of strain_rates_U, for the C-grid subcycle.
+!
+! ADDITIVE for now: the CD subcycle still calls the block version above, and
+! converting CD is its own tranche.  ⚠ The two share their arithmetic -- when
+! CD is converted this one becomes the only version and the block one goes.
+      subroutine strain_rates_U (nx_block, ny_block,  &
                                  icellU,                &
                                  indxUi,     indxUj,    &
-                                 uvelE,      vvelE,     &
-                                 uvelN,      vvelN,     &
+                                 nbr,        Xmap,      &
+                                 uvelE_s,    vvelE_s,   &
+                                 uvelN_s,    vvelN_s,   &
                                  uvelU,      vvelU,     &
-                                 dxE,        dyN,       &
+                                 dxE_s,      dyN_s,     &
                                  dxU,        dyU,       &
                                  ratiodxN,   ratiodxNr, &
                                  ratiodyE,   ratiodyEr, &
-                                 epm,        npm,       &
+                                 epm_s,      npm_s,     &
                                  divergU,    tensionU,  &
-                                 shearU,     DeltaU     )
+                                 shearU_s,   DeltaU     )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -3118,35 +3442,61 @@
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
+      ! nbr(is,d) is the block-local slot one step in direction d from slot is
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr          ! neighbour slots
+
+      ! Xmap is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         Xmap         ! static compressed slot of each cell
+
+      ! Compressed: this kernel reaches E for the N-point quantities and N for
+      ! the E-point ones.  epm and npm are real 0/1 masks used arithmetically.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
+         uvelE_s  , & ! x-component of velocity (m/s) at the E point
+         vvelE_s  , & ! y-component of velocity (m/s) at the N point
+         uvelN_s  , & ! x-component of velocity (m/s) at the E point
+         vvelN_s  , & ! y-component of velocity (m/s) at the N point
+         dxE_s    , & ! width of E-cell through the middle (m)
+         dyN_s    , & ! height of N-cell through the middle (m)
+         epm_s    , & ! E-cell mask
+         npm_s        ! N-cell mask
+
+      ! uvelU and vvelU are COMPRESSED -- the driver has passed uvel_slot
+      ! and vvel_slot since the velocities stopped leaving slot form inside
+      ! the subcycle.  They were left declared block-indexed and read as
+      ! uvelU(is); an explicit-shape dummy is not bounds-checked against its
+      ! actual, so that read ran off the end of the slice in silence and
+      ! DeltaU came out NaN.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          uvelU    , & ! x-component of velocity (m/s) interp. at U point
-         vvelU    , & ! y-component of velocity (m/s) interp. at U point
-         dxE      , & ! width of E-cell through the middle (m)
-         dyN      , & ! height of N-cell through the middle (m)
+         vvelU        ! y-component of velocity (m/s) interp. at U point
+
+      ! Pointwise, so block-indexed.
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
          dxU      , & ! width of U-cell through the middle (m)
          dyU      , & ! height of U-cell through the middle (m)
          ratiodxN , & ! -dxN(i+1,j)/dxN(i,j) for BCs
          ratiodxNr, & ! -dxN(i,j)/dxN(i+1,j) for BCs
          ratiodyE , & ! -dyE(i,j+1)/dyE(i,j) for BCs
-         ratiodyEr, & ! -dyE(i,j)/dyE(i,j+1) for BCs
-         epm      , & ! E-cell mask
-         npm          ! N-cell mask
+         ratiodyEr    ! -dyE(i,j)/dyE(i,j+1) for BCs
 
       real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
          divergU  , & ! divergence at U point
          tensionU , & ! tension at U point
-         shearU   , & ! shear at U point
          DeltaU       ! delt at the U point
+
+      ! shearU is read at W, S and SW by stressC_T, so it is compressed.
+      real (kind=dbl_kind), dimension (:), intent(out), contiguous :: &
+         shearU_s     ! shear at U point
 
       ! local variables
 
       integer (kind=int_kind) :: &
          ij, i, j               , & ! ij is the compressed cell counter
-         ijb                        ! 1D index of (i,j) in the block
+         ijb                    , & ! 1D index of (i,j) in the block
+         is, isE, isN               ! own, E and N neighbour slots
 
       real (kind=dbl_kind) :: &
         uNip1j, uNij, vEijp1, vEij, uEijp1, uEij, vNip1j, vNij
@@ -3160,7 +3510,7 @@
 
       divergU (:) = c0
       tensionU(:) = c0
-      shearU  (:) = c0
+      shearU_s(:) = c0
       deltaU  (:) = c0
 
       do ij = 1, icellU
@@ -3168,44 +3518,48 @@
          j = indxUj(ij)
          ijb = (j-1)*nx_block + i
 
-         uNip1j = uvelN(ijb+1) * npm(ijb+1) &
-                +(npm(ijb)-npm(ijb+1)) * npm(ijb)   * ratiodxN(ijb)  * uvelN(ijb)
-         uNij   = uvelN(ijb) * npm(ijb) &
-                +(npm(ijb+1)-npm(ijb)) * npm(ijb+1) * ratiodxNr(ijb) * uvelN(ijb+1)
-         vEijp1 = vvelE(ijb+nx_block) * epm(ijb+nx_block) &
-                +(epm(ijb)-epm(ijb+nx_block)) * epm(ijb)   * ratiodyE(ijb)  * vvelE(ijb)
-         vEij   = vvelE(ijb) * epm(ijb) &
-                +(epm(ijb+nx_block)-epm(ijb)) * epm(ijb+nx_block) * ratiodyEr(ijb) * vvelE(ijb+nx_block)
+         is  = Xmap(ijb)
+         isE = nbr(is,nbr_E)   ! (i+1,j  )
+         isN = nbr(is,nbr_N)   ! (i  ,j+1)
+
+         uNip1j = uvelN_s(isE) * npm_s(isE) &
+                +(npm_s(is)-npm_s(isE)) * npm_s(is)   * ratiodxN(ijb)  * uvelN_s(is)
+         uNij   = uvelN_s(is) * npm_s(is) &
+                +(npm_s(isE)-npm_s(is)) * npm_s(isE) * ratiodxNr(ijb) * uvelN_s(isE)
+         vEijp1 = vvelE_s(isN) * epm_s(isN) &
+                +(epm_s(is)-epm_s(isN)) * epm_s(is)   * ratiodyE(ijb)  * vvelE_s(is)
+         vEij   = vvelE_s(is) * epm_s(is) &
+                +(epm_s(isN)-epm_s(is)) * epm_s(isN) * ratiodyEr(ijb) * vvelE_s(isN)
 
          ! divergence  =  e_11 + e_22
          divergU (ijb) = dyU(ijb) * ( uNip1j - uNij ) &
-                       + uvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) ) &
+                       + uvelU(is) * ( dyN_s(isE) - dyN_s(is) ) &
                        + dxU(ijb) * ( vEijp1 - vEij ) &
-                       + vvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) )
+                       + vvelU(is) * ( dxE_s(isN) - dxE_s(is) )
 
          ! tension strain rate  =  e_11 - e_22
          tensionU(ijb) = dyU(ijb) * ( uNip1j - uNij ) &
-                       - uvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) ) &
+                       - uvelU(is) * ( dyN_s(isE) - dyN_s(is) ) &
                        - dxU(ijb) * ( vEijp1 - vEij ) &
-                       + vvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) )
+                       + vvelU(is) * ( dxE_s(isN) - dxE_s(is) )
 
-         uEijp1 = uvelE(ijb+nx_block) * epm(ijb+nx_block) &
-                +(epm(ijb)-epm(ijb+nx_block)) * epm(ijb)   * ratiodyE(ijb)  * uvelE(ijb)
-         uEij   = uvelE(ijb) * epm(ijb) &
-                +(epm(ijb+nx_block)-epm(ijb)) * epm(ijb+nx_block) * ratiodyEr(ijb) * uvelE(ijb+nx_block)
-         vNip1j = vvelN(ijb+1) * npm(ijb+1) &
-                +(npm(ijb)-npm(ijb+1)) * npm(ijb)   * ratiodxN(ijb)  * vvelN(ijb)
-         vNij   = vvelN(ijb) * npm(ijb) &
-                +(npm(ijb+1)-npm(ijb)) * npm(ijb+1) * ratiodxNr(ijb) * vvelN(ijb+1)
+         uEijp1 = uvelE_s(isN) * epm_s(isN) &
+                +(epm_s(is)-epm_s(isN)) * epm_s(is)   * ratiodyE(ijb)  * uvelE_s(is)
+         uEij   = uvelE_s(is) * epm_s(is) &
+                +(epm_s(isN)-epm_s(is)) * epm_s(isN) * ratiodyEr(ijb) * uvelE_s(isN)
+         vNip1j = vvelN_s(isE) * npm_s(isE) &
+                +(npm_s(is)-npm_s(isE)) * npm_s(is)   * ratiodxN(ijb)  * vvelN_s(is)
+         vNij   = vvelN_s(is) * npm_s(is) &
+                +(npm_s(isE)-npm_s(is)) * npm_s(isE) * ratiodxNr(ijb) * vvelN_s(isE)
 
          ! shearing strain rate  =  2*e_12
-         shearU(ijb)   = dxU(ijb) * ( uEijp1 - uEij ) &
-                       - uvelU(ijb) * ( dxE(ijb+nx_block) - dxE(ijb) ) &
+         shearU_s(is)   = dxU(ijb) * ( uEijp1 - uEij ) &
+                       - uvelU(is) * ( dxE_s(isN) - dxE_s(is) ) &
                        + dyU(ijb) * ( vNip1j - vNij ) &
-                       - vvelU(ijb) * ( dyN(ijb+1) - dyN(ijb) )
+                       - vvelU(is) * ( dyN_s(isE) - dyN_s(is) )
 
          ! Delta (in the denominator of zeta, eta)
-         DeltaU(ijb)   = sqrt(divergU(ijb)**2 + e_factor*(tensionU(ijb)**2 + shearU(ijb)**2))
+         DeltaU(ijb)   = sqrt(divergU(ijb)**2 + e_factor*(tensionU(ijb)**2 + shearU_s(is)**2))
 
       enddo
 
@@ -4191,6 +4545,102 @@
 !
 ! No OpenMP here: this is a straight whole-array copy over the compressed
 ! extent, which has no block dimension to thread over.
+
+      subroutine stack_fields3_compressed(fld1, fld2, fld3, fldbundle)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      ! compressed: indexed by slot; each block's dead slot is its last
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         fld1, fld2, fld3
+
+      ! (slot, field)
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(stack_fields3_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fldbundle(:,1) = fld1(:)
+      fldbundle(:,2) = fld2(:)
+      fldbundle(:,3) = fld3(:)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields3_compressed
+
+!=======================================================================
+! Unbundle three COMPRESSED fields.  See stack_fields3_compressed.
+
+      subroutine unstack_fields3_compressed(fldbundle, fld1, fld2, fld3)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates
+
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
+         fld1, fld2, fld3
+
+      character(len=*), parameter :: subname = '(unstack_fields3_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fld1(:) = fldbundle(:,1)
+      fld2(:) = fldbundle(:,2)
+      fld3(:) = fldbundle(:,3)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields3_compressed
+
+!=======================================================================
+
+      subroutine stack_fields4_compressed(fld1, fld2, fld3, fld4, fldbundle)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      ! compressed: indexed by slot; each block's dead slot is its last
+      real (kind=dbl_kind), dimension (:), intent(in) :: &
+         fld1, fld2, fld3, fld4
+
+      ! (slot, field)
+      real (kind=dbl_kind), dimension (:,:), intent(out) :: &
+         fldbundle   ! work array for boundary updates
+
+      character(len=*), parameter :: subname = '(stack_fields4_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fldbundle(:,1) = fld1(:)
+      fldbundle(:,2) = fld2(:)
+      fldbundle(:,3) = fld3(:)
+      fldbundle(:,4) = fld4(:)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine stack_fields4_compressed
+
+!=======================================================================
+! Unbundle four COMPRESSED fields.  See stack_fields4_compressed.
+
+      subroutine unstack_fields4_compressed(fldbundle, fld1, fld2, fld3, fld4)
+
+      use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bundbound
+
+      real (kind=dbl_kind), dimension (:,:), intent(in) :: &
+         fldbundle   ! work array for boundary updates
+
+      real (kind=dbl_kind), dimension (:), intent(out) :: &
+         fld1, fld2, fld3, fld4
+
+      character(len=*), parameter :: subname = '(unstack_fields4_compressed)'
+
+      call ice_timer_start(timer_bundbound)
+      fld1(:) = fldbundle(:,1)
+      fld2(:) = fldbundle(:,2)
+      fld3(:) = fldbundle(:,3)
+      fld4(:) = fldbundle(:,4)
+      call ice_timer_stop(timer_bundbound)
+
+      end subroutine unstack_fields4_compressed
+
+!=======================================================================
 
       subroutine stack_fields2_compressed(fld1, fld2, fldbundle)
 
