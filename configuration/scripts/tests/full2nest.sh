@@ -28,26 +28,28 @@
 #------------------input--------------------------
 
 # case/path to full case
-CASE="bdyf21"
+CASE="fullcase01"
 PATH2hist="/glade/derecho/scratch/tcraig/CICE_RUNS/${CASE}/history/"
 PATH2rst="/glade/derecho/scratch/tcraig/CICE_RUNS/${CASE}/restart/"
 # ninest and njnest is the grid size of the nest (do not include halo)
+# nghost is the size of the halo
 ninest=12
 njnest=12
-# nis, njs are the full grid indices that align with i=1,j=1 in the nest active grid (not the halo)
-nis=42
-njs=42
+nghost=2
+# ibeg, jbeg are the full grid indices that align with i=1,j=1 in the nest active grid (not the halo)
+ibeg=42
+jbeg=42
 
 #----------------end input------------------------
 #
 # make the kmt_grid extended grid from full domain 
 # set ncks indexing to fortran (-F)
-# need to reduce nis and njs by 1 to extract halo
+# need to reduce ibeg and jbeg by nghost to extract halo
 
-nis=$(($nis - 1))
-njs=$(($njs - 1))
-nie=$(($nis + $ninest + 1))
-nje=$(($njs + $njnest + 1))
+nis=$(($ibeg - $nghost))
+njs=$(($jbeg - $nghost))
+nie=$(($ibeg + $ninest + $nghost - 1))
+nje=$(($jbeg + $njnest + $nghost - 1))
 echo "cutting extended grid i=$nis,$nie  j=$njs,$nje"
 
 # cut domain from history file of full domain: 

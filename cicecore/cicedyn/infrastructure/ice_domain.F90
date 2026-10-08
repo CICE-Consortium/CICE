@@ -139,6 +139,7 @@
                          max_blocks,   &
                          block_size_x, &
                          block_size_y, &
+                         nghost,       &
                          nx_global,    &
                          ny_global,    &
                          processor_shape,   &
@@ -177,6 +178,7 @@
    max_blocks        = -1          ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
+   nghost            = 1           ! gridcells in halo
    nx_global         = -1          ! NXGLOB,  i-axis size
    ny_global         = -1          ! NYGLOB,  j-axis size
    landblockelim     = .true.      ! on by default
@@ -234,8 +236,69 @@
    call broadcast_scalar(max_blocks,        master_task)
    call broadcast_scalar(block_size_x,      master_task)
    call broadcast_scalar(block_size_y,      master_task)
+   call broadcast_scalar(nghost,            master_task)
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
+
+   ! "compress" set_boundary_flds data
+   num_set_boundary_flds = 0
+   do n = 1,max_set_boundary_flds
+      if (set_boundary_flds(n) /= '' .and. set_boundary_flds(n) /= 'none') then
+         num_set_boundary_flds = num_set_boundary_flds + 1
+         set_boundary_flds(num_set_boundary_flds) = set_boundary_flds(n)
+      endif
+   enddo
+   set_boundary_flds(num_set_boundary_flds+1:max_set_boundary_flds) = ''
+
+!----------------------------------------------------------------------
+!
+! Set nprocs if not explicitly set to valid value in namelist
+!
+!----------------------------------------------------------------------
+
+#ifdef CESMCOUPLED
+   nprocs = get_num_procs()
+#else
+   if (nprocs < 0) then
+      nprocs = get_num_procs()
+   else if (nprocs /= get_num_procs()) then
+      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
+      call abort_ice(subname//' ERROR: Input nprocs not same as system (e.g MPI) request', file=__FILE__, line=__LINE__)
+   endif
+#endif
+
+!----------------------------------------------------------------------
+!
+!  Print some domain information
+!
+!----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     write(nu_diag,'(/,a18,/)')'Domain Information'
+     write(nu_diag,'(a,i6)')  '  Horizontal domain: nx = ', nx_global
+     write(nu_diag,'(a,i6)')  '                     ny = ', ny_global
+     write(nu_diag,'(a,i6)')  '  No. of categories: nc = ', ncat
+     write(nu_diag,'(a,i6)')  '  No. of ice layers: ni = ', nilyr
+     write(nu_diag,'(a,i6)')  '  No. of snow layers:ns = ', nslyr
+     write(nu_diag,'(a,i6)')  '  Processors:  total    = ', nprocs
+     write(nu_diag,'(a,a)')   '  Processor shape       = ', trim(processor_shape)
+     write(nu_diag,'(a,a)')   '  Distribution type     = ', trim(distribution_type)
+     write(nu_diag,'(a,a)')   '  Distribution weight   = ', trim(distribution_wght)
+     write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
+     write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
+     write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
+     do n = 1,num_set_boundary_flds
+        write(nu_diag,'(a,a)')   '  set_boundary_flds     = ', trim(set_boundary_flds(n))
+     enddo
+     write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
+     write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
+     write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
+     write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
+     write(nu_diag,'(a,l6)')  '  debug_blocks          = ', debug_blocks
+     write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
+     write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
+     write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
+   endif
 
 !----------------------------------------------------------------------
 !
@@ -274,33 +337,6 @@
       endif
    enddo
 
-   ! "compress" set_boundary_flds data
-   num_set_boundary_flds = 0
-   do n = 1,max_set_boundary_flds
-      if (set_boundary_flds(n) /= '' .and. set_boundary_flds(n) /= 'none') then
-         num_set_boundary_flds = num_set_boundary_flds + 1
-         set_boundary_flds(num_set_boundary_flds) = set_boundary_flds(n)
-      endif
-   enddo
-   set_boundary_flds(num_set_boundary_flds+1:max_set_boundary_flds) = ''
-
-!----------------------------------------------------------------------
-!
-! Set nprocs if not explicitly set to valid value in namelist
-!
-!----------------------------------------------------------------------
-
-#ifdef CESMCOUPLED
-   nprocs = get_num_procs()
-#else
-   if (nprocs < 0) then
-      nprocs = get_num_procs()
-   else if (nprocs /= get_num_procs()) then
-      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
-      call abort_ice(subname//' ERROR: Input nprocs not same as system (e.g MPI) request', file=__FILE__, line=__LINE__)
-   endif
-#endif
-
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -328,41 +364,6 @@
    call create_blocks(nx_global, ny_global, trim(ew_boundary_type), &
                                             trim(ns_boundary_type))
 
-!----------------------------------------------------------------------
-!
-!  Now we need grid info before proceeding further
-!  Print some domain information
-!
-!----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-     write(nu_diag,'(/,a18,/)')'Domain Information'
-     write(nu_diag,'(a,i6)')  '  Horizontal domain: nx = ', nx_global
-     write(nu_diag,'(a,i6)')  '                     ny = ', ny_global
-     write(nu_diag,'(a,i6)')  '  No. of categories: nc = ', ncat
-     write(nu_diag,'(a,i6)')  '  No. of ice layers: ni = ', nilyr
-     write(nu_diag,'(a,i6)')  '  No. of snow layers:ns = ', nslyr
-     write(nu_diag,'(a,i6)')  '  Processors:  total    = ', nprocs
-     write(nu_diag,'(a,a)')   '  Processor shape       = ', trim(processor_shape)
-     write(nu_diag,'(a,a)')   '  Distribution type     = ', trim(distribution_type)
-     write(nu_diag,'(a,a)')   '  Distribution weight   = ', trim(distribution_wght)
-     write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
-     write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
-     write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
-     do n = 1,num_set_boundary_flds
-        write(nu_diag,'(a,a)')   '  set_boundary_flds     = ', trim(set_boundary_flds(n))
-     enddo
-     write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
-     write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
-     write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
-     write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
-     write(nu_diag,'(a,l6)')  '  debug_blocks          = ', debug_blocks
-     write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
-     write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
-     write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
-   endif
-
-!----------------------------------------------------------------------
 
  end subroutine init_domain_blocks
 

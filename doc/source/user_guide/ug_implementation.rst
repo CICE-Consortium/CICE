@@ -460,7 +460,14 @@ that define which fields to set.  The boundary update
 is carried out with a call to *ice_restoring_halo* method in the file **ice_restoring.F90**.
 The exterior boundary data is set with the ``restore_data`` namelist option and the halo
 is always explicitly set to the boundary data, not restored, despite some of the naming conventions.
-See :ref:`restoring` for more information about restoring data.
+See :ref:`restoring` for more information about restoring data.  In practice, these restoring
+files must include the halo to support specifying regional boundary conditions.
+
+For regional grids, open boundary conditions (``open``, ``zero_gradient``, ``linear_extrap``) with
+or without boundary restoring are typically set.  In this case, ``nghost`` should be set to 2 in
+the ice namelist to support the remap advection scheme.  In practice,
+if specifying boundary conditions via ``set_boundary_flds``, this means the extended restoring files 
+will be 2 gridcells wider than the active domain in each direction.
 
 To produce exact restarts with boundary restoring, set ``restart_ext`` = true in namelist
 to generate extended-grid restart files.
