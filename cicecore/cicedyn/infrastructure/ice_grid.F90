@@ -31,7 +31,7 @@
           field_type_scalar, field_type_vector, field_type_angle
       use ice_communicate, only: my_task, master_task
       use ice_blocks, only: block, get_block, nx_block, ny_block, nghost, &
-          ew_boundary_type, ns_boundary_type
+          ew_boundary_type, ns_boundary_type, nblocks_x, nblocks_y
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
           init_domain_distribution
@@ -280,6 +280,8 @@
          tarea_slot  , & ! T-cell area        C/CD, weight for T2US
          earea_slot  , & ! E-cell area        C/CD, weight for E2UA, E2NA
          narea_slot  , & ! N-cell area        C/CD, weight for N2UA, N2EA
+         earear_slot , & ! 1/earea            C/CD, div_stress_E*
+         narear_slot , & ! 1/narea            C/CD, div_stress_N*
          hm_slot     , & ! T-cell land mask   C/CD, mask for T2US
          ! The four below are read at a neighbour by div_stress_*: Ex and Ey
          ! take dxU and dyT to the S and E, Nx and Ny take dxT and dyU to the
@@ -6590,6 +6592,8 @@
       use ice_domain_size, only: max_blocks
 
       logical (kind=log_kind), dimension(:,:), allocatable :: mask_any
+      logical (kind=log_kind) :: lextrap_ew, lextrap_ns
+      type (block) :: this_block_x   ! block info for the edge scan
       integer (kind=int_kind) :: ierr, iblk, i, j, ijb, m
 
       character(len=*), parameter :: subname = '(init_ragged_layout)'
@@ -6644,6 +6648,61 @@
       enddo
       enddo
 
+      ! ------------------------------------------------------------------
+      ! An extrapolating boundary reads two cells IN from the domain edge.
+      !
+      ! ice_HaloUpdate's zero_gradient and linear_extrap rules build each
+      ! outer ghost from array(ilo) and array(ilo+1) -- or array(ihi) and
+      ! array(ihi-1) -- on the blocks that carry the domain edge.  The
+      ! compressed layout has to be able to represent those two cells.
+      !
+      ! Where it cannot, the compressed halo's cval() substitutes +0, while
+      ! the block layout carries whatever the array holds.  At a land point
+      ! that is uvm-signed zero -- and uvm is NEGATIVE zero there, so
+      ! uvel = uvel*uvm is -0.  Numerically identical, bitwise not, and the
+      ! extrapolation propagates the sign into the ghost that restart_ext
+      ! writes.  That is the whole of gbox80 bclinearextrap gridc/gridcd:
+      ! every diagnostic compared equal and the restart byte comparison
+      ! still failed, on two cells out of 6724.
+      !
+      ! Only the blocks on the domain edge, and only when the rule is
+      ! actually in force, so no other configuration's layout moves.
+      ! ------------------------------------------------------------------
+      lextrap_ew = (ew_boundary_type == 'zero_gradient' .or. &
+                    ew_boundary_type == 'linear_extrap')
+      lextrap_ns = (ns_boundary_type == 'zero_gradient' .or. &
+                    ns_boundary_type == 'linear_extrap')
+
+      if (lextrap_ew .or. lextrap_ns) then
+         do iblk = 1, nblocks
+            this_block_x = get_block(blocks_ice(iblk),iblk)
+            if (lextrap_ew .and. this_block_x%iblock == 1) then
+               do j = 1, ny_block
+                  mask_any((j-1)*nx_block + this_block_x%ilo    ,iblk) = .true.
+                  mask_any((j-1)*nx_block + this_block_x%ilo + 1,iblk) = .true.
+               enddo
+            endif
+            if (lextrap_ew .and. this_block_x%iblock == nblocks_x) then
+               do j = 1, ny_block
+                  mask_any((j-1)*nx_block + this_block_x%ihi    ,iblk) = .true.
+                  mask_any((j-1)*nx_block + this_block_x%ihi - 1,iblk) = .true.
+               enddo
+            endif
+            if (lextrap_ns .and. this_block_x%jblock == 1) then
+               do i = 1, nx_block
+                  mask_any((this_block_x%jlo - 1)*nx_block + i,iblk) = .true.
+                  mask_any((this_block_x%jlo    )*nx_block + i,iblk) = .true.
+               enddo
+            endif
+            if (lextrap_ns .and. this_block_x%jblock == nblocks_y) then
+               do i = 1, nx_block
+                  mask_any((this_block_x%jhi - 1)*nx_block + i,iblk) = .true.
+                  mask_any((this_block_x%jhi - 2)*nx_block + i,iblk) = .true.
+               enddo
+            endif
+         enddo
+      endif
+
       call set_ragged_layout(mask_any, dynOff, dynCnt, dynTot, dynMap)
       deallocate(mask_any)
       dynMaxCnt = max(maxval(dynCnt), 1)
@@ -6669,6 +6728,7 @@
       allocate(uarear_slot(dynTot), dxN_slot(dynTot), dyE_slot(dynTot), &
                uarea_slot(dynTot), tarea_slot(dynTot),                  &
                earea_slot(dynTot), narea_slot(dynTot), hm_slot(dynTot), &
+               earear_slot(dynTot), narear_slot(dynTot), &
                dxU_slot(dynTot), dyT_slot(dynTot),                      &
                dxT_slot(dynTot), dyU_slot(dynTot),                      &
                dxE_slot(dynTot), dyN_slot(dynTot),                      &
@@ -6681,6 +6741,7 @@
       uarear_slot = c0 ; dxN_slot   = c0 ; dyE_slot   = c0
       uarea_slot  = c0 ; tarea_slot = c0
       earea_slot  = c0 ; narea_slot = c0 ; hm_slot    = c0
+      earear_slot = c0 ; narear_slot = c0
       dxU_slot    = c0 ; dyT_slot   = c0
       dxT_slot    = c0 ; dyU_slot   = c0
       dxE_slot    = c0 ; dyN_slot   = c0
@@ -6702,6 +6763,10 @@
               tarea_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(earea (:,iblk), dynMap(:,iblk), &
               earea_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(earear(:,iblk), dynMap(:,iblk), &
+              earear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(narear(:,iblk), dynMap(:,iblk), &
+              narear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(narea (:,iblk), dynMap(:,iblk), &
               narea_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(hm    (:,iblk), dynMap(:,iblk), &

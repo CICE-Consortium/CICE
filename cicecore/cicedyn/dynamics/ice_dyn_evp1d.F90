@@ -164,6 +164,12 @@ module ice_dyn_evp1d
     use ice_calendar, only : write_history, write_restart, write_ic
     use ice_dyn_shared, only : ndte
     use ice_dyn_core1d, only : stress_1d, stepu_1d, calc_diag_1d
+    ! strintxU/strintyU and taubxU/taubyU are diagnostics: history is their
+    ! only consumer.  When no stream wants them this step, calc_diag_1d is
+    ! skipped and four of scatter_dyn's six collectives go with it.
+    use ice_history_shared, only: hist_field_needed, &
+        n_strintx, n_strinty, n_siforceintstrx, n_siforceintstry, &
+        n_taubx  , n_tauby
     use ice_timers    , only : ice_timer_start, ice_timer_stop, timer_evp1dcore
 
     use icepack_intfc , only : icepack_query_parameters, icepack_warnings_flush, &
@@ -217,6 +223,9 @@ module ice_dyn_evp1d
     logical(kind=log_kind), dimension (nx,ny) ::                 &
       G_iceUmask  , G_iceTmask
 
+    ! does any history stream want strint/taub this step?
+    logical(kind=log_kind) :: lstrint, ltaub
+
     character(len=*), parameter :: subname = '(dyn_evp1d_run)'
 
     integer(kind=int_kind) :: ksub, iw
@@ -256,6 +265,11 @@ module ice_dyn_evp1d
                             G_stress12_1, G_stress12_2, G_stress12_3, G_stress12_4)
     endif
     stresses_seeded = .true.
+
+    lstrint = hist_field_needed(n_strintx) .or. hist_field_needed(n_strinty) .or. &
+              hist_field_needed(n_siforceintstrx) .or. &
+              hist_field_needed(n_siforceintstry)
+    ltaub   = hist_field_needed(n_taubx  ) .or. hist_field_needed(n_tauby  )
 
     if (my_task == master_task) then
        call set_skipMe(G_iceTmask, G_iceUmask,nActive)
@@ -335,8 +349,9 @@ module ice_dyn_evp1d
                           nw, sw, sse, skipUcell, Tbu, Cb, rhow)
           call evp1d_halo_update()
        enddo
-       ! This can be skipped if diagnostics of strintx and strinty is not needed
-       ! They will either both be calculated or not.
+       ! Skipped outright when no history stream wants strintx/strinty --
+       ! which is what the comment here used to say was possible.
+       if (lstrint) &
        call calc_diag_1d(1        , nActive  , &
                          uarear_1d, skipUcell, &
                          str1     , str2     , &
@@ -370,17 +385,19 @@ module ice_dyn_evp1d
                      L_strintxU  , L_strintyU  ,  L_uvel     , L_vvel      , &
                      L_taubxU    , L_taubyU    ,                             &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
-                     G_taubxU    , G_taubyU)
+                     G_taubxU    , G_taubyU    , lstrint     , ltaub)
 
     ! The twelve stresses go back only when a file is due.  Nothing outside
     ! the dynamics reads them in between -- ice_history touches them only
     ! inside its own write_history gate -- and the 1d arrays carry the state
     ! onward, so scattering every timestep was writing values no one read.
     !
-    ! strintxU, strintyU, taubxU and taubyU are NOT deferred, above: history
-    ! accumulates those into a running average every timestep
-    ! (accum_hist_field, before that gate), so they really are consumed each
-    ! step rather than only at write time.
+    ! strintxU, strintyU, taubxU and taubyU cannot be deferred to a write
+    ! step the way the stresses are -- with hist_avg the accumulator sums
+    ! them every timestep -- but they CAN be skipped entirely when no stream
+    ! asks for them, which is what lstrint/ltaub above do.  hist_field_needed
+    ! also covers the snapshot case, where only the write step's value
+    ! survives.
     if (any(write_history) .or. write_restart == 1 .or. write_ic) then
        call scatter_stresses(L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 , &
                              L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 , &
@@ -926,7 +943,7 @@ module ice_dyn_evp1d
   subroutine scatter_dyn(                         L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
                          L_taubxU    , L_taubyU    ,                             &
                          G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
-                         G_taubxU    , G_taubyU )
+                         G_taubxU    , G_taubyU    , lstrint     , ltaub )
 
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : scatter_global
@@ -947,17 +964,27 @@ module ice_dyn_evp1d
         G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
         G_taubxU    , G_taubyU
 
+     ! whether history wants the four diagnostics this step
+     logical(kind=log_kind), intent(in) :: lstrint, ltaub
+
      character(len=*), parameter :: subname = '(scatter_dyn)'
 
 
 
 
-     call scatter_global(L_strintxU  , G_strintxU  , master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_strintyU  , G_strintyU  , master_task, distrb_info, grid_ext=.true.)
+     ! uvel and vvel always; the four diagnostics only when a history
+     ! stream wants them, which is four collectives per timestep saved in
+     ! the common case where it does not.
+     if (lstrint) then
+        call scatter_global(L_strintxU  , G_strintxU  , master_task, distrb_info, grid_ext=.true.)
+        call scatter_global(L_strintyU  , G_strintyU  , master_task, distrb_info, grid_ext=.true.)
+     endif
      call scatter_global(L_uvel      , G_uvel      , master_task, distrb_info, grid_ext=.true.)
      call scatter_global(L_vvel      , G_vvel      , master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_taubxU    , G_taubxU    , master_task, distrb_info, grid_ext=.true.)
-     call scatter_global(L_taubyU    , G_taubyU    , master_task, distrb_info, grid_ext=.true.)
+     if (ltaub) then
+        call scatter_global(L_taubxU    , G_taubxU    , master_task, distrb_info, grid_ext=.true.)
+        call scatter_global(L_taubyU    , G_taubyU    , master_task, distrb_info, grid_ext=.true.)
+     endif
 
   end subroutine scatter_dyn
 

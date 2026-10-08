@@ -82,7 +82,7 @@ module ice_dyn_core1d
                               p222, p25, p333, p5
 
     use ice_dyn_shared, only: arlx1i, denom1, revp,         &
-                              visc_replpress
+                              visc_replpress, strain_rates
     !
     implicit none
     ! arguments ------------------------------------------------------------------
@@ -214,10 +214,13 @@ module ice_dyn_core1d
       !--------------------------------------------------------------------------
       ! strain rates - NOTE these are actually strain rates * area  (m^2/s)
       !--------------------------------------------------------------------------
-      call strain_rates_1d (tmp_uvel_cc, tmp_vvel_cc, &
-                            tmp_uvel_ee, tmp_vvel_ee, &
-                            tmp_uvel_se, tmp_vvel_se, &
-                            tmp_uvel_ne, tmp_vvel_ne, &
+      ! strain_rates is shared with the 2d solver.  Its stencil slots are
+      ! named from the other origin -- 00/W/S/SW here is cc/ee/se/ne -- the
+      ! two index spaces sitting one cell apart; the arithmetic is the same.
+      call strain_rates    (tmp_uvel_cc, tmp_uvel_ee, &
+                            tmp_uvel_se, tmp_uvel_ne, &
+                            tmp_vvel_cc, tmp_vvel_ee, &
+                            tmp_vvel_se, tmp_vvel_ne, &
                             tmp_dxT    , tmp_dyT    , &
                             tmp_cxp    , tmp_cyp    , &
                             tmp_cxm    , tmp_cym    , &
@@ -383,101 +386,6 @@ module ice_dyn_core1d
 #endif
   end subroutine stress_1d
 
-  !=============================================================================
-  ! Compute strain rates
-  !
-  ! author: Elizabeth C. Hunke, LANL
-  !
-  ! 2019: subroutine created by Philippe Blain, ECCC
-  subroutine strain_rates_1d (tmp_uvel_cc, tmp_vvel_cc, &
-                              tmp_uvel_ee, tmp_vvel_ee, &
-                              tmp_uvel_se, tmp_vvel_se, &
-                              tmp_uvel_ne, tmp_vvel_ne, &
-                              dxT        , dyT        , &
-                              cxp        , cyp        , &
-                              cxm        , cym        , &
-                              divune     , divunw     , &
-                              divuse     , divusw     , &
-                              tensionne  , tensionnw  , &
-                              tensionse  , tensionsw  , &
-                              shearne    , shearnw    , &
-                              shearse    , shearsw    , &
-                              Deltane    , Deltanw    , &
-                              Deltase    , Deltasw )
-
-    use ice_kinds_mod
-
-    real (kind=dbl_kind), intent(in) ::                    &
-       tmp_uvel_ee, tmp_vvel_ee, tmp_uvel_se, tmp_vvel_se, &
-       tmp_uvel_cc, tmp_vvel_cc, tmp_uvel_ne, tmp_vvel_ne
-
-    real (kind=dbl_kind), intent(in) :: &
-       dxT      ,                       & ! width of T-cell through the middle (m)
-       dyT      ,                       & ! height of T-cell through the middle (m)
-       cyp      ,                       & ! 1.5*HTE - 0.5*HTW
-       cxp      ,                       & ! 1.5*HTN - 0.5*HTS
-       cym      ,                       & ! 0.5*HTE - 1.5*HTW
-       cxm                                ! 0.5*HTN - 1.5*HTS
-
-    real (kind=dbl_kind), intent(out)::            & ! at each corner :
-       divune, divunw, divuse, divusw            , & ! divergence
-       tensionne, tensionnw, tensionse, tensionsw, & ! tension
-       shearne, shearnw, shearse, shearsw        , & ! shearing
-       Deltane, Deltanw, Deltase, Deltasw            ! Delta
-
-    character(len=*), parameter :: subname = '(strain_rates_1d)'
-
-    !-----------------------------------------------------------------------------
-    ! strain rates
-    ! NOTE these are actually strain rates * area  (m^2/s)
-    !-----------------------------------------------------------------------------
-
-    ! divergence  =  e_11 + e_22
-    divune    = cyp*tmp_uvel_cc - dyT*tmp_uvel_ee &
-              + cxp*tmp_vvel_cc - dxT*tmp_vvel_se
-
-    divunw    = cym*tmp_uvel_ee + dyT*tmp_uvel_cc &
-              + cxp*tmp_vvel_ee - dxT*tmp_vvel_ne
-
-    divusw    = cym*tmp_uvel_ne + dyT*tmp_uvel_se &
-              + cxm*tmp_vvel_ne + dxT*tmp_vvel_ee
-
-    divuse    = cyp*tmp_uvel_se - dyT*tmp_uvel_ne &
-              + cxm*tmp_vvel_se + dxT*tmp_vvel_cc
-
-    ! tension strain rate  =  e_11 - e_22
-    tensionne = -cym*tmp_uvel_cc - dyT*tmp_uvel_ee &
-                +cxm*tmp_vvel_cc + dxT*tmp_vvel_se
-
-    tensionnw = -cyp*tmp_uvel_ee + dyT*tmp_uvel_cc&
-                +cxm*tmp_vvel_ee + dxT*tmp_vvel_ne
-
-    tensionsw = -cyp*tmp_uvel_ne + dyT*tmp_uvel_se &
-                +cxp*tmp_vvel_ne - dxT*tmp_vvel_ee
-
-    tensionse = -cym*tmp_uvel_se - dyT*tmp_uvel_ne &
-                +cxp*tmp_vvel_se - dxT*tmp_vvel_cc
-
-    ! shearing strain rate  =  2*e_12
-    shearne   = -cym*tmp_vvel_cc - dyT*tmp_vvel_ee &
-                -cxm*tmp_uvel_cc - dxT*tmp_uvel_se
-
-    shearnw   = -cyp*tmp_vvel_ee + dyT*tmp_vvel_cc &
-                -cxm*tmp_uvel_ee - dxT*tmp_uvel_ne
-
-    shearsw   = -cyp*tmp_vvel_ne + dyT*tmp_vvel_se &
-                -cxp*tmp_uvel_ne + dxT*tmp_uvel_ee
-
-    shearse   = -cym*tmp_vvel_se - dyT*tmp_vvel_ne &
-                -cxp*tmp_uvel_se + dxT*tmp_uvel_cc
-
-    ! Delta (in the denominator of zeta, eta)
-    Deltane   = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
-    Deltanw   = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
-    Deltasw   = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
-    Deltase   = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
-
-  end subroutine strain_rates_1d
 
   !=============================================================================
   ! Calculation of the surface stresses

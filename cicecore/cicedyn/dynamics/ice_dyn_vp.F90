@@ -46,7 +46,7 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
-          cosw, sinw, fcor_blk, uvel_init, vvel_init, dynOff, dynCnt, dynMap, skipU, &
+          cosw, sinw, fcor_blk, uvel_init, vvel_init, dynOff, dynCnt, dynMap, skipT, skipU, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
       use ice_fileunits, only: nu_diag
@@ -379,6 +379,7 @@
                          uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                          uvel      (:,:,iblk), vvel      (:,:,iblk), &
                         dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                        skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                          TbU       (:,iblk))
 
          call calc_bfix (nx_block            , ny_block            , &
@@ -1224,15 +1225,13 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            ijb                  , &
-                            uvel(ijb), uvel(ijb-1), &
+         call strain_rates (                            uvel(ijb), uvel(ijb-1), &
                             uvel(ijb-nx_block), uvel(ijb-nx_block-1), &
                             vvel(ijb), vvel(ijb-1), &
                             vvel(ijb-nx_block), vvel(ijb-nx_block-1), &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
+                            dxT(ijb) , dyT(ijb) , &
+                            cxp(ijb) , cyp(ijb) , &
+                            cxm(ijb) , cym(ijb) , &
                             divune   , divunw   , &
                             divuse   , divusw   , &
                             tensionne, tensionnw, &
@@ -1411,15 +1410,13 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            ijb                  , &
-                            uvel(ijb), uvel(ijb-1), &
+         call strain_rates (                            uvel(ijb), uvel(ijb-1), &
                             uvel(ijb-nx_block), uvel(ijb-nx_block-1), &
                             vvel(ijb), vvel(ijb-1), &
                             vvel(ijb-nx_block), vvel(ijb-nx_block-1), &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
+                            dxT(ijb) , dyT(ijb) , &
+                            cxp(ijb) , cyp(ijb) , &
+                            cxm(ijb) , cym(ijb) , &
                             divune   , divunw   , &
                             divuse   , divusw   , &
                             tensionne, tensionnw, &
@@ -1684,15 +1681,13 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            ijb                  , &
-                            uvel(ijb), uvel(ijb-1), &
+         call strain_rates (                            uvel(ijb), uvel(ijb-1), &
                             uvel(ijb-nx_block), uvel(ijb-nx_block-1), &
                             vvel(ijb), vvel(ijb-1), &
                             vvel(ijb-nx_block), vvel(ijb-nx_block-1), &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
+                            dxT(ijb) , dyT(ijb) , &
+                            cxp(ijb) , cyp(ijb) , &
+                            cxm(ijb) , cym(ijb) , &
                             divune   , divunw   , &
                             divuse   , divusw   , &
                             tensionne, tensionnw, &

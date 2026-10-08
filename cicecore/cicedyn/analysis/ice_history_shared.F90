@@ -35,6 +35,7 @@
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
+      public :: hist_field_needed
 
       integer (kind=int_kind), public :: history_precision
 
@@ -775,6 +776,45 @@
 !=======================================================================
 
       contains
+
+!=======================================================================
+
+! Does any history stream need this field's value on THIS timestep?
+!
+! Pass the field's n_* index array -- the same one accum_hist_field takes.
+! A field no stream requests is never read, so whatever produces it need not
+! run at all.  A requested one still need not be produced every step: with
+! hist_avg the accumulator sums every timestep, so the value is needed every
+! time, but for snapshots accum_hist zeroes the accumulator at the start of
+! each step and only the write step's value survives.
+!
+! This exists for the dynamics diagnostics -- strintx/strinty and
+! taubx/tauby, which history is the sole consumer of -- so that the solvers
+! can skip building them.  Anything whose value feeds the solution must NOT
+! be gated on this.
+
+      logical function hist_field_needed (id)
+
+      use ice_calendar, only: nstreams, write_history, write_ic
+
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         id          ! per-stream history index, 0 where not requested
+
+      integer (kind=int_kind) :: ns
+
+      character(len=*), parameter :: subname = '(hist_field_needed)'
+
+      hist_field_needed = .false.
+      do ns = 1, nstreams
+         if (id(ns) > 0) then
+            if (hist_avg(ns) .or. write_history(ns) .or. write_ic) then
+               hist_field_needed = .true.
+               return
+            endif
+         endif
+      enddo
+
+      end function hist_field_needed
 
 !=======================================================================
 
