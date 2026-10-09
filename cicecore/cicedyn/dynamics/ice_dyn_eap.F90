@@ -25,7 +25,6 @@
           p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
-      use ice_diagnostics, only: diagnostic_abort
       use ice_flux, only: rdg_shear
 !      use ice_timers, only:  &
 !          ice_timer_start, ice_timer_stop, &
@@ -363,10 +362,6 @@
                                       aicen    = aicen   (i,j,:,iblk), &
                                       vicen    = vicen   (i,j,:,iblk), &
                                       strength = strength(i,j,  iblk) )
-
-            if (icepack_warnings_aborted()) then
-               call diagnostic_abort(i, j, iblk, subname//' icepack_ice_strength aborted')
-            endif
          enddo  ! ij
       enddo  ! iblk
       !$OMP END PARALLEL DO

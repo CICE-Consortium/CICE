@@ -203,10 +203,10 @@
                         fswpenln = fswpenln(i,j,:,:,iblk), &
                         Sswabsn  = Sswabsn (i,j,:,:,iblk), Iswabsn  = Iswabsn (i,j,:,:,iblk))
 
-            if (icepack_warnings_aborted()) then
-               ! print location (global i/j, lat/lon) and ice state and abort
-               call diagnostic_abort(i, j, iblk, subname//' icepack_prep_radiation aborted')
-            endif
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_prep_radiation aborted')
+            ! endif
 
          enddo               ! i
          enddo               ! j
@@ -960,10 +960,10 @@
                                            trcrn       = trcrn          (i,j,:,:,iblk), &
                                            d_afsd_wave = d_afsd_wave    (i,j,:,  iblk), &
                                            wave_height = wave_sig_ht    (i,j,    iblk))
-            if (icepack_warnings_aborted()) then
-               ! print location (global i/j, lat/lon) and ice state and abort
-               call diagnostic_abort(i, j, iblk, subname//' icepack_step_wavefracture aborted')
-            endif
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_wavefracture aborted')
+            ! endif
          end do ! i
          end do ! j
       end do    ! iblk
@@ -1183,10 +1183,10 @@
                          dpnd_ridge=dpnd_ridge(i,j,  iblk))
          endif ! tmask
 
-         if (icepack_warnings_aborted()) then
-            ! print location (global i/j, lat/lon) and ice state and abort
-            call diagnostic_abort(i, j, iblk, subname//' icepack_step_ridge aborted')
-         endif
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_ridge aborted')
+         ! endif
 
       enddo ! i
       enddo ! j
@@ -1292,10 +1292,10 @@
                      fsloss = fsloss  (i,j,iblk),        &
                      fsnow  = fsnow   (i,j,iblk))
 
-         if (icepack_warnings_aborted()) then
-            ! print location (global i/j, lat/lon) and ice state and abort
-            call diagnostic_abort(i, j, iblk, subname//' icepack_step_snow aborted')
-         endif
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_snow aborted')
+         ! endif
 
       enddo ! i
       enddo ! j
@@ -1493,10 +1493,10 @@
            enddo
          endif
 
-         if (icepack_warnings_aborted()) then
-            ! print location (global i/j, lat/lon) and ice state and abort
-            call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
-         endif
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
+         ! endif
 
       enddo ! i
       enddo ! j
@@ -1622,10 +1622,10 @@
                          Cdn_atm = Cdn_atm    (i,j,iblk), &
                          Cdn_atm_ratio_n = Cdn_atm_ratio(i,j,iblk))
 
-            if (icepack_warnings_aborted()) then
-               ! print location (global i/j, lat/lon) and ice state and abort
-               call diagnostic_abort(i, j, iblk, subname//' icepack_atm_boundary aborted')
-            endif
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_atm_boundary aborted')
+            ! endif
          enddo ! ij
 
          call icepack_warnings_flush(nu_diag)
@@ -1664,10 +1664,10 @@
                                       Tf       =Tf       (i,j,iblk), qdp   =qdp   (i,j,iblk), &
                                       frzmlt   =frzmlt   (i,j,iblk), dt    =dt)
 
-         if (icepack_warnings_aborted()) then
-            ! print location (global i/j, lat/lon) and ice state and abort
-            call diagnostic_abort(i, j, iblk, subname//' icepack_ocn_mixed_layer aborted')
-         endif
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_ocn_mixed_layer aborted')
+         ! endif
       enddo                    ! ij
 
       call icepack_warnings_flush(nu_diag)
@@ -1813,10 +1813,10 @@
                               trcrn        = trcrn       (i,j,:,:,      iblk), &
                               vsnon_init   = vsnon_init  (i,j,:,        iblk))
 
-         if (icepack_warnings_aborted()) then
-            ! print location (global i/j, lat/lon) and ice state and abort
-            call diagnostic_abort(i, j, iblk, subname//' icepack_biogeochemistry aborted')
-         endif
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_biogeochemistry aborted')
+         ! endif
 
       enddo               ! i
       enddo               ! j

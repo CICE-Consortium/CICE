@@ -75,11 +75,14 @@ Overall, CICE code should be implemented as follows,
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
-    For Icepack calls within i,j loops, check **icepack_warnings_aborted** inside the loop and call
-    ``diagnostic_abort``, which writes the Icepack messages, the location (global i/j, lat/lon) and
-    ice state of the failing grid cell before aborting.  Flush the Icepack messages once after the
-    loop, since **icepack_warnings_flush** contains an OpenMP critical region and is costly to call
-    for every grid cell in threaded runs,
+    To identify the grid cell where Icepack fails, check **icepack_warnings_aborted** inside the
+    i,j loop and call ``diagnostic_abort``, which writes the Icepack messages, the location (global
+    i/j, lat/lon) and ice state of the failing grid cell, then aborts.  This check is active by default
+    after **icepack_step_therm1** and **icepack_step_therm2** in **ice_step_mod.F90**, where Icepack
+    failures are most common.  The same check is included but commented out after the other Icepack
+    calls in **ice_step_mod.F90**, and can be uncommented when debugging.  **icepack_warnings_flush**
+    contains an OpenMP critical region and should be called once after the loop, not for every grid
+    cell,
 
     .. code-block:: fortran
 

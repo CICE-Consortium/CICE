@@ -54,7 +54,6 @@
       use ice_global_reductions, only: global_sum
       use ice_grid, only: dxT, dyT, uarear
       use ice_exit, only: abort_ice
-      use ice_diagnostics, only: diagnostic_abort
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_ice_strength, icepack_query_parameters
 
@@ -391,10 +390,6 @@
                                        aicen = aicen      (i,j,:,iblk), &
                                        vicen = vicen      (i,j,:,iblk), &
                                        strength = strength(i,j,  iblk))
-
-            if (icepack_warnings_aborted()) then
-               call diagnostic_abort(i, j, iblk, subname//' icepack_ice_strength aborted')
-            endif
          enddo  ! ij
 
       enddo  ! iblk
