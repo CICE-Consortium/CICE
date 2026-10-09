@@ -179,7 +179,12 @@ module ice_dyn_evp1d
 
     ! nx_block, ny_block, max_blocks
     real(kind=dbl_kind)   , dimension(:,:,:), intent(inout) :: &
-      L_strintxU  , L_strintyU  , L_uvel      , L_vvel
+      L_strintxU  , L_strintyU
+
+    ! uvel/vvel have their i and j dimensions flattened; gather_global and
+    ! scatter_global resolve to their _flat specifics
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) :: &
+      L_uvel      , L_vvel
 
     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
     ! lives at ((j-1)*nx_block + i, iblk)
@@ -844,7 +849,10 @@ module ice_dyn_evp1d
      ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
         L_strength  ,                                           &
-        L_cdn_ocn   , L_uocn      , L_vocn      ,               &
+        L_cdn_ocn   , L_uocn      , L_vocn
+
+     ! uvel/vvel flattened, as L_umass and L_Tbu below
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
         L_uvel      , L_vvel
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
@@ -952,7 +960,11 @@ module ice_dyn_evp1d
 
      ! nx_block, ny_block, max_blocks
      real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
-        L_strintxU  , L_strintyU  , L_uvel      , L_vvel
+        L_strintxU  , L_strintyU
+
+     ! uvel/vvel flattened
+     real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
+        L_uvel      , L_vvel
 
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)

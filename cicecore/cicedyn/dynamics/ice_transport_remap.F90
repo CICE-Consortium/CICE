@@ -337,7 +337,9 @@
       integer (kind=int_kind), intent(in) :: &
          ntrace   ! number of tracers in use
 
-      real (kind=dbl_kind), intent(in), dimension(nx_block,ny_block,max_blocks) :: &
+      ! uvel/vvel have their i and j dimensions flattened: element (i,j,iblk)
+      ! lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), intent(in), dimension(nx_block*ny_block,max_blocks) :: &
          uvel,  & ! x-component of velocity (m/s) ugrid
          vvel     ! y-component of velocity (m/s) ugrid
 
@@ -522,7 +524,7 @@
          call departure_points(nx_block,         ny_block,          &
                                ilo, ihi,         jlo, jhi,          &
                                nghost,           dt,                &
-                               uvel  (:,:,iblk), vvel(:,:,iblk),    &
+                               uvel(:,iblk), vvel(:,iblk),    &
                                dxu   (:, iblk), dyu (:, iblk),    &
                                HTN   (:, iblk), HTE (:, iblk),    &
                                dpx   (:,:,iblk), dpy (:,:,iblk),    &
@@ -658,14 +660,14 @@
             else
                do j = jlo, jhi
                do i = ilo-1, ihi
-                  edgearea_e(i,j) = (uvel(i,j,iblk) + uvel(i,j-1,iblk)) &
+                  edgearea_e(i,j) = (uvel((j-1)*nx_block+i,iblk) + uvel((j-1-1)*nx_block+i,iblk)) &
                                         * p5 * HTE((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
 
                do j = jlo-1, jhi
                do i = ilo, ihi
-                  edgearea_n(i,j) = (vvel(i,j,iblk) + vvel(i-1,j,iblk)) &
+                  edgearea_n(i,j) = (vvel((j-1)*nx_block+i,iblk) + vvel((j-1)*nx_block+i-1,iblk)) &
                                         * p5 * HTN((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
@@ -1464,9 +1466,13 @@
       real (kind=dbl_kind), intent(in) ::   &
          dt               ! time step (s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) ::   &
          uvel         , & ! x-component of velocity (m/s)
-         vvel         , & ! y-component of velocity (m/s)
+         vvel             ! y-component of velocity (m/s)
+
+      ! these four are flat in the caller too, but this routine still indexes
+      ! them (i,j); left as they were so this change stays about uvel/vvel
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
          dxu          , & ! E-W dimensions of U-cell (m)
          dyu          , & ! N-S dimensions of U-cell (m)
          HTN          , & ! length of north face of T-cell (m)
@@ -1513,8 +1519,8 @@
       do j = jlo-nghost+1, jhi+nghost-1
       do i = ilo-nghost+1, ihi+nghost-1
 
-         dpx(i,j) = -dt*uvel(i,j)
-         dpy(i,j) = -dt*vvel(i,j)
+         dpx(i,j) = -dt*uvel((j-1)*nx_block+i)
+         dpy(i,j) = -dt*vvel((j-1)*nx_block+i)
 
          ! Check for values out of bounds (more than one grid cell away)
          if (dpx(i,j) < -HTN(i,j) .or. dpx(i,j) > HTN(i+1,j) .or.   &
@@ -1544,7 +1550,7 @@
 
          do j = jlo-nghost+1, jhi+nghost-1
          do i = ilo-nghost+1, ihi+nghost-1
-            if (uvel(i,j)/=c0 .or. vvel(i,j)/=c0) then
+            if (uvel((j-1)*nx_block+i)/=c0 .or. vvel((j-1)*nx_block+i)/=c0) then
 
                !-------------------------------------------------------------------
                ! Scale departure points to coordinate system in which grid cells
@@ -1595,15 +1601,15 @@
                ! trajectory midpoint in the (i2,j2) reference frame.
                !-------------------------------------------------------------------
 
-               ump = uvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
-                   - uvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
-                   + uvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
-                   - uvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
+               ump = uvel((j2-1-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt-p5)     &
+                   - uvel((j2-1-1)*nx_block+i2)*(mpxt+p5)*(mpyt-p5)     &
+                   + uvel((j2-1)*nx_block+i2)*(mpxt+p5)*(mpyt+p5)     &
+                   - uvel((j2-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt+p5)
 
-               vmp = vvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
-                   - vvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
-                   + vvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
-                   - vvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
+               vmp = vvel((j2-1-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt-p5)     &
+                   - vvel((j2-1-1)*nx_block+i2)*(mpxt+p5)*(mpyt-p5)     &
+                   + vvel((j2-1)*nx_block+i2)*(mpxt+p5)*(mpyt+p5)     &
+                   - vvel((j2-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt+p5)
 
                !-------------------------------------------------------------------
                ! Use the midpoint velocity to estimate the coordinates of the

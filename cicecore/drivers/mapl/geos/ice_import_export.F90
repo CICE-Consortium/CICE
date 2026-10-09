@@ -535,10 +535,10 @@ contains
                                  worky*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
              tauyo(i1,j1) = real(worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + &
                                  workx*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
-             workx        = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
-                               + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
-             worky        = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
-                               + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
+             workx        = p25*(uvel((j-1)*nx_block+i,iblk) + uvel((j-1)*nx_block+i-1,iblk) & ! cell-centered velocity
+                               + uvel((j-1-1)*nx_block+i,iblk) + uvel((j-1-1)*nx_block+i-1,iblk))  ! assumes wind components
+             worky        = p25*(vvel((j-1)*nx_block+i,iblk) + vvel((j-1)*nx_block+i-1,iblk) & ! are also cell-centered
+                               + vvel((j-1-1)*nx_block+i,iblk) + vvel((j-1-1)*nx_block+i-1,iblk))
              ui(i1,j1)    = real(workx*cos(ANGLET((j-1)*nx_block+i,iblk)) - &
                                  worky*sin(ANGLET((j-1)*nx_block+i,iblk)), kind=real_kind)
              vi(i1,j1)    = real(worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + &

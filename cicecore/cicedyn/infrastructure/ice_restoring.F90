@@ -259,8 +259,11 @@
             vicen_restoring(:,:,:,:) = vicen(:,:,:,:)
             vsnon_restoring(:,:,:,:) = vsnon(:,:,:,:)
             trcrn_restoring(:,:,:,:,:) = trcrn(:,:,:,:,:)
-            uvel_restoring(:,:,:) = uvel(:,:,:)
-            vvel_restoring(:,:,:) = vvel(:,:,:)
+            ! uvel/vvel are flattened, uvel_restoring is not -- it is read
+            ! through ice_read_nc with grid_ext, so its shape is I/O's.  The
+            ! storage order is the same, so reshape is exact.
+            uvel_restoring(:,:,:) = reshape(uvel, shape(uvel_restoring))
+            vvel_restoring(:,:,:) = reshape(vvel, shape(vvel_restoring))
          endif
 
       elseif (restore_data == 'defined') then
@@ -1128,8 +1131,8 @@
          elseif (halo) then   ! set values explicitly
             do i = i1,i2
             do j = j1,j2
-               uvel(i,j,iblk) = uvel_restoring(i,j,iblk)
-               vvel(i,j,iblk) = vvel_restoring(i,j,iblk)
+               uvel((j-1)*nx_block+i,iblk) = uvel_restoring(i,j,iblk)
+               vvel((j-1)*nx_block+i,iblk) = vvel_restoring(i,j,iblk)
             enddo
             enddo
          else              ! restoring
@@ -1138,8 +1141,8 @@
                if (mask_restoring(i,j,iblk)) then
                   vr1 = fval_restoring(i,j,iblk)
                   vv2 = c1 - vr1
-                  uvel(i,j,iblk) = uvel_restoring(i,j,iblk)*vr1 + uvel(i,j,iblk)*vv2
-                  vvel(i,j,iblk) = vvel_restoring(i,j,iblk)*vr1 + vvel(i,j,iblk)*vv2
+                  uvel((j-1)*nx_block+i,iblk) = uvel_restoring(i,j,iblk)*vr1 + uvel((j-1)*nx_block+i,iblk)*vv2
+                  vvel((j-1)*nx_block+i,iblk) = vvel_restoring(i,j,iblk)*vr1 + vvel((j-1)*nx_block+i,iblk)*vv2
                endif
             enddo
             enddo

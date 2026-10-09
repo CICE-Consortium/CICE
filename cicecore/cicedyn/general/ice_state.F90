@@ -105,9 +105,14 @@
       ! dynamic variables closely related to the state of the ice
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+      ! uvel and vvel have their i and j dimensions flattened: element
+      ! (i,j,iblk) lives at ((j-1)*nx_block + i, iblk), as aiU and aice_init
+      ! below already do.
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          uvel     , & ! x-component of velocity on U grid (m/s)
-         vvel     , & ! y-component of velocity on U grid (m/s)
+         vvel         ! y-component of velocity on U grid (m/s)
+
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          uvelE    , & ! x-component of velocity on E grid (m/s)
          vvelE    , & ! y-component of velocity on E grid (m/s)
          uvelN    , & ! x-component of velocity on N grid (m/s)
@@ -159,8 +164,8 @@
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
-         uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
-         vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
+         uvel      (nx_block*ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
+         vvel      (nx_block*ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
          uvelE     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on E grid (m/s)
          vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
          uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)

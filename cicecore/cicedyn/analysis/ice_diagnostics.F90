@@ -439,7 +439,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
+               work1(i,j,iblk) = sqrt(uvel((j-1)*nx_block+i,iblk)**2 + vvel((j-1)*nx_block+i,iblk)**2)
             enddo
             enddo
          enddo
@@ -1892,8 +1892,8 @@
       enddo
       write(nu_diag,*) ' '
 
-      write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
-      write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
+      write(nu_diag,*) 'uvel(i,j)',uvel((j-1)*nx_block+i,iblk)
+      write(nu_diag,*) 'vvel(i,j)',vvel((j-1)*nx_block+i,iblk)
       if (grid_ice == 'C') then
          write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
          write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)

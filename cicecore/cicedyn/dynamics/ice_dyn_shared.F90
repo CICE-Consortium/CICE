@@ -1043,8 +1043,8 @@
          ij = (j-1)*nx_block + i
 
          ! velocity
-         uvel(i,j,iblk) = c0    ! m/s
-         vvel(i,j,iblk) = c0    ! m/s
+         uvel((j-1)*nx_block+i,iblk) = c0    ! m/s
+         vvel((j-1)*nx_block+i,iblk) = c0    ! m/s
          if (grid_ice == 'CD' .or. grid_ice == 'C') then ! extra velocity variables
             uvelE(i,j,iblk) = c0
             vvelE(i,j,iblk) = c0

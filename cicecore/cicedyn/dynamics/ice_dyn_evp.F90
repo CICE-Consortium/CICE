@@ -659,7 +659,7 @@
                             stress12_1(:,iblk), stress12_2(:,iblk), &
                             stress12_3(:,iblk), stress12_4(:,iblk), &
                             uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                            uvel(:,iblk), vvel(:,iblk), &
                            dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                             TbU       (:,iblk),                         &
@@ -723,7 +723,7 @@
                             stress12_1(:,iblk), stress12_2(:,iblk), &
                             stress12_3(:,iblk), stress12_4(:,iblk), &
                             uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
-                            uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                            uvel(:,iblk), vvel(:,iblk), &
                            dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                             TbU       (:,iblk))
@@ -865,8 +865,8 @@
 
          call grid_average_X2Y('A', uvelE, 'E', uvel, 'U')
          call grid_average_X2Y('A', vvelN, 'N', vvel, 'U')
-         uvel(:,:,:) = uvel(:,:,:)*reshape(uvm, shape(uvel))
-         vvel(:,:,:) = vvel(:,:,:)*reshape(uvm, shape(vvel))
+         uvel(:,:) = uvel(:,:)*reshape(uvm, shape(uvel))
+         vvel(:,:) = vvel(:,:)*reshape(uvm, shape(vvel))
       endif
 
       call ice_timer_start(timer_bound)
@@ -1015,8 +1015,8 @@
             ! couplers; only the ndte subcycles run compressed.
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
-               call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-               call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+               call pack_to_slots(uvel(:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+               call pack_to_slots(vvel(:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
                ! constant through the subcycling, so packed once and never
                ! unpacked; the block-layout originals stay for the consumers
                ! outside the dynamics
@@ -1128,7 +1128,7 @@
 
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
-               call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
+               call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,iblk))
                call unpack_from_slots(stressp_1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stressp_1  (:,iblk))
                call unpack_from_slots(stressp_2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stressp_2  (:,iblk))
                call unpack_from_slots(stressp_3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stressp_3  (:,iblk))
@@ -1141,7 +1141,7 @@
                call unpack_from_slots(stress12_2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stress12_2 (:,iblk))
                call unpack_from_slots(stress12_3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stress12_3 (:,iblk))
                call unpack_from_slots(stress12_4_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), stress12_4 (:,iblk))
-               call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
+               call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,iblk))
                ! Both diagnostics are built here, once, rather than on
                ! every one of the ndte passes: str1..str8 still hold what
                ! the final pass used, and taubxU_slot holds its Cb.
@@ -1184,7 +1184,7 @@
             call deformations (nx_block          , ny_block           , &
                                icellT      (iblk),                      &
                                indxTi    (:,iblk), indxTj     (:,iblk), &
-                               uvel    (:,:,iblk), vvel     (:,:,iblk), &
+                               uvel(:,iblk), vvel(:,iblk), &
                                dxT     (:, iblk), dyT      (:, iblk), &
                                dxU     (:, iblk), dyU      (:, iblk), &
                                cxp     (:,iblk), cyp      (:,iblk), &
@@ -1217,8 +1217,8 @@
             ! first pass used whatever uvel_slot held from the last timestep,
             ! which is the previous values in a continuous run and zeros
             ! after a restart: the restart test could not reproduce.
-            call pack_to_slots(uvel (:,:,iblk), dynMap(:,iblk), uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(vvel (:,:,iblk), dynMap(:,iblk), vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+            call pack_to_slots(uvel(:,iblk), dynMap(:,iblk), uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+            call pack_to_slots(vvel(:,iblk), dynMap(:,iblk), vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stresspT (:,iblk), dynMap(:,iblk), stresspT_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stressmT (:,iblk), dynMap(:,iblk), stressmT_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stress12T(:,iblk), dynMap(:,iblk), stress12T_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -1507,8 +1507,8 @@
             call unpack_from_slots(vvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvelE(:,:,iblk))
             call unpack_from_slots(uvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvelN(:,:,iblk))
             call unpack_from_slots(vvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvelN(:,:,iblk))
-            call unpack_from_slots(uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel (:,:,iblk))
-            call unpack_from_slots(vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel (:,:,iblk))
+            call unpack_from_slots(uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,iblk))
+            call unpack_from_slots(vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,iblk))
             ! strint* and taub* are outputs only: the kernels write slots
             ! every pass and this is their one and only block write.
             ! Cb was carried in taubxE_slot / taubyN_slot through the
@@ -1565,8 +1565,8 @@
             ! first pass used whatever uvel_slot held from the last timestep,
             ! which is the previous values in a continuous run and zeros
             ! after a restart: the restart test could not reproduce.
-            call pack_to_slots(uvel (:,:,iblk), dynMap(:,iblk), uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(vvel (:,:,iblk), dynMap(:,iblk), vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+            call pack_to_slots(uvel(:,iblk), dynMap(:,iblk), uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+            call pack_to_slots(vvel(:,iblk), dynMap(:,iblk), vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stresspT (:,iblk), dynMap(:,iblk), stresspT_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stressmT (:,iblk), dynMap(:,iblk), stressmT_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(stress12T(:,iblk), dynMap(:,iblk), stress12T_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -1869,8 +1869,8 @@
             call unpack_from_slots(vvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvelE(:,:,iblk))
             call unpack_from_slots(uvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvelN(:,:,iblk))
             call unpack_from_slots(vvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvelN(:,:,iblk))
-            call unpack_from_slots(uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel (:,:,iblk))
-            call unpack_from_slots(vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel (:,:,iblk))
+            call unpack_from_slots(uvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,iblk))
+            call unpack_from_slots(vvel_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,iblk))
             ! strint* and taub* are outputs only: the kernels write slots
             ! every pass and this is their one and only block write.
             ! Cb was carried in taubxE_slot / taubxN_slot through the
@@ -2006,7 +2006,7 @@
               (nx_block          , ny_block          , &
                icellU      (iblk), Cdn_ocnU(:,:,iblk), &
                indxUi    (:,iblk), indxUj    (:,iblk), &
-               uvel    (:,:,iblk), vvel    (:,:,iblk), &
+               uvel(:,iblk), vvel(:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
                aiU     (:,iblk),   fmU     (:,iblk), &
                strocnxU(:,:,iblk), strocnyU(:,:,iblk))

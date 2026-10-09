@@ -371,7 +371,7 @@
                          stress12_1(:,iblk), stress12_2(:,iblk), &
                          stress12_3(:,iblk), stress12_4(:,iblk), &
                          uvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
-                         uvel      (:,:,iblk), vvel      (:,:,iblk), &
+                         uvel(:,iblk), vvel(:,iblk), &
                         dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                         skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                          TbU       (:,iblk))
@@ -485,8 +485,8 @@
       ! vvel stay in the block layout for everything outside the dynamics.
       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
-         call pack_to_slots(uvel(:,:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-         call pack_to_slots(vvel(:,:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(uvel(:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(vvel(:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          ! constant through the subcycling, so packed once and never unpacked
          call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -671,8 +671,8 @@
 
       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
       do iblk = 1, nblocks
-         call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,:,iblk))
-         call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,:,iblk))
+         call unpack_from_slots(uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), uvel(:,iblk))
+         call unpack_from_slots(vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), vvel(:,iblk))
          ! Both diagnostics are built here, once, rather than on every one
          ! of the ndte passes: str1..str8 still hold what the final pass
          ! used, and taubxU_slot holds its Cb.
@@ -739,7 +739,7 @@
               (nx_block,           ny_block,           &
                icellU      (iblk), Cdn_ocnU(:,:,iblk), &
                indxUi    (:,iblk), indxUj    (:,iblk), &
-               uvel    (:,:,iblk), vvel    (:,:,iblk), &
+               uvel(:,iblk), vvel(:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
                aiU     (:,iblk),   fmU     (:,iblk), &
                strocnxU(:,:,iblk), strocnyU(:,:,iblk))

@@ -3176,7 +3176,7 @@
                              salinz(:,:,:, iblk), Tmltz(:,:,:,  iblk), &
                              aicen(:,:,  :,iblk), trcrn(:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon(:,:,  :,iblk), &
-                             uvel (:,:,    iblk), vvel (:,:,    iblk))
+                             uvel(:,iblk), vvel(:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO

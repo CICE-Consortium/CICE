@@ -2407,19 +2407,19 @@
          if (f_aice_init   (1:1) /= 'x') &
              call accum_hist_field(n_aice_init,   iblk, aice_init3d(:,:,iblk), a2D)
          if (f_uvel   (1:1) /= 'x') &
-             call accum_hist_field(n_uvel,   iblk, uvel(:,:,iblk), a2D)
+             call accum_hist_field(n_uvel,   iblk, uvel(:,iblk), a2D)
          if (f_vvel   (1:1) /= 'x') &
-             call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
+             call accum_hist_field(n_vvel,   iblk, vvel(:,iblk), a2D)
          if (f_icespd   (1:1) /= 'x') &
              call accum_hist_field(n_icespd,   iblk, sqrt( &
-                                  (uvel(:,:,iblk)*uvel(:,:,iblk)) + &
-                                  (vvel(:,:,iblk)*vvel(:,:,iblk))), a2D)
+                                  (uvel(:,iblk)*uvel(:,iblk)) + &
+                                  (vvel(:,iblk)*vvel(:,iblk))), a2D)
          if (f_icedir(1:1) /= 'x') then
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
-                 worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+              if (abs(uvel((j-1)*nx_block+i,iblk)) > puny .or. abs(vvel((j-1)*nx_block+i,iblk)) > puny) &
+                 worka(i,j) = atan2(uvel((j-1)*nx_block+i,iblk),vvel((j-1)*nx_block+i,iblk))*rad_to_deg
                  worka(i,j) = worka(i,j) + c180
            enddo
            enddo
@@ -2654,9 +2654,9 @@
          if (f_strtlty(1:1) /= 'x') &
              call accum_hist_field(n_strtlty, iblk, strtltyU(:,:,iblk), a2D)
          if (f_strcorx(1:1) /= 'x') &
-             call accum_hist_field(n_strcorx, iblk, reshape(fmU(:,iblk),(/nx_block,ny_block/))*vvel(:,:,iblk), a2D)
+             call accum_hist_field(n_strcorx, iblk, reshape(fmU(:,iblk),(/nx_block,ny_block/))*reshape(vvel(:,iblk),(/nx_block,ny_block/)), a2D)
          if (f_strcory(1:1) /= 'x') &
-             call accum_hist_field(n_strcory, iblk,-reshape(fmU(:,iblk),(/nx_block,ny_block/))*uvel(:,:,iblk), a2D)
+             call accum_hist_field(n_strcory, iblk,-reshape(fmU(:,iblk),(/nx_block,ny_block/))*reshape(uvel(:,iblk),(/nx_block,ny_block/)), a2D)
          if (f_strocnx(1:1) /= 'x') &
              call accum_hist_field(n_strocnx, iblk, strocnxU(:,:,iblk), a2D)
          if (f_strocny(1:1) /= 'x') &
@@ -2845,11 +2845,11 @@
          endif
 
          if (f_siu(1:1) /= 'x') then
-           call accum_hist_field(n_siu, iblk, aice(:,:,iblk)*uvel(:,:,iblk), a2D)
+           call accum_hist_field(n_siu, iblk, aice(:,:,iblk)*reshape(uvel(:,iblk),(/nx_block,ny_block/)), a2D)
          endif
 
          if (f_siv(1:1) /= 'x') then
-           call accum_hist_field(n_siv, iblk, aice(:,:,iblk)*vvel(:,:,iblk), a2D)
+           call accum_hist_field(n_siv, iblk, aice(:,:,iblk)*reshape(vvel(:,iblk),(/nx_block,ny_block/)), a2D)
          endif
 
          if (f_sispeed(1:1) /= 'x') then
@@ -2857,7 +2857,7 @@
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk) &
-                 * sqrt(uvel(i,j,iblk)*uvel(i,j,iblk)+vvel(i,j,iblk)*vvel(i,j,iblk))
+                 * sqrt(uvel((j-1)*nx_block+i,iblk)*uvel((j-1)*nx_block+i,iblk)+vvel((j-1)*nx_block+i,iblk)*vvel((j-1)*nx_block+i,iblk))
            enddo
            enddo
            call accum_hist_field(n_sispeed, iblk, worka(:,:), a2D)
@@ -2867,8 +2867,8 @@
 !          worka(:,:) = c0
 !          do j = jlo, jhi
 !          do i = ilo, ihi
-!             if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
-!                worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
+!             if (abs(uvel((j-1)*nx_block+i,iblk)) > puny .or. abs(vvel((j-1)*nx_block+i,iblk)) > puny) &
+!                worka(i,j) = atan2(uvel((j-1)*nx_block+i,iblk),vvel((j-1)*nx_block+i,iblk))*rad_to_deg
 !             if (worka(i,j) < 0.0 ) then
 !                worka(i,j) = worka(i,j) + c360
 !             else
@@ -2885,7 +2885,7 @@
            do i = ilo, ihi
               worka(i,j) = (rho_ice(i,j)*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU((j-1)*nx_block+i,iblk) &
                          + rhos*p5*(vsno(i+1,j,iblk)+vsno(i,j,iblk))*dyU((j-1)*nx_block+i,iblk)) &
-                         *  p5*(uvel(i,j-1,iblk)+uvel(i,j,iblk))
+                         *  p5*(uvel((j-1-1)*nx_block+i,iblk)+uvel((j-1)*nx_block+i,iblk))
            enddo
            enddo
            call accum_hist_field(n_sidmasstranx, iblk, worka(:,:), a2D)
@@ -2897,7 +2897,7 @@
            do i = ilo, ihi
               worka(i,j) = (rho_ice(i,j)*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU((j-1)*nx_block+i,iblk) &
                          + rhos*p5*(vsno(i,j+1,iblk)+vsno(i,j,iblk))*dxU((j-1)*nx_block+i,iblk)) &
-                         *  p5*(vvel(i-1,j,iblk)+vvel(i,j,iblk))
+                         *  p5*(vvel((j-1)*nx_block+i-1,iblk)+vvel((j-1)*nx_block+i,iblk))
            enddo
            enddo
            call accum_hist_field(n_sidmasstrany, iblk, worka(:,:), a2D)
@@ -3156,7 +3156,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = aice(i,j,iblk)*fmU((j-1)*nx_block+i,iblk)*vvel(i,j,iblk)
+              worka(i,j) = aice(i,j,iblk)*fmU((j-1)*nx_block+i,iblk)*vvel((j-1)*nx_block+i,iblk)
            enddo
            enddo
            call accum_hist_field(n_siforcecoriolx, iblk, worka(:,:), a2D)
@@ -3166,7 +3166,7 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              worka(i,j) = -aice(i,j,iblk)*fmU((j-1)*nx_block+i,iblk)*uvel(i,j,iblk)
+              worka(i,j) = -aice(i,j,iblk)*fmU((j-1)*nx_block+i,iblk)*uvel((j-1)*nx_block+i,iblk)
            enddo
            enddo
            call accum_hist_field(n_siforcecorioly, iblk, worka(:,:), a2D)

@@ -376,25 +376,45 @@ Lines that begin with # or are blank are ignored.  For example,
 
 .. _bfbcompmiss:
 
-A note on MISS results from the fifth column
+A note on comparisons against an unfinished test
     Each test runs its own bit-for-bit comparison at the end of its own batch
-    job.  If the test named in the fifth column has not finished by then, its
-    restart directory is still empty, the comparison finds nothing to read,
-    and the result is reported as ``MISS ... missing-data`` rather than as a
-    pass or a failure.
+    job.  It first waits for the queue job of the test named in the fifth
+    column, but only for a bounded time, because a compute node sitting in a
+    sleep loop costs allocation.  Listing the comparison target earlier in the
+    suite file does not avoid the wait: tests are submitted in order but run
+    concurrently, so a target slower than the test comparing against it can
+    still finish second.
 
-    Listing the comparison target earlier in the suite file does not prevent
-    this.  The tests are submitted in order but run concurrently, so a target
-    that is slower than the test comparing against it can still finish second.
+    When that wait expires the comparison runs against output that is still
+    being written, and reports one of
 
-    A ``MISS`` on a fifth-column comparison is therefore not a result, and in
-    particular it is not evidence that anything is wrong.  Once both tests have
-    finished, compare the two restart files directly::
+    - ``MISS ... missing-data`` -- the restart directory is still empty,
+    - ``FAIL ... different-data`` -- the log is written only up to the point
+      the target had reached,
+    - ``FAIL ... usage-error`` -- the log exists but has not yet produced any
+      diagnostics, so there is nothing to compare.
+
+    None of the three says anything about the model.  **results.csh** therefore
+    redoes every fifth-column comparison before collecting results, by calling
+    **bfbcomp_redo.csh** in the suite directory.  That pass runs after all jobs
+    have completed, so it reads finished output; it is safe to run repeatedly
+    and can be run on its own at any time::
+
+      cd <suite_dir>
+      ./bfbcomp_redo.csh
+
+    It also works on a suite created before this script existed, installing
+    what it needs into each case from the sandbox that built it.  Should a
+    comparison still need checking by hand, compare the restart files
+    directly::
 
       cmp <target_case>/restart/iced.* <test_case>/restart/iced.*
 
-    Silence means bit-for-bit.  Equal file sizes with differing modification
-    times is the signature of this race rather than of a real problem.
+    Silence means bit-for-bit.
+
+    The in-job wait is five one-minute polls by default.  Setting
+    ``ICE_BFBCOMP_MAXWAIT`` in **cice.settings** raises it, which is worth
+    doing only where the redo pass is not used.
 
 The argument to ``--suite`` defines the test suite (.ts) filename and that argument
 can contain a path.

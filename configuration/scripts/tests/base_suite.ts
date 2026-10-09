@@ -27,6 +27,21 @@ smoke          gx3     1x4        debug,diag1,run2day,evp1d smoke_gx3_1x4_debug_
 smoke          gx3     1x8        diag1,run5day
 smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_run5day
 #
+# A box-grid pair.  The pairs above are all gx3; this adds a second grid, and
+# gbox80 is cheap.  Verified to compare clean on main before being added.
+#
+# NB: the same pair with bclinearextrap is NOT here, deliberately.  On main it
+# fails twice over, and neither is ours: the evp1d half aborts under bounds
+# checking -- convert_2d_1d_init builds the north-neighbour indices Isw/Isse
+# as i(+1) + (j-0)*nx with no guard for j = ny, so a top-row cell indexes one
+# row past the extended grid and convert_2d_1d_dyn reads G_uvel(i,ny+1) at
+# ice_dyn_evp1d.F90:947 -- and the two solvers then disagree, plausibly
+# because that out-of-bounds read lands in the halo velocities.  Plain
+# boundaries put no active T cell in the top row, so neither shows up here.
+# Add that pair once the index arithmetic is fixed upstream.
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxopen_kmtislands_boxforcee_run1day
+#
 # And one pair that writes output while running the 1d solver.  evp1d scatters
 # the twelve stresses back only when a file is due, so this reaches a path the
 # two pairs above never take.
@@ -118,6 +133,15 @@ restart        gx3     4x4        cdf64,histall,precision8,medium
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
+# VP coverage.  dynpicard had one smoke test here and one decomp test, and
+# dynanderson -- a whole branch of the nonlinear solver, plus
+# use_mean_vrel = .false. -- had none anywhere.  The restart cases are
+# self-comparing (restart vs continuous), so they check state handling even
+# without a baseline.  The gbox80 case is cheap and deterministic.
+restart        gx3     4x2        dynpicard,diag1
+smoke          gx3     4x1        dynanderson
+restart        gx3     4x2        dynanderson,diag1
+smoke          gbox80  4x2        boxopen,kmtislands,boxforcee,run1day,dynpicard
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        diag1,gx3ncarbulk,short
 smoke          gx3     4x1        calcdragio

@@ -585,8 +585,8 @@ subroutine ice_prescribed_phys
    !--------------------------------------------------------------------
 
    frzmlt       (:,:,:) = c0
-   uvel         (:,:,:) = c0
-   vvel         (:,:,:) = c0
+   uvel(:,:) = c0
+   vvel(:,:) = c0
    strocnxT_iavg(:,:,:) = c0
    strocnyT_iavg(:,:,:) = c0
 

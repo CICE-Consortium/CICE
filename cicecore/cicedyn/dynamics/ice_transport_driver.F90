@@ -537,7 +537,7 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
           call horizontal_remap (dt,             ntrace,         &
-                                 uvel   (:,:,:), vvel   (:,:,:), &
+                                 uvel(:,:), vvel(:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
@@ -545,7 +545,7 @@
                                  uvelE  (:,:,:), vvelN  (:,:,:))
       else
           call horizontal_remap (dt,             ntrace,         &
-                                 uvel   (:,:,:), vvel   (:,:,:), &
+                                 uvel(:,:), vvel(:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
@@ -787,8 +787,8 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               uee(i,j,iblk) = p5*(uvel(i,j,iblk) + uvel(i  ,j-1,iblk))
-               vnn(i,j,iblk) = p5*(vvel(i,j,iblk) + vvel(i-1,j  ,iblk))
+               uee(i,j,iblk) = p5*(uvel((j-1)*nx_block+i,iblk) + uvel((j-1-1)*nx_block+i,iblk))
+               vnn(i,j,iblk) = p5*(vvel((j-1)*nx_block+i,iblk) + vvel((j-1)*nx_block+i-1,iblk))
             enddo
             enddo
          enddo
