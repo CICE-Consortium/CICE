@@ -147,7 +147,7 @@
       subroutine ice_step
 
       use ice_boundary, only: ice_HaloUpdate
-      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
+      use ice_calendar, only: dt, dt_dyn, ndtd, write_diag, write_restart
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
       use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
@@ -393,7 +393,7 @@
       !-----------------------------------------------------------------
 
          call ice_timer_start(timer_diags)  ! diagnostics
-         if (mod(istep,diagfreq) == 0) then
+         if (write_diag) then
             call runtime_diags(dt)          ! log file
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
