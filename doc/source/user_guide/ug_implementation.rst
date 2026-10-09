@@ -1502,8 +1502,12 @@ for a restart run.
 Diagnostic Files
 ****************
 
-Like ``histfreq``, the parameter ``diagfreq`` can be used to regulate how often
-output is written to a log file. The log file unit to which diagnostic
+Like ``histfreq``, the parameters ``diagfreq`` and ``diagfreq_unit`` can be used to
+regulate how often output is written to a log file. ``diagfreq_unit`` can be
+``1`` (timesteps, the default), ``h``, ``d``, ``m`` or ``y``. Calendar units are
+aligned with the calendar, so ``diagfreq = 1`` and ``diagfreq_unit = 'd'`` writes
+diagnostics at the end of every day, and ``diagfreq_unit = 'm'`` at the end of every
+calendar month. The log file unit to which diagnostic
 output is written is set in **ice_fileunits.F90**. If ``diag_type`` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
 you redirect standard out as in **cice.run**); otherwise it is written
@@ -1519,6 +1523,14 @@ useful for checking global conservation of mass and energy.
 input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
 may be changed in **ice_in**.  
+
+If ``diag_netcdf`` is true, the hemispheric diagnostics written to the log
+(and the ``print_global`` diagnostics if ``print_global`` is true) are also written
+to a netcdf file, with one record each time diagnostics are written.  These are
+instantaneous values, not time averages.  One file is written per run, in
+``history_dir`` and named from ``history_file`` and the run start date,
+for example **iceh_diag.2005-01-01-00000.nc**.  Each variable is written separately
+for the northern and southern hemispheres, with suffixes ``_nh`` and ``_sh``.
 
 The namelist ``debug_model`` prints detailed
 debug diagnostics for a single point as the model advances.  The point is defined

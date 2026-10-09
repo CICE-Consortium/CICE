@@ -61,7 +61,7 @@
       use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: &
           diag_file, print_global, print_points, latpnt, lonpnt, &
-          debug_model, debug_model_step, debug_model_task, &
+          diag_netcdf, debug_model, debug_model_step, debug_model_task, &
           debug_model_i, debug_model_j, debug_model_iblk
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
@@ -72,7 +72,7 @@
       use ice_calendar, only: &
           year_init, month_init, day_init, sec_init, &
           istep0, histfreq, histfreq_n, histfreq_base, &
-          dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
+          dumpfreq, dumpfreq_n, diagfreq, diagfreq_unit, dumpfreq_base, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
           write_ic, dump_last, npt_unit, write_histrest
       use ice_arrays_column, only: oceanmixed_ice
@@ -203,7 +203,8 @@
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
         restart_deflate, restart_chunksize, restart_mod, write_histrest,&
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diag_type,      diag_file,       history_format,&
+        diagfreq,       diagfreq_unit,  diag_netcdf,                    &
+        diag_type,      diag_file,      history_format,                 &
         history_root,   history_stride, history_iotasks, history_rearranger, &
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
@@ -331,6 +332,8 @@
       npt = 99999            ! total number of time steps (dt)
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
+      diagfreq_unit = '1'    ! units of diagfreq 'y', 'm', 'd', 'h', '1'
+      diag_netcdf = .false.  ! if true, also write global diagnostics to netcdf
       debug_model  = .false. ! debug output
       debug_model_step = 0   ! debug model after this step number
       debug_model_i = -1     ! debug model local i index
@@ -974,6 +977,8 @@
       call broadcast_scalar(npt,                  master_task)
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
+      call broadcast_scalar(diagfreq_unit,        master_task)
+      call broadcast_scalar(diag_netcdf,          master_task)
       call broadcast_scalar(debug_model,          master_task)
       call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(debug_model_i,        master_task)
@@ -1346,6 +1351,24 @@
          endif
          abort_list = trim(abort_list)//":1"
       endif
+
+      if (diagfreq_unit /= 'y' .and. diagfreq_unit /= 'm' .and. &
+          diagfreq_unit /= 'd' .and. diagfreq_unit /= 'h' .and. &
+          diagfreq_unit /= '1') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: diagfreq_unit unknown = ',trim(diagfreq_unit)
+         endif
+         abort_list = trim(abort_list)//":71"
+      endif
+
+#ifndef USE_NETCDF
+      if (diag_netcdf) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: diag_netcdf requires USE_NETCDF'
+         endif
+         abort_list = trim(abort_list)//":72"
+      endif
+#endif
 
       if (history_format /= 'cdf1'        .and. &
           history_format /= 'cdf2'        .and. &
@@ -2719,6 +2742,8 @@
          write(nu_diag,1031) ' npt_unit         = ', trim(npt_unit)
          write(nu_diag,1021) ' npt              = ', npt
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
+         write(nu_diag,1031) ' diagfreq_unit    = ', trim(diagfreq_unit)
+         write(nu_diag,1011) ' diag_netcdf      = ', diag_netcdf
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
          write(nu_diag,1011) ' debug_model      = ', debug_model
