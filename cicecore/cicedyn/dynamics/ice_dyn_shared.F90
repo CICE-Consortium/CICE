@@ -1751,6 +1751,14 @@
 ! author: Elizabeth C. Hunke, LANL
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
+! 2026: JF Lemieux added calculation of Deltapp
+
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! Delta and Deltapp are called Delta_FG and Delta_G 
+! in Lemieux et al. paper. 
 
       subroutine deformations (nx_block,   ny_block,   &
                                icellT,                 &
@@ -1764,7 +1772,7 @@
                                shear,      divu,       &
                                rdg_conv,   rdg_shear )
 
-      use ice_constants, only: p25, p5
+      use ice_constants, only: p25, p5, eps13
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -1804,7 +1812,9 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
-        tmp                                           ! useful combination
+        Deltappne, Deltappnw                      , & ! Deltapp
+        Deltappse, Deltappsw                      , & 
+        tmp, numetp, nume, deno                       ! useful combination
 
       real (kind=dbl_kind) :: &                       ! at edges for vorticity calc :
          dvdxn, dvdxs, dudye, dudyw                   ! dvdx and dudy terms on edges
@@ -1833,11 +1843,30 @@
                             shearse,    shearsw,    &
                             Deltane,    Deltanw,    &
                             Deltase,    Deltasw     )
+
+         !-----------------------------------------------------------------
+         ! Deltapp is also required for mechanical redistribution
+         !-----------------------------------------------------------------
+         call strain_rates_Deltapp (nx_block,     ny_block,     &
+                                       i,            j,         &
+                                       uvel,         vvel,      &
+                                       dxT,          dyT,       &
+                                       cxp,          cyp,       &
+                                       cxm,          cym,       &
+                                       Deltappne,    Deltappnw, &
+                                       Deltappse,    Deltappsw  )
+
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
          divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
-         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(i,j)
+
+         numetp=p25*(Deltappne + Deltappnw + Deltappse + Deltappsw)
+         nume=numetp**2
+         deno=p25*(Deltane + Deltanw + Deltase + Deltasw)
+         deno=max(deno,eps13) ! avoids div by zero
+         tmp = nume*tarear(i,j)/deno
+
          rdg_conv(i,j)  = -min(divu(i,j),c0)
          rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
 
@@ -1963,6 +1992,14 @@
 !
 ! author: JF Lemieux, ECCC
 ! Nov 2021
+! Sep 2026: added calculation of Deltapp
+
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! DeltaT and DeltappT are called Delta_FG and Delta_G 
+! in Lemieux et al. paper. 
 
     subroutine deformationsC_T (nx_block,   ny_block,   &
                                 icellT,                 &
@@ -2019,7 +2056,8 @@
 
       real (kind=dbl_kind) :: &
         tmp       , & ! useful combination
-        shearTsqr     ! strain rates squared at T point
+        shearTsqr , & ! strain rates squared at T point
+        DeltappTsqr   ! Deltapp squared at T point
 
       character(len=*), parameter :: subname = '(deformations_T2)'
 
@@ -2055,9 +2093,10 @@
                     / (uarea(i,j)+uarea(i,j-1)+uarea(i-1,j-1)+uarea(i-1,j))
 
          DeltaT(i,j) = sqrt(divT(i,j)**2 + e_factor*(tensionT(i,j)**2 + shearTsqr))
+         DeltappTsqr = divT(i,j)**2 + epp2i*(tensionT(i,j)**2 + shearTsqr)
 
          divu(i,j) = divT(i,j) * tarear(i,j)
-         tmp = DeltaT(i,j) * tarear(i,j)
+         tmp = ( DeltappTsqr/DeltaT(i,j) ) * tarear(i,j)
          rdg_conv(i,j)  = -min(divu(i,j),c0)
          rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
 
@@ -2160,6 +2199,98 @@
       Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
       end subroutine strain_rates
+
+!=======================================================================
+! Compute strain rates Deltapp for mechanical redistribution
+!
+! author: JF Lemieux, ECCC
+! Sept 2026
+!
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! Deltapp is called Delta_G in Lemieux et al. paper.
+
+      subroutine strain_rates_Deltapp (nx_block,     ny_block,     &
+                                       i,            j,            &
+                                       uvel,         vvel,         &
+                                       dxT,          dyT,          &
+                                       cxp,          cyp,          &
+                                       cxm,          cym,          &
+                                       Deltappne,    Deltappnw,    &
+                                       Deltappse,    Deltappsw  )
+
+      integer (kind=int_kind), intent(in) :: &
+         nx_block, ny_block    ! block dimensions
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j                  ! indices
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         uvel     , & ! x-component of velocity (m/s)
+         vvel     , & ! y-component of velocity (m/s)
+         dxT      , & ! width of T-cell through the middle (m)
+         dyT      , & ! height of T-cell through the middle (m)
+         cyp      , & ! 1.5*HTE - 0.5*HTW
+         cxp      , & ! 1.5*HTN - 0.5*HTS
+         cym      , & ! 0.5*HTE - 1.5*HTW
+         cxm          ! 0.5*HTN - 1.5*HTS
+
+      real (kind=dbl_kind), intent(out):: &                    ! at each corner:
+        Deltappne, Deltappnw, Deltappse, Deltappsw ! Deltapp
+
+      character(len=*), parameter :: subname = '(strain_rates)'
+
+      ! local variables
+      
+      real (kind=dbl_kind) :: &                       ! at each corner :
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw            ! shearing      
+
+      !-----------------------------------------------------------------
+      ! strain rates
+      ! NOTE these are actually strain rates * area  (m^2/s)
+      !-----------------------------------------------------------------
+
+      ! divergence  =  e_11 + e_22
+      divune    = cyp(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
+                + cxp(i,j)*vvel(i  ,j  ) - dxT(i,j)*vvel(i  ,j-1)
+      divunw    = cym(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
+                + cxp(i,j)*vvel(i-1,j  ) - dxT(i,j)*vvel(i-1,j-1)
+      divusw    = cym(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
+                + cxm(i,j)*vvel(i-1,j-1) + dxT(i,j)*vvel(i-1,j  )
+      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
+                + cxm(i,j)*vvel(i  ,j-1) + dxT(i,j)*vvel(i  ,j  )
+
+      ! tension strain rate  =  e_11 - e_22
+      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
+                +  cxm(i,j)*vvel(i  ,j  ) + dxT(i,j)*vvel(i  ,j-1)
+      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
+                +  cxm(i,j)*vvel(i-1,j  ) + dxT(i,j)*vvel(i-1,j-1)
+      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
+                +  cxp(i,j)*vvel(i-1,j-1) - dxT(i,j)*vvel(i-1,j  )
+      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
+                +  cxp(i,j)*vvel(i  ,j-1) - dxT(i,j)*vvel(i  ,j  )
+
+      ! shearing strain rate  =  2*e_12
+      shearne = -cym(i,j)*vvel(i  ,j  ) - dyT(i,j)*vvel(i-1,j  ) &
+              -  cxm(i,j)*uvel(i  ,j  ) - dxT(i,j)*uvel(i  ,j-1)
+      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyT(i,j)*vvel(i  ,j  ) &
+              -  cxm(i,j)*uvel(i-1,j  ) - dxT(i,j)*uvel(i-1,j-1)
+      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyT(i,j)*vvel(i  ,j-1) &
+              -  cxp(i,j)*uvel(i-1,j-1) + dxT(i,j)*uvel(i-1,j  )
+      shearse = -cym(i,j)*vvel(i  ,j-1) - dyT(i,j)*vvel(i-1,j-1) &
+              -  cxp(i,j)*uvel(i  ,j-1) + dxT(i,j)*uvel(i  ,j  )
+
+      ! Deltapp
+      Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
+      Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
+      Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
+      Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
+
+    end subroutine strain_rates_Deltapp
 
 !=======================================================================
 ! Compute dtsd (div, tension, shear, delta) strain rates at the T point
