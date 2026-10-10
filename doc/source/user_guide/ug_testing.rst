@@ -416,6 +416,37 @@ A note on comparisons against an unfinished test
     ``ICE_BFBCOMP_MAXWAIT`` in **cice.settings** raises it, which is worth
     doing only where the redo pass is not used.
 
+Recreating a baseline without rerunning the suite
+    ``--bgen`` is unchanged and remains the way to create a baseline: it is
+    written as the suite runs, and it refuses to overwrite one that already
+    exists, which is what stops a good baseline being clobbered by accident.
+    This section is only about *recreating* one.
+
+    Generating a baseline is only ``cp -p -r`` of each run directory, but it
+    happens inside the test job, so ``--bgen`` has to be chosen before the
+    suite runs.  Recreating a baseline therefore meant running everything
+    again, even when the runs already on disk were the ones wanted.
+
+    **baseline_snap.csh** in the suite directory does the same copy afterwards,
+    over a suite that has already finished, and replaces the whole baseline
+    instead of failing on what exists::
+
+      cd <suite_dir>
+      ./baseline_snap.csh <baseline_name>
+
+    So a suite can be run once and stamped as a baseline afterwards, and
+    stamped again later if the code moves on.  Each case records the outcome
+    in its own **test_output** as ``PASS ... generate`` or ``FAIL ... generate``,
+    the same lines ``--bgen`` writes, so **results.csh** reports a snapshot
+    exactly as it reports a generating run and counts a bad one under
+    ``failgen``.  Cases whose own run did not pass are skipped rather than
+    copied -- a baseline built from a partial run is worse than none, because
+    every later comparison against it is quietly wrong and reads as a code
+    regression -- and the per-case list is left in ``baseline_snap.log``.
+
+    It also works on a suite created before the script existed, installing
+    what it needs into each case from the sandbox that built it.
+
 The argument to ``--suite`` defines the test suite (.ts) filename and that argument
 can contain a path.
 **cice.setup** 
