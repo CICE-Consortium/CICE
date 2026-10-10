@@ -499,6 +499,8 @@ else
   cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
   cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/bfbcomp_redo.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/baseline_snap.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
 #!/bin/csh -f
@@ -537,6 +539,12 @@ EOF0
 
   cat >! ${tsdir}/results.csh << EOF0
 #!/bin/csh -f
+# Redo the bfbcomp comparisons first.  Each test compares itself against
+# another test in the suite from inside its own batch job, where it can only
+# wait a bounded time for that other test to finish; a comparison made
+# against a run still in progress reports different-data or usage-error and
+# means nothing.  Redoing them here reads finished output.
+if (-x ./bfbcomp_redo.csh) ./bfbcomp_redo.csh
 rm -f results.log
 echo "#------- " >> results.log
 echo "#repo = ${remote}" >> results.log
@@ -1039,6 +1047,9 @@ EOF1
       # from test options to casescr in case any test time changes are applied
       cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
       cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/bfbcomp.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/bfbcomp_case.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/baseline_snap_case.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
