@@ -10,7 +10,57 @@ smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
-smoke          gx3     1x8        diag1,run5day,evp1d
+# EVP 1d vs 2d.  Nothing in the suite had ever compared the two solvers against
+# each other, and that gap is how stress_eap stayed wrong until c6df487 and how
+# the MOM-supergrid DminTarea divergence survived until 03bc112: a restart test
+# compares a run to itself, so a systematic error cancels.  Each pair below is
+# the same grid, PE layout and length, differing only in evp_algorithm.
+#
+# The debug pair is the definitive one.  At -O0 neither path is vectorised or
+# reassociated, so a difference is algorithmic.  The optimised pair can differ
+# by an ULP purely because the two code paths vectorise differently, so read it
+# second.
+#
+# NB: these are meaningless in a sweep that forces evp_algorithm globally --
+# both halves would then run the 1d solver and compare it with itself.
+smoke          gx3     1x4        debug,diag1,run2day,evp1d smoke_gx3_1x4_debug_diag1_run2day
+smoke          gx3     1x8        diag1,run5day
+smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_run5day
+#
+# A box-grid pair.  The pairs above are all gx3; this adds a second grid, and
+# gbox80 is cheap.  Verified to compare clean on main before being added.
+#
+# NB: the same pair with bclinearextrap is NOT here, deliberately.  On main it
+# fails twice over, and neither is ours: the evp1d half aborts under bounds
+# checking -- convert_2d_1d_init builds the north-neighbour indices Isw/Isse
+# as i(+1) + (j-0)*nx with no guard for j = ny, so a top-row cell indexes one
+# row past the extended grid and convert_2d_1d_dyn reads G_uvel(i,ny+1) at
+# ice_dyn_evp1d.F90:947 -- and the two solvers then disagree, plausibly
+# because that out-of-bounds read lands in the halo velocities.  Plain
+# boundaries put no active T cell in the top row, so neither shows up here.
+# Add that pair once the index arithmetic is fixed upstream.
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxopen_kmtislands_boxforcee_run1day
+#
+# And one pair that writes output while running the 1d solver.  evp1d scatters
+# the twelve stresses back only when a file is due, so this reaches a path the
+# two pairs above never take.
+#
+# Be clear about what it does and does not prove.  comparebfb compares iced*
+# restart files only -- no history file is bit-compared anywhere in CICE, and
+# they carry creation timestamps so they never could be.  So the restart half
+# of the gate is verified: stale stresses would land in iced* and this would
+# fail.  The history half runs but its output is not checked, and a fault
+# confined to it would be invisible to the whole suite.  That is a limit of the
+# machinery, not of this test; keep the gate condition simple for that reason.
+#
+# histall is still the right option: it enables f_sig1, f_sig2, f_sigP and
+# f_trsig, read inside the write_history gate, AND f_strintx, f_strinty and
+# f_taubx, which ice_history accumulates every timestep -- so both halves of
+# the scatter decision, deferred and not-deferred, are exercised.  run2day
+# dumps a restart at day 2, which is what gives comparebfb something to read.
+smoke          gx3     4x4        histall,run2day
+smoke          gx3     4x4        histall,run2day,evp1d     smoke_gx3_4x4_histall_run2day
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
@@ -85,6 +135,15 @@ restart        gx3     4x4        cdf64,histall,precision8,medium
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
+# VP coverage.  dynpicard had one smoke test here and one decomp test, and
+# dynanderson -- a whole branch of the nonlinear solver, plus
+# use_mean_vrel = .false. -- had none anywhere.  The restart cases are
+# self-comparing (restart vs continuous), so they check state handling even
+# without a baseline.  The gbox80 case is cheap and deterministic.
+restart        gx3     4x2        dynpicard,diag1
+smoke          gx3     4x1        dynanderson
+restart        gx3     4x2        dynanderson,diag1
+smoke          gbox80  4x2        boxopen,kmtislands,boxforcee,run1day,dynpicard
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        diag1,gx3ncarbulk,short
 smoke          gx3     4x1        calcdragio
