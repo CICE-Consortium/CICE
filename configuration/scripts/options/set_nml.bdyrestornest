@@ -10,6 +10,7 @@ grid_type      = 'regional'
 grid_file      = 'grid_kmt.nc'
 kmt_type       = 'file'
 kmt_file       = 'grid_kmt.nc'
+nghost         = 2
 ew_boundary_type = 'zero_gradient'
 ns_boundary_type = 'zero_gradient'
 set_boundary_flds = 'state','velocity'

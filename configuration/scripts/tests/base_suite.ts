@@ -64,6 +64,8 @@ smoke          gx3     4x4        histall,run2day,evp1d     smoke_gx3_4x4_histal
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
+smoke          tx1m   16x2        debug,diag1
+restart        tx1m   32x2        diag1
 restart        gx3     4x4        medium
 restart        gx3     4x4        gx3nc,short
 restart        gx3    10x4        maskhalo,medium
@@ -99,8 +101,8 @@ restart        gbox128 4x4        boxrestore,medium
 smoke          gbox128 4x4        boxrestore,short,debug
 restart        gbox80  1x1        box2001
 smoke          gbox80  1x1        boxslotcyl
-smoke          gbox80  8x2        boxgauss,bclinearextrap,debug
-smoke          gbox80  9x2        boxgauss,bczerogradient,restore5,debug
+smoke          gbox80  8x2        boxgauss,bclinearextrap,nghost2,debug
+smoke          gbox80  9x2        boxgauss,bczerogradient,restore5,nghost2,debug
 smoke          gbox12  1x1x12x12x1  boxchan,diag1,debug
 restart        gx3     8x2        modal
 smoke          gx3     8x2        bgcz,diag1,run5day

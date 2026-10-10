@@ -167,7 +167,7 @@ cat <<EOFF > $file
 
       if (lext) then
          allocate(LARRAY_G(1-nghost:nx_global+nghost,1-nghost:ny_global+nghost))
-         LARRAY_G(1-nghost:nx_global+nghost,1-nghost:ny_global+nghost) = ARRAY_G(1:nx_global+2,1:ny_global+2)
+         LARRAY_G(1-nghost:nx_global+nghost,1-nghost:ny_global+nghost) = ARRAY_G(1:nx_global+2*nghost,1:ny_global+2*nghost)
       else
          allocate(LARRAY_G(1:nx_global,1:ny_global))
          LARRAY_G(:,:) = ARRAY_G(:,:)
@@ -254,7 +254,7 @@ cat <<EOFF > $file
                if (iblock == nblocks_x .and. jblock == 1) then
                   do j = 1, nghost
                   do i = 1, nghost
-                     LARRAY_G(nx_global+nghost,j-nghost) = ARRAY(ihi+i,j,src_dist%blockLocalID(n))
+                     LARRAY_G(nx_global+i,j-nghost) = ARRAY(ihi+i,j,src_dist%blockLocalID(n))
                   enddo
                   enddo
                endif
@@ -263,7 +263,7 @@ cat <<EOFF > $file
                if (iblock == nblocks_x .and. jblock == nblocks_y) then
                   do j = 1, nghost
                   do i = 1, nghost
-                     LARRAY_G(nx_global+nghost,ny_global+nghost) = ARRAY(ihi+i,jhi+j,src_dist%blockLocalID(n))
+                     LARRAY_G(nx_global+i,ny_global+j) = ARRAY(ihi+i,jhi+j,src_dist%blockLocalID(n))
                   enddo
                   enddo
                endif
@@ -371,7 +371,7 @@ cat <<EOFF > $file
                if (iblock == nblocks_x .and. jblock == 1) then
                   do j = 1, nghost
                   do i = 1, nghost
-                     LARRAY_G(nx_global+nghost,j-nghost) = msg_buffer(ihi+i,j)
+                     LARRAY_G(nx_global+i,j-nghost) = msg_buffer(ihi+i,j)
                   enddo
                   enddo
                endif
@@ -380,7 +380,7 @@ cat <<EOFF > $file
                if (iblock == nblocks_x .and. jblock == nblocks_y) then
                   do j = 1, nghost
                   do i = 1, nghost
-                     LARRAY_G(nx_global+nghost,ny_global+nghost) = msg_buffer(ihi+i,jhi+j)
+                     LARRAY_G(nx_global+i,ny_global+j) = msg_buffer(ihi+i,jhi+j)
                   enddo
                   enddo
                endif
@@ -394,7 +394,7 @@ cat <<EOFF > $file
       ! copy LARRAY_G to ARRAY_G, offset extended grid index
 
       if (lext) then
-         ARRAY_G(1:nx_global+2,1:ny_global+2) = LARRAY_G(1-nghost:nx_global+nghost,1-nghost:ny_global+nghost)
+         ARRAY_G(1:nx_global+2*nghost,1:ny_global+2*nghost) = LARRAY_G(1-nghost:nx_global+nghost,1-nghost:ny_global+nghost)
       else
          ARRAY_G(1:nx_global,1:ny_global) = LARRAY_G(1:nx_global,1:ny_global)
       endif

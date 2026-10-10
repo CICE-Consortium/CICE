@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 #set pd0 = `date -u "+%s%N"`
 
@@ -503,7 +503,7 @@ else
   cp -f ${ICE_SCRIPTS}/tests/baseline_snap.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 rm -f suite.jobs
@@ -538,7 +538,7 @@ endif
 EOF0
 
   cat >! ${tsdir}/results.csh << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 # Redo the bfbcomp comparisons first.  Each test compares itself against
 # another test in the suite from inside its own batch job, where it can only
 # wait a bounded time for that other test to finish; a comparison made
@@ -563,7 +563,7 @@ echo "#------- " >> results.log
 EOF0
 
 cat >! ${tsdir}/report_codecov.csh << EOF0
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 source ${ICE_SCRIPTS}/machines/env.${machcomp}
 
@@ -783,11 +783,11 @@ EOF
 
     if (${docase} == 0) then
       set soptions = ""
-      # Create sorted array and remove duplicates and "none"
+      # Create sorted array and remove duplicates and "none" and others
       set setsarray = `echo ${sets_tmp} | sed 's/,/ /g' | fmt -1 | sort -u`
       if ("${setsarray}" != "") then
         foreach field (${setsarray})
-          if (${field} != "none") then
+          if (${field} != "none" && ${field} != "buildincremental") then
             set soptions = ${soptions}"_"${field}
           endif
         end

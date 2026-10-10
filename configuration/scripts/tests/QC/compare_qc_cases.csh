@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Read in the case directories for the 4 different QC cases
 set QC_DIR = "./qc_logs"

@@ -117,7 +117,8 @@
           lonrefrect, latrefrect, save_ghte_ghtn
       use ice_dyn_shared, only: &
           ndte, kdyn, revised_evp, yield_curve, &
-          evp_algorithm, visc_method,     &
+          evp_algorithm, visc_method,           &
+          free_drift_approx,                    &
           seabed_stress, seabed_stress_method,  &
           k1, k2, alphab, threshold_hw, Ktens,  &
           e_yieldcurve, e_plasticpot, coriolis, &
@@ -262,7 +263,7 @@
         k1, k2,         alphab,         threshold_hw,                   &
         deltaminEVP,    deltaminVP,     capping_method,                 &
         Cf,             Pstar,          Cstar,          Ktens,          &
-        dyn_area_min,   dyn_mass_min
+        dyn_area_min,   dyn_mass_min,   free_drift_approx
 
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,     snw_ssp_table,                 &
@@ -428,6 +429,7 @@
       Cstar = 20._dbl_kind    ! constant in Hibler strength formula (kstrength = 0)
       dyn_area_min = 1.e-11_dbl_kind ! minimum ice area concentration to activate dynamics
       dyn_mass_min = 1.e-10_dbl_kind ! minimum ice mass to activate dynamics (kg/m^2)
+      free_drift_approx = .true.     ! if true, set internal stress term to 0 for small areas
       krdg_partic = 1         ! 1 = new participation, 0 = Thorndike et al 75
       krdg_redist = 1         ! 1 = new redistribution, 0 = Hibler 80
       mu_rdg = 3              ! e-folding scale of ridged ice, krdg_partic=1 (m^0.5)
@@ -1068,6 +1070,7 @@
       call broadcast_scalar(Cstar,                master_task)
       call broadcast_scalar(dyn_area_min,         master_task)
       call broadcast_scalar(dyn_mass_min,         master_task)
+      call broadcast_scalar(free_drift_approx,    master_task)
       call broadcast_scalar(krdg_partic,          master_task)
       call broadcast_scalar(krdg_redist,          master_task)
       call broadcast_scalar(mu_rdg,               master_task)
@@ -1473,6 +1476,14 @@
          revised_evp = .false.
       endif
 
+      if ((kdyn == 2 .or. kdyn == 3) .and. free_drift_approx) then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: free_drift_approx = T with EAP or VP dynamics'
+            write(nu_diag,*) subname//' ERROR:   free_drift_approx must be F'
+         endif
+         abort_list = trim(abort_list)//":69"
+      endif
+
       if (kdyn > 3) then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' WARNING: kdyn out of range'
@@ -1547,6 +1558,13 @@
                write(nu_diag,*) subname//' ERROR: visc_method should be avg_zeta or avg_strength'
             endif
             abort_list = trim(abort_list)//":44"
+         endif
+         if (.not. free_drift_approx) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: free_drift_approx = F with C or CD grid'
+               write(nu_diag,*) subname//' ERROR: free_drift_approx should be T'
+            endif
+            abort_list = trim(abort_list)//":70"
          endif
       endif
 
@@ -2164,6 +2182,12 @@
          write(nu_diag,1003) ' dyn_area_min     = ', dyn_area_min,' : min ice area concentration to activate dynamics'
          write(nu_diag,1003) ' dyn_mass_min     = ', dyn_mass_min,' : min ice mass to activate dynamics (kg/m2)'
          if (kdyn >= 1) then
+            if (free_drift_approx) then
+               tmpstr2 = ' : free drift approximation is used for small areas '
+            else
+               tmpstr2 = ' : free drift approximation is not used for small areas '
+            endif
+            write(nu_diag,1010) ' free_drift_approx = ', free_drift_approx,trim(tmpstr2)
             if (kdyn == 1 .or. kdyn == 2) then
                if (revised_evp) then
                   tmpstr2 = ' : revised EVP formulation used'

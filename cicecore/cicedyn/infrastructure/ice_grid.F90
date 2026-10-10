@@ -1721,22 +1721,16 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) then
-         allocate( &
-            work_mom(nx_global*2+1, ny_global*2+1), &
-            work_gE(nx_global+1,ny_global+1)      , & !include left and top
-            work_gN(nx_global+1,ny_global+1)      , & !include right and top
-            G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
-            G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
-            G_TLON(nx_global+1,ny_global+1)       , & !include top and right
-            G_ULON(nx_global+1,ny_global+1)       , & !include left and bottom
-            stat = ierr &
-         )
-      else
-         allocate(work_mom(1,1), work_gE(1,1), work_gN(1,1), &
-            G_ULAT(1,1), G_TLAT(1,1), G_TLON(1,1), G_ULON(1,1), &
-            stat=ierr)
-      endif
+      allocate( &
+         work_mom(nx_global*2+1, ny_global*2+1), &
+         work_gE(nx_global+1,ny_global+1)      , & !include left and top
+         work_gN(nx_global+1,ny_global+1)      , & !include right and top
+         G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
+         G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
+         G_TLON(nx_global+1,ny_global+1)       , & !include top and right
+         G_ULON(nx_global+1,ny_global+1)       , & !include left and bottom
+         stat = ierr &
+      )
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! populate all LAT fields
@@ -2012,10 +2006,12 @@
       deg_to_rad = pi/c180
 
       ! convert to rad
-      G_T = G_T * deg_to_rad
-      G_U = G_U * deg_to_rad
-      G_N = G_N * deg_to_rad
-      G_E = G_E * deg_to_rad
+      if (my_task == master_task) then
+         G_T = G_T * deg_to_rad
+         G_U = G_U * deg_to_rad
+         G_N = G_N * deg_to_rad
+         G_E = G_E * deg_to_rad
+      endif
 
       ! distribute to processors
       ! subset G_T to active cells by dropping right/top halo

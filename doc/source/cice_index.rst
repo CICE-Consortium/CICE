@@ -265,6 +265,7 @@ section :ref:`tabnamelist`.
    "fr_resp", "bgc respiration fraction", "0.05"
    "frain", "rainfall rate", "kg/m\ :math:`^2`/s"
    "frazil", "frazil ice growth", "m"
+   "free_drift_approx", "if true, set internal stress to 0 for small areas", ""
    "fresh", "fresh water flux to ocean", "kg/m\ :math:`^2`/s"
    "fresh_ai","grid-box-mean fresh water flux (fresh)", "kg/m\ :math:`^2`/s"
    "frz_onset", "day of year that freezing begins", ""

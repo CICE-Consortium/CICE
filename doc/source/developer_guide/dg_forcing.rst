@@ -22,11 +22,11 @@ are discouraged for evaluating complex science.  In general, most implementation
 use aspects of the following approach,
 
 - Input files are organized by year.  The underlying implementation
-  provides for some flexibility and extensibility in filenames. For instance, JRA55 and JRA55do filenames can have syntax like [JRA55,JRA55do][_$grid]_03hr_forcing_$year.nc or [JRA55,JRA55do]_03hr_forcing[_$grid]_$year.nc, where [_$grid] is optional and may be present at one of two locations within the filename. This implementation exists to support the current naming conventions within the gx1, gx3, and tx1 JRA55 and JRA55do CICE_data directory structure automatically. See **JRA55_files** in **ice_forcing.F90** for more details.- Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
+  provides for some flexibility and extensibility in filenames. For instance, JRA55 and JRA55do filenames can have syntax like [JRA55,JRA55do][_$grid]_03hr_forcing_$year.nc or [JRA55,JRA55do]_03hr_forcing[_$grid]_$year.nc, where [_$grid] is optional and may be present at one of two locations within the filename. This implementation exists to support the current naming conventions within the gx1, gx3, tx1 and tx1m JRA55 and JRA55do CICE_data directory structure automatically. See **JRA55_files** in **ice_forcing.F90** for more details.- Namelist inputs ``fyear`` and ``ycycle`` specify the forcing year dataset.
 - The forcing year is computed on the fly and is assumed to be
   cyclical over the forcing dataset length defined by ``ycycle``.
 - The namelist ``atm_data_dir`` specifies the full or partial path for the atmosphere input data files, and the namelist ``atm_data_type`` defines the atmospheric forcing mode (see ``forcing_nml`` in
-  :ref:`tabnamelist`). Many of the forcing options are generated internally. For atmospheric forcing read from files, the directory structure and filenames depend on the grid and ``atm_data_type``. Many details can be gleaned from the CICE_data directory and filenames as well as from the implementation in **ice_forcing.F90**. The primary ``atm_data_type`` forcing for gx1, gx3, and tx1 test grids are ``JRA55`` and ``JRA55do``. For those configurations, the ``atm_data_dir`` should be set to ${CICE_data_root}/forcing/${grid}/[JRA55,JRA55do] and the filenames should be of the form [JRA55,JRA55do]_${grid}_03hr_forcing${atm_data_version}_yyyy.nc where yyyy is the forcing year. Those files should be placed under ``atm_data_dir/8XDAILY``. ``atm_data_version`` is a string defined in ``forcing_nml`` namelist that supports versioning of the forcing data. ``atm_data_version`` could be any string including the null string. It typically will be something like _yyyymmdd to indicate the date the forcing data was generated.
+  :ref:`tabnamelist`). Many of the forcing options are generated internally. For atmospheric forcing read from files, the directory structure and filenames depend on the grid and ``atm_data_type``. Many details can be gleaned from the CICE_data directory and filenames as well as from the implementation in **ice_forcing.F90**. The primary ``atm_data_type`` forcing for gx1, gx3, tx1 and tx1m test grids are ``JRA55`` and ``JRA55do``. For those configurations, the ``atm_data_dir`` should be set to ${CICE_data_root}/forcing/${grid}/[JRA55,JRA55do] and the filenames should be of the form [JRA55,JRA55do]_${grid}_03hr_forcing${atm_data_version}_yyyy.nc where yyyy is the forcing year. Those files should be placed under ``atm_data_dir/8XDAILY``. ``atm_data_version`` is a string defined in ``forcing_nml`` namelist that supports versioning of the forcing data. ``atm_data_version`` could be any string including the null string. It typically will be something like _yyyymmdd to indicate the date the forcing data was generated.
 - The namelist ``ocn_data_dir`` specifies the directory of the ocean input data files and the namelist ``ocn_data_type`` defines the ocean forcing mode.
 - The filenames follow a particular naming convention that is defined in the source code (ie. subroutine **JRA55_files**).  The forcing year is typically found just before the **.nc** part of the filename and there are tools (subroutine **file_year**) to update the filename based on the model year and appropriate forcing year.
 - The input data time axis is generally NOT read by the forcing subroutine.  The forcing frequency is hardwired into the model and the file record number is computed based on the forcing frequency and model time.  Mixing leap year input data and noleap model calendars (and vice versa) is not handled particularly gracefully.  The CICE model does not read or check against the input data time axis.
@@ -84,11 +84,11 @@ input data fields to model forcing fields.
 JRA55 and JRA55do Atmosphere Forcing
 ------------------------------------
 
-The current default atmosphere forcing for gx3, gx1, and tx1 standalone grids for
+The current default atmosphere forcing for gx3, gx1, tx1 and tx1m standalone grids for
 Consortium testing is the JRA55 forcing
-dataset :cite:`Tsujino18`.  The Consortium has released 5 years of forcing data, 
-2005-2009 for gx3, gx1, and tx1 grids.  Each year is a separate file and 
-the dataset is on a gregorian time axis which includes leap days.
+dataset :cite:`Tsujino18`.  The Consortium has released at least 5 years of JRA55 and JRA55do forcing data, 
+2005-2009 for gx3, gx1, and tx1 grids plus 1 year of JRA55do forcing data, 2005 for the tx1m grid.  
+Each year is a separate file and the dataset is on a gregorian time axis which includes leap days.
 
 .. _fig-jra55data:
 
