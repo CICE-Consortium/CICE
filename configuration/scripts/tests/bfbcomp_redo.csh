@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Redo every bfbcomp comparison in this test suite.
 #

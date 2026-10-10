@@ -8,17 +8,25 @@ unittest       gx3     8x1           mpif08,debug
 #
 unittest       gx3     4x1x25x29x4   sumchk
 unittest       gx3     1x1x25x29x16  sumchk
+unittest       gx3     32x1x5x4      sumchk
 unittest       tx1     8x1           sumchk
 unittest       tx1     8x1           sumchk,bctripolet
+unittest       gx3     4x1x25x29x4   sumchk,nghost2
+unittest       tx1     8x1           sumchk,nghost2
+unittest       tx1     8x1           sumchk,bctripolet,nghost2
+unittest       tx1m    12x1          sumchk
 #
 unittest       gx3     4x1           bcstchk
 unittest       gx3     1x1           bcstchk
+unittest       gx3     4x1           bcstchk,nghost2
+unittest       gx3     1x1           bcstchk,nghost2
 #
 unittest       gx3     8x2           gridavgchk,dwblockall
 unittest       gx3     12x1          gridavgchk
 unittest       gx1     28x1          gridavgchk,dwblockall
 unittest       gx1     16x2          gridavgchk
 unittest       gbox128 8x2           gridavgchk
+unittest       gx1     16x2          gridavgchk,nghost2
 #
 unittest       gbox80  4x2x10x20x13  halochk,bccyclic,debug
 unittest       gbox80  1x1x20x10     halochk,bccyclic
@@ -28,14 +36,14 @@ unittest       gbox80  1x1x23x24x16  halochk,bccyclic,debug
 unittest       gbox80  3x2x23x24     halochk,bccyclic
 unittest       gbox80  6x1x23x25     halochk,bcopen,debug
 unittest       gbox80  1x1x25x23x20  halochk,bcopen
-unittest       gbox80  1x1x22x25     halochk,bczerogradient,debug
-unittest       gbox80  6x1x25x22x4   halochk,bczerogradient
-unittest       gbox80  5x2x25x22x5   halochk,bclinearextrap,debug
-unittest       gbox80  1x1x22x25     halochk,bclinearextrap
-unittest       gbox80  1x1x22x21x16  halochk,bccyclicextrap,debug
-unittest       gbox80  4x2x22x21     halochk,bccyclicextrap
-unittest       gbox80  1x1x23x22x16  halochk,bcextrapcyclic,debug
-unittest       gbox80  4x2x23x22     halochk,bcextrapcyclic
+unittest       gbox80  1x1x22x25     halochk,bczerogradient,nghost2,debug
+unittest       gbox80  6x1x25x22x4   halochk,bczerogradient,nghost2
+unittest       gbox80  5x2x25x22x5   halochk,bclinearextrap,nghost2,debug
+unittest       gbox80  1x1x22x25     halochk,bclinearextrap,nghost2
+unittest       gbox80  1x1x22x21x16  halochk,bccyclicextrap,nghost2,debug
+unittest       gbox80  4x2x22x21     halochk,bccyclicextrap,nghost2
+unittest       gbox80  1x1x23x22x16  halochk,bcextrapcyclic,nghost2,debug
+unittest       gbox80  4x2x23x22     halochk,bcextrapcyclic,nghost2
 unittest       gbox80  4x2x13x23x13  halochk,bctripole,debug
 unittest       gbox80  1x1x23x13     halochk,bctripole
 unittest       gbox80  4x2x11x25x13  halochk,bctripolet,debug
@@ -59,6 +67,12 @@ unittest       tx1     4x2x65x45x10  halochk,dwblockall
 unittest       tx1     4x2x65x45     halochk,dwblockall
 unittest       tx1     4x2x57x43x12  halochk,dwblockall,bctripolet
 unittest       tx1     4x2x57x43     halochk,dwblockall,bctripolet
+unittest       tx1m    16x1          halochk,dwblockall
+#
+unittest       gbox80  4x2x14x12     halochk,bccyclic,debug,nghost2
+unittest       gbox80  1x1x23x14     halochk,bctripole,nghost2
+unittest       tx1     12x2x45x35x12 halochk,dwblockall,bctripolet,nghost2
+unittest       tx1     1x1x95x65     halochk,dwblockall,bctripolet,debug,nghost2
 #
 unittest       gx3     4x2           gathscatchk,debug
 unittest       gx3     4x2           gathscatchk,debug,dwblockall
@@ -73,18 +87,18 @@ unittest       gbox80  1x1x13x14     gathscatchk,bcopen,debug
 unittest       gbox80  4x2           gathscatchk,bccyclic
 unittest       gbox80  4x2x13x14     gathscatchk,bccyclic,debug
 unittest       gbox80  1x1x17x14     gathscatchk,bccyclic
-unittest       gbox80  4x2           gathscatchk,bczerogradient,debug
-unittest       gbox80  4x2x17x14     gathscatchk,bczerogradient
-unittest       gbox80  1x1x14x17     gathscatchk,bczerogradient,debug
-unittest       gbox80  4x2           gathscatchk,bclinearextrap
-unittest       gbox80  4x2x14x17     gathscatchk,bclinearextrap,debug
-unittest       gbox80  1x1x11x9      gathscatchk,bclinearextrap
-unittest       gbox80  4x2           gathscatchk,bcextrapcyclic,debug
-unittest       gbox80  4x2x11x9      gathscatchk,bcextrapcyclic
-unittest       gbox80  1x1x13x11     gathscatchk,bcextrapcyclic,debug
-unittest       gbox80  4x2           gathscatchk,bccyclicextrap
-unittest       gbox80  4x2x13x11     gathscatchk,bccyclicextrap,debug
-unittest       gbox80  1x1x11x13     gathscatchk,bccyclicextrap
+unittest       gbox80  4x2           gathscatchk,bczerogradient,nghost2,debug
+unittest       gbox80  4x2x17x14     gathscatchk,bczerogradient,nghost2
+unittest       gbox80  1x1x14x17     gathscatchk,bczerogradient,nghost2,debug
+unittest       gbox80  4x2           gathscatchk,bclinearextrap,nghost2
+unittest       gbox80  4x2x14x17     gathscatchk,bclinearextrap,nghost2,debug
+unittest       gbox80  1x1x11x9      gathscatchk,bclinearextrap,nghost2
+unittest       gbox80  4x2           gathscatchk,bcextrapcyclic,nghost2,debug
+unittest       gbox80  4x2x11x9      gathscatchk,bcextrapcyclic,nghost2
+unittest       gbox80  1x1x13x11     gathscatchk,bcextrapcyclic,nghost2,debug
+unittest       gbox80  4x2           gathscatchk,bccyclicextrap,nghost2
+unittest       gbox80  4x2x13x11     gathscatchk,bccyclicextrap,nghost2,debug
+unittest       gbox80  1x1x11x13     gathscatchk,bccyclicextrap,nghost2
 unittest       gbox80  4x2x13x23x13  gathscatchk,bctripole,debug
 unittest       gbox80  1x1x23x13     gathscatchk,bctripole
 unittest       gbox80  4x2x11x25x13  gathscatchk,bctripolet,debug
@@ -97,6 +111,13 @@ unittest       tx1     4x2           gathscatchk,bctripolet,debug
 unittest       tx1     4x2           gathscatchk,bctripolet,dwblockall
 unittest       tx1     4x2x50x50     gathscatchk,bctripolet,debug
 unittest       tx1     1x1x50x50     gathscatchk,bctripolet
+unittest       tx1m    8x2           gathscatchk,debug
+#
+unittest       gx3     4x2x12x13     gathscatchk,debug,nghost2
+unittest       gbox80  1x1x17x14     gathscatchk,bccyclic,nghost2
+unittest       gbox80  4x2x13x23x13  gathscatchk,bctripole,debug,nghost2
+unittest       tx1     4x2x50x50     gathscatchk,bctripole,debug,nghost2
+unittest       tx1     1x1x50x50     gathscatchk,bctripolet,nghost2
 #
 unittest       gx3     1x1           optargs
 unittest       gx3     1x1           opticep

@@ -81,7 +81,8 @@
          ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
-         revised_evp    ! if true, use revised evp procedure
+         revised_evp, & ! if true, use revised evp procedure
+         free_drift_approx ! if true, set internal stress to 0 for small areas
 
       character (len=char_len), public :: &
          evp_algorithm  ! standard_2d = 2D org version (standard)
@@ -252,7 +253,8 @@
       real (kind=dbl_kind), dimension (:), allocatable, public :: &
          aiU_slot        , & ! ice fraction on U grid, compressed
          fmU_slot        , & ! Coriolis parameter * mass in U cell, compressed
-         TbU_slot            ! seabed stress factor (N/m^2), compressed
+         TbU_slot        , & ! seabed stress factor (N/m^2), compressed
+         rheofactU_slot      ! 1, except 0 where aiU <= rheo_area_min, compressed
 
       ! The dyn_prep2 work arrays, likewise compressed for stepu and likewise
       ! constant through the subcycling.  The block-layout originals must
@@ -581,11 +583,17 @@
       str1_slot = c0 ; str2_slot = c0 ; str3_slot = c0 ; str4_slot = c0
       str5_slot = c0 ; str6_slot = c0 ; str7_slot = c0 ; str8_slot = c0
 
-      allocate(aiU_slot(dynTot), fmU_slot(dynTot), TbU_slot(dynTot), stat=ierr)
+      allocate(aiU_slot(dynTot), fmU_slot(dynTot), TbU_slot(dynTot), &
+               rheofactU_slot(dynTot), stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
       aiU_slot = c0
       fmU_slot = c0
       TbU_slot = c0
+      ! c1, not c0: since #1133 dyn_prep2 fills this only when
+      ! free_drift_approx is set, so a c0 default would zero the internal
+      ! stress everywhere with the flag off.  EAP never fills it and always
+      ! wants 1, as upstream's rheofactU(i,j,iblk) = c1 does there.
+      rheofactU_slot = c1
 
       allocate(umassdti_slot(dynTot), waterxU_slot(dynTot), &
                wateryU_slot(dynTot), forcexU_slot(dynTot), &
@@ -1480,9 +1488,8 @@
          strintx , & ! divergence of internal ice stress, x (N/m^2)
          strinty     ! divergence of internal ice stress, y (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), &
-           optional :: &
-         rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
+         rheofactX   ! 1, except 0 where aiU <= rheo_area_min
 
       ! the same thing compressed, filled in the same loop rather than by a
       ! second traversal of the block -- as Xmassdti_slot and the force and
@@ -1683,7 +1690,7 @@
          j = indxXj(ij)
          ijb = (j-1)*nx_block + i
 
-         if (present(rheofactX)) then
+         if (free_drift_approx .and. present(rheofactX)) then
             if ( aiX (ijb) > rheo_area_min ) then
                rheofactX(i,j) = c1
                if (present(rheofactX_s)) rheofactX_s(Xmap(ijb)) = c1
@@ -1754,7 +1761,7 @@
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
                         nbr,                  &
-                        TbU)
+                        TbU,        rheofactU)
 
       integer (kind=int_kind), intent(in) :: &
          ncells                ! slots held by this block
@@ -1783,6 +1790,7 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          Cw      , & ! ocean-ice neutral drag coefficient
+         rheofactU,& ! 1, except 0 where aiU <= rheo_area_min
          uarear      ! 1/uarea
 
       ! uvel_init/vvel_init are compressed but indexed from 1
@@ -1888,9 +1896,13 @@
          tmp_str7_E  = str7(isE )
          tmp_str8_NE = str8(isNE)
 
-         strintx_tmp = uarear(is)* &
+         ! rheofactU is 1, or 0 where the U cell carries less ice than
+         ! rheo_area_min and free_drift_approx is on.  Upstream applies it to
+         ! the 2-D strintx/strinty here (#1133); same factor, same place, on
+         ! the slot form.
+         strintx_tmp = rheofactU(is) * uarear(is) * &
              (str1(is) + tmp_str2_E + tmp_str3_N + tmp_str4_NE)
-         strinty_tmp = uarear(is)* &
+         strinty_tmp = rheofactU(is) * uarear(is) * &
              (str5(is) + tmp_str6_N + tmp_str7_E + tmp_str8_NE)
 
          ! finally, the velocity components
@@ -2138,7 +2150,7 @@
 !
 ! This is only worth calling when the fields are actually output.
 
-      subroutine calc_strint_slot (ncells, skipme, uarear, &
+      subroutine calc_strint_slot (ncells, skipme, uarear, rheofactU, &
                                    str1, str2, str3, str4, &
                                    str5, str6, str7, str8, &
                                    nbr, strintx_s, strinty_s)
@@ -2150,7 +2162,8 @@
          skipme      ! inactive-slot flag
 
       real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
-         uarear      ! 1/uarea
+         uarear  , & ! 1/uarea
+         rheofactU   ! 1, except 0 where aiU <= rheo_area_min
 
       ! block-local slot; the dead slot at cnt+1 reads zero, so a missing
       ! neighbour needs no branch, exactly as in stepu
@@ -2181,9 +2194,11 @@
          isN  = nbr(is,nbr_N )
          isNE = nbr(is,nbr_NE)
 
-         strintx_s(is) = uarear(is)* &
+         ! the same factor stepu applies, so this diagnostic matches the
+         ! strintx/strinty the momentum equation actually used
+         strintx_s(is) = rheofactU(is) * uarear(is)* &
              (str1(is) + str2(isE ) + str3(isN ) + str4(isNE))
-         strinty_s(is) = uarear(is)* &
+         strinty_s(is) = rheofactU(is) * uarear(is)* &
              (str5(is) + str6(isN ) + str7(isE ) + str8(isNE))
       enddo
 

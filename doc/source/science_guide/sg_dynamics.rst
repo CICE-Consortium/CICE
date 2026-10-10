@@ -187,7 +187,7 @@ However, on the C grid, :math:`u` and :math:`v` are not collocated. When solving
    u^{k+1} = {\hat{u} + b v^{k}_{int} \over a} \\
    v^{k+1} = {\hat{v} - b u^{k}_{int} \over a}. \end{aligned}
 
-The C- and CD-grid EVP discretizations exhibit instabilities for very small ice concentrations, when the ice should be drifting freely. The internal stress term is multiplied by a factor `rheofactN` or `rheofactE` equal to zero in this case, otherwise equal to 1 for ice areas greater than :math:`10^{-3}` (far below the physical threshold for free drift). This factor is not applied for the B-grid EVP discretization, which has not exhibited this instability. 
+The C- and CD-grid EVP discretizations exhibit instabilities for very small ice concentrations, when the ice should be drifting freely. When ``free_drift_approx = .true.`` and ``rheo_area_min = 1.e-3`` (far below the physical threshold for free drift), the internal stress term is multiplied by a factor `rheofactN` or `rheofactE` equal to zero for ice concentrations less than or equal to ``rheo_area_min``; otherwise the factors equal 1 for larger ice areas. For safety and consistency, the factor `rheofactU` has been added to the B-grid EVP discretization also, which does not usually exhibit this instability but can do so when slight changes are made to the code. The factor has not been fully implemented or tested for the EAP or VP formulations.
 
 .. _revp-momentum:
 

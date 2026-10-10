@@ -16,8 +16,8 @@
       use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_domain_size, only: nx_global, ny_global
       use ice_domain_size, only: block_size_x, block_size_y, max_blocks
-      use ice_domain, only: distrb_info
-      use ice_blocks, only: block, get_block, nx_block, ny_block, nblocks_tot, ns_boundary_type
+      use ice_domain, only: distrb_info, nblocks_active
+      use ice_blocks, only: block, get_block, nx_block, ny_block, ns_boundary_type
       use ice_distribution, only: ice_distributionGetBlockID, ice_distributionGet
       use ice_constants, only: field_loc_center, field_loc_Nface, field_loc_Eface, field_loc_NEcorner
       use ice_fileunits, only: bfbflag
@@ -111,7 +111,7 @@
          write(6,*) ' ny_global    = ',ny_global
          write(6,*) ' block_size_x = ',block_size_x
          write(6,*) ' block_size_y = ',block_size_y
-         write(6,*) ' nblocks_tot  = ',nblocks_tot
+         write(6,*) ' nblocks      = ',nblocks_active
          write(6,*) ' '
          write(6,*) ' Values are generally O(1.), lscale is the relative size of'
          write(6,*) ' values set in the array to test precision.  A pair of equal'
@@ -165,13 +165,13 @@
       reldigchk(1:3,1) = 14.
       reldigchk(4,1) = 3.9
       reldigchk(1:3,2) = 9.
-      reldigchk(4,2) = 1.
-      reldigchk(1:3,3) = 1.
+      reldigchk(4,2) = 0.5
+      reldigchk(1:3,3) = 0.7
       reldigchk(4,3) = 0.
       reldigchk(1:3,4) = 0.
       reldigchk(4,4) = 0.
-      reldigchk(5,4) = 15.
-      if (nx_global == 360 .and. ny_global == 240) then
+      reldigchk(5,4) = 14.9
+      if (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT') then
          reldigchk(1:3,1) = 12.5
          reldigchk(5,4) = 14.
       endif
@@ -180,14 +180,14 @@
       reldigchk(1:2,1) = 14.
       reldigchk(4,1) = 3.9
       reldigchk(1:2,2) = 9.
-      reldigchk(4,2) = 1.
-      reldigchk(1:2,3) = 1.
+      reldigchk(4,2) = 0.5
+      reldigchk(1:2,3) = 0.7
       reldigchk(4,3) = 0.
       reldigchk(1:2,4) = 0.
       reldigchk(3,4) = 3.
       reldigchk(4,4) = 0.
-      reldigchk(5,4) = 15.
-      if (nx_global == 360 .and. ny_global == 240) then
+      reldigchk(5,4) = 14.9
+      if (ns_boundary_type == 'tripole' .or. ns_boundary_type == 'tripoleT') then
          reldigchk(1:2,1) = 12.5
          reldigchk(5,4) = 14.
       endif
@@ -222,19 +222,19 @@
          if     ((ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_Nface   ) .or. &
                  (ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_NEcorner)) then
             ! remove full row at ny_global
-            locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global),dbl_kind)
-            corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global)*iocval
+            locval = corval / real((nblocks_active*(block_size_x*block_size_y-2)-nx_global),dbl_kind)
+            corvali = (nblocks_active*(block_size_x*block_size_y-2)-nx_global)*iocval
          elseif ((ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_center  ) .or. &
                  (ns_boundary_type == 'tripoleT' .and. field_loc(m) == field_loc_Eface   ) .or. &
                  (ns_boundary_type == 'tripole'  .and. field_loc(m) == field_loc_NEcorner) .or. &
                  (ns_boundary_type == 'tripole'  .and. field_loc(m) == field_loc_Nface   )) then
             ! remove half of row at ny_global
-            locval = corval / real((nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
-            corvali = (nblocks_tot*(block_size_x*block_size_y-2)-nx_global/2)*iocval
+            locval = corval / real((nblocks_active*(block_size_x*block_size_y-2)-nx_global/2),dbl_kind)
+            corvali = (nblocks_active*(block_size_x*block_size_y-2)-nx_global/2)*iocval
          else
             ! all gridcells
-            locval = corval / real(nblocks_tot*(block_size_x*block_size_y-2),dbl_kind)
-            corvali = nblocks_tot*(block_size_x*block_size_y-2)*iocval
+            locval = corval / real(nblocks_active*(block_size_x*block_size_y-2),dbl_kind)
+            corvali = nblocks_active*(block_size_x*block_size_y-2)*iocval
          endif
 
       do l = 1, nscale

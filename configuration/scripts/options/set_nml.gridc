@@ -1,1 +1,2 @@
 grid_ice = 'C'
+free_drift_approx = .true.

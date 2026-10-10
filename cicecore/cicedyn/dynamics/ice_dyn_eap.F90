@@ -140,6 +140,7 @@
           stressm_1_slot , stressm_2_slot , stressm_3_slot , stressm_4_slot , &
           stress12_1_slot, stress12_2_slot, stress12_3_slot, stress12_4_slot, &
           uvel_slot, vvel_slot, aiU_slot, fmU_slot, TbU_slot, &
+          rheofactU_slot, &
           strintxU_slot, strintyU_slot, taubxU_slot, taubyU_slot, &
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
@@ -611,7 +612,10 @@
                         uvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   &
                         uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
-                        TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+                        ! always 1 here: the free-drift stress removal is not
+                        ! implemented for EAP, as upstream notes in #1133
+                        TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                        rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 !            call ice_timer_stop(timer_tmp2,iblk)
 
             !-----------------------------------------------------------------
@@ -681,6 +685,7 @@
          if (lstrint) then
             call calc_strint_slot(dynCnt(iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                  uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                 rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                  str1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
               str3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str4_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
               str5_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str6_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &

@@ -51,6 +51,7 @@
           uvel_init, vvel_init, uvelE_init, vvelE_init, uvelN_init, vvelN_init, &
           dynOff, dynCnt, dynMap, dynNbr, &
           uvel_slot, vvel_slot, aiU_slot, fmU_slot, TbU_slot, &
+          rheofactU_slot, &
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
           uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, dynIJ, &
@@ -71,7 +72,8 @@
 
       implicit none
       private
-! all c or cd
+
+      ! C or CD grid
       real (kind=dbl_kind), allocatable :: &
          uocnN    (:,:,:) , & ! i ocean current (m/s)
          vocnN    (:,:,:) , & ! j ocean current (m/s)
@@ -139,6 +141,7 @@
          etax2T   (:,:) , & ! etax2  = 2*eta  (shear viscosity)
          etax2U   (:,:)     ! etax2T averaged to U points
 
+      ! B grid
       real (kind=dbl_kind), allocatable :: &
          uocnU    (:,:,:) , & ! i ocean current (m/s)
          vocnU    (:,:,:) , & ! j ocean current (m/s)
@@ -149,6 +152,8 @@
          wateryU  (:,:)   , & ! for ocean stress calculation, y (m/s)
          forcexU  (:,:)   , & ! work array: combined atm stress and ocn tilt, x
          forceyU  (:,:)       ! work array: combined atm stress and ocn tilt, y
+      real (kind=dbl_kind), allocatable :: &
+         rheofactU(:,:,:)     ! 1, except 0 where aiU <= rheo_area_min
 
       ! the i and j dimensions are flattened: element (i,j,iblk) of the block
       ! layout lives at ((j-1)*nx_block + i, iblk)
@@ -220,8 +225,11 @@
                 forceyU  (nx_block*ny_block,max_blocks), & ! work array: combined atm stress and ocn tilt, y
                 umass    (nx_block*ny_block,max_blocks), & ! total mass of ice and snow (u grid)
                 umassdti (nx_block*ny_block,max_blocks), & ! mass of U-cell/dte (kg/m^2 s)
+                rheofactU(nx_block,ny_block,max_blocks), & ! 1, except 0 where aiU <= rheo_area_min
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory B-Grid evp')
+
+      rheofactU(:,:,:) = c1
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
 
@@ -253,6 +261,8 @@
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory N evp')
 
+         rheofactN(:,:,:) = c1
+
          allocate( uocnE    (nx_block,ny_block,max_blocks), &
                    vocnE    (nx_block,ny_block,max_blocks), &
                    ss_tltxE (nx_block,ny_block,max_blocks), &
@@ -268,6 +278,8 @@
                    rheofactE(nx_block,ny_block,max_blocks), &
                    stat=ierr)
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory E evp')
+
+         rheofactE(:,:,:) = c1
 
          allocate( ratiodxN (nx_block,ny_block,max_blocks), &
                    ratiodyE (nx_block,ny_block,max_blocks), &
@@ -303,7 +315,11 @@
          if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory ratio slot')
          ratiodxN_slot  = c0 ; ratiodyE_slot  = c0
          ratiodxNr_slot = c0 ; ratiodyEr_slot = c0
-         rheofactE_slot = c0 ; rheofactN_slot = c0
+         ! c1, not c0: since #1133 dyn_prep2 fills these only when
+         ! free_drift_approx is set, so a c0 default would zero the internal
+         ! stress everywhere with the flag off.  Matches rheofactE(:,:,:) = c1
+         ! for the block-layout copies.
+         rheofactE_slot = c1 ; rheofactN_slot = c1
 
          ! constant for the run, so packed once here
          do iblk = 1, nblocks
@@ -662,7 +678,8 @@
                             uvel(:,iblk), vvel(:,iblk), &
                            dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                            TbU       (:,iblk),                         &
+                            TbU       (:,iblk), rheofactU (:,:,iblk), &
+                            rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                             Xmassdti_slot = umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                             waterx_slot   = waterxU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                             watery_slot   = wateryU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
@@ -1099,7 +1116,8 @@
                               uvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),   vvel_init(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),  &
                               uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
-                              TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+                              TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 
                enddo  ! iblk
                !$OMP END PARALLEL DO
@@ -1152,6 +1170,7 @@
                if (lstrint) then
                   call calc_strint_slot(dynCnt(iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                        uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                       rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                        str1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                        str3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str4_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                        str5_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str6_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &

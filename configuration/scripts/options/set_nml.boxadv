@@ -19,6 +19,7 @@ tr_aero      = .false.
 kitd = 1
 ktherm = 1
 kdyn  =  2
+free_drift_approx = .false.
 kstrength = 0
 krdg_partic = 0
 krdg_redist = 0

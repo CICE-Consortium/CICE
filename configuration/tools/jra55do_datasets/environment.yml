@@ -1,0 +1,10 @@
+name: jra55do_datasets
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python
+  - numpy
+  - xarray
+  - xesmf
+  - netcdf4

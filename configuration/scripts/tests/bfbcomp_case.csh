@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Redo the bfbcomp comparison for one case, after the suite has drained.
 # Run from inside the case directory; see bfbcomp_redo.csh.

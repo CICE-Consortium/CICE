@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 #source ./cice.settings
 #source ${ICE_CASEDIR}/env.${ICE_MACHCOMP} || exit 2
@@ -61,7 +61,7 @@ cat >> ${jobfile} < ${ICE_SCRIPTS}/tests/baseline.script
 chmod +x ${jobfile}
 
 cat >! ${subfile} << EOFS
-#!/bin/csh -f 
+#!/usr/bin/env -S csh -f 
 
 ${ICE_MACHINE_SUBMIT} ./${jobfile}
 echo "\`date\` \${0}: ${ICE_CASENAME} job submitted"  >> ${ICE_CASEDIR}/README.case

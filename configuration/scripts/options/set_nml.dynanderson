@@ -2,4 +2,5 @@ kdyn            = 3
 algo_nonlin     = 'anderson'
 use_mean_vrel   = .false.
 capping_method  = 'max'
+free_drift_approx = .false.
 

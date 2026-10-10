@@ -46,11 +46,11 @@
              get_block_parameter ,&
              ice_blocksGetNbrID
 
-   integer (int_kind), parameter, public :: &
-      nghost = 1       ! number of ghost cells around each block
+   integer (int_kind), public :: &
+      nghost              ! number of ghost cells around each block
 
    integer (int_kind), public :: &! size of block domain in
-      nx_block, ny_block          !  x,y dir including ghost
+      nx_block, ny_block  !  x,y dir including ghost
 
    character (char_len), public :: &
       ew_boundary_type,  &! type of domain bndy in each logical
@@ -116,8 +116,8 @@
                          !   of neighbor blocks
 
    integer (int_kind), dimension(:,:), allocatable, target :: &
-      i_glob_data,         &! global i index for each point in each block
-      j_glob_data           ! global j index for each point in each block
+      i_glob_data,      &! global i index for each point in each block
+      j_glob_data        ! global j index for each point in each block
 
 !***********************************************************************
 

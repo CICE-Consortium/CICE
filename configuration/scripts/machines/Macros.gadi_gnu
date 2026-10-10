@@ -1,0 +1,69 @@
+#==============================================================================
+# Makefile macros for NCI Gadi, gnu compiler
+#==============================================================================
+
+CPP        := cpp
+CPPDEFS    := -DFORTRANUNDERSCORE -DREPRODUCIBLE ${ICE_CPPDEFS}
+CFLAGS     := -c -O2 -Wno-unused-variable -Wno-unused-parameter
+
+FIXEDFLAGS := -ffixed-line-length-132
+FREEFLAGS  := -ffree-form
+FFLAGS     := -fconvert=big-endian -fbacktrace -ffree-line-length-none -fallow-argument-mismatch
+
+ifeq ($(ICE_BLDDEBUG), true)
+    FFLAGS  += -O0 -g -fcheck=bounds -finit-real=nan -fimplicit-none -ffpe-trap=invalid,zero,overflow
+    CPPDEFS := $(CPPDEFS) -DDEBUG=$(DEBUG)
+else
+    FFLAGS  += -O2
+endif
+
+SCC   := gcc
+SFC   := gfortran
+MPICC := mpicc
+MPIFC := mpifort
+
+ifeq ($(ICE_COMMDIR), mpi)
+  FC := $(MPIFC)
+  CC := $(MPICC)
+else
+  FC := $(SFC)
+  CC := $(SCC)
+endif
+LD:= $(FC)
+
+SLIBS := $(SLIBS)
+INCLDIR := $(INCLDIR)
+
+# if spack modules loaded, use them. otherwise use system modules
+ifndef SPACK_NETCDF_FORTRAN_ROOT
+   SLIBS += -L$(NETCDF)/lib -lnetcdf -lnetcdff
+   INCLDIR += -I$(NETCDF)/include
+else
+   SLIBS += -L$(SPACK_NETCDF_C_ROOT)/lib64 -lnetcdf
+   SLIBS += -L$(SPACK_NETCDF_FORTRAN_ROOT)/lib  -lnetcdff
+   INCLDIR += -I$(SPACK_NETCDF_C_ROOT)/include
+   INCLDIR += -I$(SPACK_NETCDF_FORTRAN_ROOT)/include
+endif
+
+ifeq ($(ICE_THREADED), true)
+   LDFLAGS += -fopenmp
+   CFLAGS += -fopenmp
+   FFLAGS += -fopenmp
+endif
+
+ifeq ($(ICE_IOTYPE), pio1)
+   LIB_PIO := $(PIO_LIBDIR)
+   SLIBS   += -L$(LIB_PIO) -lpio
+endif
+
+ifeq ($(ICE_IOTYPE), pio2)
+  ifndef SPACK_PARALLELIO_ROOT
+    SLIBS += -L$(PARALLELIO_ROOT)/lib -lpioc -lpiof
+  else
+   SLIBS += -L$(SPACK_PARALLELIO_ROOT)/lib -lpioc -lpiof
+   INCLDIR += -I $(SPACK_PARALLELIO_ROOT)/include
+  endif
+
+  SLIBS += $(SLIBS) -L$(OMPI_BASE)/lib -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh
+
+endif

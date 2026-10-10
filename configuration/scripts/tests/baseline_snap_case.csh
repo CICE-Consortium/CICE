@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Copy one finished case into a baseline, replacing whatever is there.
 # Run from inside the case directory; see baseline_snap.csh.
