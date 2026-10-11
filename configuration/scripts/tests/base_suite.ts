@@ -40,7 +40,17 @@ smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_
 # boundaries put no active T cell in the top row, so neither shows up here.
 # Add that pair once the index arithmetic is fixed upstream.
 smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
-smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxopen_kmtislands_boxforcee_run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_run1day
+#
+# The same pair with nghost2.  evp1d took its T cells to nx and skipped U only
+# at i == nx, both of which are right only for a single ghost layer, so with
+# nghost > 1 it computed stress on an extra ring and stepped U one column
+# further than the 2-D solver.  Nothing caught it: the nghost2 rows above are
+# all 2-D, and the evp1d rows are all nghost 1, so the combination was covered
+# nowhere.  The fifth column must be the SORTED set list -- cice.setup sorts
+# the sets when it builds a test name but uses this column verbatim.
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_nghost2_run1day
 #
 # And one pair that writes output while running the 1d solver.  evp1d scatters
 # the twelve stresses back only when a file is due, so this reaches a path the

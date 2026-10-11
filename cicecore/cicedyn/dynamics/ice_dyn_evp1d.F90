@@ -485,18 +485,22 @@ module ice_dyn_evp1d
     integer(kind=int_kind)              :: i,j
     character(len=*), parameter :: subname = '(calc_nActivceTU)'
 
+    ! Same range as calc_2d_indices_init, which fills the index arrays this
+    ! counts: ilo..ihi+1, one cell into the ghosts, where ihi is nx-nghost.
+    ! The two must agree or nActive exceeds what gets filled and the tail of
+    ! indxti/indxtj is left at zero.
     na0=0
     if (present(Umask)) then
-       do i=1+nghost,nx
-       do j=1+nghost,ny
+       do i=1+nghost,nx-nghost+1
+       do j=1+nghost,ny-nghost+1
           if ((Tmask(i,j)) .or. (Umask(i,j))) then
              na0=na0+1
           endif
        enddo
        enddo
     else
-       do i=1+nghost,nx
-       do j=1+nghost,ny
+       do i=1+nghost,nx-nghost+1
+       do j=1+nghost,ny-nghost+1
           if (Tmask(i,j)) then
              na0=na0+1
           endif
@@ -529,8 +533,11 @@ module ice_dyn_evp1d
       endif
       if (.not. (iceTmask(i,j))) skipTcell(iw)=.true.
       if (.not. (iceUmask(i,j))) skipUcell(iw)=.true.
-      if (i == nx)  skipUcell(iw)=.true.
-      if (j == ny)  skipUcell(iw)=.true.
+      ! No U point outside ilo..ihi, jlo..jhi, which is where the 2-D solver
+      ! steps U.  ihi is nx-nghost, so every ghost column past it is skipped,
+      ! not just the outermost one -- the same one-ghost assumption as above.
+      if (i > nx - nghost) skipUcell(iw)=.true.
+      if (j > ny - nghost) skipUcell(iw)=.true.
     enddo
     !    write(nu_diag,*) 'number of points and Active points', na0, niw
 
@@ -556,9 +563,12 @@ module ice_dyn_evp1d
     indxti(:) = 0
     indxtj(:) = 0
     Nmaskt = 0
-    ! NOTE: T mask includes northern and eastern ghost cells
-    do j = 1 + nghost, ny
-    do i = 1 + nghost, nx
+    ! The T cells the 2-D solver computes stress at: ilo..ihi+1, jlo..jhi+1,
+    ! one cell into the ghosts.  ihi is nx-nghost, so the upper bound is
+    ! nx-nghost+1 -- which is nx only when nghost is 1.  Running to nx took an
+    ! extra ring of T cells for nghost > 1 and the two solvers diverged.
+    do j = 1 + nghost, ny - nghost + 1
+    do i = 1 + nghost, nx - nghost + 1
        if (Tmask(i,j)) then
           Nmaskt = Nmaskt + 1
           indxti(Nmaskt) = i
