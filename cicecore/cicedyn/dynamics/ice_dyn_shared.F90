@@ -1017,16 +1017,6 @@
             file=__FILE__, line=__LINE__)
       endif
 
-      ! calc_halo_parent builds the 1d halo assuming a single ghost layer: it
-      ! pairs i==nx-nghost with ifind=1 and i==1+nghost with ifind=nx, which
-      ! only spans one layer.  With nghost > 1 the outer layers would simply
-      ! never be filled -- wrong answers, not a crash -- so refuse rather than
-      ! run.  nghost is a parameter today, so this is a guard against someone
-      ! raising it, matching the TODO in calc_halo_parent.
-      if (kdyn == 1 .and. evp_algorithm == 'shared_mem_1d' .and. nghost > 1) then
-         call abort_ice(subname//' ERROR: evp_alg shared mem 1d not supported with nghost > 1', &
-            file=__FILE__, line=__LINE__)
-      endif
 
       call set_evp_parameters (dt)
       ! allocate dyn shared (init_uvel,init_vvel)

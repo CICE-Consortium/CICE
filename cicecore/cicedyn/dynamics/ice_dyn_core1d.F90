@@ -406,7 +406,7 @@ module ice_dyn_core1d
                        str7     , str8     , &
                        nw       , sw       , &
                        sse      , skipme   , &
-                       Tbu, Cb, rhow)
+                       Tbu, Cb, rhow, rheofactU)
 
     use ice_kinds_mod
     use ice_dyn_shared, only: brlx, revp, u0, cosw, sinw
@@ -429,7 +429,7 @@ module ice_dyn_core1d
        uocn,     & ! ocean current, x-direction (m/s)
        vocn,     & ! ocean current, y-direction (m/s)
        fm,       & ! Coriolis param. * mass in U-cell (kg/s)
-       uarear,   & ! 1/uarea
+       rheofactU, uarear,   & ! 1/uarea
        Cw
 
     real (kind=dbl_kind),dimension(:), intent(in),    contiguous ::              &
@@ -471,6 +471,7 @@ module ice_dyn_core1d
     !$omp shared(uvel,vvel,str1,str2,str3,str4,str5,str6,str7,str8,            &
     !$omp        Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,                  &
     !$omp        aiX,waterx,watery,forcex,forcey,Umassdti,uocn,vocn,fm,uarear, &
+    !$omp        rheofactU,                                                    &
     !$omp           Cw,lb,ub,brlx, revp, rhow)
 #endif
     do iw = lb, ub
@@ -501,8 +502,12 @@ module ice_dyn_core1d
       tmp_str8_sw = str8(sw(iw))
 
       ! divergence of the internal stress tensor
-      strintx = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
-      strinty = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+      ! rheofactU is 1, or 0 where the U cell carries less ice than
+      ! rheo_area_min and free_drift_approx is on.  The 2-D stepu applies it
+      ! here (#1133); #1133 did not reach this kernel, so the two solvers
+      ! disagreed wherever a grid has marginal ice.
+      strintx = rheofactU(iw)*uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+      strinty = rheofactU(iw)*uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
 
       ! finally, the velocity components
       cc1 = strintx + forcex(iw) + taux &
@@ -532,7 +537,7 @@ module ice_dyn_core1d
                            str5   , str6   , &
                            str7   , str8   , &
                            nw     , sw     , &
-                           sse    ,          &
+                           sse    , rheofactU, &
                            strintx, strinty)
 
     use ice_kinds_mod
@@ -545,7 +550,7 @@ module ice_dyn_core1d
     integer(kind=int_kind), intent(in)                           :: lb,ub
     integer(kind=int_kind), intent(in), dimension(:), contiguous :: nw,sw,sse
     logical(kind=log_kind), intent(in), dimension(:), contiguous :: skipme
-    real   (kind=dbl_kind), intent(in), dimension(:), contiguous :: uarear
+    real   (kind=dbl_kind), intent(in), dimension(:), contiguous :: uarear, rheofactU
 
   ! local variables
     integer (kind=int_kind) :: iw
@@ -563,6 +568,7 @@ module ice_dyn_core1d
     !$omp private(iw, tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,               &
     !$omp         tmp_str6_sse,tmp_str7_nw,tmp_str8_sw)                   &
     !$omp shared(strintx,strinty,str1,str2,str3,str4,str5,str6,str7,str8, &
+    !$omp        rheofactU,                                               &
     !$omp        nw,sw,sse,skipme, uarear, lb,ub)
 #endif
 
@@ -577,8 +583,8 @@ module ice_dyn_core1d
       tmp_str8_sw = str8(sw(iw))
 
       ! divergence of the internal stress tensor
-      strintx(iw) = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
-      strinty(iw) = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+      strintx(iw) = rheofactU(iw)*uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+      strinty(iw) = rheofactU(iw)*uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
     enddo
 
 #ifdef _OPENMP_TARGET

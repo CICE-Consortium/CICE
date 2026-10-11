@@ -40,7 +40,17 @@ smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_
 # boundaries put no active T cell in the top row, so neither shows up here.
 # Add that pair once the index arithmetic is fixed upstream.
 smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
-smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxopen_kmtislands_boxforcee_run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_run1day
+#
+# The same pair with nghost2.  evp1d took its T cells to nx and skipped U only
+# at i == nx, both of which are right only for a single ghost layer, so with
+# nghost > 1 it computed stress on an extra ring and stepped U one column
+# further than the 2-D solver.  Nothing caught it: the nghost2 rows above are
+# all 2-D, and the evp1d rows are all nghost 1, so the combination was covered
+# nowhere.  The fifth column must be the SORTED set list -- cice.setup sorts
+# the sets when it builds a test name but uses this column verbatim.
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_nghost2_run1day
 #
 # And one pair that writes output while running the 1d solver.  evp1d scatters
 # the twelve stresses back only when a file is due, so this reaches a path the
@@ -135,14 +145,17 @@ restart        gx3     4x4        cdf64,histall,precision8,medium
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
-# VP coverage.  dynpicard had one smoke test here and one decomp test, and
-# dynanderson -- a whole branch of the nonlinear solver, plus
-# use_mean_vrel = .false. -- had none anywhere.  The restart cases are
-# self-comparing (restart vs continuous), so they check state handling even
-# without a baseline.  The gbox80 case is cheap and deterministic.
+# VP coverage.  dynpicard had one smoke test here and one decomp test.  The
+# restart case is self-comparing (restart vs continuous), so it checks state
+# handling even without a baseline, and the gbox80 case is cheap.
+#
+# dynanderson is deliberately NOT here, though it is the one branch of the
+# nonlinear solver with no coverage anywhere.  It cannot be tested: without
+# -DUSE_LAPACK anderson_solver aborts outright, and even with it the solver
+# aborts whenever nprocs > 1, as it is not parallelised.  That leaves a
+# single-task LAPACK build as the only configuration it runs in, which is not
+# what boreas_intel is.  Upstream has no dynanderson test for this reason.
 restart        gx3     4x2        dynpicard,diag1
-smoke          gx3     4x1        dynanderson
-restart        gx3     4x2        dynanderson,diag1
 smoke          gbox80  4x2        boxopen,kmtislands,boxforcee,run1day,dynpicard
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        diag1,gx3ncarbulk,short
