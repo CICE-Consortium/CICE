@@ -135,14 +135,17 @@ restart        gx3     4x4        cdf64,histall,precision8,medium
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
-# VP coverage.  dynpicard had one smoke test here and one decomp test, and
-# dynanderson -- a whole branch of the nonlinear solver, plus
-# use_mean_vrel = .false. -- had none anywhere.  The restart cases are
-# self-comparing (restart vs continuous), so they check state handling even
-# without a baseline.  The gbox80 case is cheap and deterministic.
+# VP coverage.  dynpicard had one smoke test here and one decomp test.  The
+# restart case is self-comparing (restart vs continuous), so it checks state
+# handling even without a baseline, and the gbox80 case is cheap.
+#
+# dynanderson is deliberately NOT here, though it is the one branch of the
+# nonlinear solver with no coverage anywhere.  It cannot be tested: without
+# -DUSE_LAPACK anderson_solver aborts outright, and even with it the solver
+# aborts whenever nprocs > 1, as it is not parallelised.  That leaves a
+# single-task LAPACK build as the only configuration it runs in, which is not
+# what boreas_intel is.  Upstream has no dynanderson test for this reason.
 restart        gx3     4x2        dynpicard,diag1
-smoke          gx3     4x1        dynanderson
-restart        gx3     4x2        dynanderson,diag1
 smoke          gbox80  4x2        boxopen,kmtislands,boxforcee,run1day,dynpicard
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        diag1,gx3ncarbulk,short
