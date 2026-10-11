@@ -16,6 +16,7 @@ module ice_dyn_evp1d
   use ice_domain_size, only: max_blocks, nx_global, ny_global
   use ice_fileunits, only: nu_diag
   use ice_exit, only: abort_ice
+  use ice_dyn_shared, only: rheo_area_min, free_drift_approx
 
   !- directives ----------------------------------------------------------------
   implicit none
@@ -52,6 +53,7 @@ module ice_dyn_evp1d
   ! time varying
   real(kind=dbl_kind)   , allocatable, dimension(:)   ::                  &
     cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,   &
+    rheofactU,                                                            &
     strintxU,strintyU,uvel_init,vvel_init, strength, uvel, vvel,          &
     stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,     &
     stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -239,7 +241,8 @@ module ice_dyn_evp1d
        !$omp                 HTNm1_1d,forcexU, forceyU, umassdti, fmU,         &
        !$omp                 uarear_1d,uvel_init, vvel_init, Tbu, Cb,          &
        !$omp                 str1, str2, str3, str4, str5, str6, str7, str8,   &
-       !$omp                 cdn_ocn, aiu, uocn, vocn, waterxU, wateryU, rhow  &
+       !$omp                 cdn_ocn, aiu, uocn, vocn, waterxU, wateryU, rhow, &
+       !$omp                 rheofactU                                            &
        !$omp             map(tofrom: uvel,vvel,                                &
        !$omp                 stressp_1, stressp_2, stressp_3, stressp_4,       &
        !$omp                 stressm_1, stressm_2, stressm_3, stressm_4,       &
@@ -269,7 +272,7 @@ module ice_dyn_evp1d
                           waterxU, wateryU, forcexU, forceyU, umassdti, fmU, uarear_1d, &
                           uvel_init, vvel_init, uvel, vvel,                             &
                           str1, str2, str3, str4, str5, str6, str7, str8,               &
-                          nw, sw, sse, skipUcell, Tbu, Cb, rhow)
+                          nw, sw, sse, skipUcell, Tbu, Cb, rhow, rheofactU)
           call evp1d_halo_update()
        enddo
        ! This can be skipped if diagnostics of strintx and strinty is not needed
@@ -281,7 +284,7 @@ module ice_dyn_evp1d
                          str5     , str6     , &
                          str7     , str8     , &
                          nw       , sw       , &
-                         sse      ,            &
+                         sse      , rheofactU, &
                          strintxU, strintyU)
 
        call ice_timer_stop(timer_evp1dcore)
@@ -408,7 +411,7 @@ module ice_dyn_evp1d
        call abort_ice(subname//' ERROR: allocating', file=__FILE__, line=__LINE__)
     endif
 
-    allocate(cdn_ocn  (1:na0), aiu      (1:na0), &
+    allocate(cdn_ocn  (1:na0), aiu      (1:na0), rheofactU(1:na0), &
              uocn     (1:na0), vocn     (1:na0), &
              waterxU  (1:na0), wateryU  (1:na0), &
              forcexU  (1:na0), forceyU  (1:na0), &
@@ -890,6 +893,15 @@ module ice_dyn_evp1d
         strength(iw)   = G_strength(i,j)
         cdn_ocn(iw)    = G_cdn_ocn(i, j)
         aiu(iw)        = G_aiu(i, j)
+        ! The rule dyn_prep2 uses: 1, or 0 where the U cell carries less ice
+        ! than rheo_area_min.  #1133 added this factor to the 2-D stepu but
+        ! not to this kernel, so the two solvers disagreed on any grid with
+        ! marginal ice -- gx3 shows it, a solid-ice box grid does not.
+        if (free_drift_approx .and. G_aiu(i, j) <= rheo_area_min) then
+           rheofactU(iw) = c0
+        else
+           rheofactU(iw) = c1
+        endif
         uocn(iw)       = G_uocn(i, j)
         vocn(iw)       = G_vocn(i, j)
         waterxU(iw)    = G_waterxU(i, j)
@@ -1147,6 +1159,7 @@ module ice_dyn_evp1d
         sw(iw)=0
         sse(iw)=0
         aiu(iw)=c0
+        rheofactU(iw)=c1
         Cb(iw)=c0
         cdn_ocn(iw)=c0
         dxT_1d(iw)=c0
