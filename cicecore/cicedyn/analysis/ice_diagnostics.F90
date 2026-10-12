@@ -1847,12 +1847,17 @@
          varid              ! netcdf variable id
 
       character (len=8) :: &
-         cdate              ! initial date string
+         cdate          , & ! initial date string
+         current_date       ! wall clock date
+
+      character (len=10) :: &
+         current_time       ! wall clock time
 
       character (len=char_len) :: &
          vname          , & ! netcdf variable name
          cal_units      , & ! time units
-         cal_att            ! calendar attribute
+         cal_att        , & ! calendar attribute
+         hist_att           ! history attribute
 
       real (kind=dbl_kind) :: &
          val                ! value to write
@@ -1909,6 +1914,12 @@
          status = nf90_put_att(ncid, varid, 'long_name', 'time')
          call ice_check_nc(status, subname//' ERROR: defining att long_name time', &
                            file=__FILE__, line=__LINE__)
+         status = nf90_put_att(ncid, varid, 'standard_name', 'time')
+         call ice_check_nc(status, subname//' ERROR: defining att standard_name time', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_put_att(ncid, varid, 'axis', 'T')
+         call ice_check_nc(status, subname//' ERROR: defining att axis time', &
+                           file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid, varid, 'units', trim(cal_units))
          call ice_check_nc(status, subname//' ERROR: defining att units time', &
                            file=__FILE__, line=__LINE__)
@@ -1941,6 +1952,14 @@
                            file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid, nf90_global, 'Conventions', 'CF-1.8')
          call ice_check_nc(status, subname//' ERROR: defining global att Conventions', &
+                           file=__FILE__, line=__LINE__)
+
+         call date_and_time(date=current_date, time=current_time)
+         write(hist_att,'(a,a4,a1,a2,a1,a2,a4,a2,a1,a2,a1,a2)') 'This dataset was created on ', &
+               current_date(1:4),'-',current_date(5:6),'-',current_date(7:8),' at ', &
+               current_time(1:2),':',current_time(3:4),':',current_time(5:6)
+         status = nf90_put_att(ncid, nf90_global, 'history', trim(hist_att))
+         call ice_check_nc(status, subname//' ERROR: defining global att history', &
                            file=__FILE__, line=__LINE__)
 
          status = nf90_enddef(ncid)
