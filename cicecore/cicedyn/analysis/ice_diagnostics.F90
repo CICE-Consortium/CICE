@@ -1833,7 +1833,8 @@
       use ice_calendar, only: timesecs, idate0, hh_init, mm_init, ss_init, &
           days_per_year, use_leap_years, seconds_per_day, istep, dt, &
           calendar_time2date
-      use ice_history_shared, only: history_dir, history_file
+      use ice_history_shared, only: history_dir, history_file, history_format, &
+          history_deflate
       use ice_read_write, only: ice_check_nc
 
       ! local variables
@@ -1842,6 +1843,7 @@
          n, nh          , & ! loop indices
          syear, smon, sday, ssec, & ! run start date
          status         , & ! netcdf status
+         iflag          , & ! netcdf create mode
          ncid           , & ! netcdf file id
          timid          , & ! netcdf time dimension id
          varid              ! netcdf variable id
@@ -1884,7 +1886,33 @@
             syear,'-',smon,'-',sday,'-',ssec,'.nc'
          write(nu_diag,*) subname,' creating ',trim(ncdiag_file)
 
-         status = nf90_create(trim(ncdiag_file), nf90_clobber, ncid)
+         ! file format consistent with history files, written serially
+         if (history_format == 'cdf2' .or. history_format == 'pnetcdf2') then
+#ifdef NO_CDF2
+            call abort_ice(subname//' ERROR: history_format cdf2 not available ', &
+                           file=__FILE__, line=__LINE__)
+#else
+            iflag = ior(nf90_clobber,nf90_64bit_offset)
+#endif
+         elseif (history_format == 'cdf5' .or. history_format == 'pnetcdf5') then
+#ifdef NO_CDF5
+            call abort_ice(subname//' ERROR: history_format cdf5 not available ', &
+                           file=__FILE__, line=__LINE__)
+#else
+            iflag = ior(nf90_clobber,nf90_64bit_data)
+#endif
+         elseif (history_format == 'hdf5') then
+#ifdef NO_HDF5
+            call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
+                           file=__FILE__, line=__LINE__)
+#else
+            iflag = ior(nf90_clobber,nf90_netcdf4)
+#endif
+         else
+            iflag = nf90_clobber
+         endif
+
+         status = nf90_create(trim(ncdiag_file), iflag, ncid)
          call ice_check_nc(status, subname//' ERROR: creating '//trim(ncdiag_file), &
                            file=__FILE__, line=__LINE__)
 
@@ -1933,6 +1961,14 @@
             status = nf90_def_var(ncid, trim(vname), nf90_double, (/timid/), varid)
             call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
                               file=__FILE__, line=__LINE__)
+#ifndef NO_HDF5
+            if (history_format == 'hdf5' .and. history_deflate /= 0) then
+               status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, &
+                                             deflate_level=history_deflate)
+               call ice_check_nc(status, subname//' ERROR: deflating var '//trim(vname), &
+                                 file=__FILE__, line=__LINE__)
+            endif
+#endif
             status = nf90_put_att(ncid, varid, 'long_name', &
                                   trim(ncdiag_lname(n))//', '//hemi_lname(nh))
             call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
