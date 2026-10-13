@@ -274,6 +274,7 @@
       ! would need dynIJ(nbr(is,d)), a second indirection on every access.
       real (kind=dbl_kind), dimension(:), allocatable, public :: &
          uarear_slot , & ! 1/uarea            B grid, stepu
+         tarear_slot , & ! 1/tarea            B grid, deformations
          dxN_slot    , & ! width of N-cell    C/CD, strain_rates_T
          dyE_slot    , & ! height of E-cell   C/CD, strain_rates_T
          uarea_slot  , & ! U-cell area        C/CD, stressC_T
@@ -6721,7 +6722,8 @@
       ! array of dynTot reals each, and a conditional here would have to track
       ! grid_ice in a second place.
       ! ------------------------------------------------------------------
-      allocate(uarear_slot(dynTot), dxN_slot(dynTot), dyE_slot(dynTot), &
+      allocate(uarear_slot(dynTot), tarear_slot(dynTot),               &
+               dxN_slot(dynTot), dyE_slot(dynTot),                      &
                uarea_slot(dynTot), tarea_slot(dynTot),                  &
                earea_slot(dynTot), narea_slot(dynTot), hm_slot(dynTot), &
                earear_slot(dynTot), narear_slot(dynTot), &
@@ -6734,7 +6736,8 @@
                wsumSE_slot(dynTot), wsumNE_slot(dynTot),               &
                stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
-      uarear_slot = c0 ; dxN_slot   = c0 ; dyE_slot   = c0
+      uarear_slot = c0 ; tarear_slot = c0
+      dxN_slot    = c0 ; dyE_slot   = c0
       uarea_slot  = c0 ; tarea_slot = c0
       earea_slot  = c0 ; narea_slot = c0 ; hm_slot    = c0
       earear_slot = c0 ; narear_slot = c0
@@ -6749,6 +6752,8 @@
          if (dynCnt(iblk) == 0) cycle
          call pack_to_slots(uarear(:,iblk), dynMap(:,iblk), &
               uarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+         call pack_to_slots(tarear(:,iblk), dynMap(:,iblk), &
+              tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(dxN   (:,iblk), dynMap(:,iblk), &
               dxN_slot   (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(dyE   (:,iblk), dynMap(:,iblk), &

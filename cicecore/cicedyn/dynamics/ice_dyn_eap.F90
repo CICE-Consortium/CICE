@@ -73,7 +73,9 @@
          a12_1_slot, a12_2_slot, a12_3_slot, a12_4_slot    ! compressed
 
       ! history
-      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+      ! i and j flattened, element (i,j,iblk) at ((j-1)*nx_block+i, iblk),
+      ! so stress_eap can write them through ijslot without rebuilding (i,j)
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          e11          , & ! components of strain rate tensor (1/s)
          e12          , &
          e22          , &
@@ -145,6 +147,9 @@
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
           uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, dynIJ, &
+          dxT_slot, dyT_slot, dxU_slot, dyU_slot, tarear_slot, &
+          dxhy_slot, dyhx_slot, cxp_slot, cyp_slot, cxm_slot, cym_slot, &
+          strength_slot, &
           pack_to_slots, unpack_from_slots, &
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
@@ -155,7 +160,7 @@
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
           strax, stray, &
-          TbU, hwater, &
+          hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
@@ -249,20 +254,20 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            rdg_conv (i,j,iblk) = c0
-            rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
-            divu (i,j,iblk) = c0
-            shear(i,j,iblk) = c0
-            vort(i,j,iblk)  = c0
-            e11(i,j,iblk) = c0
-            e12(i,j,iblk) = c0
-            e22(i,j,iblk) = c0
-            s11(i,j,iblk) = c0
-            s12(i,j,iblk) = c0
-            s22(i,j,iblk) = c0
-            yieldstress11(i,j,iblk) = c0
-            yieldstress12(i,j,iblk) = c0
-            yieldstress22(i,j,iblk) = c0
+            rdg_conv ((j-1)*nx_block+i,iblk) = c0
+            rdg_shear((j-1)*nx_block+i,iblk) = c0 ! always zero. Could be moved
+            divu ((j-1)*nx_block+i,iblk) = c0
+            shear((j-1)*nx_block+i,iblk) = c0
+            vort((j-1)*nx_block+i,iblk)  = c0
+            e11((j-1)*nx_block+i,iblk) = c0
+            e12((j-1)*nx_block+i,iblk) = c0
+            e22((j-1)*nx_block+i,iblk) = c0
+            s11((j-1)*nx_block+i,iblk) = c0
+            s12((j-1)*nx_block+i,iblk) = c0
+            s22((j-1)*nx_block+i,iblk) = c0
+            yieldstress11((j-1)*nx_block+i,iblk) = c0
+            yieldstress12((j-1)*nx_block+i,iblk) = c0
+            yieldstress22((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
 
@@ -361,7 +366,7 @@
                          fmU       (:,iblk), dt,                   &
                          strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                          strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
-                         strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
+                         strintxU  (:,iblk), strintyU  (:,iblk), &
                          taubxU    (:,iblk)  , taubyU    (:,iblk)  , &
                          waterxU   (:,iblk)  , wateryU   (:,iblk)  , &
                          forcexU   (:,iblk)  , forceyU   (:,iblk)  , &
@@ -375,7 +380,7 @@
                          uvel(:,iblk), vvel(:,iblk), &
                         dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                         skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                         TbU       (:,iblk))
+                         TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 
          !-----------------------------------------------------------------
          ! Initialize structure tensor
@@ -465,7 +470,7 @@
                                               icellU    (iblk),                 &
                                               indxUi  (:,iblk), indxUj(:,iblk), &
                                               vice  (:,:,iblk), aice(:,:,iblk), &
-                                              hwater(:,iblk), TbU (:,iblk))
+                                              hwater(:,iblk), dynMap(:,iblk), TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             enddo
             !$OMP END PARALLEL DO
 
@@ -476,7 +481,7 @@
                                                icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
                                                icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk), &
-                                               hwater (:,iblk), TbU    (:,iblk))
+                                               hwater (:,iblk), dynMap(:,iblk), TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             enddo
             !$OMP END PARALLEL DO
          endif
@@ -489,9 +494,11 @@
          call pack_to_slots(uvel(:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(vvel(:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          ! constant through the subcycling, so packed once and never unpacked
+         ! strength changes every timestep (ridging), so it is packed here
+         ! rather than once at init.  stress_eap reads it from the slots now.
+         call pack_to_slots(strength(:,:,iblk), dynMap(:,iblk), strength_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-         call pack_to_slots(TbU (:,iblk), dynMap(:,iblk), TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(umassdti(:,iblk), dynMap(:,iblk), umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(waterxU(:,iblk), dynMap(:,iblk), waterxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          call pack_to_slots(wateryU(:,iblk), dynMap(:,iblk), wateryU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -537,20 +544,18 @@
          do iblk = 1, nblocks
 
 !            call ice_timer_start(timer_tmp1,iblk)
-            call stress_eap  (nx_block,             ny_block,             &
+            call stress_eap  (dynCnt(iblk),         skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                               ksub,                 ndte,                 &
-                              icellT        (iblk),                       &
-                              indxTi      (:,iblk), indxTj      (:,iblk), &
                               arlx1i,               denom1,               &
                               uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
-                              dxT       (:, iblk), dyT       (:, iblk), &
-                              dxU       (:, iblk), dyU       (:, iblk), &
-                              dxhy      (:,iblk), dyhx      (:,iblk), &
-                              cxp       (:,iblk), cyp       (:,iblk), &
-                              cxm       (:,iblk), cym       (:,iblk), &
-                              tarear    (:,  iblk), strength  (:,:,iblk), &
+                              dxT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              dxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              dxhy_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyhx_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              cxp_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), cyp_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              cxm_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), cym_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                              tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), strength_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               a11_1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               a11_2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               a11_3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
@@ -571,18 +576,18 @@
                               stress12_2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               stress12_3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               stress12_4_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
-                              shear     (:,:,iblk), divu      (:,:,iblk), &
-                              vort      (:,:,iblk),                       &
-                              e11       (:,:,iblk), e12       (:,:,iblk), &
-                              e22       (:,:,iblk),                       &
-                              s11       (:,:,iblk), s12       (:,:,iblk), &
-                              s22       (:,:,iblk),                       &
-                              yieldstress11                   (:,:,iblk), &
-                              yieldstress12                   (:,:,iblk), &
-                              yieldstress22                   (:,:,iblk), &
-!                              rdg_conv  (:,:,iblk), rdg_shear (:,:,iblk), &
-                              rdg_conv  (:,:,iblk), &
-                              dynMap    (:,iblk),                      &
+                              shear     (:,iblk), divu      (:,iblk), &
+                              vort      (:,iblk),                       &
+                              e11       (:,iblk), e12       (:,iblk), &
+                              e22       (:,iblk),                       &
+                              s11       (:,iblk), s12       (:,iblk), &
+                              s22       (:,iblk),                       &
+                              yieldstress11                   (:,iblk), &
+                              yieldstress12                   (:,iblk), &
+                              yieldstress22                   (:,iblk), &
+!                              rdg_conv  (:,iblk), rdg_shear (:,iblk), &
+                              rdg_conv  (:,iblk), &
+                              dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                               str1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               str3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str4_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                               str5_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), str6_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
@@ -624,11 +629,9 @@
 
 !            call ice_timer_start(timer_tmp3,iblk)
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
-            call stepa (nx_block            , ny_block            , &
-                        dtei                , icellT        (iblk), &
-                        indxTi      (:,iblk), indxTj      (:,iblk), &
-                        dynMap      (:,iblk),                       &
-                        a11       (:,:,iblk), a12       (:,:,iblk), &
+            call stepa (dynCnt(iblk)        , skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                        dtei                , dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
+                        a11       (:,iblk), a12       (:,iblk), &
                         a11_1_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         a11_2_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                         a11_3_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
@@ -693,8 +696,8 @@
               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
                  strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                  strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,:,iblk))
-            call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,:,iblk))
+            call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,iblk))
+            call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,iblk))
          endif
          if (ltaub) then
             call calc_seabed_stress_slot(dynCnt(iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
@@ -809,17 +812,17 @@
                 a12_2        (nx_block,ny_block,max_blocks), &
                 a12_3        (nx_block,ny_block,max_blocks), &
                 a12_4        (nx_block,ny_block,max_blocks), &
-                e11          (nx_block,ny_block,max_blocks), &
-                e12          (nx_block,ny_block,max_blocks), &
-                e22          (nx_block,ny_block,max_blocks), &
-                yieldstress11(nx_block,ny_block,max_blocks), &
-                yieldstress12(nx_block,ny_block,max_blocks), &
-                yieldstress22(nx_block,ny_block,max_blocks), &
-                s11          (nx_block,ny_block,max_blocks), &
-                s12          (nx_block,ny_block,max_blocks), &
-                s22          (nx_block,ny_block,max_blocks), &
-                a11          (nx_block,ny_block,max_blocks), &
-                a12          (nx_block,ny_block,max_blocks), &
+                e11          (nx_block*ny_block,max_blocks), &
+                e12          (nx_block*ny_block,max_blocks), &
+                e22          (nx_block*ny_block,max_blocks), &
+                yieldstress11(nx_block*ny_block,max_blocks), &
+                yieldstress12(nx_block*ny_block,max_blocks), &
+                yieldstress22(nx_block*ny_block,max_blocks), &
+                s11          (nx_block*ny_block,max_blocks), &
+                s12          (nx_block*ny_block,max_blocks), &
+                s22          (nx_block*ny_block,max_blocks), &
+                a11          (nx_block*ny_block,max_blocks), &
+                a12          (nx_block*ny_block,max_blocks), &
                 stat=ierr)
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory')
 
@@ -838,15 +841,15 @@
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
-         e11          (i,j,iblk) = c0
-         e12          (i,j,iblk) = c0
-         e22          (i,j,iblk) = c0
-         s11          (i,j,iblk) = c0
-         s12          (i,j,iblk) = c0
-         s22          (i,j,iblk) = c0
-         yieldstress11(i,j,iblk) = c0
-         yieldstress12(i,j,iblk) = c0
-         yieldstress22(i,j,iblk) = c0
+         e11          ((j-1)*nx_block+i,iblk) = c0
+         e12          ((j-1)*nx_block+i,iblk) = c0
+         e22          ((j-1)*nx_block+i,iblk) = c0
+         s11          ((j-1)*nx_block+i,iblk) = c0
+         s12          ((j-1)*nx_block+i,iblk) = c0
+         s22          ((j-1)*nx_block+i,iblk) = c0
+         yieldstress11((j-1)*nx_block+i,iblk) = c0
+         yieldstress12((j-1)*nx_block+i,iblk) = c0
+         yieldstress22((j-1)*nx_block+i,iblk) = c0
          a11_1        (i,j,iblk) = p5
          a11_2        (i,j,iblk) = p5
          a11_3        (i,j,iblk) = p5
@@ -855,7 +858,7 @@
          a12_2        (i,j,iblk) = c0
          a12_3        (i,j,iblk) = c0
          a12_4        (i,j,iblk) = c0
-         rdg_shear    (i,j,iblk) = c0
+         rdg_shear    ((j-1)*nx_block+i,iblk) = c0
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk
@@ -1376,10 +1379,8 @@
 ! Computes stress terms for the momentum equation
 ! (based on subroutine stress)
 
-      subroutine stress_eap  (nx_block,   ny_block,       &
+      subroutine stress_eap  (ncells,     skipme,         &
                               ksub,       ndte,           &
-                              icellT,                     &
-                              indxTi,     indxTj,         &
                               arlx1i,     denom1,         &
                               uvel,       vvel,     nbr,  &
                               dxT,        dyT,            &
@@ -1407,21 +1408,19 @@
                               yieldstress22,              &
 !                             rdg_conv,   rdg_shear,      &
                               rdg_conv, &
-                              Xmap,                                 &
+                              ijslot,                               &
                               strtmp1, strtmp2, strtmp3, strtmp4,   &
                               strtmp5, strtmp6, strtmp7, strtmp8)
 
       use ice_dyn_shared, only: nbr_W, nbr_S, nbr_SW
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
          ndte              , & ! number of subcycles
-         icellT                ! no. of cells where iceTmask = .true.
+         ncells                ! slots held by this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme       ! inactive-slot flag, T cells
 
       real (kind=dbl_kind), intent(in) :: &
          arlx1i   , & ! dte/2T (original) or 1/alpha1 (revised)
@@ -1440,7 +1439,10 @@
       integer (kind=int_kind), dimension(:,:), intent(in) :: &
          nbr          ! neighbour slots
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+      ! All COMPRESSED, indexed by this block's slot: the kernel iterates
+      ! slots, so no block subscript arithmetic is left and the two block
+      ! dimensions are not needed.
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          strength , & ! ice strength (N/m)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
@@ -1458,16 +1460,18 @@
       real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          stressp_1, stressp_2, stressp_3, stressp_4, & ! sigma11+sigma22
          stressm_1, stressm_2, stressm_3, stressm_4, & ! sigma11-sigma22
          stress12_1,stress12_2,stress12_3,stress12_4   ! sigma12
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          a11_1, a11_2, a11_3, a11_4, & ! structure tensor
          a12_1, a12_2, a12_3, a12_4              ! structure tensor
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      ! Output only, and BLOCK indexed: written through ijslot, exactly the
+      ! cells icellT used to touch -- the same arrangement deformations uses.
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
          vort     , & ! vorticity (1/s)
@@ -1488,16 +1492,16 @@
          strtmp1, strtmp2, strtmp3, strtmp4, &
          strtmp5, strtmp6, strtmp7, strtmp8    ! stress combinations
 
-      ! Xmap holds each cell's block-local slot, see ice_dyn_shared
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         Xmap
+      ! slot -> block cell, for the output-only diagnostics above
+      integer (kind=int_kind), dimension (:), intent(in), contiguous :: &
+         ijslot
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij, ijb, &
-         isW, isS, isSW, & ! W, S and SW neighbour slots
-         is             ! block-local compressed slot of (i,j)
+         ijb            , & ! this slot's block cell, for the outputs
+         isW, isS, isSW , & ! W, S and SW neighbour slots
+         is                 ! block-local compressed slot
 
       real (kind=dbl_kind) :: &
          stressptmp_1, stressptmp_2, stressptmp_3, stressptmp_4, & ! sigma11+sigma22
@@ -1534,11 +1538,9 @@
       strtmp1(:) = c0 ; strtmp2(:) = c0 ; strtmp3(:) = c0 ; strtmp4(:) = c0
       strtmp5(:) = c0 ; strtmp6(:) = c0 ; strtmp7(:) = c0 ; strtmp8(:) = c0
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
+      do is = 1, ncells
+         if (skipme(is)) cycle
+         ijb = ijslot(is)
 
          ! the velocity stencil, read from the compressed slots.  A missing
          ! neighbour is the block's dead slot, the last one, held at zero --
@@ -1564,34 +1566,34 @@
          !-----------------------------------------------------------------
 
          ! divergence  =  e_11 + e_22
-         divune    = cyp(ijb)*u00 - dyT(ijb)*uW &
-                   + cxp(ijb)*v00 - dxT(ijb)*vS
-         divunw    = cym(ijb)*uW + dyT(ijb)*u00 &
-                   + cxp(ijb)*vW - dxT(ijb)*vSW
-         divusw    = cym(ijb)*uSW + dyT(ijb)*uS &
-                   + cxm(ijb)*vSW + dxT(ijb)*vW
-         divuse    = cyp(ijb)*uS - dyT(ijb)*uSW &
-                   + cxm(ijb)*vS + dxT(ijb)*v00
+         divune    = cyp(is)*u00 - dyT(is)*uW &
+                   + cxp(is)*v00 - dxT(is)*vS
+         divunw    = cym(is)*uW + dyT(is)*u00 &
+                   + cxp(is)*vW - dxT(is)*vSW
+         divusw    = cym(is)*uSW + dyT(is)*uS &
+                   + cxm(is)*vSW + dxT(is)*vW
+         divuse    = cyp(is)*uS - dyT(is)*uSW &
+                   + cxm(is)*vS + dxT(is)*v00
 
          ! tension strain rate  =  e_11 - e_22
-         tensionne = -cym(ijb)*u00 - dyT(ijb)*uW &
-                   +  cxm(ijb)*v00 + dxT(ijb)*vS
-         tensionnw = -cyp(ijb)*uW + dyT(ijb)*u00 &
-                   +  cxm(ijb)*vW + dxT(ijb)*vSW
-         tensionsw = -cyp(ijb)*uSW + dyT(ijb)*uS &
-                   +  cxp(ijb)*vSW - dxT(ijb)*vW
-         tensionse = -cym(ijb)*uS - dyT(ijb)*uSW &
-                   +  cxp(ijb)*vS - dxT(ijb)*v00
+         tensionne = -cym(is)*u00 - dyT(is)*uW &
+                   +  cxm(is)*v00 + dxT(is)*vS
+         tensionnw = -cyp(is)*uW + dyT(is)*u00 &
+                   +  cxm(is)*vW + dxT(is)*vSW
+         tensionsw = -cyp(is)*uSW + dyT(is)*uS &
+                   +  cxp(is)*vSW - dxT(is)*vW
+         tensionse = -cym(is)*uS - dyT(is)*uSW &
+                   +  cxp(is)*vS - dxT(is)*v00
 
          ! shearing strain rate  =  2*e_12
-         shearne = -cym(ijb)*v00 - dyT(ijb)*vW &
-                 -  cxm(ijb)*u00 - dxT(ijb)*uS
-         shearnw = -cyp(ijb)*vW + dyT(ijb)*v00 &
-                 -  cxm(ijb)*uW - dxT(ijb)*uSW
-         shearsw = -cyp(ijb)*vSW + dyT(ijb)*vS &
-                 -  cxp(ijb)*uSW + dxT(ijb)*uW
-         shearse = -cym(ijb)*vS - dyT(ijb)*vSW &
-                 -  cxp(ijb)*uS + dxT(ijb)*u00
+         shearne = -cym(is)*v00 - dyT(is)*vW &
+                 -  cxm(is)*u00 - dxT(is)*uS
+         shearnw = -cyp(is)*vW + dyT(is)*v00 &
+                 -  cxm(is)*uW - dxT(is)*uSW
+         shearsw = -cyp(is)*vSW + dyT(is)*vS &
+                 -  cxp(is)*uSW + dxT(is)*uW
+         shearse = -cym(is)*vS - dyT(is)*vSW &
+                 -  cxp(is)*uS + dxT(is)*u00
 
          !-----------------------------------------------------------------
          ! Stress updated depending on strain rate and structure tensor
@@ -1601,25 +1603,25 @@
          call update_stress_rdg (ksub, ndte, divune, tensionne, &
                                  shearne, a11_1(is), a12_1(is), &
                                  stressptmp_1, stressmtmp_1, &
-                                 stress12tmp_1, strength(ijb), &
+                                 stress12tmp_1, strength(is), &
                                  alpharne, alphasne)
          ! nw
          call update_stress_rdg (ksub, ndte, divunw, tensionnw, &
                                  shearnw, a11_2(is), a12_2(is), &
                                  stressptmp_2, stressmtmp_2, &
-                                 stress12tmp_2, strength(ijb), &
+                                 stress12tmp_2, strength(is), &
                                  alpharnw, alphasnw)
          ! sw
          call update_stress_rdg (ksub, ndte, divusw, tensionsw, &
                                  shearsw, a11_3(is), a12_3(is), &
                                  stressptmp_3, stressmtmp_3, &
-                                 stress12tmp_3, strength(ijb), &
+                                 stress12tmp_3, strength(is), &
                                  alpharsw, alphassw)
          ! se
          call update_stress_rdg (ksub, ndte, divuse, tensionse, &
                                  shearse, a11_4(is), a12_4(is), &
                                  stressptmp_4, stressmtmp_4, &
-                                 stress12tmp_4, strength(ijb), &
+                                 stress12tmp_4, strength(is), &
                                  alpharse, alphasse)
 
          !-----------------------------------------------------------------
@@ -1630,32 +1632,32 @@
 
             ! diagnostic only
             ! shear = sqrt(tension**2 + shearing**2)
-            shear(ijb) = p25*tarear(ijb)*sqrt( &
+            shear(ijb) = p25*tarear(is)*sqrt( &
                  (tensionne + tensionnw + tensionse + tensionsw)**2 &
                 +  (shearne +   shearnw +   shearse +   shearsw)**2)
 
             ! vorticity
-            dvdxn = dyU(ijb)*v00 - dyU(ijb-1)*vW
-            dvdxs = dyU(ijb-nx_block)*vS - dyU(ijb-nx_block-1)*vSW
-            dudye = dxU(ijb)*u00 - dxU(ijb-nx_block)*uS
-            dudyw = dxU(ijb-1)*uW - dxU(ijb-nx_block-1)*uSW
-            vort(ijb) = p5*tarear(ijb)*(dvdxn + dvdxs - dudye - dudyw)
+            dvdxn = dyU(is)*v00 - dyU(isW)*vW
+            dvdxs = dyU(isS)*vS - dyU(isSW)*vSW
+            dudye = dxU(is)*u00 - dxU(isS)*uS
+            dudyw = dxU(isW)*uW - dxU(isSW)*uSW
+            vort(ijb) = p5*tarear(is)*(dvdxn + dvdxs - dudye - dudyw)
 
-            divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(ijb)
+            divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(is)
             rdg_conv(ijb)  = -min(p25*(alpharne + alpharnw &
-                                     + alpharsw + alpharse),c0) * tarear(ijb)
+                                     + alpharsw + alpharse),c0) * tarear(is)
             !rdg_shear=0 for computing closing_net in ridge_prep
             !rdg_shear(i,j) = p25*(alphasne + alphasnw &
-            !                    + alphassw + alphasse) * tarear(ijb)
+            !                    + alphassw + alphasse) * tarear(is)
          endif
 
          e11(ijb) = p5*p25*(divune + divunw + divuse + divusw + &
-                    tensionne + tensionnw + tensionse + tensionsw) * tarear(ijb)
+                    tensionne + tensionnw + tensionse + tensionsw) * tarear(is)
 
-         e12(ijb) = p5*p25*(shearne + shearnw + shearse + shearsw) * tarear(ijb)
+         e12(ijb) = p5*p25*(shearne + shearnw + shearse + shearsw) * tarear(is)
 
          e22(ijb) = p5*p25*(divune + divunw + divuse + divusw - &
-                    tensionne - tensionnw - tensionse - tensionsw) * tarear(ijb)
+                    tensionne - tensionnw - tensionse - tensionsw) * tarear(is)
 
          !-----------------------------------------------------------------
          ! elastic relaxation, see Eq. A12-A14
@@ -1779,62 +1781,62 @@
          csig12se = p222*stress12_4(is) + ssig121 &
                   + p055*stress12_2(is)
 
-         str12ew = p5*dxT(ijb)*(p333*ssig12e + p166*ssig12w)
-         str12we = p5*dxT(ijb)*(p333*ssig12w + p166*ssig12e)
-         str12ns = p5*dyT(ijb)*(p333*ssig12n + p166*ssig12s)
-         str12sn = p5*dyT(ijb)*(p333*ssig12s + p166*ssig12n)
+         str12ew = p5*dxT(is)*(p333*ssig12e + p166*ssig12w)
+         str12we = p5*dxT(is)*(p333*ssig12w + p166*ssig12e)
+         str12ns = p5*dyT(is)*(p333*ssig12n + p166*ssig12s)
+         str12sn = p5*dyT(is)*(p333*ssig12s + p166*ssig12n)
 
          !-----------------------------------------------------------------
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
-         strp_tmp  = p25*dyT(ijb)*(p333*ssigpn  + p166*ssigps)
-         strm_tmp  = p25*dyT(ijb)*(p333*ssigmn  + p166*ssigms)
+         strp_tmp  = p25*dyT(is)*(p333*ssigpn  + p166*ssigps)
+         strm_tmp  = p25*dyT(is)*(p333*ssigmn  + p166*ssigms)
 
          ! northeast (i,j)
          strtmp1(is) = -strp_tmp - strm_tmp - str12ew &
-              + dxhy(ijb)*(-csigpne + csigmne) + dyhx(ijb)*csig12ne
+              + dxhy(is)*(-csigpne + csigmne) + dyhx(is)*csig12ne
 
          ! northwest (i+1,j)
          strtmp2(is) = strp_tmp + strm_tmp - str12we &
-              + dxhy(ijb)*(-csigpnw + csigmnw) + dyhx(ijb)*csig12nw
+              + dxhy(is)*(-csigpnw + csigmnw) + dyhx(is)*csig12nw
 
-         strp_tmp  = p25*dyT(ijb)*(p333*ssigps  + p166*ssigpn)
-         strm_tmp  = p25*dyT(ijb)*(p333*ssigms  + p166*ssigmn)
+         strp_tmp  = p25*dyT(is)*(p333*ssigps  + p166*ssigpn)
+         strm_tmp  = p25*dyT(is)*(p333*ssigms  + p166*ssigmn)
 
          ! southeast (i,j+1)
          strtmp3(is) = -strp_tmp - strm_tmp + str12ew &
-              + dxhy(ijb)*(-csigpse + csigmse) + dyhx(ijb)*csig12se
+              + dxhy(is)*(-csigpse + csigmse) + dyhx(is)*csig12se
 
          ! southwest (i+1,j+1)
          strtmp4(is) = strp_tmp + strm_tmp + str12we &
-              + dxhy(ijb)*(-csigpsw + csigmsw) + dyhx(ijb)*csig12sw
+              + dxhy(is)*(-csigpsw + csigmsw) + dyhx(is)*csig12sw
 
          !-----------------------------------------------------------------
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
 
-         strp_tmp  = p25*dxT(ijb)*(p333*ssigpe  + p166*ssigpw)
-         strm_tmp  = p25*dxT(ijb)*(p333*ssigme  + p166*ssigmw)
+         strp_tmp  = p25*dxT(is)*(p333*ssigpe  + p166*ssigpw)
+         strm_tmp  = p25*dxT(is)*(p333*ssigme  + p166*ssigmw)
 
          ! northeast (i,j)
          strtmp5(is) = -strp_tmp + strm_tmp - str12ns &
-              - dyhx(ijb)*(csigpne + csigmne) + dxhy(ijb)*csig12ne
+              - dyhx(is)*(csigpne + csigmne) + dxhy(is)*csig12ne
 
          ! southeast (i,j+1)
          strtmp6(is) = strp_tmp - strm_tmp - str12sn &
-              - dyhx(ijb)*(csigpse + csigmse) + dxhy(ijb)*csig12se
+              - dyhx(is)*(csigpse + csigmse) + dxhy(is)*csig12se
 
-         strp_tmp  = p25*dxT(ijb)*(p333*ssigpw  + p166*ssigpe)
-         strm_tmp  = p25*dxT(ijb)*(p333*ssigmw  + p166*ssigme)
+         strp_tmp  = p25*dxT(is)*(p333*ssigpw  + p166*ssigpe)
+         strm_tmp  = p25*dxT(is)*(p333*ssigmw  + p166*ssigme)
 
          ! northwest (i+1,j)
          strtmp7(is) = -strp_tmp + strm_tmp + str12ns &
-              - dyhx(ijb)*(csigpnw + csigmnw) + dxhy(ijb)*csig12nw
+              - dyhx(is)*(csigpnw + csigmnw) + dxhy(is)*csig12nw
 
          ! southwest (i+1,j+1)
          strtmp8(is) = strp_tmp - strm_tmp + str12sn &
-              - dyhx(ijb)*(csigpsw + csigmsw) + dxhy(ijb)*csig12sw
+              - dyhx(is)*(csigpsw + csigmsw) + dxhy(is)*csig12sw
 
       enddo                     ! ij
 
@@ -2133,10 +2135,8 @@
 !=======================================================================
 ! Solves evolution equation for structure tensor (A19, A20)
 
-      subroutine stepa  (nx_block,   ny_block,       &
-                         dtei,       icellT,         &
-                         indxTi,     indxTj,         &
-                         Xmap,                       &
+      subroutine stepa  (ncells,     skipme,         &
+                         dtei,       ijslot,         &
                          a11, a12,                   &
                          a11_1, a11_2, a11_3, a11_4, &
                          a12_1, a12_2, a12_3, a12_4, &
@@ -2148,21 +2148,20 @@
                          stress12_3, stress12_4)
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         ncells                ! slots held by this block
+
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme       ! inactive-slot flag, T cells
 
       real (kind=dbl_kind), intent(in) :: &
          dtei        ! 1/dte, where dte is subcycling timestep (1/s)
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi  , & ! compressed index in i-direction
-         indxTj      ! compressed index in j-direction
+      ! slot -> block cell, for the two averages this routine outputs
+      integer (kind=int_kind), dimension (:), intent(in), contiguous :: &
+         ijslot
 
       ! Xmap is 1D over the block in Fortran storage order: element (i,j) at
       ! (j-1)*nx_block+i, holding that cell's compressed slot
-      integer (kind=int_kind), dimension (:), intent(in) :: &
-         Xmap        ! compressed slot of each cell
-
       ! COMPRESSED: this block's slice, indexed with is.  These are the state
       ! stress_eap and stepa pass between them every subcycle, so both read and
       ! write the same slots and the block arrays are converted only either
@@ -2181,7 +2180,7 @@
       ! a11 and a12 are the averages this routine produces.  stress_eap reads
       ! a11_1..4 and a12_1..4, never these, so they are outputs rather than
       ! subcycle state and stay in the block layout.
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
          a11, a12
 
       ! local variables
@@ -2203,11 +2202,9 @@
       dteikth = c1 / (dtei + kth)
       p5kth = p5 * kth
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
-         is  = Xmap(ijb)
+      do is = 1, ncells
+         if (skipme(is)) cycle
+         ijb = ijslot(is)
 
          ! ne
          call calc_ffrac(stressp_1(is), stressm_1(is),  &
@@ -2248,8 +2245,8 @@
 
          ! average structure tensor
 
-         a11(i,j) = p25*(a11_1(is) + a11_2(is) + a11_3(is) + a11_4(is))
-         a12(i,j) = p25*(a12_1(is) + a12_2(is) + a12_3(is) + a12_4(is))
+         a11(ijb) = p25*(a11_1(is) + a11_2(is) + a11_3(is) + a11_4(is))
+         a12(ijb) = p25*(a12_1(is) + a12_2(is) + a12_3(is) + a12_4(is))
 
       enddo                     ! ij
 

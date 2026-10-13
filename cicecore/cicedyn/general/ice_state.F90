@@ -105,21 +105,23 @@
       ! dynamic variables closely related to the state of the ice
       !-----------------------------------------------------------------
 
-      ! uvel and vvel have their i and j dimensions flattened: element
-      ! (i,j,iblk) lives at ((j-1)*nx_block + i, iblk), as aiU and aice_init
-      ! below already do.
+      ! These have their i and j dimensions flattened: element (i,j,iblk)
+      ! lives at ((j-1)*nx_block + i, iblk), as aiU and aice_init below
+      ! already do.  divu, shear and vort joined them so the deformation
+      ! kernels can take a rank-1 (:,iblk) slice instead of relying on
+      ! sequence association from a rank-2 one.
       real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          uvel     , & ! x-component of velocity on U grid (m/s)
-         vvel         ! y-component of velocity on U grid (m/s)
+         vvel     , & ! y-component of velocity on U grid (m/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         shear    , & ! strain rate II component (1/s)
+         vort         ! vorticity (1/s)
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          uvelE    , & ! x-component of velocity on E grid (m/s)
          vvelE    , & ! y-component of velocity on E grid (m/s)
          uvelN    , & ! x-component of velocity on N grid (m/s)
          vvelN    , & ! y-component of velocity on N grid (m/s)
-         divu     , & ! strain rate I component, velocity divergence (1/s)
-         shear    , & ! strain rate II component (1/s)
-         vort     , & ! vorticity (1/s)
          strength     ! ice strength (N/m)
 
       !-----------------------------------------------------------------
@@ -170,9 +172,9 @@
          vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
          uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)
          vvelN     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on N grid (m/s)
-         divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
-         shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
-         vort      (nx_block,ny_block,max_blocks) , & ! vorticity (1/s)
+         divu      (nx_block*ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
+         shear     (nx_block*ny_block,max_blocks) , & ! strain rate II component (1/s)
+         vort      (nx_block*ny_block,max_blocks) , & ! vorticity (1/s)
          strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
          aice_init (nx_block*ny_block,max_blocks) , & ! initial concentration of ice, for diagnostics
          aicen     (nx_block,ny_block,ncat,max_blocks) , & ! concentration of ice

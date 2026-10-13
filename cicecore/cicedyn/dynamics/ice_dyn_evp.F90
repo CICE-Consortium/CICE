@@ -54,7 +54,7 @@
           rheofactU_slot, &
           umassdti_slot, waterxU_slot, wateryU_slot, &
           forcexU_slot, forceyU_slot, &
-          uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, dynIJ, &
+          uocnU_slot, vocnU_slot, cdn_ocnU_slot, uarear_slot, tarear_slot, dynIJ, &
           pack_to_slots, unpack_from_slots, &
           nbr_W, nbr_S, nbr_SW, nbr_E, nbr_N, nbr_NE, &
           skipT, skipU, skipN, skipE, &
@@ -362,13 +362,11 @@
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
           strax, stray, &
-          TbU, hwater, &
+          hwater, &
           strairxN, strairyN, fmN, &
           strtltxN, strtltyN, strocnxN, strocnyN, strintxN, strintyN, taubxN, taubyN, &
-          TbN, &
           strairxE, strairyE, fmE, &
           strtltxE, strtltyE, strocnxE, strocnyE, strintxE, strintyE, taubxE, taubyE, &
-          TbE, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
@@ -530,11 +528,11 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-            rdg_conv (i,j,iblk) = c0
-            rdg_shear(i,j,iblk) = c0
-            divu (i,j,iblk) = c0
-            shear(i,j,iblk) = c0
-            vort (i,j,iblk) = c0
+            rdg_conv ((j-1)*nx_block+i,iblk) = c0
+            rdg_shear((j-1)*nx_block+i,iblk) = c0
+            divu ((j-1)*nx_block+i,iblk) = c0
+            shear((j-1)*nx_block+i,iblk) = c0
+            vort ((j-1)*nx_block+i,iblk) = c0
          enddo
          enddo
 
@@ -664,7 +662,7 @@
                             fmU       (:,iblk), dt                  , &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
-                            strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
+                            strintxU  (:,iblk), strintyU  (:,iblk), &
                             taubxU    (:,iblk)  , taubyU    (:,iblk)  , &
                             waterxU   (:,iblk)  , wateryU   (:,iblk)  , &
                             forcexU   (:,iblk)  , forceyU   (:,iblk)  , &
@@ -678,7 +676,7 @@
                             uvel(:,iblk), vvel(:,iblk), &
                            dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                            TbU       (:,iblk), rheofactU (:,:,iblk), &
+                            TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), rheofactU (:,:,iblk), &
                             rheofactU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                             Xmassdti_slot = umassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                             waterx_slot   = waterxU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
@@ -729,7 +727,7 @@
                             fmU       (:,iblk), dt,                   &
                             strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                             strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
-                            strintxU  (:,:,iblk), strintyU  (:,:,iblk), &
+                            strintxU  (:,iblk), strintyU  (:,iblk), &
                             taubxU    (:,iblk)  , taubyU    (:,iblk)  , &
                             waterxU   (:,iblk)  , wateryU   (:,iblk)  , &
                             forcexU   (:,iblk)  , forceyU   (:,iblk)  , &
@@ -743,7 +741,7 @@
                             uvel(:,iblk), vvel(:,iblk), &
                            dynMap(:,iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                            TbU       (:,iblk))
+                            TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 
             !-----------------------------------------------------------------
             ! ice strength
@@ -795,7 +793,7 @@
                             uvelN     (:,:,iblk), vvelN     (:,:,iblk), &
                            dynMap(:,iblk), skipN(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                            TbN       (:,iblk), rheofactN (:,:,iblk), &
+                            TbN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), rheofactN (:,:,iblk), &
                             rheofactN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 
             !-----------------------------------------------------------------
@@ -831,7 +829,7 @@
                             uvelE     (:,:,iblk), vvelE     (:,:,iblk), &
                            dynMap(:,iblk), skipE(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
                            skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
-                            TbE       (:,iblk), rheofactE (:,:,iblk), &
+                            TbE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), rheofactE (:,:,iblk), &
                             rheofactE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
 
             do i=1,nx_block
@@ -952,7 +950,7 @@
                                                  icellU    (iblk),                 &
                                                  indxUi  (:,iblk), indxUj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,iblk), TbU (:,iblk))
+                                                 hwater(:,iblk), dynMap(:,iblk), TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
                enddo
                !$OMP END PARALLEL DO
 
@@ -963,7 +961,7 @@
                                                   icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
                                                   icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
                                                   aicen(:,:,:,iblk), vicen(:,:,:,iblk)        , &
-                                                  hwater (:,iblk), TbU    (:,iblk))
+                                                  hwater (:,iblk), dynMap(:,iblk), TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
                enddo
                !$OMP END PARALLEL DO
             endif
@@ -977,13 +975,13 @@
                                                  icellE    (iblk),                 &
                                                  indxEi  (:,iblk), indxEj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,iblk), TbE (:,iblk), &
+                                                 hwater(:,iblk), dynMap(:,iblk), TbE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                                                  grid_location='E')
                   call seabed_stress_factor_LKD (nx_block        , ny_block,       &
                                                  icellN    (iblk),                 &
                                                  indxNi  (:,iblk), indxNj(:,iblk), &
                                                  vice  (:,:,iblk), aice(:,:,iblk), &
-                                                 hwater(:,iblk), TbN (:,iblk), &
+                                                 hwater(:,iblk), dynMap(:,iblk), TbN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                                                  grid_location='N')
                enddo
                !$OMP END PARALLEL DO
@@ -995,8 +993,8 @@
                                                   icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
                                                   icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
                                                   aicen(:,:,:,iblk), vicen(:,:,:,iblk)        , &
-                                                  hwater (:,iblk), TbU    (:,iblk)        , &
-                                                  TbE    (:,iblk), TbN    (:,iblk)        , &
+                                                  hwater (:,iblk), dynMap(:,iblk), TbU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1)        , &
+                                                  TbE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), TbN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1)        , &
                                                   icellE(iblk), indxEi(:,iblk), indxEj(:,iblk), &
                                                   icellN(iblk), indxNi(:,iblk), indxNj(:,iblk)  )
                enddo
@@ -1021,7 +1019,7 @@
                                cdn_ocnU  , aiU       , uocnU     , vocnU     , &
                                waterxU   , wateryU   , forcexU   , forceyU   , &
                                umass     , strintxU  , strintyU  , &
-                               Tbu       , taubxU    , taubyU    , uvel      , &
+                               taubxU    , taubyU    , uvel      , &
                                vvel      , iceTmask  , iceUmask)
 
          else ! evp_algorithm == standard_2d (Standard CICE)
@@ -1039,7 +1037,6 @@
                ! outside the dynamics
                call pack_to_slots(aiU (:,iblk), dynMap(:,iblk), aiU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
                call pack_to_slots(fmU (:,iblk), dynMap(:,iblk), fmU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-               call pack_to_slots(TbU (:,iblk), dynMap(:,iblk), TbU_slot (dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
                ! umassdti, waterxU, wateryU, forcexU and forceyU are not packed
                ! here: dyn_prep2 already filled their compressed copies in the
                ! same loop that computed them, which costs one store instead of
@@ -1178,8 +1175,8 @@
                        dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), &
                        strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
                        strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-                  call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,:,iblk))
-                  call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,:,iblk))
+                  call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,iblk))
+                  call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,iblk))
                endif
                if (ltaub) then
                   call calc_seabed_stress_slot(dynCnt(iblk), skipU(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)), &
@@ -1200,17 +1197,17 @@
 
          !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
-            call deformations (nx_block          , ny_block           , &
-                               icellT      (iblk),                      &
-                               indxTi    (:,iblk), indxTj     (:,iblk), &
-                               uvel(:,iblk), vvel(:,iblk), &
-                               dxT     (:, iblk), dyT      (:, iblk), &
-                               dxU     (:, iblk), dyU      (:, iblk), &
-                               cxp     (:,iblk), cyp      (:,iblk), &
-                               cxm     (:,iblk), cym      (:,iblk), &
-                               tarear  (:,  iblk), vort     (:,:,iblk), &
-                               shear   (:,:,iblk), divu     (:,:,iblk), &
-                               rdg_conv(:,:,iblk), rdg_shear(:,:,iblk) )
+            call deformations (                                                                                                              &
+                               dynCnt(iblk), skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),                                                &
+                               dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),          &
+                               uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                               dxT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),   &
+                               dxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),   &
+                               cxp_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), cyp_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),   &
+                               cxm_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), cym_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),   &
+                               tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vort(:,iblk),                                      &
+                               shear   (:,iblk), divu     (:,iblk),                                                                      &
+                               rdg_conv(:,iblk), rdg_shear(:,iblk) )
          enddo
          !$OMP END PARALLEL DO
 
@@ -1256,7 +1253,6 @@
             call pack_to_slots(forceyE(:,iblk), dynMap(:,iblk), forceyE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(emassdti(:,iblk), dynMap(:,iblk), emassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(fmE(:,iblk), dynMap(:,iblk), fmE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(TbE(:,iblk), dynMap(:,iblk), TbE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(aiN(:,iblk), dynMap(:,iblk), aiN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(Cdn_ocnN(:,:,iblk), dynMap(:,iblk), cdn_ocnn_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(uocnN(:,:,iblk), dynMap(:,iblk), uocnN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -1267,7 +1263,6 @@
             call pack_to_slots(forceyN(:,iblk), dynMap(:,iblk), forceyN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(nmassdti(:,iblk), dynMap(:,iblk), nmassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(fmN(:,iblk), dynMap(:,iblk), fmN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(TbN(:,iblk), dynMap(:,iblk), TbN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          enddo
          !$OMP END PARALLEL DO
 
@@ -1555,17 +1550,16 @@
 
          !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
          do iblk = 1, nblocks
-            call deformationsC_T (nx_block          , ny_block           , &
-                                  icellT      (iblk),                      &
-                                  indxTi    (:,iblk), indxTj     (:,iblk), &
-                                  uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                  uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                  dxN     (:, iblk), dyE      (:, iblk), &
-                                  dxT     (:, iblk), dyT      (:, iblk), &
-                                  tarear  (:,  iblk), uarea    (:,  iblk), &
-                                  shearU  (:,iblk), vort     (:,:,iblk), &
-                                  shear   (:,:,iblk), divu     (:,:,iblk), &
-                                  rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+            call deformationsC_T (dynCnt(iblk), skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),               &
+                                  dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),           &
+                                  uvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),  &
+                                  uvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),  &
+                                  dxN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),      &
+                                  dxT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),      &
+                                  tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), uarea_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                  shearU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vort(:,iblk),    &
+                                  shear   (:,iblk), divu     (:,iblk), &
+                                  rdg_conv(:,iblk), rdg_shear(:,iblk))
          enddo
          !$OMP END PARALLEL DO
 
@@ -1606,7 +1600,6 @@
             call pack_to_slots(forceyE(:,iblk), dynMap(:,iblk), forceyE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(emassdti(:,iblk), dynMap(:,iblk), emassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(fmE(:,iblk), dynMap(:,iblk), fmE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(TbE(:,iblk), dynMap(:,iblk), TbE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(aiN(:,iblk), dynMap(:,iblk), aiN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(Cdn_ocnN(:,:,iblk), dynMap(:,iblk), cdn_ocnn_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(uocnN(:,:,iblk), dynMap(:,iblk), uocnN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
@@ -1617,7 +1610,6 @@
             call pack_to_slots(forceyN(:,iblk), dynMap(:,iblk), forceyN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(nmassdti(:,iblk), dynMap(:,iblk), nmassdti_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
             call pack_to_slots(fmN(:,iblk), dynMap(:,iblk), fmN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
-            call pack_to_slots(TbN(:,iblk), dynMap(:,iblk), TbN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
          enddo
          !$OMP END PARALLEL DO
 
@@ -1925,16 +1917,15 @@
 
          !$OMP PARALLEL DO PRIVATE(iblk)
          do iblk = 1, nblocks
-            call deformationsCD_T (nx_block          , ny_block           , &
-                                   icellT      (iblk),                      &
-                                   indxTi    (:,iblk), indxTj     (:,iblk), &
-                                   uvelE   (:,:,iblk), vvelE    (:,:,iblk), &
-                                   uvelN   (:,:,iblk), vvelN    (:,:,iblk), &
-                                   dxN     (:, iblk), dyE      (:, iblk), &
-                                   dxT     (:, iblk), dyT      (:, iblk), &
-                                   tarear  (:,  iblk), vort     (:,:,iblk), &
-                                   shear   (:,:,iblk), divu     (:,:,iblk), &
-                                   rdg_conv(:,:,iblk), rdg_shear(:,:,iblk))
+            call deformationsCD_T (dynCnt(iblk), skipT(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),              &
+                                   dynNbr(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk),:), dynIJ(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)),          &
+                                   uvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvelE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   uvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vvelN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   dxN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),     &
+                                   dxT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),     &
+                                   tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vort(:,iblk),   &
+                                   shear   (:,iblk), divu     (:,iblk), &
+                                   rdg_conv(:,iblk), rdg_shear(:,iblk))
          enddo
          !$OMP END PARALLEL DO
       endif   ! grid_ice

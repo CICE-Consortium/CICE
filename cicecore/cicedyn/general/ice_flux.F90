@@ -91,8 +91,6 @@
          strocnyU, & ! ice-ocean stress, y-direction at U points, computed in dyn_finish
          strtltxU, & ! stress due to sea surface slope, x-direction
          strtltyU, & ! stress due to sea surface slope, y-direction
-         strintxU, & ! divergence of internal ice stress, x (N/m^2)
-         strintyU, & ! divergence of internal ice stress, y (N/m^2)
          strairxN, & ! stress on ice by air, x-direction at N points
          strairyN, & ! stress on ice by air, y-direction at N points
          strocnxN, & ! ice-ocean stress, x-direction at N points, computed in dyn_finish
@@ -151,11 +149,8 @@
       ! layout lives at ((j-1)*nx_block + i, iblk)
       real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          fmU      , & ! Coriolis param. * mass in U-cell (kg/s)
-         TbU      , & ! factor for seabed stress (N/m^2)
          fmE      , & ! Coriolis param. * mass in E-cell (kg/s)
-         TbE      , & ! factor for seabed stress (N/m^2)
-         fmN      , & ! Coriolis param. * mass in N-cell (kg/s)
-         TbN          ! factor for seabed stress (N/m^2)
+         fmN          ! Coriolis param. * mass in N-cell (kg/s)
 
       !-----------------------------------------------------------------
       ! Thermodynamic component
@@ -409,9 +404,16 @@
          wlat    , & ! lateral heat rate (m/s)
          fsw     , & ! incoming shortwave radiation (W/m^2)
          fswup   , & ! outgoing shortwave radiation (W/m^2)
-         coszen  , & ! cosine solar zenith angle, < 0 for sun below horizon
+         coszen      ! cosine solar zenith angle, < 0 for sun below horizon
+
+      ! Flattened: element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk),
+      ! matching divu/shear/vort in ice_state, so the deformation kernels can
+      ! take a rank-1 (:,iblk) slice.
+      real (kind=dbl_kind), dimension (:,:), allocatable, public :: &
          rdg_conv, & ! convergence term for ridging (1/s)
-         rdg_shear   ! shear term for ridging (1/s)
+         rdg_shear,& ! shear term for ridging (1/s)
+         strintxU, & ! divergence of internal ice stress, x (N/m^2)
+         strintyU    ! divergence of internal ice stress, y (N/m^2)
 
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          rsiden    ,&   ! fraction of ice that melts laterally
@@ -455,8 +457,8 @@
          strocnyU   (nx_block,ny_block,max_blocks), & ! ice-ocean stress, y-direction
          strtltxU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, x-direction
          strtltyU   (nx_block,ny_block,max_blocks), & ! stress due to sea surface slope, y-direction
-         strintxU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
-         strintyU   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
+         strintxU   (nx_block*ny_block,max_blocks), & ! divergence of internal ice stress, x (N/m^2)
+         strintyU   (nx_block*ny_block,max_blocks), & ! divergence of internal ice stress, y (N/m^2)
          daidtd     (nx_block,ny_block,max_blocks), & ! ice area tendency due to transport   (1/s)
          dvidtd     (nx_block,ny_block,max_blocks), & ! ice volume tendency due to transport (m/s)
          dvsdtd     (nx_block,ny_block,max_blocks), & ! snow volume tendency due to transport (m/s)
@@ -478,7 +480,6 @@
          stress12_3 (nx_block*ny_block,max_blocks), & ! sigma12
          stress12_4 (nx_block*ny_block,max_blocks), & ! sigma12
          fmU        (nx_block*ny_block,max_blocks), & ! Coriolis param. * mass in U-cell (kg/s)
-         TbU        (nx_block*ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
          zlvl       (nx_block,ny_block,max_blocks), & ! atm level height (momentum) (m)
          zlvs       (nx_block,ny_block,max_blocks), & ! atm level height (scalar quantities) (m)
          uatm       (nx_block,ny_block,max_blocks), & ! wind velocity components (m/s)
@@ -596,8 +597,8 @@
          fsw        (nx_block,ny_block,max_blocks), & ! incoming shortwave radiation (W/m^2)
          fswup      (nx_block,ny_block,max_blocks), & ! outgoing shortwave radiation (W/m^2)
          coszen     (nx_block,ny_block,max_blocks), & ! cosine solar zenith angle, < 0 for sun below horizon
-         rdg_conv   (nx_block,ny_block,max_blocks), & ! convergence term for ridging (1/s)
-         rdg_shear  (nx_block,ny_block,max_blocks), & ! shear term for ridging (1/s)
+         rdg_conv   (nx_block*ny_block,max_blocks), & ! convergence term for ridging (1/s)
+         rdg_shear  (nx_block*ny_block,max_blocks), & ! shear term for ridging (1/s)
          rsiden     (nx_block,ny_block,ncat,max_blocks), & ! fraction of ice that melts laterally
          dardg1ndt  (nx_block,ny_block,ncat,max_blocks), & ! rate of area loss by ridging ice (1/s)
          dardg2ndt  (nx_block,ny_block,ncat,max_blocks), & ! rate of area gain by new ridges (1/s)
@@ -680,7 +681,6 @@
       stress12_3 = c0
       stress12_4 = c0
       fmU        = c0
-      TbU        = c0
       zlvl       = c0
       zlvs       = c0
       uatm       = c0
@@ -847,7 +847,6 @@
             strintxN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at N points (N/m^2)
             strintyN   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at N points (N/m^2)
             fmN        (nx_block*ny_block,max_blocks), & ! Coriolis param. * mass in N-cell (kg/s)
-            TbN        (nx_block*ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
             taubxE     (nx_block*ny_block,max_blocks), & ! seabed stress (x) at E points (N/m^2)
             taubyE     (nx_block*ny_block,max_blocks), & ! seabed stress (y) at E points (N/m^2)
             strairxE   (nx_block,ny_block,max_blocks), & ! stress on ice by air, x-direction at E points
@@ -859,7 +858,6 @@
             strintxE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, x at E points (N/m^2)
             strintyE   (nx_block,ny_block,max_blocks), & ! divergence of internal ice stress, y at E points (N/m^2)
             fmE        (nx_block*ny_block,max_blocks), & ! Coriolis param. * mass in E-cell (kg/s)
-            TbE        (nx_block*ny_block,max_blocks), & ! factor for seabed stress (landfast ice)
             stresspT   (nx_block*ny_block,max_blocks), & ! sigma11+sigma22
             stressmT   (nx_block*ny_block,max_blocks), & ! sigma11-sigma22
             stress12T  (nx_block*ny_block,max_blocks), & ! sigma12
@@ -880,7 +878,6 @@
          strintxN   = c0
          strintyN   = c0
          fmN        = c0
-         TbN        = c0
          taubxE     = c0
          taubyE     = c0
          strairxE   = c0
@@ -892,7 +889,6 @@
          strintxE   = c0
          strintyE   = c0
          fmE        = c0
-         TbE        = c0
          stresspT   = c0
          stressmT   = c0
          stress12T  = c0
@@ -1388,9 +1384,9 @@
 
       sig1    (:,:,:) = c0
       sig2    (:,:,:) = c0
-      divu    (:,:,:) = c0
-      shear   (:,:,:) = c0
-      vort    (:,:,:) = c0
+      divu    (:,:) = c0
+      shear   (:,:) = c0
+      vort    (:,:) = c0
       taubxU  (:,:) = c0
       taubyU  (:,:) = c0
       strength (:,:,:) = c0
@@ -1400,8 +1396,8 @@
       strairyU(:,:,:) = c0
       strtltxU(:,:,:) = c0
       strtltyU(:,:,:) = c0
-      strintxU(:,:,:) = c0
-      strintyU(:,:,:) = c0
+      strintxU(:,:) = c0
+      strintyU(:,:) = c0
       dardg1dt(:,:,:) = c0
       dardg2dt(:,:,:) = c0
       dvirdgdt(:,:,:) = c0
@@ -1438,7 +1434,6 @@
          strintxE   (:,:,:) = c0
          strintyE   (:,:,:) = c0
          fmE        (:,:) = c0
-         TbE        (:,:) = c0
          taubxN     (:,:) = c0
          taubyN     (:,:) = c0
          strocnxN   (:,:,:) = c0
@@ -1450,7 +1445,6 @@
          strintxN   (:,:,:) = c0
          strintyN   (:,:,:) = c0
          fmN        (:,:) = c0
-         TbN        (:,:) = c0
       end if
       end subroutine init_history_dyn
 

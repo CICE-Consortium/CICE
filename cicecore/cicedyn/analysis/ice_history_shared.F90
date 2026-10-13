@@ -769,6 +769,7 @@
       interface accum_hist_field ! generic interface
            module procedure accum_hist_field_2D, &
                             accum_hist_field_2D_flat, &
+                            accum_hist_field_2D_compressed, &
                             accum_hist_field_3D, &
                             accum_hist_field_4D
       end interface
@@ -1211,6 +1212,81 @@
        enddo
 
       end subroutine accum_hist_field_2D_flat
+
+!=======================================================================
+
+! Accumulate a field held in the COMPRESSED (slot) layout.
+!
+! The block and flat forms above stay: most history fields are block arrays
+! and the dynamics diagnostics that have slot forms are the exception, not
+! the rule.  This one exists so a field whose producer keeps it in slots does
+! not have to be expanded to a block array purely to be accumulated.
+!
+! field_accum is THIS BLOCK's slice, 1-based, and map is this block's
+! dynMap column -- the same pair every compressed kernel takes.  Only cells
+! with tmask are accumulated, exactly as the block forms do, and every tmask
+! cell has a slot by construction (mask_any includes tmask), so the m > 0
+! test below never actually rejects one.  It is there because a slot array
+! indexed at a cell that has none would otherwise read element 0.
+
+      subroutine accum_hist_field_2D_compressed(id, iblk, field_accum, map, field)
+
+      use ice_blocks, only: block, get_block, nx_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array for use in
+                           ! later routines
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         field_accum(:)    ! this block's compressed slice
+
+      integer (kind=int_kind), intent(in) :: &
+         map(:)            ! this block's dynMap column
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_compressed)'
+
+      !---------------------------------------------------------------
+      ! increment field
+      !---------------------------------------------------------------
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = map(ij)
+             if (m > 0) &
+                field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(m)
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_compressed
 
 !=======================================================================
 

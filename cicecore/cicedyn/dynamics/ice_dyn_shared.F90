@@ -29,7 +29,7 @@
                           unpack_from_slots,                          &
                           nbr_W, nbr_SW, nbr_S, nbr_E, nbr_NE, nbr_N, &
                           nbr_NW, nbr_SE, nbr_num,                     &
-                          uarear_slot, dxN_slot, dyE_slot, uarea_slot, &
+                          uarear_slot, tarear_slot, dxN_slot, dyE_slot, uarea_slot, &
                           tarea_slot, earea_slot, narea_slot, hm_slot, &
                           earear_slot, narear_slot, &
                           dxU_slot, dyT_slot, dxT_slot, dyU_slot, &
@@ -46,7 +46,7 @@
       public :: dynOff, dynCnt, dynTot, dynMaxCnt, dynMap, dynNbr, dynIJ
       public :: nbr_W, nbr_SW, nbr_S, nbr_E, nbr_NE, nbr_N, nbr_NW, nbr_SE
       public :: nbr_num
-      public :: uarear_slot, dxN_slot, dyE_slot, uarea_slot
+      public :: uarear_slot, tarear_slot, dxN_slot, dyE_slot, uarea_slot
       public :: tarea_slot, earea_slot, narea_slot, hm_slot
       public :: earear_slot, narear_slot
       public :: dxU_slot, dyT_slot, dxT_slot, dyU_slot
@@ -62,7 +62,7 @@
                 principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 deformations, deformationsC_T, deformationsCD_T, &
-                strain_rates, strain_rates_T, strain_rates_U, &
+                strain_rates, strain_rates_U, &
                 strain_rates_Tdt_compressed, strain_rates_Tdtsd_compressed, &
                 visc_replpress, &
                 dyn_haloUpdate, &
@@ -457,11 +457,6 @@
          alphab          , & ! alphab=Cb factor in Lemieux et al 2015
          threshold_hw        ! max water depth for grounding
                              ! see keel data from Amundrud et al. 2004 (JGR)
-
-      interface strain_rates_T
-         module procedure strain_rates_Tdt
-         module procedure strain_rates_Tdtsd
-      end interface
 
       interface dyn_haloUpdate
          module procedure dyn_haloUpdate1
@@ -1461,7 +1456,9 @@
       logical (kind=log_kind), dimension (:), intent(out) :: &
          skipX       ! inactive-slot flag
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
+      ! COMPRESSED: this block's slice.  seabed_stress_factor_LKD/_prob write
+      ! it in the same layout, so it never takes block form at all.
+      real (kind=dbl_kind), dimension (:), intent(out), contiguous :: &
          TbU         ! seabed stress factor (N/m^2)
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -1576,10 +1573,11 @@
          forcey_slot  (:) = c0
       endif
 
+      TbU(:) = c0   ! whole slice, the block loop below zeroed every cell
+
       do j = 1, ny_block
       do i = 1, nx_block
          ijb = (j-1)*nx_block + i
-         TbU      (i,j) = c0
          taubx    (ijb) = c0
          tauby    (ijb) = c0
 
@@ -2535,7 +2533,7 @@
                                            icellU,                     &
                                            indxUi,   indxUj,           &
                                            vice,     aice,             &
-                                           hwater,   TbU,              &
+                                           hwater,   Xmap,   TbU,      &
                                            grid_location)
 
       use ice_grid, only: grid_neighbor_min, grid_neighbor_max
@@ -2553,8 +2551,16 @@
          vice      , & ! volume per unit area of ice at tracer location (m)
          hwater        ! water depth at tracer location (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
-         TbU           ! seabed stress factor at 'grid_location' (N/m^2)
+      ! Xmap gives each cell its block-local slot.  TbU is COMPRESSED: the
+      ! loop still runs over (i,j) because grid_neighbor_min/max reduce over
+      ! block neighbours of hwater/aice/vice, which have no slot form -- but
+      ! the one OUTPUT goes straight to the slot, so the block TbU and the
+      ! pack that followed it are both gone.
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+         Xmap
+
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
+         TbU         ! seabed stress factor (N/m^2), compressed
 
       character(len=*), optional, intent(in) :: &
          grid_location ! grid location (U, E, N), U assumed if not present
@@ -2572,6 +2578,8 @@
 
       character(len=char_len) :: &
          l_grid_location ! local version of 'grid_location'
+
+      integer (kind=int_kind) :: m   ! this cell's slot
 
       character(len=*), parameter :: subname = '(seabed_stress_factor_LKD)'
 
@@ -2600,7 +2608,9 @@
          hcu = au * hwu / k1
 
          ! 2- calculate seabed stress factor
-         TbU(i,j) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
+         m = Xmap((j-1)*nx_block + i)
+         if (m > 0) &
+            TbU(m) = docalc_tbu*k2 * max(c0,(hu - hcu)) * exp(-alphab * (c1 - au))
 
       enddo                     ! ij
 
@@ -2625,7 +2635,7 @@
                                             icellT, indxTi,   indxTj,    &
                                             icellU, indxUi,   indxUj,    &
                                             aicen,  vicen,               &
-                                            hwater, TbU,                 &
+                                            hwater, Xmap,   TbU,         &
                                             TbE,    TbN,                 &
                                             icellE, indxEi,   indxEj,    &
                                             icellN, indxNi,   indxNj)
@@ -2652,10 +2662,16 @@
            aicen,    & ! partial concentration for last thickness category in ITD
            vicen       ! partial volume for last thickness category in ITD (m)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout) :: &
+      ! Xmap gives each cell its block-local slot; TbU/TbE/TbN are COMPRESSED.
+      ! The loop stays on (i,j) because grid_neighbor_max reduces over block
+      ! neighbours of the local Tbt, but the outputs go straight to slots.
+      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
+           Xmap
+
+      real (kind=dbl_kind), dimension (:), intent(inout), contiguous :: &
            TbU         ! seabed stress factor at U location (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
+      real (kind=dbl_kind), dimension (:), intent(inout), optional, contiguous :: &
            TbE,      & ! seabed stress factor at E location (N/m^2)
            TbN         ! seabed stress factor at N location (N/m^2)
 
@@ -2716,6 +2732,8 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block) :: &
            Tbt    ! seabed stress factor at t point (N/m^2)
+
+      integer (kind=int_kind) :: m   ! this cell's slot
 
       character(len=*), parameter :: subname = '(seabed_stress_factor_prob)'
 
@@ -2803,7 +2821,8 @@
             i = indxUi(ij)
             j = indxUj(ij)
             ! convert quantities to U-location
-            TbU(i,j)  = grid_neighbor_max(Tbt, i, j, 'U')
+            m = Xmap((j-1)*nx_block + i)
+            if (m > 0) TbU(m) = grid_neighbor_max(Tbt, i, j, 'U')
          enddo                     ! ij
       elseif (grid_ice == "C" .or. grid_ice == "CD") then
          if (present(Tbe)    .and. present(TbN)    .and. &
@@ -2815,13 +2834,15 @@
                i = indxEi(ij)
                j = indxEj(ij)
                ! convert quantities to E-location
-                  TbE(i,j)  = grid_neighbor_max(Tbt, i, j, 'E')
+                  m = Xmap((j-1)*nx_block + i)
+            if (m > 0) TbE(m) = grid_neighbor_max(Tbt, i, j, 'E')
             enddo
             do ij = 1, icellN
                i = indxNi(ij)
                j = indxNj(ij)
                ! convert quantities to N-location
-               TbN(i,j)  = grid_neighbor_max(Tbt, i, j, 'N')
+               m = Xmap((j-1)*nx_block + i)
+            if (m > 0) TbN(m) = grid_neighbor_max(Tbt, i, j, 'N')
             enddo
 
          else
@@ -2902,29 +2923,38 @@
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
 
-      subroutine deformations (nx_block,   ny_block,   &
-                               icellT,                 &
-                               indxTi,     indxTj,     &
-                               uvel,       vvel,       &
-                               dxT,        dyT,        &
-                               dxU,        dyU,        &
-                               cxp,        cyp,        &
-                               cxm,        cym,        &
-                               tarear,     vort,       &
-                               shear,      divu,       &
+      subroutine deformations (ncells,     skipme, &
+                               nbr,        ijslot, &
+                               uvel,       vvel,   &
+                               dxT,        dyT,    &
+                               dxU,        dyU,    &
+                               cxp,        cyp,    &
+                               cxm,        cym,    &
+                               tarear,     vort,   &
+                               shear,      divu,   &
                                rdg_conv,   rdg_shear )
 
       use ice_constants, only: p25, p5
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         ncells                ! slots held by this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme       ! inactive-slot flag, T cells
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+      ! (slot, direction) -> neighbour slot.  A missing neighbour points at the
+      ! block's dead slot, which holds zero, so the corners need no branch.
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr
+
+      ! (j-1)*nx_block+i of the cell owning each slot.  The five outputs are
+      ! history and ridging fields that are read block-shaped elsewhere, so
+      ! they are written through ijslot: exactly the cells icellT touched.
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         ijslot
+
+      ! compressed: this block's slice, 1-based, cells 1..ncells, dead slot last
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          uvel     , & ! x-component of velocity (m/s)
          vvel     , & ! y-component of velocity (m/s)
          dxT      , & ! width of T-cell through the middle (m)
@@ -2941,7 +2971,7 @@
       real (kind=dbl_kind), dimension (:), intent(in) :: &
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -2951,7 +2981,9 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij, ijb
+         is             , & ! slot counter
+         isW, isS, isSW , & ! the three neighbour slots this cell reads
+         ijb                ! 1D index of the owning cell in the block
 
       real (kind=dbl_kind) :: &                       ! at each corner :
         divune, divunw, divuse, divusw            , & ! divergence
@@ -2965,52 +2997,55 @@
 
       character(len=*), parameter :: subname = '(deformations)'
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
+      do is = 1, ncells
+         if (skipme(is)) cycle
+
+         isW  = nbr(is,nbr_W )
+         isS  = nbr(is,nbr_S )
+         isSW = nbr(is,nbr_SW)
+         ijb  = ijslot(is)
 
          !-----------------------------------------------------------------
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-         call strain_rates (uvel(ijb), uvel(ijb-1),          &
-                            uvel(ijb-nx_block), uvel(ijb-nx_block-1), &
-                            vvel(ijb), vvel(ijb-1),          &
-                            vvel(ijb-nx_block), vvel(ijb-nx_block-1), &
-                            dxT(ijb),   dyT(ijb),   &
-                            cxp(ijb),   cyp(ijb),   &
-                            cxm(ijb),   cym(ijb),   &
-                            divune,     divunw,     &
-                            divuse,     divusw,     &
-                            tensionne,  tensionnw,  &
-                            tensionse,  tensionsw,  &
-                            shearne,    shearnw,    &
-                            shearse,    shearsw,    &
-                            Deltane,    Deltanw,    &
+         call strain_rates (uvel(is), uvel(isW),   &
+                            uvel(isS), uvel(isSW), &
+                            vvel(is), vvel(isW),   &
+                            vvel(isS), vvel(isSW), &
+                            dxT(is),   dyT(is),    &
+                            cxp(is),   cyp(is),    &
+                            cxm(is),   cym(is),    &
+                            divune,     divunw,    &
+                            divuse,     divusw,    &
+                            tensionne,  tensionnw, &
+                            tensionse,  tensionsw, &
+                            shearne,    shearnw,   &
+                            shearse,    shearsw,   &
+                            Deltane,    Deltanw,   &
                             Deltase,    Deltasw     )
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(ijb)
-         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(ijb)
+         divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(is)
+         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(is)
          rdg_conv(ijb)  = -min(divu(ijb),c0)
          rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(ijb) = p25*tarear(ijb)*sqrt( &
+         shear(ijb) = p25*tarear(is)*sqrt(                                 &
                       (tensionne + tensionnw + tensionse + tensionsw)**2 + &
                       (shearne   + shearnw   + shearse   + shearsw  )**2)
 
          ! vorticity
-         dvdxn = dyU(ijb)*vvel(ijb) - dyU(ijb-1)*vvel(ijb-1)
-         dvdxs = dyU(ijb-nx_block)*vvel(ijb-nx_block) - dyU(ijb-nx_block-1)*vvel(ijb-nx_block-1)
-         dudye = dxU(ijb)*uvel(ijb) - dxU(ijb-nx_block)*uvel(ijb-nx_block)
-         dudyw = dxU(ijb-1)*uvel(ijb-1) - dxU(ijb-nx_block-1)*uvel(ijb-nx_block-1)
-         vort(ijb) = p5*tarear(ijb)*(dvdxn + dvdxs - dudye - dudyw)
+         dvdxn = dyU(is)*vvel(is) - dyU(isW)*vvel(isW)
+         dvdxs = dyU(isS)*vvel(isS) - dyU(isSW)*vvel(isSW)
+         dudye = dxU(is)*uvel(is) - dxU(isS)*uvel(isS)
+         dudyw = dxU(isW)*uvel(isW) - dxU(isSW)*uvel(isSW)
+         vort(ijb) = p5*tarear(is)*(dvdxn + dvdxs - dudye - dudyw)
 
-      enddo                     ! ij
+      enddo                     ! is
 
       end subroutine deformations
 
@@ -3020,28 +3055,37 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-      subroutine deformationsCD_T (nx_block,   ny_block,   &
-                                   icellT,                 &
-                                   indxTi,     indxTj,     &
-                                   uvelE,      vvelE,      &
-                                   uvelN,      vvelN,      &
-                                   dxN,        dyE,        &
-                                   dxT,        dyT,        &
-                                   tarear,     vort,       &
-                                   shear,      divu,       &
+      subroutine deformationsCD_T (ncells,     skipme, &
+                                   nbr,        ijslot, &
+                                   uvelE,      vvelE,  &
+                                   uvelN,      vvelN,  &
+                                   dxN,        dyE,    &
+                                   dxT,        dyT,    &
+                                   tarear,     vort,   &
+                                   shear,      divu,   &
                                    rdg_conv,   rdg_shear )
 
       use ice_constants, only: p5
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         ncells                ! slots held by this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme       ! inactive-slot flag, T cells
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+      ! (slot, direction) -> neighbour slot; a missing neighbour points at the
+      ! block's dead slot, which holds zero.
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr
+
+      ! (j-1)*nx_block+i of the cell owning each slot.  The five outputs are
+      ! history and ridging fields read block-shaped elsewhere, so they are
+      ! written through ijslot: exactly the cells the icellT loop touched.
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         ijslot
+
+      ! compressed: this block's slice, 1-based, cells 1..ncells, dead slot last
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -3052,7 +3096,11 @@
          dyT      , & ! height of T-cell through the middle (m)
          tarear       ! 1/tarea
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      ! EXPLICIT shape, not assumed: the callers pass vort(:,iblk) and rely
+      ! on sequence association to present the block as one flat vector.  An
+      ! assumed-shape dummy would reject that -- the outputs stay block-shaped
+      ! and are written through ijslot.
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -3062,10 +3110,13 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij       , & ! ij is the compressed cell counter
-         ijb                ! 1D index of (i,j) in the block
+         is             , & ! slot counter
+         isW, isS       , & ! the two neighbour slots read here
+         ijb                ! 1D index of the owning cell in the block
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
+      ! slot-shaped: these never leave the routine, and the compressed
+      ! strain-rate helper fills them in the slot layout.
+      real (kind=dbl_kind), dimension (ncells+1) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
         shearT    , & ! shear at T point
@@ -3081,37 +3132,38 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellT     ,                &
-                           indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:)  , vvelE   (:)  , &
-                           uvelN (:)  , vvelN   (:)  , &
-                           dxN   (:)  , dyE     (:)  , &
-                           dxT   (:)  , dyT     (:)  , &
-                           divT  (:)  , tensionT(:)  , &
+      call strain_rates_Tdtsd_compressed (ncells     , skipme       , &
+                           nbr        ,                               &
+                           uvelE (:)  , vvelE   (:)  ,                &
+                           uvelN (:)  , vvelN   (:)  ,                &
+                           dxN   (:)  , dyE     (:)  ,                &
+                           dxT   (:)  , dyT     (:)  ,                &
+                           divT  (:)  , tensionT(:)  ,                &
                            shearT(:)  , DeltaT  (:)    )
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
+      do is = 1, ncells
+         if (skipme(is)) cycle
+
+         isW  = nbr(is,nbr_W )
+         isS  = nbr(is,nbr_S )
+         ijb  = ijslot(is)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
-         divu(ijb) = divT(ijb) * tarear(ijb)
-         tmp = Deltat(ijb) * tarear(ijb)
+         divu(ijb) = divT(is) * tarear(is)
+         tmp = Deltat(is) * tarear(is)
          rdg_conv(ijb)  = -min(divu(ijb),c0)
          rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(ijb) = tarear(ijb)*sqrt( tensionT(ijb)**2 + shearT(ijb)**2 )
+         shear(ijb) = tarear(is)*sqrt( tensionT(is)**2 + shearT(is)**2 )
          ! vorticity
-         vort (ijb) = tarear(ijb)*( ( dyE(ijb)*vvelE(ijb) - dyE(ijb-1)*vvelE(ijb-1) ) &
-                                  - ( dxN(ijb)*uvelN(ijb) - dxN(ijb-nx_block)*uvelN(ijb-nx_block)) )
+         vort (ijb) = tarear(is)*( ( dyE(is)*vvelE(is) - dyE(isW)*vvelE(isW) ) &
+                                  - ( dxN(is)*uvelN(is) - dxN(isS)*uvelN(isS)) )
 
-      enddo                     ! ij
+      enddo                     ! is
 
     end subroutine deformationsCD_T
 
@@ -3122,29 +3174,38 @@
 ! author: JF Lemieux, ECCC
 ! Nov 2021
 
-    subroutine deformationsC_T (nx_block,   ny_block,   &
-                                icellT,                 &
-                                indxTi,     indxTj,     &
-                                uvelE,      vvelE,      &
-                                uvelN,      vvelN,      &
-                                dxN,        dyE,        &
-                                dxT,        dyT,        &
-                                tarear,     uarea,      &
-                                shearU,     vort,       &
-                                shear,      divu,       &
+    subroutine deformationsC_T (ncells,     skipme,    &
+                                   nbr,        ijslot, &
+                                uvelE,      vvelE,     &
+                                uvelN,      vvelN,     &
+                                dxN,        dyE,       &
+                                dxT,        dyT,       &
+                                tarear,     uarea,     &
+                                shearU,     vort,      &
+                                shear,      divu,      &
                                 rdg_conv,   rdg_shear )
 
       use ice_constants, only: p5
 
       integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         ncells                ! slots held by this block
 
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
+      logical (kind=log_kind), dimension (:), intent(in), contiguous :: &
+         skipme       ! inactive-slot flag, T cells
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
+      ! (slot, direction) -> neighbour slot; a missing neighbour points at the
+      ! block's dead slot, which holds zero.
+      integer (kind=int_kind), dimension (:,:), intent(in) :: &
+         nbr
+
+      ! (j-1)*nx_block+i of the cell owning each slot.  The five outputs are
+      ! history and ridging fields read block-shaped elsewhere, so they are
+      ! written through ijslot: exactly the cells the icellT loop touched.
+      integer (kind=int_kind), dimension (:), intent(in) :: &
+         ijslot
+
+      ! compressed: this block's slice, 1-based, cells 1..ncells, dead slot last
+      real (kind=dbl_kind), dimension (:), intent(in), contiguous :: &
          uvelE    , & ! x-component of velocity (m/s) at the E point
          vvelE    , & ! y-component of velocity (m/s) at the N point
          uvelN    , & ! x-component of velocity (m/s) at the E point
@@ -3157,7 +3218,11 @@
          uarea    , & ! area of u cell
          shearU       ! shearU
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(inout) :: &
+      ! EXPLICIT shape, not assumed: the callers pass vort(:,iblk) and rely
+      ! on sequence association to present the block as one flat vector.  An
+      ! assumed-shape dummy would reject that -- the outputs stay block-shaped
+      ! and are written through ijslot.
+      real (kind=dbl_kind), dimension (:), intent(inout) :: &
          vort     , & ! vorticity (1/s)
          shear    , & ! strain rate II component (1/s)
          divu     , & ! strain rate I component, velocity divergence (1/s)
@@ -3167,10 +3232,13 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij       , & ! ij is the compressed cell counter
-         ijb                ! 1D index of (i,j) in the block
+         is             , & ! slot counter
+         isW, isS, isSW , & ! the three neighbour slots read here
+         ijb                ! 1D index of the owning cell in the block
 
-      real (kind=dbl_kind), dimension (nx_block*ny_block) :: &
+      ! slot-shaped: these never leave the routine, and the compressed
+      ! strain-rate helper fills them in the slot layout.
+      real (kind=dbl_kind), dimension (ncells+1) :: &
         divT      , & ! divergence at T point
         tensionT  , & ! tension at T point
         shearT    , & ! shear at T point
@@ -3187,48 +3255,50 @@
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
 
-      call strain_rates_T (nx_block   ,   ny_block   , &
-                           icellT     ,                &
-                           indxTi(:)  , indxTj  (:)  , &
-                           uvelE (:)  , vvelE   (:)  , &
-                           uvelN (:)  , vvelN   (:)  , &
-                           dxN   (:)  , dyE     (:)  , &
-                           dxT   (:)  , dyT     (:)  , &
-                           divT  (:)  , tensionT(:)  , &
+      call strain_rates_Tdtsd_compressed (ncells     , skipme       , &
+                           nbr        ,                               &
+                           uvelE (:)  , vvelE   (:)  ,                &
+                           uvelN (:)  , vvelN   (:)  ,                &
+                           dxN   (:)  , dyE     (:)  ,                &
+                           dxT   (:)  , dyT     (:)  ,                &
+                           divT  (:)  , tensionT(:)  ,                &
                            shearT(:)  , DeltaT  (:)    )
 
       ! DeltaT is calc by strain_rates_T but replaced by calculation below.
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
+      do is = 1, ncells
+         if (skipme(is)) cycle
+
+         isW  = nbr(is,nbr_W )
+         isS  = nbr(is,nbr_S )
+         isSW = nbr(is,nbr_SW)
+         ijb  = ijslot(is)
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
 
-         shearTsqr = (shearU(ijb)**2 * uarea(ijb)  &
-                    + shearU(ijb-nx_block)**2 * uarea(ijb-nx_block)  &
-                    + shearU(ijb-nx_block-1)**2 * uarea(ijb-nx_block-1)  &
-                    + shearU(ijb-1)**2 * uarea(ijb-1)) &
-                    / (uarea(ijb)+uarea(ijb-nx_block)+uarea(ijb-nx_block-1)+uarea(ijb-1))
+         shearTsqr = (shearU(is)**2 * uarea(is)     &
+                    + shearU(isS)**2 * uarea(isS)   &
+                    + shearU(isSW)**2 * uarea(isSW) &
+                    + shearU(isW)**2 * uarea(isW))  &
+                    / (uarea(is)+uarea(isS)+uarea(isSW)+uarea(isW))
 
-         DeltaT(ijb) = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearTsqr))
+         DeltaT(is) = sqrt(divT(is)**2 + e_factor*(tensionT(is)**2 + shearTsqr))
 
-         divu(ijb) = divT(ijb) * tarear(ijb)
-         tmp = DeltaT(ijb) * tarear(ijb)
+         divu(ijb) = divT(is) * tarear(is)
+         tmp = DeltaT(is) * tarear(is)
          rdg_conv(ijb)  = -min(divu(ijb),c0)
          rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
          ! diagnostic only...maybe we dont want to use shearTsqr here????
          ! shear = sqrt(tension**2 + shearing**2)
-         shear(ijb) = tarear(ijb)*sqrt( tensionT(ijb)**2 + shearT(ijb)**2 )
+         shear(ijb) = tarear(is)*sqrt( tensionT(is)**2 + shearT(is)**2 )
          ! vorticity
-         vort (ijb) = tarear(ijb)*( ( dyE(ijb)*vvelE(ijb) - dyE(ijb-1)*vvelE(ijb-1) ) &
-                                  - ( dxN(ijb)*uvelN(ijb) - dxN(ijb-nx_block)*uvelN(ijb-nx_block)) )
+         vort (ijb) = tarear(is)*( ( dyE(is)*vvelE(is) - dyE(isW)*vvelE(isW) ) &
+                                  - ( dxN(is)*uvelN(is) - dxN(isS)*uvelN(isS)) )
 
-      enddo                     ! ij
+      enddo                     ! is
 
     end subroutine deformationsC_T
 
@@ -3342,160 +3412,11 @@
 
       end subroutine strain_rates
 
-!=======================================================================
-! Compute dtsd (div, tension, shear, delta) strain rates at the T point
-!
-! author: JF Lemieux, ECCC
-! Nov 2021
 
-      subroutine strain_rates_Tdtsd (nx_block,   ny_block, &
-                                     icellT,               &
-                                     indxTi,     indxTj,   &
-                                     uvelE,      vvelE,    &
-                                     uvelN,      vvelN,    &
-                                     dxN,        dyE,      &
-                                     dxT,        dyT,      &
-                                     divT,       tensionT, &
-                                     shearT,     DeltaT    )
-
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, &  ! block dimensions
-         icellT
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
-         dxN      , & ! width of N-cell through the middle (m)
-         dyE      , & ! height of E-cell through the middle (m)
-         dxT      , & ! width of T-cell through the middle (m)
-         dyT          ! height of T-cell through the middle (m)
-
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
-         divT     , & ! divergence at T point
-         tensionT , & ! tension at T point
-         shearT   , & ! shear at T point
-         DeltaT       ! strain rates at the T point
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         ij, i, j               , & ! ij is the compressed cell counter
-         ijb                        ! 1D index of (i,j) in the block
-
-      character(len=*), parameter :: subname = '(strain_rates_Tdtsd)'
-
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-      ! compute divT, tensionT
-      call strain_rates_Tdt (nx_block,   ny_block, &
-                             icellT,               &
-                             indxTi,     indxTj,   &
-                             uvelE,      vvelE,    &
-                             uvelN,      vvelN,    &
-                             dxN,        dyE,      &
-                             dxT,        dyT,      &
-                             divT,       tensionT  )
-
-      shearT  (:) = c0
-      deltaT  (:) = c0
-
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
-
-         ! shearing strain rate  =  2*e_12
-         shearT(ijb) = (dxT(ijb)**2)*(uvelN(ijb)/dxN(ijb) - uvelN(ijb-nx_block)/dxN(ijb-nx_block)) &
-                     + (dyT(ijb)**2)*(vvelE(ijb)/dyE(ijb) - vvelE(ijb-1)/dyE(ijb-1))
-
-         ! Delta (in the denominator of zeta, eta)
-         DeltaT(ijb) = sqrt(divT(ijb)**2 + e_factor*(tensionT(ijb)**2 + shearT(ijb)**2))
-
-      enddo
-
-      end subroutine strain_rates_Tdtsd
 
 !=======================================================================
-! Compute the dt (div, tension) strain rates at the T point
-!
-! author: JF Lemieux, ECCC
-! Nov 2021
-
-      subroutine strain_rates_Tdt (nx_block,   ny_block, &
-                                   icellT,               &
-                                   indxTi,     indxTj,   &
-                                   uvelE,      vvelE,    &
-                                   uvelN,      vvelN,    &
-                                   dxN,        dyE,      &
-                                   dxT,        dyT,      &
-                                   divT,       tensionT  )
-
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block, &  ! block dimensions
-         icellT
-
-      integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
-
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) :: &
-         uvelE    , & ! x-component of velocity (m/s) at the E point
-         vvelE    , & ! y-component of velocity (m/s) at the N point
-         uvelN    , & ! x-component of velocity (m/s) at the E point
-         vvelN    , & ! y-component of velocity (m/s) at the N point
-         dxN      , & ! width of N-cell through the middle (m)
-         dyE      , & ! height of E-cell through the middle (m)
-         dxT      , & ! width of T-cell through the middle (m)
-         dyT          ! height of T-cell through the middle (m)
-
-      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(out):: &
-         divT     , & ! divergence at T point
-         tensionT     ! tension at T point
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         ij, i, j               , & ! ij is the compressed cell counter
-         ijb                        ! 1D index of (i,j) in the block
-
-      character(len=*), parameter :: subname = '(strain_rates_Tdt)'
-
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-      divT    (:) = c0
-      tensionT(:) = c0
-
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
-         ijb = (j-1)*nx_block + i
-
-         ! divergence  =  e_11 + e_22
-         divT    (ijb)= dyE(ijb)*uvelE(ijb) - dyE(ijb-1)*uvelE(ijb-1) &
-                      + dxN(ijb)*vvelN(ijb) - dxN(ijb-nx_block)*vvelN(ijb-nx_block)
-
-         ! tension strain rate  =  e_11 - e_22
-         tensionT(ijb) = (dyT(ijb)**2)*(uvelE(ijb)/dyE(ijb) - uvelE(ijb-1)/dyE(ijb-1)) &
-                       - (dxT(ijb)**2)*(vvelN(ijb)/dxN(ijb) - vvelN(ijb-nx_block)/dxN(ijb-nx_block))
-
-      enddo
-
-      end subroutine strain_rates_Tdt
-
-!=======================================================================
-! Compressed form of strain_rates_Tdt, for the C/CD subcycle.
+! T-point strain rates for the C/CD subcycle.  The block-layout twin this
+! was once "the compressed form of" is gone: it had no callers left.
 !
 ! ADDITIVE, like grid_average_X2Y*_compressed: the block version above is
 ! still what deformationsC_T and deformationsCD_T call, and those run after
@@ -3574,7 +3495,7 @@
       end subroutine strain_rates_Tdt_compressed
 
 !=======================================================================
-! Compressed form of strain_rates_Tdtsd, for the CD subcycle.  Same additive
+! T-point strain rates with shear and Delta, for the CD subcycle.  Same additive
 ! reasoning and the same ⚠ as strain_rates_Tdt_compressed above.
 !
 ! Note the stencil is the MIRROR of Tdt's: Tdt reads uvelE to the W and vvelN

@@ -41,7 +41,9 @@
    private
 
    public :: gather_global,      &
-             scatter_global
+             scatter_global,     &
+             gather_globalR8_compressed,  &
+             scatter_globalR8_compressed
 
 !-----------------------------------------------------------------------
 !
@@ -907,6 +909,88 @@
                          field_loc, field_type, fillValue, grid_ext)
 
  end subroutine scatter_globalR8_flat
+
+!***********************************************************************
+
+ subroutine scatter_globalR8_compressed(ARRAY, ARRAY_G, map, off,      &
+                                        src_task, dst_dist,            &
+                                        field_loc, field_type,         &
+                                        fillValue, grid_ext)
+
+!  Scatter a global field directly into the compressed (slot) layout, so a
+!  caller whose only consumer reads slots never needs the block array.
+!
+!  This cannot alias the way scatter_globalR8_flat does: the flat form is a
+!  reshape of the block array, but a slot vector is a mapping through `map`,
+!  so the data really has to be packed.  One block-shaped temporary is used
+!  for that and discarded.
+
+   integer (int_kind), intent(in) :: &
+      src_task        ! task from which array should be scattered
+
+   type (distrb), intent(in) :: &
+      dst_dist        ! distribution of resulting blocks
+
+   real (dbl_kind), dimension(:,:), intent(in) :: &
+      ARRAY_G         ! array containing global field on src_task
+
+   integer (int_kind), dimension(:,:), intent(in) :: &
+      map             ! block-local slot of each cell, 0 if not stored
+
+   integer (int_kind), dimension(:), intent(in) :: &
+      off             ! first slot of each block, minus one
+
+   integer (int_kind), intent(in), optional :: &
+      field_type,    &! id for type of field (scalar, vector, angle)
+      field_loc       ! id for location on horizontal grid
+
+   real (dbl_kind), intent(in), optional :: &
+      fillValue       ! special value
+
+   logical (log_kind), intent(in), optional :: &
+      grid_ext        ! extended grid flag
+
+   real (dbl_kind), dimension(:), intent(inout) :: &
+      ARRAY           ! compressed field, dimension(dynTot)
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), dimension(:,:,:), allocatable :: &
+      ARRAY_b         ! block-shaped scratch, scattered into then packed
+
+   integer (int_kind) :: i, j, ij, iblk, ierr
+
+   character(len=*), parameter :: subname = '(scatter_globalR8_compressed)'
+
+!-----------------------------------------------------------------------
+
+   allocate(ARRAY_b(nx_block,ny_block,size(map,dim=2)), stat=ierr)
+   if (ierr /= 0) call abort_ice(subname//' ERROR: out of memory')
+   ARRAY_b = c0
+
+   call scatter_globalR8(ARRAY_b, ARRAY_G, src_task, dst_dist, &
+                         field_loc, field_type, fillValue, grid_ext)
+
+   !  Pack into the slots.  Cells with no slot are dropped -- they carry
+   !  nothing the compressed consumer reads.
+   do iblk = 1, size(map,dim=2)
+      do j = 1, ny_block
+      do i = 1, nx_block
+         ij = (j-1)*nx_block + i
+         if (map(ij,iblk) > 0) then
+            ARRAY(off(iblk) + map(ij,iblk)) = ARRAY_b(i,j,iblk)
+         endif
+      enddo
+      enddo
+   enddo
+
+   deallocate(ARRAY_b)
+
+ end subroutine scatter_globalR8_compressed
 
 !***********************************************************************
 
@@ -2577,6 +2661,76 @@
    call gather_globalR8(ARRAY_G, ARRAY_3d, dst_task, src_dist, fillValue, grid_ext)
 
  end subroutine gather_globalR8_flat
+
+!***********************************************************************
+
+ subroutine gather_globalR8_compressed(ARRAY_G, ARRAY, map, off,       &
+                                       dst_task, src_dist, spc_val,    &
+                                       grid_ext)
+
+!  Gather a compressed (slot) field into a global block-shaped array.  The
+!  mirror of scatter_globalR8_compressed, and needed for the same round trip:
+!  evp1d gathers the diagnostics in so that cells it does not own are written
+!  back unchanged rather than zeroed.
+!
+!  Cells with no slot are left at whatever spc_val/the gather puts there --
+!  they hold nothing the compressed producer wrote.
+
+   integer (int_kind), intent(in) :: &
+      dst_task        ! task to which array should be gathered
+
+   type (distrb), intent(in) :: &
+      src_dist        ! distribution of blocks in the source array
+
+   real (dbl_kind), dimension(:), intent(in) :: &
+      ARRAY           ! compressed field, dimension(dynTot)
+
+   integer (int_kind), dimension(:,:), intent(in) :: &
+      map             ! block-local slot of each cell, 0 if not stored
+
+   integer (int_kind), dimension(:), intent(in) :: &
+      off             ! first slot of each block, minus one
+
+   real (dbl_kind), intent(in), optional :: &
+      spc_val
+
+   logical (log_kind), intent(in), optional :: &
+      grid_ext
+
+   real (dbl_kind), dimension(:,:), intent(inout) :: &
+      ARRAY_G         ! array containing global field on dst_task
+
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), dimension(:,:,:), allocatable :: &
+      ARRAY_b         ! block-shaped scratch, unpacked into then gathered
+
+   integer (int_kind) :: i, j, ij, iblk, ierr
+
+   character(len=*), parameter :: subname = '(gather_globalR8_compressed)'
+
+!-----------------------------------------------------------------------
+
+   allocate(ARRAY_b(nx_block,ny_block,size(map,dim=2)), stat=ierr)
+   if (ierr /= 0) call abort_ice(subname//' ERROR: out of memory')
+   ARRAY_b = c0
+
+   do iblk = 1, size(map,dim=2)
+      do j = 1, ny_block
+      do i = 1, nx_block
+         ij = (j-1)*nx_block + i
+         if (map(ij,iblk) > 0) then
+            ARRAY_b(i,j,iblk) = ARRAY(off(iblk) + map(ij,iblk))
+         endif
+      enddo
+      enddo
+   enddo
+
+   call gather_globalR8(ARRAY_G, ARRAY_b, dst_task, src_dist, spc_val, grid_ext)
+
+   deallocate(ARRAY_b)
+
+ end subroutine gather_globalR8_compressed
 
 !***********************************************************************
 

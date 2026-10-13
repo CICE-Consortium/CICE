@@ -2209,7 +2209,15 @@
                               new_month, write_histrest
       use ice_dyn_eap, only: a11, a12, e11, e12, e22, s11, s12, s22, &
           yieldstress11, yieldstress12, yieldstress22
-      use ice_dyn_shared, only: kdyn, principal_stress
+      ! These four are read in the COMPRESSED layout: evp, eap and evp1d all
+      ! keep them in slots, and VP never fills them at all -- its strintx is a
+      ! local scalar in matvec/calc_bvec and the dyn_finish line that would
+      ! have passed it out is commented out upstream.  The block forms stay
+      ! for siforceintstrx/y below, which needs a block-layout product with
+      ! aice, so ice_history reads both layouts.
+      use ice_dyn_shared, only: kdyn, principal_stress, &
+          strintxU_slot, strintyU_slot, taubxU_slot, taubyU_slot, &
+          dynMap, dynOff, dynCnt
       use ice_flux, only: fsw, flw, fsnow, frain, sst, sss, uocn, vocn, &
           frzmlt_init, scale_factor, fswabs, fswup, fswthru, alvdr, alvdf, alidr, alidf, &
           albice, albsno, albpnd, coszen, flat, fsens, flwout, evap, evaps, evapi, &
@@ -2662,13 +2670,17 @@
          if (f_strocny(1:1) /= 'x') &
              call accum_hist_field(n_strocny, iblk, strocnyU(:,:,iblk), a2D)
          if (f_strintx(1:1) /= 'x') &
-             call accum_hist_field(n_strintx, iblk, strintxU(:,:,iblk), a2D)
+             call accum_hist_field(n_strintx, iblk, strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   dynMap(:,iblk), a2D)
          if (f_strinty(1:1) /= 'x') &
-             call accum_hist_field(n_strinty, iblk, strintyU(:,:,iblk), a2D)
+             call accum_hist_field(n_strinty, iblk, strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   dynMap(:,iblk), a2D)
          if (f_taubx(1:1) /= 'x') &
-             call accum_hist_field(n_taubx, iblk, taubxU(:,iblk), a2D)
+             call accum_hist_field(n_taubx, iblk, taubxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   dynMap(:,iblk), a2D)
          if (f_tauby(1:1) /= 'x') &
-             call accum_hist_field(n_tauby, iblk, taubyU(:,iblk), a2D)
+             call accum_hist_field(n_tauby, iblk, taubyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                   dynMap(:,iblk), a2D)
          if (f_strairxN(1:1) /= 'x') &
              call accum_hist_field(n_strairxN, iblk, strairxN(:,:,iblk), a2D)
          if (f_strairyN(1:1) /= 'x') &
@@ -2725,11 +2737,11 @@
 ! Snapshots may be more useful (see below).
 
 !        if (f_divu   (1:1) /= 'x') &
-!             call accum_hist_field(n_divu,    iblk, divu(:,:,iblk), a2D)
+!             call accum_hist_field(n_divu,    iblk, divu(:,iblk), a2D)
 !        if (f_shear  (1:1) /= 'x') &
-!             call accum_hist_field(n_shear,   iblk, shear(:,:,iblk), a2D)
+!             call accum_hist_field(n_shear,   iblk, shear(:,iblk), a2D)
 !        if (f_vort  (1:1) /= 'x') &
-!             call accum_hist_field(n_vort,    iblk, vort(:,:,iblk), a2D)
+!             call accum_hist_field(n_vort,    iblk, vort(:,iblk), a2D)
 !        if (f_sig1   (1:1) /= 'x') &
 !             call accum_hist_field(n_sig1,    iblk, sig1(:,:,iblk), a2D)
 !        if (f_sig2   (1:1) /= 'x') &
@@ -3173,11 +3185,19 @@
          endif
 
          if (f_siforceintstrx(1:1) /= 'x') then
-           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk)*strintxU(:,:,iblk), a2D)
+           ! strintxU is flattened, aice is not -- reshape the latter rather
+           ! than hold strintxU back.  One block copied, on history steps only,
+           ! gated on the namelist flag.  It goes if aice is ever flattened.
+           call accum_hist_field(n_siforceintstrx, iblk, &
+                reshape(aice(:,:,iblk),(/nx_block*ny_block/))*strintxU(:,iblk), a2D)
          endif
 
          if (f_siforceintstry(1:1) /= 'x') then
-           call accum_hist_field(n_siforceintstry, iblk, aice(:,:,iblk)*strintyU(:,:,iblk), a2D)
+           ! strintyU is flattened, aice is not -- reshape the latter rather
+           ! than hold strintyU back.  One block copied, on history steps only,
+           ! gated on the namelist flag.  It goes if aice is ever flattened.
+           call accum_hist_field(n_siforceintstry, iblk, &
+                reshape(aice(:,:,iblk),(/nx_block*ny_block/))*strintyU(:,iblk), a2D)
          endif
 
          endif ! if (allocated(a2D))
@@ -3852,11 +3872,11 @@
                  if (n_yieldstress22 (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk) = spval_dbl
               else
                  if (n_divu     (ns) /= 0) a2D(i,j,n_divu(ns),iblk)      = &
-                       divu (i,j,iblk)*avail_hist_fields(n_divu(ns))%cona
+                       divu ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_divu(ns))%cona
                  if (n_shear    (ns) /= 0) a2D(i,j,n_shear(ns),iblk)     = &
-                       shear(i,j,iblk)*avail_hist_fields(n_shear(ns))%cona
+                       shear((j-1)*nx_block+i,iblk)*avail_hist_fields(n_shear(ns))%cona
                  if (n_vort     (ns) /= 0) a2D(i,j,n_vort(ns),iblk)      = &
-                       vort(i,j,iblk)*avail_hist_fields(n_vort(ns))%cona
+                       vort((j-1)*nx_block+i,iblk)*avail_hist_fields(n_vort(ns))%cona
                  if (n_sig1     (ns) /= 0) a2D(i,j,n_sig1(ns),iblk)      = &
                        sig1 (i,j,iblk)*avail_hist_fields(n_sig1(ns))%cona
                  if (n_sig2     (ns) /= 0) a2D(i,j,n_sig2(ns),iblk)      = &
@@ -3868,9 +3888,9 @@
                  if (n_sistressmax(ns) /= 0) a2D(i,j,n_sistressmax(ns),iblk) = &
                        p5*(sig1(i,j,iblk)-sig2(i,j,iblk))*avail_hist_fields(n_sistressmax(ns))%cona
                  if (n_sidivvel(ns) /= 0) a2D(i,j,n_sidivvel(ns),iblk) = &
-                       divu (i,j,iblk)*avail_hist_fields(n_sidivvel(ns))%cona
+                       divu ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_sidivvel(ns))%cona
                  if (n_sishearvel(ns) /= 0) a2D(i,j,n_sishearvel(ns),iblk) = &
-                       shear (i,j,iblk)*avail_hist_fields(n_sishearvel(ns))%cona
+                       shear ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_sishearvel(ns))%cona
                  if (n_mlt_onset(ns) /= 0) a2D(i,j,n_mlt_onset(ns),iblk) = &
                        mlt_onset(i,j,iblk)
                  if (n_frz_onset(ns) /= 0) a2D(i,j,n_frz_onset(ns),iblk) = &
@@ -3897,27 +3917,27 @@
                        trcr(i,j,nt_FY,iblk)*avail_hist_fields(n_FY(ns))%cona
 
                  if (n_a11     (ns) /= 0) a2D(i,j,n_a11(ns),iblk)      = &
-                       a11 (i,j,iblk)*avail_hist_fields(n_a11(ns))%cona
+                       a11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_a11(ns))%cona
                  if (n_a12     (ns) /= 0) a2D(i,j,n_a12(ns),iblk)      = &
-                       a12 (i,j,iblk)*avail_hist_fields(n_a12(ns))%cona
+                       a12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_a12(ns))%cona
                  if (n_e11     (ns) /= 0) a2D(i,j,n_e11(ns),iblk)      = &
-                       e11 (i,j,iblk)*avail_hist_fields(n_e11(ns))%cona
+                       e11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e11(ns))%cona
                  if (n_e12     (ns) /= 0) a2D(i,j,n_e12(ns),iblk)      = &
-                       e12 (i,j,iblk)*avail_hist_fields(n_e12(ns))%cona
+                       e12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e12(ns))%cona
                  if (n_e22     (ns) /= 0) a2D(i,j,n_e22(ns),iblk)      = &
-                       e22 (i,j,iblk)*avail_hist_fields(n_e22(ns))%cona
+                       e22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e22(ns))%cona
                  if (n_s11     (ns) /= 0) a2D(i,j,n_s11(ns),iblk)      = &
-                       s11 (i,j,iblk)*avail_hist_fields(n_s11(ns))%cona
+                       s11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s11(ns))%cona
                  if (n_s12     (ns) /= 0) a2D(i,j,n_s12(ns),iblk)      = &
-                       s12 (i,j,iblk)*avail_hist_fields(n_s12(ns))%cona
+                       s12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s12(ns))%cona
                  if (n_s22     (ns) /= 0) a2D(i,j,n_s22(ns),iblk)      = &
-                       s22 (i,j,iblk)*avail_hist_fields(n_s22(ns))%cona
+                       s22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s22(ns))%cona
                  if (n_yieldstress11     (ns) /= 0) a2D(i,j,n_yieldstress11(ns),iblk)      = &
-                       yieldstress11 (i,j,iblk)*avail_hist_fields(n_yieldstress11(ns))%cona
+                       yieldstress11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress11(ns))%cona
                  if (n_yieldstress12     (ns) /= 0) a2D(i,j,n_yieldstress12(ns),iblk)      = &
-                       yieldstress12 (i,j,iblk)*avail_hist_fields(n_yieldstress12(ns))%cona
+                       yieldstress12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress12(ns))%cona
                  if (n_yieldstress22     (ns) /= 0) a2D(i,j,n_yieldstress22(ns),iblk)      = &
-                       yieldstress22 (i,j,iblk)*avail_hist_fields(n_yieldstress22(ns))%cona
+                       yieldstress22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress22(ns))%cona
               endif
            enddo                ! i
            enddo                ! j

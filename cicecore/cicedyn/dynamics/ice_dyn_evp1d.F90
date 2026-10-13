@@ -56,7 +56,7 @@ module ice_dyn_evp1d
     cdn_ocn,aiu,uocn,vocn,waterxU,wateryU,forcexU,forceyU,umassdti,fmU,   &
     rheofactU,                                                            &
     umass,                                                                &
-    strintxU,strintyU,uvel_init,vvel_init, strength, uvel, vvel,          &
+    strintxU_1d,strintyU_1d,uvel_init,vvel_init, strength, uvel, vvel,          &
     stressp_1, stressp_2, stressp_3, stressp_4, stressm_1, stressm_2,     &
     stressm_3, stressm_4, stress12_1, stress12_2, stress12_3, stress12_4, &
     str1, str2, str3, str4, str5, str6, str7, str8, Tbu, Cb
@@ -154,18 +154,22 @@ module ice_dyn_evp1d
                            L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                            L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
                            L_umass     , L_strintxU  , L_strintyU  , &
-                           L_Tbu       , L_taubxU    , L_taubyU    , L_uvel      , &
+                           L_taubxU    , L_taubyU    , L_uvel      , &
                            L_vvel      , L_icetmask  , L_iceUmask)
 
     use ice_calendar, only : write_history, write_restart, write_ic
-    use ice_dyn_shared, only : ndte
+    use ice_dyn_shared, only : ndte, strintxU_slot, strintyU_slot
+    use ice_grid      , only : dynMap, dynOff, dynCnt, unpack_from_slots
+    use ice_domain    , only : nblocks
+    ! renamed: this module's own strintxU is the 1-D GATHERED array
+    use ice_flux      , only : strintxU, strintyU
     use ice_dyn_core1d, only : stress_1d, stepu_1d, calc_diag_1d
     ! strintxU/strintyU and taubxU/taubyU are diagnostics: history is their
     ! only consumer.  When no stream wants them this step, calc_diag_1d is
     ! skipped and four of scatter_dyn's six collectives go with it.
     use ice_history_shared, only: hist_field_needed, &
         n_strintx, n_strinty, n_siforceintstrx, n_siforceintstry, &
-        n_taubx  , n_tauby
+        n_taubx  , n_tauby  , n_siforceintstrx, n_siforceintstry
     use ice_timers    , only : ice_timer_start, ice_timer_stop, timer_evp1dcore
 
     use icepack_intfc , only : icepack_query_parameters, icepack_warnings_flush, &
@@ -174,7 +178,7 @@ module ice_dyn_evp1d
     implicit none
 
     ! nx_block, ny_block, max_blocks
-    real(kind=dbl_kind)   , dimension(:,:,:), intent(inout) :: &
+    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) :: &
       L_strintxU  , L_strintyU
 
     ! uvel/vvel have their i and j dimensions flattened; gather_global and
@@ -196,7 +200,7 @@ module ice_dyn_evp1d
       L_cdn_ocn   , L_uocn      , L_vocn
     ! flattened as above
     real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
-      L_umass     , L_Tbu
+      L_umass     
 
     ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
     ! lives at ((j-1)*nx_block + i, iblk)
@@ -225,7 +229,8 @@ module ice_dyn_evp1d
       G_iceUmask  , G_iceTmask
 
     ! does any history stream want strint/taub this step?
-    logical(kind=log_kind) :: lstrint, ltaub
+    logical(kind=log_kind) :: lstrint, ltaub, lsiforce
+    integer(kind=int_kind) :: iblk   ! block index for the siforce expansion
 
     character(len=*), parameter :: subname = '(dyn_evp1d_run)'
 
@@ -240,7 +245,7 @@ module ice_dyn_evp1d
                     L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
                     L_forcexU   , L_forceyU   , &
 
-                    L_umass     , L_Tbu       , L_uvel      , L_vvel      ,               &
+                    L_umass     , L_uvel      , L_vvel      ,               &
                     L_iceTmask  , L_iceUmask  ,                             &
                     L_strintxU  , L_strintyU  , L_taubxU    , L_taubyU    , &
                     G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU    , &
@@ -274,6 +279,8 @@ module ice_dyn_evp1d
               hist_field_needed(n_siforceintstrx) .or. &
               hist_field_needed(n_siforceintstry)
     ltaub   = hist_field_needed(n_taubx  ) .or. hist_field_needed(n_tauby  )
+    lsiforce = hist_field_needed(n_siforceintstrx) .or. &
+               hist_field_needed(n_siforceintstry)
 
     if (my_task == master_task) then
        call set_skipMe(G_iceTmask, G_iceUmask,nActive)
@@ -365,7 +372,7 @@ module ice_dyn_evp1d
                          str7     , str8     , &
                          nw       , sw       , &
                          sse      , rheofactU, &
-                         strintxU, strintyU)
+                         strintxU_1d, strintyU_1d)
 
        call ice_timer_stop(timer_evp1dcore)
 
@@ -391,6 +398,19 @@ module ice_dyn_evp1d
                      L_taubxU    , L_taubyU    ,                             &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                      G_taubxU    , G_taubyU    , lstrint     , ltaub)
+
+    ! ice_history reads strintxU/strintyU and taubxU/taubyU from the slots the
+    ! scatter above just filled, so the block forms are not needed -- except
+    ! by siforceintstrx/y, the one field that still forms a block-layout
+    ! product with aice.  Expand for that case, and only for it.
+    if (lsiforce) then
+       !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+       do iblk = 1, nblocks
+          call unpack_from_slots(strintxU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintxU(:,iblk))
+          call unpack_from_slots(strintyU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dynMap(:,iblk), strintyU(:,iblk))
+       enddo
+       !$OMP END PARALLEL DO
+    endif
 
     ! The twelve stresses go back only when a file is due.  Nothing outside
     ! the dynamics reads them in between -- ice_history touches them only
@@ -517,7 +537,7 @@ module ice_dyn_evp1d
              umassdti (1:na0), fmU      (1:na0), &
              umass    (1:na0),                   &
              uarear_1d(1:na0),                   &
-             strintxU (1:na0), strintyU (1:na0), &
+             strintxU_1d (1:na0), strintyU_1d (1:na0), &
              Tbu      (1:na0), Cb       (1:na0), &
              uvel_init(1:na0), vvel_init(1:na0), &
              stat=ierr)
@@ -778,58 +798,61 @@ module ice_dyn_evp1d
   ! convert_2d_1d_dyn recomputes them from the same operands instead.
   subroutine gather_dyn(L_strength  ,                                           &
                         L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
-                        L_forcexU   , L_forceyU   , &
-                        L_umass     , L_Tbu       , L_uvel      , L_vvel      ,               &
+                        L_forcexU   , L_forceyU   ,                             &
+                        L_umass     , L_uvel      , L_vvel      , &
                         L_icetmask  , L_iceUmask  ,                             &
                         L_strintxU  , L_strintyU  , L_taubxU    , L_taubyU    , &
                         G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU    , &
                         lstrint     , ltaub       ,                             &
                         G_strength,                                             &
                         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
-                        G_forcexU   , G_forceyU   , &
-                        G_umass     , G_Tbu       , G_uvel      , G_vvel      ,               &
+                        G_forcexU   , G_forceyU   ,                             &
+                        G_umass     , G_Tbu       , G_uvel      , G_vvel      , &
                         G_iceTmask,  G_iceUmask)
      use ice_communicate, only : master_task
-     use ice_gather_scatter, only : gather_global
+     use ice_gather_scatter, only : gather_global, gather_globalR8_compressed
+     use ice_grid, only : dynMap, dynOff
+     use ice_dyn_shared, only : strintxU_slot, strintyU_slot, &
+          taubxU_slot, taubyU_slot, TbU_slot
      use ice_domain, only : distrb_info
      implicit none
      ! nx_block, ny_block, max_blocks
-     real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
-        L_strength  ,                                           &
+     real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  :: &
+        L_strength  ,                                         &
         L_cdn_ocn   , L_uocn      , L_vocn
 
      ! uvel/vvel flattened, as L_umass and L_Tbu below
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
         L_uvel      , L_vvel
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
-        L_umass     , L_Tbu
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
+        L_umass     
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
-        L_aiu       , &
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
+        L_aiu       ,                                         &
         L_forcexU   , L_forceyU
      ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
      ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
-     logical(kind=log_kind), dimension(:,:), intent(in)  ::     &
+     logical(kind=log_kind), dimension(:,:), intent(in)  :: &
         L_iceTmask  , L_iceUmask
      ! the four diagnostics, gathered so the round trip leaves alone any cell
      ! this solver does not own -- see the note in convert_1d_2d_dyn
-     real(kind=dbl_kind)   , dimension(:,:,:), intent(in)  ::   &
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
         L_strintxU  , L_strintyU
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  ::   &
+     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
         L_taubxU    , L_taubyU
-     real(kind=dbl_kind)   , dimension(:,:), intent(inout) ::   &
+     real(kind=dbl_kind)   , dimension(:,:), intent(inout) :: &
         G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU
      logical(kind=log_kind), intent(in) :: lstrint, ltaub
      ! nx, ny
      real(kind=dbl_kind)   , dimension(:,:), intent(out) ::     &
         G_strength,                                             &
         G_cdn_ocn   , G_aiu       , G_uocn      , G_vocn      , &
-        G_forcexU   , G_forceyU   , &
+        G_forcexU   , G_forceyU   ,                             &
         G_umass     , G_Tbu       , G_uvel      , G_vvel
-     logical(kind=log_kind), dimension(:,:), intent(out) ::     &
+     logical(kind=log_kind), dimension(:,:), intent(out) :: &
         G_iceUmask  , G_iceTmask
      character(len=*), parameter :: subname = '(gather_dyn)'
      ! copy from distributed I_* to G_*
@@ -844,17 +867,24 @@ module ice_dyn_evp1d
      ! umass alone: fmU is fcor*umass and umassdti is umass/dt, and fcor is a
      ! static gathered once, so one field here replaces the two that were.
      call gather_global(G_umass     ,     L_umass     ,     master_task, distrb_info, grid_ext=.true.)
-     call gather_global(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info, grid_ext=.true.)
+     ! TbU has no block form any more -- seabed_stress_factor_* write the
+     ! slots directly -- so it is gathered the way strintxU already is.
+     call gather_globalR8_compressed(G_Tbu, TbU_slot, dynMap, dynOff, &
+          master_task, distrb_info, c0, grid_ext=.true.)
      call gather_global(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
      call gather_global(G_vvel      ,     L_vvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
      ! Only when history wants them, matching the scatter in scatter_dyn.
      if (lstrint) then
-        call gather_global(G_strintxU  ,     L_strintxU  ,     master_task, distrb_info,c0, grid_ext=.true.)
-        call gather_global(G_strintyU  ,     L_strintyU  ,     master_task, distrb_info,c0, grid_ext=.true.)
+        call gather_globalR8_compressed(G_strintxU  , strintxU_slot, dynMap, dynOff, &
+             master_task, distrb_info, c0, grid_ext=.true.)
+        call gather_globalR8_compressed(G_strintyU  , strintyU_slot, dynMap, dynOff, &
+             master_task, distrb_info, c0, grid_ext=.true.)
      endif
      if (ltaub) then
-        call gather_global(G_taubxU    ,     L_taubxU    ,     master_task, distrb_info,c0, grid_ext=.true.)
-        call gather_global(G_taubyU    ,     L_taubyU    ,     master_task, distrb_info,c0, grid_ext=.true.)
+        call gather_globalR8_compressed(G_taubxU    , taubxU_slot, dynMap, dynOff, &
+             master_task, distrb_info, c0, grid_ext=.true.)
+        call gather_globalR8_compressed(G_taubyU    , taubyU_slot, dynMap, dynOff, &
+             master_task, distrb_info, c0, grid_ext=.true.)
      endif
      call gather_global(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info, grid_ext=.true.)
      call gather_global(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info, grid_ext=.true.)
@@ -914,17 +944,20 @@ module ice_dyn_evp1d
   ! (accum_hist_field, before the write_history gate), so unlike the stresses
   ! they are consumed every step rather than only at write time.
   subroutine scatter_dyn(                         L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
-                         L_taubxU    , L_taubyU    ,                             &
-                         G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
+                         L_taubxU    , L_taubyU    ,                                                      &
+                         G_strintxU  , G_strintyU  , G_uvel      , G_vvel      ,                          &
                          G_taubxU    , G_taubyU    , lstrint     , ltaub )
 
      use ice_communicate, only : master_task
-     use ice_gather_scatter, only : scatter_global
+     use ice_gather_scatter, only : scatter_global, scatter_globalR8_compressed
+     use ice_grid, only : dynMap, dynOff
+     use ice_dyn_shared, only : strintxU_slot, strintyU_slot, &
+          taubxU_slot, taubyU_slot
      use ice_domain, only : distrb_info
      implicit none
 
      ! nx_block, ny_block, max_blocks
-     real(kind=dbl_kind), dimension(:,:,:), intent(out) :: &
+     real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
         L_strintxU  , L_strintyU
 
      ! uvel/vvel flattened
@@ -933,7 +966,7 @@ module ice_dyn_evp1d
 
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
-     real(kind=dbl_kind), dimension(:,:)  , intent(out) ::      &
+     real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
         L_taubxU    , L_taubyU
 
      ! nx, ny
@@ -953,14 +986,18 @@ module ice_dyn_evp1d
      ! stream wants them, which is four collectives per timestep saved in
      ! the common case where it does not.
      if (lstrint) then
-        call scatter_global(L_strintxU  , G_strintxU  , master_task, distrb_info, grid_ext=.true.)
-        call scatter_global(L_strintyU  , G_strintyU  , master_task, distrb_info, grid_ext=.true.)
+        call scatter_globalR8_compressed(strintxU_slot, G_strintxU  , dynMap, dynOff, &
+             master_task, distrb_info, grid_ext=.true.)
+        call scatter_globalR8_compressed(strintyU_slot, G_strintyU  , dynMap, dynOff, &
+             master_task, distrb_info, grid_ext=.true.)
      endif
      call scatter_global(L_uvel      , G_uvel      , master_task, distrb_info, grid_ext=.true.)
      call scatter_global(L_vvel      , G_vvel      , master_task, distrb_info, grid_ext=.true.)
      if (ltaub) then
-        call scatter_global(L_taubxU    , G_taubxU    , master_task, distrb_info, grid_ext=.true.)
-        call scatter_global(L_taubyU    , G_taubyU    , master_task, distrb_info, grid_ext=.true.)
+        call scatter_globalR8_compressed(taubxU_slot, G_taubxU    , dynMap, dynOff, &
+             master_task, distrb_info, grid_ext=.true.)
+        call scatter_globalR8_compressed(taubyU_slot, G_taubyU    , dynMap, dynOff, &
+             master_task, distrb_info, grid_ext=.true.)
      endif
 
   end subroutine scatter_dyn
@@ -1124,8 +1161,8 @@ module ice_dyn_evp1d
         vocn(iw)       = G_vocn(i, j)
         forcexU(iw)    = G_forcexU(i, j)
         forceyU(iw)    = G_forceyU(i, j)
-        strintxU(iw)   = C0
-        strintyU(iw)   = C0
+        strintxU_1d(iw)   = C0
+        strintyU_1d(iw)   = C0
         umass(iw)      = G_umass(i, j)
         Tbu(iw)        = G_Tbu(i, j)
         Cb(iw)         = c0
@@ -1256,8 +1293,8 @@ module ice_dyn_evp1d
         G_stress12_2(i,j) = stress12_2(iw)
         G_stress12_3(i,j) = stress12_3(iw)
         G_stress12_4(i,j) = stress12_4(iw)
-        G_strintxU(i,j)   = strintxU(iw)
-        G_strintyU(i,j)   = strintyU (iw)
+        G_strintxU(i,j)   = strintxU_1d(iw)
+        G_strintyU(i,j)   = strintyU_1d (iw)
         G_taubxU(i,j)     = -uvel(iw)*Cb(iw)
         G_taubyU(i,j)     = -vvel(iw)*Cb(iw)
         G_uvel(i,j)       = uvel(iw)
@@ -1422,8 +1459,8 @@ module ice_dyn_evp1d
         stressp_2(iw)=c0
         stressp_3(iw)=c0
         stressp_4(iw)=c0
-        strintxU(iw)= c0
-        strintyU(iw)= c0
+        strintxU_1d(iw)= c0
+        strintyU_1d(iw)= c0
         Tbu(iw)=c0
         uarear_1d(iw)=c0
         umassdti(iw)=c0
