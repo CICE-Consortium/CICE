@@ -1026,7 +1026,7 @@
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
-            workd2(:,:,:) = a2D(:,:,n,1:nblocks)
+            workd2(:,:,:) = reshape(a2D(:,n,1:nblocks), shape(workd2))
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
@@ -1521,7 +1521,7 @@
                   if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
                   if (status == PIO_NOERR) then
                      readstr = readstrT
-                     a2D(:,:,n,:) = work2(:,:,:)
+                     a2D(:,n,:) = reshape(work2, shape(a2D(:,n,:)))
                   endif
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)

@@ -118,7 +118,7 @@ module ice_dyn_evp1d
     if (my_task == master_task) then
       call calc_nActiveTU(G_tmask,nActive)
       call evp1d_alloc_static_na(nActive)
-      call calc_2d_indices_init(nActive, G_tmask)
+      call calc_2d_indices_init(G_tmask)
       call calc_navel(nActive, navel)
       call evp1d_alloc_static_navel(navel)
       call numainit(1,nActive,navel+1)
@@ -152,9 +152,8 @@ module ice_dyn_evp1d
                            L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4, &
                            L_strength,                                             &
                            L_cdn_ocn   , L_aiu       , L_uocn      , L_vocn      , &
-                           L_waterxU   , L_wateryU   , L_forcexU   , L_forceyU   , &
-                           L_umass     , L_strintxU  , L_strintyU  , &
-                           L_taubxU    , L_taubyU    , L_uvel      , &
+                           L_forcexU   , L_forceyU   , &
+                           L_umass     , L_uvel      , &
                            L_vvel      , L_icetmask  , L_iceUmask)
 
     use ice_calendar, only : write_history, write_restart, write_ic
@@ -178,9 +177,6 @@ module ice_dyn_evp1d
     implicit none
 
     ! nx_block, ny_block, max_blocks
-    real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) :: &
-      L_strintxU  , L_strintyU
-
     ! uvel/vvel have their i and j dimensions flattened; gather_global and
     ! scatter_global resolve to their _flat specifics
     real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) :: &
@@ -191,8 +187,7 @@ module ice_dyn_evp1d
     real(kind=dbl_kind)   , dimension(:,:)  , intent(inout) ::  &
       L_stressp_1 , L_stressp_2 , L_stressp_3 , L_stressp_4 ,  &
       L_stressm_1 , L_stressm_2 , L_stressm_3 , L_stressm_4 ,  &
-      L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4,  &
-      L_taubxU    , L_taubyU
+      L_stress12_1, L_stress12_2, L_stress12_3, L_stress12_4
     real(kind=dbl_kind), intent(in) :: dt   ! dynamics timestep
 
     real(kind=dbl_kind)   , dimension(:,:,:), intent(in) ::    &
@@ -206,7 +201,7 @@ module ice_dyn_evp1d
     ! lives at ((j-1)*nx_block + i, iblk)
     real(kind=dbl_kind)   , dimension(:,:)  , intent(in) ::    &
       L_aiu       ,                                            &
-      L_waterxU   , L_wateryU   , L_forcexU  , L_forceyU
+      L_forcexU  , L_forceyU
     ! L_iceTmask and L_iceUmask have their i and j dimensions flattened,
     ! i.e. element (i,j,iblk) lives at ((j-1)*nx_block + i, iblk)
     logical(kind=log_kind), dimension(:,:), intent(in) ::      &
@@ -247,7 +242,6 @@ module ice_dyn_evp1d
 
                     L_umass     , L_uvel      , L_vvel      ,               &
                     L_iceTmask  , L_iceUmask  ,                             &
-                    L_strintxU  , L_strintyU  , L_taubxU    , L_taubyU    , &
                     G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU    , &
                     lstrint     , ltaub       ,                             &
                     G_strength  ,                                           &
@@ -394,8 +388,7 @@ module ice_dyn_evp1d
     endif ! master_task
 
     call scatter_dyn(&
-                     L_strintxU  , L_strintyU  ,  L_uvel     , L_vvel      , &
-                     L_taubxU    , L_taubyU    ,                             &
+                     L_uvel      , L_vvel      ,                             &
                      G_strintxU  , G_strintyU  , G_uvel      , G_vvel      , &
                      G_taubxU    , G_taubyU    , lstrint     , ltaub)
 
@@ -665,13 +658,12 @@ module ice_dyn_evp1d
 
 !=============================================================================
 
-  subroutine calc_2d_indices_init(na0, Tmask)
+  subroutine calc_2d_indices_init(Tmask)
     ! All points are active. Need to find neighbors.
     ! This should include de selection of u points.
 
     implicit none
 
-    integer(kind=int_kind), intent(in) :: na0
     ! nx, ny
     logical(kind=log_kind), dimension(:,:), intent(in) :: Tmask
 
@@ -801,7 +793,6 @@ module ice_dyn_evp1d
                         L_forcexU   , L_forceyU   ,                             &
                         L_umass     , L_uvel      , L_vvel      , &
                         L_icetmask  , L_iceUmask  ,                             &
-                        L_strintxU  , L_strintyU  , L_taubxU    , L_taubyU    , &
                         G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU    , &
                         lstrint     , ltaub       ,                             &
                         G_strength,                                             &
@@ -839,10 +830,6 @@ module ice_dyn_evp1d
         L_iceTmask  , L_iceUmask
      ! the four diagnostics, gathered so the round trip leaves alone any cell
      ! this solver does not own -- see the note in convert_1d_2d_dyn
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
-        L_strintxU  , L_strintyU
-     real(kind=dbl_kind)   , dimension(:,:)  , intent(in)  :: &
-        L_taubxU    , L_taubyU
      real(kind=dbl_kind)   , dimension(:,:), intent(inout) :: &
         G_strintxU  , G_strintyU  , G_taubxU    , G_taubyU
      logical(kind=log_kind), intent(in) :: lstrint, ltaub
@@ -943,8 +930,7 @@ module ice_dyn_evp1d
   ! every timestep: ice_history accumulates them into a running average
   ! (accum_hist_field, before the write_history gate), so unlike the stresses
   ! they are consumed every step rather than only at write time.
-  subroutine scatter_dyn(                         L_strintxU  , L_strintyU  , L_uvel      , L_vvel      , &
-                         L_taubxU    , L_taubyU    ,                                                      &
+  subroutine scatter_dyn(                         L_uvel      , L_vvel      ,                          &
                          G_strintxU  , G_strintyU  , G_uvel      , G_vvel      ,                          &
                          G_taubxU    , G_taubyU    , lstrint     , ltaub )
 
@@ -957,17 +943,12 @@ module ice_dyn_evp1d
      implicit none
 
      ! nx_block, ny_block, max_blocks
-     real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
-        L_strintxU  , L_strintyU
-
      ! uvel/vvel flattened
      real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
         L_uvel      , L_vvel
 
      ! these have their i and j dimensions flattened, i.e. element (i,j,iblk)
      ! lives at ((j-1)*nx_block + i, iblk)
-     real(kind=dbl_kind), dimension(:,:)  , intent(out) :: &
-        L_taubxU    , L_taubyU
 
      ! nx, ny
      real(kind=dbl_kind), dimension(:,:), intent(in) ::         &

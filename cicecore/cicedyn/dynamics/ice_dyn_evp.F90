@@ -1017,9 +1017,8 @@
                                stress12_1, stress12_2, stress12_3, stress12_4, &
                                strength  ,                                     &
                                cdn_ocnU  , aiU       , uocnU     , vocnU     , &
-                               waterxU   , wateryU   , forcexU   , forceyU   , &
-                               umass     , strintxU  , strintyU  , &
-                               taubxU    , taubyU    , uvel      , &
+                               forcexU   , forceyU   , &
+                               umass     , uvel      , &
                                vvel      , iceTmask  , iceUmask)
 
          else ! evp_algorithm == standard_2d (Standard CICE)

@@ -575,8 +575,7 @@
       !-----------------------------------------------------------------
       ! Start of nonlinear iteration
       !-----------------------------------------------------------------
-      call anderson_solver (icellT  , icellU , &
-                            indxTi  , indxTj , &
+      call anderson_solver (icellU , &
                             indxUi  , indxUj , &
                             aiU     , ntot   , &
                             uocnU   , vocnU  , &
@@ -790,8 +789,7 @@
 ! H. F. Walker, “Anderson Acceleration: Algorithms and Implementations”
 !   [Online]. Available: https://users.wpi.edu/~walker/Papers/anderson_accn_algs_imps.pdf
 
-      subroutine anderson_solver (icellT  , icellU , &
-                                  indxTi  , indxTj , &
+      subroutine anderson_solver (icellU , &
                                   indxUi  , indxUj , &
                                   aiU     , ntot   , &
                                   uocn    , vocn   , &
@@ -817,12 +815,9 @@
          ntot         ! size of problem for Anderson
 
       integer (kind=int_kind), dimension(max_blocks), intent(in) :: &
-         icellT   , & ! no. of cells where iceTmask = .true.
          icellU       ! no. of cells where iceUmask = .true.
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj   , & ! compressed index in j-direction
          indxUi   , & ! compressed index in i-direction
          indxUj       ! compressed index in j-direction
 

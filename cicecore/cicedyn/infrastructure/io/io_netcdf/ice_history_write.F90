@@ -1045,7 +1045,7 @@
 
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call gather_global(work_g1, a2D(:,:,n,:), master_task, distrb_info)
+            call gather_global(work_g1, a2D(:,n,:), master_task, distrb_info)
             if (my_task == master_task) then
                status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
@@ -1410,7 +1410,7 @@
                   endif
                   call broadcast_scalar(status,master_task)
                   if (status == nf90_noerr) then
-                     call scatter_global(a2D(:,:,n,:), work_g1, master_task, distrb_info, &
+                     call scatter_global(a2D(:,n,:), work_g1, master_task, distrb_info, &
                                          field_loc_noupdate, field_type_noupdate)
                   endif
                endif

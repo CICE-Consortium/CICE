@@ -183,7 +183,7 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a2D(:,:,n,:), atype, diag)
+          call ice_write(nu_history, nrec, a2D(:,n,:), atype, diag)
 
         endif
       enddo ! num_avail_hist_fields_2D

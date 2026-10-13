@@ -149,7 +149,8 @@
       character (len=char_len), public :: hist_time_axis
 
       real (kind=dbl_kind), allocatable, public :: &
-         a2D (:,:,:,:)    , & ! field accumulations/averages, 2D
+         a2D (:,:,:)      , & ! field accumulations/averages, 2D; the i and j
+                              ! dimensions are flattened, (ij, field, block)
          a3Dz(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical
          a3Db(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical biology
          a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D thickness categories
@@ -1117,8 +1118,11 @@
       real (kind=dbl_kind), intent(in) :: &
          field_accum(:,:)
 
+      ! (ij, field, block): the i and j dimensions are flattened, so the
+      ! accumulation never puts a compressed field back into two dimensions.
+      ! a2D is expanded to (x,y) only at the writer.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:,:)
+         field(:,:,:)
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1144,7 +1148,7 @@
        do j = jlo, jhi
        do i = ilo, ihi
           if (tmask((j-1)*nx_block+i,iblk)) then
-             field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(i,j)
+             field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) + field_accum(i,j)
           endif
        enddo
        enddo
@@ -1175,8 +1179,11 @@
       real (kind=dbl_kind), intent(in) :: &
          field_accum(:)
 
+      ! (ij, field, block): the i and j dimensions are flattened, so the
+      ! accumulation never puts a compressed field back into two dimensions.
+      ! a2D is expanded to (x,y) only at the writer.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:,:)
+         field(:,:,:)
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1202,7 +1209,7 @@
        do j = jlo, jhi
        do i = ilo, ihi
           if (tmask((j-1)*nx_block+i,iblk)) then
-             field(i,j,idns, iblk) = field(i,j,idns, iblk) &
+             field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) &
                                    + field_accum((j-1)*nx_block + i)
           endif
        enddo
@@ -1248,8 +1255,11 @@
       integer (kind=int_kind), intent(in) :: &
          map(:)            ! this block's dynMap column
 
+      ! (ij, field, block): the i and j dimensions are flattened, so the
+      ! accumulation never puts a compressed field back into two dimensions.
+      ! a2D is expanded to (x,y) only at the writer.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:,:)
+         field(:,:,:)
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1278,7 +1288,7 @@
           if (tmask(ij,iblk)) then
              m = map(ij)
              if (m > 0) &
-                field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(m)
+                field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) + field_accum(m)
           endif
        enddo
        enddo

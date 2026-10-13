@@ -53,7 +53,8 @@ while : ; do
    PROGRESS=0
    NEXT=""
    for f in $REMAIN; do
-      if gfortran -fsyntax-only -ffree-line-length-none -fallow-argument-mismatch \
+      if gfortran -fsyntax-only -Wunused-dummy-argument \
+            -ffree-line-length-none -fallow-argument-mismatch \
             -J"$MODS" -I"$MODS" "$f" > "$WORK/$(basename "$f").err" 2>&1; then
          OK=$((OK+1)); PROGRESS=1
       else
@@ -64,6 +65,30 @@ while : ; do
    [ "$PROGRESS" -eq 0 ] && break
    [ -z "$REMAIN" ] && break
 done
+
+# Advisory: unused dummy arguments.
+#
+# gfortran only warns, but ifort turns the sharp end of this into #6843,
+# "a dummy argument with an explicit INTENT(OUT) declaration is not given an
+# explicit value" -- which is how four dead arguments in evp1d's scatter_dyn
+# were found, on boreas, after they had already been committed.  An argument
+# that stops being written is exactly what this refactor produces when a
+# routine is switched from block arrays to slots, so it is worth seeing here.
+#
+# These never fail the sweep: the tree starts with some, and the point is to
+# notice the count MOVING.  Set SWEEP_UNUSED_BASE to the number you expect.
+UNUSED=$(grep -l "Unused dummy argument" "$WORK"/*.err 2>/dev/null | while read -r e; do
+            b=$(basename "$e" .err)
+            grep -o "Unused dummy argument [^ ]*" "$e" | sed "s|^|  $b: |"
+         done | sort -u)
+NUNUSED=$(printf '%s' "$UNUSED" | grep -c . || true)
+BASE=${SWEEP_UNUSED_BASE:-}
+if [ -n "$BASE" ] && [ "$NUNUSED" -ne "$BASE" ]; then
+   echo "--- unused dummy arguments: $NUNUSED (expected $BASE) ---"
+   printf '%s\n' "$UNUSED"
+elif [ "$NUNUSED" -gt 0 ]; then
+   echo "--- unused dummy arguments: $NUNUSED (advisory; SWEEP_UNUSED_BASE to pin) ---"
+fi
 
 echo "=== sweep comm=$COMM io=$IO : $OK / $TOTAL compiled ==="
 if [ -n "${REMAIN// /}" ]; then
