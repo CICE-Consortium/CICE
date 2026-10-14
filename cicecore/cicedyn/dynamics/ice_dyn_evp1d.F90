@@ -936,10 +936,10 @@ module ice_dyn_evp1d
 
      use ice_communicate, only : master_task
      use ice_gather_scatter, only : scatter_global, scatter_globalR8_compressed
-     use ice_grid, only : dynMap, dynOff
+     use ice_grid, only : dynMap, dynOff, dynCnt, pack_to_slots
      use ice_dyn_shared, only : strintxU_slot, strintyU_slot, &
-          taubxU_slot, taubyU_slot
-     use ice_domain, only : distrb_info
+          taubxU_slot, taubyU_slot, uvel_slot, vvel_slot
+     use ice_domain, only : distrb_info, nblocks
      implicit none
 
      ! nx_block, ny_block, max_blocks
@@ -957,6 +957,8 @@ module ice_dyn_evp1d
 
      ! whether history wants the four diagnostics this step
      logical(kind=log_kind), intent(in) :: lstrint, ltaub
+
+     integer(kind=int_kind) :: iblk
 
      character(len=*), parameter :: subname = '(scatter_dyn)'
 
@@ -980,6 +982,26 @@ module ice_dyn_evp1d
         call scatter_globalR8_compressed(taubyU_slot, G_taubyU    , dynMap, dynOff, &
              master_task, distrb_info, grid_ext=.true.)
      endif
+
+     ! The compressed velocities, which deformations reads after the solver
+     ! returns.  They belong here rather than in the caller: this routine is
+     ! what produces the velocities, so it is what must leave BOTH forms
+     ! current.  Having the caller remember is how they came to hold zeros
+     ! for a whole run.
+     !
+     ! ⚠ Not a compressed scatter.  Doing that would need the block forms
+     ! unpacked back out for restart, history, transport and the couplers,
+     ! and the cells with no slot would then be decided here rather than
+     ! round-tripped through the gather unchanged -- which is exactly the
+     ! ownership question 1e93e13 settled.  It would also move bytes, not
+     ! collectives: the count is the same either way.  This is local traffic
+     ! over two arrays and costs nothing on the wire.
+     !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
+     do iblk = 1, nblocks
+        call pack_to_slots(L_uvel(:,iblk), dynMap(:,iblk), uvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+        call pack_to_slots(L_vvel(:,iblk), dynMap(:,iblk), vvel_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1))
+     enddo
+     !$OMP END PARALLEL DO
 
   end subroutine scatter_dyn
 

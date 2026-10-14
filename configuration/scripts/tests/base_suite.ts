@@ -42,6 +42,21 @@ smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_
 smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
 smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_run1day
 #
+# The same pair with ridging and transport on, which is the only reason this
+# one exists.  Every box row above runs kridge = -1 and ktransport = -1, so
+# nothing consumes rdg_conv or rdg_shear and nothing moves the ice edge.
+# deformations is shared by both solvers and reads uvel_slot/vvel_slot, which
+# only the 2-D branch filled, so in a 1-D run they held zeros for the whole
+# run -- and with ridging off that garbage reaches no state and every box
+# pair above compared clean while every gx3 pair failed.  Turn kridge on and
+# the two solvers differ in every restart file (797772a).
+#
+# Verified to be a real gate, not decoration: 2 of 2 restarts differ at
+# 797772a~1 and 0 of 2 at 797772a.  Also verified runnable first -- ktherm
+# stays -1, so this is still pure dynamics and still cheap.
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,boxridge
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,boxridge,evp1d smoke_gbox80_8x1_boxforcee_boxopen_boxridge_kmtislands_run1day
+#
 # The same pair with nghost2.  evp1d took its T cells to nx and skipped U only
 # at i == nx, both of which are right only for a single ghost layer, so with
 # nghost > 1 it computed stress on an extra ring and stepped U one column

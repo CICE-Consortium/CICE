@@ -3181,6 +3181,7 @@
                                 dxN,        dyE,       &
                                 dxT,        dyT,       &
                                 tarear,     uarea,     &
+                                uareaavg,              &
                                 shearU,     vort,      &
                                 shear,      divu,      &
                                 rdg_conv,   rdg_shear )
@@ -3216,6 +3217,7 @@
          dyT      , & ! height of T-cell through the middle (m)
          tarear   , & ! 1/tarea
          uarea    , & ! area of u cell
+         uareaavg , & ! precomputed sum of the 4 U areas round this T cell
          shearU       ! shearU
 
       ! EXPLICIT shape, not assumed: the callers pass vort(:,iblk) and rely
@@ -3278,11 +3280,17 @@
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
 
+         ! ⚠ The denominator is precomputed in BLOCK space -- see ice_grid --
+         ! for the same reason stressC_T uses it: summing it here contributes
+         ! 0 for a neighbour with no slot, where the block path uses that
+         ! cell's real area.  uarea is geometry, not state, and is nonzero
+         ! even over land.  The numerator is safe: shearU is c0 at an
+         ! unmapped cell in both layouts, so those terms vanish either way.
          shearTsqr = (shearU(is)**2 * uarea(is)     &
                     + shearU(isS)**2 * uarea(isS)   &
                     + shearU(isSW)**2 * uarea(isSW) &
                     + shearU(isW)**2 * uarea(isW))  &
-                    / (uarea(is)+uarea(isS)+uarea(isSW)+uarea(isW))
+                    / uareaavg(is)
 
          DeltaT(is) = sqrt(divT(is)**2 + e_factor*(tensionT(is)**2 + shearTsqr))
 

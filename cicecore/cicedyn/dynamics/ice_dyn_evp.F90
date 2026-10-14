@@ -1021,6 +1021,10 @@
                                umass     , uvel      , &
                                vvel      , iceTmask  , iceUmask)
 
+            ! scatter_dyn leaves uvel_slot and vvel_slot current along with
+            ! the block forms, which is what the shared deformations call
+            ! below reads.
+
          else ! evp_algorithm == standard_2d (Standard CICE)
 
             ! Pack the velocities into the compressed layout once, subcycle on
@@ -1556,6 +1560,7 @@
                                   dxN_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyE_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),      &
                                   dxT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), dyT_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),      &
                                   tarear_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), uarea_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), &
+                                  uareaavg_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1),                                                      &
                                   shearU_slot(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1), vort(:,iblk),    &
                                   shear   (:,iblk), divu     (:,iblk), &
                                   rdg_conv(:,iblk), rdg_shear(:,iblk))
