@@ -66,7 +66,7 @@
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
-      use ice_domain_size, only: nx_global, ny_global
+      use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_flux, only: albcnt, snwcnt
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
@@ -130,6 +130,10 @@
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
       real (kind=dbl_kind) , allocatable :: workd2(:,:,:)
+
+      ! One 2D field expanded back to the block layout.  a2D is compressed;
+      ! expand_a2D is the only place it becomes two-dimensional.
+      real (kind=dbl_kind) , allocatable :: worka2D(:,:)
       real (kind=dbl_kind) , allocatable :: workd3(:,:,:,:)
       real (kind=dbl_kind) , allocatable :: workd4(:,:,:,:,:)
       real (kind=dbl_kind) , allocatable :: workd3v(:,:,:,:)
@@ -1022,11 +1026,13 @@
       endif
 
       ! 2D
+      allocate(worka2D(nx_block*ny_block,max_blocks))
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
-            workd2(:,:,:) = reshape(a2D(:,n,1:nblocks), shape(workd2))
+            call expand_a2D(n, worka2D)
+            workd2(:,:,:) = reshape(worka2D(:,1:nblocks), shape(workd2))
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
@@ -1047,6 +1053,7 @@
                                file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_2D
+      deallocate(worka2D)
 
       deallocate(workd2)
       deallocate(workr2)
@@ -1410,6 +1417,7 @@
       ! local variables
 
       real (kind=dbl_kind), dimension(:,:,:),     allocatable :: work2
+      real (kind=dbl_kind), dimension(:,:),       allocatable :: worka2D
       real (kind=dbl_kind), dimension(:,:,:,:),   allocatable :: work3
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: work4
 
@@ -1513,6 +1521,7 @@
             endif
 
             ! 2D
+            allocate(worka2D(nx_block*ny_block,max_blocks))
             do n=1,num_avail_hist_fields_2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
                   readstr = readstrF
@@ -1521,7 +1530,8 @@
                   if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
                   if (status == PIO_NOERR) then
                      readstr = readstrT
-                     a2D(:,n,:) = reshape(work2, shape(a2D(:,n,:)))
+                     worka2D(:,:) = reshape(work2, shape(worka2D))
+                     call compress_a2D(n, worka2D)
                   endif
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
@@ -1529,6 +1539,7 @@
                endif
             enddo
 
+            deallocate(worka2D)
             deallocate(work2)
             allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
 

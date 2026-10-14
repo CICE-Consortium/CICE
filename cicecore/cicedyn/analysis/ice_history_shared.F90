@@ -36,6 +36,7 @@
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
       public :: hist_field_needed
+      public :: expand_a2D, compress_a2D
 
       integer (kind=int_kind), public :: history_precision
 
@@ -149,8 +150,10 @@
       character (len=char_len), public :: hist_time_axis
 
       real (kind=dbl_kind), allocatable, public :: &
-         a2D (:,:,:)      , & ! field accumulations/averages, 2D; the i and j
-                              ! dimensions are flattened, (ij, field, block)
+         a2D (:,:)        , & ! field accumulations/averages, 2D, COMPRESSED:
+                              ! (slot, field), this block's slice starting at
+                              ! dynOff(iblk).  Expanded to (x,y) at the writer
+                              ! only, so the I/O interface is unchanged.
          a3Dz(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical
          a3Db(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical biology
          a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D thickness categories
@@ -1107,7 +1110,7 @@
       use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, dynMap, dynOff
 
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
@@ -1118,16 +1121,19 @@
       real (kind=dbl_kind), intent(in) :: &
          field_accum(:,:)
 
-      ! (ij, field, block): the i and j dimensions are flattened, so the
-      ! accumulation never puts a compressed field back into two dimensions.
-      ! a2D is expanded to (x,y) only at the writer.
+      ! (slot, field).  a2D is COMPRESSED: one entry per slot, not per block
+      ! cell, with this block's slice starting at dynOff(iblk).  It is
+      ! expanded to (x,y) only at the writer, so the I/O interface is
+      ! unchanged.  Every tmask cell has a slot by construction -- mask_any
+      ! includes tmask -- so the m > 0 test never rejects a cell this loop
+      ! would have accumulated; it guards against indexing element 0.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:)
+         field(:,:)
 
       type (block) :: &
          this_block           ! block information for current block
 
-      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
@@ -1147,8 +1153,13 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask((j-1)*nx_block+i,iblk)) then
-             field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) + field_accum(i,j)
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = dynMap(ij,iblk)
+             if (m > 0) then
+                m = dynOff(iblk) + m
+                field(m,idns) = field(m,idns) + field_accum(i,j)
+             endif
           endif
        enddo
        enddo
@@ -1168,7 +1179,7 @@
       use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, dynMap, dynOff
 
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
@@ -1179,16 +1190,14 @@
       real (kind=dbl_kind), intent(in) :: &
          field_accum(:)
 
-      ! (ij, field, block): the i and j dimensions are flattened, so the
-      ! accumulation never puts a compressed field back into two dimensions.
-      ! a2D is expanded to (x,y) only at the writer.
+      ! (slot, field) -- see accum_hist_field_2D.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:)
+         field(:,:)
 
       type (block) :: &
          this_block           ! block information for current block
 
-      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D_flat)'
 
@@ -1208,9 +1217,13 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask((j-1)*nx_block+i,iblk)) then
-             field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) &
-                                   + field_accum((j-1)*nx_block + i)
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = dynMap(ij,iblk)
+             if (m > 0) then
+                m = dynOff(iblk) + m
+                field(m,idns) = field(m,idns) + field_accum(ij)
+             endif
           endif
        enddo
        enddo
@@ -1241,7 +1254,7 @@
       use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, dynMap, dynOff
 
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
@@ -1255,11 +1268,9 @@
       integer (kind=int_kind), intent(in) :: &
          map(:)            ! this block's dynMap column
 
-      ! (ij, field, block): the i and j dimensions are flattened, so the
-      ! accumulation never puts a compressed field back into two dimensions.
-      ! a2D is expanded to (x,y) only at the writer.
+      ! (slot, field) -- see accum_hist_field_2D.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:)
+         field(:,:)
 
       type (block) :: &
          this_block           ! block information for current block
@@ -1288,7 +1299,7 @@
           if (tmask(ij,iblk)) then
              m = map(ij)
              if (m > 0) &
-                field((j-1)*nx_block + i,idns,iblk) = field((j-1)*nx_block + i,idns,iblk) + field_accum(m)
+                field(dynOff(iblk)+m,idns) = field(dynOff(iblk)+m,idns) + field_accum(m)
           endif
        enddo
        enddo
@@ -1480,6 +1491,73 @@
          rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
 
       end subroutine ice_brine_density
+
+!=======================================================================
+! Expand one field of the COMPRESSED a2D into the block layout the writers
+! take, and its inverse.
+!
+! a2D holds one entry per slot.  Slots cover every tmask cell -- mask_any
+! includes tmask -- so nothing the accumulators wrote is lost.  What they do
+! not cover is land outside mask_any, and the normalisation pass fills land
+! with spval_dbl, so that is what those cells get here.  Ghost cells never
+! reach a history file, so their value is immaterial either way.
+!
+! ⚠ This is the ONLY place a2D becomes two-dimensional.  Keeping it here
+! means io_binary, io_netcdf and io_pio2 keep taking a block-shaped array
+! and the I/O interface is unchanged -- which also matters because netCDF is
+! not installed on the development machine, so those two writers cannot be
+! compiled there at all.
+
+      subroutine expand_a2D(n, work)
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: spval_dbl
+      use ice_domain, only: nblocks
+      use ice_grid, only: dynMap, dynOff, dynCnt, unpack_from_slots
+
+      integer (kind=int_kind), intent(in) :: &
+         n                 ! which 2D field
+
+      ! (ij, block), i and j flattened -- the shape the writers pass on
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
+         work
+
+      integer (kind=int_kind) :: iblk
+
+      character(len=*), parameter :: subname = '(expand_a2D)'
+
+      work(:,:) = spval_dbl
+      do iblk = 1, nblocks
+         call unpack_from_slots(a2D(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1,n), &
+                                dynMap(:,iblk), work(:,iblk))
+      enddo
+
+      end subroutine expand_a2D
+
+!=======================================================================
+
+      subroutine compress_a2D(n, work)
+
+      use ice_domain, only: nblocks
+      use ice_grid, only: dynMap, dynOff, dynCnt, pack_to_slots
+
+      integer (kind=int_kind), intent(in) :: &
+         n                 ! which 2D field
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+         work
+
+      integer (kind=int_kind) :: iblk
+
+      character(len=*), parameter :: subname = '(compress_a2D)'
+
+      do iblk = 1, nblocks
+         call pack_to_slots(work(:,iblk), dynMap(:,iblk), &
+                            a2D(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1,n))
+      enddo
+
+      end subroutine compress_a2D
+
 !=======================================================================
 
       end module ice_history_shared

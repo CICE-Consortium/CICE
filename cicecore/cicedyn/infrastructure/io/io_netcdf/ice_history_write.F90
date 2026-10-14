@@ -96,6 +96,11 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable :: work1_3
       real (kind=dbl_kind), dimension(nx_block,ny_block,max_blocks) :: work1
 
+      ! One 2D field expanded back to the block layout.  a2D is compressed;
+      ! expand_a2D is the only place it becomes two-dimensional, so
+      ! gather_global still takes a block-shaped array.
+      real (kind=dbl_kind), dimension(:,:), allocatable :: worka2D
+
       integer (kind=int_kind) :: i,k,ic,n,nn, &
          ncid,status,kmtidi,kmtids,kmtidb,cmtid,timid,varid, &
          nvertexid,ivertex,kmtida,iflag,fmtid,lhistprec
@@ -1043,9 +1048,11 @@
 
       work_g1(:,:) = c0
 
+      allocate(worka2D(nx_block*ny_block,max_blocks))
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-            call gather_global(work_g1, a2D(:,n,:), master_task, distrb_info)
+            call expand_a2D(n, worka2D)
+            call gather_global(work_g1, worka2D, master_task, distrb_info)
             if (my_task == master_task) then
                status  = nf90_inq_varid(ncid,avail_hist_fields(n)%vname,varid)
                call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
@@ -1058,6 +1065,7 @@
 
          endif
       enddo ! num_avail_hist_fields_2D
+      deallocate(worka2D)
 
       work_g1(:,:) = c0
 
@@ -1300,6 +1308,10 @@
 
       real (kind=dbl_kind), dimension(:,:),   allocatable :: work_g1
 
+      ! The scatter lands in the block layout; compress_a2D puts it back into
+      ! the compressed a2D.  The inverse of what ice_write_hist does.
+      real (kind=dbl_kind), dimension(:,:),   allocatable :: worka2D
+
       integer (kind=int_kind) :: k,ic,n,nn,ns,ncid,status,varid
       character (char_len_long) :: ncfile
       character (len=1) :: cns
@@ -1396,6 +1408,7 @@
                                    field_loc_noupdate, field_type_noupdate)
             endif
 
+            allocate(worka2D(nx_block*ny_block,max_blocks))
             do n=1,num_avail_hist_fields_2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
                   readstr = readstrF
@@ -1410,11 +1423,13 @@
                   endif
                   call broadcast_scalar(status,master_task)
                   if (status == nf90_noerr) then
-                     call scatter_global(a2D(:,n,:), work_g1, master_task, distrb_info, &
+                     call scatter_global(worka2D, work_g1, master_task, distrb_info, &
                                          field_loc_noupdate, field_type_noupdate)
+                     call compress_a2D(n, worka2D)
                   endif
                endif
             enddo ! num_avail_hist_fields_2D
+            deallocate(worka2D)
 
             do n = n2D + 1, n3Dccum
                nn = n - n2D

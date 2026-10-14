@@ -71,7 +71,8 @@
       use ice_flux, only: mlt_onset, frz_onset, albcnt, snwcnt
       use ice_grid, only: grid_ice, grid_outfile, &
           grid_atm_thrm, grid_atm_dynu, grid_atm_dynv, &
-          grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv
+          grid_ocn_thrm, grid_ocn_dynu, grid_ocn_dynv, &
+          dynTot
       use ice_history_shared ! everything
       use ice_history_mechred, only: init_hist_mechred_2D, init_hist_mechred_3Dc
       use ice_history_pond, only: init_hist_pond_2D, init_hist_pond_3Dc
@@ -2134,7 +2135,7 @@
 
       if (allocated(a2D)) deallocate(a2D)
       if (num_avail_hist_fields_2D > 0) &
-      allocate(a2D(nx_block*ny_block,num_avail_hist_fields_2D,max_blocks))
+      allocate(a2D(dynTot,num_avail_hist_fields_2D))
 
       if (allocated(a3Dc)) deallocate(a3Dc)
       if (num_avail_hist_fields_3Dc > 0) &
@@ -2168,7 +2169,7 @@
       if (num_avail_hist_fields_4Df > 0) &
       allocate(a4Df(nx_block,ny_block,nfsd_hist,ncat_hist,num_avail_hist_fields_4Df,max_blocks))
 
-      if (allocated(a2D))  a2D (:,:,:)       = c0
+      if (allocated(a2D))  a2D (:,:)         = c0
       if (allocated(a3Dc)) a3Dc(:,:,:,:,:)   = c0
       if (allocated(a3Dz)) a3Dz(:,:,:,:,:)   = c0
       if (allocated(a3Db)) a3Db(:,:,:,:,:)   = c0
@@ -2203,7 +2204,8 @@
       use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: nfsd
-      use ice_grid, only: tmask, lmask_n, lmask_s, dxU, dyU, grid_ice
+      use ice_grid, only: tmask, lmask_n, lmask_s, dxU, dyU, grid_ice, &
+                          dynMap, dynOff, dynCnt, pack_to_slots
       use ice_calendar, only: new_year, write_history, write_restart, &
                               write_ic, timesecs, histfreq, nstreams, mmonth, &
                               new_month, write_histrest
@@ -2262,6 +2264,7 @@
            i,j,k,ic,n,ns,nn, &
            iblk             , & ! block index
            ilo,ihi,jlo,jhi  , & ! beginning and end of physical domain
+           ms               , & ! a2D slot index of the cell (i,j) owns
            nstrm                ! nstreams (1 if writing initial condition)
 
       real (kind=dbl_kind) :: &
@@ -2327,7 +2330,7 @@
          if (.not. hist_avg(ns)) then  ! write snapshots
            do n = 1,n2D
               if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) &
-                  a2D(:,n,:) = c0
+                  a2D(:,n) = c0
            enddo
            do n = n2D + 1, n3Dccum
               nn = n - n2D
@@ -3337,7 +3340,8 @@
                 endif              ! tmask
                enddo                ! i
                enddo                ! j
-               a2D(:,n_fmeltt_ai(ns),iblk) = reshape(worka,(/nx_block*ny_block/))
+               call pack_to_slots(reshape(worka,(/nx_block*ny_block/)), dynMap(:,iblk), &
+                                  a2D(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1,n_fmeltt_ai(ns)))
             endif
           enddo
          endif
@@ -3389,7 +3393,11 @@
       !---------------------------------------------------------------
 
         ravgct = c1/avgct(ns)
-        !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block, &
+        ! ⚠ ms must be PRIVATE.  It is the a2D slot of the cell (i,j) owns, so
+        ! it is per-iteration state; left shared it races and a thread reads
+        ! another's value -- or 0 before any thread has set one, which is what
+        ! aborted the gx3 history write with "Subscript #1 of A2D has value 0".
+        !$OMP PARALLEL DO PRIVATE(iblk,i,j,ms,ilo,ihi,jlo,jhi,this_block, &
         !$OMP                     n,nn,ravgctz,ravgip,ravgip_init,ravgip_pond, &
         !$OMP                     ravgip_ridge,ravgipn)
         do iblk = 1, nblocks
@@ -3405,8 +3413,14 @@
            if (n_aice(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'final')) then
               do j = jlo, jhi
               do i = ilo, ihi
-                 if (a2D((j-1)*nx_block+i,n_aice(ns),iblk) > puny) then
-                    ravgip(i,j) = c1/(a2D((j-1)*nx_block+i,n_aice(ns),iblk))
+                 ms = dynMap((j-1)*nx_block+i,iblk)
+                 if (ms < 1) then
+                    ravgip(i,j) = c0
+                    cycle
+                 endif
+                 ms = dynOff(iblk) + ms
+                 if (a2D(ms,n_aice(ns)) > puny) then
+                    ravgip(i,j) = c1/(a2D(ms,n_aice(ns)))
                  else
                     ravgip(i,j) = c0
                  endif
@@ -3418,8 +3432,14 @@
            if (n_aice_init(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'init')) then
               do j = jlo, jhi
               do i = ilo, ihi
-                 if (a2D((j-1)*nx_block+i,n_aice_init(ns),iblk) > puny) then
-                    ravgip_init(i,j) = c1/(a2D((j-1)*nx_block+i,n_aice_init(ns),iblk))
+                 ms = dynMap((j-1)*nx_block+i,iblk)
+                 if (ms < 1) then
+                    ravgip_init(i,j) = c0
+                    cycle
+                 endif
+                 ms = dynOff(iblk) + ms
+                 if (a2D(ms,n_aice_init(ns)) > puny) then
+                    ravgip_init(i,j) = c1/(a2D(ms,n_aice_init(ns)))
                  else
                     ravgip_init(i,j) = c0
                  endif
@@ -3431,8 +3451,14 @@
            if (n_apond_ai(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'pond')) then
               do j = jlo, jhi
               do i = ilo, ihi
-                 if (a2D((j-1)*nx_block+i,n_apond_ai(ns),iblk) > puny) then
-                    ravgip_pond(i,j) = c1/a2D((j-1)*nx_block+i,n_apond_ai(ns),iblk)
+                 ms = dynMap((j-1)*nx_block+i,iblk)
+                 if (ms < 1) then
+                    ravgip_pond(i,j) = c0
+                    cycle
+                 endif
+                 ms = dynOff(iblk) + ms
+                 if (a2D(ms,n_apond_ai(ns)) > puny) then
+                    ravgip_pond(i,j) = c1/a2D(ms,n_apond_ai(ns))
                  else
                     ravgip_pond(i,j) = c0
                  endif
@@ -3444,8 +3470,14 @@
            if (n_ardg(ns) > 0 .and. any(avail_hist_fields(:)%avg_ice_present == 'ridge')) then
               do j = jlo, jhi
               do i = ilo, ihi
-                 if (a2D((j-1)*nx_block+i,n_ardg(ns),iblk) > puny) then
-                    ravgip_ridge(i,j) = c1/a2D((j-1)*nx_block+i,n_ardg(ns),iblk)
+                 ms = dynMap((j-1)*nx_block+i,iblk)
+                 if (ms < 1) then
+                    ravgip_ridge(i,j) = c0
+                    cycle
+                 endif
+                 ms = dynOff(iblk) + ms
+                 if (a2D(ms,n_ardg(ns)) > puny) then
+                    ravgip_ridge(i,j) = c1/a2D(ms,n_ardg(ns))
                  else
                     ravgip_ridge(i,j) = c0
                  endif
@@ -3477,10 +3509,16 @@
               if (trim(avail_hist_fields(n)%avg_ice_present) == 'final') then
                  do j = jlo, jhi
                  do i = ilo, ihi
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
                     if (.not. tmask((j-1)*nx_block+i,iblk)) then
-                       a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                       a2D(ms,n) = spval_dbl
                     else                            ! convert units
-                       a2D((j-1)*nx_block+i,n,iblk) = avail_hist_fields(n)%cona*a2D((j-1)*nx_block+i,n,iblk) &
+                       a2D(ms,n) = avail_hist_fields(n)%cona*a2D(ms,n) &
                                       * ravgip(i,j) + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
@@ -3488,10 +3526,16 @@
               elseif (trim(avail_hist_fields(n)%avg_ice_present) == 'init') then
                  do j = jlo, jhi
                  do i = ilo, ihi
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
                     if (.not. tmask((j-1)*nx_block+i,iblk)) then
-                       a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                       a2D(ms,n) = spval_dbl
                     else                            ! convert units
-                       a2D((j-1)*nx_block+i,n,iblk) = avail_hist_fields(n)%cona*a2D((j-1)*nx_block+i,n,iblk) &
+                       a2D(ms,n) = avail_hist_fields(n)%cona*a2D(ms,n) &
                                       * ravgip_init(i,j) + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
@@ -3499,10 +3543,16 @@
               elseif (trim(avail_hist_fields(n)%avg_ice_present) == 'pond') then
                  do j = jlo, jhi
                  do i = ilo, ihi
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
                     if (.not. tmask((j-1)*nx_block+i,iblk)) then
-                       a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                       a2D(ms,n) = spval_dbl
                     else                            ! convert units
-                       a2D((j-1)*nx_block+i,n,iblk) = avail_hist_fields(n)%cona*a2D((j-1)*nx_block+i,n,iblk) &
+                       a2D(ms,n) = avail_hist_fields(n)%cona*a2D(ms,n) &
                                       * ravgip_pond(i,j) + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
@@ -3510,10 +3560,16 @@
               elseif (trim(avail_hist_fields(n)%avg_ice_present) == 'ridge') then
                  do j = jlo, jhi
                  do i = ilo, ihi
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
                     if (.not. tmask((j-1)*nx_block+i,iblk)) then
-                       a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                       a2D(ms,n) = spval_dbl
                     else                            ! convert units
-                       a2D((j-1)*nx_block+i,n,iblk) = avail_hist_fields(n)%cona*a2D((j-1)*nx_block+i,n,iblk) &
+                       a2D(ms,n) = avail_hist_fields(n)%cona*a2D(ms,n) &
                                       * ravgip_ridge(i,j) + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
@@ -3521,10 +3577,16 @@
               else
                  do j = jlo, jhi
                  do i = ilo, ihi
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
                     if (.not. tmask((j-1)*nx_block+i,iblk)) then ! mask out land points
-                       a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                       a2D(ms,n) = spval_dbl
                     else                            ! convert units
-                       a2D((j-1)*nx_block+i,n,iblk) = avail_hist_fields(n)%cona*a2D((j-1)*nx_block+i,n,iblk) &
+                       a2D(ms,n) = avail_hist_fields(n)%cona*a2D(ms,n) &
                                       * ravgct + avail_hist_fields(n)%conb
                     endif
                  enddo             ! i
@@ -3536,7 +3598,13 @@
                   trim(avail_hist_fields(n)%avg_ice_present) == 'final') then
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (ravgip(i,j) == c0) a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
+                    if (ravgip(i,j) == c0) a2D(ms,n) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3545,7 +3613,13 @@
                   trim(avail_hist_fields(n)%avg_ice_present) == 'init') then
                  do j = jlo, jhi
                  do i = ilo, ihi
-                    if (ravgip_init(i,j) == c0) a2D((j-1)*nx_block+i,n,iblk) = spval_dbl
+                    ms = dynMap((j-1)*nx_block+i,iblk)
+                    ! No slot: a land cell outside mask_any.  The writer fills
+                    ! those with spval_dbl on expansion, which is what this loop
+                    ! would have written here.
+                    if (ms < 1) cycle
+                    ms = dynOff(iblk) + ms
+                    if (ravgip_init(i,j) == c0) a2D(ms,n) = spval_dbl
                  enddo             ! i
                  enddo             ! j
               endif
@@ -3560,14 +3634,14 @@
 !                   if (albcnt(i,j,iblk,ns) > puny) &
 !                       ravgctz = c1/albcnt(i,j,iblk,ns)
 !                   if (f_albice (1:1) /= 'x' .and. n_albice(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_albice(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_albice(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_albice(ns)) = &
+!                      a2D(ms,n_albice(ns))*avgct(ns)*ravgctz
 !                   if (f_albsno (1:1) /= 'x' .and. n_albsno(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_albsno(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_albsno(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_albsno(ns)) = &
+!                      a2D(ms,n_albsno(ns))*avgct(ns)*ravgctz
 !                   if (f_albpnd (1:1) /= 'x' .and. n_albpnd(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_albpnd(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_albpnd(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_albpnd(ns)) = &
+!                      a2D(ms,n_albpnd(ns))*avgct(ns)*ravgctz
 !                endif
 !             enddo             ! i
 !             enddo             ! j
@@ -3580,8 +3654,8 @@
 !                   if (albcnt(i,j,iblk,ns) > puny) &
 !                       ravgctz = c1/albcnt(i,j,iblk,ns)
 !                   if (f_albsni (1:1) /= 'x' .and. n_albsni(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_albsni(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_albsni(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_albsni(ns)) = &
+!                      a2D(ms,n_albsni(ns))*avgct(ns)*ravgctz
 !                endif
 !             enddo             ! i
 !             enddo             ! j
@@ -3594,17 +3668,17 @@
 !                   if (albcnt(i,j,iblk,ns) > puny) &
 !                       ravgctz = c1/albcnt(i,j,iblk,ns)
 !                   if (f_alvdr_ai (1:1) /= 'x' .and. n_alvdr_ai(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_alvdr_ai(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_alvdr_ai(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_alvdr_ai(ns)) = &
+!                      a2D(ms,n_alvdr_ai(ns))*avgct(ns)*ravgctz
 !                   if (f_alvdf_ai (1:1) /= 'x' .and. n_alvdf_ai(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_alvdf_ai(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_alvdf_ai(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_alvdf_ai(ns)) = &
+!                      a2D(ms,n_alvdf_ai(ns))*avgct(ns)*ravgctz
 !                   if (f_alidr_ai (1:1) /= 'x' .and. n_alidr_ai(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_alidr_ai(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_alidr_ai(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_alidr_ai(ns)) = &
+!                      a2D(ms,n_alidr_ai(ns))*avgct(ns)*ravgctz
 !                   if (f_alidf_ai (1:1) /= 'x' .and. n_alidf_ai(ns) /= 0) &
-!                      a2D((j-1)*nx_block+i,n_alidf_ai(ns),iblk) = &
-!                      a2D((j-1)*nx_block+i,n_alidf_ai(ns),iblk)*avgct(ns)*ravgctz
+!                      a2D(ms,n_alidf_ai(ns)) = &
+!                      a2D(ms,n_alidf_ai(ns))*avgct(ns)*ravgctz
 !                endif
 !             enddo             ! i
 !             enddo             ! j
@@ -3620,8 +3694,8 @@
 !                    if (snwcnt(i,j,iblk,ns) > puny) &
 !                        ravgctz = c1/snwcnt(i,j,iblk,ns)
 !                    if (f_rhos_cmp (1:1) /= 'x' .and. n_rhos_cmp(ns) /= 0) &
-!                       a2D((j-1)*nx_block+i,n_rhos_cmp(ns),iblk) = &
-!                       a2D((j-1)*nx_block+i,n_rhos_cmp(ns),iblk)*avgct(ns)*ravgctz
+!                       a2D(ms,n_rhos_cmp(ns)) = &
+!                       a2D(ms,n_rhos_cmp(ns))*avgct(ns)*ravgctz
 !                 endif
 !              enddo             ! i
 !              enddo             ! j
@@ -3634,8 +3708,8 @@
 !                    if (snwcnt(i,j,iblk,ns) > puny) &
 !                        ravgctz = c1/snwcnt(i,j,iblk,ns)
 !                    if (f_rhos_cnt (1:1) /= 'x' .and. n_rhos_cnt(ns) /= 0) &
-!                       a2D((j-1)*nx_block+i,n_rhos_cnt(ns),iblk) = &
-!                       a2D((j-1)*nx_block+i,n_rhos_cnt(ns),iblk)*avgct(ns)*ravgctz
+!                       a2D(ms,n_rhos_cnt(ns)) = &
+!                       a2D(ms,n_rhos_cnt(ns))*avgct(ns)*ravgctz
 !                 endif
 !              enddo             ! i
 !              enddo             ! j
@@ -3840,103 +3914,109 @@
 
            do j = jlo, jhi
            do i = ilo, ihi
+              ms = dynMap((j-1)*nx_block+i,iblk)
+              ! No slot: a land cell outside mask_any.  The writer fills
+              ! those with spval_dbl on expansion, which is what this loop
+              ! would have written here.
+              if (ms < 1) cycle
+              ms = dynOff(iblk) + ms
               if (.not. tmask((j-1)*nx_block+i,iblk)) then ! mask out land points
-                 if (n_divu     (ns) /= 0) a2D((j-1)*nx_block+i,n_divu(ns),     iblk) = spval_dbl
-                 if (n_shear    (ns) /= 0) a2D((j-1)*nx_block+i,n_shear(ns),    iblk) = spval_dbl
-                 if (n_vort     (ns) /= 0) a2D((j-1)*nx_block+i,n_vort(ns),     iblk) = spval_dbl
-                 if (n_sig1     (ns) /= 0) a2D((j-1)*nx_block+i,n_sig1(ns),     iblk) = spval_dbl
-                 if (n_sig2     (ns) /= 0) a2D((j-1)*nx_block+i,n_sig2(ns),     iblk) = spval_dbl
-                 if (n_sigP     (ns) /= 0) a2D((j-1)*nx_block+i,n_sigP(ns),     iblk) = spval_dbl
-                 if (n_sistressave(ns) /= 0) a2D((j-1)*nx_block+i,n_sistressave(ns),iblk) = spval_dbl
-                 if (n_sistressmax(ns) /= 0) a2D((j-1)*nx_block+i,n_sistressmax(ns),iblk) = spval_dbl
-                 if (n_sidivvel(ns) /= 0)    a2D((j-1)*nx_block+i,n_sidivvel(ns),iblk)    = spval_dbl
-                 if (n_sishearvel(ns) /= 0)  a2D((j-1)*nx_block+i,n_sishearvel(ns),iblk)  = spval_dbl
-                 if (n_mlt_onset(ns) /= 0) a2D((j-1)*nx_block+i,n_mlt_onset(ns),iblk) = spval_dbl
-                 if (n_frz_onset(ns) /= 0) a2D((j-1)*nx_block+i,n_frz_onset(ns),iblk) = spval_dbl
-                 if (n_hisnap   (ns) /= 0) a2D((j-1)*nx_block+i,n_hisnap(ns),   iblk) = spval_dbl
-                 if (n_aisnap   (ns) /= 0) a2D((j-1)*nx_block+i,n_aisnap(ns),   iblk) = spval_dbl
-                 if (n_trsig    (ns) /= 0) a2D((j-1)*nx_block+i,n_trsig(ns),    iblk) = spval_dbl
-                 if (n_iage     (ns) /= 0) a2D((j-1)*nx_block+i,n_iage(ns),     iblk) = spval_dbl
-                 if (n_FY       (ns) /= 0) a2D((j-1)*nx_block+i,n_FY(ns),       iblk) = spval_dbl
+                 if (n_divu     (ns) /= 0) a2D(ms,n_divu(ns)) = spval_dbl
+                 if (n_shear    (ns) /= 0) a2D(ms,n_shear(ns)) = spval_dbl
+                 if (n_vort     (ns) /= 0) a2D(ms,n_vort(ns)) = spval_dbl
+                 if (n_sig1     (ns) /= 0) a2D(ms,n_sig1(ns)) = spval_dbl
+                 if (n_sig2     (ns) /= 0) a2D(ms,n_sig2(ns)) = spval_dbl
+                 if (n_sigP     (ns) /= 0) a2D(ms,n_sigP(ns)) = spval_dbl
+                 if (n_sistressave(ns) /= 0) a2D(ms,n_sistressave(ns)) = spval_dbl
+                 if (n_sistressmax(ns) /= 0) a2D(ms,n_sistressmax(ns)) = spval_dbl
+                 if (n_sidivvel(ns) /= 0)    a2D(ms,n_sidivvel(ns))    = spval_dbl
+                 if (n_sishearvel(ns) /= 0)  a2D(ms,n_sishearvel(ns))  = spval_dbl
+                 if (n_mlt_onset(ns) /= 0) a2D(ms,n_mlt_onset(ns)) = spval_dbl
+                 if (n_frz_onset(ns) /= 0) a2D(ms,n_frz_onset(ns)) = spval_dbl
+                 if (n_hisnap   (ns) /= 0) a2D(ms,n_hisnap(ns)) = spval_dbl
+                 if (n_aisnap   (ns) /= 0) a2D(ms,n_aisnap(ns)) = spval_dbl
+                 if (n_trsig    (ns) /= 0) a2D(ms,n_trsig(ns)) = spval_dbl
+                 if (n_iage     (ns) /= 0) a2D(ms,n_iage(ns)) = spval_dbl
+                 if (n_FY       (ns) /= 0) a2D(ms,n_FY(ns)) = spval_dbl
 
-                 if (n_a11      (ns) /= 0) a2D((j-1)*nx_block+i,n_a11(ns),      iblk) = spval_dbl
-                 if (n_a12      (ns) /= 0) a2D((j-1)*nx_block+i,n_a12(ns),      iblk) = spval_dbl
-                 if (n_e11      (ns) /= 0) a2D((j-1)*nx_block+i,n_e11(ns),      iblk) = spval_dbl
-                 if (n_e12      (ns) /= 0) a2D((j-1)*nx_block+i,n_e12(ns),      iblk) = spval_dbl
-                 if (n_e22      (ns) /= 0) a2D((j-1)*nx_block+i,n_e22(ns),      iblk) = spval_dbl
-                 if (n_s11      (ns) /= 0) a2D((j-1)*nx_block+i,n_s11(ns),      iblk) = spval_dbl
-                 if (n_s12      (ns) /= 0) a2D((j-1)*nx_block+i,n_s12(ns),      iblk) = spval_dbl
-                 if (n_s22      (ns) /= 0) a2D((j-1)*nx_block+i,n_s22(ns),      iblk) = spval_dbl
-                 if (n_yieldstress11 (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress11(ns),iblk) = spval_dbl
-                 if (n_yieldstress12 (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress12(ns),iblk) = spval_dbl
-                 if (n_yieldstress22 (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress22(ns),iblk) = spval_dbl
+                 if (n_a11      (ns) /= 0) a2D(ms,n_a11(ns)) = spval_dbl
+                 if (n_a12      (ns) /= 0) a2D(ms,n_a12(ns)) = spval_dbl
+                 if (n_e11      (ns) /= 0) a2D(ms,n_e11(ns)) = spval_dbl
+                 if (n_e12      (ns) /= 0) a2D(ms,n_e12(ns)) = spval_dbl
+                 if (n_e22      (ns) /= 0) a2D(ms,n_e22(ns)) = spval_dbl
+                 if (n_s11      (ns) /= 0) a2D(ms,n_s11(ns)) = spval_dbl
+                 if (n_s12      (ns) /= 0) a2D(ms,n_s12(ns)) = spval_dbl
+                 if (n_s22      (ns) /= 0) a2D(ms,n_s22(ns)) = spval_dbl
+                 if (n_yieldstress11 (ns) /= 0) a2D(ms,n_yieldstress11(ns)) = spval_dbl
+                 if (n_yieldstress12 (ns) /= 0) a2D(ms,n_yieldstress12(ns)) = spval_dbl
+                 if (n_yieldstress22 (ns) /= 0) a2D(ms,n_yieldstress22(ns)) = spval_dbl
               else
-                 if (n_divu     (ns) /= 0) a2D((j-1)*nx_block+i,n_divu(ns),iblk)      = &
+                 if (n_divu     (ns) /= 0) a2D(ms,n_divu(ns))      = &
                        divu ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_divu(ns))%cona
-                 if (n_shear    (ns) /= 0) a2D((j-1)*nx_block+i,n_shear(ns),iblk)     = &
+                 if (n_shear    (ns) /= 0) a2D(ms,n_shear(ns))     = &
                        shear((j-1)*nx_block+i,iblk)*avail_hist_fields(n_shear(ns))%cona
-                 if (n_vort     (ns) /= 0) a2D((j-1)*nx_block+i,n_vort(ns),iblk)      = &
+                 if (n_vort     (ns) /= 0) a2D(ms,n_vort(ns))      = &
                        vort((j-1)*nx_block+i,iblk)*avail_hist_fields(n_vort(ns))%cona
-                 if (n_sig1     (ns) /= 0) a2D((j-1)*nx_block+i,n_sig1(ns),iblk)      = &
+                 if (n_sig1     (ns) /= 0) a2D(ms,n_sig1(ns))      = &
                        sig1 (i,j,iblk)*avail_hist_fields(n_sig1(ns))%cona
-                 if (n_sig2     (ns) /= 0) a2D((j-1)*nx_block+i,n_sig2(ns),iblk)      = &
+                 if (n_sig2     (ns) /= 0) a2D(ms,n_sig2(ns))      = &
                        sig2 (i,j,iblk)*avail_hist_fields(n_sig2(ns))%cona
-                 if (n_sigP     (ns) /= 0) a2D((j-1)*nx_block+i,n_sigP(ns),iblk)      = &
+                 if (n_sigP     (ns) /= 0) a2D(ms,n_sigP(ns))      = &
                        sigP (i,j,iblk)*avail_hist_fields(n_sigP(ns))%cona
-                 if (n_sistressave(ns) /= 0) a2D((j-1)*nx_block+i,n_sistressave(ns),iblk) = &
+                 if (n_sistressave(ns) /= 0) a2D(ms,n_sistressave(ns)) = &
                        p5*(sig1(i,j,iblk)+sig2(i,j,iblk))*avail_hist_fields(n_sistressave(ns))%cona
-                 if (n_sistressmax(ns) /= 0) a2D((j-1)*nx_block+i,n_sistressmax(ns),iblk) = &
+                 if (n_sistressmax(ns) /= 0) a2D(ms,n_sistressmax(ns)) = &
                        p5*(sig1(i,j,iblk)-sig2(i,j,iblk))*avail_hist_fields(n_sistressmax(ns))%cona
-                 if (n_sidivvel(ns) /= 0) a2D((j-1)*nx_block+i,n_sidivvel(ns),iblk) = &
+                 if (n_sidivvel(ns) /= 0) a2D(ms,n_sidivvel(ns)) = &
                        divu ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_sidivvel(ns))%cona
-                 if (n_sishearvel(ns) /= 0) a2D((j-1)*nx_block+i,n_sishearvel(ns),iblk) = &
+                 if (n_sishearvel(ns) /= 0) a2D(ms,n_sishearvel(ns)) = &
                        shear ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_sishearvel(ns))%cona
-                 if (n_mlt_onset(ns) /= 0) a2D((j-1)*nx_block+i,n_mlt_onset(ns),iblk) = &
+                 if (n_mlt_onset(ns) /= 0) a2D(ms,n_mlt_onset(ns)) = &
                        mlt_onset(i,j,iblk)
-                 if (n_frz_onset(ns) /= 0) a2D((j-1)*nx_block+i,n_frz_onset(ns),iblk) = &
+                 if (n_frz_onset(ns) /= 0) a2D(ms,n_frz_onset(ns)) = &
                        frz_onset(i,j,iblk)
-                 if (n_hisnap   (ns) /= 0) a2D((j-1)*nx_block+i,n_hisnap(ns),iblk)    = &
+                 if (n_hisnap   (ns) /= 0) a2D(ms,n_hisnap(ns))    = &
                        vice(i,j,iblk)
-                 if (n_aisnap   (ns) /= 0) a2D((j-1)*nx_block+i,n_aisnap(ns),iblk)    = &
+                 if (n_aisnap   (ns) /= 0) a2D(ms,n_aisnap(ns))    = &
                        aice(i,j,iblk)
 
                  if (kdyn == 2) then  ! for EAP dynamics different time of output
-                    if (n_trsig    (ns) /= 0) a2D((j-1)*nx_block+i,n_trsig(ns),iblk ) = &
+                    if (n_trsig    (ns) /= 0) a2D(ms,n_trsig(ns)) = &
                                         strength(i,j,iblk)
                  else
-                    if (n_trsig    (ns) /= 0) a2D((j-1)*nx_block+i,n_trsig(ns),iblk ) = &
+                    if (n_trsig    (ns) /= 0) a2D(ms,n_trsig(ns)) = &
                                        p25*(stressp_1((j-1)*nx_block+i,iblk) &
                                           + stressp_2((j-1)*nx_block+i,iblk) &
                                           + stressp_3((j-1)*nx_block+i,iblk) &
                                           + stressp_4((j-1)*nx_block+i,iblk))
                  endif
 
-                 if (n_iage     (ns) /= 0) a2D((j-1)*nx_block+i,n_iage(ns),iblk)  = &
+                 if (n_iage     (ns) /= 0) a2D(ms,n_iage(ns))  = &
                        trcr(i,j,nt_iage,iblk)*avail_hist_fields(n_iage(ns))%cona
-                 if (n_FY       (ns) /= 0) a2D((j-1)*nx_block+i,n_FY(ns),iblk)  = &
+                 if (n_FY       (ns) /= 0) a2D(ms,n_FY(ns))  = &
                        trcr(i,j,nt_FY,iblk)*avail_hist_fields(n_FY(ns))%cona
 
-                 if (n_a11     (ns) /= 0) a2D((j-1)*nx_block+i,n_a11(ns),iblk)      = &
+                 if (n_a11     (ns) /= 0) a2D(ms,n_a11(ns))      = &
                        a11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_a11(ns))%cona
-                 if (n_a12     (ns) /= 0) a2D((j-1)*nx_block+i,n_a12(ns),iblk)      = &
+                 if (n_a12     (ns) /= 0) a2D(ms,n_a12(ns))      = &
                        a12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_a12(ns))%cona
-                 if (n_e11     (ns) /= 0) a2D((j-1)*nx_block+i,n_e11(ns),iblk)      = &
+                 if (n_e11     (ns) /= 0) a2D(ms,n_e11(ns))      = &
                        e11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e11(ns))%cona
-                 if (n_e12     (ns) /= 0) a2D((j-1)*nx_block+i,n_e12(ns),iblk)      = &
+                 if (n_e12     (ns) /= 0) a2D(ms,n_e12(ns))      = &
                        e12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e12(ns))%cona
-                 if (n_e22     (ns) /= 0) a2D((j-1)*nx_block+i,n_e22(ns),iblk)      = &
+                 if (n_e22     (ns) /= 0) a2D(ms,n_e22(ns))      = &
                        e22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_e22(ns))%cona
-                 if (n_s11     (ns) /= 0) a2D((j-1)*nx_block+i,n_s11(ns),iblk)      = &
+                 if (n_s11     (ns) /= 0) a2D(ms,n_s11(ns))      = &
                        s11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s11(ns))%cona
-                 if (n_s12     (ns) /= 0) a2D((j-1)*nx_block+i,n_s12(ns),iblk)      = &
+                 if (n_s12     (ns) /= 0) a2D(ms,n_s12(ns))      = &
                        s12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s12(ns))%cona
-                 if (n_s22     (ns) /= 0) a2D((j-1)*nx_block+i,n_s22(ns),iblk)      = &
+                 if (n_s22     (ns) /= 0) a2D(ms,n_s22(ns))      = &
                        s22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_s22(ns))%cona
-                 if (n_yieldstress11     (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress11(ns),iblk)      = &
+                 if (n_yieldstress11     (ns) /= 0) a2D(ms,n_yieldstress11(ns))      = &
                        yieldstress11 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress11(ns))%cona
-                 if (n_yieldstress12     (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress12(ns),iblk)      = &
+                 if (n_yieldstress12     (ns) /= 0) a2D(ms,n_yieldstress12(ns))      = &
                        yieldstress12 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress12(ns))%cona
-                 if (n_yieldstress22     (ns) /= 0) a2D((j-1)*nx_block+i,n_yieldstress22(ns),iblk)      = &
+                 if (n_yieldstress22     (ns) /= 0) a2D(ms,n_yieldstress22(ns))      = &
                        yieldstress22 ((j-1)*nx_block+i,iblk)*avail_hist_fields(n_yieldstress22(ns))%cona
               endif
            enddo                ! i
@@ -3960,7 +4040,7 @@
       ! reset to zero
       !------------------------------------------------------------
         if (write_ic) then
-           if (allocated(a2D))  a2D (:,:,:)       = c0
+           if (allocated(a2D))  a2D (:,:)         = c0
            if (allocated(a3Dc)) a3Dc(:,:,:,:,:)   = c0
            if (allocated(a3Dz)) a3Dz(:,:,:,:,:)   = c0
            if (allocated(a3Db)) a3Db(:,:,:,:,:)   = c0
@@ -3981,7 +4061,7 @@
 !        if (write_history(ns)) albcnt(:,:,:,ns) = c0
 
         do n = 1,n2D
-           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a2D(:,n,:) = c0
+           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) a2D(:,n) = c0
         enddo
         do n = n2D + 1, n3Dccum
            nn = n - n2D

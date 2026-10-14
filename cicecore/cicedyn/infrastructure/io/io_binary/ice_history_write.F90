@@ -46,7 +46,8 @@
       use ice_kinds_mod
       use ice_calendar, only: write_ic, dayyr, histfreq, use_leap_years
       use ice_constants, only: spval
-      use ice_domain_size, only: nx_global, ny_global, max_nstrm
+      use ice_blocks, only: nx_block, ny_block
+      use ice_domain_size, only: nx_global, ny_global, max_nstrm, max_blocks
       use ice_read_write, only: ice_open, ice_write
       use ice_grid, only: tarea
       use ice_history_shared
@@ -69,6 +70,12 @@
       character (char_len) :: current_date,current_time
       character (len=16) :: c_aice
       logical (kind=log_kind) :: diag
+
+      ! One 2D field expanded back to the block layout.  a2D itself is
+      ! compressed, so this is the only block-sized history buffer left and
+      ! it holds one field rather than all of them.
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+           worka2D
 
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
@@ -146,6 +153,7 @@
       endif  ! my_task = master_task
       call ice_write(nu_history, nrec, tarea, atype, diag)
 
+      allocate(worka2D(nx_block*ny_block,max_blocks))
       do n=1,num_avail_hist_fields_2D
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
 
@@ -183,10 +191,14 @@
             endif
           endif
 
-          call ice_write(nu_history, nrec, a2D(:,n,:), atype, diag)
+          ! a2D is compressed; expand_a2D is the only place it becomes
+          ! two-dimensional, so ice_write still takes a block-shaped array.
+          call expand_a2D(n, worka2D)
+          call ice_write(nu_history, nrec, worka2D, atype, diag)
 
         endif
       enddo ! num_avail_hist_fields_2D
+      deallocate(worka2D)
 
       do n = n2D + 1, n3Dccum
           if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
