@@ -31,7 +31,7 @@
 # --run-root exists because the run directories are not always where
 # cice.settings says: the data can be relocated after the job finishes, so the
 # recorded ICE_RUNDIR no longer resolves.  Point it at the directory holding
-# the per-case run dirs, e.g.  --run-root /data/dktar/cice_original/run
+# the per-case run dirs.
 #==============================================================================
 
 set -u
