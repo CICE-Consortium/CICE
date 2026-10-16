@@ -312,7 +312,6 @@ contains
     use ice_dyn_evp
 
     !----- Local ------
-    integer(kind=int_kind) :: layer    ! level index
     integer(kind=int_kind) :: nc       ! ice category index
     integer(kind=int_kind) :: i,j,k    ! longitude, latitude and level indices
     integer(kind=int_kind) :: iblk
@@ -324,8 +323,6 @@ contains
     real(kind=dbl_kind)    :: slope        ! diff in underlying ocean tmp and ice surface tmp
     real(kind=dbl_kind)    :: Ti           ! ice level temperature
     real(kind=dbl_kind)    :: Tmlt         ! ice level melt temperature
-    real(kind=dbl_kind)    :: qin_save(nilyr)
-    real(kind=dbl_kind)    :: qsn_save(nslyr)
     real(kind=dbl_kind)    :: hi           ! ice prescribed (hemispheric) ice thickness
     real(kind=dbl_kind)    :: hs           ! snow thickness
     real(kind=dbl_kind)    :: zn           ! normalized ice thickness
