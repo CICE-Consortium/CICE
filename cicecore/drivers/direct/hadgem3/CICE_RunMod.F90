@@ -135,6 +135,7 @@
       use ice_calendar, only: dt, dt_dyn, ndtd, write_diag, write_restart
       use ice_diagnostics, only: init_mass_diags, runtime_diags
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
+      use ice_diagnostics_netcdf, only: diag_netcdf_step
       use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
       use ice_domain_size, only: nslyr
       use ice_dyn_eap, only: write_restart_eap
@@ -318,6 +319,7 @@
             if (skl_bgc .or. z_tracers)  call bgc_diags
             if (tr_brine) call hbrine_diags
          endif
+         call diag_netcdf_step              ! hemispheric netcdf diagnostics
          call ice_timer_stop(timer_diags)   ! diagnostics
 
          call ice_timer_start(timer_hist)   ! history

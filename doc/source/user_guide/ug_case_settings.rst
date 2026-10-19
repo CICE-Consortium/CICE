@@ -179,6 +179,7 @@ setup_nml
    "", "``m``", "diagnostic output every ``diagfreq`` months", ""
    "", "``y``", "diagnostic output every ``diagfreq`` years", ""
    "``diag_netcdf``", "logical", "also write hemispheric diagnostics to a netcdf file", "``.false.``"
+   "``diag_netcdf_avg``", "logical", "netcdf hemispheric diagnostics are time averages over each ``diagfreq`` interval, otherwise instantaneous", "``.true.``"
    "``diag_type``", "``stdout``", "write diagnostic output to stdout", "``stdout``"
    "", "``file``", "write diagnostic output to file", ""
    "``diag_file``", "string", "diagnostic output file", "'ice_diag.d'"
