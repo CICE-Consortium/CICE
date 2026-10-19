@@ -171,6 +171,7 @@ section :ref:`tabnamelist`.
    "diagfreq", "how often diagnostic output is written (10 = once per 10 diagfreq_unit)", ""
    "diagfreq_unit", "units of diagfreq: y, m, d, h, 1 (timesteps)", "1"
    "diag_netcdf", "if true, also write hemispheric diagnostics to a netcdf file", ".false."
+   "diag_netcdf_avg", "if true, netcdf hemispheric diagnostics are time averages, otherwise instantaneous", ".true."
    "distrb", "distribution data type", ""
    "distrb_info", "block distribution information", ""
    "distribution_type", "method used to distribute blocks on processors", ""

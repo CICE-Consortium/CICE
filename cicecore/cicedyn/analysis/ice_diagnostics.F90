@@ -28,7 +28,7 @@
       implicit none
       private
       public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
-                print_state, diagnostic_abort
+                print_state, diagnostic_abort, diag_kinetic_energy, diag_ice_speed
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -38,8 +38,7 @@
       logical (kind=log_kind), public :: &
          debug_model      , & ! if true, debug model at high level
          print_points     , & ! if true, print point data
-         print_global     , & ! if true, print global data
-         diag_netcdf          ! if true, also write global data to a netcdf file
+         print_global         ! if true, print global data
 
       integer (kind=int_kind), public :: &
          debug_model_step = 0 ! begin printing at istep1=debug_model_step
@@ -52,8 +51,18 @@
          check_umax = .false. ! if true, check for speed > umax_stab
 
       real (kind=dbl_kind), parameter :: &
-         umax_stab   = 1.0_dbl_kind , & ! ice speed threshold for instability (m/s)
+         umax_stab   = 1.0_dbl_kind     ! ice speed threshold for instability (m/s)
+
+      real (kind=dbl_kind), parameter, public :: &
          aice_extmin = 0.15_dbl_kind    ! min aice value for ice extent calc
+
+      real (kind=dbl_kind), parameter, public :: &
+         maxval_spval = -0.9_dbl_kind*1.0e36_dbl_kind  ! spval to detect
+                 ! undefined values returned from global_maxval.  if global_maxval
+                 ! is applied to a region that does not exist (for instance
+                 ! southern hemisphere in box cases), global_maxval
+                 ! returns -1.0e36 which we want to avoid writing.  The
+                 ! return value is checked against maxval_spval before writing.
 
       real (kind=dbl_kind), dimension(npnt), public :: &
          latpnt           , & !  latitude of diagnostic points
@@ -101,25 +110,7 @@
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
 
-      ! hemispheric diagnostics for netcdf output
-      integer (kind=int_kind), parameter :: &
-         max_ncdiag = 64      ! max number of hemispheric netcdf diagnostics
 
-      integer (kind=int_kind) :: &
-         n_ncdiag    = 0  , & ! number of hemispheric netcdf diagnostics
-         nrec_ncdiag = 0      ! number of records written to netcdf diagnostics file
-
-      character (len=char_len), dimension(max_ncdiag) :: &
-         ncdiag_name      , & ! netcdf variable name (without _nh/_sh)
-         ncdiag_lname     , & ! netcdf long name
-         ncdiag_units         ! netcdf units
-
-      real (kind=dbl_kind), dimension(max_ncdiag) :: &
-         ncdiag_valn      , & ! northern hemisphere value
-         ncdiag_vals          ! southern hemisphere value
-
-      character (len=char_len_long) :: &
-         ncdiag_file          ! netcdf diagnostics filename, one file per run
 
 !=======================================================================
 
@@ -224,16 +215,7 @@
          prsnwavg, prhosavg, psmicetot, psmliqtot, psmtot
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         uvelT, vvelT,   & ! u,v on T points
          work1, work2      ! temporary
-
-      real (kind=dbl_kind), parameter :: &
-         maxval_spval = -0.9_dbl_kind*1.0e36_dbl_kind  ! spval to detect
-                 ! undefined values returned from global_maxval.  if global_maxval
-                 ! is applied to a region that does not exist (for instance
-                 ! southern hemisphere in box cases), global_maxval
-                 ! returns -1.0e36 which we want to avoid writing.  The
-                 ! return value is checked against maxval_spval before writing.
 
       character(len=*), parameter :: subname = '(runtime_diags)'
 
@@ -323,27 +305,7 @@
       endif
 
       ! total ice-snow kinetic energy, on T points.
-      if (grid_ice == 'B') then
-         call grid_average_X2Y('A',uvel ,'U',uvelT,'T')
-         call grid_average_X2Y('A',vvel ,'U',vvelT,'T')
-      elseif (grid_ice == 'C') then
-         call grid_average_X2Y('A',uvelE,'E',uvelT,'T')
-         call grid_average_X2Y('A',vvelN,'N',vvelT,'T')
-      elseif (grid_ice == 'CD') then
-         call grid_average_X2Y('A',uvelE,'E',uvelN,'N',uvelT,'T')
-         call grid_average_X2Y('A',vvelE,'E',vvelN,'N',vvelT,'T')
-      endif
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = p5 * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
-                                 * (uvelT(i,j,iblk)**2 + vvelT(i,j,iblk)**2)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      call diag_kinetic_energy(work1)
       ketotn = c0
       ketots = c0
       ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
@@ -430,42 +392,7 @@
       if (hmaxs < maxval_spval) hmaxs = c0
 
       ! maximum ice speed
-      if (grid_ice == 'CD') then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + vvelE(i,j,iblk)**2), &
-                                     sqrt(uvelN(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      elseif (grid_ice == 'C') then
-         ! map uvelE to N and vvelN to E then compute max on E and N
-         call grid_average_X2Y('A',uvelE,'E',work1,'N')  ! work1 =~ uvelN
-         call grid_average_X2Y('A',vvelN,'N',work2,'E')  ! work2 =~ vvelE
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + work2(i,j,iblk)**2), &
-                                     sqrt(work1(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      else
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      endif
+      call diag_ice_speed(work1)
 
       umaxn = c0
       umaxs = c0
@@ -1189,57 +1116,6 @@
 
        call flush_fileunit(nu_diag)
 
-       !-----------------------------------------------------------------
-       ! hemispheric diagnostics to netcdf, as written to the log above
-       !-----------------------------------------------------------------
-
-       if (diag_netcdf) then
-         n_ncdiag = 0
-         call add_ncdiag('ice_area'         ,'total ice area'                  ,'km^2',arean  ,areas  )
-         call add_ncdiag('ice_extent'       ,'total ice extent'                ,'km^2',extentn,extents)
-         call add_ncdiag('ice_volume'       ,'total ice volume'                ,'m^3' ,shmaxn ,shmaxs )
-         call add_ncdiag('snow_volume'      ,'total snow volume'               ,'m^3' ,snwmxn ,snwmxs )
-         call add_ncdiag('kinetic_energy'   ,'total kinetic energy'            ,'J'   ,ketotn ,ketots )
-         call add_ncdiag('ice_speed_rms'    ,'rms ice speed'                   ,'m/s' ,urmsn  ,urmss  )
-         call add_ncdiag('albedo'           ,'average albedo'                  ,'1'   ,albtotn,albtots)
-         call add_ncdiag('ice_volume_max'   ,'max ice volume per unit area'    ,'m'   ,hmaxn  ,hmaxs  )
-         call add_ncdiag('ice_speed_max'    ,'max ice speed'                   ,'m/s' ,umaxn  ,umaxs  )
-         call add_ncdiag('ice_strength_max' ,'max ice strength'                ,'kN/m',pmaxn  ,pmaxs  )
-         if (print_global) then
-         call add_ncdiag('rain_dt'          ,'area weighted rain in timestep'  ,'kg'  ,rnn    ,rns    )
-         call add_ncdiag('snow_dt'          ,'area weighted snow in timestep'  ,'kg'  ,snn    ,sns    )
-         call add_ncdiag('evap_dt'          ,'area weighted evap in timestep'  ,'kg'  ,evpn   ,evps   )
-         call add_ncdiag('frazil_dt'        ,'area weighted frazil in timestep','kg'  ,frzn   ,frzs   )
-         if (tr_pond_topo) &
-         call add_ncdiag('pond_flux_dt'     ,'area weighted pond flux in timestep','kg',spondn,sponds )
-         call add_ncdiag('fresh_dt'         ,'area weighted fresh water in timestep','kg',sfreshn,sfreshs)
-         call add_ncdiag('ice_mass'         ,'area weighted ice mass'          ,'kg'  ,micen  ,mices  )
-         call add_ncdiag('snow_mass'        ,'area weighted snow mass'         ,'kg'  ,msnwn  ,msnws  )
-         if (tr_pond_topo) &
-         call add_ncdiag('pond_mass'        ,'area weighted pond mass'         ,'kg'  ,mpndn  ,mpnds  )
-         call add_ncdiag('total_mass'       ,'area weighted total mass'        ,'kg'  ,mtotn  ,mtots  )
-         call add_ncdiag('total_mass_chng'  ,'area weighted total mass change' ,'kg'  ,delmin ,delmis )
-         call add_ncdiag('water_flux'       ,'area weighted water flux'        ,'kg'  ,fluxn  ,fluxs  )
-         call add_ncdiag('water_flux_err'   ,'water flux error'                ,'1'   ,werrn  ,werrs  )
-         call add_ncdiag('atm_heat_flux'    ,'area weighted atm heat flux'     ,'W'   ,fhatmn ,fhatms )
-         call add_ncdiag('ocn_heat_flux'    ,'area weighted ocn heat flux'     ,'W'   ,fhocnn ,fhocns )
-         call add_ncdiag('frazil_heat_flux' ,'area weighted frazil heat flux'  ,'W'   ,fhfrzn ,fhfrzs )
-         call add_ncdiag('total_energy'     ,'area weighted total energy'      ,'J'   ,etotn  ,etots  )
-         call add_ncdiag('net_heat'         ,'area weighted net heat'          ,'J'   ,hnetn  ,hnets  )
-         call add_ncdiag('total_energy_chng','area weighted total energy change','J'  ,delein ,deleis )
-         call add_ncdiag('heat_err'         ,'heat error'                      ,'1'   ,herrn  ,herrs  )
-         call add_ncdiag('sw_down'          ,'area weighted incoming shortwave','W'   ,fswdnn ,fswdns )
-         call add_ncdiag('sw_absorbed'      ,'area weighted absorbed shortwave','W'   ,fswnetn,fswnets)
-         call add_ncdiag('sw_err'           ,'shortwave down error'            ,'1'   ,swerrn ,swerrs )
-         call add_ncdiag('brine_volume'     ,'total brine tracer volume'       ,'m^3' ,shmaxnt,shmaxst)
-         call add_ncdiag('salt_mass'        ,'area weighted salt mass'         ,'kg'  ,msltn  ,mslts  )
-         call add_ncdiag('salt_mass_chng'   ,'area weighted salt mass change'  ,'kg'  ,delmsltn,delmslts)
-         call add_ncdiag('salt_flux_dt'     ,'area weighted salt flux in timestep','kg',sfsaltn,sfsalts)
-         call add_ncdiag('salt_flux_err'    ,'salt flux error'                 ,'1'   ,serrn  ,serrs  )
-         endif                   ! print_global
-         call write_ncdiag()
-       endif                     ! diag_netcdf
-
       !-----------------------------------------------------------------
       ! diagnostics for Arctic and Antarctic points
       !-----------------------------------------------------------------
@@ -1789,263 +1665,123 @@
 
 !=======================================================================
 
-! Add a hemispheric diagnostic to the list written to the netcdf
-! diagnostics file
+! Kinetic energy of ice and snow per unit area on T points (J/m^2)
 
-      subroutine add_ncdiag(vname, lname, units, valn, vals)
+      subroutine diag_kinetic_energy(work)
 
-      character (len=*), intent(in) :: &
-         vname       , & ! variable name (without _nh/_sh)
-         lname       , & ! long name
-         units           ! units
+      use ice_constants, only: p5
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_grid, only: grid_ice, grid_average_X2Y
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, vice, vsno
 
-      real (kind=dbl_kind), intent(in) :: &
-         valn        , & ! northern hemisphere value
-         vals            ! southern hemisphere value
-
-      character(len=*), parameter :: subname = '(add_ncdiag)'
-
-      n_ncdiag = n_ncdiag + 1
-      if (n_ncdiag > max_ncdiag) then
-         call abort_ice(subname//' ERROR: too many diagnostics, increase max_ncdiag', &
-            file=__FILE__, line=__LINE__)
-      endif
-
-      ncdiag_name (n_ncdiag) = vname
-      ncdiag_lname(n_ncdiag) = lname
-      ncdiag_units(n_ncdiag) = units
-      ncdiag_valn (n_ncdiag) = valn
-      ncdiag_vals (n_ncdiag) = vals
-
-      end subroutine add_ncdiag
-
-!=======================================================================
-
-! Write hemispheric diagnostics to the netcdf diagnostics file, master task only.
-! There is one file per run. It is created on the first write and reopened
-! to append a record on each later write, so it is complete if the run stops early.
-
-      subroutine write_ncdiag
-
-#ifdef USE_NETCDF
-      use netcdf
-#endif
-      use ice_calendar, only: timesecs, idate0, hh_init, mm_init, ss_init, &
-          days_per_year, use_leap_years, seconds_per_day, istep, dt, &
-          calendar_time2date
-      use ice_history_shared, only: history_dir, history_file, history_format, &
-          history_deflate
-      use ice_read_write, only: ice_check_nc
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         work              ! kinetic energy per unit area
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         n, nh          , & ! loop indices
-         syear, smon, sday, ssec, & ! run start date
-         status         , & ! netcdf status
-         iflag          , & ! netcdf create mode
-         ncid           , & ! netcdf file id
-         timid          , & ! netcdf time dimension id
-         varid              ! netcdf variable id
-
-      character (len=8) :: &
-         cdate          , & ! initial date string
-         current_date       ! wall clock date
-
-      character (len=10) :: &
-         current_time       ! wall clock time
-
-      character (len=char_len) :: &
-         vname          , & ! netcdf variable name
-         cal_units      , & ! time units
-         cal_att        , & ! calendar attribute
-         hist_att           ! history attribute
+         i, j, iblk
 
       real (kind=dbl_kind) :: &
-         val                ! value to write
+         rhos, rhoi
 
-      character (len=2), dimension(2), parameter :: &
-         hemi = (/'nh','sh'/)
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         uvelT, vvelT      ! u,v on T points
 
-      character (len=19), dimension(2), parameter :: &
-         hemi_lname = (/'northern hemisphere','southern hemisphere'/)
+      character(len=*), parameter :: subname = '(diag_kinetic_energy)'
 
-      character(len=*), parameter :: subname = '(write_ncdiag)'
+      call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
-#ifdef USE_NETCDF
-      if (my_task /= master_task) return
-
-      if (nrec_ncdiag == 0) then
-
-         ! filename from the run start date, computed here as the coupled
-         ! drivers can reset the calendar after init_diags
-         call calendar_time2date(timesecs - real(istep,kind=dbl_kind)*dt, &
-                                 syear, smon, sday, ssec)
-         write(ncdiag_file,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5,a)') &
-            trim(history_dir)//trim(history_file)//'_diag.', &
-            syear,'-',smon,'-',sday,'-',ssec,'.nc'
-         write(nu_diag,*) subname,' creating ',trim(ncdiag_file)
-
-         ! file format consistent with history files, written serially
-         if (history_format == 'cdf2' .or. history_format == 'pnetcdf2') then
-#ifdef NO_CDF2
-            call abort_ice(subname//' ERROR: history_format cdf2 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_64bit_offset)
-#endif
-         elseif (history_format == 'cdf5' .or. history_format == 'pnetcdf5') then
-#ifdef NO_CDF5
-            call abort_ice(subname//' ERROR: history_format cdf5 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_64bit_data)
-#endif
-         elseif (history_format == 'hdf5') then
-#ifdef NO_HDF5
-            call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_netcdf4)
-#endif
-         else
-            iflag = nf90_clobber
-         endif
-
-         status = nf90_create(trim(ncdiag_file), iflag, ncid)
-         call ice_check_nc(status, subname//' ERROR: creating '//trim(ncdiag_file), &
-                           file=__FILE__, line=__LINE__)
-
-         status = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
-         call ice_check_nc(status, subname//' ERROR: defining dim time', &
-                           file=__FILE__, line=__LINE__)
-
-         write(cdate,'(i8.8)') idate0
-         write(cal_units,'(a,a4,a1,a2,a1,a2,a1,i2.2,a1,i2.2,a1,i2.2)') 'days since ', &
-               cdate(1:4),'-',cdate(5:6),'-',cdate(7:8),' ', &
-               hh_init,':',mm_init,':',ss_init
-
-         if (days_per_year == 360) then
-            cal_att = '360_day'
-         elseif (days_per_year == 365 .and. .not.use_leap_years ) then
-            cal_att = 'noleap'
-         elseif (use_leap_years) then
-            cal_att = 'proleptic_gregorian'
-         else
-            call abort_ice(subname//' ERROR: invalid calendar settings', &
-                           file=__FILE__, line=__LINE__)
-         endif
-
-         status = nf90_def_var(ncid, 'time', nf90_double, (/timid/), varid)
-         call ice_check_nc(status, subname//' ERROR: defining var time', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, varid, 'long_name', 'time')
-         call ice_check_nc(status, subname//' ERROR: defining att long_name time', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, varid, 'standard_name', 'time')
-         call ice_check_nc(status, subname//' ERROR: defining att standard_name time', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, varid, 'axis', 'T')
-         call ice_check_nc(status, subname//' ERROR: defining att axis time', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, varid, 'units', trim(cal_units))
-         call ice_check_nc(status, subname//' ERROR: defining att units time', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, varid, 'calendar', trim(cal_att))
-         call ice_check_nc(status, subname//' ERROR: defining att calendar time', &
-                           file=__FILE__, line=__LINE__)
-
-         do n = 1, n_ncdiag
-         do nh = 1, 2
-            vname = trim(ncdiag_name(n))//'_'//hemi(nh)
-            status = nf90_def_var(ncid, trim(vname), nf90_double, (/timid/), varid)
-            call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-#ifndef NO_HDF5
-            if (history_format == 'hdf5' .and. history_deflate /= 0) then
-               status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, &
-                                             deflate_level=history_deflate)
-               call ice_check_nc(status, subname//' ERROR: deflating var '//trim(vname), &
-                                 file=__FILE__, line=__LINE__)
-            endif
-#endif
-            status = nf90_put_att(ncid, varid, 'long_name', &
-                                  trim(ncdiag_lname(n))//', '//hemi_lname(nh))
-            call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid, varid, 'units', trim(ncdiag_units(n)))
-            call ice_check_nc(status, subname//' ERROR: defining att units '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-         enddo
-         enddo
-
-         status = nf90_put_att(ncid, nf90_global, 'title', 'CICE hemispheric diagnostics')
-         call ice_check_nc(status, subname//' ERROR: defining global att title', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, nf90_global, 'comment', &
-                               'instantaneous values at diagfreq, as written to the diagnostic log')
-         call ice_check_nc(status, subname//' ERROR: defining global att comment', &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_att(ncid, nf90_global, 'Conventions', 'CF-1.8')
-         call ice_check_nc(status, subname//' ERROR: defining global att Conventions', &
-                           file=__FILE__, line=__LINE__)
-
-         call date_and_time(date=current_date, time=current_time)
-         write(hist_att,'(a,a4,a1,a2,a1,a2,a4,a2,a1,a2,a1,a2)') 'This dataset was created on ', &
-               current_date(1:4),'-',current_date(5:6),'-',current_date(7:8),' at ', &
-               current_time(1:2),':',current_time(3:4),':',current_time(5:6)
-         status = nf90_put_att(ncid, nf90_global, 'history', trim(hist_att))
-         call ice_check_nc(status, subname//' ERROR: defining global att history', &
-                           file=__FILE__, line=__LINE__)
-
-         status = nf90_enddef(ncid)
-         call ice_check_nc(status, subname//' ERROR: in nf90_enddef', &
-                           file=__FILE__, line=__LINE__)
-
-      else
-
-         status = nf90_open(trim(ncdiag_file), nf90_write, ncid)
-         call ice_check_nc(status, subname//' ERROR: opening '//trim(ncdiag_file), &
-                           file=__FILE__, line=__LINE__)
-
+      if (grid_ice == 'B') then
+         call grid_average_X2Y('A',uvel ,'U',uvelT,'T')
+         call grid_average_X2Y('A',vvel ,'U',vvelT,'T')
+      elseif (grid_ice == 'C') then
+         call grid_average_X2Y('A',uvelE,'E',uvelT,'T')
+         call grid_average_X2Y('A',vvelN,'N',vvelT,'T')
+      elseif (grid_ice == 'CD') then
+         call grid_average_X2Y('A',uvelE,'E',uvelN,'N',uvelT,'T')
+         call grid_average_X2Y('A',vvelE,'E',vvelN,'N',vvelT,'T')
       endif
 
-      nrec_ncdiag = nrec_ncdiag + 1
-
-      status = nf90_inq_varid(ncid, 'time', varid)
-      call ice_check_nc(status, subname//' ERROR: getting varid for time', &
-                        file=__FILE__, line=__LINE__)
-      status = nf90_put_var(ncid, varid, (/timesecs/real(seconds_per_day,kind=dbl_kind)/), &
-                            start=(/nrec_ncdiag/), count=(/1/))
-      call ice_check_nc(status, subname//' ERROR: writing time', &
-                        file=__FILE__, line=__LINE__)
-
-      do n = 1, n_ncdiag
-      do nh = 1, 2
-         vname = trim(ncdiag_name(n))//'_'//hemi(nh)
-         if (nh == 1) then
-            val = ncdiag_valn(n)
-         else
-            val = ncdiag_vals(n)
-         endif
-         status = nf90_inq_varid(ncid, trim(vname), varid)
-         call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_var(ncid, varid, (/val/), start=(/nrec_ncdiag/), count=(/1/))
-         call ice_check_nc(status, subname//' ERROR: writing '//trim(vname), &
-                           file=__FILE__, line=__LINE__)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            work(i,j,iblk) = p5 * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
+                                * (uvelT(i,j,iblk)**2 + vvelT(i,j,iblk)**2)
+         enddo
+         enddo
       enddo
-      enddo
+      !$OMP END PARALLEL DO
 
-      status = nf90_close(ncid)
-      call ice_check_nc(status, subname//' ERROR: closing '//trim(ncdiag_file), &
-                        file=__FILE__, line=__LINE__)
-#else
-      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
-                     file=__FILE__, line=__LINE__)
-#endif
+      end subroutine diag_kinetic_energy
 
-      end subroutine write_ncdiag
+!=======================================================================
+
+! Ice speed (m/s), the maximum over E and N points for C and CD grids
+
+      subroutine diag_ice_speed(work)
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_grid, only: grid_ice, grid_average_X2Y
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         work              ! ice speed
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work2             ! temporary
+
+      character(len=*), parameter :: subname = '(diag_ice_speed)'
+
+      if (grid_ice == 'CD') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + vvelE(i,j,iblk)**2), &
+                                    sqrt(uvelN(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      elseif (grid_ice == 'C') then
+         ! map uvelE to N and vvelN to E then compute max on E and N
+         call grid_average_X2Y('A',uvelE,'E',work ,'N')  ! work  =~ uvelN
+         call grid_average_X2Y('A',vvelN,'N',work2,'E')  ! work2 =~ vvelE
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + work2(i,j,iblk)**2), &
+                                    sqrt(work(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif
+
+      end subroutine diag_ice_speed
 
 !=======================================================================
 

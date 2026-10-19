@@ -128,6 +128,7 @@
       use ice_calendar, only: idate, msec
       use ice_diagnostics, only: init_mass_diags, runtime_diags, debug_model, debug_ice
       use ice_diagnostics_bgc, only: hbrine_diags, bgc_diags
+      use ice_diagnostics_netcdf, only: diag_netcdf_step
       use ice_domain, only: halo_info, nblocks, num_set_boundary_flds
       use ice_dyn_eap, only: write_restart_eap
       use ice_dyn_shared, only: kdyn, kridge
@@ -388,6 +389,7 @@
                call ice_memusage_print(nu_diag,subname)
             endif
          endif
+         call diag_netcdf_step              ! hemispheric netcdf diagnostics
          call ice_timer_stop(timer_diags)   ! diagnostics
 
          call ice_timer_start(timer_hist)   ! history
