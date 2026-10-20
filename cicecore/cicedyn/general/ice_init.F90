@@ -63,7 +63,7 @@
           diag_file, print_global, print_points, latpnt, lonpnt, &
           debug_model, debug_model_step, debug_model_task, &
           debug_model_i, debug_model_j, debug_model_iblk
-      use ice_diagnostics_netcdf, only: diag_netcdf, diag_netcdf_avg
+      use ice_diagnostics_netcdf, only: diag_netcdf
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
           ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
@@ -204,7 +204,7 @@
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
         restart_deflate, restart_chunksize, restart_mod, write_histrest,&
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diagfreq_unit,  diag_netcdf,     diag_netcdf_avg, &
+        diagfreq,       diagfreq_unit,  diag_netcdf,                    &
         diag_type,      diag_file,      history_format,                 &
         history_root,   history_stride, history_iotasks, history_rearranger, &
         hist_time_axis,                                                 &
@@ -334,8 +334,7 @@
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       diagfreq_unit = '1'    ! units of diagfreq 'y', 'm', 'd', 'h', '1'
-      diag_netcdf = .false.  ! if true, also write global diagnostics to netcdf
-      diag_netcdf_avg = .true. ! if true, netcdf global diagnostics are time averages
+      diag_netcdf = 'none'   ! hemispheric diagnostics in netcdf 'none', 'avg', 'inst'
       debug_model  = .false. ! debug output
       debug_model_step = 0   ! debug model after this step number
       debug_model_i = -1     ! debug model local i index
@@ -981,7 +980,6 @@
       call broadcast_scalar(diagfreq,             master_task)
       call broadcast_scalar(diagfreq_unit,        master_task)
       call broadcast_scalar(diag_netcdf,          master_task)
-      call broadcast_scalar(diag_netcdf_avg,      master_task)
       call broadcast_scalar(debug_model,          master_task)
       call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(debug_model_i,        master_task)
@@ -1364,8 +1362,16 @@
          abort_list = trim(abort_list)//":71"
       endif
 
+      if (trim(diag_netcdf) /= 'none' .and. trim(diag_netcdf) /= 'avg' .and. &
+          trim(diag_netcdf) /= 'inst') then
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: diag_netcdf unknown = ',trim(diag_netcdf)
+         endif
+         abort_list = trim(abort_list)//":73"
+      endif
+
 #ifndef USE_NETCDF
-      if (diag_netcdf) then
+      if (trim(diag_netcdf) /= 'none') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: diag_netcdf requires USE_NETCDF'
          endif
@@ -2746,8 +2752,7 @@
          write(nu_diag,1021) ' npt              = ', npt
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1031) ' diagfreq_unit    = ', trim(diagfreq_unit)
-         write(nu_diag,1011) ' diag_netcdf      = ', diag_netcdf
-         write(nu_diag,1011) ' diag_netcdf_avg  = ', diag_netcdf_avg
+         write(nu_diag,1031) ' diag_netcdf      = ', trim(diag_netcdf)
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
          write(nu_diag,1011) ' debug_model      = ', debug_model

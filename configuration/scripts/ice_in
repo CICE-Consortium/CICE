@@ -35,8 +35,7 @@
     bfbflag        = 'off'
     diagfreq       = 24
     diagfreq_unit  = '1'
-    diag_netcdf    = .false.
-    diag_netcdf_avg = .true.
+    diag_netcdf    = 'none'
     diag_type      = 'stdout'
     diag_file      = 'ice_diag.d'
     debug_model    = .false.

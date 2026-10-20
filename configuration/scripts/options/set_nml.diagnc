@@ -1,3 +1,3 @@
 diagfreq       = 1
 diagfreq_unit  = 'd'
-diag_netcdf    = .true.
+diag_netcdf    = 'avg'
