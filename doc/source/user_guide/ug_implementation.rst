@@ -1530,15 +1530,14 @@ contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
 (``siarean``, ``siareas``, ``siextentn``, ``siextents``, ``sivoln``, ``sivols``,
 ``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
 albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
-``_nh`` and ``_sh``).  Snow mass is ``rhos*vsno``, consistent with the history
-field ``sisnmass``.  The ``print_global`` diagnostics are only written to the log.
+``_nh`` and ``_sh``).
 If ``diag_netcdf_avg`` is true (the default), values are time averages
 over each ``diagfreq`` interval, except the maxima, which are maxima over the interval.
 These are accumulated every timestep from per grid cell
-values, so the only global reductions are when the file is written.  The global
-sums are the same as for the diagnostic log, so they are reproducible across
-decompositions depending on ``bfbflag``.  The averaging restarts at the start
-of each run.
+values, so the only global reductions are when the file is written.
+The averaging restarts at the start of each run, so a record that spans a restart
+only averages the part after the restart, as shown by its ``time_bounds``.  For
+full averages, restarts should be aligned with the ``diagfreq`` interval.
 If ``diag_netcdf_avg`` is false, the values are instantaneous, as written to the log.
 The file is in ``history_dir`` and named from ``history_file``, as
 **iceh_diag_mean.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
@@ -1550,12 +1549,6 @@ in different directories; a link to a file that does not exist yet is created
 at the link target.
 The file format, compression and precision follow ``history_format``,
 ``history_deflate`` and ``history_precision``.
-For a hemisphere without grid cells, for example in regional domains, values are
-written as missing (``_FillValue``).
-To add a diagnostic, add an index, define its names, units and reduction
-(area weighted sum or maximum) in *init_ncdiag*, and compute its per grid cell
-value in *ncdiag_cell_values* in **ice_diagnostics_netcdf.F90**.  It is then available
-as an instantaneous value and as a time average.
 
 The namelist ``debug_model`` prints detailed
 debug diagnostics for a single point as the model advances.  The point is defined

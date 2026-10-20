@@ -165,7 +165,7 @@
 
       character(len=*), parameter :: subname = '(init_ncdiag)'
 
-      ! a hemisphere without grid cells (eg regional domains) is written as missing
+      ! a hemisphere without grid cells (e.g. regional domains) is written as missing
       work1(:,:,:) = c1
       ncdiag_hemi(1) = global_sum(work1, distrb_info, field_loc_center, tarean) > c0
       ncdiag_hemi(2) = global_sum(work1, distrb_info, field_loc_center, tareas) > c0
@@ -179,7 +179,7 @@
                       1.0e-12_dbl_kind, sname='sea_ice_volume')
       call def_ncdfld(ncd_snwm, 'sisnmassn', 'sisnmasss', 'snow mass on sea ice', 'kg', 'sum', c1)
 
-      ! other diagnostics, as written to the log
+      ! other diagnostics, the same quantities as in the log
       call def_ncdfld(ncd_ke  , 'kinetic_energy_nh'  , 'kinetic_energy_sh'  , &
                       'total kinetic energy', 'J', 'sum', c1)
       call def_ncdfld(ncd_albn, 'albedo_num_nh'      , 'albedo_num_sh'      , &
@@ -245,7 +245,7 @@
 !=======================================================================
 
 ! Compute the per grid cell values of the hemispheric netcdf diagnostics.
-! Values to be summed are per unit area, they are multiplied by the cell
+! Values to be summed are per unit area; they are multiplied by the cell
 ! area when reduced.
 
       subroutine ncdiag_cell_values(fld)
@@ -536,8 +536,9 @@
 !=======================================================================
 
 ! Write hemispheric diagnostics to the netcdf diagnostics file, master task only.
-! There is one file per run. It is created on the first write and reopened
-! to append a record on each later write, so it is complete if the run stops early.
+! There is one file for each of time averages and instantaneous values.  It is
+! created on the first write, or appended to if it already exists, and reopened
+! for each record so it is complete if the run stops early.
 
       subroutine write_ncdiag
 
@@ -545,16 +546,17 @@
       use netcdf
 #endif
       use ice_calendar, only: timesecs, idate0, hh_init, mm_init, ss_init, &
-          days_per_year, use_leap_years, seconds_per_day
+          days_per_year, use_leap_years, seconds_per_day, dt
       use ice_history_shared, only: history_dir, history_file, history_format, &
           history_deflate, history_precision
-      use ice_constants, only: spval, spval_dbl
+      use ice_constants, only: spval, spval_dbl, p5
       use ice_read_write, only: ice_check_nc
 
       ! local variables
 
       integer (kind=int_kind) :: &
-         n, nh          , & ! loop indices
+         n              , & ! diagnostic index
+         hemi           , & ! hemisphere index, 1 north, 2 south
          status         , & ! netcdf status
          iflag          , & ! netcdf create mode
          lprecision     , & ! netcdf precision of diagnostic variables
@@ -578,7 +580,7 @@
 
       real (kind=dbl_kind) :: &
          val            , & ! value to write
-         tcur               ! current time (days)
+         tcur               ! half a timestep before the current time (days)
 
       real (kind=dbl_kind), dimension(:), allocatable :: &
          ftime              ! times already in the file (days)
@@ -597,8 +599,8 @@
 #ifdef USE_NETCDF
       if (my_task /= master_task) return
 
-      ! an existing file is appended to at the start of a run
-      ! _inst for instantaneous as for history files, _mean for time averages
+      ! filename, _mean for time averages or _inst for instantaneous values,
+      ! as for history files
       if (diag_netcdf_avg) then
          ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_mean.nc'
       else
@@ -607,6 +609,7 @@
       lexist = .true.
       if (.not. ncdiag_opened) inquire(file=trim(ncdiag_file), exist=lexist)
 
+      ! create the file if it does not exist, otherwise open it to append a record
       if (.not. lexist) then
 
          write(nu_diag,*) subname,' creating ',trim(ncdiag_file)
@@ -641,10 +644,12 @@
          lprecision = nf90_float
          if (history_precision == 8) lprecision = nf90_double
 
+         ! create the file
          status = nf90_create(trim(ncdiag_file), iflag, ncid)
          call ice_check_nc(status, subname//' ERROR: creating '//trim(ncdiag_file), &
                            file=__FILE__, line=__LINE__)
 
+         ! define the time coordinate
          status = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
          call ice_check_nc(status, subname//' ERROR: defining dim time', &
                            file=__FILE__, line=__LINE__)
@@ -688,6 +693,12 @@
          status = nf90_put_att(ncid, varid, 'calendar', trim(cal_att))
          call ice_check_nc(status, subname//' ERROR: defining att calendar time', &
                            file=__FILE__, line=__LINE__)
+         if (use_leap_years) then
+            ! model time has no leap seconds (CF-1.11)
+            status = nf90_put_att(ncid, varid, 'units_metadata', 'leap_seconds: none')
+            call ice_check_nc(status, subname//' ERROR: defining att units_metadata time', &
+                              file=__FILE__, line=__LINE__)
+         endif
 
          if (diag_netcdf_avg) then
             status = nf90_put_att(ncid, varid, 'bounds', 'time_bounds')
@@ -699,47 +710,49 @@
             ! CF bounds variables inherit their attributes from time
          endif
 
+         ! define each variable for the hemispheric diagnostics, with attributes
          do n = 1, n_ncdiag
-         do nh = 1, 2
-            vname = ncdiag_name(n,nh)
-            status = nf90_def_var(ncid, trim(vname), lprecision, (/timid/), varid)
-            call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-#ifndef NO_HDF5
-            if (history_format == 'hdf5' .and. history_deflate /= 0) then
-               status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, &
-                                             deflate_level=history_deflate)
-               call ice_check_nc(status, subname//' ERROR: deflating var '//trim(vname), &
+            do hemi = 1, 2
+               vname = ncdiag_name(n,hemi)
+               status = nf90_def_var(ncid, trim(vname), lprecision, (/timid/), varid)
+               call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
                                  file=__FILE__, line=__LINE__)
-            endif
-#endif
-            status = nf90_put_att(ncid, varid, 'long_name', &
-                                  trim(ncdiag_lname(n))//', '//hemi_lname(nh))
-            call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid, varid, 'units', trim(ncdiag_units(n)))
-            call ice_check_nc(status, subname//' ERROR: defining att units '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-            if (lprecision == nf90_double) then
-               status = nf90_put_att(ncid, varid, '_FillValue', spval_dbl)
-            else
-               status = nf90_put_att(ncid, varid, '_FillValue', spval)
-            endif
-            call ice_check_nc(status, subname//' ERROR: defining att _FillValue '//trim(vname), &
-                              file=__FILE__, line=__LINE__)
-            if (len_trim(ncdiag_sname(n)) > 0) then
-               status = nf90_put_att(ncid, varid, 'standard_name', trim(ncdiag_sname(n)))
-               call ice_check_nc(status, subname//' ERROR: defining att standard_name '//trim(vname), &
+   #ifndef NO_HDF5
+               if (history_format == 'hdf5' .and. history_deflate /= 0) then
+                  status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, &
+                                                deflate_level=history_deflate)
+                  call ice_check_nc(status, subname//' ERROR: deflating var '//trim(vname), &
+                                    file=__FILE__, line=__LINE__)
+               endif
+   #endif
+               status = nf90_put_att(ncid, varid, 'long_name', &
+                                    trim(ncdiag_lname(n))//', '//hemi_lname(hemi))
+               call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
                                  file=__FILE__, line=__LINE__)
-            endif
-            if (len_trim(ncdiag_cmethods(n)) > 0) then
-               status = nf90_put_att(ncid, varid, 'cell_methods', trim(ncdiag_cmethods(n)))
-               call ice_check_nc(status, subname//' ERROR: defining att cell_methods '//trim(vname), &
+               status = nf90_put_att(ncid, varid, 'units', trim(ncdiag_units(n)))
+               call ice_check_nc(status, subname//' ERROR: defining att units '//trim(vname), &
                                  file=__FILE__, line=__LINE__)
-            endif
-         enddo
+               if (lprecision == nf90_double) then
+                  status = nf90_put_att(ncid, varid, '_FillValue', spval_dbl)
+               else
+                  status = nf90_put_att(ncid, varid, '_FillValue', spval)
+               endif
+               call ice_check_nc(status, subname//' ERROR: defining att _FillValue '//trim(vname), &
+                                 file=__FILE__, line=__LINE__)
+               if (len_trim(ncdiag_sname(n)) > 0) then
+                  status = nf90_put_att(ncid, varid, 'standard_name', trim(ncdiag_sname(n)))
+                  call ice_check_nc(status, subname//' ERROR: defining att standard_name '//trim(vname), &
+                                    file=__FILE__, line=__LINE__)
+               endif
+               if (len_trim(ncdiag_cmethods(n)) > 0) then
+                  status = nf90_put_att(ncid, varid, 'cell_methods', trim(ncdiag_cmethods(n)))
+                  call ice_check_nc(status, subname//' ERROR: defining att cell_methods '//trim(vname), &
+                                    file=__FILE__, line=__LINE__)
+               endif
+            enddo
          enddo
 
+         ! global attributes, consistent with history files
          status = nf90_put_att(ncid, nf90_global, 'title', 'CICE hemispheric diagnostics')
          call ice_check_nc(status, subname//' ERROR: defining global att title', &
                            file=__FILE__, line=__LINE__)
@@ -768,7 +781,7 @@
          call ice_check_nc(status, subname//' ERROR: in nf90_enddef', &
                            file=__FILE__, line=__LINE__)
 
-      else
+      else ! file already exists, open it to append a record
 
          status = nf90_open(trim(ncdiag_file), nf90_write, ncid)
          call ice_check_nc(status, subname//' ERROR: opening '//trim(ncdiag_file), &
@@ -793,9 +806,10 @@
                status = nf90_get_var(ncid, varid, ftime)
                call ice_check_nc(status, subname//' ERROR: reading time', &
                                  file=__FILE__, line=__LINE__)
-               tcur = timesecs/real(seconds_per_day,kind=dbl_kind)
+               ! records at or after the current time, within half a timestep
+               tcur = (timesecs - p5*dt)/real(seconds_per_day,kind=dbl_kind)
                do n = 1, ntime
-                  if (ftime(n) > tcur - 1.0e-6_dbl_kind) then
+                  if (ftime(n) > tcur) then
                      nrec_ncdiag = n - 1
                      exit
                   endif
@@ -812,6 +826,7 @@
 
       ncdiag_opened = .true.
 
+      ! append the record, starting with the time
       nrec_ncdiag = nrec_ncdiag + 1
 
       status = nf90_inq_varid(ncid, 'time', varid)
@@ -833,22 +848,23 @@
                            file=__FILE__, line=__LINE__)
       endif
 
+      ! write the hemispheric diagnostics
       do n = 1, n_ncdiag
-      do nh = 1, 2
-         vname = ncdiag_name(n,nh)
-         if (nh == 1) then
-            val = ncdiag_valn(n)
-         else
-            val = ncdiag_vals(n)
-         endif
-         if (.not. ncdiag_hemi(nh)) val = spval_dbl
-         status = nf90_inq_varid(ncid, trim(vname), varid)
-         call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
-                           file=__FILE__, line=__LINE__)
-         status = nf90_put_var(ncid, varid, (/val/), start=(/nrec_ncdiag/), count=(/1/))
-         call ice_check_nc(status, subname//' ERROR: writing '//trim(vname), &
-                           file=__FILE__, line=__LINE__)
-      enddo
+         do hemi = 1, 2
+            vname = ncdiag_name(n,hemi)
+            if (hemi == 1) then
+               val = ncdiag_valn(n)
+            else
+               val = ncdiag_vals(n)
+            endif
+            if (.not. ncdiag_hemi(hemi)) val = spval_dbl
+            status = nf90_inq_varid(ncid, trim(vname), varid)
+            call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_var(ncid, varid, (/val/), start=(/nrec_ncdiag/), count=(/1/))
+            call ice_check_nc(status, subname//' ERROR: writing '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+         enddo
       enddo
 
       status = nf90_close(ncid)
