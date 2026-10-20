@@ -1,6 +1,10 @@
 name: Auto-Pin GitHub Actions
 on:
   workflow_dispatch: # Allows manual trigger
+  # Triggers automatically when workflow files are modified
+  push:
+    paths:
+      - '.github/workflows/**'
   schedule:
     - cron: '0 0 * * 0' # Runs weekly on Sunday
 
