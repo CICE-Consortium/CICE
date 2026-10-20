@@ -717,14 +717,14 @@
                status = nf90_def_var(ncid, trim(vname), lprecision, (/timid/), varid)
                call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
                                  file=__FILE__, line=__LINE__)
-   #ifndef NO_HDF5
+#ifndef NO_HDF5
                if (history_format == 'hdf5' .and. history_deflate /= 0) then
                   status = nf90_def_var_deflate(ncid, varid, shuffle=0, deflate=1, &
                                                 deflate_level=history_deflate)
                   call ice_check_nc(status, subname//' ERROR: deflating var '//trim(vname), &
                                     file=__FILE__, line=__LINE__)
                endif
-   #endif
+#endif
                status = nf90_put_att(ncid, varid, 'long_name', &
                                     trim(ncdiag_lname(n))//', '//hemi_lname(hemi))
                call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
