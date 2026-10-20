@@ -1,0 +1,26 @@
+name: Auto-Pin GitHub Actions
+on:
+  workflow_dispatch: # Allows manual trigger
+  schedule:
+    - cron: '0 0 * * 0' # Runs weekly on Sunday
+
+jobs:
+  pin-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        
+      - name: Run pin-github-action
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx pin-github-action .github/workflows/
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "ci: pin GitHub Action dependencies to secure SHAs"
+          title: "ci: Secure GitHub Actions with pinned SHAs"
+          branch: "ci/auto-pin-actions"
+          body: "Automated PR to pin GitHub Actions to their specific commit SHAs to protect against supply chain attacks."
