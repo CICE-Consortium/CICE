@@ -1,7 +1,7 @@
 !=======================================================================
 
 ! Hemispheric diagnostics written to a netcdf file (diag_netcdf), as time
-! averages over each diagfreq interval (diag_netcdf_avg) or instantaneous values.
+! averages over each diagfreq interval ('avg') or instantaneous values ('inst').
 !
 ! The diagnostics are global sums or maxima of per grid cell values, using the
 ! same global reductions (and bfbflag) as the diagnostic log.  For time averages
@@ -27,9 +27,9 @@
       private
       public :: diag_netcdf_step
 
-      logical (kind=log_kind), public :: &
-         diag_netcdf      , & ! if true, write hemispheric diagnostics to a netcdf file
-         diag_netcdf_avg      ! if true, time averages, otherwise instantaneous values
+      character (len=char_len), public :: &
+         diag_netcdf          ! hemispheric diagnostics in a netcdf file: 'none',
+                              ! 'avg' time averages or 'inst' instantaneous values
 
       !-----------------------------------------------------------------
       ! Hemispheric netcdf diagnostics (diag_netcdf)
@@ -136,9 +136,9 @@
 
       character(len=*), parameter :: subname = '(diag_netcdf_step)'
 
-      if (.not. diag_netcdf) return
+      if (trim(diag_netcdf) == 'none') return
 
-      if (diag_netcdf_avg) call accum_ncdiag()
+      if (trim(diag_netcdf) == 'avg') call accum_ncdiag()
 
       if (write_diag) then
          call compute_ncdiag()     ! global reductions on all tasks
@@ -418,7 +418,7 @@
       if (.not. ncdfld_init) call init_ncdiag()
 
       allocate(fld(nx_block,ny_block,max_blocks,n_ncdfld))
-      if (diag_netcdf_avg) then
+      if (trim(diag_netcdf) == 'avg') then
          if (nacc_steps == 0) then
             call abort_ice(subname//' ERROR: no accumulated diagnostics', &
                file=__FILE__, line=__LINE__)
@@ -488,7 +488,7 @@
       call add_ncdiag('albedo_nh', 'albedo_sh', 'average albedo', '1', &
                       albn, albs, '', cm_sum)
 
-      if (diag_netcdf_avg) then
+      if (trim(diag_netcdf) == 'avg') then
          ncdiag_time_beg = acc_time_beg
          call reset_ncdiag()
       endif
@@ -599,10 +599,10 @@
 #ifdef USE_NETCDF
       if (my_task /= master_task) return
 
-      ! filename, _mean for time averages or _inst for instantaneous values,
+      ! filename, _avg for time averages or _inst for instantaneous values,
       ! as for history files
-      if (diag_netcdf_avg) then
-         ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_mean.nc'
+      if (trim(diag_netcdf) == 'avg') then
+         ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_avg.nc'
       else
          ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_inst.nc'
       endif
@@ -653,7 +653,7 @@
          status = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
          call ice_check_nc(status, subname//' ERROR: defining dim time', &
                            file=__FILE__, line=__LINE__)
-         if (diag_netcdf_avg) then
+         if (trim(diag_netcdf) == 'avg') then
             status = nf90_def_dim(ncid, 'nbnd', 2, bndid)
             call ice_check_nc(status, subname//' ERROR: defining dim nbnd', &
                               file=__FILE__, line=__LINE__)
@@ -700,7 +700,7 @@
                               file=__FILE__, line=__LINE__)
          endif
 
-         if (diag_netcdf_avg) then
+         if (trim(diag_netcdf) == 'avg') then
             status = nf90_put_att(ncid, varid, 'bounds', 'time_bounds')
             call ice_check_nc(status, subname//' ERROR: defining att bounds time', &
                               file=__FILE__, line=__LINE__)
@@ -756,7 +756,7 @@
          status = nf90_put_att(ncid, nf90_global, 'title', 'CICE hemispheric diagnostics')
          call ice_check_nc(status, subname//' ERROR: defining global att title', &
                            file=__FILE__, line=__LINE__)
-         if (diag_netcdf_avg) then
+         if (trim(diag_netcdf) == 'avg') then
             status = nf90_put_att(ncid, nf90_global, 'comment', &
                                   'time averages (or maxima) over each diagfreq interval')
          else
@@ -837,7 +837,7 @@
       call ice_check_nc(status, subname//' ERROR: writing time', &
                         file=__FILE__, line=__LINE__)
 
-      if (diag_netcdf_avg) then
+      if (trim(diag_netcdf) == 'avg') then
          status = nf90_inq_varid(ncid, 'time_bounds', varid)
          call ice_check_nc(status, subname//' ERROR: getting varid for time_bounds', &
                            file=__FILE__, line=__LINE__)

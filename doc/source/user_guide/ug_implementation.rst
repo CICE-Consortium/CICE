@@ -1524,23 +1524,23 @@ input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
 may be changed in **ice_in**.  
 
-If ``diag_netcdf`` is true, hemispheric diagnostics are also written
+If ``diag_netcdf`` is not ``none``, hemispheric diagnostics are also written
 to a netcdf file, with one record each time diagnostics are written.  The file
 contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
 (``siarean``, ``siareas``, ``siextentn``, ``siextents``, ``sivoln``, ``sivols``,
 ``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
 albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
 ``_nh`` and ``_sh``).
-If ``diag_netcdf_avg`` is true (the default), values are time averages
+If ``diag_netcdf`` is ``avg``, values are time averages
 over each ``diagfreq`` interval, except the maxima, which are maxima over the interval.
 These are accumulated every timestep from per grid cell
 values, so the only global reductions are when the file is written.
 The averaging restarts at the start of each run, so a record that spans a restart
 only averages the part after the restart, as shown by its ``time_bounds``.  For
 full averages, restarts should be aligned with the ``diagfreq`` interval.
-If ``diag_netcdf_avg`` is false, the values are instantaneous, as written to the log.
+If ``diag_netcdf`` is ``inst``, the values are instantaneous, as written to the log.
 The file is in ``history_dir`` and named from ``history_file``, as
-**iceh_diag_mean.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
+**iceh_diag_avg.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
 values.  If the file exists at the start of a run, records are appended to it,
 after the last record before the current model time, so records from a rerun
 are overwritten.
