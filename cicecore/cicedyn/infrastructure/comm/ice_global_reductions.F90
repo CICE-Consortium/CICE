@@ -12,16 +12,13 @@
 !            and global_sum_prod_dbl by T Craig NCAR
 ! Mar. 2019: Refactored bit-for-bit option, T Craig
 
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
    use mpi   ! MPI Fortran module
+   use ice_communicate, only: mpiR16, mpiR8, mpiR4
 #endif
+   use ice_communicate, only: my_task, master_task
    use ice_kinds_mod
    use ice_blocks, only: block, get_block, nx_block, ny_block
-#ifdef SERIAL_REMOVE_MPI
-   use ice_communicate, only: my_task, master_task
-#else
-   use ice_communicate, only: my_task, mpiR16, mpiR8, mpiR4, master_task
-#endif
    use ice_constants, only: field_loc_Nface, field_loc_NEcorner, c0
    use ice_fileunits, only: bfbflag
    use ice_exit, only: abort_ice
@@ -533,7 +530,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalSum = localSum
 #else
    if (my_task < numProcs) then
@@ -736,7 +733,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalSum = scalar
 #else
    if (my_task < numProcs) then
@@ -1194,7 +1191,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalSum = localSum
 #else
    if (my_task < numProcs) then
@@ -1301,7 +1298,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = localMaxval
 #else
    if (my_task < numProcs) then
@@ -1408,7 +1405,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = localMaxval
 #else
    if (my_task < numProcs) then
@@ -1515,7 +1512,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = localMaxval
 #else
    if (my_task < numProcs) then
@@ -1573,7 +1570,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = scalar
 #else
    if (my_task < numProcs) then
@@ -1631,7 +1628,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = scalar
 #else
    if (my_task < numProcs) then
@@ -1689,7 +1686,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = scalar
 #else
    if (my_task < numProcs) then
@@ -1741,7 +1738,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMaxval = scalar
 #else
    call MPI_ALLREDUCE(scalar, globalMaxval, 1, &
@@ -1846,7 +1843,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = localMinval
 #else
    if (my_task < numProcs) then
@@ -1953,7 +1950,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = localMinval
 #else
    if (my_task < numProcs) then
@@ -2060,7 +2057,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = localMinval
 #else
    if (my_task < numProcs) then
@@ -2118,7 +2115,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = scalar
 #else
    if (my_task < numProcs) then
@@ -2176,7 +2173,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = scalar
 #else
    if (my_task < numProcs) then
@@ -2234,7 +2231,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = scalar
 #else
    if (my_task < numProcs) then
@@ -2286,7 +2283,7 @@
 !
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
    globalMinval = scalar
 #else
    call MPI_ALLREDUCE(scalar, globalMinval, 1, &
@@ -2368,7 +2365,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
       sums8 = psums8
 #else
       if (my_task < numProcs) then
@@ -2391,7 +2388,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
       sums16 = psums16
 #else
       if (my_task < numProcs) then
@@ -2414,7 +2411,7 @@ subroutine compute_sums_dbl(array2,sums8,mpicomm,numprocs)
       enddo
       enddo
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
       sums4 = psums4
 #else
       if (my_task < numProcs) then

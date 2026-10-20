@@ -281,9 +281,9 @@
       subroutine restartfile (ice_ic)
 
       use ice_boundary, only: ice_HaloUpdate_stress
-      use ice_blocks, only: nghost, nx_block, ny_block
+      use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
       use ice_calendar, only: istep0, npt, calendar
-      use ice_domain, only: nblocks, halo_info, ns_boundary_type
+      use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, &
           max_blocks
       use ice_dyn_shared, only: iceUmask, iceEmask, iceNmask,kdyn
@@ -805,11 +805,12 @@
 
       subroutine restartfile_v4 (ice_ic)
 
+      use ice_boundary, only: ice_HaloUpdate_stress
       use ice_broadcast, only: broadcast_scalar
-      use ice_blocks, only: nghost, nx_block, ny_block
+      use ice_blocks, only: nghost, nx_block, ny_block, ns_boundary_type
       use ice_calendar, only: istep0, istep1, timesecs, calendar, npt, &
           set_date_from_timesecs
-      use ice_domain, only: nblocks, distrb_info
+      use ice_domain, only: nblocks, halo_info
       use ice_domain_size, only: nilyr, nslyr, ncat, nx_global, ny_global, &
           max_blocks
       use ice_dyn_shared, only: iceUmask
@@ -818,8 +819,7 @@
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
-      use ice_gather_scatter, only: scatter_global_stress
-      use ice_read_write, only: ice_open, ice_read, ice_read_global
+      use ice_read_write, only: ice_open, ice_read
       use ice_state, only: trcr_depend, aice, vice, vsno, trcr, &
           aice0, aicen, vicen, vsnon, trcrn, aice_init, uvel, vvel, &
           trcr_base, nt_strata, n_trcr_strata
@@ -845,9 +845,6 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1
-
-      real (kind=dbl_kind), dimension(:,:), allocatable :: &
-         work_g1, work_g2
 
       real (kind=dbl_kind) :: &
          time_forc      ! historic, now local
@@ -991,52 +988,66 @@
       if (my_task == master_task) write(nu_diag,*) &
            'internal stress components'
 
-      allocate (work_g1(nx_global,ny_global), &
-                work_g2(nx_global,ny_global))
+      call ice_read(nu_restart,0,stressp_1,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stressp_3,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stressp_1
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stressp_3
-      call scatter_global_stress(stressp_1, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stressp_3, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      call ice_read(nu_restart,0,stressp_2,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stressp_4,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stressp_2
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stressp_4
-      call scatter_global_stress(stressp_2, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stressp_4, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      call ice_read(nu_restart,0,stressm_1,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stressm_3,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stressm_1
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stressm_3
-      call scatter_global_stress(stressm_1, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stressm_3, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      call ice_read(nu_restart,0,stressm_2,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stressm_4,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stressm_2
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stressm_4
-      call scatter_global_stress(stressm_2, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stressm_4, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      call ice_read(nu_restart,0,stress12_1,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stress12_3,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stress12_1
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stress12_3
-      call scatter_global_stress(stress12_1, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stress12_3, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      call ice_read(nu_restart,0,stress12_2,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
+      call ice_read(nu_restart,0,stress12_4,'ruf8',diag, &
+                    field_loc_center, field_type_scalar)
 
-      call ice_read_global(nu_restart,0,work_g1,'ruf8',diag) ! stress12_2
-      call ice_read_global(nu_restart,0,work_g2,'ruf8',diag) ! stress12_4
-      call scatter_global_stress(stress12_2, work_g1, work_g2, &
-                                 master_task, distrb_info)
-      call scatter_global_stress(stress12_4, work_g2, work_g1, &
-                                 master_task, distrb_info)
+      if (trim(ns_boundary_type) == 'tripole' .or. &
+          trim(ns_boundary_type) == 'tripoleT') then
+         call ice_HaloUpdate_stress(stressp_1, stressp_3, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressp_3, stressp_1, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressp_2, stressp_4, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressp_4, stressp_2, halo_info, &
+                                    field_loc_center,  field_type_scalar)
 
-      deallocate (work_g1, work_g2)
+         call ice_HaloUpdate_stress(stressm_1, stressm_3, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressm_3, stressm_1, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressm_2, stressm_4, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stressm_4, stressm_2, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+
+         call ice_HaloUpdate_stress(stress12_1, stress12_3, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stress12_3, stress12_1, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stress12_2, stress12_4, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         call ice_HaloUpdate_stress(stress12_4, stress12_2, halo_info, &
+                                    field_loc_center,  field_type_scalar)
+         ! TODO: CD-grid
+      endif
 
       !-----------------------------------------------------------------
       ! ice mask for dynamics
@@ -1184,21 +1195,18 @@
 
       subroutine direct_adjust_aice(test)
 
-        use ice_blocks, only: nghost, nx_block, ny_block
+        use ice_blocks, only: nx_block, ny_block
         use ice_domain, only: nblocks
         use ice_domain_size, only: nilyr, nslyr, ncat, max_blocks
         use ice_grid, only: tmask
         use ice_communicate, only: my_task, master_task
-        use ice_constants, only: c0, c1, c4, c20, c100, &
-             p5, p2, p1, p01, p001, &
-             field_loc_center, field_loc_NEcorner, &
-             field_type_scalar, field_type_vector
+        use ice_constants, only: c0, c20, &
+             p2, p1, p01, p001, &
+             field_loc_center, &
+             field_type_scalar
         use ice_fileunits, only: nu_diag
         use ice_flux, only:  &
-             Tair, Tf, salinz, Tmltz, sst,                  &
-             stressp_1, stressp_2, stressp_3, stressp_4,    &
-             stressm_1, stressm_2, stressm_3, stressm_4,    &
-             stress12_1, stress12_2, stress12_3, stress12_4
+             Tair, Tf, salinz, Tmltz, sst
         use ice_state, only:  &
              aice, aicen, vicen, vsnon, trcrn
         use ice_read_write, only: ice_check_nc, ice_read_nc, &
@@ -1217,7 +1225,6 @@
              aice_o,    & ! observation aice
              aice_t,    & ! target aice
              aice_i,    & ! insert ice
-             slope,     & ! used to compute surf Temp
              Ti,        & ! target surface temperature
              edge_om,   & ! nominal ice edge zone
              diff_om,   & ! allowed model vs obs difference

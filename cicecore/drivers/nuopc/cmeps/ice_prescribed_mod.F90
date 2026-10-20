@@ -92,7 +92,6 @@ contains
     character(*),parameter           :: subName = "('ice_prescribed_init')"
     character(*),parameter           :: F00 = "('(ice_prescribed_init) ',4a)"
     character(*),parameter           :: F01 = "('(ice_prescribed_init) ',a,i0)"
-    character(*),parameter           :: F02 = "('(ice_prescribed_init) ',2a,i0,)"
     !--------------------------------
 
     namelist /ice_prescribed_nml/ &
@@ -307,7 +306,6 @@ contains
     use ice_dyn_evp
 
     !----- Local ------
-    integer(kind=int_kind) :: layer    ! level index
     integer(kind=int_kind) :: nc       ! ice category index
     integer(kind=int_kind) :: i,j,k    ! longitude, latitude and level indices
     integer(kind=int_kind) :: iblk
@@ -319,8 +317,6 @@ contains
     real(kind=dbl_kind)    :: slope        ! diff in underlying ocean tmp and ice surface tmp
     real(kind=dbl_kind)    :: Ti           ! ice level temperature
     real(kind=dbl_kind)    :: Tmlt         ! ice level melt temperature
-    real(kind=dbl_kind)    :: qin_save(nilyr)
-    real(kind=dbl_kind)    :: qsn_save(nslyr)
     real(kind=dbl_kind)    :: hi           ! ice prescribed (hemispheric) ice thickness
     real(kind=dbl_kind)    :: hs           ! snow thickness
     real(kind=dbl_kind)    :: zn           ! normalized ice thickness

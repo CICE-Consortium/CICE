@@ -78,7 +78,6 @@
       use ice_state, only: trcr_depend
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_advect
       use ice_transport_remap, only: init_remap
-      use ice_grid, only: grid_ice
 
       integer (kind=int_kind) ::       &
          k, nt, nt1     ! tracer indices
@@ -708,9 +707,9 @@
       subroutine transport_upwind (dt)
 
       use ice_boundary, only: ice_HaloUpdate, ice_HaloExtrapolate
-      use ice_blocks, only: nx_block, ny_block, block, get_block, nx_block, ny_block
-      use ice_domain, only: blocks_ice, halo_info, nblocks, distrb_info, &
+      use ice_blocks, only: nx_block, ny_block, block, get_block, nx_block, ny_block, &
           ew_boundary_type, ns_boundary_type
+      use ice_domain, only: blocks_ice, halo_info, nblocks, distrb_info
       use ice_domain_size, only: ncat, max_blocks
       use ice_state, only: aice0, aicen, vicen, vsnon, trcrn, &
           uvel, vvel, trcr_depend, trcr_base, &

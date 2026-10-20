@@ -8,7 +8,9 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
+#ifndef NO_MPI
    use mpi   ! MPI Fortran module
+#endif
    use ice_kinds_mod
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -24,15 +26,19 @@
 
    integer (int_kind), public :: &
       MPI_COMM_ICE,             &! MPI communicator for ice comms
+#ifndef NO_MPI
       mpiR16,                   &! MPI type for r16_kind
       mpiR8,                    &! MPI type for dbl_kind
       mpiR4,                    &! MPI type for real_kind
+#endif
       my_task,                  &! MPI task number for this task
       master_task                ! task number of master task
 
+#ifndef NO_MPI
    integer (int_kind), parameter, public :: &
       mpitagHalo            = 1,    &! MPI tags for various
       mpitag_gs             = 1000   ! communication patterns
+#endif
 
    logical (log_kind), public :: &
       add_mpi_barriers      = .false. ! turn on mpi barriers for throttling
@@ -69,6 +75,12 @@
 !
 !-----------------------------------------------------------------------
 
+   master_task = 0
+
+#ifdef NO_MPI
+   MPI_COMM_ICE = -9999
+   my_task = 0
+#else
    if (present(mpicom)) then
      ice_comm = mpicom
    else
@@ -81,7 +93,6 @@
    call MPI_BARRIER (ice_comm, ierr)
    call MPI_COMM_DUP(ice_comm, MPI_COMM_ICE, ierr)
 
-   master_task = 0
    call MPI_COMM_RANK  (MPI_COMM_ICE, my_task, ierr)
 
 #if (defined NO_R16)
@@ -91,6 +102,7 @@
 #endif
    mpiR8  = MPI_REAL8
    mpiR4  = MPI_REAL4
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -100,8 +112,7 @@
 
  function get_num_procs()
 
-!  This function returns the number of processor assigned to
-!  MPI_COMM_ICE
+!  This function returns the number of processor assigned to MPI_COMM_ICE
 
    integer (int_kind) :: get_num_procs
 
@@ -116,7 +127,10 @@
 
 !-----------------------------------------------------------------------
 
+   get_num_procs = 1
+#ifndef NO_MPI
    call MPI_COMM_SIZE(MPI_COMM_ICE, get_num_procs, ierr)
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -142,7 +156,10 @@
 
 !-----------------------------------------------------------------------
 
+   get_rank = 0
+#ifndef NO_MPI
    call MPI_COMM_RANK(MPI_COMM_ICE, get_rank, ierr)
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -165,7 +182,9 @@
 
 !-----------------------------------------------------------------------
 
+#ifndef NO_MPI
    call MPI_BARRIER(MPI_COMM_ICE, ierr)
+#endif
 
 !-----------------------------------------------------------------------
 
@@ -206,6 +225,7 @@
 
    character(len=*), parameter :: subname = '(create_communicator)'
 
+#ifndef NO_MPI
 !-----------------------------------------------------------------------
 !
 !  determine group of processes assigned to distribution
@@ -230,7 +250,7 @@
 
    call MPI_COMM_CREATE (MPI_COMM_ICE, MPI_GROUP_NEW,  &
                          new_comm, ierr)
-
+#endif
 !-----------------------------------------------------------------------
 
  end subroutine create_communicator

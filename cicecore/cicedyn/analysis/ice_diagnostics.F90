@@ -1951,8 +1951,6 @@
 
       use ice_blocks, only: block, get_block
       use ice_domain, only: blocks_ice
-      use ice_grid, only: TLAT, TLON
-      use ice_state, only: aice
 
       integer (kind=int_kind), intent(in) :: &
          istop, jstop, & ! indices of grid cell where model aborts

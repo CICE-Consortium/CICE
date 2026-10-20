@@ -425,11 +425,9 @@ contains
     type(block)                      :: this_block         ! block information for current block
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
-    real (kind=dbl_kind)             :: MIN_RAIN_TEMP, MAX_SNOW_TEMP
     real (kind=dbl_kind)             :: Tffresh
     real (kind=dbl_kind)             :: inst_pres_height_lowest
     real (kind=dbl_kind), pointer    :: dataptr2d(:,:)
-    real (kind=dbl_kind), pointer    :: dataptr1d(:)
     real (kind=dbl_kind), pointer    :: dataptr2d_dstwet(:,:)
     real (kind=dbl_kind), pointer    :: dataptr2d_dstdry(:,:)
     character(len=char_len)          :: tfrz_option
@@ -887,13 +885,9 @@ contains
     ! local variables
     type(block)             :: this_block                           ! block information for current block
     integer                 :: i, j, iblk, n, k                     ! indices
-    integer                 :: n2                                   ! thickness category index
     integer                 :: ilo, ihi, jlo, jhi                   ! beginning and end of physical domain
     real    (kind=dbl_kind) :: workx, worky                         ! tmps for converting grid
-    integer (kind=int_kind) :: icells                               ! number of ocean/ice cells
     logical                 :: flag
-    integer (kind=int_kind) :: indxi (nx_block*ny_block)            ! compressed indices in i
-    integer (kind=int_kind) :: indxj (nx_block*ny_block)            ! compressed indices in i
     real    (kind=dbl_kind) :: Tsrf  (nx_block,ny_block,max_blocks) ! surface temperature
     real    (kind=dbl_kind) :: tauxa (nx_block,ny_block,max_blocks) ! atmo/ice stress
     real    (kind=dbl_kind) :: tauya (nx_block,ny_block,max_blocks) ! atm/ice stress
@@ -906,8 +900,6 @@ contains
     integer (kind=int_kind) :: nt_fsd
     real    (kind=dbl_kind) :: Tffresh, stefan_boltzmann
     real    (kind=dbl_kind), allocatable :: tempfld(:,:,:)
-    real    (kind=dbl_kind), pointer :: dataptr_ifrac_n(:,:)
-    real    (kind=dbl_kind), pointer :: dataptr_swpen_n(:,:)
     logical (kind=log_kind), save :: first_call = .true.
     character(len=*),parameter :: subname = 'ice_export'
     !-----------------------------------------------------
@@ -1400,7 +1392,7 @@ contains
     use ESMF , only : ESMF_MeshLoc_Element, ESMF_FieldCreate, ESMF_TYPEKIND_R8
     use ESMF , only : ESMF_MAXSTR, ESMF_Field, ESMF_State, ESMF_Mesh, ESMF_StateRemove
     use ESMF , only : ESMF_LogFoundError, ESMF_LOGMSG_INFO, ESMF_SUCCESS
-    use ESMF , only : ESMF_LogWrite, ESMF_LOGMSG_ERROR, ESMF_LOGERR_PASSTHRU
+    use ESMF , only : ESMF_LogWrite
     use ESMF , only : ESMF_VM
 
     ! input/output variables
@@ -1492,7 +1484,7 @@ contains
       ! create a field with scalar data on the root pe
       ! ----------------------------------------------
       use ESMF, only : ESMF_Field, ESMF_DistGrid, ESMF_Grid
-      use ESMF, only : ESMF_DistGridCreate, ESMF_GridCreate, ESMF_LogFoundError, ESMF_LOGERR_PASSTHRU
+      use ESMF, only : ESMF_DistGridCreate, ESMF_GridCreate, ESMF_LogFoundError
       use ESMF, only : ESMF_FieldCreate, ESMF_GridCreate, ESMF_TYPEKIND_R8
 
       type(ESMF_Field) , intent(inout) :: field
@@ -1567,7 +1559,7 @@ contains
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
-    integer                      :: i, j, iblk, n, i1, j1 ! incides
+    integer                      :: i, j, iblk, n         ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
     character(len=*), parameter  :: subname='(ice_import_export:state_getimport_4d)'
@@ -1641,7 +1633,7 @@ contains
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
-    integer                      :: i, j, iblk, n, i1, j1 ! incides
+    integer                      :: i, j, iblk, n         ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
     character(len=*) , parameter :: subname='(ice_import_export:state_getimport_3d)'
@@ -1718,7 +1710,7 @@ contains
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
-    integer                      :: i, j, iblk, n, i1, j1 ! indices
+    integer                      :: i, j, iblk, n         ! indices
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
     integer                      :: ice_num
@@ -1825,7 +1817,7 @@ contains
     ! local variables
     type(block)                  :: this_block            ! block information for current block
     integer                      :: ilo, ihi, jlo, jhi    ! beginning and end of physical domain
-    integer                      :: i, j, iblk, n, i1, j1 ! incides
+    integer                      :: i, j, iblk, n         ! incides
     real(kind=dbl_kind), pointer :: dataPtr1d(:)          ! mesh
     real(kind=dbl_kind), pointer :: dataPtr2d(:,:)        ! mesh
     integer                      :: num_ice

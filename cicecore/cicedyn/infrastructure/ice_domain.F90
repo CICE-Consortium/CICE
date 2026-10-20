@@ -21,7 +21,8 @@
        add_mpi_barriers, ice_barrier
    use ice_broadcast, only: broadcast_scalar, broadcast_array
    use ice_blocks, only: block, get_block, create_blocks, nghost, &
-       nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block, debug_blocks
+       nblocks_x, nblocks_y, nblocks_tot, nx_block, ny_block, debug_blocks, &
+       ew_boundary_type, ns_boundary_type
    use ice_distribution, only: distrb
    use ice_boundary, only: ice_halo
    use ice_exit, only: abort_ice
@@ -41,7 +42,9 @@
               init_domain_distribution
 
    integer (int_kind), public :: &
-      nblocks         ! actual number of blocks on this processor
+      nblocks, &         ! actual number of blocks on this processor
+      nblocks_max, &     ! max blocks on a proc across all procs
+      nblocks_active     ! total number of active blocks
 
    logical (kind=log_kind), public :: &
       close_boundaries   ! deprecated Nov, 2025
@@ -54,10 +57,6 @@
 
    type (ice_halo), public :: &
       halo_info          ! ghost cell update info
-
-   character (char_len), public :: &
-      ew_boundary_type,  &! type of domain bndy in each logical
-      ns_boundary_type    !    direction (ew is i, ns is j)
 
    integer (kind=int_kind), parameter, public :: &
       max_set_boundary_flds = 10
@@ -123,8 +122,7 @@
 
    integer (int_kind) :: &
       n, &                  ! counter
-      nml_error, &          ! namelist read error flag
-      nprocs_x, nprocs_y    ! procs decomposed into blocks
+      nml_error             ! namelist read error flag
 
    character(len=char_len)      :: nml_name ! text namelist name
    character(len=char_len_long) :: tmpstr2 ! for namelist check
@@ -141,6 +139,7 @@
                          max_blocks,   &
                          block_size_x, &
                          block_size_y, &
+                         nghost,       &
                          nx_global,    &
                          ny_global,    &
                          processor_shape,   &
@@ -179,6 +178,7 @@
    max_blocks        = -1          ! max number of blocks per processor
    block_size_x      = -1          ! size of block in first horiz dimension
    block_size_y      = -1          ! size of block in second horiz dimension
+   nghost            = 1           ! gridcells in halo
    nx_global         = -1          ! NXGLOB,  i-axis size
    ny_global         = -1          ! NYGLOB,  j-axis size
    landblockelim     = .true.      ! on by default
@@ -236,8 +236,69 @@
    call broadcast_scalar(max_blocks,        master_task)
    call broadcast_scalar(block_size_x,      master_task)
    call broadcast_scalar(block_size_y,      master_task)
+   call broadcast_scalar(nghost,            master_task)
    call broadcast_scalar(nx_global,         master_task)
    call broadcast_scalar(ny_global,         master_task)
+
+   ! "compress" set_boundary_flds data
+   num_set_boundary_flds = 0
+   do n = 1,max_set_boundary_flds
+      if (set_boundary_flds(n) /= '' .and. set_boundary_flds(n) /= 'none') then
+         num_set_boundary_flds = num_set_boundary_flds + 1
+         set_boundary_flds(num_set_boundary_flds) = set_boundary_flds(n)
+      endif
+   enddo
+   set_boundary_flds(num_set_boundary_flds+1:max_set_boundary_flds) = ''
+
+!----------------------------------------------------------------------
+!
+! Set nprocs if not explicitly set to valid value in namelist
+!
+!----------------------------------------------------------------------
+
+#ifdef CESMCOUPLED
+   nprocs = get_num_procs()
+#else
+   if (nprocs < 0) then
+      nprocs = get_num_procs()
+   else if (nprocs /= get_num_procs()) then
+      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
+      call abort_ice(subname//' ERROR: Input nprocs not same as system (e.g MPI) request', file=__FILE__, line=__LINE__)
+   endif
+#endif
+
+!----------------------------------------------------------------------
+!
+!  Print some domain information
+!
+!----------------------------------------------------------------------
+
+   if (my_task == master_task) then
+     write(nu_diag,'(/,a18,/)')'Domain Information'
+     write(nu_diag,'(a,i6)')  '  Horizontal domain: nx = ', nx_global
+     write(nu_diag,'(a,i6)')  '                     ny = ', ny_global
+     write(nu_diag,'(a,i6)')  '  No. of categories: nc = ', ncat
+     write(nu_diag,'(a,i6)')  '  No. of ice layers: ni = ', nilyr
+     write(nu_diag,'(a,i6)')  '  No. of snow layers:ns = ', nslyr
+     write(nu_diag,'(a,i6)')  '  Processors:  total    = ', nprocs
+     write(nu_diag,'(a,a)')   '  Processor shape       = ', trim(processor_shape)
+     write(nu_diag,'(a,a)')   '  Distribution type     = ', trim(distribution_type)
+     write(nu_diag,'(a,a)')   '  Distribution weight   = ', trim(distribution_wght)
+     write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
+     write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
+     write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
+     do n = 1,num_set_boundary_flds
+        write(nu_diag,'(a,a)')   '  set_boundary_flds     = ', trim(set_boundary_flds(n))
+     enddo
+     write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
+     write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
+     write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
+     write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
+     write(nu_diag,'(a,l6)')  '  debug_blocks          = ', debug_blocks
+     write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
+     write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
+     write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
+   endif
 
 !----------------------------------------------------------------------
 !
@@ -276,33 +337,6 @@
       endif
    enddo
 
-   ! "compress" set_boundary_flds data
-   num_set_boundary_flds = 0
-   do n = 1,max_set_boundary_flds
-      if (set_boundary_flds(n) /= '' .and. set_boundary_flds(n) /= 'none') then
-         num_set_boundary_flds = num_set_boundary_flds + 1
-         set_boundary_flds(num_set_boundary_flds) = set_boundary_flds(n)
-      endif
-   enddo
-   set_boundary_flds(num_set_boundary_flds+1:max_set_boundary_flds) = ''
-
-!----------------------------------------------------------------------
-!
-! Set nprocs if not explicitly set to valid value in namelist
-!
-!----------------------------------------------------------------------
-
-#ifdef CESMCOUPLED
-   nprocs = get_num_procs()
-#else
-   if (nprocs < 0) then
-      nprocs = get_num_procs()
-   else if (nprocs /= get_num_procs()) then
-      write(nu_diag,*) subname,' ERROR: nprocs, get_num_procs = ',nprocs,get_num_procs()
-      call abort_ice(subname//' ERROR: Input nprocs not same as system (e.g MPI) request', file=__FILE__, line=__LINE__)
-   endif
-#endif
-
 !----------------------------------------------------------------------
 !
 !  perform some basic checks on domain
@@ -330,41 +364,6 @@
    call create_blocks(nx_global, ny_global, trim(ew_boundary_type), &
                                             trim(ns_boundary_type))
 
-!----------------------------------------------------------------------
-!
-!  Now we need grid info before proceeding further
-!  Print some domain information
-!
-!----------------------------------------------------------------------
-
-   if (my_task == master_task) then
-     write(nu_diag,'(/,a18,/)')'Domain Information'
-     write(nu_diag,'(a,i6)')  '  Horizontal domain: nx = ', nx_global
-     write(nu_diag,'(a,i6)')  '                     ny = ', ny_global
-     write(nu_diag,'(a,i6)')  '  No. of categories: nc = ', ncat
-     write(nu_diag,'(a,i6)')  '  No. of ice layers: ni = ', nilyr
-     write(nu_diag,'(a,i6)')  '  No. of snow layers:ns = ', nslyr
-     write(nu_diag,'(a,i6)')  '  Processors:  total    = ', nprocs
-     write(nu_diag,'(a,a)')   '  Processor shape       = ', trim(processor_shape)
-     write(nu_diag,'(a,a)')   '  Distribution type     = ', trim(distribution_type)
-     write(nu_diag,'(a,a)')   '  Distribution weight   = ', trim(distribution_wght)
-     write(nu_diag,'(a,a)')   '  Distribution wght file= ', trim(distribution_wght_file)
-     write(nu_diag,'(a,a)')   '  ew_boundary_type      = ', trim(ew_boundary_type)
-     write(nu_diag,'(a,a)')   '  ns_boundary_type      = ', trim(ns_boundary_type)
-     do n = 1,num_set_boundary_flds
-        write(nu_diag,'(a,a)')   '  set_boundary_flds     = ', trim(set_boundary_flds(n))
-     enddo
-     write(nu_diag,'(a,l6)')  '  maskhalo_dyn          = ', maskhalo_dyn
-     write(nu_diag,'(a,l6)')  '  maskhalo_remap        = ', maskhalo_remap
-     write(nu_diag,'(a,l6)')  '  maskhalo_bound        = ', maskhalo_bound
-     write(nu_diag,'(a,l6)')  '  add_mpi_barriers      = ', add_mpi_barriers
-     write(nu_diag,'(a,l6)')  '  debug_blocks          = ', debug_blocks
-     write(nu_diag,'(a,2i6)') '  block_size_x,_y       = ', block_size_x, block_size_y
-     write(nu_diag,'(a,i6)')  '  max_blocks            = ', max_blocks
-     write(nu_diag,'(a,i6,/)')'  Number of ghost cells = ', nghost
-   endif
-
-!----------------------------------------------------------------------
 
  end subroutine init_domain_blocks
 
@@ -398,8 +397,6 @@
    integer (int_kind), dimension (nx_global, ny_global) :: &
       flat                 ! latitude-dependent scaling factor
 
-   character (char_len) :: outstring
-
    integer (int_kind), parameter :: &
       max_work_unit=10    ! quantize the work into values from 1,max
 
@@ -409,15 +406,12 @@
       igm1,igp1,jgm1,jgp1,&! global indices
       ninfo              ,&! ice_distributionGet check
       np, nlb, m         ,&! debug blocks temporaries
-      work_unit          ,&! size of quantized work unit
 #ifdef USE_NETCDF
       fid                ,&! file id
       varid              ,&! var id
       status             ,&! netcdf return code
 #endif
-      tblocks_tmp        ,&! total number of blocks
-      nblocks_tmp        ,&! temporary value of nblocks
-      nblocks_max          ! max blocks on proc
+      work_unit            ! size of quantized work unit
 
    real (dbl_kind) :: &
       puny, &              ! puny limit
@@ -620,11 +614,11 @@
       nblocks = 0
    endif
 
-   tblocks_tmp = global_sum(nblocks, distrb_info)
+   nblocks_active = global_sum(nblocks, distrb_info)
    nblocks_max = global_maxval(nblocks, distrb_info)
 
    if (my_task == master_task) then
-      write(nu_diag,'(2a,i8)') subname,' total number of blocks is', tblocks_tmp
+      write(nu_diag,'(2a,i8)') subname,' total number of blocks is', nblocks_active
    endif
 
    if (nblocks > max_blocks) then

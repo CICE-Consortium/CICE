@@ -11,6 +11,7 @@
 ! Oct. 2004: Adapted from POP by William H. Lipscomb, LANL
 
    use ice_kinds_mod
+   use ice_constants, only: spval_int
    use ice_domain_size, only: block_size_x, block_size_y
    use ice_fileunits, only: nu_diag
    use ice_exit, only: abort_ice
@@ -45,11 +46,15 @@
              get_block_parameter ,&
              ice_blocksGetNbrID
 
-   integer (int_kind), parameter, public :: &
-      nghost = 1       ! number of ghost cells around each block
+   integer (int_kind), public :: &
+      nghost              ! number of ghost cells around each block
 
    integer (int_kind), public :: &! size of block domain in
-      nx_block, ny_block          !  x,y dir including ghost
+      nx_block, ny_block  !  x,y dir including ghost
+
+   character (char_len), public :: &
+      ew_boundary_type,  &! type of domain bndy in each logical
+      ns_boundary_type    !    direction (ew is i, ns is j)
 
    ! predefined directions for neighbor id routine
    ! Note: the directions that are commented out are implemented in
@@ -92,23 +97,27 @@
    logical (kind=log_kind), public :: &
       debug_blocks       ! print verbose block information
 
+   integer (int_kind), dimension(:), allocatable, public :: &
+      i_global         ,&! global i index
+      j_global           ! global j index
+
 !-----------------------------------------------------------------------
 !
 !  module private data
 !
 !-----------------------------------------------------------------------
 
-   type (block), dimension(:), allocatable, public :: &
+   type (block), dimension(:), allocatable :: &
       all_blocks         ! block information for all blocks in domain
 
-   integer (int_kind), dimension(:,:),allocatable, public :: &
+   integer (int_kind), dimension(:,:),allocatable :: &
       all_blocks_ij      ! block index stored in Cartesian order
                          !   useful for determining block index
                          !   of neighbor blocks
 
-   integer (int_kind), dimension(:,:), allocatable, target, public :: &
-      i_global,         &! global i index for each point in each block
-      j_global           ! global j index for each point in each block
+   integer (int_kind), dimension(:,:), allocatable, target :: &
+      i_glob_data,      &! global i index for each point in each block
+      j_glob_data        ! global j index for each point in each block
 
 !***********************************************************************
 
@@ -140,7 +149,8 @@ contains
    integer (int_kind) :: &
       i, j, n              ,&! loop indices
       iblock, jblock       ,&! block loop indices
-      is, ie, js, je         ! temp start, end indices
+      iindg, jindg         ,&! i,j global index
+      is, js                 ! temp start indices
 
    character(len=*), parameter :: subname = '(create_blocks)'
 
@@ -179,23 +189,38 @@ contains
 !----------------------------------------------------------------------
 
    if (.not.allocated(all_blocks)) allocate(all_blocks(nblocks_tot))
-   if (.not.allocated(i_global)) allocate(i_global(nx_block,nblocks_tot))
-   if (.not.allocated(j_global)) allocate(j_global(ny_block,nblocks_tot))
+   if (.not.allocated(i_glob_data)) allocate(i_glob_data(nx_block,nblocks_tot))
+   if (.not.allocated(j_glob_data)) allocate(j_glob_data(ny_block,nblocks_tot))
    if (.not.allocated(all_blocks_ij)) allocate(all_blocks_ij(nblocks_x,nblocks_y))
+   if (.not.allocated(i_global)) allocate(i_global(1-nghost:nx_global+nghost))
+   if (.not.allocated(j_global)) allocate(j_global(1-nghost:ny_global+nghost))
 
 !----------------------------------------------------------------------
 !
 !  fill block data structures for all blocks in domain
+!  i_global/j_global should match i_glob/j_glob exactly
+!  i_global and j_global are the global i and j indices with
+!     - halo values having <1 and > nx/ny_global indices except
+!     - cyclic values imposed on halo
+!     - zero_gradient values imposed on halo
+!     - north tripole halo is negative the expected value
+!     - which means only linear_extrap values are not [1,nx/ny_global]
 !
 !----------------------------------------------------------------------
+
+   do i = 1-nghost, nx_global+nghost
+      i_global(i) = i
+   enddo
+
+   do j = 1-nghost, ny_global+nghost
+      j_global(j) = j
+   enddo
 
    n = 0
    do jblock=1,nblocks_y
       js = (jblock-1)*block_size_y + 1
       if (js > ny_global) call abort_ice(subname// &
             ' ERROR: Bad block decomp: ny_block too large?')
-      je = js + block_size_y - 1
-      if (je > ny_global) je = ny_global ! pad array
 
       do iblock=1,nblocks_x
          n = n + 1  ! global block id
@@ -203,8 +228,6 @@ contains
          is = (iblock-1)*block_size_x + 1
          if (is > nx_global) call abort_ice(subname// &
             ' ERROR: Bad block decomp: nx_block too large?')
-         ie = is + block_size_x - 1
-         if (ie > nx_global) ie = nx_global
 
          all_blocks(n)%block_id = n
          all_blocks(n)%iblock   = iblock
@@ -226,88 +249,42 @@ contains
          all_blocks_ij(iblock,jblock) = n
 
          do j=1,ny_block
-            j_global(j,n) = js - nghost + j - 1  ! simple lower to upper counting
-
-            !*** southern ghost cells
-
-            if (j_global(j,n) < 1) then
-               select case (ns_boundary_type)
-               case ('cyclic')
-                  j_global(j,n) = j_global(j,n) + ny_global
-               case default
-                  ! lower to upper
-               end select
+            jindg = js - nghost + j - 1
+            if (jindg >= 1-nghost .and. jindg <= ny_global+nghost) then
+                j_glob_data(j,n) = j_global(jindg)  ! simple lower to upper counting
+            else
+                j_glob_data(j,n) = spval_int  ! padding
             endif
-
-            !*** padding required
-
-            if (j_global(j,n) > ny_global + nghost) then
-               j_global(j,n) = 0   ! padding
-
-            !*** northern ghost cells
-
-            else if (j_global(j,n) > ny_global) then
-               select case (ns_boundary_type)
-               case ('cyclic')
-                  j_global(j,n) = j_global(j,n) - ny_global
-               case ('tripole')
-                  j_global(j,n) = -j_global(j,n)  ! negative
-               case ('tripoleT')
-                  j_global(j,n) = -j_global(j,n)  ! negative
-               case default
-                  ! lower to upper
-               end select
 
             !*** set last physical point if padded domain
 
-            else if (j_global(j,n) == ny_global .and. &
+            if (j_glob_data(j,n) == ny_global .and. &
                      j >= all_blocks(n)%jlo      .and. &
                      j <  all_blocks(n)%jhi) then
                all_blocks(n)%jhi = j   ! last physical point in padded domain
             endif
          end do
 
-         all_blocks(n)%j_glob => j_global(:,n)
+         all_blocks(n)%j_glob => j_glob_data(:,n)
 
          do i=1,nx_block
-            i_global(i,n) = is - nghost + i - 1  ! left to right counting
-
-            !*** western ghost cells
-
-            if (i_global(i,n) < 1) then
-               select case (ew_boundary_type)
-               case ('cyclic')
-                  i_global(i,n) = i_global(i,n) + nx_global
-               case default
-                  ! left to right
-               end select
+            iindg = is - nghost + i - 1
+            if (iindg >= 1-nghost .and. iindg <= nx_global+nghost) then
+                i_glob_data(i,n) = i_global(iindg)  ! simple lower to upper counting
+            else
+                i_glob_data(i,n) = spval_int  ! padding
             endif
-
-            !*** padded domain - fill padded region with zero
-
-            if (i_global(i,n) > nx_global + nghost) then
-               i_global(i,n) = 0
-
-            !*** eastern ghost cells
-
-            else if (i_global(i,n) > nx_global) then
-               select case (ew_boundary_type)
-               case ('cyclic')
-                  i_global(i,n) = i_global(i,n) - nx_global
-               case default
-                  ! left to right
-               end select
 
             !*** last physical point in padded domain
 
-            else if (i_global(i,n) == nx_global .and. &
+            if (i_glob_data(i,n) == nx_global .and. &
                      i >= all_blocks(n)%ilo      .and. &
                      i <  all_blocks(n)%ihi) then
                all_blocks(n)%ihi = i
             endif
          end do
 
-         all_blocks(n)%i_glob => i_global(:,n)
+         all_blocks(n)%i_glob => i_glob_data(:,n)
 
       end do
    end do

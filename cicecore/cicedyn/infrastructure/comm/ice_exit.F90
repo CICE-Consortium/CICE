@@ -1,6 +1,4 @@
 
-#define SERIAL_REMOVE_MPI
-
 !=======================================================================
 !
 ! Exit the model.
@@ -16,7 +14,7 @@
 #if (defined CESMCOUPLED)
       use shr_sys_mod
 #else
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
       use mpi   ! MPI Fortran module
 #endif
 #endif
@@ -70,7 +68,7 @@
 #if (defined CESMCOUPLED)
          call shr_sys_abort(subname//trim(error_message))
 #else
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
          error_code = 128
          call MPI_ABORT(MPI_COMM_WORLD, error_code, ierr)
 #endif
@@ -90,7 +88,7 @@
       integer (int_kind) :: ierr ! MPI error flag
       character(len=*), parameter :: subname = '(end_run)'
 
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
       call MPI_FINALIZE(ierr)
 #endif
 

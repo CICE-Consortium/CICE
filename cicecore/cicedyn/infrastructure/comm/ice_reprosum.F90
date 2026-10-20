@@ -1,6 +1,5 @@
 
 !> Reproducible sum method from P. Worley
-#define SERIAL_REMOVE_MPI
 
 MODULE ice_reprosum
 
@@ -37,7 +36,7 @@ MODULE ice_reprosum
 !-----------------------------------------------------------------------
 !- use statements ------------------------------------------------------
 !-----------------------------------------------------------------------
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
 use mpi   ! MPI Fortran module
 #endif
 #if defined (NO_I8)
@@ -417,7 +416,7 @@ use mpi   ! MPI Fortran module
       if ( present(commid) ) then
          mpi_comm = commid
       else
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
          mpi_comm = 0
 #else
          mpi_comm = MPI_COMM_WORLD
@@ -445,7 +444,7 @@ use mpi   ! MPI Fortran module
 !         if (detailed_timing) call xicex_timer_start('ice_reprosum_int')
 
 ! get number of MPI tasks
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
          tasks = 1
          mype = 0
 #else
@@ -489,7 +488,7 @@ use mpi   ! MPI Fortran module
 !               if (detailed_timing) call xicex_timer_start("repro_sum_allr_max")
                if ( present(gbl_max_nsummands) ) then
                   if (gbl_max_nsummands < 1) then
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
                      max_nsummands = nsummands
 #else
                      call mpi_allreduce (nsummands, max_nsummands, 1, &
@@ -500,7 +499,7 @@ use mpi   ! MPI Fortran module
                      max_nsummands = gbl_max_nsummands
                   endif
                else
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
                   max_nsummands = nsummands
 #else
                   call mpi_allreduce (nsummands, max_nsummands, 1, &
@@ -611,7 +610,7 @@ use mpi   ! MPI Fortran module
             arr_lextremes(1:nflds,1) = -arr_lmax_exp(:)
             arr_lextremes(1:nflds,2) = arr_lmin_exp(:)
 !            if (detailed_timing) call xicex_timer_start("repro_sum_allr_minmax")
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
             arr_gextremes = arr_lextremes
 #else
             call mpi_allreduce (arr_lextremes, arr_gextremes, 2*(nflds+1), &
@@ -724,7 +723,7 @@ use mpi   ! MPI Fortran module
                end do
             end do
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
             arr_gsum_fast = arr_lsum
 #else
             call mpi_allreduce (arr_lsum, arr_gsum_fast, nflds, &
@@ -1030,7 +1029,7 @@ use mpi   ! MPI Fortran module
       endif
 
 ! sum integer vector element-wise
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
       i8_arr_gsum_level = i8_arr_lsum_level
 #else
 #if defined (NO_I8)
@@ -1349,7 +1348,7 @@ use mpi   ! MPI Fortran module
       call ice_shr_reprosumx86_fix_start (old_cw)
 
       if (first_time) then
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
          mpi_sumdd = 0
 #else
          call mpi_op_create(ddpdd, .true., mpi_sumdd, ierr)
@@ -1376,7 +1375,7 @@ use mpi   ! MPI Fortran module
 
       enddo
 
-#ifdef SERIAL_REMOVE_MPI
+#ifdef NO_MPI
       arr_gsum_dd = arr_lsum_dd
 #else
       call mpi_allreduce (arr_lsum_dd, arr_gsum_dd, nflds, &

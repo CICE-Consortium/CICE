@@ -1,5 +1,4 @@
 !|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-#define SERIAL_REMOVE_MPI
 
  module ice_broadcast
 
@@ -9,15 +8,11 @@
 ! author: Phil Jones, LANL
 ! Oct. 2004: Adapted from POP version by William H. Lipscomb, LANL
 
-#ifndef SERIAL_REMOVE_MPI
+#ifndef NO_MPI
    use mpi   ! MPI Fortran module
-#endif
-   use ice_kinds_mod
-#ifdef SERIAL_REMOVE_MPI
-   use ice_communicate, only: MPI_COMM_ICE
-#else
    use ice_communicate, only: mpiR8, mpiR4, MPI_COMM_ICE
 #endif
+   use ice_kinds_mod
    use ice_exit, only: abort_ice
    use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
@@ -85,9 +80,7 @@
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    call MPI_BCAST(scalar, 1, mpiR8, root_pe, MPI_COMM_ICE, ierr)
    call MPI_BARRIER(MPI_COMM_ICE, ierr)
 #endif
@@ -121,9 +114,7 @@ subroutine broadcast_scalar_real(scalar, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    call MPI_BCAST(scalar, 1, mpiR4, root_pe, MPI_COMM_ICE, ierr)
    call MPI_BARRIER(MPI_COMM_ICE, ierr)
 #endif
@@ -157,9 +148,7 @@ subroutine broadcast_scalar_int(scalar, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    call MPI_BCAST(scalar, 1, MPI_INTEGER, root_pe, MPI_COMM_ICE,ierr)
    call MPI_BARRIER(MPI_COMM_ICE, ierr)
 #endif
@@ -195,9 +184,7 @@ subroutine broadcast_scalar_log(scalar, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    if (scalar) then
      itmp = 1
    else
@@ -245,9 +232,7 @@ subroutine broadcast_scalar_char(scalar, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    clength = len(scalar)
 
    call MPI_BCAST(scalar, clength, MPI_CHARACTER, root_pe, MPI_COMM_ICE, ierr)
@@ -285,9 +270,7 @@ subroutine broadcast_array_dbl_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
@@ -325,9 +308,7 @@ subroutine broadcast_array_real_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
@@ -365,9 +346,7 @@ subroutine broadcast_array_int_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
@@ -409,9 +388,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
    allocate(array_int(nelements))
 
@@ -465,9 +442,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
@@ -505,9 +480,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
@@ -545,9 +518,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
@@ -589,9 +560,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
    allocate(array_int(size(array,dim=1),size(array,dim=2)))
 
@@ -645,9 +614,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR8, root_pe, MPI_COMM_ICE, ierr)
@@ -685,9 +652,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, mpiR4, root_pe, MPI_COMM_ICE, ierr)
@@ -725,9 +690,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
 
    call MPI_BCAST(array, nelements, MPI_INTEGER, root_pe, MPI_COMM_ICE, ierr)
@@ -769,9 +732,7 @@ subroutine broadcast_array_log_1d(array, root_pe)
 
 !-----------------------------------------------------------------------
 
-#ifdef SERIAL_REMOVE_MPI
-   ! nothing to do
-#else
+#ifndef NO_MPI
    nelements = size(array)
    allocate(array_int(size(array,dim=1), &
                       size(array,dim=2), &

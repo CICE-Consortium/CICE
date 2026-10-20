@@ -358,7 +358,6 @@
 
       subroutine accum_hist_mechred (iblk)
 
-      use ice_blocks, only: nx_block, ny_block
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn

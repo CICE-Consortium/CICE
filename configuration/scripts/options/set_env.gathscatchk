@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/gathscatchk
+setenv ICE_TARGET     gathscatchk

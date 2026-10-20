@@ -65,14 +65,14 @@
           histfreq_n, days_per_year, use_leap_years, dayyr, &
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
-      use ice_domain, only: distrb_info, nblocks
-      use ice_domain_size, only: nx_global, ny_global, max_blocks
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: nx_global, ny_global
       use ice_flux, only: albcnt, snwcnt
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
           hm, bm, uvm, npm, epm, &
           dxU, dxT, dyU, dyT, dxN, dyN, dxE, dyE, HTN, HTE, ANGLE, ANGLET, &
-          tarea, uarea, narea, earea, tmask, umask, nmask, emask, &
+          tarea, uarea, narea, earea, &
           lont_bounds, latt_bounds, lonu_bounds, latu_bounds, &
           lonn_bounds, latn_bounds, lone_bounds, late_bounds
       use ice_history_shared
@@ -84,9 +84,9 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: i,j,k,ic,n,nn, &
-         ncid,status,kmtidi,kmtids,kmtidb,cmtid,timid, &
-         length,nvertexid,ivertex,kmtida,fmtid,lhistprec
+      integer (kind=int_kind) :: i,j,k,n,nn, &
+         status,kmtidi,kmtids,kmtidb,cmtid,timid, &
+         nvertexid,ivertex,kmtida,fmtid,lhistprec
       integer (kind=int_kind), dimension(2) :: dimid2
       integer (kind=int_kind), dimension(3) :: dimid3
       integer (kind=int_kind), dimension(4) :: dimidz
@@ -101,10 +101,9 @@
       character (len=char_len_long) :: ncfile
       character (len=512) :: extvars
 
-      integer (kind=int_kind) :: icategory,ind,i_aice,boundid, lprecision
+      integer (kind=int_kind) :: ind,boundid, lprecision
 
       character (len=char_len) :: start_time,current_date,current_time
-      character (len=16) :: c_aice
 
       type(file_desc_t)     :: File
       type(io_desc_t)       :: iodesc2d, &
@@ -141,9 +140,6 @@
       real (kind=real_kind), allocatable :: workr3v(:,:,:,:)
 
       character(len=char_len_long) ::  filename
-
-      integer (kind=int_kind), dimension(1) ::  &
-         tim_start,tim_length          ! dimension quantities for netCDF
 
       integer (kind=int_kind), dimension(2) ::  &
          bnd_start,bnd_length          ! dimension quantities for netCDF
@@ -1417,7 +1413,7 @@
       real (kind=dbl_kind), dimension(:,:,:,:),   allocatable :: work3
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: work4
 
-      integer (kind=int_kind) :: i,j,k,n,nn,ns,ncid,status
+      integer (kind=int_kind) :: i,j,k,n,nn,ns,status
       logical (kind=log_kind) :: exists
       character (char_len_long) :: ncfile
       character (len=1) :: cns
@@ -1985,7 +1981,6 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: status
       character(len=*), parameter :: subname = '(ice_write_hist_fill)'
 
       if (precision == 8) then

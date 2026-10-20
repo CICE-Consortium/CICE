@@ -1007,7 +1007,6 @@
           doc, don, dic, fed, fep, zaeros, hum
       use ice_grid, only: tmask
       use ice_state, only: trcrn
-      use ice_flux, only: sss
       use ice_restart, only:  write_restart_field
 
       ! local variables
@@ -1406,11 +1405,10 @@
 
       use ice_blocks, only: block, get_block
       use ice_communicate, only: my_task, master_task
-      use ice_domain, only: nblocks, blocks_ice
+      use ice_domain, only: nblocks
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic,&
           n_don, n_zaero, n_fed, n_fep
       use ice_fileunits, only: nu_restart_bgc
-      use ice_flux, only: sss
       use ice_flux_bgc, only: nit, amm, sil, dmsp, dms, algalN, &
           doc, don, dic, fed, fep, zaeros, hum
       use ice_state, only: trcrn
@@ -1422,9 +1420,8 @@
          this_block      ! block information for current block
 
       integer (kind=int_kind) :: &
-         i, j, k, iblk, & ! indices
-         mm           , & ! n_algae
-         ilo,ihi,jlo,jhi  ! beginning and end of physical domain
+         k,            & ! indices
+         mm              ! n_algae
 
       logical (kind=log_kind) :: diag
 

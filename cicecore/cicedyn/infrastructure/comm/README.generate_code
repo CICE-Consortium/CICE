@@ -1,0 +1,70 @@
+
+How to Generate the ice_HaloUpdate and ice_gather/scatter subroutines quickly
+
+generate_HaloUpdate.sh and generate_GatherScatter.sh are scripts that generate 
+the multiple ice_HaloUpdate calls in ice_boundary.F90 and the ice_gather/scatter 
+calls in ice_gather_scatter.F90 to keep them all self-consistent.  
+The script uses a template to generate the various overloaded subroutines 
+depending on dimension, data type, and other factors.  It supports both serial and mpi
+code.
+
+generate_HaloUpdate.sh and generate_GatherScatter.sh create files for each 
+subroutine with a name that ends in .subr.  Those files are catted into *_all.subr
+file and can replace the code in between "autogenerate start" and "autogenerate end"
+in ice_boundary.F90 and ice_gather_scatter.F90 respectively.
+
+The recommended usage is described below.
+
+1. Verify the current version of generate_HaloUpdate.sh and generate_GatherScatter.sh
+ 
+  cd cicecore/cicedyn/infrastructure/comm/mpi
+   ./generate_HaloUpdate.sh
+   ./generate_GatherScatter.sh
+
+  ! Verify generate_HaloUpdate.sh produces code in HaloUpdate_all.subr that matches the current 
+  ! implementation in ice_boundary.F90.  If it doesn't, it suggests someone made manual changes to 
+  ! the subroutines in ice_boundary.F90.  Try to reconcile those differences and update 
+  ! generate_HaloUpdate.sh first, then move forward.
+  ! Do the same for generate_GatherScatter, GatherScatter_all.subr, and ice_gather_scatter.F90.
+
+  ! Now copy the current output.
+
+  cp haloUpdate_all.subr haloUpdate_all.subr.current
+  cp GatherScatter_all.subr GatherScatter_all.subr.current
+
+2. Update generate_HaloUpdate.sh and/or generate_GatherScatter.sh and generate new subroutines
+
+  ! Modify generate_HaloUpdate.sh and/or generate_GatherScatter.sh to generate updated code then run
+
+  ./generate_HaloUpdate.sh
+  diff haloUpdate_all.subr.current haloUpdate_all.subr
+
+  and/or
+
+  ./generate_GatherScatter.sh
+  diff GatherScatter_all.subr.current GatherScatter_all.subr
+
+  ! Review diffences with the current code (HaloUpdate_all.current)
+
+3. Update the source code, ice_boundary.F90 and/or ice_gather_scatter.F90
+
+  ! When the changes are reasonable and as expected, edit ice_boundary.F90, cut out the code
+  ! between "autogenerate start" and "autogenerate end" and replace that code with the latest 
+  ! HaloUpdate_all.subr file.
+  ! Do the same with ice_gather_scatter.F90 and GatherScatter_all.subr.
+
+  cp ice_boundary.F90 ice_boundary.F90.current
+  ! edit ice_boundary.F90, replace subroutines with HaloUpdate_all.subr
+  diff ice_boundary.F90.current ice_boundary.F90
+
+  cp ice_gather_scatter.F90 ice_gather_scatter.F90.current
+  ! edit ice_gather_scatter.F90, replace subroutines with GatherScatter_all.subr
+  diff ice_gather_scatter.F90.current ice_gather_scatter.F90
+
+  ! There may be some extra blank lines or subroutine separators that need to be cleaned up at the
+  ! start or end of the replacement code
+
+4. Test and test again
+
+  ! Run both single and multi processor tests and iterate until done.
+

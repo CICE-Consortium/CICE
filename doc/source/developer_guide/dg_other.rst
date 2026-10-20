@@ -331,8 +331,7 @@ Timing any section of code, or multiple sections, consists of defining
 the timer and then wrapping the code with start and stop commands for
 that timer. Printing of the timer output is done simultaneously for all
 timers. To add a timer, first declare it (`timer\_[tmr]`) at the top of
-**ice\_timers.F90** (we recommend doing this in both the **mpi/** and
-**serial/** directories), then add a call to *get\_ice\_timer* in the
+**ice\_timers.F90**, then add a call to *get\_ice\_timer* in the
 subroutine *init\_ice\_timers*. In the module containing the code to be
 timed, `call ice\_timer\_start`(`timer\_[tmr]`) at the beginning of the
 section to be timed, and a similar call to `ice\_timer\_stop` at the end.

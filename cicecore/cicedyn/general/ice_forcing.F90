@@ -414,7 +414,7 @@
          if (trestore == c0) then
             frestore = c1      ! use data instantaneously
          else
-            frestore = max(dt/(trestore*secday),c1)
+            frestore = min(dt/(trestore*secday),c1)
          endif
       endif
 
@@ -2239,6 +2239,8 @@
          grd = 'gx1'
       else if (index(trim(atm_data_dir),'gx3') > 0) then
          grd = 'gx3'
+      else if (index(trim(atm_data_dir),'tx1m') > 0) then
+         grd = 'tx1m'
       else if (index(trim(atm_data_dir),'tx1') > 0) then
          grd = 'tx1'
       else
@@ -4827,14 +4829,6 @@
          uatm_data_p, vatm_data_p
 
       real (kind=dbl_kind), parameter :: & ! coefficients for Hyland-Wexler Qa
-         ps1 = 0.58002206e4_dbl_kind,    & ! (K)
-         ps2 = 1.3914993_dbl_kind,       & !
-         ps3 = 0.48640239e-1_dbl_kind,   & ! (K^-1)
-         ps4 = 0.41764768e-4_dbl_kind,   & ! (K^-2)
-         ps5 = 0.14452093e-7_dbl_kind,   & ! (K^-3)
-         ps6 = 6.5459673_dbl_kind,       & !
-         ws1 = 621.97_dbl_kind,          & ! for saturation mixing ratio
-         Pair = 1020._dbl_kind,          & ! Sea level pressure (hPa)
          lapse_rate = 0.0065_dbl_kind      ! (K/m) lapse rate over sea level
 
       ! for interpolation of hourly data
@@ -5210,7 +5204,7 @@
 ! authors: Elizabeth Hunke, LANL
 
       use ice_domain, only: nblocks, blocks_ice
-      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
+      use ice_blocks, only: block, get_block, nx_block, ny_block
       use ice_flux, only: uocn, vocn
 
       ! local parameters
@@ -5374,8 +5368,6 @@
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_fsd
 
       ! local variables
-      integer (kind=int_kind) :: &
-         fid                    ! file id for netCDF routines
 
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
@@ -5439,44 +5431,31 @@
 
       use ice_blocks, only: block, get_block
       use ice_global_reductions, only: global_minval, global_maxval
-      use ice_domain, only: nblocks, distrb_info, blocks_ice
       use ice_arrays_column, only: wave_spectrum, &
                                    dwavefreq, wavefreq
       use ice_read_write, only: ice_read_nc_xyf
-      use ice_grid, only: hm, tlon, tlat, tmask, umask
       use ice_calendar, only: days_per_year, use_leap_years
 
       integer (kind=int_kind) :: &
           ncid        , & ! netcdf file id
-          i, j, freq  , &
           ixm,ixx,ixp , & ! record numbers for neighboring months
           recnum      , & ! record number
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
-          midmonth    , & ! middle day of month
           dataloc     , & ! = 1 for data located in middle of time interval
                           ! = 2 for date located at end of time interval
-          iblk        , & ! block index
-          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
           yr              ! current forcing year
 
       real (kind=dbl_kind) :: &
           sec6hr          , & ! number of seconds in 3 hours
-          secday          , & ! number of seconds in day
-          vmin, vmax
+          secday              ! number of seconds in day
 
-      logical (kind=log_kind) :: readm, read6,debug_n_d
-
-      type (block) :: &
-         this_block           ! block information for current block
+      logical (kind=log_kind) :: read6,debug_n_d
 
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! wave spectrum
 
-      character(len=64) :: fieldname !netcdf field name
       character(char_len_long) :: spec_file
-      character(char_len) :: wave_spec_type
-      logical (kind=log_kind) :: wave_spec
       character(len=*), parameter :: subname = '(wave_spec_data)'
 
       debug_n_d = .false.  !usually false

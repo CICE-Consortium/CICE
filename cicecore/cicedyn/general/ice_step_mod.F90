@@ -139,7 +139,6 @@
 
       subroutine prep_radiation (iblk)
 
-      use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, &
           alvdr_init, alvdf_init, alidr_init, alidf_init
@@ -640,10 +639,9 @@
 
       use ice_arrays_column, only: hin_max, ocean_bio, wave_sig_ht, &
           wave_spectrum, wavefreq, dwavefreq, &
-          first_ice, bgrid, cgrid, igrid, &
+          first_ice, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
       use ice_calendar, only: yday
-      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           fsalt, Tf, sss, salinz, fhocn, rsiden, wlat, &
           meltl, frazil_diag, dpnd_melt
@@ -779,7 +777,6 @@
 
       subroutine update_state (dt, daidt, dvidt, dvsdt, dagedt, offset)
 
-      use ice_domain_size, only: ncat
 !     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
                            aice,  trcr,  vice,  vsno, aice0, trcr_depend, &
@@ -898,7 +895,7 @@
 
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
           d_afsd_wave, wavefreq, dwavefreq
-      use ice_domain_size, only: ncat, nfsd, nfreq
+      use ice_domain_size, only: nfreq
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
           timer_fsd
@@ -1062,7 +1059,7 @@
       subroutine step_dyn_ridge (dt, ndtd, iblk)
 
       use ice_arrays_column, only: hin_max, first_ice
-      use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
+      use ice_domain_size, only: ncat
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
           dvirdgdt, opening, fpond, fresh, fhocn, dpnd_ridge, &
@@ -1184,7 +1181,7 @@
       subroutine step_snow (dt, iblk)
 
       use ice_calendar, only: nstreams
-      use ice_domain_size, only: ncat, nslyr, nilyr
+      use ice_domain_size, only: nslyr
       use ice_flux, only: snwcnt, wind, fresh, fhocn, fsloss, fsnow
       use ice_state, only: trcrn, vsno, vsnon, vicen, aicen, aice
       use icepack_intfc, only: icepack_step_snow
@@ -1296,10 +1293,9 @@
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf,   &
           albicen, albsnon, albpndn, &
-          alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
-          swgrid, igrid
+          alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
-      use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
+      use ice_domain_size, only: ncat, n_aero, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow, &
           swuvrdr, swuvrdf, swpardr, swpardf
       use ice_grid, only: TLAT, TLON, tmask, opmask
@@ -1502,9 +1498,6 @@
 
       real (kind=dbl_kind) :: albocn
 
-      real (kind=dbl_kind), parameter :: &
-         frzmlt_max = c1000   ! max magnitude of frzmlt (W/m^2)
-
       integer (kind=int_kind) :: &
          i, j           , & ! horizontal indices
          ij                 ! combined ij index
@@ -1639,10 +1632,8 @@
                            fbio_snoice, fbio_atmice, ocean_bio,  &
                            first_ice, fswpenln, bphi, bTiz, ice_bio_net,  &
                            snow_bio_net, fswthrun, &
-                           ocean_bio_all, sice_rho, &
-                           bgrid, igrid, icgrid, cgrid
-      use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
-                                 n_doc, n_dic,  n_don, n_fed, n_fep
+                           ocean_bio_all
+      use ice_domain_size, only: n_zaero
       use ice_flux, only: meltbn, melttn, congeln, snoicen, &
                           sst, sss, Tf, fsnow, meltsn
       use ice_flux_bgc, only: hin_old, flux_bio, flux_bio_atm, faero_atm, &

@@ -248,7 +248,6 @@ contains
     character(len=char_len_long) :: ice_maskfile
     character(len=char_len_long) :: errmsg
     logical                      :: isPresent, isSet
-    real(dbl_kind)               :: eccen, obliqr, lambm0, mvelpp
     type(ESMF_DistGrid)          :: ice_distGrid
     real(kind=dbl_kind)          :: atmiter_conv
     real(kind=dbl_kind)          :: atmiter_conv_driver
@@ -269,10 +268,6 @@ contains
     integer                      :: shrlogunit         ! original log unit
     character(len=char_len)      :: starttype          ! infodata start type
     integer                      :: lsize              ! local size of coupling array
-    integer                      :: n,c,g,i,j,m        ! indices
-    integer                      :: iblk, jblk         ! indices
-    integer                      :: ig, jg             ! indices
-    integer                      :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
 
     character(len=char_len_long) :: diag_filename = 'unset'
     character(len=char_len_long) :: logmsg
@@ -1067,7 +1062,6 @@ contains
     type(ESMF_TimeInterval)    :: timeStep
     type(ESMF_State)           :: importState, exportState
     character(ESMF_MAXSTR)     :: cvalue
-    real(dbl_kind)             :: eccen, obliqr, lambm0, mvelpp
     integer                    :: shrlogunit ! original log unit
     integer                    :: k,n        ! index
     logical                    :: stop_now   ! .true. ==> stop at the end of this run phase

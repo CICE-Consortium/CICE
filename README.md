@@ -20,7 +20,7 @@ The first point of contact with the CICE Consortium is the Consortium Community 
 This forum is monitored by Consortium members and also opened to the whole community.
 Please do not use our issue tracker for general support questions.
 
-[forum]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+[forum]: https://bb.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
 If you expect to make any changes to the code, we recommend that you first fork both the CICE and Icepack repositories. 
 In order to incorporate your developments into the Consortium code it is imperative you follow the guidance for Pull Requests and requisite testing.
@@ -37,7 +37,7 @@ Head over to our [Contributing][contributing] guide to learn more about how you 
 
    Numbered CICE releases since version 6 with associated documentation and DOIs. 
    
-* **Consortium Community Forum**: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+* **Consortium Community Forum**: https://bb.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 
    First point of contact for discussing model development including bugs, diagnostics, and future directions.   
 

@@ -81,7 +81,7 @@ module ice_dyn_evp1d
     real(kind=dbl_kind)   , allocatable, dimension(:,:) :: G_dyT, G_dxT, G_uarear
     logical(kind=log_kind), allocatable, dimension(:,:) :: G_tmask
 
-    integer(kind=int_kind) :: ios, ierr
+    integer(kind=int_kind) :: ierr
 
     character(len=*), parameter :: subname = '(dyn_evp1d_init)'
 
@@ -616,7 +616,7 @@ module ice_dyn_evp1d
 
      ! In standalone  distrb_info is an integer. Not needed anyway
      use ice_communicate, only : master_task
-     use ice_gather_scatter, only : gather_global_ext
+     use ice_gather_scatter, only : gather_global
      use ice_domain, only : distrb_info
      use ice_grid, only: dyT, dxT, uarear, tmask
      implicit none
@@ -633,10 +633,10 @@ module ice_dyn_evp1d
      G_tmask = .false.
 
      ! copy from distributed I_* to G_*
-     call gather_global_ext(G_uarear, uarear, master_task, distrb_info)
-     call gather_global_ext(G_dxT   , dxT   , master_task, distrb_info)
-     call gather_global_ext(G_dyT   , dyT   , master_task, distrb_info)
-     call gather_global_ext(G_Tmask , Tmask , master_task, distrb_info)
+     call gather_global(G_uarear, uarear, master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_dxT   , dxT   , master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_dyT   , dyT   , master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_Tmask , Tmask , master_task, distrb_info, grid_ext=.true.)
 
   end subroutine gather_static
 
@@ -662,7 +662,7 @@ module ice_dyn_evp1d
                         G_iceTmask,  G_iceUmask)
 
      use ice_communicate, only : master_task
-     use ice_gather_scatter, only : gather_global_ext
+     use ice_gather_scatter, only : gather_global
      use ice_domain, only : distrb_info
      implicit none
 
@@ -695,40 +695,40 @@ module ice_dyn_evp1d
      character(len=*), parameter :: subname = '(gather_dyn)'
 
      ! copy from distributed I_* to G_*
-     call gather_global_ext(G_stressp_1 ,     L_stressp_1,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressp_2 ,     L_stressp_2,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressp_3 ,     L_stressp_3,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressp_4 ,     L_stressp_4,     master_task, distrb_info,c0)
+     call gather_global(G_stressp_1 ,     L_stressp_1,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressp_2 ,     L_stressp_2,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressp_3 ,     L_stressp_3,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressp_4 ,     L_stressp_4,     master_task, distrb_info,c0, grid_ext=.true.)
 
-     call gather_global_ext(G_stressm_1 ,     L_stressm_1,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressm_2 ,     L_stressm_2,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressm_3 ,     L_stressm_3,     master_task, distrb_info,c0)
-     call gather_global_ext(G_stressm_4 ,     L_stressm_4,     master_task, distrb_info,c0)
+     call gather_global(G_stressm_1 ,     L_stressm_1,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressm_2 ,     L_stressm_2,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressm_3 ,     L_stressm_3,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stressm_4 ,     L_stressm_4,     master_task, distrb_info,c0, grid_ext=.true.)
 
-     call gather_global_ext(G_stress12_1,     L_stress12_1,    master_task, distrb_info,c0)
-     call gather_global_ext(G_stress12_2,     L_stress12_2,    master_task, distrb_info,c0)
-     call gather_global_ext(G_stress12_3,     L_stress12_3,    master_task, distrb_info,c0)
-     call gather_global_ext(G_stress12_4,     L_stress12_4,    master_task, distrb_info,c0)
-     call gather_global_ext(G_strength  ,     L_strength  ,    master_task, distrb_info,c0)
+     call gather_global(G_stress12_1,     L_stress12_1,    master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stress12_2,     L_stress12_2,    master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stress12_3,     L_stress12_3,    master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_stress12_4,     L_stress12_4,    master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_strength  ,     L_strength  ,    master_task, distrb_info,c0, grid_ext=.true.)
 
-     call gather_global_ext(G_cdn_ocn   ,     L_cdn_ocn   ,     master_task, distrb_info)
-     call gather_global_ext(G_aiu       ,     L_aiu       ,     master_task, distrb_info)
-     call gather_global_ext(G_uocn      ,     L_uocn      ,     master_task, distrb_info)
-     call gather_global_ext(G_vocn      ,     L_vocn      ,     master_task, distrb_info)
+     call gather_global(G_cdn_ocn   ,     L_cdn_ocn   ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_aiu       ,     L_aiu       ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_uocn      ,     L_uocn      ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_vocn      ,     L_vocn      ,     master_task, distrb_info, grid_ext=.true.)
 
-     call gather_global_ext(G_waterxU   ,     L_waterxU   ,     master_task, distrb_info)
-     call gather_global_ext(G_wateryU   ,     L_wateryU   ,     master_task, distrb_info)
-     call gather_global_ext(G_forcexU   ,     L_forcexU   ,     master_task, distrb_info)
-     call gather_global_ext(G_forceyU   ,     L_forceyU   ,     master_task, distrb_info)
+     call gather_global(G_waterxU   ,     L_waterxU   ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_wateryU   ,     L_wateryU   ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_forcexU   ,     L_forcexU   ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_forceyU   ,     L_forceyU   ,     master_task, distrb_info, grid_ext=.true.)
 
-     call gather_global_ext(G_umassdti  ,     L_umassdti  ,     master_task, distrb_info)
-     call gather_global_ext(G_fmU       ,     L_fmU       ,     master_task, distrb_info)
+     call gather_global(G_umassdti  ,     L_umassdti  ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_fmU       ,     L_fmU       ,     master_task, distrb_info, grid_ext=.true.)
 
-     call gather_global_ext(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info)
-     call gather_global_ext(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0)
-     call gather_global_ext(G_vvel      ,     L_vvel      ,     master_task, distrb_info,c0)
-     call gather_global_ext(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info)
-     call gather_global_ext(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info)
+     call gather_global(G_Tbu       ,     L_Tbu       ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_uvel      ,     L_uvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_vvel      ,     L_vvel      ,     master_task, distrb_info,c0, grid_ext=.true.)
+     call gather_global(G_iceTmask  ,     L_iceTmask  ,     master_task, distrb_info, grid_ext=.true.)
+     call gather_global(G_iceUmask  ,     L_iceUmask  ,     master_task, distrb_info, grid_ext=.true.)
 
   end subroutine gather_dyn
 
@@ -746,7 +746,7 @@ module ice_dyn_evp1d
                          G_taubxU    , G_taubyU )
 
      use ice_communicate, only : master_task
-     use ice_gather_scatter, only : scatter_global_ext
+     use ice_gather_scatter, only : scatter_global
      use ice_domain, only : distrb_info
      implicit none
 
@@ -768,27 +768,27 @@ module ice_dyn_evp1d
 
      character(len=*), parameter :: subname = '(scatter_dyn)'
 
-     call scatter_global_ext(L_stressp_1,  G_stressp_1,  master_task, distrb_info)
-     call scatter_global_ext(L_stressp_2,  G_stressp_2,  master_task, distrb_info)
-     call scatter_global_ext(L_stressp_3,  G_stressp_3,  master_task, distrb_info)
-     call scatter_global_ext(L_stressp_4,  G_stressp_4,  master_task, distrb_info)
+     call scatter_global(L_stressp_1,  G_stressp_1,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_2,  G_stressp_2,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_3,  G_stressp_3,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressp_4,  G_stressp_4,  master_task, distrb_info, grid_ext=.true.)
 
-     call scatter_global_ext(L_stressm_1,  G_stressm_1,  master_task, distrb_info)
-     call scatter_global_ext(L_stressm_2,  G_stressm_2,  master_task, distrb_info)
-     call scatter_global_ext(L_stressm_3,  G_stressm_3,  master_task, distrb_info)
-     call scatter_global_ext(L_stressm_4,  G_stressm_4,  master_task, distrb_info)
+     call scatter_global(L_stressm_1,  G_stressm_1,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_2,  G_stressm_2,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_3,  G_stressm_3,  master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stressm_4,  G_stressm_4,  master_task, distrb_info, grid_ext=.true.)
 
-     call scatter_global_ext(L_stress12_1, G_stress12_1, master_task, distrb_info)
-     call scatter_global_ext(L_stress12_2, G_stress12_2, master_task, distrb_info)
-     call scatter_global_ext(L_stress12_3, G_stress12_3, master_task, distrb_info)
-     call scatter_global_ext(L_stress12_4, G_stress12_4, master_task, distrb_info)
+     call scatter_global(L_stress12_1, G_stress12_1, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_2, G_stress12_2, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_3, G_stress12_3, master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_stress12_4, G_stress12_4, master_task, distrb_info, grid_ext=.true.)
 
-     call scatter_global_ext(L_strintxU  , G_strintxU  , master_task, distrb_info)
-     call scatter_global_ext(L_strintyU  , G_strintyU  , master_task, distrb_info)
-     call scatter_global_ext(L_uvel      , G_uvel      , master_task, distrb_info)
-     call scatter_global_ext(L_vvel      , G_vvel      , master_task, distrb_info)
-     call scatter_global_ext(L_taubxU    , G_taubxU    , master_task, distrb_info)
-     call scatter_global_ext(L_taubyU    , G_taubyU    , master_task, distrb_info)
+     call scatter_global(L_strintxU  , G_strintxU  , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_strintyU  , G_strintyU  , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_uvel      , G_uvel      , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_vvel      , G_vvel      , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_taubxU    , G_taubxU    , master_task, distrb_info, grid_ext=.true.)
+     call scatter_global(L_taubyU    , G_taubyU    , master_task, distrb_info, grid_ext=.true.)
 
   end subroutine scatter_dyn
 
@@ -1161,7 +1161,7 @@ module ice_dyn_evp1d
 
      integer(kind=int_kind) :: iw, i, j
      integer(kind=int_kind), dimension(1:na0) :: &
-        Iin, Iee, Ine, Ise, Inw, Isw, Isse, indi, indj
+        Iin, Iee, Ine, Ise, Inw, Isw, Isse
 
      integer(kind=int_kind), dimension(1:7 * na0) :: util1, util2
 
@@ -1308,7 +1308,7 @@ module ice_dyn_evp1d
      ! E.g. inner_west and outer_east
      ! Till Rasmussen, DMI 2023
 
-     use ice_domain, only: ew_boundary_type, ns_boundary_type
+     use ice_blocks, only: ew_boundary_type, ns_boundary_type
      implicit none
 
      integer(kind=int_kind), intent(in) :: na0, navel0
@@ -1377,7 +1377,7 @@ module ice_dyn_evp1d
         j = int((indxTij(iw) - 1) / (nx)) + 1
         i = indxTij(iw) - (j - 1) * nx
         ! All four boundaries find points internally that are within the domain and next to the boundary
-        ! This can in principle be moved to previos loops that connects i and j to 1d index.
+        ! This can in principle be moved to previous loops that connects i and j to 1d index.
         ! ifind is i value on the halo to find.
         ! Some parts assume nghost = 1
         ! INNER EAST

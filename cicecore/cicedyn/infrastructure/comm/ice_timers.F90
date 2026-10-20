@@ -7,6 +7,8 @@
 !
 ! 2005: Adapted from POP by William Lipscomb
 !       Replaced 'stdout' by 'nu_diag'
+! 2006 ECH: Replaced 'system_clock' timing mechanism by 'MPI_WTIME'
+!           for MPI runs.  Single-processor runs still use system_clock.
 
    use ice_kinds_mod
    use ice_constants, only: c0, c1
@@ -15,8 +17,8 @@
    use ice_exit, only: abort_ice
    use ice_fileunits, only: nu_diag
    use ice_communicate, only: my_task, master_task
-   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
    use icepack_intfc, only: icepack_query_parameters
+   use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
 
    implicit none
    private
@@ -37,29 +39,35 @@
 ! public timers
 !-----------------------------------------------------------------------
 
-   integer (int_kind), public :: &
-      timer_total     ,          &! total time
-      timer_step      ,          &! time stepping
-      timer_dynamics  ,          &! dynamics
-      timer_advect    ,          &! horizontal advection
-      timer_column    ,          &! column
-      timer_thermo    ,          &! thermodynamics
-      timer_sw        ,          &! radiative transfer
-      timer_ponds     ,          &! melt ponds
-      timer_ridge     ,          &! ridging
-      timer_catconv   ,          &! category conversions
-      timer_fsd       ,          &! floe size distribution
-      timer_couple    ,          &! coupling
-      timer_readwrite ,          &! read/write
-      timer_diags     ,          &! diagnostics/history
-      timer_hist      ,          &! diagnostics/history
-      timer_bound     ,          &! boundary updates
-      timer_bundbound ,          &! boundary updates
-      timer_restore   ,          &! restoring
-      timer_bgc       ,          &! biogeochemistry
-      timer_forcing   ,          &! forcing
-      timer_evp1dcore ,          &! timer only loop
-      timer_evp       ,          &! timer including conversion 1d/2d
+   integer (int_kind), public ::      &
+      timer_total,            &! total time
+      timer_step,             &! time stepping
+      timer_dynamics,         &! dynamics
+      timer_advect,           &! horizontal advection
+      timer_column,           &! column
+      timer_thermo,           &! thermodynamics
+      timer_sw,               &! radiative transfer
+      timer_ponds,            &! melt ponds
+      timer_ridge,            &! ridging
+      timer_catconv,          &! category conversions
+      timer_fsd,              &! floe size distribution
+      timer_couple,           &! coupling
+      timer_readwrite,        &! read/write
+      timer_diags,            &! diagnostics/history
+      timer_hist,             &! diagnostics/history
+#if (defined CESMCOUPLED)
+      timer_cplrecv,          &! receive from coupler
+      timer_rcvsnd,           &! time between receive to send
+      timer_cplsend,          &! send to coupled
+      timer_sndrcv,           &! time between send to receive
+#endif
+      timer_bound,            &! boundary updates
+      timer_bundbound,        &! boundary updates bundling
+      timer_restore,          &! restoring timer
+      timer_bgc,              &! biogeochemistry
+      timer_forcing,          &! forcing
+      timer_evp1dcore,        &! timer only loop
+      timer_evp,              &! timer including conversion 1d/2d
       timer_updstate           ! update state
 !      timer_updstate,         &! update state
 !      timer_tmp1,             &! for temporary timings
@@ -106,19 +114,18 @@
          block_started         ! true if block timer started
 
       real (dbl_kind), dimension(:), pointer :: &
-         block_cycles1,        &! cycle number at start for block timers
-         block_cycles2          ! cycle number at stop  for block timers
+         block_cycles1,       &! cycle number at start for block timers
+         block_cycles2         ! cycle number at stop  for block timers
 
       real (dbl_kind), dimension(:), pointer :: &
-         block_accum_time       ! accumulated time for block timers
-
+         block_accum_time      ! accumulated time for block timers
    end type
-
-   type (timer_data), dimension(max_timers) :: &
-      all_timers               ! timer data for all timers
 
    integer (int_kind) ::      &
       cycles_max               ! max clock cycles allowed by system
+
+   type (timer_data), dimension(max_timers) :: &
+      all_timers               ! timer data for all timers
 
    real (dbl_kind) ::               &
       clock_rate               ! clock rate in seconds for each cycle
@@ -146,14 +153,8 @@
 
    character(len=*), parameter :: subname = '(init_ice_timers)'
 
-!-----------------------------------------------------------------------
-!
-!  Call F90 intrinsic system_clock to determine clock rate
-!  and maximum cycles for single-processor runs.  If no clock
-!  available, print message.
-!
-!-----------------------------------------------------------------------
-
+#ifdef NO_MPI
+   ! use system clock to compute time
    cycles = 0
 
    call system_clock(count_rate=cycles, count_max=cycles_max)
@@ -164,6 +165,11 @@
       clock_rate = c0
       write(nu_diag,'(/,a33,/)') '--- No system clock available ---'
    endif
+#else
+   ! use MPI_WTIME to compute time
+   clock_rate = c1
+   cycles_max = c1
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -209,9 +215,15 @@
    call get_ice_timer(timer_hist      , 'History  ' ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bound     , 'Bound'     ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bundbound , 'Bundbound' ,nblocks,distrb_info%nprocs)
-   call get_ice_timer(timer_restore   , 'Restore'     ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_restore   , 'Restore'   ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_bgc       , 'BGC'       ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_forcing   , 'Forcing'   ,nblocks,distrb_info%nprocs)
+#if (defined CESMCOUPLED)
+   call get_ice_timer(timer_cplrecv   , 'Cpl-recv'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_rcvsnd    , 'Rcv->Snd'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_cplsend   , 'Cpl-Send'  ,nblocks,distrb_info%nprocs)
+   call get_ice_timer(timer_sndrcv    , 'Snd->Rcv'  ,nblocks,distrb_info%nprocs)
+#endif
    call get_ice_timer(timer_evp1dcore , 'evp1dcore' ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_evp       , 'evp'       ,nblocks,distrb_info%nprocs)
    call get_ice_timer(timer_updstate  , 'UpdState'  ,nblocks,distrb_info%nprocs)
@@ -294,7 +306,8 @@
    end do srch_loop
 
    if (srch_error /= 0) &
-      call abort_ice(subname//'ERROR: Exceeded maximum number of timers')
+      call abort_ice(subname//'ERROR: Exceeded maximum number of timers', &
+           file=__FILE__, line=__LINE__)
 
 
 !-----------------------------------------------------------------------
@@ -335,8 +348,8 @@
       all_timers(timer_id)%block_cycles2(:)    = c0
       all_timers(timer_id)%block_accum_time(:) = c0
    else
-      call abort_ice(subname//'ERROR: attempt to reset undefined timer')
-
+      call abort_ice(subname//'ERROR: attempt to reset undefined timer', &
+           file=__FILE__, line=__LINE__)
    endif
 
 !-----------------------------------------------------------------------
@@ -362,13 +375,17 @@
                                ! (if timer called outside of block
                                ! region, no block info required)
 
+#ifdef NO_MPI
    integer (int_kind) :: &
       cycles                   ! count rate return by sys_clock
+#else
+   double precision MPI_WTIME
+   external MPI_WTIME
+#endif
 
    character(len=*), parameter :: subname = '(ice_timer_start)'
 
 !   if (my_task == master_task) write(nu_diag,*) subname,trim(all_timers(timer_id)%name)
-
 !-----------------------------------------------------------------------
 !
 !  if timer is defined, start it up
@@ -391,8 +408,12 @@
          !*** start block timer
 
          all_timers(timer_id)%block_started(block_id) = .true.
+#ifdef NO_MPI
          call system_clock(count=cycles)
          all_timers(timer_id)%block_cycles1(block_id) = real(cycles,kind=dbl_kind)
+#else
+         all_timers(timer_id)%block_cycles1(block_id) = MPI_WTIME()
+#endif
 
          !*** start node timer if not already started by
          !*** another thread.  if already started, keep track
@@ -405,8 +426,12 @@
             all_timers(timer_id)%node_started = .true.
             all_timers(timer_id)%num_starts   = 1
             all_timers(timer_id)%num_stops    = 0
+#ifdef NO_MPI
             call system_clock(count=cycles)
             all_timers(timer_id)%node_cycles1 = real(cycles,kind=dbl_kind)
+#else
+            all_timers(timer_id)%node_cycles1 = MPI_WTIME()
+#endif
          else
             all_timers(timer_id)%num_starts = &
             all_timers(timer_id)%num_starts + 1
@@ -427,13 +452,17 @@
          !*** start node timer
 
          all_timers(timer_id)%node_started = .true.
+#ifdef NO_MPI
          call system_clock(count=cycles)
          all_timers(timer_id)%node_cycles1 = real(cycles,kind=dbl_kind)
+#else
+         all_timers(timer_id)%node_cycles1 = MPI_WTIME()
+#endif
 
       endif
    else
-      call abort_ice(subname//'ERROR: attempt to start undefined timer')
-
+      call abort_ice(subname//'ERROR: attempt to start undefined timer', &
+           file=__FILE__, line=__LINE__)
    endif
 
 !-----------------------------------------------------------------------
@@ -467,21 +496,29 @@
    real (dbl_kind) :: &
       cycles1, cycles2   ! temps to hold cycle info before correction
 
+#ifdef NO_MPI
    integer (int_kind) :: &
-      cycles                   ! count rate returned by sys_clock
+      cycles                   ! count rate return by sys_clock
+#else
+   double precision MPI_WTIME
+   external MPI_WTIME
+#endif
 
    character(len=*), parameter :: subname = '(ice_timer_stop)'
 
 !   if (my_task == master_task) write(nu_diag,*) subname,trim(all_timers(timer_id)%name)
-
 !-----------------------------------------------------------------------
 !
 !  get end cycles
 !
 !-----------------------------------------------------------------------
 
+#ifdef NO_MPI
    call system_clock(count=cycles)
    cycles2 = real(cycles,kind=dbl_kind)
+#else
+   cycles2 = MPI_WTIME()
+#endif
 
 !-----------------------------------------------------------------------
 !
@@ -499,17 +536,21 @@
 
          all_timers(timer_id)%block_started(block_id) = .false.
 
-         !*** correct for cycle wraparound and accumulate time
-
          cycles1 = all_timers(timer_id)%block_cycles1(block_id)
          if (cycles2 >= cycles1) then
             all_timers(timer_id)%block_accum_time(block_id) = &
             all_timers(timer_id)%block_accum_time(block_id) + &
                clock_rate*(cycles2 - cycles1)
          else
+#ifdef NO_MPI
             all_timers(timer_id)%block_accum_time(block_id) = &
             all_timers(timer_id)%block_accum_time(block_id) + &
                clock_rate*(cycles_max + cycles2 - cycles1)
+#else
+            ! this should never happen with MPI_WTIME
+            call abort_ice(error_message=subname//' ERROR: cycles abort1', &
+                 file=__FILE__, line=__LINE__)
+#endif
          endif
 
          !*** stop node timer if number of requested stops
@@ -527,15 +568,9 @@
              all_timers(timer_id)%num_stops) then
 
             all_timers(timer_id)%node_started = .false.
-            if (cycles2 >= cycles1) then
-               all_timers(timer_id)%node_accum_time = &
-               all_timers(timer_id)%node_accum_time + &
-                  clock_rate*(cycles2 - cycles1)
-            else
-               all_timers(timer_id)%node_accum_time = &
-               all_timers(timer_id)%node_accum_time + &
-                  clock_rate*(cycles_max + cycles2 - cycles1)
-            endif
+            all_timers(timer_id)%node_accum_time = &
+            all_timers(timer_id)%node_accum_time + &
+               clock_rate*(cycles2 - cycles1)
 
             all_timers(timer_id)%num_starts   = 0
             all_timers(timer_id)%num_stops    = 0
@@ -550,8 +585,6 @@
 
       else
 
-         !*** correct for wraparound and accumulate time
-
          all_timers(timer_id)%node_started = .false.
          cycles1 = all_timers(timer_id)%node_cycles1
 
@@ -560,14 +593,21 @@
             all_timers(timer_id)%node_accum_time + &
                clock_rate*(cycles2 - cycles1)
          else
+#ifdef NO_MPI
             all_timers(timer_id)%node_accum_time = &
             all_timers(timer_id)%node_accum_time + &
                clock_rate*(cycles_max + cycles2 - cycles1)
+#else
+            ! this should never happen with MPI_WTIME
+            call abort_ice(error_message=subname//' ERROR: cycles abort2', &
+                 file=__FILE__, line=__LINE__)
+#endif
          endif
 
       endif
    else
-      call abort_ice(subname//'ERROR: attempt to stop undefined timer')
+      call abort_ice(subname//'ERROR: attempt to stop undefined timer', &
+           file=__FILE__, line=__LINE__)
 
    endif
 
@@ -597,14 +637,15 @@
 !-----------------------------------------------------------------------
 
    integer (int_kind) :: &
-      n,icount           ! dummy loop index and counter
+      n,icount,        & ! dummy loop index and counter
+      nBlocks
 
    logical (log_kind) :: &
       lrestart_timer     ! flag to restart timer if timer is running
                          ! when this routine is called
 
    real (dbl_kind) :: &
-      bignum,           &! big number
+      bignum,           &! big num
       local_time,       &! temp space for holding local timer results
       min_time,         &! minimum accumulated time
       max_time,         &! maximum accumulated time
@@ -694,12 +735,12 @@
          !*** mean block time
 
          local_time = c0
-         do n=1,all_timers(timer_id)%num_blocks
+         nBlocks = all_timers(timer_id)%num_blocks
+         do n=1,nBlocks
             local_time = local_time + &
                          all_timers(timer_id)%block_accum_time(n)
          end do
-         icount = global_sum(all_timers(timer_id)%num_blocks, &
-                             distrb_info)
+         icount = global_sum(nBlocks, distrb_info)
          if (icount > 0) mean_time=global_sum(local_time,distrb_info)&
                                    /real(icount,kind=dbl_kind)
 
@@ -714,8 +755,8 @@
 
       if (lrestart_timer) call ice_timer_start(timer_id)
    else
-      call abort_ice(subname//'ERROR: attempt to print undefined timer')
-
+      call abort_ice(subname//'ERROR: attempt to print undefined timer', &
+           file=__FILE__, line=__LINE__)
    endif
 
 !-----------------------------------------------------------------------

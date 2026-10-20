@@ -44,7 +44,8 @@
          ssh_stress     ! 'geostrophic' or 'coupled'
 
       logical (kind=log_kind), public :: &
-         revised_evp    ! if true, use revised evp procedure
+         revised_evp, & ! if true, use revised evp procedure
+         free_drift_approx ! if true, set internal stress to 0 for small areas
 
       character (len=char_len), public :: &
          evp_algorithm  ! standard_2d = 2D org version (standard)
@@ -265,11 +266,9 @@
 
       subroutine init_dyn_shared (dt)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, ns_boundary_type
       use ice_boundary, only: ice_halo, ice_haloUpdate
-      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info, &
-          ns_boundary_type
-      use ice_domain_size, only: max_blocks
+      use ice_domain, only: nblocks, halo_dynbundle, blocks_ice, halo_info
       use ice_flux, only: &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
@@ -682,9 +681,8 @@
          taubx   , & ! seabed stress, x-direction (N/m^2)
          tauby       ! seabed stress, y-direction (N/m^2)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), &
-           optional :: &
-         rheofactX   ! mult. factor = 1, set to 0 if aiU <= rheo_area_min
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(inout), optional :: &
+         rheofactX   ! 1, except 0 where aiU <= rheo_area_min
 
       ! local variables
 
@@ -803,7 +801,7 @@
          i = indxXi(ij)
          j = indxXj(ij)
 
-         if (present(rheofactX)) then
+         if (free_drift_approx .and. present(rheofactX)) then
             if ( aiX (i,j) > rheo_area_min ) then
                rheofactX(i,j) = c1
             else
@@ -857,7 +855,7 @@
                         taubx,      tauby,    &
                         uvel_init,  vvel_init,&
                         uvel,       vvel,     &
-                        TbU)
+                        TbU,        rheofactU)
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
@@ -880,7 +878,8 @@
          uocn    , & ! ocean current, x-direction (m/s)
          vocn    , & ! ocean current, y-direction (m/s)
          fm      , & ! Coriolis param. * mass in U-cell (kg/s)
-         uarear      ! 1/uarea
+         uarear  , & ! 1/uarea
+         rheofactU   ! 1, except 0 where aiU <= rheo_area_min
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8), intent(in) :: &
          str         ! temporary
@@ -945,9 +944,9 @@
          ab2 = cca**2 + ccb**2
 
          ! divergence of the internal stress tensor
-         strintx(i,j) = uarear(i,j)* &
+         strintx(i,j) = rheofactU(i,j) * uarear(i,j) * &
              (str(i,j,1) + str(i+1,j,2) + str(i,j+1,3) + str(i+1,j+1,4))
-         strinty(i,j) = uarear(i,j)* &
+         strinty(i,j) = rheofactU(i,j) * uarear(i,j) * &
              (str(i,j,5) + str(i,j+1,6) + str(i+1,j,7) + str(i+1,j+1,8))
 
          ! finally, the velocity components
@@ -2480,7 +2479,7 @@
       subroutine dyn_haloUpdate1(halo_info, halo_info_mask, field_loc, field_type, fld1)
 
       use ice_boundary, only: ice_halo, ice_HaloUpdate
-      use ice_domain, only: maskhalo_dyn, halo_dynbundle
+      use ice_domain, only: maskhalo_dyn
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_bound
 
       type (ice_halo), intent(in) :: &

@@ -29,6 +29,9 @@
       real (kind=real_kind), public :: &
          spval     = 1.0e30_real_kind   ! special value for netCDF output
 
+      integer (kind=int_kind), public :: &
+         spval_int = -987654            ! special value integer
+
       ! these are currently set so as to have no effect on the decomposition
       real (kind=dbl_kind), public :: &
          shlat  =  30.0_dbl_kind   ,&! artificial masking edge (deg)

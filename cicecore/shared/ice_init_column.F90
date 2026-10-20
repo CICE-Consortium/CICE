@@ -166,8 +166,7 @@
           albsnon, alvdrn, alidrn, alvdfn, alidfn, fswsfcn, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf, &
           fswthrun_uvrdr, fswthrun_uvrdf, fswthrun_pardr, fswthrun_pardf, &
-          fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn, &
-          swgrid, igrid
+          fswintn, albpndn, apeffn, trcrn_sw, dhsn, ffracn, snowfracn
       use ice_blocks, only: block, get_block
       use ice_calendar, only: dt, calendar_type, &
           days_per_year, nextsw_cday, yday, msec
@@ -744,7 +743,7 @@
 
       use ice_arrays_column, only: zfswin, trcrn_sw, &
           ocean_bio_all, ice_bio_net, snow_bio_net, &
-          cgrid, igrid, bphi, iDi, bTiz, iki
+          bphi, iDi, bTiz, iki
       use ice_blocks, only: block, get_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_flux, only: sss
@@ -924,8 +923,7 @@
 
       subroutine init_hbrine()
 
-      use ice_arrays_column, only: first_ice, bgrid, igrid, cgrid, &
-          icgrid, swgrid
+      use ice_arrays_column, only: first_ice
       use ice_state, only: trcrn
 
       real (kind=dbl_kind) :: phi_snow

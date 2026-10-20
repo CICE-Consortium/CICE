@@ -18,6 +18,8 @@ smoke          gx3    11x2        isotope,reprosum,run10day
 smoke          gx3     8x4        snwitdrdg,snwgrain,icdefault,reprosum,run10day
 smoke          gx3     6x4        dynpicard,reprosum,run10day
 smoke          gx3     1x1x100x116x1   reprosum,run10day,thread
+smoke          tx1    16x2        droundrobin,run10day,dwblockall,reprosum
+smoke          tx1m   20x2        droundrobin,run10day,dwblockall,reprosum
 
 smoke        gbox128   8x2        reprosum,run10day
 smoke        gbox128  12x2        boxnodyn,reprosum,run10day
@@ -43,6 +45,8 @@ smoke          gx3    11x2        isotope,reprosum,run10day,gridc
 smoke          gx3     8x4        snwitdrdg,snwgrain,icdefault,reprosum,run10day,gridc
 #smoke          gx3     6x4        dynpicard,reprosum,run10day,gridc
 smoke          gx3     1x1x100x116x1   reprosum,run10day,gridc,thread
+smoke          tx1    16x2        droundrobin,run10day,dwblockall,reprosum,gridc
+smoke          tx1m   20x2        droundrobin,run10day,dwblockall,reprosum,gridc
 
 smoke        gbox128   8x2        reprosum,run10day,gridc
 smoke        gbox128  12x2        boxnodyn,reprosum,run10day,gridc
@@ -96,6 +100,8 @@ smoke          gx3     8x1        snwitdrdg,snwgrain,icdefault,reprosum,run10day
 smoke          gx3     8x1        dynpicard,reprosum,run10day,cmplogrest,thread   smoke_gx3_6x4_dynpicard_reprosum_run10day
 smoke          gx3     4x2x25x29x4     reprosum,run10day                          smoke_gx3_1x1x100x116x1_reprosum_run10day_thread
 smoke          gx3     8x4x5x4x80      reprosum,run10day                          smoke_gx3_1x1x100x116x1_reprosum_run10day_thread
+smoke          tx1     18x2x19x21x20   droundrobin,run10day,dwblockall,cmplogrest,reprosum  smoke_tx1_16x2_droundrobin_dwblockall_reprosum_run10day
+smoke          tx1m    24x2x16x20 droundrobin,run10day,dwblockall,cmplogrest,reprosum  smoke_tx1m_20x2_droundrobin_dwblockall_reprosum_run10day
 
 smoke        gbox128   8x1        reprosum,run10day,cmplogrest,thread             smoke_gbox128_8x2_reprosum_run10day
 smoke        gbox128   8x1        boxnodyn,reprosum,run10day,cmplogrest,thread    smoke_gbox128_12x2_boxnodyn_reprosum_run10day
@@ -123,6 +129,8 @@ smoke          gx3     8x1        snwitdrdg,snwgrain,icdefault,reprosum,run10day
 #smoke          gx3     8x1        dynpicard,reprosum,run10day,cmplogrest,thread,gridc   smoke_gx3_6x4_dynpicard_gridc_reprosum_run10day
 smoke          gx3     4x2x25x29x4     reprosum,run10day,gridc                          smoke_gx3_1x1x100x116x1_gridc_reprosum_run10day_thread
 smoke          gx3     8x4x5x4x80      reprosum,run10day,gridc                          smoke_gx3_1x1x100x116x1_gridc_reprosum_run10day_thread
+smoke          tx1     18x2x19x21x20   droundrobin,run10day,dwblockall,cmplogrest,reprosum  smoke_tx1_16x2_droundrobin_dwblockall_gridc_reprosum_run10day
+smoke          tx1m    24x2x16x20 droundrobin,run10day,dwblockall,cmplogrest,reprosum  smoke_tx1m_20x2_droundrobin_dwblockall_gridc_reprosum_run10day
 
 smoke        gbox128   8x1        reprosum,run10day,cmplogrest,thread,gridc             smoke_gbox128_8x2_gridc_reprosum_run10day
 smoke        gbox128   8x1        boxnodyn,reprosum,run10day,cmplogrest,thread,gridc    smoke_gbox128_12x2_boxnodyn_gridc_reprosum_run10day

@@ -43,7 +43,7 @@ contains
     integer             , intent(out)   :: rc
 
     ! local variables
-    integer               :: n,c,g,i,j,m        ! indices
+    integer               :: n,i,j             ! indices
     integer               :: iblk, jblk         ! indices
     integer               :: ig, jg             ! indices
     integer               :: ilo, ihi, jlo, jhi ! beginning and end of physical domain
@@ -207,7 +207,7 @@ contains
   subroutine ice_mesh_setmask_from_maskfile(ice_maskfile, ice_mesh, rc)
 
     use ice_grid      , only : tlon, tlat, hm, tarea
-    use ice_constants , only : c0, c1, c2, p25, radius
+    use ice_constants , only : c0, c1, radius
 
     ! input/output variables
     character(len=*) , intent(in)    :: ice_maskfile
@@ -216,8 +216,7 @@ contains
 
     ! local variables
     integer                     :: i, j, n
-    integer (int_kind)          :: ni, nj
-    integer                     :: iblk, jblk           ! indices
+    integer                     :: iblk                 ! indices
     integer                     :: ilo, ihi, jlo, jhi   ! beginning and end of physical domain
     type (block)                :: this_block           ! block information for current block
     real(dbl_kind) , pointer    :: ice_frac(:)
@@ -245,7 +244,6 @@ contains
     real(dbl_kind) , pointer    :: ownedElemCoords(:)
     real(dbl_kind)              :: pi
     real(dbl_kind)              :: c180
-    real(dbl_kind)              :: puny
     real(dbl_kind)              :: deg_to_rad
     character(len=*), parameter :: subname = ' ice_mesh_setmask_from_maskfile'
     !---------------------------------------------------
@@ -382,8 +380,7 @@ contains
   !===============================================================================
   subroutine ice_mesh_create_scolumn(scol_lon, scol_lat, ice_mesh, rc)
 
-    use ice_constants , only : c0, c1
-    use ice_scam      , only : scmlat, scmlon, scol_area, scol_mask, scol_frac, scol_nj
+    use ice_scam      , only : scol_frac
     use netcdf
 
     ! Create the model mesh from the domain file - for either single column mode
@@ -400,9 +397,6 @@ contains
     integer         :: maxIndex(2)
     real(dbl_kind)  :: mincornerCoord(2)
     real(dbl_kind)  :: maxcornerCoord(2)
-    integer         :: i, j,iblk, jblk      ! indices
-    integer         :: ilo, ihi, jlo, jhi   ! beginning and end of physical domain
-    type (block)    :: this_block           ! block information for current block
     character(len=*), parameter  :: subname = ' ice_mesh_create_scolumn'
     ! ----------------------------------------------
 

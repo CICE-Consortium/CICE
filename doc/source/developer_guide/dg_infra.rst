@@ -47,17 +47,14 @@ The time manager was updated in early 2021.  Additional information about the ti
 Communication
 ------------------
 
-Two low-level communications packages, mpi and serial, are provided as part of CICE.  This software
-provides a middle layer between the model and the underlying libraries.  Only the CICE mpi or
-serial directories are compiled with CICE, not both.
+A low-level communications package, which supports both mpi and serial, is provided as part of CICE.  This software
+provides a middle layer between the model and the underlying libraries.  
 
-**cicedyn/infrastructure/comm/mpi/**
-is based on MPI and provides various methods to do halo updates, global sums, gather/scatter, broadcasts
-and similar using some fairly generic interfaces to isolate the MPI calls in the code.
-
-**cicedyn/infrastructure/comm/serial/** support the same interfaces, but operates
-in shared memory mode with no MPI.  The serial library will be used, by default in the CICE scripts,
-if the number of MPI tasks is set to 1.  The serial library allows the model to be run on a single
+**cicedyn/infrastructure/comm/**
+provides  various methods to do halo updates, global sums, gather/scatter, broadcasts
+and similar tasks using some fairly generic interfaces to isolate the MPI calls in the code.
+The MPI can be turned off with the CPP, ``NO_MPI`` which then supports serial computations without
+an MPI library.  The serial capability allows the model to be run on a single
 core or with OpenMP parallelism only without requiring an MPI library.
 
 I/O

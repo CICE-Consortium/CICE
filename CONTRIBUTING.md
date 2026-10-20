@@ -12,5 +12,5 @@ If you still need help getting started using the model after reviewing the [mode
 
 [doc-resources]: https://github.com/CICE-Consortium/About-Us/wiki/Resource-Index#model-documentation
 [doc-running]: https://cice-consortium-cice.readthedocs.io/en/master/user_guide/ug_running.html
-[forum]: https://xenforo.cgd.ucar.edu/cesm/forums/cice-consortium.146/
+[forum]: https://bb.cgd.ucar.edu/cesm/forums/cice-consortium.146/
 

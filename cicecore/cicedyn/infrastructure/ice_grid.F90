@@ -30,13 +30,14 @@
           field_loc_center, field_loc_NEcorner, field_loc_Nface, field_loc_Eface, &
           field_type_scalar, field_type_vector, field_type_angle
       use ice_communicate, only: my_task, master_task
-      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost
+      use ice_blocks, only: block, get_block, nx_block, ny_block, nghost, &
+          ew_boundary_type, ns_boundary_type
       use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_domain, only: blocks_ice, nblocks, halo_info, distrb_info, &
-          ew_boundary_type, ns_boundary_type, init_domain_distribution
+          init_domain_distribution
       use ice_fileunits, only: nu_diag, nu_grid, nu_kmt, &
           get_fileunit, release_fileunit, flush_fileunit
-      use ice_gather_scatter, only: gather_global, scatter_global, gather_global_ext, scatter_global_ext
+      use ice_gather_scatter, only: gather_global, scatter_global
       use ice_read_write, only: ice_read, ice_read_nc, ice_read_global, &
           ice_read_global_nc, ice_open, ice_open_nc, ice_close_nc, ice_check_nc
       use ice_timers, only: timer_bound, ice_timer_start, ice_timer_stop
@@ -950,7 +951,7 @@
          call ice_close_nc(fid_kmt)
       elseif (filetype == 'nc_ext') then
          call ice_open_nc(kmt_file,fid_kmt)
-         call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag,restart_ext=.true., &
+         call ice_read_nc(fid_kmt,1,mask_fieldname,kmt,diag,grid_ext=.true., &
                           field_loc=field_loc_center, &
                           field_type=field_type_scalar)
          call ice_close_nc(fid_kmt)
@@ -1082,8 +1083,6 @@
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi, &     ! beginning and end of physical domain
          fid_grid , &           ! file id for netCDF grid file
          ierr
 
@@ -1270,17 +1269,17 @@
 
       fieldname='ulat'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ULAT
-      call scatter_global_ext(ULAT, work_g1x, master_task, distrb_info)
+      call scatter_global(ULAT, work_g1x, master_task, distrb_info, grid_ext=.true.)
       call gridbox_verts(ULAT,latt_bounds)
 
       fieldname='ulon'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ULON
-      call scatter_global_ext(ULON, work_g1x, master_task, distrb_info)
+      call scatter_global(ULON, work_g1x, master_task, distrb_info, grid_ext=.true.)
       call gridbox_verts(ULON,lont_bounds)
 
       fieldname='angle'
       call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag) ! ANGLE
-      call scatter_global_ext(ANGLE, work_g1x, master_task, distrb_info)
+      call scatter_global(ANGLE, work_g1x, master_task, distrb_info, grid_ext=.true.)
       ! fix ANGLE: roundoff error due to single precision
       where (ANGLE >  pi) ANGLE =  pi
       where (ANGLE < -pi) ANGLE = -pi
@@ -1299,17 +1298,17 @@
       call broadcast_scalar(l_readCenter,master_task)
       if (l_readCenter) then
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
-         call scatter_global_ext(ANGLET, work_g1x, master_task, distrb_info)
+         call scatter_global(ANGLET, work_g1x, master_task, distrb_info, grid_ext=.true.)
          where (ANGLET >  pi) ANGLET =  pi
          where (ANGLET < -pi) ANGLET = -pi
 
          fieldname="tlon"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
-         call scatter_global_ext(TLON, work_g1x, master_task, distrb_info)
+         call scatter_global(TLON, work_g1x, master_task, distrb_info, grid_ext=.true.)
 
          fieldname="tlat"
          call ice_read_global_nc(fid_grid,1,fieldname,work_g1x,diag)
-         call scatter_global_ext(TLAT, work_g1x, master_task, distrb_info)
+         call scatter_global(TLAT, work_g1x, master_task, distrb_info, grid_ext=.true.)
       endif
       !-----------------------------------------------------------------
       ! cell dimensions
@@ -1328,7 +1327,7 @@
             G_HTN = work_g1x
          endif
       endif
-      call scatter_global_ext(HTN, work_g1x, master_task, distrb_info)
+      call scatter_global(HTN, work_g1x, master_task, distrb_info, grid_ext=.true.)
 
       dxN(:,:,:) = HTN(:,:,:)
       do iblk = 1, nblocks
@@ -1367,7 +1366,7 @@
       if (save_ghte_ghtn) then
          G_HTE = work_g1x
       endif
-      call scatter_global_ext(HTE, work_g1x, master_task, distrb_info)
+      call scatter_global(HTE, work_g1x, master_task, distrb_info, grid_ext=.true.)
       dyE(:,:,:) = HTE(:,:,:)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk),iblk)
@@ -1722,22 +1721,16 @@
       ! lat, lon, angle
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) then
-         allocate( &
-            work_mom(nx_global*2+1, ny_global*2+1), &
-            work_gE(nx_global+1,ny_global+1)      , &
-            work_gN(nx_global+1,ny_global+1)      , &
-            G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
-            G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
-            G_TLON(nx_global+1,ny_global+1)       , & !include left and bottom
-            G_ULON(nx_global+1,ny_global+1)       , & !include top and right
-            stat = ierr &
-         )
-      else
-         allocate(work_mom(1,1), work_gE(1,1), work_gN(1,1), &
-            G_ULAT(1,1), G_TLAT(1,1), G_TLON(1,1), G_ULON(1,1), &
-            stat=ierr)
-      endif
+      allocate( &
+         work_mom(nx_global*2+1, ny_global*2+1), &
+         work_gE(nx_global+1,ny_global+1)      , & !include left and top
+         work_gN(nx_global+1,ny_global+1)      , & !include right and top
+         G_ULAT(nx_global+1,ny_global+1)       , & !include left and bottom
+         G_TLAT(nx_global+1,ny_global+1)       , & !include top and right
+         G_TLON(nx_global+1,ny_global+1)       , & !include top and right
+         G_ULON(nx_global+1,ny_global+1)       , & !include left and bottom
+         stat = ierr &
+      )
       if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory', file=__FILE__, line=__LINE__)
 
       ! populate all LAT fields
@@ -1746,9 +1739,9 @@
       call mom_corners_global(work_mom, G_ULAT, G_TLAT, work_gE, work_gN)
       ! create bounds fields for cf-compliant output
       call mom_bounds(G_ULAT, latt_bounds) ! u points define corners for t-cells
-      call mom_bounds(G_TLAT, latu_bounds)
-      call mom_bounds(work_gN, late_bounds)
-      call mom_bounds(work_gE, latn_bounds)
+      call mom_bounds(G_TLAT, latu_bounds) ! t points define corners for u-cells
+      call mom_bounds(work_gN, late_bounds) ! n points define corners for e-cells
+      call mom_bounds(work_gE, latn_bounds) ! e points define corners for n-cells
       !distribute global array to local
       call mom_corners_scatter(G_ULAT, G_TLAT, work_gE, work_gN, &
                           ULAT, TLAT, ELAT, NLAT)
@@ -1892,29 +1885,48 @@
          enddo
          select case (trim(ew_boundary_type))
             case('cyclic')
-               G_T(nx_global+1,:) = G_T(1,:)
+               G_T(nx_global+1,1:ny_global) = G_T(1,1:ny_global)
                G_N(nx_global+1,:) = G_N(1,:)
             case('open','zero_gradient','linear_extrap')
-               do j=1, ny_global+1
+               do j=1, ny_global
                   G_T(nx_global+1,j) = 2 * G_T(nx_global, j) - G_T(nx_global-1, j)
                   G_N(nx_global+1,j) = 2 * G_N(nx_global, j) - G_N(nx_global-1, j)
                enddo
+            case default
+               call abort_ice(subname//' ERROR: unsupported e-w bndy type - '// &
+                  trim(ew_boundary_type), file=__FILE__, line=__LINE__)
          end select
 
-         ! fill last row
+         ! fill last row for U & N from top of mom supergrid
          im1 = 1 ; im2 = 2
-         do i = 1, nx_global+1
+         do i = 1, nx_global
             G_U(i,ny_global + 1) = work_mom(im1, 2*ny_global+1)
             G_N(i,ny_global + 1) = work_mom(im2, 2*ny_global+1)
             im1 = im1 + 2
+            im2 = im2 + 2
          enddo
-         select case (trim(ns_boundary_type))
-            case('tripole')
-               do i = 1, nx_global+1
-                  G_T(i,ny_global+1) = G_T(nx_global+1-i, ny_global)
-                  G_E(i,ny_global+1) = G_E(nx_global+1-i, ny_global)
-               enddo
+         ! top right corner for U,N
+         G_U(nx_global + 1,ny_global + 1) = work_mom(2*nx_global + 1, 2*ny_global+1)
+         select case (trim(ew_boundary_type))
             case('cyclic')
+               G_N(nx_global + 1,ny_global + 1) = G_N(1,ny_global + 1)
+            case('open')
+               G_N(nx_global + 1,ny_global + 1) = 2 * G_N(nx_global, ny_global + 1) - G_N(nx_global-1, ny_global + 1)
+         end select
+
+         ! fill last row for E & T using n-s boundary type
+         select case (trim(ns_boundary_type))
+            case ('tripole')
+               G_T(1:nx_global,ny_global+1) = G_T(nx_global:1:-1, ny_global)
+               ! fill top right corner, this is a special case for tripole, other cases are set above
+               select case (trim(ew_boundary_type))
+                  case('cyclic')
+                     G_T(nx_global+1,ny_global+1) = G_T(1,ny_global+1)
+                  case('open')
+                     G_T(nx_global+1,ny_global+1) = 2 * G_T(nx_global, ny_global+1) - G_T(nx_global-1, ny_global+1)
+               end select
+               G_E(1:nx_global+1,ny_global+1) = G_E(nx_global+1:1:-1, ny_global)
+            case ('cyclic')
                G_T(:,ny_global+1) = G_T(:,1)
                G_E(:,ny_global+1) = G_E(:,1)
             case('open','zero_gradient','linear_extrap')
@@ -1922,6 +1934,9 @@
                   G_T(i,ny_global+1) = 2 * G_T(i, ny_global) - G_T(i, ny_global-1)
                   G_E(i,ny_global+1) = 2 * G_E(i, ny_global) - G_E(i, ny_global-1)
                enddo
+            case default
+               call abort_ice(subname//' ERROR: unsupported n-s bndy type - '// &
+                  trim(ns_boundary_type), file=__FILE__, line=__LINE__)
          end select
 
       endif
@@ -1991,10 +2006,12 @@
       deg_to_rad = pi/c180
 
       ! convert to rad
-      G_T = G_T * deg_to_rad
-      G_U = G_U * deg_to_rad
-      G_N = G_N * deg_to_rad
-      G_E = G_E * deg_to_rad
+      if (my_task == master_task) then
+         G_T = G_T * deg_to_rad
+         G_U = G_U * deg_to_rad
+         G_N = G_N * deg_to_rad
+         G_E = G_E * deg_to_rad
+      endif
 
       ! distribute to processors
       ! subset G_T to active cells by dropping right/top halo
@@ -2099,7 +2116,7 @@
       call ice_HaloExtrapolate(HTN, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       if (save_ghte_ghtn) then
-         call gather_global_ext(G_HTN, HTN, master_task, distrb_info)
+         call gather_global(G_HTN, HTN, master_task, distrb_info, grid_ext=.true.)
       endif
       dxN(:,:,:) = HTN(:,:,:)
       call scatter_global(dxE, G_dxE, master_task, distrb_info, &
@@ -2129,7 +2146,7 @@
 
       integer (kind=int_kind) :: &
          i, j, &
-         im1, im2, jm1, jm2, im3, jm3 , &  ! i & j for mom supergrid
+         im1, im2, jm1, jm2, jm3, &  ! i & j for mom supergrid
          ierr
 
       character(len=*), parameter :: subname = '(mom_dy)'
@@ -2204,7 +2221,7 @@
       call ice_HaloExtrapolate(HTE, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       if (save_ghte_ghtn) then
-         call gather_global_ext(G_HTE, HTE, master_task, distrb_info)
+         call gather_global(G_HTE, HTE, master_task, distrb_info, grid_ext=.true.)
       endif
       dyE(:,:,:) = HTE(:,:,:)
       call scatter_global(dyU, G_dyU, master_task, distrb_info, &
@@ -2373,7 +2390,8 @@
       subroutine mom_grid_rotation_angle(lon_cnr, lat_cnr, lon_cen, angle)
       !  create angles in the same way mom6 creates the angle
       !  based on https://github.com/mom-ocean/MOM6/blob/129e1bda02d454fb280819d1d87ae16347fd044c/src/initialization/MOM_shared_initialization.F90#L535
-      !  the angle is between logical north on the grid and true north.
+      !  the angle is between logical north on the grid and true north
+      !  positive angles are counter-clockwise relative to true north in CICE
 
       ! global lat/lons/angles
       real (kind=dbl_kind), dimension(:,:), intent(in) :: &
@@ -2387,13 +2405,19 @@
          lon_scale, &  ! The trigonometric scaling factor converting changes in longitude to equivalent distances in latitudes [nondim]
          len_lon, &
          lon_adj, &
-         lonB(2,2)
+         lonB(2,2), &
+         pi
       integer (kind=int_kind) :: i, j, m, n
 
       character(len=*), parameter :: subname = '(mom_grid_rotation_angle)'
 
+      call icepack_query_parameters(pi_out=pi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
       if (my_task == master_task) then
-         len_lon = maxval(lon_cnr)-minval(lon_cnr)  ! The periodic range of longitudes, usually 2pi.
+         len_lon = c2*pi  ! The periodic range of longitudes
 
          do j=1,ny_global
             do i=1,nx_global
@@ -2405,7 +2429,7 @@
                                     + lon_adj
                enddo ; enddo
                lon_scale = cos(p25*(lat_cnr(I,J) + lat_cnr(I+1,J+1) + lat_cnr(I+1,J) + lat_cnr(I,J+1)))
-               angle(i,j) = atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
+               angle(i,j) = -c1 * atan2(lon_scale*((lonB(1,2) - lonB(2,1) + lonB(2,2) - lonB(1,1))), &
                            (lat_cnr(I,J+1) - lat_cnr(I+1,J) + lat_cnr(I+1,J+1) - lat_cnr(I,J)) )
             enddo
          enddo
@@ -2428,18 +2452,14 @@
 
       subroutine geosgrid_nc
 
-      use ice_blocks, only: nx_block, ny_block
-      use ice_constants, only: c0, c1, &
+      use ice_constants, only: &
           field_loc_center, field_loc_NEcorner, &
           field_type_scalar, field_type_angle
-      use ice_domain_size, only: max_blocks
 #ifdef USE_NETCDF
       use netcdf
 #endif
 
       integer (kind=int_kind) :: &
-         i, j, iblk, &
-         ilo,ihi,jlo,jhi, &    ! beginning and end of physical domain
          fid_grid              ! file id for netCDF grid file
 
       logical (kind=log_kind) :: diag
@@ -2452,9 +2472,6 @@
 
       real (kind=dbl_kind), dimension(:,:), allocatable :: &
          work_g1
-
-      type (block) :: &
-         this_block            ! block information for current block
 
       integer(kind=int_kind) :: &
          varid
@@ -2775,8 +2792,7 @@
         ! extend spacing from center of grid outward.
 
         integer (kind=int_kind) :: &
-             i, j, iblk, &
-             imid, jmid, &
+             i, j, &
              center1, center2 ! array centers for expanding dx, dy
 
         real (kind=dbl_kind) :: &
@@ -3105,7 +3121,7 @@
       call ice_HaloExtrapolate(HTN, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       if (save_ghte_ghtn) then
-         call gather_global_ext(G_HTN, HTN, master_task, distrb_info)
+         call gather_global(G_HTN, HTN, master_task, distrb_info, grid_ext=.true.)
       endif
       call scatter_global(dxU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
@@ -3219,7 +3235,7 @@
       call ice_HaloExtrapolate(HTE, distrb_info, &
                                ew_boundary_type, ns_boundary_type)
       if (save_ghte_ghtn) then
-         call gather_global_ext(G_HTE, HTE, master_task, distrb_info)
+         call gather_global(G_HTE, HTE, master_task, distrb_info, grid_ext=.true.)
       endif
       call scatter_global(dyU, work_g2, master_task, distrb_info, &
                           field_loc_NEcorner, field_type_scalar)
@@ -3616,8 +3632,8 @@
 
       subroutine NElatlon
 
-      use ice_constants, only: c0, c1, c1p5, c2, c4, p5, &
-          field_loc_center, field_loc_Nface, field_loc_Eface, &
+      use ice_constants, only: c0, c1, c1p5, c2, p5, &
+          field_loc_Nface, field_loc_Eface, &
           field_type_scalar
 
       integer (kind=int_kind) :: &

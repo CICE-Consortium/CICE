@@ -706,7 +706,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, field_loc_center
       use ice_boundary, only: ice_HaloUpdate
-      use ice_domain, only: halo_info, distrb_info, nblocks
+      use ice_domain, only: halo_info, distrb_info
       use ice_domain_size, only: max_blocks, ncat
       use ice_global_reductions, only: global_minval, global_maxval, global_sum
 
@@ -734,7 +734,6 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         j             , & ! dimension counter
          n             , & ! number of dimensions for variable
          ndims         , & ! number of variable dimensions
          status            ! status variable from netCDF routine
@@ -839,7 +838,6 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         j             , & ! dimension counter
          n             , & ! dimension counter
          ndims         , & ! number of variable dimensions
          status            ! status variable from netCDF routine
@@ -980,7 +978,7 @@
 
       ! local variables
 
-      integer (kind=int_kind) :: status, varid
+      integer (kind=int_kind) :: status
       character(len=*), parameter :: subname = '(query_field)'
 
       query_field = .false.

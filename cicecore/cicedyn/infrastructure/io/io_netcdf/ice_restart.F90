@@ -755,19 +755,19 @@
       if (present(field_loc)) then
          if (ndim3 == ncat) then
             call ice_read_nc(ncid,1,vname,work,diag, &
-               field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
+               field_loc=field_loc,field_type=field_type,grid_ext=restart_ext)
          elseif (ndim3 == 1) then
             call ice_read_nc(ncid,1,vname,work2,diag, &
-               field_loc=field_loc,field_type=field_type,restart_ext=restart_ext)
+               field_loc=field_loc,field_type=field_type,grid_ext=restart_ext)
             work(:,:,1,:) = work2(:,:,:)
          else
             write(nu_diag,*) 'ndim3 not supported ',ndim3
          endif
       else
          if (ndim3 == ncat) then
-            call ice_read_nc(ncid, 1, vname, work, diag, restart_ext=restart_ext)
+            call ice_read_nc(ncid, 1, vname, work, diag, grid_ext=restart_ext)
          elseif (ndim3 == 1) then
-            call ice_read_nc(ncid, 1, vname, work2, diag, restart_ext=restart_ext)
+            call ice_read_nc(ncid, 1, vname, work2, diag, grid_ext=restart_ext)
             work(:,:,1,:) = work2(:,:,:)
          else
             write(nu_diag,*) 'ndim3 not supported ',ndim3

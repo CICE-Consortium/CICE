@@ -160,7 +160,8 @@
          forcexU    , & ! work array: combined atm stress and ocn tilt, x
          forceyU    , & ! work array: combined atm stress and ocn tilt, y
          umass      , & ! total mass of ice and snow (u grid)
-         umassdti       ! mass of U-cell/dte (kg/m^2 s)
+         umassdti   , & ! mass of U-cell/dte (kg/m^2 s)
+         rheofactU      ! 1, except 0 where aiU <= rheo_area_min
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp         ! stress combinations for momentum equation
@@ -206,6 +207,7 @@
             yieldstress11(i,j,iblk) = c0
             yieldstress12(i,j,iblk) = c0
             yieldstress22(i,j,iblk) = c0
+            rheofactU(i,j,iblk) = c1 ! stress term removal not yet implemented in EAP
          enddo
          enddo
 
@@ -481,7 +483,8 @@
                         taubxU   (:,:,iblk), taubyU   (:,:,iblk), &
                         uvel_init(:,:,iblk), vvel_init(:,:,iblk), &
                         uvel     (:,:,iblk), vvel     (:,:,iblk), &
-                        TbU      (:,:,iblk))
+                        TbU      (:,:,iblk), rheofactU(:,:,iblk))
+
 !            call ice_timer_stop(timer_tmp2,iblk)
 
             !-----------------------------------------------------------------
@@ -1614,7 +1617,7 @@
          sgprm11, sgprm12, sgprm22, &
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
-         x, y, dx, dy, da, &
+         x, y, dx, &
          dtemp1, dtemp2, atempprime, &
          kxw, kyw, kaw
 
@@ -2089,11 +2092,11 @@
 
       subroutine read_restart_eap()
 
-      use ice_blocks, only: nghost
+      use ice_blocks, only: nghost, ns_boundary_type
       use ice_boundary, only: ice_HaloUpdate_stress
       use ice_constants, only:  &
           field_loc_center, field_type_scalar
-      use ice_domain, only: nblocks, halo_info, ns_boundary_type
+      use ice_domain, only: nblocks, halo_info
       use ice_restart, only: read_restart_field
 
       ! local variables

@@ -73,10 +73,10 @@ contains
 
     use ice_arrays_column    , only: hin_max, c_hi_range
     use ice_arrays_column    , only: floe_rad_l, floe_rad_c, floe_binwidth, c_fsd_range
-    use ice_calendar         , only: dt, dt_dyn, istep, istep1, write_ic, init_calendar, calendar
+    use ice_calendar         , only: dt, init_calendar, calendar
     use ice_communicate      , only: my_task, master_task
     use ice_diagnostics      , only: init_diags
-    use ice_domain_size      , only: ncat, nfsd, nfreq
+    use ice_domain_size      , only: nfreq
     use ice_dyn_eap          , only: init_eap
     use ice_dyn_evp          , only: init_evp
     use ice_dyn_vp           , only: init_vp
@@ -215,7 +215,7 @@ contains
     use ice_calendar, only: calendar
     use ice_constants, only: c0
     use ice_domain, only: nblocks
-    use ice_domain_size, only: ncat, n_iso, n_aero, nfsd, nslyr
+    use ice_domain_size, only: n_iso, n_aero, nfsd, nslyr
     use ice_dyn_eap, only: read_restart_eap
     use ice_dyn_shared, only: kdyn
     use ice_flux, only: Tf

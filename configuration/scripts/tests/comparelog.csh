@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#!/usr/bin/env -S csh -f
 
 # Compare prognostic output in two log files
 #-----------------------------------------------------------

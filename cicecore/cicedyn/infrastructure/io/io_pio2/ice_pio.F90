@@ -70,9 +70,6 @@
 
    ! local variables
 
-   integer (int_kind) :: &
-      nml_error          ! namelist read error flag
-
    integer :: nprocs , lstride, lroot, liotasks, rearranger
    integer :: pio_iotype, status, nmode0, nmode
    logical :: lclobber, exists, ldebug
@@ -267,7 +264,7 @@
       integer(kind=int_kind), optional, intent(in) :: precision
 
       integer (kind=int_kind) :: &
-          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n,k
+          iblk,ilo,ihi,jlo,jhi,lon,lat,i,j,n
 
       type(block) :: this_block
 
