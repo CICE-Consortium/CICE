@@ -362,10 +362,10 @@ contains
        do j = jlo, jhi
           do i = ilo, ihi
              n = n + 1
-             tlon(i,j,iblk) = ownedElemCoords(2*n-1) * deg_to_rad
-             tlat(i,j,iblk) = ownedElemCoords(2*n) * deg_to_rad
-             tarea(i,j,iblk) = mesh_areas(n) * (radius*radius)
-             hm(i,j,iblk) = real(ice_mask(n),kind=dbl_kind)
+             tlon((j-1)*nx_block+i,iblk) = ownedElemCoords(2*n-1) * deg_to_rad
+             tlat((j-1)*nx_block+i,iblk) = ownedElemCoords(2*n) * deg_to_rad
+             tarea((j-1)*nx_block+i,iblk) = mesh_areas(n) * (radius*radius)
+             hm((j-1)*nx_block+i,iblk) = real(ice_mask(n),kind=dbl_kind)
              ocn_gridcell_frac(i,j,iblk) = ice_frac(n)
           enddo
        enddo
@@ -490,7 +490,7 @@ contains
     ! hacked by adding half the latitudinal spacing (in radians) to TLAT.
     !-----------------------------------------------------------------
 
-    ANGLET(:,:,:) = c0
+    ANGLET = c0
 
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
@@ -503,32 +503,32 @@ contains
           do i = ilo, ihi
 
              if (ny_global == 1) then
-                uarea(i,j,iblk)  = tarea(i,j,  iblk)
+                uarea((j-1)*nx_block+i,iblk)  = tarea((j-1)*nx_block+i,iblk)
              else
-                uarea(i,j,iblk)  = p25*  &
-                     (tarea(i,j,  iblk) + tarea(i+1,j,  iblk) &
-                    + tarea(i,j+1,iblk) + tarea(i+1,j+1,iblk))
+                uarea((j-1)*nx_block+i,iblk)  = p25*  &
+                     (tarea((j-1)*nx_block+i           ,iblk) + tarea((j-1)*nx_block+i         +1,iblk) &
+                    + tarea((j-1)*nx_block+i+nx_block  ,iblk) + tarea((j-1)*nx_block+i+nx_block+1,iblk))
              endif
-             tarear(i,j,iblk)   = c1/tarea(i,j,iblk)
-             uarear(i,j,iblk)   = c1/uarea(i,j,iblk)
+             tarear((j-1)*nx_block+i,iblk) = c1/tarea((j-1)*nx_block+i,iblk)
+             uarear((j-1)*nx_block+i,iblk) = c1/uarea((j-1)*nx_block+i,iblk)
 !             tinyarea(i,j,iblk) = puny*tarea(i,j,iblk)
 
              if (.not. single_column) then
                 if (ny_global == 1) then
-                   ULAT(i,j,iblk) = TLAT(i,j,iblk)
+                   ULAT((j-1)*nx_block+i,iblk) = TLAT((j-1)*nx_block+i,iblk)
                 else
-                   ULAT(i,j,iblk) = TLAT(i,j,iblk)+(pi/ny_global)
+                   ULAT((j-1)*nx_block+i,iblk) = TLAT((j-1)*nx_block+i,iblk)+(pi/ny_global)
                 endif
              endif
-             ULON  (i,j,iblk) = c0
-             ANGLE (i,j,iblk) = c0
+             ULON  ((j-1)*nx_block+i,iblk) = c0
+             ANGLE ((j-1)*nx_block+i,iblk) = c0
 
-             HTN   (i,j,iblk) = 1.e36_dbl_kind
-             HTE   (i,j,iblk) = 1.e36_dbl_kind
-             dxT   (i,j,iblk) = 1.e36_dbl_kind
-             dyT   (i,j,iblk) = 1.e36_dbl_kind
-             dxU   (i,j,iblk) = 1.e36_dbl_kind
-             dyU   (i,j,iblk) = 1.e36_dbl_kind
+             HTN   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+             HTE   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+             dxT   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+             dyT   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+             dxU   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
+             dyU   ((j-1)*nx_block+i,iblk) = 1.e36_dbl_kind
           enddo
        enddo
     enddo
@@ -622,8 +622,8 @@ contains
        do j = jlo, jhi
           do i = ilo, ihi
              n = n + 1
-             lon(n) = tlon(i,j,iblk)*rad_to_deg
-             lat(n) = tlat(i,j,iblk)*rad_to_deg
+             lon(n) = tlon((j-1)*nx_block+i,iblk)*rad_to_deg
+             lat(n) = tlat((j-1)*nx_block+i,iblk)*rad_to_deg
 
              ! error check differences between internally generated lons and those read in
              diff_lon = mod(abs(lonMesh(n) - lon(n)),360.0)
@@ -663,7 +663,7 @@ contains
        do j = jlo, jhi
           do i = ilo, ihi
              n = n + 1
-             mask_internal = nint(hm(i,j,iblk),kind=dbl_kind)
+             mask_internal = nint(hm((j-1)*nx_block+i,iblk),kind=dbl_kind)
              mask_file = model_mask(n)
              if (mask_internal /= mask_file) then
                 write(6,102) n,mask_internal,mask_file

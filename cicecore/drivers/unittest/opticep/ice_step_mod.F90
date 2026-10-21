@@ -60,7 +60,7 @@
       subroutine save_init
 ! saves initial values for aice, aicen, vicen, vsnon
 
-      use ice_state, only: aice, aicen, aice_init, aicen_init, &
+      use ice_state, only: aice, aicen, aice_init3d, aicen_init, &
          vicen, vicen_init, vsnon, vsnon_init, trcrn, Tsfcn_init
 
       integer (kind=int_kind) :: &
@@ -76,7 +76,7 @@
 
          call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc)
 
-          aice_init = aice
+          aice_init3d = aice
          aicen_init = aicen
          vicen_init = vicen
          vsnon_init = vsnon
@@ -258,7 +258,7 @@
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
           vice, vicen, vsno, vsnon, trcrn, vsnon_init
 #ifdef CICE_IN_NEMO
-      use ice_state, only: aice_init
+      use ice_state, only: aice_init3d
 #endif
 
 #ifdef CESMCOUPLED
@@ -348,8 +348,8 @@
       ! are supplied by NEMO multiplied by ice concentration
       !---------------------------------------------------------------
 
-         if (aice_init(i,j,iblk) > puny) then
-            raice           = c1 / aice_init(i,j,iblk)
+         if (aice_init3d(i,j,iblk) > puny) then
+            raice           = c1 / aice_init3d(i,j,iblk)
             frain(i,j,iblk) = frain(i,j,iblk)*raice
             fsnow(i,j,iblk) = fsnow(i,j,iblk)*raice
          else
@@ -402,7 +402,7 @@
             enddo
          endif ! tr_aero
 
-         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+         if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) then
 
          call icepack_step_therm1(dt=dt,                       &
                       aicen_init   = aicen_init  (i,j,:,iblk), &
@@ -449,7 +449,7 @@
 !opt                      Qref_iso     = Qref_iso    (i,j,:,iblk), &
                       Uref         = Uref        (i,j,  iblk), &
                       Cdn_atm_ratio= Cdn_atm_ratio(i,j, iblk), &
-                      Cdn_ocn      = Cdn_ocn     (i,j,  iblk), &
+                      Cdn_ocn      = Cdn_ocn     ((j-1)*nx_block+i,iblk), &
                       Cdn_ocn_skin = Cdn_ocn_skin(i,j,  iblk), &
                       Cdn_ocn_floe = Cdn_ocn_floe(i,j,  iblk), &
                       Cdn_ocn_keel = Cdn_ocn_keel(i,j,  iblk), &
@@ -557,8 +557,8 @@
 !opt                      dsnown       = dsnown      (i,j,:,iblk), &
 !opt                      meltsliq     = meltsliq    (i,j,  iblk), &
 !opt                      meltsliqn    = meltsliqn   (i,j,:,iblk), &
-                      lmask_n      = lmask_n     (i,j,  iblk), &
-                      lmask_s      = lmask_s     (i,j,  iblk), &
+                      lmask_n      = lmask_n((j-1)*nx_block+i,iblk), &
+                      lmask_s      = lmask_s((j-1)*nx_block+i,iblk), &
                       mlt_onset    = mlt_onset   (i,j,  iblk), &
                       frz_onset    = frz_onset   (i,j,  iblk), &
 !opt                      dpnd_flush   = dpnd_flush  (i,j,  iblk), &
@@ -717,7 +717,7 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
-         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+         if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) then
 
          ! significant wave height
          if (tr_fsd .and. trim(wave_height_type) == 'internal') then
@@ -856,7 +856,7 @@
       ! Aggregate the updated state variables (includes ghost cells).
       !-----------------------------------------------------------------
 
-!        if (tmask(i,j,iblk)) &
+!        if (tmask((j-1)*nx_block+i,iblk)) &
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &
@@ -1017,7 +1017,8 @@
       integer (kind=int_kind) :: &
          ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
          iblk,            & ! block index
-         i, j               ! horizontal indices
+         i, j,            & ! horizontal indices
+         ij                 ! 1D index of (i,j) in the block
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, &     ! temporary
@@ -1043,7 +1044,7 @@
       ! conservation requires aiU be divided before averaging
       work1 = c0
       work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,ilo,ihi,jlo,jhi,this_block)
       do iblk = 1, nblocks
          this_block = get_block(blocks_ice(iblk), iblk)
          ilo = this_block%ilo
@@ -1052,9 +1053,10 @@
          jhi = this_block%jhi
          do j = jlo, jhi
          do i = ilo, ihi
-            if (aiU(i,j,iblk) /= c0) then
-               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
+            ij = (j-1)*nx_block + i
+            if (aiU(ij,iblk) /= c0) then
+               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(ij,iblk)
+               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(ij,iblk)
             endif
         enddo
         enddo
@@ -1148,7 +1150,7 @@
 !      call aggregate_area (ncat, aicen(i,j,:,iblk), atmp, atmp0)
 !      if (atmp > c0) then
 
-         if (tmask(i,j,iblk)) then
+         if (tmask((j-1)*nx_block+i,iblk)) then
 
             call icepack_step_ridge (dt=dt, ndtd=ndtd,      &
                          hin_max   = hin_max(:),            &
@@ -1157,8 +1159,8 @@
                          n_trcr_strata = n_trcr_strata(:),  &
                          nt_strata     = nt_strata    (:,:),&
                          trcrn     = trcrn    (i,j,:,:,iblk), &
-                         rdg_conv  = rdg_conv (i,j,  iblk), &
-                         rdg_shear = rdg_shear(i,j,  iblk), &
+                         rdg_conv  = rdg_conv ((j-1)*nx_block+i,iblk), &
+                         rdg_shear = rdg_shear((j-1)*nx_block+i,iblk), &
                          aicen     = aicen    (i,j,:,iblk), &
                          vicen     = vicen    (i,j,:,iblk), &
                          vsnon     = vsnon    (i,j,:,iblk), &
@@ -1445,7 +1447,7 @@
             endif
          enddo
 
-         if (tmask(i,j,iblk) .or. opmask(i,j,iblk)) then
+         if (tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) then
 
             call icepack_step_radiation (dt=dt,                               &
                          fbri=fbri(:),                                        &
@@ -1461,7 +1463,7 @@
                          bgcNn=trcrn(i,j,nt_bgc_N(1):nt_bgc_N(1)+n_algae*(nblyr+3)-1,:,iblk), &
                          zaeron=trcrn(i,j,nt_zaero(1):nt_zaero(1)+n_zaero*(nblyr+3)-1,:,iblk), &
                          trcrn_bgcsw=ztrcr_sw,                                &
-                         TLAT=TLAT(i,j,iblk),     TLON=TLON(i,j,iblk),        &
+                         TLAT=TLAT((j-1)*nx_block+i,iblk),     TLON=TLON((j-1)*nx_block+i,iblk),        &
                          calendar_type=calendar_type,                         &
                          days_per_year=days_per_year,                         &
                          nextsw_cday=nextsw_cday, yday=yday,                  &
@@ -1590,7 +1592,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
 
-            if (tmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk)) then
                icells = icells + 1
                indxi(icells) = i
                indxj(icells) = j

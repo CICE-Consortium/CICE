@@ -702,7 +702,7 @@
 
          call prepare_forcing (nx_block, ny_block, &
                                ilo, ihi, jlo, jhi, &
-                               hm    (:,:,iblk),   &
+                               hm    (:, iblk),   &
                                Tair  (:,:,iblk),   &
                                fsw   (:,:,iblk),   &
                                cldf  (:,:,iblk),   &
@@ -722,7 +722,7 @@
                                swidr (:,:,iblk),   &
                                swidf (:,:,iblk),   &
                                potT  (:,:,iblk),   &
-                               ANGLET(:,:,iblk),   &
+                               ANGLET(:,iblk),     &
                                trcr  (:,:,nt_Tsfc,iblk), &
                                sst   (:,:,iblk),   &
                                aice  (:,:,iblk) )
@@ -2511,13 +2511,13 @@
 
         do j = 1, ny_block
           do i = 1, nx_block
-            Qa  (i,j,iblk) = Qa  (i,j,iblk) * hm(i,j,iblk)
-            Tair(i,j,iblk) = Tair(i,j,iblk) * hm(i,j,iblk)
-            uatm(i,j,iblk) = uatm(i,j,iblk) * hm(i,j,iblk)
-            vatm(i,j,iblk) = vatm(i,j,iblk) * hm(i,j,iblk)
-            fsw (i,j,iblk) = fsw (i,j,iblk) * hm(i,j,iblk)
-            flw (i,j,iblk) = flw (i,j,iblk) * hm(i,j,iblk)
-            fsnow(i,j,iblk) = fsnow (i,j,iblk) * hm(i,j,iblk)
+            Qa  (i,j,iblk) = Qa  (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            Tair(i,j,iblk) = Tair(i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            uatm(i,j,iblk) = uatm(i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            vatm(i,j,iblk) = vatm(i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            fsw (i,j,iblk) = fsw (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            flw (i,j,iblk) = flw (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            fsnow(i,j,iblk) = fsnow (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
           enddo
         enddo
 
@@ -3278,11 +3278,11 @@
 
         do j = 1, ny_block
           do i = 1, nx_block
-            Qa   (i,j,iblk) = Qa   (i,j,iblk) * hm(i,j,iblk)
-            Tair (i,j,iblk) = Tair (i,j,iblk) * hm(i,j,iblk)
-            wind (i,j,iblk) = wind (i,j,iblk) * hm(i,j,iblk)
-            strax(i,j,iblk) = strax(i,j,iblk) * hm(i,j,iblk)
-            stray(i,j,iblk) = stray(i,j,iblk) * hm(i,j,iblk)
+            Qa   (i,j,iblk) = Qa   (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            Tair (i,j,iblk) = Tair (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            wind (i,j,iblk) = wind (i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            strax(i,j,iblk) = strax(i,j,iblk) * hm((j-1)*nx_block+i,iblk)
+            stray(i,j,iblk) = stray(i,j,iblk) * hm((j-1)*nx_block+i,iblk)
           enddo
         enddo
 
@@ -3295,9 +3295,9 @@
 
       call compute_shortwave(nx_block, ny_block, &
                              ilo, ihi, jlo, jhi, &
-                             TLON (:,:,iblk), &
-                             TLAT (:,:,iblk), &
-                             hm   (:,:,iblk), &
+                             TLON (:, iblk), &
+                             TLAT (:, iblk), &
+                             hm   (:, iblk), &
                              Qa   (:,:,iblk), &
                              cldf (:,:,iblk), &
                              fsw  (:,:,iblk))
@@ -3846,7 +3846,8 @@
         nlon        ! number of latitudes  of data
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, work2
+         work1, work2, &
+         angle3d           ! rank-3 copy of the flattened ANGLET
 #endif
 
       character(len=*), parameter :: subname = '(ocn_data_ncar_init_3D)'
@@ -3928,15 +3929,16 @@
         if (my_task == master_task) call ice_close_nc(fid)
 
         ! Rotate vector quantities and shift to U-grid
+        angle3d(:,:,:) = reshape(ANGLET, shape(angle3d))
         do n=4,6,2
           do m=1,12
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
-             ocn_frc_m(:,:,:,n  ,m) = work1(:,:,:)*cos(ANGLET(:,:,:)) &
-                                    + work2(:,:,:)*sin(ANGLET(:,:,:))
-             ocn_frc_m(:,:,:,n+1,m) = work2(:,:,:)*cos(ANGLET(:,:,:)) &
-                                    - work1(:,:,:)*sin(ANGLET(:,:,:))
+             ocn_frc_m(:,:,:,n  ,m) = work1(:,:,:)*cos(angle3d(:,:,:)) &
+                                    + work2(:,:,:)*sin(angle3d(:,:,:))
+             ocn_frc_m(:,:,:,n+1,m) = work2(:,:,:)*cos(angle3d(:,:,:)) &
+                                    - work1(:,:,:)*sin(angle3d(:,:,:))
 
              work1(:,:,:) = ocn_frc_m(:,:,:,n  ,m)
              work2(:,:,:) = ocn_frc_m(:,:,:,n+1,m)
@@ -4049,7 +4051,7 @@
             if (n == 7) ss_tlty(i,j,:) = c0
             if (n == 8) qdp    (i,j,:) = c0
             do iblk = 1, nblocks
-              if (hm(i,j,iblk) == c1) then
+              if (hm((j-1)*nx_block+i,iblk) == c1) then
                 if (n == 2) sss    (i,j,iblk) = work1(i,j,iblk)
                 if (n == 3) hmix   (i,j,iblk) = max(mixed_layer_depth_default,work1(i,j,iblk))
                 if (n == 4) uocn   (i,j,iblk) = work1(i,j,iblk)
@@ -4088,7 +4090,7 @@
         do iblk = 1, nblocks
          do j = 1, ny_block
           do i = 1, nx_block
-            if (hm(i,j,iblk) == c1) then
+            if (hm((j-1)*nx_block+i,iblk) == c1) then
               sst(i,j,iblk) =  max (sst(i,j,iblk), Tf(i,j,iblk))
             else
               sst(i,j,iblk) = c0
@@ -4191,6 +4193,7 @@
 
       integer (kind=int_kind) :: &
           i, j, iblk  , &
+          ij          , & ! 1D index of (i,j) in the block
           ixm,ixp     , & ! record numbers for neighboring months
           maxrec      , & ! maximum record number
           recslot     , & ! spline slot for current record
@@ -4319,17 +4322,18 @@
      ! and change  units
      !-----------------------------------------------------------------
 
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,workx,worky)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ij,workx,worky)
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
 
+               ij         = (j-1)*nx_block + i
                workx      = uocn(i,j,iblk)
                worky      = vocn(i,j,iblk)
-               uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) &
-                                  + worky*sin(ANGLET(i,j,iblk))
-               vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                                  - workx*sin(ANGLET(i,j,iblk))
+               uocn(i,j,iblk) = workx*cos(ANGLET(ij,iblk)) &
+                                  + worky*sin(ANGLET(ij,iblk))
+               vocn(i,j,iblk) = worky*cos(ANGLET(ij,iblk)) &
+                                  - workx*sin(ANGLET(ij,iblk))
 
                uocn(i,j,iblk) = uocn(i,j,iblk) * cm_to_m
                vocn(i,j,iblk) = vocn(i,j,iblk) * cm_to_m

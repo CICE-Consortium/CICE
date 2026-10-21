@@ -448,7 +448,7 @@
       use ice_flux_bgc, only: faero_ocn, fiso_ocn, Qref_iso, fiso_evap, &
           flux_bio, flux_bio_ai
       use ice_grid, only: tmask
-      use ice_state, only: aicen, aice, aice_init
+      use ice_state, only: aicen, aice, aice_init3d
 #ifdef CICE_IN_NEMO
       use ice_flux, only: flatn_f, fsurfn_f
 #endif
@@ -602,7 +602,7 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fswup     (i,j,iblk) = aice_init(i,j,iblk) &
+            fswup     (i,j,iblk) = aice_init3d(i,j,iblk) &
                                  * fsw    (i,j,iblk) - fswabs(i,j,iblk)
 
             if (nbtrcr > 0) then
@@ -630,7 +630,7 @@
       !-----------------------------------------------------------------
 
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr,             &
+                            tmask    (:,  iblk), nbtrcr,             &
                             icepack_max_aero,                        &
                             aice     (:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
@@ -665,7 +665,7 @@
 
             call sfcflux_to_ocn &
                          (nx_block,              ny_block,             &
-                          tmask   (:,:,iblk),    aice_init(:,:,iblk),  &
+                          tmask   (:,  iblk),    aice_init3d(:,:,iblk),  &
                           fsurfn_f (:,:,:,iblk), flatn_f(:,:,:,iblk),  &
                           fresh    (:,:,iblk),   fhocn    (:,:,iblk))
          endif
@@ -698,7 +698,9 @@
       integer (kind=int_kind), intent(in) :: &
           nx_block, ny_block  ! block dimensions
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
+      ! tmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent(in) :: &
           tmask       ! land/boundary mask, thickness (T-cell)
 
       real (kind=dbl_kind), dimension(nx_block,ny_block), intent(in):: &
@@ -733,7 +735,7 @@
       do n = 1, ncat
          do j = 1, ny_block
          do i = 1, nx_block
-            if (tmask(i,j) .and. aice(i,j) <= puny) then
+            if (tmask((j-1)*nx_block+i) .and. aice(i,j) <= puny) then
                fhocn(i,j)      = fhocn(i,j)              &
                             + fsurfn_f(i,j,n) + flatn_f(i,j,n)
                fresh(i,j)      = fresh(i,j)              &

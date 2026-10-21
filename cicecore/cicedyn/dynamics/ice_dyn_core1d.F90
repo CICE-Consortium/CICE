@@ -69,7 +69,8 @@ module ice_dyn_core1d
 
   ! arguments ------------------------------------------------------------------
   subroutine stress_1d (ee, ne, se, lb, ub,                              &
-                        uvel, vvel, dxT, dyT, skipme, strength,          &
+                        uvel, vvel, dxT, dyT, DminTarea,                 &
+                        dxhy, dyhx, skipme, strength,                    &
                         hte, htn, htem1, htnm1,                          &
                         stressp_1,  stressp_2,  stressp_3,  stressp_4,   &
                         stressm_1,  stressm_2,  stressm_3,  stressm_4,   &
@@ -81,7 +82,7 @@ module ice_dyn_core1d
                               p222, p25, p333, p5
 
     use ice_dyn_shared, only: arlx1i, denom1, revp,         &
-                              deltaminEVP, visc_replpress
+                              visc_replpress, strain_rates
     !
     implicit none
     ! arguments ------------------------------------------------------------------
@@ -94,6 +95,9 @@ module ice_dyn_core1d
       vvel     , & ! y-component of velocity (m/s)
       dxT      , & ! width of T-cell through the middle (m)
       dyT      , & ! height of T-cell through the middle (m)
+      DminTarea, & ! deltamin * tarea (m^2/s)
+      dxhy     , & ! 0.5*(HTE(i,j) - HTE(i-1,j))
+      dyhx     , & ! 0.5*(HTN(i,j) - HTN(i,j-1))
       hte      , &
       htn      , &
       htem1    , &
@@ -133,7 +137,7 @@ module ice_dyn_core1d
       tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se,            &
       tmp_uvel_cc, tmp_vvel_cc, tmp_dxT, tmp_dyT,       &
       tmp_cxp, tmp_cyp, tmp_cxm, tmp_cym,               &
-      tmp_strength, tmp_DminTarea, tmparea,             &
+      tmp_strength, tmp_DminTarea,                      &
       tmp_dxhy, tmp_dyhx
 
     character(len=*), parameter :: subname = '(stress_1d)'
@@ -163,14 +167,15 @@ module ice_dyn_core1d
     !$omp         tmp_vvel_ne, tmp_uvel_ne, tmp_uvel_se      , &
     !$omp         tmp_uvel_cc, tmp_vvel_cc, tmp_dxT, tmp_dyT , &
     !$omp         tmp_cxp, tmp_cyp, tmp_cxm, tmp_cym         , &
-    !$omp         tmp_strength, tmp_DminTarea, tmparea       , &
+    !$omp         tmp_strength, tmp_DminTarea                , &
     !$omp         tmp_dxhy, tmp_dyhx)                          &
-    !$omp  shared(uvel,vvel,dxT,dyT,htn,hte,htnm1,htem1      , &
+    !$omp  shared(uvel,vvel,dxT,dyT,DminTarea,dxhy,dyhx      , &
+    !$omp         htn,hte,htnm1,htem1                        , &
     !$omp         str1,str2,str3,str4,str5,str6,str7,str8    , &
     !$omp         stressp_1,stressp_2,stressp_3,stressp_4    , &
     !$omp         stressm_1,stressm_2,stressm_3,stressm_4    , &
     !$omp         stress12_1,stress12_2,stress12_3,stress12_4, &
-    !$omp         deltaminEVP, arlx1i, denom1, e_factor      , &
+    !$omp         arlx1i, denom1, e_factor                   , &
     !$omp         epp2i, capping,                              &
     !$omp         skipme,strength,ee,se,ne,lb,ub,revp)
 #endif
@@ -193,18 +198,29 @@ module ice_dyn_core1d
       tmp_cxm       = -(c1p5 * htnm1(iw) - p5 * htn(iw))
       tmp_cym       = -(c1p5 * htem1(iw) - p5 * hte(iw))
       tmp_strength  = strength(iw)
-      tmparea       = dxT(iw) * dyT(iw) ! necessary to split calc of DminTarea. Otherwize not binary identical
-      tmp_DminTarea = deltaminEVP * tmparea
-      tmp_dxhy      = p5 * (hte(iw) - htem1(iw))
-      tmp_dyhx      = p5 * (htn(iw) - htnm1(iw))
+      ! DminTarea is deltamin*tarea, taken from the caller rather than rebuilt
+      ! here as deltamin*dxT*dyT.  Those agree only where tarea happens to be
+      ! dxT*dyT, which init_grid2 sets but latlongrid and the MOM supergrid do
+      ! not -- on a MOM grid tarea is a sum of four sub-areas.  Reading the same
+      ! array the 2d kernel reads makes the two agree on every grid.
+      tmp_DminTarea = DminTarea(iw)
+      ! dxhy and dyhx are supplied rather than rebuilt from hte/htn here, so
+      ! this kernel and the 2d one read the same quantity from the same place.
+      ! The caller decides how they are formed; evp1d still builds them as
+      ! p5*(HTE - HTEm1) off its gathered grid, so its values are unchanged.
+      tmp_dxhy      = dxhy(iw)
+      tmp_dyhx      = dyhx(iw)
 
       !--------------------------------------------------------------------------
       ! strain rates - NOTE these are actually strain rates * area  (m^2/s)
       !--------------------------------------------------------------------------
-      call strain_rates_1d (tmp_uvel_cc, tmp_vvel_cc, &
-                            tmp_uvel_ee, tmp_vvel_ee, &
-                            tmp_uvel_se, tmp_vvel_se, &
-                            tmp_uvel_ne, tmp_vvel_ne, &
+      ! strain_rates is shared with the 2d solver.  Its stencil slots are
+      ! named from the other origin -- 00/W/S/SW here is cc/ee/se/ne -- the
+      ! two index spaces sitting one cell apart; the arithmetic is the same.
+      call strain_rates    (tmp_uvel_cc, tmp_uvel_ee, &
+                            tmp_uvel_se, tmp_uvel_ne, &
+                            tmp_vvel_cc, tmp_vvel_ee, &
+                            tmp_vvel_se, tmp_vvel_ne, &
                             tmp_dxT    , tmp_dyT    , &
                             tmp_cxp    , tmp_cyp    , &
                             tmp_cxm    , tmp_cym    , &
@@ -370,101 +386,6 @@ module ice_dyn_core1d
 #endif
   end subroutine stress_1d
 
-  !=============================================================================
-  ! Compute strain rates
-  !
-  ! author: Elizabeth C. Hunke, LANL
-  !
-  ! 2019: subroutine created by Philippe Blain, ECCC
-  subroutine strain_rates_1d (tmp_uvel_cc, tmp_vvel_cc, &
-                              tmp_uvel_ee, tmp_vvel_ee, &
-                              tmp_uvel_se, tmp_vvel_se, &
-                              tmp_uvel_ne, tmp_vvel_ne, &
-                              dxT        , dyT        , &
-                              cxp        , cyp        , &
-                              cxm        , cym        , &
-                              divune     , divunw     , &
-                              divuse     , divusw     , &
-                              tensionne  , tensionnw  , &
-                              tensionse  , tensionsw  , &
-                              shearne    , shearnw    , &
-                              shearse    , shearsw    , &
-                              Deltane    , Deltanw    , &
-                              Deltase    , Deltasw )
-
-    use ice_kinds_mod
-
-    real (kind=dbl_kind), intent(in) ::                    &
-       tmp_uvel_ee, tmp_vvel_ee, tmp_uvel_se, tmp_vvel_se, &
-       tmp_uvel_cc, tmp_vvel_cc, tmp_uvel_ne, tmp_vvel_ne
-
-    real (kind=dbl_kind), intent(in) :: &
-       dxT      ,                       & ! width of T-cell through the middle (m)
-       dyT      ,                       & ! height of T-cell through the middle (m)
-       cyp      ,                       & ! 1.5*HTE - 0.5*HTW
-       cxp      ,                       & ! 1.5*HTN - 0.5*HTS
-       cym      ,                       & ! 0.5*HTE - 1.5*HTW
-       cxm                                ! 0.5*HTN - 1.5*HTS
-
-    real (kind=dbl_kind), intent(out)::            & ! at each corner :
-       divune, divunw, divuse, divusw            , & ! divergence
-       tensionne, tensionnw, tensionse, tensionsw, & ! tension
-       shearne, shearnw, shearse, shearsw        , & ! shearing
-       Deltane, Deltanw, Deltase, Deltasw            ! Delta
-
-    character(len=*), parameter :: subname = '(strain_rates_1d)'
-
-    !-----------------------------------------------------------------------------
-    ! strain rates
-    ! NOTE these are actually strain rates * area  (m^2/s)
-    !-----------------------------------------------------------------------------
-
-    ! divergence  =  e_11 + e_22
-    divune    = cyp*tmp_uvel_cc - dyT*tmp_uvel_ee &
-              + cxp*tmp_vvel_cc - dxT*tmp_vvel_se
-
-    divunw    = cym*tmp_uvel_ee + dyT*tmp_uvel_cc &
-              + cxp*tmp_vvel_ee - dxT*tmp_vvel_ne
-
-    divusw    = cym*tmp_uvel_ne + dyT*tmp_uvel_se &
-              + cxm*tmp_vvel_ne + dxT*tmp_vvel_ee
-
-    divuse    = cyp*tmp_uvel_se - dyT*tmp_uvel_ne &
-              + cxm*tmp_vvel_se + dxT*tmp_vvel_cc
-
-    ! tension strain rate  =  e_11 - e_22
-    tensionne = -cym*tmp_uvel_cc - dyT*tmp_uvel_ee &
-                +cxm*tmp_vvel_cc + dxT*tmp_vvel_se
-
-    tensionnw = -cyp*tmp_uvel_ee + dyT*tmp_uvel_cc&
-                +cxm*tmp_vvel_ee + dxT*tmp_vvel_ne
-
-    tensionsw = -cyp*tmp_uvel_ne + dyT*tmp_uvel_se &
-                +cxp*tmp_vvel_ne - dxT*tmp_vvel_ee
-
-    tensionse = -cym*tmp_uvel_se - dyT*tmp_uvel_ne &
-                +cxp*tmp_vvel_se - dxT*tmp_vvel_cc
-
-    ! shearing strain rate  =  2*e_12
-    shearne   = -cym*tmp_vvel_cc - dyT*tmp_vvel_ee &
-                -cxm*tmp_uvel_cc - dxT*tmp_uvel_se
-
-    shearnw   = -cyp*tmp_vvel_ee + dyT*tmp_vvel_cc &
-                -cxm*tmp_uvel_ee - dxT*tmp_uvel_ne
-
-    shearsw   = -cyp*tmp_vvel_ne + dyT*tmp_vvel_se &
-                -cxp*tmp_uvel_ne + dxT*tmp_uvel_ee
-
-    shearse   = -cym*tmp_vvel_se - dyT*tmp_vvel_ne &
-                -cxp*tmp_uvel_se + dxT*tmp_uvel_cc
-
-    ! Delta (in the denominator of zeta, eta)
-    Deltane   = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
-    Deltanw   = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
-    Deltasw   = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
-    Deltase   = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
-
-  end subroutine strain_rates_1d
 
   !=============================================================================
   ! Calculation of the surface stresses
@@ -485,7 +406,7 @@ module ice_dyn_core1d
                        str7     , str8     , &
                        nw       , sw       , &
                        sse      , skipme   , &
-                       Tbu, Cb, rhow)
+                       Tbu, Cb, rhow, rheofactU)
 
     use ice_kinds_mod
     use ice_dyn_shared, only: brlx, revp, u0, cosw, sinw
@@ -508,7 +429,7 @@ module ice_dyn_core1d
        uocn,     & ! ocean current, x-direction (m/s)
        vocn,     & ! ocean current, y-direction (m/s)
        fm,       & ! Coriolis param. * mass in U-cell (kg/s)
-       uarear,   & ! 1/uarea
+       rheofactU, uarear,   & ! 1/uarea
        Cw
 
     real (kind=dbl_kind),dimension(:), intent(in),    contiguous ::              &
@@ -550,6 +471,7 @@ module ice_dyn_core1d
     !$omp shared(uvel,vvel,str1,str2,str3,str4,str5,str6,str7,str8,            &
     !$omp        Cb,nw,sw,sse,skipme,Tbu,uvel_init,vvel_init,                  &
     !$omp        aiX,waterx,watery,forcex,forcey,Umassdti,uocn,vocn,fm,uarear, &
+    !$omp        rheofactU,                                                    &
     !$omp           Cw,lb,ub,brlx, revp, rhow)
 #endif
     do iw = lb, ub
@@ -580,8 +502,12 @@ module ice_dyn_core1d
       tmp_str8_sw = str8(sw(iw))
 
       ! divergence of the internal stress tensor
-      strintx = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
-      strinty = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+      ! rheofactU is 1, or 0 where the U cell carries less ice than
+      ! rheo_area_min and free_drift_approx is on.  The 2-D stepu applies it
+      ! here (#1133); #1133 did not reach this kernel, so the two solvers
+      ! disagreed wherever a grid has marginal ice.
+      strintx = rheofactU(iw)*uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+      strinty = rheofactU(iw)*uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
 
       ! finally, the velocity components
       cc1 = strintx + forcex(iw) + taux &
@@ -611,7 +537,7 @@ module ice_dyn_core1d
                            str5   , str6   , &
                            str7   , str8   , &
                            nw     , sw     , &
-                           sse    ,          &
+                           sse    , rheofactU, &
                            strintx, strinty)
 
     use ice_kinds_mod
@@ -624,7 +550,7 @@ module ice_dyn_core1d
     integer(kind=int_kind), intent(in)                           :: lb,ub
     integer(kind=int_kind), intent(in), dimension(:), contiguous :: nw,sw,sse
     logical(kind=log_kind), intent(in), dimension(:), contiguous :: skipme
-    real   (kind=dbl_kind), intent(in), dimension(:), contiguous :: uarear
+    real   (kind=dbl_kind), intent(in), dimension(:), contiguous :: uarear, rheofactU
 
   ! local variables
     integer (kind=int_kind) :: iw
@@ -642,6 +568,7 @@ module ice_dyn_core1d
     !$omp private(iw, tmp_str2_nw,tmp_str3_sse,tmp_str4_sw,               &
     !$omp         tmp_str6_sse,tmp_str7_nw,tmp_str8_sw)                   &
     !$omp shared(strintx,strinty,str1,str2,str3,str4,str5,str6,str7,str8, &
+    !$omp        rheofactU,                                               &
     !$omp        nw,sw,sse,skipme, uarear, lb,ub)
 #endif
 
@@ -656,8 +583,8 @@ module ice_dyn_core1d
       tmp_str8_sw = str8(sw(iw))
 
       ! divergence of the internal stress tensor
-      strintx(iw) = uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
-      strinty(iw) = uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
+      strintx(iw) = rheofactU(iw)*uarear(iw)*(str1(iw)+tmp_str2_nw+tmp_str3_sse+tmp_str4_sw)
+      strinty(iw) = rheofactU(iw)*uarear(iw)*(str5(iw)+tmp_str6_sse+tmp_str7_nw+tmp_str8_sw)
     enddo
 
 #ifdef _OPENMP_TARGET

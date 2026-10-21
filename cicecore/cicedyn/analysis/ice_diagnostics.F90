@@ -355,7 +355,7 @@
                             + alvdf(i,j,iblk)*awtvdf &
                             + alidf(i,j,iblk)*awtidf
             if (work1(i,j,iblk) > puny) then
-               work2(i,j,iblk) = tarean(i,j,iblk)
+               work2(i,j,iblk) = tarean((j-1)*nx_block+i,iblk)
             else
                work2(i,j,iblk) = c0
             endif
@@ -380,7 +380,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             if (work1(i,j,iblk) > puny) then
-               work2(i,j,iblk) = tareas(i,j,iblk)
+               work2(i,j,iblk) = tareas((j-1)*nx_block+i,iblk)
             else
                work2(i,j,iblk) = c0
             endif
@@ -439,7 +439,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
+               work1(i,j,iblk) = sqrt(uvel((j-1)*nx_block+i,iblk)**2 + vvel((j-1)*nx_block+i,iblk)**2)
             enddo
             enddo
          enddo
@@ -614,7 +614,7 @@
                      (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
                     + fsens (i,j,iblk) + flwout (i,j,iblk)) &
                                        * aice      (i,j,iblk) &
-                    + flw   (i,j,iblk) * aice_init (i,j,iblk)
+                    + flw   (i,j,iblk) * aice_init3d (i,j,iblk)
                enddo
                enddo
             enddo
@@ -665,10 +665,10 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               work1(i,j,iblk) = (aice_init(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
+               work1(i,j,iblk) = (aice_init3d(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
+                               + (aice_init3d(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
+                               + (aice_init3d(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
+                               + (aice_init3d(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
             enddo
             enddo
          enddo
@@ -702,9 +702,9 @@
          ! rain
          rnn = c0
          rns = c0
-         rnn = global_sum_prod(frain, aice_init, distrb_info, &
+         rnn = global_sum_prod(frain, aice_init3d, distrb_info, &
                                field_loc_center, tarean)
-         rns = global_sum_prod(frain, aice_init, distrb_info, &
+         rns = global_sum_prod(frain, aice_init3d, distrb_info, &
                                field_loc_center, tareas)
          rnn = rnn*dt
          rns = rns*dt
@@ -712,9 +712,9 @@
          ! snow
          snn = c0
          sns = c0
-         snn = global_sum_prod(fsnow, aice_init, distrb_info, &
+         snn = global_sum_prod(fsnow, aice_init3d, distrb_info, &
                                field_loc_center, tarean)
-         sns = global_sum_prod(fsnow, aice_init, distrb_info, &
+         sns = global_sum_prod(fsnow, aice_init3d, distrb_info, &
                                field_loc_center, tareas)
          snn = snn*dt
          sns = sns*dt
@@ -831,9 +831,9 @@
          isorn   = c0
          isors   = c0
          do n = 1, n_iso
-            fisoan(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
+            fisoan(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init3d, &
                                         distrb_info, field_loc_center, tarean)
-            fisoas(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
+            fisoas(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init3d, &
                                         distrb_info, field_loc_center, tareas)
             fisoan(n) = fisoan(n)*dt
             fisoas(n) = fisoas(n)*dt
@@ -882,9 +882,9 @@
          aerrn = c0
          aerrs = c0
          do n = 1, n_aero
-            faeran(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init, &
+            faeran(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init3d, &
                                         distrb_info, field_loc_center, tarean)
-            faeras(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init, &
+            faeras(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init3d, &
                                         distrb_info, field_loc_center, tareas)
             faeran(n) = faeran(n)*dt
             faeras(n) = faeras(n)*dt
@@ -1466,7 +1466,7 @@
          icells = 0
          do j = 1, ny_block
          do i = 1, nx_block
-            if (tmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk)) then
                icells = icells + 1
                indxi(icells) = i
                indxj(icells) = j
@@ -1552,7 +1552,7 @@
          icells = 0
          do j = 1, ny_block
          do i = 1, nx_block
-            if (tmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk)) then
                icells = icells + 1
                indxi(icells) = i
                indxj(icells) = j
@@ -1660,10 +1660,10 @@
 
                do j = jlo, jhi
                do i = ilo, ihi
-                  if (hm(i,j,iblk) > p5) then
-                     latdis = abs(latpnt(n)-TLAT(i,j,iblk)*rad_to_deg)
-                     londis = abs(lonpnt(n)-TLON(i,j,iblk)*rad_to_deg) &
-                            * cos(TLAT(i,j,iblk))
+                  if (hm((j-1)*nx_block+i,iblk) > p5) then
+                     latdis = abs(latpnt(n)-TLAT((j-1)*nx_block+i,iblk)*rad_to_deg)
+                     londis = abs(lonpnt(n)-TLON((j-1)*nx_block+i,iblk)*rad_to_deg) &
+                            * cos(TLAT((j-1)*nx_block+i,iblk))
                      totdis = sqrt(latdis**2 + londis**2)
                      if (totdis < mindis) then
                         mindis = totdis
@@ -1688,8 +1688,8 @@
                pjloc(n) = jindx
                pbloc(n) = bindx
                pmloc(n) = my_task
-               plat(n) = TLAT(iindx,jindx,bindx)*rad_to_deg
-               plon(n) = TLON(iindx,jindx,bindx)*rad_to_deg
+               plat(n) = TLAT((jindx-1)*nx_block+iindx,bindx)*rad_to_deg
+               plon(n) = TLON((jindx-1)*nx_block+iindx,bindx)*rad_to_deg
             endif
 
             ! communicate to all processors
@@ -1819,8 +1819,8 @@
                         this_block%i_glob(i), &
                         this_block%j_glob(j)
       write (nu_diag,*) subname,' Lat, Lon (degrees):', &
-                        TLAT(i,j,iblk)*rad_to_deg, &
-                        TLON(i,j,iblk)*rad_to_deg
+                        TLAT((j-1)*nx_block+i,iblk)*rad_to_deg, &
+                        TLON((j-1)*nx_block+i,iblk)*rad_to_deg
       write(nu_diag,*) ' '
       write(nu_diag,*) 'aice ', aice(i,j,iblk)
       write(nu_diag,*) 'aice0', aice0(i,j,iblk)
@@ -1893,8 +1893,8 @@
       enddo
       write(nu_diag,*) ' '
 
-      write(nu_diag,*) 'uvel(i,j)',uvel(i,j,iblk)
-      write(nu_diag,*) 'vvel(i,j)',vvel(i,j,iblk)
+      write(nu_diag,*) 'uvel(i,j)',uvel((j-1)*nx_block+i,iblk)
+      write(nu_diag,*) 'vvel(i,j)',vvel((j-1)*nx_block+i,iblk)
       if (grid_ice == 'C') then
          write(nu_diag,*) 'uvelE(i,j)',uvelE(i,j,iblk)
          write(nu_diag,*) 'uvelN(i,j)',uvelN(i,j,iblk)

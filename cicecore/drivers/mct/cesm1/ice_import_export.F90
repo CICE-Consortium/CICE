@@ -411,17 +411,17 @@ contains
              ! ocean
              workx      = uocn  (i,j,iblk) ! currents, m/s
              worky      = vocn  (i,j,iblk)
-             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                  + worky*sin(ANGLET(i,j,iblk))
-             vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                  - workx*sin(ANGLET(i,j,iblk))
+             uocn(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                  + worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             vocn(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                  - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              workx      = ss_tltx  (i,j,iblk)           ! sea sfc tilt, m/m
              worky      = ss_tlty  (i,j,iblk)
-             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                  + worky*sin(ANGLET(i,j,iblk))
-             ss_tlty(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                  - workx*sin(ANGLET(i,j,iblk))
+             ss_tltx(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                  + worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             ss_tlty(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                  - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              sst(i,j,iblk) = sst(i,j,iblk) - Tffresh       ! sea sfc temp (C)
 
@@ -488,10 +488,10 @@ contains
              ! atmosphere
              workx      = uatm(i,j,iblk) ! wind velocity, m/s
              worky      = vatm(i,j,iblk)
-             uatm (i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                             + worky*sin(ANGLET(i,j,iblk))   ! note uatm, vatm, wind
-             vatm (i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & ! are on the T-grid here
-                  - workx*sin(ANGLET(i,j,iblk))
+             uatm (i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                             + worky*sin(ANGLET((j-1)*nx_block+i,iblk))   ! note uatm, vatm, wind
+             vatm (i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! are on the T-grid here
+                  - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              wind (i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
              fsw  (i,j,iblk) = swvdr(i,j,iblk) + swvdf(i,j,iblk) &
@@ -565,18 +565,18 @@ contains
              ! wind stress  (on POP T-grid:  convert to lat-lon)
              workx = strairxT(i,j,iblk)                             ! N/m^2
              worky = strairyT(i,j,iblk)                             ! N/m^2
-             tauxa(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) &
-                             - worky*sin(ANGLET(i,j,iblk))
-             tauya(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                             + workx*sin(ANGLET(i,j,iblk))
+             tauxa(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                             - worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             tauya(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                             + workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
              workx = -strocnxT_iavg(i,j,iblk)                       ! N/m^2
              worky = -strocnyT_iavg(i,j,iblk)                       ! N/m^2
-             tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) &
-                             - worky*sin(ANGLET(i,j,iblk))
-             tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                             + workx*sin(ANGLET(i,j,iblk))
+             tauxo(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                             - worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             tauyo(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                             + workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
           enddo
        enddo
@@ -586,7 +586,7 @@ contains
     do iblk = 1, nblocks
        do j = 1, ny_block
           do i = 1, nx_block
-             if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+             if (tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) < c0 ) then
                 flag = .true.
              endif
           end do
@@ -596,7 +596,7 @@ contains
        do iblk = 1, nblocks
           do j = 1, ny_block
              do i = 1, nx_block
-                if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+                if (tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) < c0 ) then
                    write(nu_diag,*) &
                         ' (ice) send: ERROR ailohi < 0.0 ',i,j,ailohi(i,j,iblk)
                    call shr_sys_flush(nu_diag)
@@ -628,12 +628,12 @@ contains
 
              !--- zero out fields with tmask for proper coupler accumulation in ice free areas
 
-             if ( tmask(i,j,iblk)) i2x(:,n) = c0
+             if ( tmask((j-1)*nx_block+i,iblk)) i2x(:,n) = c0
 
              !-------states--------------------
              i2x(index_i2x_Si_ifrac ,n)    = ailohi(i,j,iblk)
 
-             if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 ) then
+             if ( tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) > c0 ) then
                 icnt = icnt + 1
                 !-------states--------------------
                 i2x(index_i2x_Si_t     ,n)    = Tsrf(i,j,iblk)

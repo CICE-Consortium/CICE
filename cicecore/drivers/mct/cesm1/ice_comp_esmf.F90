@@ -980,14 +980,14 @@ end subroutine
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          fptr(klon, n)  = TLON(i,j,iblk)*rad_to_deg
-          fptr(klat, n)  = TLAT(i,j,iblk)*rad_to_deg
-          fptr(karea, n) = tarea(i,j,iblk)/(radius*radius)
-          fptr(kmask, n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
+          fptr(klon, n)  = TLON((j-1)*nx_block+i,iblk)*rad_to_deg
+          fptr(klat, n)  = TLAT((j-1)*nx_block+i,iblk)*rad_to_deg
+          fptr(karea, n) = tarea((j-1)*nx_block+i,iblk)/(radius*radius)
+          fptr(kmask, n) = real(nint(hm((j-1)*nx_block+i,iblk)),kind=dbl_kind)
           if (trim(grid_type) == 'latlon') then
-             fptr(kfrac, n) = ocn_gridcell_frac(i,j,iblk)
+             fptr(kfrac, n) = ocn_gridcell_frac((j-1)*nx_block+i,iblk)
           else
-             fptr(kfrac, n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
+             fptr(kfrac, n) = real(nint(hm((j-1)*nx_block+i,iblk)),kind=dbl_kind)
           end if
        enddo    !i
        enddo    !j

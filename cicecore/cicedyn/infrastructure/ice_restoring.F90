@@ -259,8 +259,11 @@
             vicen_restoring(:,:,:,:) = vicen(:,:,:,:)
             vsnon_restoring(:,:,:,:) = vsnon(:,:,:,:)
             trcrn_restoring(:,:,:,:,:) = trcrn(:,:,:,:,:)
-            uvel_restoring(:,:,:) = uvel(:,:,:)
-            vvel_restoring(:,:,:) = vvel(:,:,:)
+            ! uvel/vvel are flattened, uvel_restoring is not -- it is read
+            ! through ice_read_nc with grid_ext, so its shape is I/O's.  The
+            ! storage order is the same, so reshape is exact.
+            uvel_restoring(:,:,:) = reshape(uvel, shape(uvel_restoring))
+            vvel_restoring(:,:,:) = reshape(vvel, shape(vvel_restoring))
          endif
 
       elseif (restore_data == 'defined') then
@@ -555,7 +558,7 @@
             aicen_restoring(i,j,n,iblk) = c0
             vicen_restoring(i,j,n,iblk) = c0
             vsnon_restoring(i,j,n,iblk) = c0
-            if (tmask(i,j,iblk)) then
+            if (tmask((j-1)*nx_block+i,iblk)) then
                trcrn_restoring(i,j,nt_Tsfc,n,iblk) = Tf(i,j,iblk)  ! surface temperature
             else
                trcrn_restoring(i,j,nt_Tsfc,n,iblk) = c0  ! on land gridcells
@@ -630,12 +633,12 @@
          do n = 1, ncat
          do j = 1, ny_block
          do i = 1, nx_block
-            aicen_restoring(i,j,n,iblk) = aicen_restoring(i,j,n,iblk) * hm(i,j,iblk)
-            vicen_restoring(i,j,n,iblk) = vicen_restoring(i,j,n,iblk) * hm(i,j,iblk)
-            vsnon_restoring(i,j,n,iblk) = vsnon_restoring(i,j,n,iblk) * hm(i,j,iblk)
+            aicen_restoring(i,j,n,iblk) = aicen_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
+            vicen_restoring(i,j,n,iblk) = vicen_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
+            vsnon_restoring(i,j,n,iblk) = vsnon_restoring(i,j,n,iblk) * hm((j-1)*nx_block+i,iblk)
             do nt = 1, ntrcr
                trcrn_restoring(i,j,nt,n,iblk) = trcrn_restoring(i,j,nt,n,iblk) &
-                                                            * hm(i,j,iblk)
+                                                            * hm((j-1)*nx_block+i,iblk)
             enddo
          enddo
          enddo
@@ -768,10 +771,19 @@
 !  This subroutine is intended for restoring the ice state to desired
 !  values in halo cells surrounding the grid.
 
-   subroutine ice_restoring_halo(setfld)
+   subroutine ice_restoring_halo(setfld, uvel_s, vvel_s)
 
       character (len=*), intent(in) :: &
          setfld                ! field to restore
+
+      ! Optional COMPRESSED velocities.  When present, setfld='velocity'
+      ! writes these instead of the block uvel/vvel, which is what lets the
+      ! dynamics subcycles keep their velocities in slot form across this
+      ! call.  They are passed rather than imported so that this module gains
+      ! no dependency on ice_dyn_shared -- infrastructure should not import
+      ! the dynamics.  VP still calls without them and takes the block path.
+      real (kind=dbl_kind), dimension(:), intent(inout), optional :: &
+         uvel_s, vvel_s        ! compressed velocities
 
       ! local variables
 
@@ -876,12 +888,12 @@
                   ! West Edge
                   if (this_block%iblock == 1) then
                      call restore_cells(iblk, 1, ilo-1, 1, ny_block, &
-                          halo=.true., setfld=psetfld)
+                          halo=.true., setfld=psetfld, uvel_s=uvel_s, vvel_s=vvel_s)
                   endif
                   ! East Edge
                   if (this_block%iblock == nblocks_x) then
                      call restore_cells(iblk, ihi+1+nv, ihi+nghost, 1, ny_block, &
-                          halo=.true., setfld=psetfld)
+                          halo=.true., setfld=psetfld, uvel_s=uvel_s, vvel_s=vvel_s)
                   endif
                endif
 
@@ -889,7 +901,7 @@
                if (trim(ns_boundary_type) /= 'cyclic') then
                   if (this_block%jblock == 1) then
                      call restore_cells(iblk, 1, nx_block, 1, jlo-1, &
-                          halo=.true., setfld=psetfld)
+                          halo=.true., setfld=psetfld, uvel_s=uvel_s, vvel_s=vvel_s)
                   endif
                endif
 
@@ -899,7 +911,7 @@
                    trim(ns_boundary_type) /= 'tripoleT') then
                   if (this_block%jblock == nblocks_y) then
                      call restore_cells(iblk, 1, nx_block, jhi+1+nv, jhi+nghost, &
-                          halo=.true., setfld=psetfld)
+                          halo=.true., setfld=psetfld, uvel_s=uvel_s, vvel_s=vvel_s)
                   endif
                endif
 
@@ -914,7 +926,9 @@
 
 !=======================================================================
 
-   subroutine restore_cells(iblk,i1,i2,j1,j2,halo,setfld)
+   subroutine restore_cells(iblk,i1,i2,j1,j2,halo,setfld,uvel_s,vvel_s)
+
+      use ice_grid, only: dynMap, dynOff
 
       integer(kind=int_kind), intent(in) :: &
          iblk,      & ! block id
@@ -923,6 +937,10 @@
 
       logical (kind=log_kind), intent(in) :: &
          halo         ! is this for the halo
+
+      ! Optional compressed velocities; see ice_restoring_halo.
+      real (kind=dbl_kind), dimension(:), intent(inout), optional :: &
+         uvel_s, vvel_s
 
       character(len=*), intent(in) :: &
          setfld       ! fields to restore
@@ -1081,11 +1099,40 @@
 
       elseif (setfld == 'velocity') then
 
-         if (halo) then   ! set values explicitly
+         ! Compressed path: the slot of (i,j) is dynOff(iblk) + its
+         ! block-local slot.  A cell with no slot maps to the block's dead
+         ! slot, so writing it is a no-op by construction -- which is exactly
+         ! what should happen for a boundary cell outside the active set.
+         if (present(uvel_s)) then
+            if (halo) then   ! set values explicitly
+               do i = i1,i2
+               do j = j1,j2
+                  uvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk)) = uvel_restoring(i,j,iblk)
+                  vvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk)) = vvel_restoring(i,j,iblk)
+               enddo
+               enddo
+            else              ! restoring
+               do i = i1, i2
+               do j = j1, j2
+                  if (mask_restoring(i,j,iblk)) then
+                     vr1 = fval_restoring(i,j,iblk)
+                     vv2 = c1 - vr1
+                     uvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk)) = &
+                        uvel_restoring(i,j,iblk)*vr1 &
+                      + uvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk))*vv2
+                     vvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk)) = &
+                        vvel_restoring(i,j,iblk)*vr1 &
+                      + vvel_s(dynOff(iblk)+dynMap((j-1)*nx_block+i,iblk))*vv2
+                  endif
+               enddo
+               enddo
+            endif
+
+         elseif (halo) then   ! set values explicitly
             do i = i1,i2
             do j = j1,j2
-               uvel(i,j,iblk) = uvel_restoring(i,j,iblk)
-               vvel(i,j,iblk) = vvel_restoring(i,j,iblk)
+               uvel((j-1)*nx_block+i,iblk) = uvel_restoring(i,j,iblk)
+               vvel((j-1)*nx_block+i,iblk) = vvel_restoring(i,j,iblk)
             enddo
             enddo
          else              ! restoring
@@ -1094,8 +1141,8 @@
                if (mask_restoring(i,j,iblk)) then
                   vr1 = fval_restoring(i,j,iblk)
                   vv2 = c1 - vr1
-                  uvel(i,j,iblk) = uvel_restoring(i,j,iblk)*vr1 + uvel(i,j,iblk)*vv2
-                  vvel(i,j,iblk) = vvel_restoring(i,j,iblk)*vr1 + vvel(i,j,iblk)*vv2
+                  uvel((j-1)*nx_block+i,iblk) = uvel_restoring(i,j,iblk)*vr1 + uvel((j-1)*nx_block+i,iblk)*vv2
+                  vvel((j-1)*nx_block+i,iblk) = vvel_restoring(i,j,iblk)*vr1 + vvel((j-1)*nx_block+i,iblk)*vv2
                endif
             enddo
             enddo
