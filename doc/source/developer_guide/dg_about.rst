@@ -65,11 +65,35 @@ Overall, CICE code should be implemented as follows,
 
        use icepack_intfc, only: icepack_init_parameters
 
-  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack, **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and **icepack_warnings_aborted** should be check to abort on an Icepack error as follows,
+  * Icepack does not write to output or abort, it provides methods to access those features.  After each call to Icepack,
+    **icepack_warnings_flush** should be called to flush Icepack output to the CICE log file and
+    **icepack_warnings_aborted** should be checked to abort on an Icepack error as follows,
 
     .. code-block:: fortran
 
        call icepack_physics()
+       call icepack_warnings_flush(nu_diag)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
+
+    To identify the grid cell where Icepack fails, check **icepack_warnings_aborted** inside the
+    i,j loop and call ``diagnostic_abort``, which writes the Icepack messages, the location (global
+    i/j, lat/lon) and ice state of the failing grid cell, then aborts.  This check is active by default
+    after **icepack_step_therm1** and **icepack_step_therm2** in **ice_step_mod.F90**, where Icepack
+    failures are most common.  The same check is included but commented out after the other Icepack
+    calls in **ice_step_mod.F90**, and can be uncommented when debugging.  **icepack_warnings_flush**
+    contains an OpenMP critical region and should be called once after the loop, not for every grid
+    cell,
+
+    .. code-block:: fortran
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          call icepack_physics()
+          if (icepack_warnings_aborted()) then
+             call diagnostic_abort(i, j, iblk, subname//' icepack_physics aborted')
+          endif
+       enddo
+       enddo
        call icepack_warnings_flush(nu_diag)
        if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
