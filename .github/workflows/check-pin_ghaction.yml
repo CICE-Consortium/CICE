@@ -1,0 +1,36 @@
+name: Check Pinned Actions
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  check-pins:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned checkout action to ensure the checker itself is secure
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run pin-github-action
+        env:
+          # Default token used only to query GitHub API for SHAs; no push access needed
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx pin-github-action .github/workflows/
+
+      - name: Check for unpinned actions and print diff
+        run: |
+          if ! git diff --quiet; then
+            echo "::error title=Unpinned Actions Detected::You have unpinned GitHub Actions. Please run 'npx pin-github-action .github/workflows/' locally and push the changes."
+            echo "==================================================="
+            echo "The following changes are required:"
+            echo "==================================================="
+            
+            # Prints the exact YAML changes needed to the GitHub Actions logs
+            git diff
+            
+            # Fails the job, blocking the branch from passing CI
+            exit 1
+          else
+            echo "✅ All GitHub Actions are securely pinned."
+          fi
