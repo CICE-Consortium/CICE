@@ -10,7 +10,15 @@ smoke          gx3     7x2        diag1,bigdiag,run1day,diagpt1
 decomp         gx3     4x2x25x29x5  none
 smoke          gx3     4x2        diag1,run5day             smoke_gx3_8x2_diag1_run5day
 smoke          gx3     4x1        diag1,run5day,thread      smoke_gx3_8x2_diag1_run5day
-smoke          gx3     1x8        diag1,run5day,evp1d
+smoke          gx3     1x4        debug,diag1,run2day,evp1d smoke_gx3_1x4_debug_diag1_run2day
+smoke          gx3     1x8        diag1,run5day
+smoke          gx3     1x8        diag1,run5day,evp1d       smoke_gx3_1x8_diag1_run5day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_run1day
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2
+smoke          gbox80  8x1        boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d smoke_gbox80_8x1_boxforcee_boxopen_kmtislands_nghost2_run1day
+smoke          gx3     4x4        histall,run2day
+smoke          gx3     4x4        histall,run2day,evp1d     smoke_gx3_4x4_histall_run2day
 restart        gx1    40x4        droundrobin,medium
 restart        tx1    40x4        dsectrobin,medium
 restart        tx1    40x4        dsectrobin,medium,jra55do
@@ -85,6 +93,8 @@ restart        gx3     4x4        cdf64,histall,precision8,medium
 smoke          gx3    30x1        bgcz,histall
 smoke          gx3    14x2        fsd12,histall
 smoke          gx3     4x1        dynpicard
+restart        gx3     4x2        dynpicard,diag1
+smoke          gbox80  4x2        boxopen,kmtislands,boxforcee,run1day,dynpicard
 restart        gx3     8x2        gx3ncarbulk,debug
 restart        gx3     4x4        diag1,gx3ncarbulk,short
 smoke          gx3     4x1        calcdragio
