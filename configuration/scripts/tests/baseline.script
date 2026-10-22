@@ -124,10 +124,6 @@ endif
 #-----------------------------------------------------------
 
 # BFB Compare runs
-#
-# Shared with bfbcomp_redo.csh, which redoes these comparisons once every
-# job in the suite has finished.  Keep the logic in one place so the two
-# passes cannot drift apart.
 
 source ${ICE_CASEDIR}/casescripts/bfbcomp.csh
 
