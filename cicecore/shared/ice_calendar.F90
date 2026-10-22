@@ -116,6 +116,8 @@
       real (kind=dbl_kind), public :: &
          dt             , & ! thermodynamics timestep (s)
          dt_dyn         , & ! dynamics/transport/ridging timestep (s)
+         dt_wavefracture = -1.0_dbl_kind, & ! time interval between wave fracture computations of
+                            ! the floe size distribution (s). -1: every timestep, i.e. dt
          timesecs       , & ! total elapsed time (s)
          yday           , & ! day of the year
          nextsw_cday        ! julian day of next shortwave calculation
