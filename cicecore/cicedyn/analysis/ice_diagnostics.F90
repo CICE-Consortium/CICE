@@ -28,7 +28,7 @@
       implicit none
       private
       public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
-                print_state, diagnostic_abort
+                print_state, diagnostic_abort, diag_kinetic_energy, diag_ice_speed
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -51,8 +51,18 @@
          check_umax = .false. ! if true, check for speed > umax_stab
 
       real (kind=dbl_kind), parameter :: &
-         umax_stab   = 1.0_dbl_kind , & ! ice speed threshold for instability (m/s)
+         umax_stab   = 1.0_dbl_kind     ! ice speed threshold for instability (m/s)
+
+      real (kind=dbl_kind), parameter, public :: &
          aice_extmin = 0.15_dbl_kind    ! min aice value for ice extent calc
+
+      real (kind=dbl_kind), parameter, public :: &
+         maxval_spval = -0.9_dbl_kind*1.0e36_dbl_kind  ! spval to detect
+                 ! undefined values returned from global_maxval.  if global_maxval
+                 ! is applied to a region that does not exist (for instance
+                 ! southern hemisphere in box cases), global_maxval
+                 ! returns -1.0e36 which we want to avoid writing.  The
+                 ! return value is checked against maxval_spval before writing.
 
       real (kind=dbl_kind), dimension(npnt), public :: &
          latpnt           , & !  latitude of diagnostic points
@@ -99,6 +109,8 @@
       real (kind=dbl_kind), dimension(icepack_max_aero) :: &
          totaeron         , & ! total aerosol mass
          totaeros             ! total aerosol mass
+
+
 
 !=======================================================================
 
@@ -203,16 +215,7 @@
          prsnwavg, prhosavg, psmicetot, psmliqtot, psmtot
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         uvelT, vvelT,   & ! u,v on T points
          work1, work2      ! temporary
-
-      real (kind=dbl_kind), parameter :: &
-         maxval_spval = -0.9_dbl_kind*1.0e36_dbl_kind  ! spval to detect
-                 ! undefined values returned from global_maxval.  if global_maxval
-                 ! is applied to a region that does not exist (for instance
-                 ! southern hemisphere in box cases), global_maxval
-                 ! returns -1.0e36 which we want to avoid writing.  The
-                 ! return value is checked against maxval_spval before writing.
 
       character(len=*), parameter :: subname = '(runtime_diags)'
 
@@ -302,27 +305,7 @@
       endif
 
       ! total ice-snow kinetic energy, on T points.
-      if (grid_ice == 'B') then
-         call grid_average_X2Y('A',uvel ,'U',uvelT,'T')
-         call grid_average_X2Y('A',vvel ,'U',vvelT,'T')
-      elseif (grid_ice == 'C') then
-         call grid_average_X2Y('A',uvelE,'E',uvelT,'T')
-         call grid_average_X2Y('A',vvelN,'N',vvelT,'T')
-      elseif (grid_ice == 'CD') then
-         call grid_average_X2Y('A',uvelE,'E',uvelN,'N',uvelT,'T')
-         call grid_average_X2Y('A',vvelE,'E',vvelN,'N',vvelT,'T')
-      endif
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = p5 * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
-                                 * (uvelT(i,j,iblk)**2 + vvelT(i,j,iblk)**2)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
+      call diag_kinetic_energy(work1)
       ketotn = c0
       ketots = c0
       ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
@@ -409,42 +392,7 @@
       if (hmaxs < maxval_spval) hmaxs = c0
 
       ! maximum ice speed
-      if (grid_ice == 'CD') then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + vvelE(i,j,iblk)**2), &
-                                     sqrt(uvelN(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      elseif (grid_ice == 'C') then
-         ! map uvelE to N and vvelN to E then compute max on E and N
-         call grid_average_X2Y('A',uvelE,'E',work1,'N')  ! work1 =~ uvelN
-         call grid_average_X2Y('A',vvelN,'N',work2,'E')  ! work2 =~ vvelE
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + work2(i,j,iblk)**2), &
-                                     sqrt(work1(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      else
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-      endif
+      call diag_ice_speed(work1)
 
       umaxn = c0
       umaxs = c0
@@ -1714,6 +1662,126 @@
 !      endif                     ! print_points
 
       end subroutine init_diags
+
+!=======================================================================
+
+! Kinetic energy of ice and snow per unit area on T points (J/m^2)
+
+      subroutine diag_kinetic_energy(work)
+
+      use ice_constants, only: p5
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_grid, only: grid_ice, grid_average_X2Y
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, vice, vsno
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         work              ! kinetic energy per unit area
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk
+
+      real (kind=dbl_kind) :: &
+         rhos, rhoi
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         uvelT, vvelT      ! u,v on T points
+
+      character(len=*), parameter :: subname = '(diag_kinetic_energy)'
+
+      call icepack_query_parameters(rhos_out=rhos, rhoi_out=rhoi)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      if (grid_ice == 'B') then
+         call grid_average_X2Y('A',uvel ,'U',uvelT,'T')
+         call grid_average_X2Y('A',vvel ,'U',vvelT,'T')
+      elseif (grid_ice == 'C') then
+         call grid_average_X2Y('A',uvelE,'E',uvelT,'T')
+         call grid_average_X2Y('A',vvelN,'N',vvelT,'T')
+      elseif (grid_ice == 'CD') then
+         call grid_average_X2Y('A',uvelE,'E',uvelN,'N',uvelT,'T')
+         call grid_average_X2Y('A',vvelE,'E',vvelN,'N',vvelT,'T')
+      endif
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            work(i,j,iblk) = p5 * (rhos*vsno(i,j,iblk) + rhoi*vice(i,j,iblk)) &
+                                * (uvelT(i,j,iblk)**2 + vvelT(i,j,iblk)**2)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine diag_kinetic_energy
+
+!=======================================================================
+
+! Ice speed (m/s), the maximum over E and N points for C and CD grids
+
+      subroutine diag_ice_speed(work)
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_grid, only: grid_ice, grid_average_X2Y
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks), intent(out) :: &
+         work              ! ice speed
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work2             ! temporary
+
+      character(len=*), parameter :: subname = '(diag_ice_speed)'
+
+      if (grid_ice == 'CD') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + vvelE(i,j,iblk)**2), &
+                                    sqrt(uvelN(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      elseif (grid_ice == 'C') then
+         ! map uvelE to N and vvelN to E then compute max on E and N
+         call grid_average_X2Y('A',uvelE,'E',work ,'N')  ! work  =~ uvelN
+         call grid_average_X2Y('A',vvelN,'N',work2,'E')  ! work2 =~ vvelE
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = max(sqrt(uvelE(i,j,iblk)**2 + work2(i,j,iblk)**2), &
+                                    sqrt(work(i,j,iblk)**2 + vvelN(i,j,iblk)**2))
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work(i,j,iblk) = sqrt(uvel(i,j,iblk)**2 + vvel(i,j,iblk)**2)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif
+
+      end subroutine diag_ice_speed
 
 !=======================================================================
 

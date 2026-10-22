@@ -3,6 +3,7 @@ smoke          gx3     8x2        diag1,run5day
 smoke          gx3     1x1        debug,diag1,run2day
 smoke          gx3     1x4        debug,diag1,run2day
 smoke          gx3     4x1        debug,diag1,run5day
+smoke          gx3     4x1        debug,diagnc,run10day
 restart        gx3     8x2        debug
 restart        gx3     8x2        debug,gx3nc
 smoke          gx3     8x2        diag24,run1year,long

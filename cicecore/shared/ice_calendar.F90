@@ -102,7 +102,7 @@
          ndtd = 1 , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
-         diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
+         diagfreq     , & ! diagnostic output frequency (10 = once per 10 diagfreq_unit)
          nstreams     , & ! number of history output streams
          dumpfreq_n(max_nstrm), & ! restart output frequency (10 = once per 10 d,m,y)
          histfreq_n(max_nstrm)    ! history output frequency
@@ -126,7 +126,11 @@
          write_histrest , & ! write history restarts if needed
          dump_last      , & ! write restart file on last time step
          force_restart_now, & ! force a restart now
+         write_diag     , & ! write diagnostics now
          write_history(max_nstrm) ! write history now
+
+      character (len=1), public :: &
+         diagfreq_unit = '1'    ! diagnostic output frequency unit, 'y','m','d','h','1'
 
       character (len=2), public :: &
          npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
@@ -394,6 +398,7 @@
       new_hour=.false.
       write_history(:)=.false.
       write_restart=0
+      write_diag=.false.
 
       call update_date(myear,mmonth,mday,msec)
       call set_calendar(myear)
@@ -503,7 +508,26 @@
 
       if (force_restart_now) write_restart = 1
 
-      if (my_task == master_task .and. mod(istep1,diagfreq) == 0 &
+      ! Diagnostics writing flag, always aligned with the calendar
+
+      if (diagfreq /= 0) then
+         call compute_relative_elapsed('zero', elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+
+         select case (diagfreq_unit)
+         case ("y", "Y")
+            if (new_year  .and. mod(elapsed_years, diagfreq)==0) write_diag = .true.
+         case ("m", "M")
+            if (new_month .and. mod(elapsed_months,diagfreq)==0) write_diag = .true.
+         case ("d", "D")
+            if (new_day   .and. mod(elapsed_days,  diagfreq)==0) write_diag = .true.
+         case ("h", "H")
+            if (new_hour  .and. mod(elapsed_hours, diagfreq)==0) write_diag = .true.
+         case ("1")
+            if (mod(istep, diagfreq)==0) write_diag = .true.
+         end select
+      endif
+
+      if (my_task == master_task .and. write_diag &
                                  .and. stop_now /= 1) then
         write(nu_diag,*) ' '
         write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
