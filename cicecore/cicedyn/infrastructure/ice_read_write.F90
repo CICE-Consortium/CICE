@@ -65,6 +65,11 @@
                           ice_read_xyzt
       end interface
 
+      interface ice_get_ncvarsize
+         module procedure ice_get_ncvarsize_scalar, & ! length of a dimension or 1-D variable
+                          ice_get_ncvarsize_array     ! lengths of all dimensions of a variable
+      end interface
+
       interface ice_read_nc
          module procedure ice_read_nc_xy,  &
                           ice_read_nc_xyz, &
@@ -2758,7 +2763,7 @@
          fid           , & ! file id
          nrec              ! record number
 
-      character (char_len), intent(in) :: &
+      character (len=*), intent(in) :: &
          varname           ! field name in netcdf file
 
       real (kind=dbl_kind), dimension(nrec), intent(out) :: &
@@ -2822,49 +2827,125 @@
       end subroutine ice_read_vec_nc
 
 !=======================================================================
-! Get number of variables of a given variable
-      subroutine ice_get_ncvarsize(fid,varname,recsize)
+! Get the length of a dimension, or of a 1-D variable, of a given name.
+!
+! 1) varname is looked up as a dimension name
+! 2) If dimension name does not exist, then varname is looked up as a
+!    1-dimensional variable.
+!
+! recsize is only set on master_task; callers broadcast it.
+
+      subroutine ice_get_ncvarsize_scalar(fid,varname,recsize)
 
       integer (kind=int_kind), intent(in) :: &
          fid                 ! file id
-      character (char_len), intent(in) :: &
-         varname             ! field name in netcdf file
+      character (len=*), intent(in) :: &
+         varname             ! dimension name, or name of a 1-D variable
       integer (kind=int_kind), intent(out) :: &
-         recsize             ! Number of records in file
+         recsize             ! dimension or Number of records in file
 
       ! local variables
 
+      integer (kind=int_kind) :: &
+         dimlens(1)          ! a variable with more dimensions is rejected
+
+      call ice_get_ncvarsize_array(fid, varname, dimlens)
+      recsize = dimlens(1)
+
+      end subroutine ice_get_ncvarsize_scalar
+
+!=======================================================================
+! Get the lengths of a dimension, or of all dimensions of a variable.
+!
+! 1) varname is looked up as a dimension name: dimlens(1) is its length
+! 2) If dimension name does not exist, then varname is looked up as a
+!    variable: dimlens(1:ndims)
+!
+! Unused entries of dimlens are 0.  dimlens and ndims_out are only set on
+! master_task; callers broadcast them.
+
+      subroutine ice_get_ncvarsize_array(fid,varname,dimlens,ndims_out)
+
+      integer (kind=int_kind), intent(in) :: &
+         fid                 ! file id
+      character (len=*), intent(in) :: &
+         varname             ! dimension name, or variable name
+      integer (kind=int_kind), dimension(:), intent(out) :: &
+         dimlens             ! dimension length(s)
+      integer (kind=int_kind), intent(out), optional :: &
+         ndims_out           ! number of entries set in dimlens
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         n                   ! number of dimension lengths found
 #ifdef USE_NETCDF
       integer (kind=int_kind) :: &
-         ndims, i, status
+         nfdims, i, k, status, &
+         varid               ! variable id
+      integer (kind=int_kind), dimension(nf90_max_var_dims) :: &
+         dimids          , & ! dimension ids of the variable
+         lens                ! dimension lengths of the variable
       character (char_len) :: &
          cvar
 #endif
-      character(len=*), parameter :: subname = '(ice_get_ncvarsize)'
+      character(len=*), parameter :: subname = '(ice_get_ncvarsize_array)'
+
+      dimlens(:) = 0
+      n = 0
 
 #ifdef USE_NETCDF
       if (my_task ==  master_task) then
-         status=nf90_inquire(fid, nDimensions = nDims)
+
+         ! 1. a dimension called varname
+         status=nf90_inquire(fid, nDimensions = nfdims)
          call ice_check_nc(status, subname//' ERROR: inquire nDimensions', &
                            file=__FILE__, line=__LINE__ )
-         do i=1,nDims
-            status = nf90_inquire_dimension(fid,i,name=cvar,len=recsize)
-            call ice_check_nc(status, subname//' ERROR: inquire len for variable '//trim(cvar), &
+         do i=1,nfdims
+            status = nf90_inquire_dimension(fid,i,name=cvar,len=lens(1))
+            call ice_check_nc(status, subname//' ERROR: inquire len for dimension '//trim(cvar), &
                               file=__FILE__, line=__LINE__)
-            if (trim(cvar) == trim(varname)) exit
+            if (trim(cvar) == trim(varname)) then
+               n = 1
+               exit
+            endif
          enddo
-         if (trim(cvar) .ne. trim(varname)) then
-            call abort_ice(subname//' ERROR: Did not find variable '//trim(varname), &
+
+         ! 2. otherwise a variable called varname
+         if (n == 0) then
+            status = nf90_inq_varid(fid, trim(varname), varid)
+            if (status == nf90_noerr) then
+               status = nf90_inquire_variable(fid, varid, ndims=n, dimids=dimids)
+               call ice_check_nc(status, subname//' ERROR: inquire dimensions of '//trim(varname), &
+                                 file=__FILE__, line=__LINE__)
+               do k = 1, n
+                  status = nf90_inquire_dimension(fid, dimids(k), len=lens(k))
+                  call ice_check_nc(status, subname//' ERROR: inquire len of '//trim(varname), &
+                                    file=__FILE__, line=__LINE__)
+               enddo
+            endif
+         endif
+
+         if (n == 0) then
+            call abort_ice(subname//' ERROR: Did not find dimension or variable '//trim(varname), &
                            file=__FILE__, line=__LINE__)
          endif
+         if (n > size(dimlens)) then
+            write(nu_diag,*) subname,' ERROR: ',trim(varname),' has ',n, &
+                             ' dimensions, more than the ',size(dimlens),' requested'
+            call abort_ice(subname//' ERROR: too many dimensions for '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+         endif
+         dimlens(1:n) = lens(1:n)
       endif
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
                      file=__FILE__, line=__LINE__)
-      recsize = 0 ! to satisfy intent(out) attribute
 #endif
 
-      end subroutine ice_get_ncvarsize
+      if (present(ndims_out)) ndims_out = n
+
+      end subroutine ice_get_ncvarsize_array
 
 !=======================================================================
 
