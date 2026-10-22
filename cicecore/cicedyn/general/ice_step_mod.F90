@@ -911,6 +911,7 @@
 
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
           d_afsd_wave, wavefreq, dwavefreq
+      use ice_calendar, only: istep1, dt_wavefracture
       use ice_domain_size, only: nfreq
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
@@ -921,6 +922,12 @@
 
       ! local variables
 
+      real (kind=dbl_kind) :: &
+         dt_wave ! time interval the wave fracture is applied over
+
+      integer (kind=int_kind) :: &
+         nstep_wave ! number of timesteps between wave fracture computations
+
       type (block) :: &
          this_block      ! block information for current block
 
@@ -930,6 +937,26 @@
          i, j               ! horizontal indices
 
       character(len=*), parameter :: subname = '(step_dyn_wave)'
+
+      !-----------------------------------------------------------------
+      ! Option for update FSD less often to increase computational speed:
+      !    dt_wavefracture = dt (the default). Update every time step
+      !    dt_wavefracture > dt: fracture is computed every dt_wavefracture seconds
+      !                      and applied over dt_wavefracture to conserve
+      !                      total fracture
+      !-----------------------------------------------------------------
+
+      nstep_wave = max(nint(dt_wavefracture/dt),1)
+
+      if (nstep_wave > 1) then
+         if (mod(istep1, nstep_wave) /= 0) then
+            ! not a fracture step: no change to the FSD this timestep
+            d_afsd_wave(:,:,:,:) = c0
+            return
+         endif
+      endif
+
+      dt_wave = real(nstep_wave, dbl_kind) * dt
 
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_fsd)
@@ -950,7 +977,7 @@
          do j = jlo, jhi
          do i = ilo, ihi
             d_afsd_wave(i,j,:,iblk) = c0
-            call icepack_step_wavefracture(dt = dt, nfreq = nfreq,                      &
+            call icepack_step_wavefracture(dt = dt_wave, nfreq = nfreq,                 &
                                            aice        = aice           (i,j,    iblk), &
                                            vice        = vice           (i,j,    iblk), &
                                            aicen       = aicen          (i,j,:,  iblk), &
