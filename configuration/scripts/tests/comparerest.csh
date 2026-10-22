@@ -3,11 +3,11 @@
 # Compare the CICE files via binary cmp diff
 #-----------------------------------------------------------
 
-# usage: comparebfb.csh base_file test_file
+# usage: comparerest.csh base_file test_file
 #     does diff of two files
-# usage: comparebfb.csh base_dir test_dir
+# usage: comparerest.csh base_dir test_dir
 #     looks for base_iced and iced files for comparison
-# usage: comparebfb.csh base_dir
+# usage: comparerest.csh base_dir
 #     looks for iced files in both directories for comparison
 #
 # Return Codes (depends on quality of error checking)

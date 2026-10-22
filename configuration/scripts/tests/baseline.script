@@ -67,7 +67,7 @@ if (${ICE_BASECOM} != ${ICE_SPVAL}) then
     echo "base_dir: ${base_dir}"
     echo "test_dir: ${test_dir}"
 
-    ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+    ${ICE_CASEDIR}/casescripts/comparerest.csh ${base_dir} ${test_dir}
     set bfbstatus = $status
 
     if ( ${bfbstatus} != 0 ) then
@@ -125,11 +125,11 @@ endif
 
 # BFB Compare runs
 #
-# Shared with bfbcomp_redo.csh, which redoes these comparisons once every
+# Shared with bfbcomp_update.csh, which redoes these comparisons once every
 # job in the suite has finished.  Keep the logic in one place so the two
 # passes cannot drift apart.
 
-source ${ICE_CASEDIR}/casescripts/bfbcomp.csh
+source ${ICE_CASEDIR}/casescripts/comparecase.csh
 
 #-----------------------------------------------------------
 

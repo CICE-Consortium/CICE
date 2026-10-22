@@ -496,11 +496,11 @@ else
     echo "${0}: ERROR, mkdir ${tsdir} aborted"
     exit -1
   endif
-  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/bfbcomp_redo.csh ${tsdir}
-  cp -f ${ICE_SCRIPTS}/tests/baseline_snap.csh ${tsdir}
+#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
+#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
+#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/bfbcomp_redo.csh ${tsdir}
+#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/baseline_snap.csh ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
 #!/usr/bin/env -S csh -f
@@ -1045,11 +1045,10 @@ EOF1
 
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
-      cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/comparerest.csh ${casescr}
       cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
-      cp -f -p ${ICE_SCRIPTS}/tests/bfbcomp.csh ${casescr}
-      cp -f -p ${ICE_SCRIPTS}/tests/bfbcomp_case.csh ${casescr}
-      cp -f -p ${ICE_SCRIPTS}/tests/baseline_snap_case.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/comparecase.csh ${casescr}
+      cp -f -p ${ICE_SCRIPTS}/tests/bfbcomp_update.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)

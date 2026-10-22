@@ -74,7 +74,7 @@ foreach decomp (${decomps})
       echo "base_dir: ${base_dir}"
       echo "test_dir: ${test_dir}"
 
-      ${ICE_CASEDIR}/casescripts/comparebfb.csh ${base_dir} ${test_dir}
+      ${ICE_CASEDIR}/casescripts/comparerest.csh ${base_dir} ${test_dir}
       set bfbstatus = $status
       if ($bfbstatus == 0) then
         set grade = PASS
@@ -114,7 +114,7 @@ foreach decomp (${decomps})
       echo "Regression Compare Mode:"
       echo "base_dir: ${baseline_dir}"
       echo "test_dir: ${test_dir}"
-      ${ICE_CASEDIR}/casescripts/comparebfb.csh ${baseline_dir} ${test_dir}
+      ${ICE_CASEDIR}/casescripts/comparerest.csh ${baseline_dir} ${test_dir}
       set bfbstatus = $status
       if ( ${bfbstatus} == 0 ) then
         echo "PASS ${ICE_TESTNAME}_${decomp} compare ${ICE_BASECOM} ${btimeloop} ${bdynamics} ${bcolumn}" >> ${ICE_CASEDIR}/test_output
