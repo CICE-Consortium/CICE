@@ -1046,8 +1046,6 @@
       ! conservation requires ice area be divided before averaging
       ! B grid: use strocn U divided by aiU
       ! C/CD grid: use strocnx E divided by aiE and strocny N divided by aiN.
-      ! The U velocity is zeroed at corners touching land, so strocn U would
-      ! apply drag from stationary ice to the ocean in narrow channels.
       work1 = c0
       work2 = c0
       if (grid_ice == 'C' .or. grid_ice == 'CD') then
