@@ -1524,21 +1524,25 @@ input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
 may be changed in **ice_in**.  
 
-If ``diag_netcdf`` is not ``none``, hemispheric diagnostics are also written
-to a netcdf file, with one record each time diagnostics are written.  The file
+If ``diag_netcdf_freq`` is not ``x``, hemispheric diagnostics are also written
+to a netcdf file every ``diag_netcdf_freq_n`` ``diag_netcdf_freq`` units, independent
+of the log diagnostics (``diagfreq``), and aligned with the calendar like ``diagfreq_unit``.  The file
 contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
 (``siarean``, ``siareas``, ``siextentn``, ``siextents``, ``sivoln``, ``sivols``,
 ``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
 albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
 ``_nh`` and ``_sh``).
-If ``diag_netcdf`` is ``avg``, values are time averages
-over each ``diagfreq`` interval, except the maxima, which are maxima over the interval.
+If ``diag_netcdf_avg`` is true (the default), values are time averages
+over each interval, except the maxima, which are maxima over the interval.
 These are accumulated every timestep from per grid cell
 values, so the only global reductions are when the file is written.
-The averaging restarts at the start of each run, so a record that spans a restart
-only averages the part after the restart, as shown by its ``time_bounds``.  For
-full averages, restarts should be aligned with the ``diagfreq`` interval.
-If ``diag_netcdf`` is ``inst``, the values are instantaneous, as written to the log.
+If ``write_histrest`` is true, the accumulated values are written to a restart file
+with the history restarts, in ``restart_dir`` and named from ``history_file``, for example
+**iceh_diag_r.2005-01-06-00000.nc**, and read at the start of the next run so the
+averaging continues across restarts.  Otherwise the averaging restarts at the start
+of each run, so a record that spans a restart only averages the part after the
+restart, as shown by its ``time_bounds``.
+If ``diag_netcdf_avg`` is false, the values are instantaneous.
 The file is in ``history_dir`` and named from ``history_file``, as
 **iceh_diag_avg.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
 values.  If the file exists at the start of a run, records are appended to it,

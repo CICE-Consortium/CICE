@@ -1,7 +1,7 @@
 !=======================================================================
 
-! Hemispheric diagnostics written to a netcdf file (diag_netcdf), as time
-! averages over each diagfreq interval ('avg') or instantaneous values ('inst').
+! Hemispheric diagnostics written to a netcdf file at diag_netcdf_freq, as time
+! averages over each interval (diag_netcdf_avg) or instantaneous values.
 !
 ! The diagnostics are global sums or maxima of per grid cell values, using the
 ! same global reductions (and bfbflag) as the diagnostic log.  For time averages
@@ -27,12 +27,11 @@
       private
       public :: diag_netcdf_step
 
-      character (len=char_len), public :: &
-         diag_netcdf          ! hemispheric diagnostics in a netcdf file: 'none',
-                              ! 'avg' time averages or 'inst' instantaneous values
+      logical (kind=log_kind), public :: &
+         diag_netcdf_avg      ! if true, time averages, otherwise instantaneous values
 
       !-----------------------------------------------------------------
-      ! Hemispheric netcdf diagnostics (diag_netcdf)
+      ! Hemispheric netcdf diagnostics
       !
       ! Each diagnostic is a per grid cell value that is reduced to a value
       ! for each hemisphere, either an area weighted global sum or a global
@@ -127,23 +126,27 @@
 !=======================================================================
 
 ! Hemispheric netcdf diagnostics for this timestep, called every timestep
-! from the drivers.  Accumulates time averages and writes a record when
-! the other diagnostics are written (write_diag).
+! from the drivers.  Accumulates time averages and writes a record at
+! diag_netcdf_freq (write_diag_netcdf).
 
       subroutine diag_netcdf_step
 
-      use ice_calendar, only: write_diag
+      use ice_calendar, only: write_diag_netcdf, diag_netcdf_freq, write_histrest, write_restart
 
       character(len=*), parameter :: subname = '(diag_netcdf_step)'
 
-      if (trim(diag_netcdf) == 'none') return
+      if (diag_netcdf_freq == 'x') return
 
-      if (trim(diag_netcdf) == 'avg') call accum_ncdiag()
+      if (diag_netcdf_avg) call accum_ncdiag()
 
-      if (write_diag) then
+      if (write_diag_netcdf) then
          call compute_ncdiag()     ! global reductions on all tasks
          call write_ncdiag()       ! master task
       endif
+
+      ! restart the averaging, with the history restarts
+      if (diag_netcdf_avg .and. write_histrest .and. write_restart == 1) &
+         call write_ncdiag_restart()
 
       end subroutine diag_netcdf_step
 
@@ -335,6 +338,8 @@
       if (.not. allocated(acc_ncdiag)) then
          allocate(acc_ncdiag(nx_block,ny_block,max_blocks,n_ncdfld))
          call reset_ncdiag()
+         ! continue the averaging from a restart, if there is one
+         call read_ncdiag_restart()
       endif
 
       ! start of the averaging interval is the start of the first step
@@ -418,7 +423,7 @@
       if (.not. ncdfld_init) call init_ncdiag()
 
       allocate(fld(nx_block,ny_block,max_blocks,n_ncdfld))
-      if (trim(diag_netcdf) == 'avg') then
+      if (diag_netcdf_avg) then
          if (nacc_steps == 0) then
             call abort_ice(subname//' ERROR: no accumulated diagnostics', &
                file=__FILE__, line=__LINE__)
@@ -488,7 +493,7 @@
       call add_ncdiag('albedo_nh', 'albedo_sh', 'average albedo', '1', &
                       albn, albs, '', cm_sum)
 
-      if (trim(diag_netcdf) == 'avg') then
+      if (diag_netcdf_avg) then
          ncdiag_time_beg = acc_time_beg
          call reset_ncdiag()
       endif
@@ -601,7 +606,7 @@
 
       ! filename, _avg for time averages or _inst for instantaneous values,
       ! as for history files
-      if (trim(diag_netcdf) == 'avg') then
+      if (diag_netcdf_avg) then
          ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_avg.nc'
       else
          ncdiag_file = trim(history_dir)//trim(history_file)//'_diag_inst.nc'
@@ -615,30 +620,7 @@
          write(nu_diag,*) subname,' creating ',trim(ncdiag_file)
 
          ! file format consistent with history files, written serially
-         if (history_format == 'cdf2' .or. history_format == 'pnetcdf2') then
-#ifdef NO_CDF2
-            call abort_ice(subname//' ERROR: history_format cdf2 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_64bit_offset)
-#endif
-         elseif (history_format == 'cdf5' .or. history_format == 'pnetcdf5') then
-#ifdef NO_CDF5
-            call abort_ice(subname//' ERROR: history_format cdf5 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_64bit_data)
-#endif
-         elseif (history_format == 'hdf5') then
-#ifdef NO_HDF5
-            call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
-                           file=__FILE__, line=__LINE__)
-#else
-            iflag = ior(nf90_clobber,nf90_netcdf4)
-#endif
-         else
-            iflag = nf90_clobber
-         endif
+         iflag = ncdiag_create_mode()
 
          ! precision consistent with history files, time is always double
          lprecision = nf90_float
@@ -653,7 +635,7 @@
          status = nf90_def_dim(ncid, 'time', nf90_unlimited, timid)
          call ice_check_nc(status, subname//' ERROR: defining dim time', &
                            file=__FILE__, line=__LINE__)
-         if (trim(diag_netcdf) == 'avg') then
+         if (diag_netcdf_avg) then
             status = nf90_def_dim(ncid, 'nbnd', 2, bndid)
             call ice_check_nc(status, subname//' ERROR: defining dim nbnd', &
                               file=__FILE__, line=__LINE__)
@@ -700,7 +682,7 @@
                               file=__FILE__, line=__LINE__)
          endif
 
-         if (trim(diag_netcdf) == 'avg') then
+         if (diag_netcdf_avg) then
             status = nf90_put_att(ncid, varid, 'bounds', 'time_bounds')
             call ice_check_nc(status, subname//' ERROR: defining att bounds time', &
                               file=__FILE__, line=__LINE__)
@@ -756,7 +738,7 @@
          status = nf90_put_att(ncid, nf90_global, 'title', 'CICE hemispheric diagnostics')
          call ice_check_nc(status, subname//' ERROR: defining global att title', &
                            file=__FILE__, line=__LINE__)
-         if (trim(diag_netcdf) == 'avg') then
+         if (diag_netcdf_avg) then
             status = nf90_put_att(ncid, nf90_global, 'comment', &
                                   'time averages (or maxima) over each diagfreq interval')
          else
@@ -837,7 +819,7 @@
       call ice_check_nc(status, subname//' ERROR: writing time', &
                         file=__FILE__, line=__LINE__)
 
-      if (trim(diag_netcdf) == 'avg') then
+      if (diag_netcdf_avg) then
          status = nf90_inq_varid(ncid, 'time_bounds', varid)
          call ice_check_nc(status, subname//' ERROR: getting varid for time_bounds', &
                            file=__FILE__, line=__LINE__)
@@ -876,6 +858,262 @@
 #endif
 
       end subroutine write_ncdiag
+
+!=======================================================================
+
+! netcdf create mode for the diagnostics files, consistent with history_format
+
+      integer function ncdiag_create_mode()
+
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+      use ice_history_shared, only: history_format
+
+      character(len=*), parameter :: subname = '(ncdiag_create_mode)'
+
+      ncdiag_create_mode = 0
+#ifdef USE_NETCDF
+      if (history_format == 'cdf2' .or. history_format == 'pnetcdf2') then
+#ifdef NO_CDF2
+         call abort_ice(subname//' ERROR: history_format cdf2 not available ', &
+                        file=__FILE__, line=__LINE__)
+#else
+         ncdiag_create_mode = ior(nf90_clobber,nf90_64bit_offset)
+#endif
+      elseif (history_format == 'cdf5' .or. history_format == 'pnetcdf5') then
+#ifdef NO_CDF5
+         call abort_ice(subname//' ERROR: history_format cdf5 not available ', &
+                        file=__FILE__, line=__LINE__)
+#else
+         ncdiag_create_mode = ior(nf90_clobber,nf90_64bit_data)
+#endif
+      elseif (history_format == 'hdf5') then
+#ifdef NO_HDF5
+         call abort_ice(subname//' ERROR: history_format hdf5 not available ', &
+                        file=__FILE__, line=__LINE__)
+#else
+         ncdiag_create_mode = ior(nf90_clobber,nf90_netcdf4)
+#endif
+      else
+         ncdiag_create_mode = nf90_clobber
+      endif
+#endif
+
+      end function ncdiag_create_mode
+
+!=======================================================================
+
+! Restart file name for the time averaged netcdf diagnostics at a date,
+! in restart_dir like the history restarts
+
+      subroutine ncdiag_restart_name(fname, ayear, amon, aday, asec)
+
+      use ice_history_shared, only: history_file
+      use ice_restart_shared, only: restart_dir
+
+      character (len=char_len_long), intent(out) :: &
+         fname           ! restart file name
+
+      integer (kind=int_kind), intent(in) :: &
+         ayear, amon, aday, asec   ! date
+
+      write(fname,'(a,i4.4,a,i2.2,a,i2.2,a,i5.5,a)') &
+         trim(restart_dir)//trim(history_file)//'_diag_r.', &
+         ayear,'-',amon,'-',aday,'-',asec,'.nc'
+
+      end subroutine ncdiag_restart_name
+
+!=======================================================================
+
+! Write the accumulation for time averages to a restart file, so the
+! averaging continues across restarts.  Written with the history restarts.
+
+      subroutine write_ncdiag_restart
+
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+      use ice_calendar, only: myear, mmonth, mday, msec
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: nx_global, ny_global
+      use ice_gather_scatter, only: gather_global
+      use ice_read_write, only: ice_check_nc
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         k, status, ncid, dimid(2), varid
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g          ! global field
+
+      character (len=char_len_long) :: &
+         fname           ! restart file name
+
+      character (len=char_len) :: &
+         vname           ! variable name
+
+      character(len=*), parameter :: subname = '(write_ncdiag_restart)'
+
+#ifdef USE_NETCDF
+      if (.not. allocated(acc_ncdiag)) return
+
+      if (my_task == master_task) then
+         allocate(work_g(nx_global,ny_global))
+         call ncdiag_restart_name(fname, myear, mmonth, mday, msec)
+         write(nu_diag,*) subname,' writing ',trim(fname)
+         status = nf90_create(trim(fname), ncdiag_create_mode(), ncid)
+         call ice_check_nc(status, subname//' ERROR: creating '//trim(fname), &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_def_dim(ncid, 'ni', nx_global, dimid(1))
+         call ice_check_nc(status, subname//' ERROR: defining dim ni', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_def_dim(ncid, 'nj', ny_global, dimid(2))
+         call ice_check_nc(status, subname//' ERROR: defining dim nj', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_def_var(ncid, 'nacc_steps', nf90_int, varid)
+         call ice_check_nc(status, subname//' ERROR: defining var nacc_steps', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_def_var(ncid, 'acc_time_beg', nf90_double, varid)
+         call ice_check_nc(status, subname//' ERROR: defining var acc_time_beg', &
+                           file=__FILE__, line=__LINE__)
+         do k = 1, n_ncdfld
+            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            status = nf90_def_var(ncid, trim(vname), nf90_double, dimid, varid)
+            call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_att(ncid, varid, 'long_name', 'accumulated '//trim(ncdfld(k)%lname))
+            call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+         enddo
+         status = nf90_enddef(ncid)
+         call ice_check_nc(status, subname//' ERROR: in nf90_enddef', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_inq_varid(ncid, 'nacc_steps', varid)
+         status = nf90_put_var(ncid, varid, nacc_steps)
+         call ice_check_nc(status, subname//' ERROR: writing nacc_steps', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_inq_varid(ncid, 'acc_time_beg', varid)
+         status = nf90_put_var(ncid, varid, acc_time_beg)
+         call ice_check_nc(status, subname//' ERROR: writing acc_time_beg', &
+                           file=__FILE__, line=__LINE__)
+      else
+         allocate(work_g(1,1))
+      endif
+
+      do k = 1, n_ncdfld
+         call gather_global(work_g, acc_ncdiag(:,:,:,k), master_task, distrb_info)
+         if (my_task == master_task) then
+            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            status = nf90_inq_varid(ncid, trim(vname), varid)
+            call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_put_var(ncid, varid, work_g)
+            call ice_check_nc(status, subname//' ERROR: writing '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+         endif
+      enddo
+
+      if (my_task == master_task) then
+         status = nf90_close(ncid)
+         call ice_check_nc(status, subname//' ERROR: closing '//trim(fname), &
+                           file=__FILE__, line=__LINE__)
+      endif
+      deallocate(work_g)
+#endif
+
+      end subroutine write_ncdiag_restart
+
+!=======================================================================
+
+! Read the accumulation for time averages from a restart file at the start
+! of the run, if it exists, like the history restarts
+
+      subroutine read_ncdiag_restart
+
+#ifdef USE_NETCDF
+      use netcdf
+#endif
+      use ice_broadcast, only: broadcast_scalar
+      use ice_calendar, only: timesecs, dt, calendar_time2date
+      use ice_constants, only: field_loc_noupdate, field_type_noupdate
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: nx_global, ny_global
+      use ice_gather_scatter, only: scatter_global
+      use ice_read_write, only: ice_check_nc
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         k, status, ncid, varid, &
+         syear, smon, sday, ssec  ! run start date
+
+      real (kind=dbl_kind), dimension(:,:), allocatable :: &
+         work_g          ! global field
+
+      character (len=char_len_long) :: &
+         fname           ! restart file name
+
+      character (len=char_len) :: &
+         vname           ! variable name
+
+      character(len=*), parameter :: subname = '(read_ncdiag_restart)'
+
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+         ! the restart is from the start of the first step of this run
+         call calendar_time2date(timesecs - dt, syear, smon, sday, ssec)
+         call ncdiag_restart_name(fname, syear, smon, sday, ssec)
+         status = nf90_open(trim(fname), nf90_nowrite, ncid)
+         if (status /= nf90_noerr) then
+            write(nu_diag,*) subname,' file not found ',trim(fname)
+         else
+            write(nu_diag,*) subname,' reading ',trim(fname)
+         endif
+      endif
+      call broadcast_scalar(status, master_task)
+      if (status /= nf90_noerr) return
+
+      if (my_task == master_task) then
+         allocate(work_g(nx_global,ny_global))
+         status = nf90_inq_varid(ncid, 'nacc_steps', varid)
+         if (status == nf90_noerr) status = nf90_get_var(ncid, varid, nacc_steps)
+         call ice_check_nc(status, subname//' ERROR: reading nacc_steps', &
+                           file=__FILE__, line=__LINE__)
+         status = nf90_inq_varid(ncid, 'acc_time_beg', varid)
+         if (status == nf90_noerr) status = nf90_get_var(ncid, varid, acc_time_beg)
+         call ice_check_nc(status, subname//' ERROR: reading acc_time_beg', &
+                           file=__FILE__, line=__LINE__)
+      else
+         allocate(work_g(1,1))
+      endif
+      call broadcast_scalar(nacc_steps, master_task)
+      call broadcast_scalar(acc_time_beg, master_task)
+
+      do k = 1, n_ncdfld
+         if (my_task == master_task) then
+            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            status = nf90_inq_varid(ncid, trim(vname), varid)
+            call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+            status = nf90_get_var(ncid, varid, work_g)
+            call ice_check_nc(status, subname//' ERROR: reading '//trim(vname), &
+                              file=__FILE__, line=__LINE__)
+         endif
+         call scatter_global(acc_ncdiag(:,:,:,k), work_g, master_task, distrb_info, &
+                             field_loc_noupdate, field_type_noupdate)
+      enddo
+
+      if (my_task == master_task) then
+         status = nf90_close(ncid)
+         call ice_check_nc(status, subname//' ERROR: closing '//trim(fname), &
+                           file=__FILE__, line=__LINE__)
+      endif
+      deallocate(work_g)
+#endif
+
+      end subroutine read_ncdiag_restart
 
 !=======================================================================
 
