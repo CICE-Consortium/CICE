@@ -29,7 +29,7 @@
       private
       public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
                 print_state, diagnostic_abort, &
-                init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived
+                init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived, hdiag_global
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -75,8 +75,12 @@
       ! log, instantaneous netcdf output and, accumulated every timestep, for
       ! netcdf time averages.
       !
+      ! The print_global diagnostics (and pond volume) are added when they
+      ! are used, and the print_global budgets are derived in hdiag_global.
+      !
       ! To add a diagnostic:
-      !   1. add an index hd_* below and increase n_hdiag
+      !   1. add an index hd_* below, and for an optional diagnostic add it in
+      !      init_hdiag with add_hdiag
       !   2. set its names, units and reduction in init_hdiag
       !   3. compute its per grid cell value in hdiag_cell_values
       !-----------------------------------------------------------------
@@ -92,7 +96,39 @@
          hd_vmax   = 8   , & ! max ice volume per unit area
          hd_umax   = 9   , & ! max ice speed
          hd_pmax   = 10  , & ! max ice strength
-         n_hdiag   = 10      ! number of per grid cell diagnostics
+         n_hdiag_core = 10   ! number of hemispheric diagnostics always computed
+
+      ! optional hemispheric diagnostics, index 0 if not used
+      integer (kind=int_kind), public :: &
+         hd_ptot   = 0   , & ! pond volume (tr_pond_topo)
+         hd_etot   = 0   , & ! ice and snow energy (print_global)
+         hd_stot   = 0   , & ! salt (print_global)
+         hd_evp    = 0   , & ! evaporation (print_global)
+         hd_brine  = 0   , & ! brine tracer volume (print_global and tr_brine)
+         hd_sfsalt = 0   , & ! salt flux (print_global)
+         hd_sfresh = 0   , & ! fresh water flux (print_global)
+         hd_spond  = 0   , & ! pond water flux (print_global and tr_pond_topo)
+         hd_fhocn  = 0   , & ! ocean heat flux (print_global)
+         hd_fhatm  = 0   , & ! atmosphere heat flux (print_global)
+         hd_fswnet = 0   , & ! absorbed shortwave (print_global)
+         hd_fswdn  = 0   , & ! incoming shortwave (print_global)
+         hd_fhfrz  = 0   , & ! frazil heat flux (print_global)
+         hd_rn     = 0   , & ! rain (print_global)
+         hd_sn     = 0   , & ! snow (print_global)
+         hd_frz    = 0   , & ! frazil water flux (print_global)
+         n_hdiag   = n_hdiag_core ! number of hemispheric diagnostics
+
+      integer (kind=int_kind), dimension(icepack_max_iso), public :: &
+         hd_fisoa  = 0   , & ! isotope flux from atmosphere (print_global and tr_iso)
+         hd_fisoo  = 0   , & ! isotope flux to ocean
+         hd_isotot = 0   , & ! isotope total
+         hd_isomx  = 0       ! isotope maximum
+
+      integer (kind=int_kind), dimension(icepack_max_aero), public :: &
+         hd_faeroa = 0   , & ! aerosol flux from atmosphere (print_global and tr_aero)
+         hd_faeroo = 0   , & ! aerosol flux to ocean
+         hd_aerotot= 0   , & ! aerosol total
+         hd_aeromx = 0       ! aerosol maximum
 
       type, public :: hdiag_field
          character (len=char_len) :: &
@@ -109,8 +145,26 @@
             lwrite          ! written to file, false if only used for derived diagnostics
       end type hdiag_field
 
-      type (hdiag_field), dimension(n_hdiag), public :: &
+      type (hdiag_field), dimension(:), allocatable, public :: &
          hdiag               ! per grid cell diagnostics
+
+      ! print_global budget diagnostics for one hemisphere, see hdiag_global.
+      ! Water, salt and isotope/aerosol fluxes are amounts in one timestep.
+      type, public :: hdiag_global_values
+         real (kind=dbl_kind) :: &
+            rn, sn, evp, frz, spond, sfresh, & ! water fluxes (kg in dt)
+            mice, msnw, mpnd, mtot,          & ! ice, snow, pond and total mass (kg)
+            delmi, delmx, flux, werr,        & ! mass change, ice mass change, water flux, error
+            etot, delei,                     & ! energy, energy change (J)
+            fhatm, fhocn, fhfrz, hnet, herr, & ! heat fluxes (W), net heat (J), error
+            fswnet, fswdn, swerr,            & ! absorbed and incoming shortwave (W), error
+            shmaxt,                          & ! brine tracer volume (m^3)
+            stot, mslt, delmslt, sfsalt, serr  ! salt, salt mass, change, flux (kg in dt), error
+         real (kind=dbl_kind), dimension(icepack_max_iso) :: &
+            fisoa, fisoo, isotot, isor, isomx  ! isotope fluxes (kg in dt), total, error, max
+         real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+            faeroa, faeroo, aerotot, aerr, aeromx ! aerosol fluxes (kg in dt), total, error, max
+      end type hdiag_global_values
 
       logical (kind=log_kind), public :: &
          hdiag_initialized = .false. ! hdiag has been initialized
@@ -278,6 +332,9 @@
       real (kind=dbl_kind), dimension(n_hdiag) :: &
          hvaln, hvals      ! hemispheric diagnostics, northern and southern hemisphere
 
+      type (hdiag_global_values) :: &
+         gn, gs            ! print_global diagnostics, northern and southern hemisphere
+
       character(len=*), parameter :: subname = '(runtime_diags)'
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
@@ -335,24 +392,9 @@
       ! total pond volume
       ptotn = c0
       ptots = c0
-      if (tr_pond_topo) then
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = c0
-               do n = 1, ncat
-                  work1(i,j,iblk) = work1(i,j,iblk)  &
-                                  + aicen(i,j,n,iblk) &
-                                  * trcrn(i,j,nt_apnd,n,iblk) &
-                                  * trcrn(i,j,nt_hpnd,n,iblk)
-               enddo
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-         ptotn = global_sum(work1, distrb_info, field_loc_center, tarean)
-         ptots = global_sum(work1, distrb_info, field_loc_center, tareas)
+      if (hd_ptot > 0) then
+         ptotn = hvaln(hd_ptot)
+         ptots = hvals(hd_ptot)
       endif
 
       ! total ice-snow kinetic energy
@@ -418,425 +460,56 @@
       pmaxs = pmaxs / c1000
 
       if (print_global) then
+         ! conservation diagnostics, the same as the netcdf diagnostics
+         call hdiag_global(hvaln, 1, dt, gn)
+         call hdiag_global(hvals, 2, dt, gs)
 
-         ! total ice/snow internal energy
-         call total_energy (work1)
+         etotn = gn%etot    ; etots = gs%etot
+         stotn = gn%stot    ; stots = gs%stot
+         evpn  = gn%evp     ; evps  = gs%evp
+         shmaxnt = gn%shmaxt; shmaxst = gs%shmaxt
+         sfsaltn = gn%sfsalt; sfsalts = gs%sfsalt
+         sfreshn = gn%sfresh; sfreshs = gs%sfresh
+         spondn = gn%spond  ; sponds = gs%spond
+         fhocnn = gn%fhocn  ; fhocns = gs%fhocn
+         fhatmn = gn%fhatm  ; fhatms = gs%fhatm
+         fswnetn = gn%fswnet; fswnets = gs%fswnet
+         fswdnn = gn%fswdn  ; fswdns = gs%fswdn
+         fhfrzn = gn%fhfrz  ; fhfrzs = gs%fhfrz
+         rnn = gn%rn        ; rns = gs%rn
+         snn = gn%sn        ; sns = gs%sn
+         frzn = gn%frz      ; frzs = gs%frz
+         micen = gn%mice    ; mices = gs%mice
+         msnwn = gn%msnw    ; msnws = gs%msnw
+         mpndn = gn%mpnd    ; mpnds = gs%mpnd
+         mtotn = gn%mtot    ; mtots = gs%mtot
+         delmin = gn%delmi  ; delmis = gs%delmi
+         delmxn = gn%delmx  ; delmxs = gs%delmx
+         fluxn = gn%flux    ; fluxs = gs%flux
+         werrn = gn%werr    ; werrs = gs%werr
+         delein = gn%delei  ; deleis = gs%delei
+         hnetn = gn%hnet    ; hnets = gs%hnet
+         herrn = gn%herr    ; herrs = gs%herr
+         swerrn = gn%swerr  ; swerrs = gs%swerr
+         msltn = gn%mslt    ; mslts = gs%mslt
+         delmsltn = gn%delmslt; delmslts = gs%delmslt
+         serrn = gn%serr    ; serrs = gs%serr
 
-         etotn = c0
-         etots = c0
-         etotn = global_sum(work1, distrb_info, &
-                            field_loc_center, tarean)
-         etots = global_sum(work1, distrb_info, &
-                            field_loc_center, tareas)
-
-         ! total salt volume
-         call total_salt   (work2)
-
-         stotn = global_sum(work2, distrb_info, &
-                            field_loc_center, tarean)
-         stots = global_sum(work2, distrb_info, &
-                            field_loc_center, tareas)
-
-
-      !-----------------------------------------------------------------
-      ! various fluxes
-      !-----------------------------------------------------------------
-      ! evap, fsens, and flwout need to be multiplied by aice because
-      ! regrettably they have been divided by aice for the coupler
-      !-----------------------------------------------------------------
-
-         ! evaporation
-
-         evpn = c0
-         evps = c0
-         evpn = global_sum_prod(evap, aice, distrb_info, &
-                                field_loc_center, tarean)
-         evps = global_sum_prod(evap, aice, distrb_info, &
-                                field_loc_center, tareas)
-         evpn = evpn*dt
-         evps = evps*dt
-
-         ! total brine tracer
-         shmaxnt = c0
-         shmaxst = c0
-         if (tr_brine) then
-         shmaxnt = global_sum(vice(:,:,:)*trcr(:,:,nt_fbri,:), distrb_info, &
-                                   field_loc_center, tarean)
-         shmaxst = global_sum(vice(:,:,:)*trcr(:,:,nt_fbri,:), distrb_info, &
-                                   field_loc_center, tareas)
-         endif
-
-         ! salt flux
-         sfsaltn = c0
-         sfsalts = c0
-         sfsaltn = global_sum(fsalt_ai, distrb_info, &
-                                   field_loc_center, tarean)
-         sfsalts = global_sum(fsalt_ai, distrb_info, &
-                                   field_loc_center, tareas)
-         sfsaltn = sfsaltn*dt
-         sfsalts = sfsalts*dt
-
-         ! fresh water flux
-         sfreshn = c0
-         sfreshs = c0
-         sfreshn = global_sum(fresh_ai, distrb_info, &
-                                   field_loc_center, tarean)
-         sfreshs = global_sum(fresh_ai, distrb_info, &
-                                   field_loc_center, tareas)
-         sfreshn = sfreshn*dt
-         sfreshs = sfreshs*dt
-
-         ! pond water flux
-         spondn = c0
-         sponds = c0
-         if (tr_pond_topo) then
-         spondn = global_sum(fpond, distrb_info, &
-                                   field_loc_center, tarean)
-         sponds = global_sum(fpond, distrb_info, &
-                                   field_loc_center, tareas)
-         spondn = spondn*dt
-         sponds = sponds*dt
-         endif
-
-         ! ocean heat
-         ! Note: fswthru not included because it does not heat ice
-         fhocnn = c0
-         fhocns = c0
-         fhocnn = global_sum(fhocn_ai, distrb_info, &
-                                  field_loc_center, tarean)
-         fhocns = global_sum(fhocn_ai, distrb_info, &
-                                  field_loc_center, tareas)
-
-         ! latent heat
-         ! You may be wondering, where is the latent heat flux?
-         ! It is not included here because it cancels with
-         ! the evaporative flux times the enthalpy of the
-         ! ice/snow that evaporated.
-
-         ! atmo heat flux
-         ! Note: flwout includes the reflected longwave down, needed by the
-         !  atmosphere as an upwards radiative boundary condition.
-         ! Also note: fswabs includes solar radiation absorbed in ocean,
-         !  which must be subtracted here.
-
-         if (calc_Tsfc) then
-
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-            do iblk = 1, nblocks
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  work1(i,j,iblk) = &
-                     (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
-                    + fsens (i,j,iblk) + flwout (i,j,iblk)) &
-                                       * aice      (i,j,iblk) &
-                    + flw   (i,j,iblk) * aice_init (i,j,iblk)
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-
-         else   ! fsurf is computed by atmosphere model
-
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-            do iblk = 1, nblocks
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  work1(i,j,iblk) = &
-                             (fsurf(i,j,iblk) - flat(i,j,iblk)) &
-                              * aice(i,j,iblk)
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-
-         endif     ! calc_Tsfc
-
-         fhatmn = c0
-         fhatms = c0
-         fhatmn = global_sum(work1, distrb_info, &
-                             field_loc_center, tarean)
-         fhatms = global_sum(work1, distrb_info, &
-                             field_loc_center, tareas)
-
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = &
-                  fswabs(i,j,iblk) * aice(i,j,iblk)
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-
-         fswnetn = c0
-         fswnets = c0
-         fswnetn = global_sum(work1, distrb_info, &
-                             field_loc_center, tarean)
-         fswnets = global_sum(work1, distrb_info, &
-                             field_loc_center, tareas)
-
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = (aice_init(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
-                               + (aice_init(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-
-         fswdnn = c0
-         fswdns = c0
-         fswdnn = global_sum(work1, distrb_info, &
-                             field_loc_center, tarean)
-         fswdns = global_sum(work1, distrb_info, &
-                             field_loc_center, tareas)
-
-         ! freezing potential
-         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-         do iblk = 1, nblocks
-            do j = 1, ny_block
-            do i = 1, nx_block
-               work1(i,j,iblk) = max(c0,frzmlt_init(i,j,iblk))
-            enddo
-            enddo
-         enddo
-         !$OMP END PARALLEL DO
-
-         fhfrzn = c0
-         fhfrzs = c0
-         fhfrzn = global_sum(work1, distrb_info, &
-                             field_loc_center, tarean)
-         fhfrzs = global_sum(work1, distrb_info, &
-                             field_loc_center, tareas)
-
-         ! rain
-         rnn = c0
-         rns = c0
-         rnn = global_sum_prod(frain, aice_init, distrb_info, &
-                               field_loc_center, tarean)
-         rns = global_sum_prod(frain, aice_init, distrb_info, &
-                               field_loc_center, tareas)
-         rnn = rnn*dt
-         rns = rns*dt
-
-         ! snow
-         snn = c0
-         sns = c0
-         snn = global_sum_prod(fsnow, aice_init, distrb_info, &
-                               field_loc_center, tarean)
-         sns = global_sum_prod(fsnow, aice_init, distrb_info, &
-                               field_loc_center, tareas)
-         snn = snn*dt
-         sns = sns*dt
-
-         ! frazil ice growth !! should not be multiplied by aice
-         ! m/step->kg/m^2/s
-         work1(:,:,:) = frazil(:,:,:)*rhoi/dt
-         if (.not. update_ocn_f .and. ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
-            work1(:,:,:) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
-         endif
-         frzn = c0
-         frzs = c0
-         frzn = global_sum(work1, distrb_info, &
-                           field_loc_center, tarean)
-         frzs = global_sum(work1, distrb_info, &
-                           field_loc_center, tareas)
-         frzn = frzn*dt
-         frzs = frzs*dt
-
-         ! ice, snow, pond mass
-         micen = rhoi*shmaxn
-         msnwn = rhos*snwmxn
-         mices = rhoi*shmaxs
-         msnws = rhos*snwmxs
-         mpndn = rhofresh*ptotn
-         mpnds = rhofresh*ptots
-
-         ! total ice, snow and pond mass
-         mtotn = micen + msnwn + mpndn
-         mtots = mices + msnws + mpnds
-
-         ! mass change since beginning of time step
-         delmin = mtotn - totmn
-         delmis = mtots - totms
-
-         ! ice mass change including frazil ice formation
-         delmxn = micen - totmin
-         delmxs = mices - totmis
-         if (.not. update_ocn_f) then
-           ! ice mass change excluding frazil ice formation
-           delmxn = delmxn - frzn
-           delmxs = delmxs - frzs
-         endif
-
-         ! total water flux
-         fluxn  = c0
-         fluxs  = c0
-         if( arean > c0) then
-           ! water associated with frazil ice included in fresh
-           fluxn = rnn + snn + evpn - sfreshn
-           if (.not. update_ocn_f) then
-             fluxn = fluxn + frzn
-           endif
-         endif
-         if( areas > c0) then
-           ! water associated with frazil ice included in fresh
-           fluxs = rns + sns + evps - sfreshs
-           if (.not. update_ocn_f) then
-             fluxs = fluxs + frzs
-           endif
-         endif
-
-         werrn = (fluxn-delmin)/(mtotn + c1)
-         werrs = (fluxs-delmis)/(mtots + c1)
-
-         ! energy change
-         delein = etotn - toten
-         deleis = etots - totes
-
-         fhatmn = fhatmn + ( - snn * Lfresh + evpn * Lvap ) / dt
-         fhatms = fhatms + ( - sns * Lfresh + evps * Lvap ) / dt
-
-         hnetn = (fhatmn - fhocnn - fhfrzn) * dt
-         hnets = (fhatms - fhocns - fhfrzs) * dt
-
-         herrn = (hnetn - delein) / (etotn - c1)
-         herrs = (hnets - deleis) / (etots - c1)
-
-         swerrn = (fswnetn - fswdnn) / (fswnetn - c1)
-         swerrs = (fswnets - fswdns) / (fswnets - c1)
-
-         ! salt mass
-         if (saltflux_option == 'prognostic') then
-            ! compute the total salt mass
-            msltn = stotn*rhoi*p001
-            mslts = stots*rhoi*p001
-
-            ! change in salt mass
-            delmsltn = rhoi*(stotn-totsn)*p001
-            delmslts = rhoi*(stots-totss)*p001
-         else
-            msltn = micen*ice_ref_salinity*p001
-            mslts = mices*ice_ref_salinity*p001
-
-            ! change in salt mass
-            delmsltn = delmxn*ice_ref_salinity*p001
-            delmslts = delmxs*ice_ref_salinity*p001
-         endif
-
-         ! salt error
-         serrn = (sfsaltn + delmsltn) / (msltn + c1)
-         serrs = (sfsalts + delmslts) / (mslts + c1)
-
-         ! isotopes
-         if (tr_iso) then
-         fisoan  = c0
-         fisoas  = c0
-         fisoon  = c0
-         fisoos  = c0
-         isototn = c0
-         isotots = c0
-         isomx1n = c0
-         isomx1s = c0
-         isorn   = c0
-         isors   = c0
          do n = 1, n_iso
-            fisoan(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
-                                        distrb_info, field_loc_center, tarean)
-            fisoas(n) = global_sum_prod(fiso_atm(:,:,n,:), aice_init, &
-                                        distrb_info, field_loc_center, tareas)
-            fisoan(n) = fisoan(n)*dt
-            fisoas(n) = fisoas(n)*dt
-            fisoon(n) = global_sum_prod(fiso_ocn(:,:,n,:), aice, &
-                                        distrb_info, field_loc_center, tarean)
-            fisoos(n) = global_sum_prod(fiso_ocn(:,:,n,:), aice, &
-                                        distrb_info, field_loc_center, tareas)
-            fisoon(n) = fisoon(n)*dt
-            fisoos(n) = fisoos(n)*dt
+            fisoan(n)  = gn%fisoa(n) ; fisoas(n)  = gs%fisoa(n)
+            fisoon(n)  = gn%fisoo(n) ; fisoos(n)  = gs%fisoo(n)
+            isototn(n) = gn%isotot(n); isotots(n) = gs%isotot(n)
+            isomx1n(n) = gn%isomx(n) ; isomx1s(n) = gs%isomx(n)
+            isorn(n)   = gn%isor(n)  ; isors(n)   = gs%isor(n)
+         enddo
 
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,k)
-            do iblk = 1, nblocks
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  work1(i,j,iblk) = c0
-                  do k = 1, n_iso
-                     work1(i,j,iblk) = work1(i,j,iblk) &
-                                     + vsno(i,j,iblk)*trcr(i,j,nt_isosno+k-1,iblk) &
-                                     + vice(i,j,iblk)*trcr(i,j,nt_isoice+k-1,iblk)
-                  enddo
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-            isototn(n) = global_sum(work1, distrb_info, field_loc_center, tarean)
-            isotots(n) = global_sum(work1, distrb_info, field_loc_center, tareas)
-            isomx1n(n) = global_maxval(work1, distrb_info, lmask_n)
-            isomx1s(n) = global_maxval(work1, distrb_info, lmask_s)
-            if (isomx1n(n) < maxval_spval) isomx1n(n) = c0
-            if (isomx1s(n) < maxval_spval) isomx1s(n) = c0
-            isorn(n) = (totison(n)-isototn(n)+fisoan(n)-fisoon(n))/(isototn(n)+c1)
-            isors(n) = (totisos(n)-isotots(n)+fisoas(n)-fisoos(n))/(isotots(n)+c1)
-         enddo ! n_iso
-         endif ! tr_iso
-
-         ! aerosols
-         if (tr_aero) then
-         faeran = c0
-         faeras = c0
-         faeron = c0
-         faeros = c0
-         aerototn = c0
-         aerotots = c0
-         aeromx1n = c0
-         aeromx1s = c0
-         aerrn = c0
-         aerrs = c0
          do n = 1, n_aero
-            faeran(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init, &
-                                        distrb_info, field_loc_center, tarean)
-            faeras(n) = global_sum_prod(faero_atm(:,:,n,:), aice_init, &
-                                        distrb_info, field_loc_center, tareas)
-            faeran(n) = faeran(n)*dt
-            faeras(n) = faeras(n)*dt
-            faeron(n) = global_sum_prod(faero_ocn(:,:,n,:), aice, &
-                                        distrb_info, field_loc_center, tarean)
-            faeros(n) = global_sum_prod(faero_ocn(:,:,n,:), aice, &
-                                        distrb_info, field_loc_center, tareas)
-            faeron(n) = faeron(n)*dt
-            faeros(n) = faeros(n)*dt
-
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-            do iblk = 1, nblocks
-               do j = 1, ny_block
-               do i = 1, nx_block
-                  work1(i,j,iblk) = &
-                   trcr(i,j,nt_aero  +4*(n-1),iblk)*vsno(i,j,iblk) &
-                 + trcr(i,j,nt_aero+1+4*(n-1),iblk)*vsno(i,j,iblk) &
-                 + trcr(i,j,nt_aero+2+4*(n-1),iblk)*vice(i,j,iblk) &
-                 + trcr(i,j,nt_aero+3+4*(n-1),iblk)*vice(i,j,iblk)
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-            aerototn(n) = global_sum(work1, distrb_info, field_loc_center, tarean)
-            aerotots(n) = global_sum(work1, distrb_info, field_loc_center, tareas)
-            aeromx1n(n) = global_maxval(work1, distrb_info, lmask_n)
-            aeromx1s(n) = global_maxval(work1, distrb_info, lmask_s)
-            if (aeromx1n(n) < maxval_spval) aeromx1n(n) = c0
-            if (aeromx1s(n) < maxval_spval) aeromx1s(n) = c0
-
-            aerrn(n) = (totaeron(n)-aerototn(n)+faeran(n)-faeron(n)) &
-                                 / (aerototn(n) + c1)
-            aerrs(n) = (totaeros(n)-aerotots(n)+faeras(n)-faeros(n)) &
-                                 / (aerotots(n) + c1)
-         enddo ! n_aero
-         endif ! tr_aero
-
+            faeran(n)   = gn%faeroa(n) ; faeras(n)   = gs%faeroa(n)
+            faeron(n)   = gn%faeroo(n) ; faeros(n)   = gs%faeroo(n)
+            aerototn(n) = gn%aerotot(n); aerotots(n) = gs%aerotot(n)
+            aeromx1n(n) = gn%aeromx(n) ; aeromx1s(n) = gs%aeromx(n)
+            aerrn(n)    = gn%aerr(n)   ; aerrs(n)    = gs%aerr(n)
+         enddo
       endif                     ! print_global
 
       if (print_points) then
@@ -1628,6 +1301,9 @@
          enddo                  ! npnt
 !      endif                     ! print_points
 
+      ! hemispheric diagnostics for the log and netcdf
+      call init_hdiag()
+
       end subroutine init_diags
 
 !=======================================================================
@@ -2031,9 +1707,18 @@
 
       use ice_constants, only: field_loc_center
       use ice_domain, only: distrb_info
-      use ice_domain_size, only: max_blocks
+      use ice_domain_size, only: max_blocks, n_iso, n_aero
       use ice_global_reductions, only: global_sum
       use ice_grid, only: tarean, tareas
+
+      integer (kind=int_kind) :: &
+         n                 ! tracer index
+
+      logical (kind=log_kind) :: &
+         tr_pond_topo, tr_brine, tr_iso, tr_aero
+
+      character (len=char_len) :: &
+         cn                ! tracer index string
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1             ! temporary
@@ -2043,10 +1728,17 @@
 
       character(len=*), parameter :: subname = '(init_hdiag)'
 
+      if (hdiag_initialized) return
+
       call icepack_query_parameters(rhos_out=rhos)
+      call icepack_query_tracer_flags(tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, &
+           tr_iso_out=tr_iso, tr_aero_out=tr_aero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
+
+      allocate(hdiag(n_hdiag_core + 16 + 4*n_iso + 4*n_aero))
+      n_hdiag = n_hdiag_core
 
       ! a hemisphere without grid cells (e.g. regional domains) is written as missing
       work1(:,:,:) = c1
@@ -2077,9 +1769,78 @@
       call def_hdiag(hd_pmax, 'ice_strength_max_nh', 'ice_strength_max_sh', &
                       'max ice strength', 'kN/m', 'max', 1.0e-3_dbl_kind)
 
+      ! optional diagnostics, used for the print_global budgets (hdiag_global)
+      if (tr_pond_topo) call add_hdiag(hd_ptot, 'pond_volume', 'total pond volume', 'm^3', 'sum')
+      if (print_global) then
+         call add_hdiag(hd_etot  , 'total_energy'    , 'total ice and snow energy', 'J'  , 'sum')
+         call add_hdiag(hd_stot  , 'total_salt'      , 'total salt'               , 'ppt m^3', 'sum')
+         call add_hdiag(hd_evp   , 'evap_flux'       , 'evaporation'              , 'kg s-1', 'sum')
+         if (tr_brine) &
+         call add_hdiag(hd_brine , 'brine_volume'    , 'total brine tracer volume', 'm^3', 'sum')
+         call add_hdiag(hd_sfsalt, 'salt_flux'       , 'salt flux'                , 'kg s-1', 'sum')
+         call add_hdiag(hd_sfresh, 'fresh_flux'      , 'fresh water flux'         , 'kg s-1', 'sum')
+         if (tr_pond_topo) &
+         call add_hdiag(hd_spond , 'pond_flux'       , 'pond water flux'          , 'kg s-1', 'sum')
+         call add_hdiag(hd_fhocn , 'ocn_heat_flux'   , 'ocean heat flux'          , 'W'  , 'sum')
+         call add_hdiag(hd_fhatm , 'atm_heat_flux'   , 'atmosphere heat flux'     , 'W'  , 'sum')
+         call add_hdiag(hd_fswnet, 'sw_absorbed_flux', 'absorbed shortwave'       , 'W'  , 'sum')
+         call add_hdiag(hd_fswdn , 'sw_down_flux'    , 'incoming shortwave'       , 'W'  , 'sum')
+         call add_hdiag(hd_fhfrz , 'frazil_heat_flux', 'frazil heat flux'         , 'W'  , 'sum')
+         call add_hdiag(hd_rn    , 'rain_flux'       , 'rain'                     , 'kg s-1', 'sum')
+         call add_hdiag(hd_sn    , 'snow_flux'       , 'snow'                     , 'kg s-1', 'sum')
+         call add_hdiag(hd_frz   , 'frazil_flux'     , 'frazil ice formation'     , 'kg s-1', 'sum')
+         if (tr_iso) then
+            do n = 1, n_iso
+               write(cn,'(i0)') n
+               call add_hdiag(hd_fisoa(n) , 'isotope'//trim(cn)//'_atm_flux', 'isotope flux from atmosphere', 'kg s-1', 'sum')
+               call add_hdiag(hd_fisoo(n) , 'isotope'//trim(cn)//'_ocn_flux', 'isotope flux to ocean'       , 'kg s-1', 'sum')
+               call add_hdiag(hd_isotot(n), 'isotope'//trim(cn)//'_total'   , 'total isotope'               , 'kg'    , 'sum')
+               call add_hdiag(hd_isomx(n) , 'isotope'//trim(cn)//'_max'     , 'maximum isotope'             , 'kg m-2', 'max')
+            enddo
+         endif
+         if (tr_aero) then
+            do n = 1, n_aero
+               write(cn,'(i0)') n
+               call add_hdiag(hd_faeroa(n) , 'aerosol'//trim(cn)//'_atm_flux', 'aerosol flux from atmosphere', 'kg s-1', 'sum')
+               call add_hdiag(hd_faeroo(n) , 'aerosol'//trim(cn)//'_ocn_flux', 'aerosol flux to ocean'       , 'kg s-1', 'sum')
+               call add_hdiag(hd_aerotot(n), 'aerosol'//trim(cn)//'_total'   , 'total aerosol'               , 'kg'    , 'sum')
+               call add_hdiag(hd_aeromx(n) , 'aerosol'//trim(cn)//'_max'     , 'maximum aerosol'             , 'kg m-2', 'max')
+            enddo
+         endif
+      endif
+
       hdiag_initialized = .true.
 
       end subroutine init_hdiag
+
+!=======================================================================
+
+! Add an optional per grid cell hemispheric diagnostic, used for the
+! print_global budgets.  The netcdf output is from hdiag_global, not directly.
+
+      subroutine add_hdiag(k, vname, lname, units, reduce)
+
+      integer (kind=int_kind), intent(out) :: &
+         k               ! index in hdiag
+
+      character (len=*), intent(in) :: &
+         vname       , & ! variable name, _nh and _sh are appended
+         lname       , & ! long name
+         units       , & ! units
+         reduce          ! 'sum' or 'max'
+
+      character(len=*), parameter :: subname = '(add_hdiag)'
+
+      if (n_hdiag >= size(hdiag)) then
+         call abort_ice(subname//' ERROR: too many hemispheric diagnostics', &
+            file=__FILE__, line=__LINE__)
+      endif
+      n_hdiag = n_hdiag + 1
+      k = n_hdiag
+      call def_hdiag(k, trim(vname)//'_nh', trim(vname)//'_sh', lname, units, reduce, c1, &
+                     lwrite=.false.)
+
+      end subroutine add_hdiag
 
 !=======================================================================
 
@@ -2134,10 +1895,15 @@
 
       subroutine hdiag_cell_values(fld)
 
+      use ice_calendar, only: dt
       use ice_domain, only: nblocks
-      use ice_domain_size, only: max_blocks
-      use ice_flux, only: alvdr, alidr, alvdf, alidf
-      use ice_state, only: aice, vice, vsno, strength
+      use ice_domain_size, only: max_blocks, ncat, n_iso, n_aero
+      use ice_flux, only: alvdr, alidr, alvdf, alidf, evap, fsnow, frazil, &
+          fswabs, fswthru, flw, flwout, fsens, fsurf, flat, frzmlt_init, frain, fpond, &
+          fhocn_ai, fsalt_ai, fresh_ai, frazil_diag, update_ocn_f, cpl_frazil, &
+          swvdr, swvdf, swidr, swidf, alvdr_init, alvdf_init, alidr_init, alidf_init
+      use ice_flux_bgc, only: faero_atm, faero_ocn, fiso_atm, fiso_ocn
+      use ice_state, only: aice, vice, vsno, strength, aice_init, aicen, trcr, trcrn
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_hdiag), intent(out) :: &
          fld               ! per grid cell values
@@ -2145,18 +1911,26 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, iblk
+         i, j, k, n, iblk, ktherm, &
+         nt_fbri, nt_apnd, nt_hpnd, nt_isosno, nt_isoice, nt_aero
+
+      logical (kind=log_kind) :: &
+         calc_Tsfc
 
       real (kind=dbl_kind) :: &
-         puny, awtvdr, awtidr, awtvdf, awtidf, alb
+         puny, rhoi, awtvdr, awtidr, awtvdf, awtidf, alb
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2      ! temporary
 
       character(len=*), parameter :: subname = '(hdiag_cell_values)'
 
-      call icepack_query_parameters(puny_out=puny, &
+      call icepack_query_parameters(puny_out=puny, rhoi_out=rhoi, ktherm_out=ktherm, &
+           calc_Tsfc_out=calc_Tsfc, &
            awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf)
+      call icepack_query_tracer_indices(nt_fbri_out=nt_fbri, nt_apnd_out=nt_apnd, &
+           nt_hpnd_out=nt_hpnd, nt_isosno_out=nt_isosno, nt_isoice_out=nt_isoice, &
+           nt_aero_out=nt_aero)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
@@ -2190,6 +1964,151 @@
          enddo
       enddo
       !$OMP END PARALLEL DO
+
+      ! total pond volume
+      if (hd_ptot > 0) then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,n)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               fld(i,j,iblk,hd_ptot) = c0
+               do n = 1, ncat
+                  fld(i,j,iblk,hd_ptot) = fld(i,j,iblk,hd_ptot)  &
+                                        + aicen(i,j,n,iblk) &
+                                        * trcrn(i,j,nt_apnd,n,iblk) &
+                                        * trcrn(i,j,nt_hpnd,n,iblk)
+               enddo
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif
+
+      if (.not. print_global) return
+
+      !-----------------------------------------------------------------
+      ! print_global diagnostics
+      ! evap, fsens, and flwout need to be multiplied by aice because
+      ! regrettably they have been divided by aice for the coupler
+      !-----------------------------------------------------------------
+
+      ! total ice/snow internal energy and salt
+      call total_energy (fld(:,:,:,hd_etot))
+      call total_salt   (fld(:,:,:,hd_stot))
+
+      fld(:,:,:,hd_evp) = evap(:,:,:)*aice(:,:,:)
+      if (hd_brine > 0) fld(:,:,:,hd_brine) = vice(:,:,:)*trcr(:,:,nt_fbri,:)
+      fld(:,:,:,hd_sfsalt) = fsalt_ai(:,:,:)
+      fld(:,:,:,hd_sfresh) = fresh_ai(:,:,:)
+      if (hd_spond > 0) fld(:,:,:,hd_spond) = fpond(:,:,:)
+
+      ! ocean heat
+      ! Note: fswthru not included because it does not heat ice
+      fld(:,:,:,hd_fhocn) = fhocn_ai(:,:,:)
+
+      ! atmo heat flux
+      ! Note: flwout includes the reflected longwave down, needed by the
+      !  atmosphere as an upwards radiative boundary condition.
+      ! Also note: fswabs includes solar radiation absorbed in ocean,
+      !  which must be subtracted here.
+      if (calc_Tsfc) then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               fld(i,j,iblk,hd_fhatm) = &
+                  (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
+                 + fsens (i,j,iblk) + flwout (i,j,iblk)) &
+                                    * aice      (i,j,iblk) &
+                 + flw   (i,j,iblk) * aice_init (i,j,iblk)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      else   ! fsurf is computed by atmosphere model
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               fld(i,j,iblk,hd_fhatm) = &
+                          (fsurf(i,j,iblk) - flat(i,j,iblk)) &
+                           * aice(i,j,iblk)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+      endif     ! calc_Tsfc
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            fld(i,j,iblk,hd_fswnet) = fswabs(i,j,iblk) * aice(i,j,iblk)
+            fld(i,j,iblk,hd_fswdn) = (aice_init(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
+                                   + (aice_init(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
+                                   + (aice_init(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
+                                   + (aice_init(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
+            ! freezing potential
+            fld(i,j,iblk,hd_fhfrz) = max(c0,frzmlt_init(i,j,iblk))
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      fld(:,:,:,hd_rn) = frain(:,:,:)*aice_init(:,:,:)
+      fld(:,:,:,hd_sn) = fsnow(:,:,:)*aice_init(:,:,:)
+
+      ! frazil ice growth !! should not be multiplied by aice
+      ! m/step->kg/m^2/s
+      fld(:,:,:,hd_frz) = frazil(:,:,:)*rhoi/dt
+      if (.not. update_ocn_f .and. ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
+         fld(:,:,:,hd_frz) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
+      endif
+
+      ! isotopes
+      do n = 1, n_iso
+         if (hd_fisoa(n) == 0) cycle
+         fld(:,:,:,hd_fisoa(n)) = fiso_atm(:,:,n,:)*aice_init(:,:,:)
+         fld(:,:,:,hd_fisoo(n)) = fiso_ocn(:,:,n,:)*aice(:,:,:)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,k)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = c0
+               do k = 1, n_iso
+                  work1(i,j,iblk) = work1(i,j,iblk) &
+                                  + vsno(i,j,iblk)*trcr(i,j,nt_isosno+k-1,iblk) &
+                                  + vice(i,j,iblk)*trcr(i,j,nt_isoice+k-1,iblk)
+               enddo
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         fld(:,:,:,hd_isotot(n)) = work1(:,:,:)
+         fld(:,:,:,hd_isomx(n)) = work1(:,:,:)
+      enddo
+
+      ! aerosols
+      do n = 1, n_aero
+         if (hd_faeroa(n) == 0) cycle
+         fld(:,:,:,hd_faeroa(n)) = faero_atm(:,:,n,:)*aice_init(:,:,:)
+         fld(:,:,:,hd_faeroo(n)) = faero_ocn(:,:,n,:)*aice(:,:,:)
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j)
+         do iblk = 1, nblocks
+            do j = 1, ny_block
+            do i = 1, nx_block
+               work1(i,j,iblk) = &
+                trcr(i,j,nt_aero  +4*(n-1),iblk)*vsno(i,j,iblk) &
+              + trcr(i,j,nt_aero+1+4*(n-1),iblk)*vsno(i,j,iblk) &
+              + trcr(i,j,nt_aero+2+4*(n-1),iblk)*vice(i,j,iblk) &
+              + trcr(i,j,nt_aero+3+4*(n-1),iblk)*vice(i,j,iblk)
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         fld(:,:,:,hd_aerotot(n)) = work1(:,:,:)
+         fld(:,:,:,hd_aeromx(n)) = work1(:,:,:)
+      enddo
 
       end subroutine hdiag_cell_values
 
@@ -2279,6 +2198,205 @@
       endif
 
       end subroutine hdiag_derived
+
+!=======================================================================
+
+! The print_global diagnostics for one hemisphere, from the reduced values.
+! The changes and errors are over the last timestep, using the totals
+! from the start of the timestep (init_mass_diags), so are only meaningful
+! for instantaneous values.
+
+      subroutine hdiag_global(val, hemi, dt, g)
+
+      use ice_constants, only: p001
+      use ice_domain_size, only: n_iso, n_aero
+      use ice_flux, only: update_ocn_f
+
+      real (kind=dbl_kind), dimension(n_hdiag), intent(in) :: &
+         val               ! reduced values for one hemisphere, before scale
+
+      integer (kind=int_kind), intent(in) :: &
+         hemi              ! hemisphere, 1 north, 2 south
+
+      real (kind=dbl_kind), intent(in) :: &
+         dt                ! time step
+
+      type (hdiag_global_values), intent(out) :: &
+         g                 ! print_global diagnostics
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         n
+
+      real (kind=dbl_kind) :: &
+         rhoi, rhos, rhofresh, Lfresh, Lvap, ice_ref_salinity, &
+         ptot, totm, totmi, tote, tots
+
+      real (kind=dbl_kind), dimension(icepack_max_iso) :: &
+         totiso            ! total isotope at the start of the timestep
+
+      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
+         totaero           ! total aerosol at the start of the timestep
+
+      character (len=char_len) :: &
+         saltflux_option
+
+      character(len=*), parameter :: subname = '(hdiag_global)'
+
+      call icepack_query_parameters(rhoi_out=rhoi, rhos_out=rhos, rhofresh_out=rhofresh, &
+           lfresh_out=Lfresh, lvap_out=Lvap, ice_ref_salinity_out=ice_ref_salinity, &
+           saltflux_option_out=saltflux_option)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      if (hemi == 1) then
+         totm  = totmn
+         totmi = totmin
+         tote  = toten
+         tots  = totsn
+         totiso(:)  = totison(:)
+         totaero(:) = totaeron(:)
+      else
+         totm  = totms
+         totmi = totmis
+         tote  = totes
+         tots  = totss
+         totiso(:)  = totisos(:)
+         totaero(:) = totaeros(:)
+      endif
+
+      g%etot = val(hd_etot)
+      g%stot = val(hd_stot)
+
+      g%evp = val(hd_evp)
+      g%evp = g%evp*dt
+
+      g%shmaxt = c0
+      if (hd_brine > 0) g%shmaxt = val(hd_brine)
+
+      g%sfsalt = val(hd_sfsalt)
+      g%sfsalt = g%sfsalt*dt
+
+      g%sfresh = val(hd_sfresh)
+      g%sfresh = g%sfresh*dt
+
+      g%spond = c0
+      if (hd_spond > 0) then
+         g%spond = val(hd_spond)
+         g%spond = g%spond*dt
+      endif
+
+      g%fhocn  = val(hd_fhocn)
+      g%fhatm  = val(hd_fhatm)
+      g%fswnet = val(hd_fswnet)
+      g%fswdn  = val(hd_fswdn)
+      g%fhfrz  = val(hd_fhfrz)
+
+      g%rn = val(hd_rn)
+      g%rn = g%rn*dt
+      g%sn = val(hd_sn)
+      g%sn = g%sn*dt
+      g%frz = val(hd_frz)
+      g%frz = g%frz*dt
+
+      ! ice, snow, pond mass
+      ptot = c0
+      if (hd_ptot > 0) ptot = val(hd_ptot)
+      g%mice = rhoi*val(hd_vice)
+      g%msnw = rhos*val(hd_vsno)
+      g%mpnd = rhofresh*ptot
+
+      ! total ice, snow and pond mass
+      g%mtot = g%mice + g%msnw + g%mpnd
+
+      ! mass change since beginning of time step
+      g%delmi = g%mtot - totm
+
+      ! ice mass change including frazil ice formation
+      g%delmx = g%mice - totmi
+      if (.not. update_ocn_f) then
+        ! ice mass change excluding frazil ice formation
+        g%delmx = g%delmx - g%frz
+      endif
+
+      ! total water flux
+      g%flux = c0
+      if (val(hd_aice) > c0) then
+        ! water associated with frazil ice included in fresh
+        g%flux = g%rn + g%sn + g%evp - g%sfresh
+        if (.not. update_ocn_f) then
+          g%flux = g%flux + g%frz
+        endif
+      endif
+
+      g%werr = (g%flux-g%delmi)/(g%mtot + c1)
+
+      ! energy change
+      g%delei = g%etot - tote
+
+      g%fhatm = g%fhatm + ( - g%sn * Lfresh + g%evp * Lvap ) / dt
+
+      g%hnet = (g%fhatm - g%fhocn - g%fhfrz) * dt
+
+      g%herr = (g%hnet - g%delei) / (g%etot - c1)
+
+      g%swerr = (g%fswnet - g%fswdn) / (g%fswnet - c1)
+
+      ! salt mass
+      if (saltflux_option == 'prognostic') then
+         ! compute the total salt mass
+         g%mslt = g%stot*rhoi*p001
+
+         ! change in salt mass
+         g%delmslt = rhoi*(g%stot-tots)*p001
+      else
+         g%mslt = g%mice*ice_ref_salinity*p001
+
+         ! change in salt mass
+         g%delmslt = g%delmx*ice_ref_salinity*p001
+      endif
+
+      ! salt error
+      g%serr = (g%sfsalt + g%delmslt) / (g%mslt + c1)
+
+      ! isotopes
+      g%fisoa  = c0
+      g%fisoo  = c0
+      g%isotot = c0
+      g%isomx  = c0
+      g%isor   = c0
+      do n = 1, n_iso
+         if (hd_fisoa(n) == 0) cycle
+         g%fisoa(n) = val(hd_fisoa(n))
+         g%fisoa(n) = g%fisoa(n)*dt
+         g%fisoo(n) = val(hd_fisoo(n))
+         g%fisoo(n) = g%fisoo(n)*dt
+         g%isotot(n) = val(hd_isotot(n))
+         g%isomx(n) = val(hd_isomx(n))
+         g%isor(n) = (totiso(n)-g%isotot(n)+g%fisoa(n)-g%fisoo(n))/(g%isotot(n)+c1)
+      enddo
+
+      ! aerosols
+      g%faeroa  = c0
+      g%faeroo  = c0
+      g%aerotot = c0
+      g%aeromx  = c0
+      g%aerr    = c0
+      do n = 1, n_aero
+         if (hd_faeroa(n) == 0) cycle
+         g%faeroa(n) = val(hd_faeroa(n))
+         g%faeroa(n) = g%faeroa(n)*dt
+         g%faeroo(n) = val(hd_faeroo(n))
+         g%faeroo(n) = g%faeroo(n)*dt
+         g%aerotot(n) = val(hd_aerotot(n))
+         g%aeromx(n) = val(hd_aeromx(n))
+         g%aerr(n) = (totaero(n)-g%aerotot(n)+g%faeroa(n)-g%faeroo(n)) &
+                   / (g%aerotot(n) + c1)
+      enddo
+
+      end subroutine hdiag_global
 
 !=======================================================================
 
