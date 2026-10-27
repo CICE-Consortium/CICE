@@ -17,7 +17,9 @@
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1
       use ice_diagnostics, only: hdiag, n_hdiag, hdiag_initialized, hdiag_hemi, &
-          init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived
+          init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived, &
+          hdiag_global, hdiag_global_values, print_global, &
+          hd_ptot, hd_brine, hd_spond, hd_fisoa, hd_faeroa
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -43,7 +45,7 @@
 
       ! output list, the values written in each record
       integer (kind=int_kind), parameter :: &
-         max_ncdiag = 64      ! max number of output variables per hemisphere
+         max_ncdiag = 256     ! max number of output variables per hemisphere
 
       integer (kind=int_kind) :: &
          n_ncdiag    = 0  , & ! number of output variables per hemisphere
@@ -176,7 +178,8 @@
 
       subroutine compute_ncdiag
 
-      use ice_calendar, only: timesecs
+      use ice_calendar, only: timesecs, dt
+      use ice_domain_size, only: n_iso, n_aero
       use ice_domain_size, only: max_blocks
 
       ! local variables
@@ -185,7 +188,16 @@
          k
 
       real (kind=dbl_kind) :: &
-         rn, urmsn, urmss, albn, albs
+         rn, urmsn, urmss, albn, albs, rdt
+
+      type (hdiag_global_values) :: &
+         gn, gs            ! print_global diagnostics, northern and southern hemisphere
+
+      character (len=char_len) :: &
+         cn                ! tracer index string
+
+      integer (kind=int_kind) :: &
+         n                 ! tracer index
 
       real (kind=dbl_kind), dimension(n_hdiag) :: &
          valn, vals        ! hemispheric values, before scale is applied
@@ -245,6 +257,130 @@
 
       call add_ncdiag('albedo_nh', 'albedo_sh', 'average albedo', '1', &
                       albn, albs, '', cm_sum)
+
+      ! print_global diagnostics, the same as the log.  Water, salt and tracer
+      ! fluxes are rates.  The changes and errors are over the last timestep,
+      ! so are only written as instantaneous values.
+      if (print_global) then
+         call hdiag_global(valn, 1, dt, gn)
+         call hdiag_global(vals, 2, dt, gs)
+         rdt = c1/dt
+
+         ! mass, energy and salt
+         call add_ncdiag('ice_mass_nh', 'ice_mass_sh', 'total ice mass', 'kg', &
+                         gn%mice, gs%mice, '', cm_sum)
+         if (hd_ptot > 0) &
+         call add_ncdiag('pond_mass_nh', 'pond_mass_sh', 'total pond mass', 'kg', &
+                         gn%mpnd, gs%mpnd, '', cm_sum)
+         call add_ncdiag('total_mass_nh', 'total_mass_sh', 'total ice, snow and pond mass', 'kg', &
+                         gn%mtot, gs%mtot, '', cm_sum)
+         call add_ncdiag('total_energy_nh', 'total_energy_sh', 'total ice and snow energy', 'J', &
+                         gn%etot, gs%etot, '', cm_sum)
+         call add_ncdiag('salt_mass_nh', 'salt_mass_sh', 'total salt mass', 'kg', &
+                         gn%mslt, gs%mslt, '', cm_sum)
+         if (hd_brine > 0) &
+         call add_ncdiag('brine_volume_nh', 'brine_volume_sh', 'total brine tracer volume', 'm^3', &
+                         gn%shmaxt, gs%shmaxt, '', cm_sum)
+
+         ! water and salt fluxes
+         call add_ncdiag('rain_flux_nh', 'rain_flux_sh', 'rain on sea ice', 'kg s-1', &
+                         gn%rn*rdt, gs%rn*rdt, '', cm_sum)
+         call add_ncdiag('snow_flux_nh', 'snow_flux_sh', 'snow on sea ice', 'kg s-1', &
+                         gn%sn*rdt, gs%sn*rdt, '', cm_sum)
+         call add_ncdiag('evap_flux_nh', 'evap_flux_sh', 'evaporation and sublimation', 'kg s-1', &
+                         gn%evp*rdt, gs%evp*rdt, '', cm_sum)
+         call add_ncdiag('frazil_flux_nh', 'frazil_flux_sh', 'frazil ice formation', 'kg s-1', &
+                         gn%frz*rdt, gs%frz*rdt, '', cm_sum)
+         if (hd_spond > 0) &
+         call add_ncdiag('pond_flux_nh', 'pond_flux_sh', 'pond water flux', 'kg s-1', &
+                         gn%spond*rdt, gs%spond*rdt, '', cm_sum)
+         call add_ncdiag('fresh_flux_nh', 'fresh_flux_sh', 'fresh water flux to ocean', 'kg s-1', &
+                         gn%sfresh*rdt, gs%sfresh*rdt, '', cm_sum)
+         call add_ncdiag('water_flux_nh', 'water_flux_sh', 'net water flux into sea ice', 'kg s-1', &
+                         gn%flux*rdt, gs%flux*rdt, '', cm_sum)
+         call add_ncdiag('salt_flux_nh', 'salt_flux_sh', 'salt flux to ocean', 'kg s-1', &
+                         gn%sfsalt*rdt, gs%sfsalt*rdt, '', cm_sum)
+
+         ! heat fluxes
+         call add_ncdiag('atm_heat_flux_nh', 'atm_heat_flux_sh', 'atmosphere heat flux into sea ice', 'W', &
+                         gn%fhatm, gs%fhatm, '', cm_sum)
+         call add_ncdiag('ocn_heat_flux_nh', 'ocn_heat_flux_sh', 'ocean heat flux used by sea ice', 'W', &
+                         gn%fhocn, gs%fhocn, '', cm_sum)
+         call add_ncdiag('frazil_heat_flux_nh', 'frazil_heat_flux_sh', 'frazil heat flux', 'W', &
+                         gn%fhfrz, gs%fhfrz, '', cm_sum)
+         call add_ncdiag('net_heat_flux_nh', 'net_heat_flux_sh', 'net heat flux into sea ice', 'W', &
+                         gn%hnet*rdt, gs%hnet*rdt, '', cm_sum)
+         call add_ncdiag('sw_down_flux_nh', 'sw_down_flux_sh', 'incoming shortwave on sea ice', 'W', &
+                         gn%fswdn, gs%fswdn, '', cm_sum)
+         call add_ncdiag('sw_absorbed_flux_nh', 'sw_absorbed_flux_sh', 'absorbed shortwave', 'W', &
+                         gn%fswnet, gs%fswnet, '', cm_sum)
+
+         ! isotopes and aerosols
+         do n = 1, n_iso
+            if (hd_fisoa(n) == 0) cycle
+            write(cn,'(i0)') n
+            call add_ncdiag('isotope'//trim(cn)//'_atm_flux_nh', 'isotope'//trim(cn)//'_atm_flux_sh', &
+                            'isotope flux from atmosphere', 'kg s-1', &
+                            gn%fisoa(n)*rdt, gs%fisoa(n)*rdt, '', cm_sum)
+            call add_ncdiag('isotope'//trim(cn)//'_ocn_flux_nh', 'isotope'//trim(cn)//'_ocn_flux_sh', &
+                            'isotope flux to ocean', 'kg s-1', &
+                            gn%fisoo(n)*rdt, gs%fisoo(n)*rdt, '', cm_sum)
+            call add_ncdiag('isotope'//trim(cn)//'_total_nh', 'isotope'//trim(cn)//'_total_sh', &
+                            'total isotope', 'kg', gn%isotot(n), gs%isotot(n), '', cm_sum)
+            call add_ncdiag('isotope'//trim(cn)//'_max_nh', 'isotope'//trim(cn)//'_max_sh', &
+                            'maximum isotope per unit area', 'kg m-2', gn%isomx(n), gs%isomx(n), '', cm_max)
+         enddo
+         do n = 1, n_aero
+            if (hd_faeroa(n) == 0) cycle
+            write(cn,'(i0)') n
+            call add_ncdiag('aerosol'//trim(cn)//'_atm_flux_nh', 'aerosol'//trim(cn)//'_atm_flux_sh', &
+                            'aerosol flux from atmosphere', 'kg s-1', &
+                            gn%faeroa(n)*rdt, gs%faeroa(n)*rdt, '', cm_sum)
+            call add_ncdiag('aerosol'//trim(cn)//'_ocn_flux_nh', 'aerosol'//trim(cn)//'_ocn_flux_sh', &
+                            'aerosol flux to ocean', 'kg s-1', &
+                            gn%faeroo(n)*rdt, gs%faeroo(n)*rdt, '', cm_sum)
+            call add_ncdiag('aerosol'//trim(cn)//'_total_nh', 'aerosol'//trim(cn)//'_total_sh', &
+                            'total aerosol', 'kg', gn%aerotot(n), gs%aerotot(n), '', cm_sum)
+            call add_ncdiag('aerosol'//trim(cn)//'_max_nh', 'aerosol'//trim(cn)//'_max_sh', &
+                            'maximum aerosol per unit area', 'kg m-2', gn%aeromx(n), gs%aeromx(n), '', cm_max)
+         enddo
+
+         ! changes and errors over the last timestep, instantaneous only
+         if (.not. diag_netcdf_avg) then
+            call add_ncdiag('total_mass_change_nh', 'total_mass_change_sh', &
+                            'change in total mass over the timestep', 'kg', gn%delmi, gs%delmi, '', '')
+            call add_ncdiag('water_flux_err_nh', 'water_flux_err_sh', &
+                            'water conservation error over the timestep, fraction of total mass', '1', &
+                            gn%werr, gs%werr, '', '')
+            call add_ncdiag('total_energy_change_nh', 'total_energy_change_sh', &
+                            'change in total energy over the timestep', 'J', gn%delei, gs%delei, '', '')
+            call add_ncdiag('heat_err_nh', 'heat_err_sh', &
+                            'heat conservation error over the timestep, fraction of total energy', '1', &
+                            gn%herr, gs%herr, '', '')
+            call add_ncdiag('sw_err_nh', 'sw_err_sh', &
+                            'shortwave error, fraction of absorbed shortwave', '1', &
+                            gn%swerr, gs%swerr, '', '')
+            call add_ncdiag('salt_mass_change_nh', 'salt_mass_change_sh', &
+                            'change in salt mass over the timestep', 'kg', gn%delmslt, gs%delmslt, '', '')
+            call add_ncdiag('salt_flux_err_nh', 'salt_flux_err_sh', &
+                            'salt conservation error over the timestep, fraction of salt mass', '1', &
+                            gn%serr, gs%serr, '', '')
+            do n = 1, n_iso
+               if (hd_fisoa(n) == 0) cycle
+               write(cn,'(i0)') n
+               call add_ncdiag('isotope'//trim(cn)//'_err_nh', 'isotope'//trim(cn)//'_err_sh', &
+                               'isotope conservation error over the timestep, fraction of total', '1', &
+                               gn%isor(n), gs%isor(n), '', '')
+            enddo
+            do n = 1, n_aero
+               if (hd_faeroa(n) == 0) cycle
+               write(cn,'(i0)') n
+               call add_ncdiag('aerosol'//trim(cn)//'_err_nh', 'aerosol'//trim(cn)//'_err_sh', &
+                               'aerosol conservation error over the timestep, fraction of total', '1', &
+                               gn%aerr(n), gs%aerr(n), '', '')
+            enddo
+         endif
+      endif
 
       if (diag_netcdf_avg) then
          ncdiag_time_beg = acc_time_beg
@@ -732,7 +868,7 @@
          call ice_check_nc(status, subname//' ERROR: defining var acc_time_beg', &
                            file=__FILE__, line=__LINE__)
          do k = 1, n_hdiag
-            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            write(vname,'(a,i3.3)') 'acc_ncdiag_',k
             status = nf90_def_var(ncid, trim(vname), nf90_double, dimid, varid)
             call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
                               file=__FILE__, line=__LINE__)
@@ -758,7 +894,7 @@
       do k = 1, n_hdiag
          call gather_global(work_g, acc_ncdiag(:,:,:,k), master_task, distrb_info)
          if (my_task == master_task) then
-            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            write(vname,'(a,i3.3)') 'acc_ncdiag_',k
             status = nf90_inq_varid(ncid, trim(vname), varid)
             call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
                               file=__FILE__, line=__LINE__)
@@ -846,7 +982,7 @@
 
       do k = 1, n_hdiag
          if (my_task == master_task) then
-            write(vname,'(a,i2.2)') 'acc_ncdiag_',k
+            write(vname,'(a,i3.3)') 'acc_ncdiag_',k
             status = nf90_inq_varid(ncid, trim(vname), varid)
             call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
                               file=__FILE__, line=__LINE__)
