@@ -63,7 +63,7 @@
           diag_file, print_global, print_points, latpnt, lonpnt, &
           debug_model, debug_model_step, debug_model_task, &
           debug_model_i, debug_model_j, debug_model_iblk
-      use ice_diagnostics_netcdf, only: diag_netcdf
+      use ice_diagnostics_netcdf, only: diag_netcdf_avg
       use ice_domain, only: close_boundaries
       use ice_domain_size, only: &
           ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
@@ -74,6 +74,7 @@
           year_init, month_init, day_init, sec_init, &
           istep0, histfreq, histfreq_n, histfreq_base, &
           dumpfreq, dumpfreq_n, diagfreq, diagfreq_unit, dumpfreq_base, &
+          diag_netcdf_freq, diag_netcdf_freq_n, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
           write_ic, dump_last, npt_unit, write_histrest
       use ice_arrays_column, only: oceanmixed_ice
@@ -204,7 +205,8 @@
         restart_root,   restart_stride, restart_iotasks, restart_rearranger, &
         restart_deflate, restart_chunksize, restart_mod, write_histrest,&
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
-        diagfreq,       diagfreq_unit,  diag_netcdf,                    &
+        diagfreq,       diagfreq_unit,  diag_netcdf_freq, diag_netcdf_freq_n, &
+        diag_netcdf_avg,                                                &
         diag_type,      diag_file,      history_format,                 &
         history_root,   history_stride, history_iotasks, history_rearranger, &
         hist_time_axis,                                                 &
@@ -334,7 +336,9 @@
       npt_unit = '1'         ! units of npt 'y', 'm', 'd', 's', '1'
       diagfreq = 24          ! how often diag output is written
       diagfreq_unit = '1'    ! units of diagfreq 'y', 'm', 'd', 'h', '1'
-      diag_netcdf = 'none'   ! hemispheric diagnostics in netcdf 'none', 'avg', 'inst'
+      diag_netcdf_freq = 'x' ! netcdf hemispheric diagnostics frequency, 'x' off
+      diag_netcdf_freq_n = 1 ! netcdf hemispheric diagnostics frequency count
+      diag_netcdf_avg = .true. ! if true, netcdf diagnostics are time averages
       debug_model  = .false. ! debug output
       debug_model_step = 0   ! debug model after this step number
       debug_model_i = -1     ! debug model local i index
@@ -979,7 +983,9 @@
       call broadcast_scalar(npt_unit,             master_task)
       call broadcast_scalar(diagfreq,             master_task)
       call broadcast_scalar(diagfreq_unit,        master_task)
-      call broadcast_scalar(diag_netcdf,          master_task)
+      call broadcast_scalar(diag_netcdf_freq,     master_task)
+      call broadcast_scalar(diag_netcdf_freq_n,   master_task)
+      call broadcast_scalar(diag_netcdf_avg,      master_task)
       call broadcast_scalar(debug_model,          master_task)
       call broadcast_scalar(debug_model_step,     master_task)
       call broadcast_scalar(debug_model_i,        master_task)
@@ -1362,18 +1368,19 @@
          abort_list = trim(abort_list)//":71"
       endif
 
-      if (trim(diag_netcdf) /= 'none' .and. trim(diag_netcdf) /= 'avg' .and. &
-          trim(diag_netcdf) /= 'inst') then
+      if (diag_netcdf_freq /= 'y' .and. diag_netcdf_freq /= 'm' .and. &
+          diag_netcdf_freq /= 'd' .and. diag_netcdf_freq /= 'h' .and. &
+          diag_netcdf_freq /= '1' .and. diag_netcdf_freq /= 'x') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: diag_netcdf unknown = ',trim(diag_netcdf)
+            write(nu_diag,*) subname//' ERROR: diag_netcdf_freq unknown = ',trim(diag_netcdf_freq)
          endif
          abort_list = trim(abort_list)//":73"
       endif
 
 #ifndef USE_NETCDF
-      if (trim(diag_netcdf) /= 'none') then
+      if (diag_netcdf_freq /= 'x') then
          if (my_task == master_task) then
-            write(nu_diag,*) subname//' ERROR: diag_netcdf requires USE_NETCDF'
+            write(nu_diag,*) subname//' ERROR: diag_netcdf_freq requires USE_NETCDF'
          endif
          abort_list = trim(abort_list)//":72"
       endif
@@ -2752,7 +2759,9 @@
          write(nu_diag,1021) ' npt              = ', npt
          write(nu_diag,1021) ' diagfreq         = ', diagfreq
          write(nu_diag,1031) ' diagfreq_unit    = ', trim(diagfreq_unit)
-         write(nu_diag,1031) ' diag_netcdf      = ', trim(diag_netcdf)
+         write(nu_diag,1031) ' diag_netcdf_freq = ', trim(diag_netcdf_freq)
+         write(nu_diag,1021) ' diag_netcdf_freq_n = ', diag_netcdf_freq_n
+         write(nu_diag,1011) ' diag_netcdf_avg  = ', diag_netcdf_avg
          write(nu_diag,1011) ' print_global     = ', print_global
          write(nu_diag,1011) ' print_points     = ', print_points
          write(nu_diag,1011) ' debug_model      = ', debug_model
