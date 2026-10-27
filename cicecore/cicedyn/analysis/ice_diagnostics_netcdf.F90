@@ -16,8 +16,8 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_communicate, only: my_task, master_task
       use ice_constants, only: c0, c1
-      use ice_diagnostics, only: aice_extmin, maxval_spval, &
-          diag_kinetic_energy, diag_ice_speed
+      use ice_diagnostics, only: hdiag, n_hdiag, hdiag_initialized, hdiag_hemi, &
+          init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -29,57 +29,6 @@
 
       logical (kind=log_kind), public :: &
          diag_netcdf_avg      ! if true, time averages, otherwise instantaneous values
-
-      !-----------------------------------------------------------------
-      ! Hemispheric netcdf diagnostics
-      !
-      ! Each diagnostic is a per grid cell value that is reduced to a value
-      ! for each hemisphere, either an area weighted global sum or a global
-      ! maximum.  The same per grid cell values are used for instantaneous
-      ! output and, accumulated every timestep, for time averages.
-      !
-      ! To add a diagnostic:
-      !   1. add an index ncd_* below and increase n_ncdfld
-      !   2. set its names, units and reduction in init_ncdiag
-      !   3. compute its per grid cell value in ncdiag_cell_values
-      !-----------------------------------------------------------------
-
-      integer (kind=int_kind), parameter :: &
-         ncd_aice   = 1   , & ! sea-ice area
-         ncd_extent = 2   , & ! sea-ice extent
-         ncd_vice   = 3   , & ! sea-ice volume
-         ncd_snwm   = 4   , & ! snow mass
-         ncd_ke     = 5   , & ! kinetic energy
-         ncd_albn   = 6   , & ! albedo numerator, for derived albedo
-         ncd_albd   = 7   , & ! albedo denominator, for derived albedo
-         ncd_vmax   = 8   , & ! max ice volume per unit area
-         ncd_umax   = 9   , & ! max ice speed
-         ncd_pmax   = 10  , & ! max ice strength
-         n_ncdfld   = 10      ! number of per grid cell diagnostics
-
-      type ncdiag_field
-         character (len=char_len) :: &
-            vname_n     , & ! netcdf variable name, northern hemisphere
-            vname_s     , & ! netcdf variable name, southern hemisphere
-            lname       , & ! long name
-            units       , & ! units after scale is applied
-            sname           ! standard_name, blank for none
-         character (len=4) :: &
-            reduce          ! 'sum' area weighted global sum or 'max' global maximum
-         real (kind=dbl_kind) :: &
-            scale           ! unit conversion applied to the hemispheric value
-         logical (kind=log_kind) :: &
-            lwrite          ! written to file, false if only used for derived diagnostics
-      end type ncdiag_field
-
-      type (ncdiag_field), dimension(n_ncdfld) :: &
-         ncdfld               ! per grid cell diagnostics
-
-      logical (kind=log_kind) :: &
-         ncdfld_init = .false. ! ncdfld has been initialized
-
-      logical (kind=log_kind), dimension(2) :: &
-         ncdiag_hemi          ! hemisphere has grid cells, otherwise values are missing
 
       ! accumulation for time averages
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable :: &
@@ -152,168 +101,6 @@
 
 !=======================================================================
 
-! Define the per grid cell hemispheric netcdf diagnostics, see the
-! comments with ncdfld in the module header
-
-      subroutine init_ncdiag
-
-      use ice_constants, only: field_loc_center
-      use ice_domain, only: distrb_info
-      use ice_domain_size, only: max_blocks
-      use ice_global_reductions, only: global_sum
-      use ice_grid, only: tarean, tareas
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1             ! temporary
-
-      character(len=*), parameter :: subname = '(init_ncdiag)'
-
-      ! a hemisphere without grid cells (e.g. regional domains) is written as missing
-      work1(:,:,:) = c1
-      ncdiag_hemi(1) = global_sum(work1, distrb_info, field_loc_center, tarean) > c0
-      ncdiag_hemi(2) = global_sum(work1, distrb_info, field_loc_center, tareas) > c0
-
-      ! CMIP sea-ice diagnostics, in CMIP units
-      call def_ncdfld(ncd_aice, 'siarean'  , 'siareas'  , 'sea-ice area'  , '1e6 km2', 'sum', &
-                      1.0e-12_dbl_kind, sname='sea_ice_area')
-      call def_ncdfld(ncd_extent, 'siextentn', 'siextents', 'sea-ice extent', '1e6 km2', 'sum', &
-                      1.0e-12_dbl_kind, sname='sea_ice_extent')
-      call def_ncdfld(ncd_vice, 'sivoln'   , 'sivols'   , 'sea-ice volume', '1e3 km3', 'sum', &
-                      1.0e-12_dbl_kind, sname='sea_ice_volume')
-      call def_ncdfld(ncd_snwm, 'sisnmassn', 'sisnmasss', 'snow mass on sea ice', 'kg', 'sum', c1)
-
-      ! other diagnostics, the same quantities as in the log
-      call def_ncdfld(ncd_ke  , 'kinetic_energy_nh'  , 'kinetic_energy_sh'  , &
-                      'total kinetic energy', 'J', 'sum', c1)
-      call def_ncdfld(ncd_albn, 'albedo_num_nh'      , 'albedo_num_sh'      , &
-                      'albedo numerator', '1', 'sum', c1, lwrite=.false.)
-      call def_ncdfld(ncd_albd, 'albedo_den_nh'      , 'albedo_den_sh'      , &
-                      'albedo denominator', '1', 'sum', c1, lwrite=.false.)
-      call def_ncdfld(ncd_vmax, 'ice_volume_max_nh'  , 'ice_volume_max_sh'  , &
-                      'max ice volume per unit area', 'm', 'max', c1)
-      call def_ncdfld(ncd_umax, 'ice_speed_max_nh'   , 'ice_speed_max_sh'   , &
-                      'max ice speed', 'm/s', 'max', c1)
-      call def_ncdfld(ncd_pmax, 'ice_strength_max_nh', 'ice_strength_max_sh', &
-                      'max ice strength', 'kN/m', 'max', 1.0e-3_dbl_kind)
-
-      ncdfld_init = .true.
-
-      end subroutine init_ncdiag
-
-!=======================================================================
-
-! Set the definition of one per grid cell hemispheric netcdf diagnostic
-
-      subroutine def_ncdfld(k, vname_n, vname_s, lname, units, reduce, scale, sname, lwrite)
-
-      integer (kind=int_kind), intent(in) :: &
-         k               ! index in ncdfld
-
-      character (len=*), intent(in) :: &
-         vname_n     , & ! netcdf variable name, northern hemisphere
-         vname_s     , & ! netcdf variable name, southern hemisphere
-         lname       , & ! long name
-         units       , & ! units after scale is applied
-         reduce          ! 'sum' area weighted global sum or 'max' global maximum
-
-      real (kind=dbl_kind), intent(in) :: &
-         scale           ! unit conversion applied to the hemispheric value
-
-      character (len=*), intent(in), optional :: &
-         sname           ! standard_name
-
-      logical (kind=log_kind), intent(in), optional :: &
-         lwrite          ! written to file, default true
-
-      character(len=*), parameter :: subname = '(def_ncdfld)'
-
-      if (reduce /= 'sum' .and. reduce /= 'max') then
-         call abort_ice(subname//' ERROR: reduce must be sum or max for '//trim(vname_n), &
-            file=__FILE__, line=__LINE__)
-      endif
-
-      ncdfld(k)%vname_n = vname_n
-      ncdfld(k)%vname_s = vname_s
-      ncdfld(k)%lname   = lname
-      ncdfld(k)%units   = units
-      ncdfld(k)%reduce  = reduce
-      ncdfld(k)%scale   = scale
-      ncdfld(k)%sname   = ''
-      if (present(sname)) ncdfld(k)%sname = sname
-      ncdfld(k)%lwrite  = .true.
-      if (present(lwrite)) ncdfld(k)%lwrite = lwrite
-
-      end subroutine def_ncdfld
-
-!=======================================================================
-
-! Compute the per grid cell values of the hemispheric netcdf diagnostics.
-! Values to be summed are per unit area; they are multiplied by the cell
-! area when reduced.
-
-      subroutine ncdiag_cell_values(fld)
-
-      use ice_domain, only: nblocks
-      use ice_domain_size, only: max_blocks
-      use ice_flux, only: alvdr, alidr, alvdf, alidf
-      use ice_state, only: aice, vice, vsno, strength
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_ncdfld), intent(out) :: &
-         fld               ! per grid cell values
-
-      ! local variables
-
-      integer (kind=int_kind) :: &
-         i, j, iblk
-
-      real (kind=dbl_kind) :: &
-         puny, rhos, awtvdr, awtidr, awtvdf, awtidf, alb
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, work2      ! temporary
-
-      character(len=*), parameter :: subname = '(ncdiag_cell_values)'
-
-      call icepack_query_parameters(puny_out=puny, rhos_out=rhos, &
-           awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
-      call diag_kinetic_energy(work1)
-      call diag_ice_speed(work2)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,alb)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            fld(i,j,iblk,ncd_aice) = aice(i,j,iblk)
-            fld(i,j,iblk,ncd_extent) = c0
-            if (aice(i,j,iblk) >= aice_extmin) fld(i,j,iblk,ncd_extent) = c1
-            fld(i,j,iblk,ncd_vice) = vice(i,j,iblk)
-            fld(i,j,iblk,ncd_snwm) = rhos*vsno(i,j,iblk)
-            fld(i,j,iblk,ncd_ke  ) = work1(i,j,iblk)
-            ! ice area weighted albedo, masked where the sun is below the horizon
-            alb = alvdr(i,j,iblk)*awtvdr + alidr(i,j,iblk)*awtidr &
-                + alvdf(i,j,iblk)*awtvdf + alidf(i,j,iblk)*awtidf
-            fld(i,j,iblk,ncd_albn) = c0
-            fld(i,j,iblk,ncd_albd) = c0
-            if (alb > puny) then
-               fld(i,j,iblk,ncd_albn) = aice(i,j,iblk)*alb
-               fld(i,j,iblk,ncd_albd) = aice(i,j,iblk)
-            endif
-            fld(i,j,iblk,ncd_vmax) = vice(i,j,iblk)
-            fld(i,j,iblk,ncd_umax) = work2(i,j,iblk)
-            fld(i,j,iblk,ncd_pmax) = strength(i,j,iblk)
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      end subroutine ncdiag_cell_values
-
-!=======================================================================
-
 ! Accumulate the per grid cell hemispheric netcdf diagnostics every
 ! timestep for time averages.  This is local work only, the global
 ! reductions are done once per write in compute_ncdiag.
@@ -333,10 +120,10 @@
 
       character(len=*), parameter :: subname = '(accum_ncdiag)'
 
-      if (.not. ncdfld_init) call init_ncdiag()
+      if (.not. hdiag_initialized) call init_hdiag()
 
       if (.not. allocated(acc_ncdiag)) then
-         allocate(acc_ncdiag(nx_block,ny_block,max_blocks,n_ncdfld))
+         allocate(acc_ncdiag(nx_block,ny_block,max_blocks,n_hdiag))
          call reset_ncdiag()
          ! continue the averaging from a restart, if there is one
          call read_ncdiag_restart()
@@ -346,11 +133,11 @@
       if (nacc_steps == 0) acc_time_beg = timesecs - dt
       nacc_steps = nacc_steps + 1
 
-      allocate(fld(nx_block,ny_block,max_blocks,n_ncdfld))
-      call ncdiag_cell_values(fld)
+      allocate(fld(nx_block,ny_block,max_blocks,n_hdiag))
+      call hdiag_cell_values(fld)
 
-      do k = 1, n_ncdfld
-         if (ncdfld(k)%reduce == 'max') then
+      do k = 1, n_hdiag
+         if (hdiag(k)%reduce == 'max') then
             acc_ncdiag(:,:,:,k) = max(acc_ncdiag(:,:,:,k), fld(:,:,:,k))
          else
             acc_ncdiag(:,:,:,k) = acc_ncdiag(:,:,:,k) + fld(:,:,:,k)
@@ -370,8 +157,8 @@
       integer (kind=int_kind) :: &
          k
 
-      do k = 1, n_ncdfld
-         if (ncdfld(k)%reduce == 'max') then
+      do k = 1, n_hdiag
+         if (hdiag(k)%reduce == 'max') then
             acc_ncdiag(:,:,:,k) = -huge(c1)
          else
             acc_ncdiag(:,:,:,k) = c0
@@ -390,11 +177,7 @@
       subroutine compute_ncdiag
 
       use ice_calendar, only: timesecs
-      use ice_constants, only: c2, field_loc_center
-      use ice_domain, only: distrb_info
       use ice_domain_size, only: max_blocks
-      use ice_global_reductions, only: global_sum, global_maxval
-      use ice_grid, only: lmask_n, lmask_s, tarean, tareas
 
       ! local variables
 
@@ -402,9 +185,9 @@
          k
 
       real (kind=dbl_kind) :: &
-         rn, puny, rhoi, urmsn, urmss, albn, albs
+         rn, urmsn, urmss, albn, albs
 
-      real (kind=dbl_kind), dimension(n_ncdfld) :: &
+      real (kind=dbl_kind), dimension(n_hdiag) :: &
          valn, vals        ! hemispheric values, before scale is applied
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
@@ -415,14 +198,9 @@
 
       character(len=*), parameter :: subname = '(compute_ncdiag)'
 
-      call icepack_query_parameters(puny_out=puny, rhoi_out=rhoi)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      if (.not. hdiag_initialized) call init_hdiag()
 
-      if (.not. ncdfld_init) call init_ncdiag()
-
-      allocate(fld(nx_block,ny_block,max_blocks,n_ncdfld))
+      allocate(fld(nx_block,ny_block,max_blocks,n_hdiag))
       if (diag_netcdf_avg) then
          if (nacc_steps == 0) then
             call abort_ice(subname//' ERROR: no accumulated diagnostics', &
@@ -433,63 +211,38 @@
          cm_sum = 'time: mean'
          cm_max = 'time: maximum'
       else
-         call ncdiag_cell_values(fld)
+         call hdiag_cell_values(fld)
          rn = c1
          cm_sum = ''
          cm_max = ''
       endif
 
-      do k = 1, n_ncdfld
-         if (ncdfld(k)%reduce == 'max') then
-            valn(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_n)
-            vals(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_s)
-            if (valn(k) < maxval_spval) valn(k) = c0
-            if (vals(k) < maxval_spval) vals(k) = c0
-         else
-            valn(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tarean)*rn
-            vals(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tareas)*rn
-         endif
-      enddo
+      call hdiag_reduce(fld, rn, valn, vals)
       deallocate(fld)
 
       n_ncdiag = 0
-      do k = 1, n_ncdfld
-         if (ncdfld(k)%lwrite) then
-            if (ncdfld(k)%reduce == 'max') then
-               call add_ncdiag(ncdfld(k)%vname_n, ncdfld(k)%vname_s, ncdfld(k)%lname, &
-                               ncdfld(k)%units, valn(k)*ncdfld(k)%scale, vals(k)*ncdfld(k)%scale, &
-                               ncdfld(k)%sname, cm_max)
+      do k = 1, n_hdiag
+         if (hdiag(k)%lwrite) then
+            if (hdiag(k)%reduce == 'max') then
+               call add_ncdiag(hdiag(k)%vname_n, hdiag(k)%vname_s, hdiag(k)%lname, &
+                               hdiag(k)%units, valn(k)*hdiag(k)%scale, vals(k)*hdiag(k)%scale, &
+                               hdiag(k)%sname, cm_max)
             else
-               call add_ncdiag(ncdfld(k)%vname_n, ncdfld(k)%vname_s, ncdfld(k)%lname, &
-                               ncdfld(k)%units, valn(k)*ncdfld(k)%scale, vals(k)*ncdfld(k)%scale, &
-                               ncdfld(k)%sname, cm_sum)
+               call add_ncdiag(hdiag(k)%vname_n, hdiag(k)%vname_s, hdiag(k)%lname, &
+                               hdiag(k)%units, valn(k)*hdiag(k)%scale, vals(k)*hdiag(k)%scale, &
+                               hdiag(k)%sname, cm_sum)
             endif
          endif
       enddo
 
       ! derived diagnostics
 
-      ! rms ice speed from kinetic energy and ice and snow mass
-      urmsn = c2*valn(ncd_ke)/(rhoi*valn(ncd_vice) + valn(ncd_snwm) + puny)
-      urmss = c2*vals(ncd_ke)/(rhoi*vals(ncd_vice) + vals(ncd_snwm) + puny)
-      if (urmsn > puny) then
-         urmsn = sqrt(urmsn)
-      else
-         urmsn = c0
-      endif
-      if (urmss > puny) then
-         urmss = sqrt(urmss)
-      else
-         urmss = c0
-      endif
+      ! rms ice speed, and ice area weighted albedo over sunlit points
+      call hdiag_derived(valn, urmsn, albn)
+      call hdiag_derived(vals, urmss, albs)
       call add_ncdiag('ice_speed_rms_nh', 'ice_speed_rms_sh', 'rms ice speed', 'm/s', &
                       urmsn, urmss, '', cm_sum)
 
-      ! ice area weighted albedo over sunlit points
-      albn = c0
-      albs = c0
-      if (valn(ncd_albd) > c0) albn = valn(ncd_albn)/valn(ncd_albd)
-      if (vals(ncd_albd) > c0) albs = vals(ncd_albn)/vals(ncd_albd)
       call add_ncdiag('albedo_nh', 'albedo_sh', 'average albedo', '1', &
                       albn, albs, '', cm_sum)
 
@@ -839,7 +592,7 @@
             else
                val = ncdiag_vals(n)
             endif
-            if (.not. ncdiag_hemi(hemi)) val = spval_dbl
+            if (.not. hdiag_hemi(hemi)) val = spval_dbl
             status = nf90_inq_varid(ncid, trim(vname), varid)
             call ice_check_nc(status, subname//' ERROR: getting varid for '//trim(vname), &
                               file=__FILE__, line=__LINE__)
@@ -978,12 +731,12 @@
          status = nf90_def_var(ncid, 'acc_time_beg', nf90_double, varid)
          call ice_check_nc(status, subname//' ERROR: defining var acc_time_beg', &
                            file=__FILE__, line=__LINE__)
-         do k = 1, n_ncdfld
+         do k = 1, n_hdiag
             write(vname,'(a,i2.2)') 'acc_ncdiag_',k
             status = nf90_def_var(ncid, trim(vname), nf90_double, dimid, varid)
             call ice_check_nc(status, subname//' ERROR: defining var '//trim(vname), &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_att(ncid, varid, 'long_name', 'accumulated '//trim(ncdfld(k)%lname))
+            status = nf90_put_att(ncid, varid, 'long_name', 'accumulated '//trim(hdiag(k)%lname))
             call ice_check_nc(status, subname//' ERROR: defining att long_name '//trim(vname), &
                               file=__FILE__, line=__LINE__)
          enddo
@@ -1002,7 +755,7 @@
          allocate(work_g(1,1))
       endif
 
-      do k = 1, n_ncdfld
+      do k = 1, n_hdiag
          call gather_global(work_g, acc_ncdiag(:,:,:,k), master_task, distrb_info)
          if (my_task == master_task) then
             write(vname,'(a,i2.2)') 'acc_ncdiag_',k
@@ -1091,7 +844,7 @@
       call broadcast_scalar(nacc_steps, master_task)
       call broadcast_scalar(acc_time_beg, master_task)
 
-      do k = 1, n_ncdfld
+      do k = 1, n_hdiag
          if (my_task == master_task) then
             write(vname,'(a,i2.2)') 'acc_ncdiag_',k
             status = nf90_inq_varid(ncid, trim(vname), varid)

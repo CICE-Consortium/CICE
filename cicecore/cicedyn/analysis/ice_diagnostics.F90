@@ -28,7 +28,8 @@
       implicit none
       private
       public :: runtime_diags, init_mass_diags, init_diags, debug_ice, &
-                print_state, diagnostic_abort, diag_kinetic_energy, diag_ice_speed
+                print_state, diagnostic_abort, &
+                init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived
 
       ! diagnostic output file
       character (len=char_len), public :: diag_file
@@ -63,6 +64,60 @@
                  ! southern hemisphere in box cases), global_maxval
                  ! returns -1.0e36 which we want to avoid writing.  The
                  ! return value is checked against maxval_spval before writing.
+
+      !-----------------------------------------------------------------
+      ! Hemispheric diagnostics, for the log and the netcdf diagnostics
+      ! (ice_diagnostics_netcdf)
+      !
+      ! Each diagnostic is a per grid cell value that is reduced to a value
+      ! for each hemisphere, either an area weighted global sum or a global
+      ! maximum (hdiag_reduce).  The same per grid cell values are used for the
+      ! log, instantaneous netcdf output and, accumulated every timestep, for
+      ! netcdf time averages.
+      !
+      ! To add a diagnostic:
+      !   1. add an index hd_* below and increase n_hdiag
+      !   2. set its names, units and reduction in init_hdiag
+      !   3. compute its per grid cell value in hdiag_cell_values
+      !-----------------------------------------------------------------
+
+      integer (kind=int_kind), parameter, public :: &
+         hd_aice   = 1   , & ! sea-ice area
+         hd_extent = 2   , & ! sea-ice extent
+         hd_vice   = 3   , & ! sea-ice volume
+         hd_vsno    = 4   , & ! snow volume, netcdf snow mass
+         hd_ke     = 5   , & ! kinetic energy
+         hd_albn   = 6   , & ! albedo numerator, for derived albedo
+         hd_albd   = 7   , & ! albedo denominator, for derived albedo
+         hd_vmax   = 8   , & ! max ice volume per unit area
+         hd_umax   = 9   , & ! max ice speed
+         hd_pmax   = 10  , & ! max ice strength
+         n_hdiag   = 10      ! number of per grid cell diagnostics
+
+      type, public :: hdiag_field
+         character (len=char_len) :: &
+            vname_n     , & ! netcdf variable name, northern hemisphere
+            vname_s     , & ! netcdf variable name, southern hemisphere
+            lname       , & ! long name
+            units       , & ! units after scale is applied
+            sname           ! standard_name, blank for none
+         character (len=4) :: &
+            reduce          ! 'sum' area weighted global sum or 'max' global maximum
+         real (kind=dbl_kind) :: &
+            scale           ! unit conversion applied to the hemispheric value
+         logical (kind=log_kind) :: &
+            lwrite          ! written to file, false if only used for derived diagnostics
+      end type hdiag_field
+
+      type (hdiag_field), dimension(n_hdiag), public :: &
+         hdiag               ! per grid cell diagnostics
+
+      logical (kind=log_kind), public :: &
+         hdiag_initialized = .false. ! hdiag has been initialized
+
+      logical (kind=log_kind), dimension(2), public :: &
+         hdiag_hemi          ! hemisphere has grid cells, otherwise values are missing
+
 
       real (kind=dbl_kind), dimension(npnt), public :: &
          latpnt           , & !  latitude of diagnostic points
@@ -178,8 +233,8 @@
          etots,   mtots,   mices,     msnws,   pmaxs,  ketots, &
          stotn, &
          stots, &
-         urmsn,   albtotn, arean_alb, mpndn,   ptotn,  spondn, &
-         urmss,   albtots, areas_alb, mpnds,   ptots,  sponds
+         urmsn,   albtotn,            mpndn,   ptotn,  spondn, &
+         urmss,   albtots,            mpnds,   ptots,  sponds
 
       ! hemispheric flux quantities
       real (kind=dbl_kind) :: &
@@ -217,6 +272,12 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          work1, work2      ! temporary
 
+      real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
+         hfld              ! per grid cell hemispheric diagnostics
+
+      real (kind=dbl_kind), dimension(n_hdiag) :: &
+         hvaln, hvals      ! hemispheric diagnostics, northern and southern hemisphere
+
       character(len=*), parameter :: subname = '(runtime_diags)'
 
       call icepack_query_parameters(ktherm_out=ktherm, calc_Tsfc_out=calc_Tsfc)
@@ -243,43 +304,33 @@
       !-----------------------------------------------------------------
       ! hemispheric quantities
 
+      ! area, extent, volume, kinetic energy, albedo and maxima are the
+      ! hemispheric diagnostics also written to netcdf (hdiag_reduce)
+      if (.not. hdiag_initialized) call init_hdiag()
+      allocate(hfld(nx_block,ny_block,max_blocks,n_hdiag))
+      call hdiag_cell_values(hfld)
+      call hdiag_reduce(hfld, c1, hvaln, hvals)
+      deallocate(hfld)
+
       ! total ice area
-      arean = c0
-      areas = c0
-      arean = global_sum(aice, distrb_info, field_loc_center, tarean)
-      areas = global_sum(aice, distrb_info, field_loc_center, tareas)
+      arean = hvaln(hd_aice)
+      areas = hvals(hd_aice)
       arean = arean * m2_to_km2
       areas = areas * m2_to_km2
 
       ! ice extent (= area of grid cells with aice > aice_extmin)
-      work1(:,:,:) = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (aice(i,j,iblk) >= aice_extmin) work1(i,j,iblk) = c1
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-      extentn = c0
-      extents = c0
-      extentn = global_sum(work1, distrb_info, field_loc_center, tarean)
-      extents = global_sum(work1, distrb_info, field_loc_center, tareas)
+      extentn = hvaln(hd_extent)
+      extents = hvals(hd_extent)
       extentn = extentn * m2_to_km2
       extents = extents * m2_to_km2
 
       ! total ice volume
-      shmaxn = c0
-      shmaxs = c0
-      shmaxn = global_sum(vice, distrb_info, field_loc_center, tarean)
-      shmaxs = global_sum(vice, distrb_info, field_loc_center, tareas)
+      shmaxn = hvaln(hd_vice)
+      shmaxs = hvals(hd_vice)
 
       ! total snow volume
-      snwmxn = c0
-      snwmxs = c0
-      snwmxn = global_sum(vsno, distrb_info, field_loc_center, tarean)
-      snwmxs = global_sum(vsno, distrb_info, field_loc_center, tareas)
+      snwmxn = hvaln(hd_vsno)
+      snwmxs = hvals(hd_vsno)
 
       ! total pond volume
       ptotn = c0
@@ -304,107 +355,27 @@
          ptots = global_sum(work1, distrb_info, field_loc_center, tareas)
       endif
 
-      ! total ice-snow kinetic energy, on T points.
-      call diag_kinetic_energy(work1)
-      ketotn = c0
-      ketots = c0
-      ketotn = global_sum(work1, distrb_info, field_loc_center, tarean)
-      ketots = global_sum(work1, distrb_info, field_loc_center, tareas)
+      ! total ice-snow kinetic energy
+      ketotn = hvaln(hd_ke)
+      ketots = hvals(hd_ke)
 
-      ! rms ice speed
-      urmsn = c2*ketotn/(rhoi*shmaxn + rhos*snwmxn + puny)
-      if (urmsn > puny) then
-         urmsn = sqrt(urmsn)
-      else
-         urmsn = c0
-      endif
-
-      urmss = c2*ketots/(rhoi*shmaxs + rhos*snwmxs + puny)
-      if (urmss > puny) then
-         urmss = sqrt(urmss)
-      else
-         urmss = c0
-      endif
-
-      ! average ice albedo
-      ! mask out cells where sun is below horizon (for delta-Eddington)
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            work1(i,j,iblk) = alvdr(i,j,iblk)*awtvdr &
-                            + alidr(i,j,iblk)*awtidr &
-                            + alvdf(i,j,iblk)*awtvdf &
-                            + alidf(i,j,iblk)*awtidf
-            if (work1(i,j,iblk) > puny) then
-               work2(i,j,iblk) = tarean(i,j,iblk)
-            else
-               work2(i,j,iblk) = c0
-            endif
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      arean_alb = global_sum(aice, distrb_info, field_loc_center, work2)
-
-      albtotn = global_sum_prod(aice, work1, distrb_info, &
-                                field_loc_center, work2)
-
-      if (arean_alb > c0) then
-         albtotn = albtotn / arean_alb
-      else
-         albtotn = c0
-      endif
-
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j)
-      do iblk = 1, nblocks
-         do j = 1, ny_block
-         do i = 1, nx_block
-            if (work1(i,j,iblk) > puny) then
-               work2(i,j,iblk) = tareas(i,j,iblk)
-            else
-               work2(i,j,iblk) = c0
-            endif
-         enddo
-         enddo
-      enddo
-      !$OMP END PARALLEL DO
-
-      areas_alb = global_sum(aice, distrb_info, field_loc_center, work2)
-
-      albtots = global_sum_prod(aice, work1, distrb_info, &
-                                field_loc_center, work2)
-
-      if (areas_alb > c0) then
-         albtots = albtots / areas_alb
-      else
-         albtots = c0
-      endif
+      ! rms ice speed, and average ice albedo over sunlit points
+      call hdiag_derived(hvaln, urmsn, albtotn)
+      call hdiag_derived(hvals, urmss, albtots)
 
       ! maximum ice volume (= mean thickness including open water)
-      hmaxn = c0
-      hmaxs = c0
-      hmaxn = global_maxval(vice, distrb_info, lmask_n)
-      hmaxs = global_maxval(vice, distrb_info, lmask_s)
-      if (hmaxn < maxval_spval) hmaxn = c0
-      if (hmaxs < maxval_spval) hmaxs = c0
+      hmaxn = hvaln(hd_vmax)
+      hmaxs = hvals(hd_vmax)
 
       ! maximum ice speed
-      call diag_ice_speed(work1)
-
-      umaxn = c0
-      umaxs = c0
-      umaxn = global_maxval(work1, distrb_info, lmask_n)
-      umaxs = global_maxval(work1, distrb_info, lmask_s)
-      if (umaxn < maxval_spval) umaxn = c0
-      if (umaxs < maxval_spval) umaxs = c0
+      umaxn = hvaln(hd_umax)
+      umaxs = hvals(hd_umax)
 
       ! Write warning message if ice speed is too big
       ! (Ice speeds of ~1 m/s or more usually indicate instability)
 
       if (check_umax) then
+         call diag_ice_speed(work1)
          if (umaxn > umax_stab) then
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
@@ -440,12 +411,8 @@
 
       ! maximum ice strength
 
-      pmaxn = c0
-      pmaxs = c0
-      pmaxn = global_maxval(strength, distrb_info, lmask_n)
-      pmaxs = global_maxval(strength, distrb_info, lmask_s)
-      if (pmaxn < maxval_spval) pmaxn = c0
-      if (pmaxs < maxval_spval) pmaxs = c0
+      pmaxn = hvaln(hd_pmax)
+      pmaxs = hvals(hd_pmax)
 
       pmaxn = pmaxn / c1000   ! convert to kN/m
       pmaxs = pmaxs / c1000
@@ -2054,6 +2021,264 @@
       call abort_ice (subname//'ERROR: '//trim(stop_label))
 
       end subroutine diagnostic_abort
+
+!=======================================================================
+
+! Define the per grid cell hemispheric netcdf diagnostics, see the
+! comments with hd_* in the module header
+
+      subroutine init_hdiag
+
+      use ice_constants, only: field_loc_center
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
+      use ice_global_reductions, only: global_sum
+      use ice_grid, only: tarean, tareas
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1             ! temporary
+
+      real (kind=dbl_kind) :: &
+         rhos              ! snow density
+
+      character(len=*), parameter :: subname = '(init_hdiag)'
+
+      call icepack_query_parameters(rhos_out=rhos)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      ! a hemisphere without grid cells (e.g. regional domains) is written as missing
+      work1(:,:,:) = c1
+      hdiag_hemi(1) = global_sum(work1, distrb_info, field_loc_center, tarean) > c0
+      hdiag_hemi(2) = global_sum(work1, distrb_info, field_loc_center, tareas) > c0
+
+      ! CMIP sea-ice diagnostics, in CMIP units
+      call def_hdiag(hd_aice, 'siarean'  , 'siareas'  , 'sea-ice area'  , '1e6 km2', 'sum', &
+                      1.0e-12_dbl_kind, sname='sea_ice_area')
+      call def_hdiag(hd_extent, 'siextentn', 'siextents', 'sea-ice extent', '1e6 km2', 'sum', &
+                      1.0e-12_dbl_kind, sname='sea_ice_extent')
+      call def_hdiag(hd_vice, 'sivoln'   , 'sivols'   , 'sea-ice volume', '1e3 km3', 'sum', &
+                      1.0e-12_dbl_kind, sname='sea_ice_volume')
+      call def_hdiag(hd_vsno, 'sisnmassn', 'sisnmasss', 'snow mass on sea ice', 'kg', 'sum', &
+                      rhos)
+
+      ! other diagnostics, the same quantities as in the log
+      call def_hdiag(hd_ke  , 'kinetic_energy_nh'  , 'kinetic_energy_sh'  , &
+                      'total kinetic energy', 'J', 'sum', c1)
+      call def_hdiag(hd_albn, 'albedo_num_nh'      , 'albedo_num_sh'      , &
+                      'albedo numerator', '1', 'sum', c1, lwrite=.false.)
+      call def_hdiag(hd_albd, 'albedo_den_nh'      , 'albedo_den_sh'      , &
+                      'albedo denominator', '1', 'sum', c1, lwrite=.false.)
+      call def_hdiag(hd_vmax, 'ice_volume_max_nh'  , 'ice_volume_max_sh'  , &
+                      'max ice volume per unit area', 'm', 'max', c1)
+      call def_hdiag(hd_umax, 'ice_speed_max_nh'   , 'ice_speed_max_sh'   , &
+                      'max ice speed', 'm/s', 'max', c1)
+      call def_hdiag(hd_pmax, 'ice_strength_max_nh', 'ice_strength_max_sh', &
+                      'max ice strength', 'kN/m', 'max', 1.0e-3_dbl_kind)
+
+      hdiag_initialized = .true.
+
+      end subroutine init_hdiag
+
+!=======================================================================
+
+! Set the definition of one per grid cell hemispheric diagnostic
+
+      subroutine def_hdiag(k, vname_n, vname_s, lname, units, reduce, scale, sname, lwrite)
+
+      integer (kind=int_kind), intent(in) :: &
+         k               ! index in hdiag
+
+      character (len=*), intent(in) :: &
+         vname_n     , & ! netcdf variable name, northern hemisphere
+         vname_s     , & ! netcdf variable name, southern hemisphere
+         lname       , & ! long name
+         units       , & ! units after scale is applied
+         reduce          ! 'sum' area weighted global sum or 'max' global maximum
+
+      real (kind=dbl_kind), intent(in) :: &
+         scale           ! unit conversion applied to the hemispheric value
+
+      character (len=*), intent(in), optional :: &
+         sname           ! standard_name
+
+      logical (kind=log_kind), intent(in), optional :: &
+         lwrite          ! written to file, default true
+
+      character(len=*), parameter :: subname = '(def_hdiag)'
+
+      if (reduce /= 'sum' .and. reduce /= 'max') then
+         call abort_ice(subname//' ERROR: reduce must be sum or max for '//trim(vname_n), &
+            file=__FILE__, line=__LINE__)
+      endif
+
+      hdiag(k)%vname_n = vname_n
+      hdiag(k)%vname_s = vname_s
+      hdiag(k)%lname   = lname
+      hdiag(k)%units   = units
+      hdiag(k)%reduce  = reduce
+      hdiag(k)%scale   = scale
+      hdiag(k)%sname   = ''
+      if (present(sname)) hdiag(k)%sname = sname
+      hdiag(k)%lwrite  = .true.
+      if (present(lwrite)) hdiag(k)%lwrite = lwrite
+
+      end subroutine def_hdiag
+
+!=======================================================================
+
+! Compute the per grid cell values of the hemispheric diagnostics.
+! Values to be summed are per unit area; they are multiplied by the cell
+! area when reduced.
+
+      subroutine hdiag_cell_values(fld)
+
+      use ice_domain, only: nblocks
+      use ice_domain_size, only: max_blocks
+      use ice_flux, only: alvdr, alidr, alvdf, alidf
+      use ice_state, only: aice, vice, vsno, strength
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_hdiag), intent(out) :: &
+         fld               ! per grid cell values
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         i, j, iblk
+
+      real (kind=dbl_kind) :: &
+         puny, awtvdr, awtidr, awtvdf, awtidf, alb
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1, work2      ! temporary
+
+      character(len=*), parameter :: subname = '(hdiag_cell_values)'
+
+      call icepack_query_parameters(puny_out=puny, &
+           awtvdr_out=awtvdr, awtidr_out=awtidr, awtvdf_out=awtvdf, awtidf_out=awtidf)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      call diag_kinetic_energy(work1)
+      call diag_ice_speed(work2)
+
+      !$OMP PARALLEL DO PRIVATE(iblk,i,j,alb)
+      do iblk = 1, nblocks
+         do j = 1, ny_block
+         do i = 1, nx_block
+            fld(i,j,iblk,hd_aice) = aice(i,j,iblk)
+            fld(i,j,iblk,hd_extent) = c0
+            if (aice(i,j,iblk) >= aice_extmin) fld(i,j,iblk,hd_extent) = c1
+            fld(i,j,iblk,hd_vice) = vice(i,j,iblk)
+            fld(i,j,iblk,hd_vsno) = vsno(i,j,iblk)
+            fld(i,j,iblk,hd_ke  ) = work1(i,j,iblk)
+            ! ice area weighted albedo, masked where the sun is below the horizon
+            alb = alvdr(i,j,iblk)*awtvdr + alidr(i,j,iblk)*awtidr &
+                + alvdf(i,j,iblk)*awtvdf + alidf(i,j,iblk)*awtidf
+            fld(i,j,iblk,hd_albn) = c0
+            fld(i,j,iblk,hd_albd) = c0
+            if (alb > puny) then
+               fld(i,j,iblk,hd_albn) = aice(i,j,iblk)*alb
+               fld(i,j,iblk,hd_albd) = aice(i,j,iblk)
+            endif
+            fld(i,j,iblk,hd_vmax) = vice(i,j,iblk)
+            fld(i,j,iblk,hd_umax) = work2(i,j,iblk)
+            fld(i,j,iblk,hd_pmax) = strength(i,j,iblk)
+         enddo
+         enddo
+      enddo
+      !$OMP END PARALLEL DO
+
+      end subroutine hdiag_cell_values
+
+!=======================================================================
+! Reduce the per grid cell hemispheric diagnostics to a value for each
+! hemisphere, before the scale is applied.  Sums are multiplied by rn
+! (eg 1/number of accumulated steps).  Called on all tasks.
+
+      subroutine hdiag_reduce(fld, rn, valn, vals)
+
+      use ice_constants, only: field_loc_center
+      use ice_domain, only: distrb_info
+      use ice_domain_size, only: max_blocks
+      use ice_global_reductions, only: global_sum, global_maxval
+      use ice_grid, only: lmask_n, lmask_s, tarean, tareas
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_hdiag), intent(in) :: &
+         fld               ! per grid cell values
+
+      real (kind=dbl_kind), intent(in) :: &
+         rn                ! factor for sums
+
+      real (kind=dbl_kind), dimension(n_hdiag), intent(out) :: &
+         valn, vals        ! northern and southern hemisphere values
+
+      ! local variables
+
+      integer (kind=int_kind) :: &
+         k
+
+      character(len=*), parameter :: subname = '(hdiag_reduce)'
+
+      do k = 1, n_hdiag
+         if (hdiag(k)%reduce == 'max') then
+            valn(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_n)
+            vals(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_s)
+            if (valn(k) < maxval_spval) valn(k) = c0
+            if (vals(k) < maxval_spval) vals(k) = c0
+         else
+            valn(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tarean)*rn
+            vals(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tareas)*rn
+         endif
+      enddo
+
+      end subroutine hdiag_reduce
+
+!=======================================================================
+
+! Hemispheric diagnostics derived from the reduced values for one hemisphere:
+! rms ice speed from the kinetic energy and ice and snow mass, and the ice area
+! weighted albedo over sunlit points
+
+      subroutine hdiag_derived(val, urms, alb)
+
+      use ice_constants, only: c2
+
+      real (kind=dbl_kind), dimension(n_hdiag), intent(in) :: &
+         val               ! reduced values for one hemisphere, before scale
+
+      real (kind=dbl_kind), intent(out) :: &
+         urms          , & ! rms ice speed (m/s)
+         alb               ! average albedo
+
+      ! local variables
+
+      real (kind=dbl_kind) :: &
+         puny, rhoi, rhos
+
+      character(len=*), parameter :: subname = '(hdiag_derived)'
+
+      call icepack_query_parameters(puny_out=puny, rhoi_out=rhoi, rhos_out=rhos)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
+
+      urms = c2*val(hd_ke)/(rhoi*val(hd_vice) + rhos*val(hd_vsno) + puny)
+      if (urms > puny) then
+         urms = sqrt(urms)
+      else
+         urms = c0
+      endif
+
+      if (val(hd_albd) > c0) then
+         alb = val(hd_albn) / val(hd_albd)
+      else
+         alb = c0
+      endif
+
+      end subroutine hdiag_derived
 
 !=======================================================================
 

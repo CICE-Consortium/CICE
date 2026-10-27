@@ -1531,11 +1531,9 @@ contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
 (``siarean``, ``siareas``, ``siextentn``, ``siextents``, ``sivoln``, ``sivols``,
 ``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
 albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
-``_nh`` and ``_sh``).
+``_nh`` and ``_sh``)
 If ``diag_netcdf_avg`` is true (the default), values are time averages
 over each interval, except the maxima, which are maxima over the interval.
-These are accumulated every timestep from per grid cell
-values, so the only global reductions are when the file is written.
 If ``write_histrest`` is true, the accumulated values are written to a restart file
 with the history restarts, in ``restart_dir`` and named from ``history_file``, for example
 **iceh_diag_r.2005-01-06-00000.nc**, and read at the start of the next run so the
@@ -1547,11 +1545,7 @@ The file is in ``history_dir`` and named from ``history_file``, as
 **iceh_diag_avg.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
 values.  If the file exists at the start of a run, records are appended to it,
 after the last record before the current model time, so records from a rerun
-are overwritten.
-The file can be a symbolic link, for example to keep one file across runs
-in different directories; a link to a file that does not exist yet is created
-at the link target.
-The file format, compression and precision follow ``history_format``,
+are overwritten. The file format, compression and precision follow ``history_format``,
 ``history_deflate`` and ``history_precision``.
 
 The namelist ``debug_model`` prints detailed
