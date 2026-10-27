@@ -496,11 +496,12 @@ else
     echo "${0}: ERROR, mkdir ${tsdir} aborted"
     exit -1
   endif
-#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
-#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
-#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
-#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/bfbcomp_redo.csh ${tsdir}
-#REMOVE??  cp -f ${ICE_SCRIPTS}/tests/baseline_snap.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/report_results.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/create_fails.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/poll_queue.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/bfbcomp_update.csh ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/comparerest.csh  ${tsdir}
+  cp -f ${ICE_SCRIPTS}/tests/comparecase.csh  ${tsdir}
 
   cat >! ${tsdir}/suite.submit << EOF0
 #!/usr/bin/env -S csh -f
@@ -544,7 +545,7 @@ EOF0
 # wait a bounded time for that other test to finish; a comparison made
 # against a run still in progress reports different-data or usage-error and
 # means nothing.  Redoing them here reads finished output.
-if (-x ./bfbcomp_redo.csh) ./bfbcomp_redo.csh
+if (-x ./bfbcomp_redo.csh) ./bfbcomp_update.csh
 rm -f results.log
 echo "#------- " >> results.log
 echo "#repo = ${remote}" >> results.log
