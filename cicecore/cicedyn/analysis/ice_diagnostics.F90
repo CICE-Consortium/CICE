@@ -75,8 +75,9 @@
       ! log, instantaneous netcdf output and, accumulated every timestep, for
       ! netcdf time averages.
       !
-      ! The print_global diagnostics (and pond volume) are added when they
-      ! are used, and the print_global budgets are derived in hdiag_global.
+      ! The conservation diagnostics (and pond volume) are added when they are
+      ! used, for the log (print_global) or netcdf, and the conservation budgets
+      ! are derived in hdiag_global.
       !
       ! To add a diagnostic:
       !   1. add an index hd_* below, and for an optional diagnostic add it in
@@ -101,31 +102,31 @@
       ! optional hemispheric diagnostics, index 0 if not used
       integer (kind=int_kind), public :: &
          hd_ptot   = 0   , & ! pond volume (tr_pond_topo)
-         hd_etot   = 0   , & ! ice and snow energy (print_global)
-         hd_stot   = 0   , & ! salt (print_global)
-         hd_evp    = 0   , & ! evaporation (print_global)
-         hd_brine  = 0   , & ! brine tracer volume (print_global and tr_brine)
-         hd_sfsalt = 0   , & ! salt flux (print_global)
-         hd_sfresh = 0   , & ! fresh water flux (print_global)
-         hd_spond  = 0   , & ! pond water flux (print_global and tr_pond_topo)
-         hd_fhocn  = 0   , & ! ocean heat flux (print_global)
-         hd_fhatm  = 0   , & ! atmosphere heat flux (print_global)
-         hd_fswnet = 0   , & ! absorbed shortwave (print_global)
-         hd_fswdn  = 0   , & ! incoming shortwave (print_global)
-         hd_fhfrz  = 0   , & ! frazil heat flux (print_global)
-         hd_rn     = 0   , & ! rain (print_global)
-         hd_sn     = 0   , & ! snow (print_global)
-         hd_frz    = 0   , & ! frazil water flux (print_global)
+         hd_etot   = 0   , & ! ice and snow energy (conservation)
+         hd_stot   = 0   , & ! salt (conservation)
+         hd_evp    = 0   , & ! evaporation (conservation)
+         hd_brine  = 0   , & ! brine tracer volume (conservation and tr_brine)
+         hd_sfsalt = 0   , & ! salt flux (conservation)
+         hd_sfresh = 0   , & ! fresh water flux (conservation)
+         hd_spond  = 0   , & ! pond water flux (conservation and tr_pond_topo)
+         hd_fhocn  = 0   , & ! ocean heat flux (conservation)
+         hd_fhatm  = 0   , & ! atmosphere heat flux (conservation)
+         hd_fswnet = 0   , & ! absorbed shortwave (conservation)
+         hd_fswdn  = 0   , & ! incoming shortwave (conservation)
+         hd_fhfrz  = 0   , & ! frazil heat flux (conservation)
+         hd_rn     = 0   , & ! rain (conservation)
+         hd_sn     = 0   , & ! snow (conservation)
+         hd_frz    = 0   , & ! frazil water flux (conservation)
          n_hdiag   = n_hdiag_core ! number of hemispheric diagnostics
 
       integer (kind=int_kind), dimension(icepack_max_iso), public :: &
-         hd_fisoa  = 0   , & ! isotope flux from atmosphere (print_global and tr_iso)
+         hd_fisoa  = 0   , & ! isotope flux from atmosphere (conservation and tr_iso)
          hd_fisoo  = 0   , & ! isotope flux to ocean
          hd_isotot = 0   , & ! isotope total
          hd_isomx  = 0       ! isotope maximum
 
       integer (kind=int_kind), dimension(icepack_max_aero), public :: &
-         hd_faeroa = 0   , & ! aerosol flux from atmosphere (print_global and tr_aero)
+         hd_faeroa = 0   , & ! aerosol flux from atmosphere (conservation and tr_aero)
          hd_faeroo = 0   , & ! aerosol flux to ocean
          hd_aerotot= 0   , & ! aerosol total
          hd_aeromx = 0       ! aerosol maximum
@@ -148,7 +149,7 @@
       type (hdiag_field), dimension(:), allocatable, public :: &
          hdiag               ! per grid cell diagnostics
 
-      ! print_global budget diagnostics for one hemisphere, see hdiag_global.
+      ! conservation diagnostics for one hemisphere, see hdiag_global.
       ! Water, salt and isotope/aerosol fluxes are amounts in one timestep.
       type, public :: hdiag_global_values
          real (kind=dbl_kind) :: &
@@ -167,7 +168,9 @@
       end type hdiag_global_values
 
       logical (kind=log_kind), public :: &
-         hdiag_initialized = .false. ! hdiag has been initialized
+         hdiag_initialized = .false., & ! hdiag has been initialized
+         hdiag_global_on = .false.      ! conservation diagnostics are computed, for
+                                        ! the log (print_global) or netcdf
 
       logical (kind=log_kind), dimension(2), public :: &
          hdiag_hemi          ! hemisphere has grid cells, otherwise values are missing
@@ -1710,6 +1713,7 @@
       use ice_domain_size, only: max_blocks, n_iso, n_aero
       use ice_global_reductions, only: global_sum
       use ice_grid, only: tarean, tareas
+      use ice_calendar, only: diag_netcdf_freq
 
       integer (kind=int_kind) :: &
          n                 ! tracer index
@@ -1740,6 +1744,9 @@
       allocate(hdiag(n_hdiag_core + 16 + 4*n_iso + 4*n_aero))
       n_hdiag = n_hdiag_core
 
+      ! conservation diagnostics for the log (print_global) and always for netcdf
+      hdiag_global_on = print_global .or. diag_netcdf_freq /= 'x'
+
       ! a hemisphere without grid cells (e.g. regional domains) is written as missing
       work1(:,:,:) = c1
       hdiag_hemi(1) = global_sum(work1, distrb_info, field_loc_center, tarean) > c0
@@ -1769,9 +1776,9 @@
       call def_hdiag(hd_pmax, 'ice_strength_max_nh', 'ice_strength_max_sh', &
                       'max ice strength', 'kN/m', 'max', 1.0e-3_dbl_kind)
 
-      ! optional diagnostics, used for the print_global budgets (hdiag_global)
+      ! optional diagnostics, used for the conservation budgets (hdiag_global)
       if (tr_pond_topo) call add_hdiag(hd_ptot, 'pond_volume', 'total pond volume', 'm^3', 'sum')
-      if (print_global) then
+      if (hdiag_global_on) then
          call add_hdiag(hd_etot  , 'total_energy'    , 'total ice and snow energy', 'J'  , 'sum')
          call add_hdiag(hd_stot  , 'total_salt'      , 'total salt'               , 'ppt m^3', 'sum')
          call add_hdiag(hd_evp   , 'evap_flux'       , 'evaporation'              , 'kg s-1', 'sum')
@@ -1816,7 +1823,7 @@
 !=======================================================================
 
 ! Add an optional per grid cell hemispheric diagnostic, used for the
-! print_global budgets.  The netcdf output is from hdiag_global, not directly.
+! conservation budgets.  The netcdf output is from hdiag_global, not directly.
 
       subroutine add_hdiag(k, vname, lname, units, reduce)
 
@@ -1984,10 +1991,10 @@
          !$OMP END PARALLEL DO
       endif
 
-      if (.not. print_global) return
+      if (.not. hdiag_global_on) return
 
       !-----------------------------------------------------------------
-      ! print_global diagnostics
+      ! conservation diagnostics, for the log (print_global) or netcdf
       ! evap, fsens, and flwout need to be multiplied by aice because
       ! regrettably they have been divided by aice for the coupler
       !-----------------------------------------------------------------
@@ -2201,7 +2208,7 @@
 
 !=======================================================================
 
-! The print_global diagnostics for one hemisphere, from the reduced values.
+! The conservation diagnostics for one hemisphere, from the reduced values.
 ! The changes and errors are over the last timestep, using the totals
 ! from the start of the timestep (init_mass_diags), so are only meaningful
 ! for instantaneous values.
@@ -2222,7 +2229,7 @@
          dt                ! time step
 
       type (hdiag_global_values), intent(out) :: &
-         g                 ! print_global diagnostics
+         g                 ! conservation diagnostics
 
       ! local variables
 

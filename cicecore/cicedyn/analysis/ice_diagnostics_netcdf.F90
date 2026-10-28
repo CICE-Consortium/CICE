@@ -18,7 +18,7 @@
       use ice_constants, only: c0, c1
       use ice_diagnostics, only: hdiag, n_hdiag, hdiag_initialized, hdiag_hemi, &
           init_hdiag, hdiag_cell_values, hdiag_reduce, hdiag_derived, &
-          hdiag_global, hdiag_global_values, print_global, &
+          hdiag_global, hdiag_global_values, hdiag_global_on, &
           hd_ptot, hd_brine, hd_spond, hd_fisoa, hd_faeroa
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
@@ -191,7 +191,7 @@
          rn, urmsn, urmss, albn, albs, rdt
 
       type (hdiag_global_values) :: &
-         gn, gs            ! print_global diagnostics, northern and southern hemisphere
+         gn, gs            ! conservation diagnostics, northern and southern hemisphere
 
       character (len=char_len) :: &
          cn                ! tracer index string
@@ -258,10 +258,10 @@
       call add_ncdiag('albedo_nh', 'albedo_sh', 'average albedo', '1', &
                       albn, albs, '', cm_sum)
 
-      ! print_global diagnostics, the same as the log.  Water, salt and tracer
-      ! fluxes are rates.  The changes and errors are over the last timestep,
-      ! so are only written as instantaneous values.
-      if (print_global) then
+      ! conservation diagnostics, the same as the log with print_global.  Water,
+      ! salt and tracer fluxes are rates.  The changes and errors are over the
+      ! last timestep, so are only written as instantaneous values.
+      if (hdiag_global_on) then
          call hdiag_global(valn, 1, dt, gn)
          call hdiag_global(vals, 2, dt, gs)
          rdt = c1/dt
