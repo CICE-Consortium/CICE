@@ -11,8 +11,9 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, get_num_procs
-      use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5
+      use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5, p25, p5, eps13
       use ice_constants, only: omega, spval_dbl, p01, p001, p5
+      use ice_constants, only: field_loc_center, field_type_vector
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
@@ -277,7 +278,6 @@
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
       use ice_grid, only: ULAT, NLAT, ELAT, tarea, HTE, HTN
-      use ice_constants, only: field_loc_center, field_type_vector
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -1772,8 +1772,6 @@
                                shear,      divu,       &
                                rdg_conv,   rdg_shear )
 
-      use ice_constants, only: p25, p5, eps13
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellT                ! no. of cells where iceTmask = .true.
@@ -1904,8 +1902,6 @@
                                    shear,      divu,       &
                                    rdg_conv,   rdg_shear )
 
-      use ice_constants, only: p5
-
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
          icellT                ! no. of cells where iceTmask = .true.
@@ -2012,8 +2008,6 @@
                                 shearU,     vort,       &
                                 shear,      divu,       &
                                 rdg_conv,   rdg_shear )
-
-      use ice_constants, only: p5
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
