@@ -12,7 +12,7 @@
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, get_num_procs
       use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5, p25, p5, eps13
-      use ice_constants, only: omega, spval_dbl, p01, p001, p5
+      use ice_constants, only: omega, spval_dbl, p01, p001
       use ice_constants, only: field_loc_center, field_type_vector
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
