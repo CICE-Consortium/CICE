@@ -2096,7 +2096,7 @@
          DeltappTsqr = divT(i,j)**2 + epp2i*(tensionT(i,j)**2 + shearTsqr)
 
          divu(i,j) = divT(i,j) * tarear(i,j)
-         tmp = ( DeltappTsqr/DeltaT(i,j) ) * tarear(i,j)
+         tmp = ( DeltappTsqr/max(DeltaT(i,j),eps13) ) * tarear(i,j)
          rdg_conv(i,j)  = -min(divu(i,j),c0)
          rdg_shear(i,j) = p5*(tmp-abs(divu(i,j)))
 
