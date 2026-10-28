@@ -1532,8 +1532,9 @@ contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
 ``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
 albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
 ``_nh`` and ``_sh``).
-If ``print_global`` is true, the conservation diagnostics in the log are also
-written: ice, pond and total mass, energy, salt mass and brine volume, the water,
+The file also contains the conservation diagnostics that ``print_global`` adds to
+the log (``print_global`` only affects the log): ice, pond and total mass, energy,
+salt mass and brine volume, the water,
 salt, heat and shortwave fluxes as rates (kg s-1 or W), and isotope and aerosol
 fluxes and totals.  The changes and conservation errors are over a single
 timestep, so are only written when ``diag_netcdf_avg`` is false.
