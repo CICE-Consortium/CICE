@@ -336,7 +336,7 @@
          hdiag_n, hdiag_s  ! hemispheric diagnostics, northern and southern hemisphere
 
       type (hdiag_global_values) :: &
-         gn, gs            ! print_global diagnostics, northern and southern hemisphere
+         budget_n, budget_s  ! print_global diagnostics, northern and southern hemisphere
 
       character(len=*), parameter :: subname = '(runtime_diags)'
 
@@ -464,54 +464,54 @@
 
       if (print_global) then
          ! conservation diagnostics, the same as the netcdf diagnostics
-         call hdiag_global(hdiag_n, 1, dt, gn)
-         call hdiag_global(hdiag_s, 2, dt, gs)
+         call hdiag_global(hdiag_n, 1, dt, budget_n)
+         call hdiag_global(hdiag_s, 2, dt, budget_s)
 
-         etotn = gn%etot    ; etots = gs%etot
-         stotn = gn%stot    ; stots = gs%stot
-         evpn  = gn%evp     ; evps  = gs%evp
-         shmaxnt = gn%shmaxt; shmaxst = gs%shmaxt
-         sfsaltn = gn%sfsalt; sfsalts = gs%sfsalt
-         sfreshn = gn%sfresh; sfreshs = gs%sfresh
-         spondn = gn%spond  ; sponds = gs%spond
-         fhocnn = gn%fhocn  ; fhocns = gs%fhocn
-         fhatmn = gn%fhatm  ; fhatms = gs%fhatm
-         fswnetn = gn%fswnet; fswnets = gs%fswnet
-         fswdnn = gn%fswdn  ; fswdns = gs%fswdn
-         fhfrzn = gn%fhfrz  ; fhfrzs = gs%fhfrz
-         rnn = gn%rn        ; rns = gs%rn
-         snn = gn%sn        ; sns = gs%sn
-         frzn = gn%frz      ; frzs = gs%frz
-         micen = gn%mice    ; mices = gs%mice
-         msnwn = gn%msnw    ; msnws = gs%msnw
-         mpndn = gn%mpnd    ; mpnds = gs%mpnd
-         mtotn = gn%mtot    ; mtots = gs%mtot
-         delmin = gn%delmi  ; delmis = gs%delmi
-         delmxn = gn%delmx  ; delmxs = gs%delmx
-         fluxn = gn%flux    ; fluxs = gs%flux
-         werrn = gn%werr    ; werrs = gs%werr
-         delein = gn%delei  ; deleis = gs%delei
-         hnetn = gn%hnet    ; hnets = gs%hnet
-         herrn = gn%herr    ; herrs = gs%herr
-         swerrn = gn%swerr  ; swerrs = gs%swerr
-         msltn = gn%mslt    ; mslts = gs%mslt
-         delmsltn = gn%delmslt; delmslts = gs%delmslt
-         serrn = gn%serr    ; serrs = gs%serr
+         etotn = budget_n%etot    ; etots = budget_s%etot
+         stotn = budget_n%stot    ; stots = budget_s%stot
+         evpn  = budget_n%evp     ; evps  = budget_s%evp
+         shmaxnt = budget_n%shmaxt; shmaxst = budget_s%shmaxt
+         sfsaltn = budget_n%sfsalt; sfsalts = budget_s%sfsalt
+         sfreshn = budget_n%sfresh; sfreshs = budget_s%sfresh
+         spondn = budget_n%spond  ; sponds = budget_s%spond
+         fhocnn = budget_n%fhocn  ; fhocns = budget_s%fhocn
+         fhatmn = budget_n%fhatm  ; fhatms = budget_s%fhatm
+         fswnetn = budget_n%fswnet; fswnets = budget_s%fswnet
+         fswdnn = budget_n%fswdn  ; fswdns = budget_s%fswdn
+         fhfrzn = budget_n%fhfrz  ; fhfrzs = budget_s%fhfrz
+         rnn = budget_n%rn        ; rns = budget_s%rn
+         snn = budget_n%sn        ; sns = budget_s%sn
+         frzn = budget_n%frz      ; frzs = budget_s%frz
+         micen = budget_n%mice    ; mices = budget_s%mice
+         msnwn = budget_n%msnw    ; msnws = budget_s%msnw
+         mpndn = budget_n%mpnd    ; mpnds = budget_s%mpnd
+         mtotn = budget_n%mtot    ; mtots = budget_s%mtot
+         delmin = budget_n%delmi  ; delmis = budget_s%delmi
+         delmxn = budget_n%delmx  ; delmxs = budget_s%delmx
+         fluxn = budget_n%flux    ; fluxs = budget_s%flux
+         werrn = budget_n%werr    ; werrs = budget_s%werr
+         delein = budget_n%delei  ; deleis = budget_s%delei
+         hnetn = budget_n%hnet    ; hnets = budget_s%hnet
+         herrn = budget_n%herr    ; herrs = budget_s%herr
+         swerrn = budget_n%swerr  ; swerrs = budget_s%swerr
+         msltn = budget_n%mslt    ; mslts = budget_s%mslt
+         delmsltn = budget_n%delmslt; delmslts = budget_s%delmslt
+         serrn = budget_n%serr    ; serrs = budget_s%serr
 
          do n = 1, n_iso
-            fisoan(n)  = gn%fisoa(n) ; fisoas(n)  = gs%fisoa(n)
-            fisoon(n)  = gn%fisoo(n) ; fisoos(n)  = gs%fisoo(n)
-            isototn(n) = gn%isotot(n); isotots(n) = gs%isotot(n)
-            isomx1n(n) = gn%isomx(n) ; isomx1s(n) = gs%isomx(n)
-            isorn(n)   = gn%isor(n)  ; isors(n)   = gs%isor(n)
+            fisoan(n)  = budget_n%fisoa(n) ; fisoas(n)  = budget_s%fisoa(n)
+            fisoon(n)  = budget_n%fisoo(n) ; fisoos(n)  = budget_s%fisoo(n)
+            isototn(n) = budget_n%isotot(n); isotots(n) = budget_s%isotot(n)
+            isomx1n(n) = budget_n%isomx(n) ; isomx1s(n) = budget_s%isomx(n)
+            isorn(n)   = budget_n%isor(n)  ; isors(n)   = budget_s%isor(n)
          enddo
 
          do n = 1, n_aero
-            faeran(n)   = gn%faeroa(n) ; faeras(n)   = gs%faeroa(n)
-            faeron(n)   = gn%faeroo(n) ; faeros(n)   = gs%faeroo(n)
-            aerototn(n) = gn%aerotot(n); aerotots(n) = gs%aerotot(n)
-            aeromx1n(n) = gn%aeromx(n) ; aeromx1s(n) = gs%aeromx(n)
-            aerrn(n)    = gn%aerr(n)   ; aerrs(n)    = gs%aerr(n)
+            faeran(n)   = budget_n%faeroa(n) ; faeras(n)   = budget_s%faeroa(n)
+            faeron(n)   = budget_n%faeroo(n) ; faeros(n)   = budget_s%faeroo(n)
+            aerototn(n) = budget_n%aerotot(n); aerotots(n) = budget_s%aerotot(n)
+            aeromx1n(n) = budget_n%aeromx(n) ; aeromx1s(n) = budget_s%aeromx(n)
+            aerrn(n)    = budget_n%aerr(n)   ; aerrs(n)    = budget_s%aerr(n)
          enddo
       endif                     ! print_global
 
@@ -2207,7 +2207,7 @@
 ! from the start of the timestep (init_mass_diags), so are only meaningful
 ! for instantaneous values.
 
-      subroutine hdiag_global(val, hemi, dt, g)
+      subroutine hdiag_global(val, hemi, dt, budget)
 
       use ice_constants, only: p001
       use ice_domain_size, only: n_iso, n_aero
@@ -2223,7 +2223,7 @@
          dt                ! time step
 
       type (hdiag_global_values), intent(out) :: &
-         g                 ! conservation diagnostics
+         budget            ! conservation budget
 
       ! local variables
 
@@ -2268,133 +2268,133 @@
          totaero(:) = totaeros(:)
       endif
 
-      g%etot = val(hd_etot)
-      g%stot = val(hd_stot)
+      budget%etot = val(hd_etot)
+      budget%stot = val(hd_stot)
 
-      g%evp = val(hd_evp)
-      g%evp = g%evp*dt
+      budget%evp = val(hd_evp)
+      budget%evp = budget%evp*dt
 
-      g%shmaxt = c0
-      if (hd_brine > 0) g%shmaxt = val(hd_brine)
+      budget%shmaxt = c0
+      if (hd_brine > 0) budget%shmaxt = val(hd_brine)
 
-      g%sfsalt = val(hd_sfsalt)
-      g%sfsalt = g%sfsalt*dt
+      budget%sfsalt = val(hd_sfsalt)
+      budget%sfsalt = budget%sfsalt*dt
 
-      g%sfresh = val(hd_sfresh)
-      g%sfresh = g%sfresh*dt
+      budget%sfresh = val(hd_sfresh)
+      budget%sfresh = budget%sfresh*dt
 
-      g%spond = c0
+      budget%spond = c0
       if (hd_spond > 0) then
-         g%spond = val(hd_spond)
-         g%spond = g%spond*dt
+         budget%spond = val(hd_spond)
+         budget%spond = budget%spond*dt
       endif
 
-      g%fhocn  = val(hd_fhocn)
-      g%fhatm  = val(hd_fhatm)
-      g%fswnet = val(hd_fswnet)
-      g%fswdn  = val(hd_fswdn)
-      g%fhfrz  = val(hd_fhfrz)
+      budget%fhocn  = val(hd_fhocn)
+      budget%fhatm  = val(hd_fhatm)
+      budget%fswnet = val(hd_fswnet)
+      budget%fswdn  = val(hd_fswdn)
+      budget%fhfrz  = val(hd_fhfrz)
 
-      g%rn = val(hd_rn)
-      g%rn = g%rn*dt
-      g%sn = val(hd_sn)
-      g%sn = g%sn*dt
-      g%frz = val(hd_frz)
-      g%frz = g%frz*dt
+      budget%rn = val(hd_rn)
+      budget%rn = budget%rn*dt
+      budget%sn = val(hd_sn)
+      budget%sn = budget%sn*dt
+      budget%frz = val(hd_frz)
+      budget%frz = budget%frz*dt
 
       ! ice, snow, pond mass
       ptot = c0
       if (hd_ptot > 0) ptot = val(hd_ptot)
-      g%mice = rhoi*val(hd_vice)
-      g%msnw = rhos*val(hd_vsno)
-      g%mpnd = rhofresh*ptot
+      budget%mice = rhoi*val(hd_vice)
+      budget%msnw = rhos*val(hd_vsno)
+      budget%mpnd = rhofresh*ptot
 
       ! total ice, snow and pond mass
-      g%mtot = g%mice + g%msnw + g%mpnd
+      budget%mtot = budget%mice + budget%msnw + budget%mpnd
 
       ! mass change since beginning of time step
-      g%delmi = g%mtot - totm
+      budget%delmi = budget%mtot - totm
 
       ! ice mass change including frazil ice formation
-      g%delmx = g%mice - totmi
+      budget%delmx = budget%mice - totmi
       if (.not. update_ocn_f) then
         ! ice mass change excluding frazil ice formation
-        g%delmx = g%delmx - g%frz
+        budget%delmx = budget%delmx - budget%frz
       endif
 
       ! total water flux
-      g%flux = c0
+      budget%flux = c0
       if (val(hd_aice) > c0) then
         ! water associated with frazil ice included in fresh
-        g%flux = g%rn + g%sn + g%evp - g%sfresh
+        budget%flux = budget%rn + budget%sn + budget%evp - budget%sfresh
         if (.not. update_ocn_f) then
-          g%flux = g%flux + g%frz
+          budget%flux = budget%flux + budget%frz
         endif
       endif
 
-      g%werr = (g%flux-g%delmi)/(g%mtot + c1)
+      budget%werr = (budget%flux-budget%delmi)/(budget%mtot + c1)
 
       ! energy change
-      g%delei = g%etot - tote
+      budget%delei = budget%etot - tote
 
-      g%fhatm = g%fhatm + ( - g%sn * Lfresh + g%evp * Lvap ) / dt
+      budget%fhatm = budget%fhatm + ( - budget%sn * Lfresh + budget%evp * Lvap ) / dt
 
-      g%hnet = (g%fhatm - g%fhocn - g%fhfrz) * dt
+      budget%hnet = (budget%fhatm - budget%fhocn - budget%fhfrz) * dt
 
-      g%herr = (g%hnet - g%delei) / (g%etot - c1)
+      budget%herr = (budget%hnet - budget%delei) / (budget%etot - c1)
 
-      g%swerr = (g%fswnet - g%fswdn) / (g%fswnet - c1)
+      budget%swerr = (budget%fswnet - budget%fswdn) / (budget%fswnet - c1)
 
       ! salt mass
       if (saltflux_option == 'prognostic') then
          ! compute the total salt mass
-         g%mslt = g%stot*rhoi*p001
+         budget%mslt = budget%stot*rhoi*p001
 
          ! change in salt mass
-         g%delmslt = rhoi*(g%stot-tots)*p001
+         budget%delmslt = rhoi*(budget%stot-tots)*p001
       else
-         g%mslt = g%mice*ice_ref_salinity*p001
+         budget%mslt = budget%mice*ice_ref_salinity*p001
 
          ! change in salt mass
-         g%delmslt = g%delmx*ice_ref_salinity*p001
+         budget%delmslt = budget%delmx*ice_ref_salinity*p001
       endif
 
       ! salt error
-      g%serr = (g%sfsalt + g%delmslt) / (g%mslt + c1)
+      budget%serr = (budget%sfsalt + budget%delmslt) / (budget%mslt + c1)
 
       ! isotopes
-      g%fisoa  = c0
-      g%fisoo  = c0
-      g%isotot = c0
-      g%isomx  = c0
-      g%isor   = c0
+      budget%fisoa  = c0
+      budget%fisoo  = c0
+      budget%isotot = c0
+      budget%isomx  = c0
+      budget%isor   = c0
       do n = 1, n_iso
          if (hd_fisoa(n) == 0) cycle
-         g%fisoa(n) = val(hd_fisoa(n))
-         g%fisoa(n) = g%fisoa(n)*dt
-         g%fisoo(n) = val(hd_fisoo(n))
-         g%fisoo(n) = g%fisoo(n)*dt
-         g%isotot(n) = val(hd_isotot(n))
-         g%isomx(n) = val(hd_isomx(n))
-         g%isor(n) = (totiso(n)-g%isotot(n)+g%fisoa(n)-g%fisoo(n))/(g%isotot(n)+c1)
+         budget%fisoa(n) = val(hd_fisoa(n))
+         budget%fisoa(n) = budget%fisoa(n)*dt
+         budget%fisoo(n) = val(hd_fisoo(n))
+         budget%fisoo(n) = budget%fisoo(n)*dt
+         budget%isotot(n) = val(hd_isotot(n))
+         budget%isomx(n) = val(hd_isomx(n))
+         budget%isor(n) = (totiso(n)-budget%isotot(n)+budget%fisoa(n)-budget%fisoo(n))/(budget%isotot(n)+c1)
       enddo
 
       ! aerosols
-      g%faeroa  = c0
-      g%faeroo  = c0
-      g%aerotot = c0
-      g%aeromx  = c0
-      g%aerr    = c0
+      budget%faeroa  = c0
+      budget%faeroo  = c0
+      budget%aerotot = c0
+      budget%aeromx  = c0
+      budget%aerr    = c0
       do n = 1, n_aero
          if (hd_faeroa(n) == 0) cycle
-         g%faeroa(n) = val(hd_faeroa(n))
-         g%faeroa(n) = g%faeroa(n)*dt
-         g%faeroo(n) = val(hd_faeroo(n))
-         g%faeroo(n) = g%faeroo(n)*dt
-         g%aerotot(n) = val(hd_aerotot(n))
-         g%aeromx(n) = val(hd_aeromx(n))
-         g%aerr(n) = (totaero(n)-g%aerotot(n)+g%faeroa(n)-g%faeroo(n)) &
-                   / (g%aerotot(n) + c1)
+         budget%faeroa(n) = val(hd_faeroa(n))
+         budget%faeroa(n) = budget%faeroa(n)*dt
+         budget%faeroo(n) = val(hd_faeroo(n))
+         budget%faeroo(n) = budget%faeroo(n)*dt
+         budget%aerotot(n) = val(hd_aerotot(n))
+         budget%aeromx(n) = val(hd_aeromx(n))
+         budget%aerr(n) = (totaero(n)-budget%aerotot(n)+budget%faeroa(n)-budget%faeroo(n)) &
+                   / (budget%aerotot(n) + c1)
       enddo
 
       end subroutine hdiag_global

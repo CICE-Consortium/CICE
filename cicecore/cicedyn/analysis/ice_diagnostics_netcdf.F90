@@ -191,7 +191,7 @@
          rn, urmsn, urmss, albn, albs, rdt
 
       type (hdiag_global_values) :: &
-         gn, gs            ! conservation diagnostics, northern and southern hemisphere
+         budget_n, budget_s  ! conservation diagnostics, northern and southern hemisphere
 
       character (len=char_len) :: &
          cn                ! tracer index string
@@ -262,58 +262,58 @@
       ! salt and tracer fluxes are rates.  The changes and errors are over the
       ! last timestep, so are only written as instantaneous values.
       if (hdiag_global_on) then
-         call hdiag_global(hdiag_n, 1, dt, gn)
-         call hdiag_global(hdiag_s, 2, dt, gs)
+         call hdiag_global(hdiag_n, 1, dt, budget_n)
+         call hdiag_global(hdiag_s, 2, dt, budget_s)
          rdt = c1/dt
 
          ! mass, energy and salt
          call add_ncdiag('ice_mass_nh', 'ice_mass_sh', 'total ice mass', 'kg', &
-                         gn%mice, gs%mice, '', cm_sum)
+                         budget_n%mice, budget_s%mice, '', cm_sum)
          if (hd_ptot > 0) &
          call add_ncdiag('pond_mass_nh', 'pond_mass_sh', 'total pond mass', 'kg', &
-                         gn%mpnd, gs%mpnd, '', cm_sum)
+                         budget_n%mpnd, budget_s%mpnd, '', cm_sum)
          call add_ncdiag('total_mass_nh', 'total_mass_sh', 'total ice, snow and pond mass', 'kg', &
-                         gn%mtot, gs%mtot, '', cm_sum)
+                         budget_n%mtot, budget_s%mtot, '', cm_sum)
          call add_ncdiag('total_energy_nh', 'total_energy_sh', 'total ice and snow energy', 'J', &
-                         gn%etot, gs%etot, '', cm_sum)
+                         budget_n%etot, budget_s%etot, '', cm_sum)
          call add_ncdiag('salt_mass_nh', 'salt_mass_sh', 'total salt mass', 'kg', &
-                         gn%mslt, gs%mslt, '', cm_sum)
+                         budget_n%mslt, budget_s%mslt, '', cm_sum)
          if (hd_brine > 0) &
          call add_ncdiag('brine_volume_nh', 'brine_volume_sh', 'total brine tracer volume', 'm^3', &
-                         gn%shmaxt, gs%shmaxt, '', cm_sum)
+                         budget_n%shmaxt, budget_s%shmaxt, '', cm_sum)
 
          ! water and salt fluxes
          call add_ncdiag('rain_flux_nh', 'rain_flux_sh', 'rain on sea ice', 'kg s-1', &
-                         gn%rn*rdt, gs%rn*rdt, '', cm_sum)
+                         budget_n%rn*rdt, budget_s%rn*rdt, '', cm_sum)
          call add_ncdiag('snow_flux_nh', 'snow_flux_sh', 'snow on sea ice', 'kg s-1', &
-                         gn%sn*rdt, gs%sn*rdt, '', cm_sum)
+                         budget_n%sn*rdt, budget_s%sn*rdt, '', cm_sum)
          call add_ncdiag('evap_flux_nh', 'evap_flux_sh', 'evaporation and sublimation', 'kg s-1', &
-                         gn%evp*rdt, gs%evp*rdt, '', cm_sum)
+                         budget_n%evp*rdt, budget_s%evp*rdt, '', cm_sum)
          call add_ncdiag('frazil_flux_nh', 'frazil_flux_sh', 'frazil ice formation', 'kg s-1', &
-                         gn%frz*rdt, gs%frz*rdt, '', cm_sum)
+                         budget_n%frz*rdt, budget_s%frz*rdt, '', cm_sum)
          if (hd_spond > 0) &
          call add_ncdiag('pond_flux_nh', 'pond_flux_sh', 'pond water flux', 'kg s-1', &
-                         gn%spond*rdt, gs%spond*rdt, '', cm_sum)
+                         budget_n%spond*rdt, budget_s%spond*rdt, '', cm_sum)
          call add_ncdiag('fresh_flux_nh', 'fresh_flux_sh', 'fresh water flux to ocean', 'kg s-1', &
-                         gn%sfresh*rdt, gs%sfresh*rdt, '', cm_sum)
+                         budget_n%sfresh*rdt, budget_s%sfresh*rdt, '', cm_sum)
          call add_ncdiag('water_flux_nh', 'water_flux_sh', 'net water flux into sea ice', 'kg s-1', &
-                         gn%flux*rdt, gs%flux*rdt, '', cm_sum)
+                         budget_n%flux*rdt, budget_s%flux*rdt, '', cm_sum)
          call add_ncdiag('salt_flux_nh', 'salt_flux_sh', 'salt flux to ocean', 'kg s-1', &
-                         gn%sfsalt*rdt, gs%sfsalt*rdt, '', cm_sum)
+                         budget_n%sfsalt*rdt, budget_s%sfsalt*rdt, '', cm_sum)
 
          ! heat fluxes
          call add_ncdiag('atm_heat_flux_nh', 'atm_heat_flux_sh', 'atmosphere heat flux into sea ice', 'W', &
-                         gn%fhatm, gs%fhatm, '', cm_sum)
+                         budget_n%fhatm, budget_s%fhatm, '', cm_sum)
          call add_ncdiag('ocn_heat_flux_nh', 'ocn_heat_flux_sh', 'ocean heat flux used by sea ice', 'W', &
-                         gn%fhocn, gs%fhocn, '', cm_sum)
+                         budget_n%fhocn, budget_s%fhocn, '', cm_sum)
          call add_ncdiag('frazil_heat_flux_nh', 'frazil_heat_flux_sh', 'frazil heat flux', 'W', &
-                         gn%fhfrz, gs%fhfrz, '', cm_sum)
+                         budget_n%fhfrz, budget_s%fhfrz, '', cm_sum)
          call add_ncdiag('net_heat_flux_nh', 'net_heat_flux_sh', 'net heat flux into sea ice', 'W', &
-                         gn%hnet*rdt, gs%hnet*rdt, '', cm_sum)
+                         budget_n%hnet*rdt, budget_s%hnet*rdt, '', cm_sum)
          call add_ncdiag('sw_down_flux_nh', 'sw_down_flux_sh', 'incoming shortwave on sea ice', 'W', &
-                         gn%fswdn, gs%fswdn, '', cm_sum)
+                         budget_n%fswdn, budget_s%fswdn, '', cm_sum)
          call add_ncdiag('sw_absorbed_flux_nh', 'sw_absorbed_flux_sh', 'absorbed shortwave', 'W', &
-                         gn%fswnet, gs%fswnet, '', cm_sum)
+                         budget_n%fswnet, budget_s%fswnet, '', cm_sum)
 
          ! isotopes and aerosols
          do n = 1, n_iso
@@ -321,63 +321,63 @@
             write(cn,'(i0)') n
             call add_ncdiag('isotope'//trim(cn)//'_atm_flux_nh', 'isotope'//trim(cn)//'_atm_flux_sh', &
                             'isotope flux from atmosphere', 'kg s-1', &
-                            gn%fisoa(n)*rdt, gs%fisoa(n)*rdt, '', cm_sum)
+                            budget_n%fisoa(n)*rdt, budget_s%fisoa(n)*rdt, '', cm_sum)
             call add_ncdiag('isotope'//trim(cn)//'_ocn_flux_nh', 'isotope'//trim(cn)//'_ocn_flux_sh', &
                             'isotope flux to ocean', 'kg s-1', &
-                            gn%fisoo(n)*rdt, gs%fisoo(n)*rdt, '', cm_sum)
+                            budget_n%fisoo(n)*rdt, budget_s%fisoo(n)*rdt, '', cm_sum)
             call add_ncdiag('isotope'//trim(cn)//'_total_nh', 'isotope'//trim(cn)//'_total_sh', &
-                            'total isotope', 'kg', gn%isotot(n), gs%isotot(n), '', cm_sum)
+                            'total isotope', 'kg', budget_n%isotot(n), budget_s%isotot(n), '', cm_sum)
             call add_ncdiag('isotope'//trim(cn)//'_max_nh', 'isotope'//trim(cn)//'_max_sh', &
-                            'maximum isotope per unit area', 'kg m-2', gn%isomx(n), gs%isomx(n), '', cm_max)
+                            'maximum isotope per unit area', 'kg m-2', budget_n%isomx(n), budget_s%isomx(n), '', cm_max)
          enddo
          do n = 1, n_aero
             if (hd_faeroa(n) == 0) cycle
             write(cn,'(i0)') n
             call add_ncdiag('aerosol'//trim(cn)//'_atm_flux_nh', 'aerosol'//trim(cn)//'_atm_flux_sh', &
                             'aerosol flux from atmosphere', 'kg s-1', &
-                            gn%faeroa(n)*rdt, gs%faeroa(n)*rdt, '', cm_sum)
+                            budget_n%faeroa(n)*rdt, budget_s%faeroa(n)*rdt, '', cm_sum)
             call add_ncdiag('aerosol'//trim(cn)//'_ocn_flux_nh', 'aerosol'//trim(cn)//'_ocn_flux_sh', &
                             'aerosol flux to ocean', 'kg s-1', &
-                            gn%faeroo(n)*rdt, gs%faeroo(n)*rdt, '', cm_sum)
+                            budget_n%faeroo(n)*rdt, budget_s%faeroo(n)*rdt, '', cm_sum)
             call add_ncdiag('aerosol'//trim(cn)//'_total_nh', 'aerosol'//trim(cn)//'_total_sh', &
-                            'total aerosol', 'kg', gn%aerotot(n), gs%aerotot(n), '', cm_sum)
+                            'total aerosol', 'kg', budget_n%aerotot(n), budget_s%aerotot(n), '', cm_sum)
             call add_ncdiag('aerosol'//trim(cn)//'_max_nh', 'aerosol'//trim(cn)//'_max_sh', &
-                            'maximum aerosol per unit area', 'kg m-2', gn%aeromx(n), gs%aeromx(n), '', cm_max)
+                            'maximum aerosol per unit area', 'kg m-2', budget_n%aeromx(n), budget_s%aeromx(n), '', cm_max)
          enddo
 
          ! changes and errors over the last timestep, instantaneous only
          if (.not. diag_netcdf_avg) then
             call add_ncdiag('total_mass_change_nh', 'total_mass_change_sh', &
-                            'change in total mass over the timestep', 'kg', gn%delmi, gs%delmi, '', '')
+                            'change in total mass over the timestep', 'kg', budget_n%delmi, budget_s%delmi, '', '')
             call add_ncdiag('water_flux_err_nh', 'water_flux_err_sh', &
                             'water conservation error over the timestep, fraction of total mass', '1', &
-                            gn%werr, gs%werr, '', '')
+                            budget_n%werr, budget_s%werr, '', '')
             call add_ncdiag('total_energy_change_nh', 'total_energy_change_sh', &
-                            'change in total energy over the timestep', 'J', gn%delei, gs%delei, '', '')
+                            'change in total energy over the timestep', 'J', budget_n%delei, budget_s%delei, '', '')
             call add_ncdiag('heat_err_nh', 'heat_err_sh', &
                             'heat conservation error over the timestep, fraction of total energy', '1', &
-                            gn%herr, gs%herr, '', '')
+                            budget_n%herr, budget_s%herr, '', '')
             call add_ncdiag('sw_err_nh', 'sw_err_sh', &
                             'shortwave error, fraction of absorbed shortwave', '1', &
-                            gn%swerr, gs%swerr, '', '')
+                            budget_n%swerr, budget_s%swerr, '', '')
             call add_ncdiag('salt_mass_change_nh', 'salt_mass_change_sh', &
-                            'change in salt mass over the timestep', 'kg', gn%delmslt, gs%delmslt, '', '')
+                            'change in salt mass over the timestep', 'kg', budget_n%delmslt, budget_s%delmslt, '', '')
             call add_ncdiag('salt_flux_err_nh', 'salt_flux_err_sh', &
                             'salt conservation error over the timestep, fraction of salt mass', '1', &
-                            gn%serr, gs%serr, '', '')
+                            budget_n%serr, budget_s%serr, '', '')
             do n = 1, n_iso
                if (hd_fisoa(n) == 0) cycle
                write(cn,'(i0)') n
                call add_ncdiag('isotope'//trim(cn)//'_err_nh', 'isotope'//trim(cn)//'_err_sh', &
                                'isotope conservation error over the timestep, fraction of total', '1', &
-                               gn%isor(n), gs%isor(n), '', '')
+                               budget_n%isor(n), budget_s%isor(n), '', '')
             enddo
             do n = 1, n_aero
                if (hd_faeroa(n) == 0) cycle
                write(cn,'(i0)') n
                call add_ncdiag('aerosol'//trim(cn)//'_err_nh', 'aerosol'//trim(cn)//'_err_sh', &
                                'aerosol conservation error over the timestep, fraction of total', '1', &
-                               gn%aerr(n), gs%aerr(n), '', '')
+                               budget_n%aerr(n), budget_s%aerr(n), '', '')
             enddo
          endif
       endif
