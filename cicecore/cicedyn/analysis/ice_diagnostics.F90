@@ -284,38 +284,10 @@
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
-         umaxn,   hmaxn,   shmaxn,    arean,   snwmxn, extentn, shmaxnt, &
-         umaxs,   hmaxs,   shmaxs,    areas,   snwmxs, extents, shmaxst, &
-         etotn,   mtotn,   micen,     msnwn,   pmaxn,  ketotn, &
-         etots,   mtots,   mices,     msnws,   pmaxs,  ketots, &
-         stotn, &
-         stots, &
-         urmsn,   albtotn,            mpndn,   ptotn,  spondn, &
-         urmss,   albtots,            mpnds,   ptots,  sponds
-
-      ! hemispheric flux quantities
-      real (kind=dbl_kind) :: &
-         rnn, snn, frzn,  hnetn, fhocnn, fhatmn,  fhfrzn, &
-         rns, sns, frzs,  hnets, fhocns, fhatms,  fhfrzs, &
-         fswnetn, fswnets, fswdnn, fswdns, swerrn, swerrs, &
-         sfsaltn, sfreshn, evpn, fluxn , delmxn,  delmin, &
-         sfsalts, sfreshs, evps, fluxs , delmxs,  delmis, &
-         delein, werrn, herrn, msltn, delmsltn, serrn, &
-         deleis, werrs, herrs, mslts, delmslts, serrs
-
-      ! isotope diagnostics
-      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
-         fisoan, fisoon, isorn, &
-         fisoas, fisoos, isors, &
-         isomx1n, isomx1s, &
-         isototn, isotots
-
-      ! aerosol diagnostics
-      real (kind=dbl_kind), dimension(icepack_max_aero) :: &
-         faeran, faeron, aerrn, &
-         faeras, faeros, aerrs, &
-         aeromx1n, aeromx1s, &
-         aerototn, aerotots
+         umaxn,   hmaxn,   shmaxn,    arean,   snwmxn, extentn, &
+         umaxs,   hmaxs,   shmaxs,    areas,   snwmxs, extents, &
+         pmaxn,   ketotn,  urmsn,     albtotn, ptotn, &
+         pmaxs,   ketots,  urmss,     albtots, ptots
 
       ! fields at diagnostic points
       real (kind=dbl_kind), dimension(npnt) :: &
@@ -466,53 +438,6 @@
          ! conservation diagnostics, the same as the netcdf diagnostics
          call hdiag_global(hdiag_n, 1, dt, budget_n)
          call hdiag_global(hdiag_s, 2, dt, budget_s)
-
-         etotn = budget_n%etot    ; etots = budget_s%etot
-         stotn = budget_n%stot    ; stots = budget_s%stot
-         evpn  = budget_n%evp     ; evps  = budget_s%evp
-         shmaxnt = budget_n%shmaxt; shmaxst = budget_s%shmaxt
-         sfsaltn = budget_n%sfsalt; sfsalts = budget_s%sfsalt
-         sfreshn = budget_n%sfresh; sfreshs = budget_s%sfresh
-         spondn = budget_n%spond  ; sponds = budget_s%spond
-         fhocnn = budget_n%fhocn  ; fhocns = budget_s%fhocn
-         fhatmn = budget_n%fhatm  ; fhatms = budget_s%fhatm
-         fswnetn = budget_n%fswnet; fswnets = budget_s%fswnet
-         fswdnn = budget_n%fswdn  ; fswdns = budget_s%fswdn
-         fhfrzn = budget_n%fhfrz  ; fhfrzs = budget_s%fhfrz
-         rnn = budget_n%rn        ; rns = budget_s%rn
-         snn = budget_n%sn        ; sns = budget_s%sn
-         frzn = budget_n%frz      ; frzs = budget_s%frz
-         micen = budget_n%mice    ; mices = budget_s%mice
-         msnwn = budget_n%msnw    ; msnws = budget_s%msnw
-         mpndn = budget_n%mpnd    ; mpnds = budget_s%mpnd
-         mtotn = budget_n%mtot    ; mtots = budget_s%mtot
-         delmin = budget_n%delmi  ; delmis = budget_s%delmi
-         delmxn = budget_n%delmx  ; delmxs = budget_s%delmx
-         fluxn = budget_n%flux    ; fluxs = budget_s%flux
-         werrn = budget_n%werr    ; werrs = budget_s%werr
-         delein = budget_n%delei  ; deleis = budget_s%delei
-         hnetn = budget_n%hnet    ; hnets = budget_s%hnet
-         herrn = budget_n%herr    ; herrs = budget_s%herr
-         swerrn = budget_n%swerr  ; swerrs = budget_s%swerr
-         msltn = budget_n%mslt    ; mslts = budget_s%mslt
-         delmsltn = budget_n%delmslt; delmslts = budget_s%delmslt
-         serrn = budget_n%serr    ; serrs = budget_s%serr
-
-         do n = 1, n_iso
-            fisoan(n)  = budget_n%fisoa(n) ; fisoas(n)  = budget_s%fisoa(n)
-            fisoon(n)  = budget_n%fisoo(n) ; fisoos(n)  = budget_s%fisoo(n)
-            isototn(n) = budget_n%isotot(n); isotots(n) = budget_s%isotot(n)
-            isomx1n(n) = budget_n%isomx(n) ; isomx1s(n) = budget_s%isomx(n)
-            isorn(n)   = budget_n%isor(n)  ; isors(n)   = budget_s%isor(n)
-         enddo
-
-         do n = 1, n_aero
-            faeran(n)   = budget_n%faeroa(n) ; faeras(n)   = budget_s%faeroa(n)
-            faeron(n)   = budget_n%faeroo(n) ; faeros(n)   = budget_s%faeroo(n)
-            aerototn(n) = budget_n%aerotot(n); aerotots(n) = budget_s%aerotot(n)
-            aeromx1n(n) = budget_n%aeromx(n) ; aeromx1s(n) = budget_s%aeromx(n)
-            aerrn(n)    = budget_n%aerr(n)   ; aerrs(n)    = budget_s%aerr(n)
-         enddo
       endif                     ! print_global
 
       if (print_points) then
@@ -686,71 +611,71 @@
 #endif
 
          write(nu_diag,*) '----------------------------'
-         write(nu_diag,901) 'arwt rain h2o kg in dt = ',rnn,rns
-         write(nu_diag,901) 'arwt snow h2o kg in dt = ',snn,sns
-         write(nu_diag,901) 'arwt evap h2o kg in dt = ',evpn,evps
-         write(nu_diag,901) 'arwt frzl h2o kg in dt = ',frzn,frzs
+         write(nu_diag,901) 'arwt rain h2o kg in dt = ',budget_n%rn,budget_s%rn
+         write(nu_diag,901) 'arwt snow h2o kg in dt = ',budget_n%sn,budget_s%sn
+         write(nu_diag,901) 'arwt evap h2o kg in dt = ',budget_n%evp,budget_s%evp
+         write(nu_diag,901) 'arwt frzl h2o kg in dt = ',budget_n%frz,budget_s%frz
          if (tr_pond_topo) &
-         write(nu_diag,901) 'arwt fpnd h2o kg in dt = ',spondn,sponds
-         write(nu_diag,901) 'arwt frsh h2o kg in dt = ',sfreshn,sfreshs
+         write(nu_diag,901) 'arwt fpnd h2o kg in dt = ',budget_n%spond,budget_s%spond
+         write(nu_diag,901) 'arwt frsh h2o kg in dt = ',budget_n%sfresh,budget_s%sfresh
 
-         write(nu_diag,901) 'arwt ice mass (kg)     = ',micen,mices
-         write(nu_diag,901) 'arwt snw mass (kg)     = ',msnwn,msnws
+         write(nu_diag,901) 'arwt ice mass (kg)     = ',budget_n%mice,budget_s%mice
+         write(nu_diag,901) 'arwt snw mass (kg)     = ',budget_n%msnw,budget_s%msnw
          if (tr_pond_topo) &
-         write(nu_diag,901) 'arwt pnd mass (kg)     = ',mpndn,mpnds
+         write(nu_diag,901) 'arwt pnd mass (kg)     = ',budget_n%mpnd,budget_s%mpnd
 
-         write(nu_diag,901) 'arwt tot mass (kg)     = ',mtotn,mtots
-         write(nu_diag,901) 'arwt tot mass chng(kg) = ',delmin,delmis
-         write(nu_diag,901) 'arwt water flux        = ',fluxn,fluxs
+         write(nu_diag,901) 'arwt tot mass (kg)     = ',budget_n%mtot,budget_s%mtot
+         write(nu_diag,901) 'arwt tot mass chng(kg) = ',budget_n%delmi,budget_s%delmi
+         write(nu_diag,901) 'arwt water flux        = ',budget_n%flux,budget_s%flux
          if (update_ocn_f) then
            write (nu_diag,*) '(=rain+snow+evap-fresh)  '
          else
            write (nu_diag,*) '(=rain+snow+evap+frzl-fresh)  '
          endif
-         write(nu_diag,901) 'water flux error       = ',werrn,werrs
+         write(nu_diag,901) 'water flux error       = ',budget_n%werr,budget_s%werr
 
          write(nu_diag,*) '----------------------------'
-         write(nu_diag,901) 'arwt atm heat flux (W) = ',fhatmn,fhatms
-         write(nu_diag,901) 'arwt ocn heat flux (W) = ',fhocnn,fhocns
-         write(nu_diag,901) 'arwt frzl heat flux(W) = ',fhfrzn,fhfrzs
-         write(nu_diag,901) 'arwt tot energy    (J) = ',etotn,etots
-         write(nu_diag,901) 'arwt net heat      (J) = ',hnetn,hnets
-         write(nu_diag,901) 'arwt tot energy chng(J)= ',delein,deleis
-         write(nu_diag,901) 'arwt heat error        = ',herrn,herrs
+         write(nu_diag,901) 'arwt atm heat flux (W) = ',budget_n%fhatm,budget_s%fhatm
+         write(nu_diag,901) 'arwt ocn heat flux (W) = ',budget_n%fhocn,budget_s%fhocn
+         write(nu_diag,901) 'arwt frzl heat flux(W) = ',budget_n%fhfrz,budget_s%fhfrz
+         write(nu_diag,901) 'arwt tot energy    (J) = ',budget_n%etot,budget_s%etot
+         write(nu_diag,901) 'arwt net heat      (J) = ',budget_n%hnet,budget_s%hnet
+         write(nu_diag,901) 'arwt tot energy chng(J)= ',budget_n%delei,budget_s%delei
+         write(nu_diag,901) 'arwt heat error        = ',budget_n%herr,budget_s%herr
          write(nu_diag,*) '----------------------------'
-         write(nu_diag,901) 'arwt incoming sw (W)   = ',fswdnn,fswdns
-         write(nu_diag,901) 'arwt absorbed sw (W)   = ',fswnetn,fswnets
-         write(nu_diag,901) 'arwt swdn error        = ',swerrn,swerrs
+         write(nu_diag,901) 'arwt incoming sw (W)   = ',budget_n%fswdn,budget_s%fswdn
+         write(nu_diag,901) 'arwt absorbed sw (W)   = ',budget_n%fswnet,budget_s%fswnet
+         write(nu_diag,901) 'arwt swdn error        = ',budget_n%swerr,budget_s%swerr
 
          write(nu_diag,*) '----------------------------'
-         write(nu_diag,901) 'total brine tr (m^3)   = ',shmaxnt, shmaxst
-         write(nu_diag,901) 'arwt salt mass (kg)    = ',msltn,mslts
-         write(nu_diag,901) 'arwt salt mass chng(kg)= ',delmsltn, &
-                                                        delmslts
-         write(nu_diag,901) 'arwt salt flx in dt(kg)= ',sfsaltn, &
-                                                        sfsalts
-         write(nu_diag,901) 'arwt salt flx error    = ',serrn,serrs
+         write(nu_diag,901) 'total brine tr (m^3)   = ',budget_n%shmaxt, budget_s%shmaxt
+         write(nu_diag,901) 'arwt salt mass (kg)    = ',budget_n%mslt,budget_s%mslt
+         write(nu_diag,901) 'arwt salt mass chng(kg)= ',budget_n%delmslt, &
+                                                        budget_s%delmslt
+         write(nu_diag,901) 'arwt salt flx in dt(kg)= ',budget_n%sfsalt, &
+                                                        budget_s%sfsalt
+         write(nu_diag,901) 'arwt salt flx error    = ',budget_n%serr,budget_s%serr
 
          write(nu_diag,*) '----------------------------'
          if (tr_iso) then
          do n = 1, n_iso
          write(nu_diag,*)   '  isotope ',n
-         write(nu_diag,901) 'fiso_atm (kg/m2)       = ', fisoan(n), fisoas(n)
-         write(nu_diag,901) 'fiso_ocn (kg/m2)       = ', fisoon(n), fisoos(n)
-         write(nu_diag,901) 'total iso (kg/m2)      = ', isototn(n), isotots(n)
-         write(nu_diag,901) 'iso error              = ', isorn(n), isors(n)
-         write(nu_diag,901) 'maximum iso (kg/m2)    = ', isomx1n(n),isomx1s(n)
+         write(nu_diag,901) 'fiso_atm (kg/m2)       = ', budget_n%fisoa(n), budget_s%fisoa(n)
+         write(nu_diag,901) 'fiso_ocn (kg/m2)       = ', budget_n%fisoo(n), budget_s%fisoo(n)
+         write(nu_diag,901) 'total iso (kg/m2)      = ', budget_n%isotot(n), budget_s%isotot(n)
+         write(nu_diag,901) 'iso error              = ', budget_n%isor(n), budget_s%isor(n)
+         write(nu_diag,901) 'maximum iso (kg/m2)    = ', budget_n%isomx(n),budget_s%isomx(n)
          enddo
          write(nu_diag,*) '----------------------------'
          endif ! tr_iso
          if (tr_aero) then
          do n = 1, n_aero
          write(nu_diag,*)   '  aerosol ',n
-         write(nu_diag,901) 'faero_atm (kg/m2)      = ', faeran(n), faeras(n)
-         write(nu_diag,901) 'faero_ocn (kg/m2)      = ', faeron(n), faeros(n)
-         write(nu_diag,901) 'total aero (kg/m2)     = ', aerototn(n), aerotots(n)
-         write(nu_diag,901) 'aero error             = ', aerrn(n), aerrs(n)
-         write(nu_diag,901) 'maximum aero (kg/m2)   = ', aeromx1n(n),aeromx1s(n)
+         write(nu_diag,901) 'faero_atm (kg/m2)      = ', budget_n%faeroa(n), budget_s%faeroa(n)
+         write(nu_diag,901) 'faero_ocn (kg/m2)      = ', budget_n%faeroo(n), budget_s%faeroo(n)
+         write(nu_diag,901) 'total aero (kg/m2)     = ', budget_n%aerotot(n), budget_s%aerotot(n)
+         write(nu_diag,901) 'aero error             = ', budget_n%aerr(n), budget_s%aerr(n)
+         write(nu_diag,901) 'maximum aero (kg/m2)   = ', budget_n%aeromx(n),budget_s%aeromx(n)
          enddo
          write(nu_diag,*) '----------------------------'
          endif ! tr_aero
