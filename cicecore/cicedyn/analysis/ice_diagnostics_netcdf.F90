@@ -118,7 +118,7 @@
          k
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
-         fld               ! per grid cell values
+         hdiag_fld         ! per grid cell values
 
       character(len=*), parameter :: subname = '(accum_ncdiag)'
 
@@ -135,18 +135,18 @@
       if (nacc_steps == 0) acc_time_beg = timesecs - dt
       nacc_steps = nacc_steps + 1
 
-      allocate(fld(nx_block,ny_block,max_blocks,n_hdiag))
-      call hdiag_cell_values(fld)
+      allocate(hdiag_fld(nx_block,ny_block,max_blocks,n_hdiag))
+      call hdiag_cell_values(hdiag_fld)
 
       do k = 1, n_hdiag
          if (hdiag(k)%reduce == 'max') then
-            acc_ncdiag(:,:,:,k) = max(acc_ncdiag(:,:,:,k), fld(:,:,:,k))
+            acc_ncdiag(:,:,:,k) = max(acc_ncdiag(:,:,:,k), hdiag_fld(:,:,:,k))
          else
-            acc_ncdiag(:,:,:,k) = acc_ncdiag(:,:,:,k) + fld(:,:,:,k)
+            acc_ncdiag(:,:,:,k) = acc_ncdiag(:,:,:,k) + hdiag_fld(:,:,:,k)
          endif
       enddo
 
-      deallocate(fld)
+      deallocate(hdiag_fld)
 
       end subroutine accum_ncdiag
 
@@ -200,10 +200,10 @@
          n                 ! tracer index
 
       real (kind=dbl_kind), dimension(n_hdiag) :: &
-         valn, vals        ! hemispheric values, before scale is applied
+         hdiag_n, hdiag_s  ! hemispheric values, before scale is applied
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
-         fld               ! per grid cell values
+         hdiag_fld         ! per grid cell values
 
       character (len=char_len) :: &
          cm_sum, cm_max    ! cell_methods for sums and maxima
@@ -212,36 +212,36 @@
 
       if (.not. hdiag_initialized) call init_hdiag()
 
-      allocate(fld(nx_block,ny_block,max_blocks,n_hdiag))
+      allocate(hdiag_fld(nx_block,ny_block,max_blocks,n_hdiag))
       if (diag_netcdf_avg) then
          if (nacc_steps == 0) then
             call abort_ice(subname//' ERROR: no accumulated diagnostics', &
                file=__FILE__, line=__LINE__)
          endif
-         fld(:,:,:,:) = acc_ncdiag(:,:,:,:)
+         hdiag_fld(:,:,:,:) = acc_ncdiag(:,:,:,:)
          rn = c1/real(nacc_steps,kind=dbl_kind)
          cm_sum = 'time: mean'
          cm_max = 'time: maximum'
       else
-         call hdiag_cell_values(fld)
+         call hdiag_cell_values(hdiag_fld)
          rn = c1
          cm_sum = ''
          cm_max = ''
       endif
 
-      call hdiag_reduce(fld, rn, valn, vals)
-      deallocate(fld)
+      call hdiag_reduce(hdiag_fld, rn, hdiag_n, hdiag_s)
+      deallocate(hdiag_fld)
 
       n_ncdiag = 0
       do k = 1, n_hdiag
          if (hdiag(k)%lwrite) then
             if (hdiag(k)%reduce == 'max') then
                call add_ncdiag(hdiag(k)%vname_n, hdiag(k)%vname_s, hdiag(k)%lname, &
-                               hdiag(k)%units, valn(k)*hdiag(k)%scale, vals(k)*hdiag(k)%scale, &
+                               hdiag(k)%units, hdiag_n(k)*hdiag(k)%scale, hdiag_s(k)*hdiag(k)%scale, &
                                hdiag(k)%sname, cm_max)
             else
                call add_ncdiag(hdiag(k)%vname_n, hdiag(k)%vname_s, hdiag(k)%lname, &
-                               hdiag(k)%units, valn(k)*hdiag(k)%scale, vals(k)*hdiag(k)%scale, &
+                               hdiag(k)%units, hdiag_n(k)*hdiag(k)%scale, hdiag_s(k)*hdiag(k)%scale, &
                                hdiag(k)%sname, cm_sum)
             endif
          endif
@@ -250,8 +250,8 @@
       ! derived diagnostics
 
       ! rms ice speed, and ice area weighted albedo over sunlit points
-      call hdiag_derived(valn, urmsn, albn)
-      call hdiag_derived(vals, urmss, albs)
+      call hdiag_derived(hdiag_n, urmsn, albn)
+      call hdiag_derived(hdiag_s, urmss, albs)
       call add_ncdiag('ice_speed_rms_nh', 'ice_speed_rms_sh', 'rms ice speed', 'm/s', &
                       urmsn, urmss, '', cm_sum)
 
@@ -262,8 +262,8 @@
       ! salt and tracer fluxes are rates.  The changes and errors are over the
       ! last timestep, so are only written as instantaneous values.
       if (hdiag_global_on) then
-         call hdiag_global(valn, 1, dt, gn)
-         call hdiag_global(vals, 2, dt, gs)
+         call hdiag_global(hdiag_n, 1, dt, gn)
+         call hdiag_global(hdiag_s, 2, dt, gs)
          rdt = c1/dt
 
          ! mass, energy and salt

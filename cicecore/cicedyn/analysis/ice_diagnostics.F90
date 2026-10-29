@@ -330,10 +330,10 @@
          work1, work2      ! temporary
 
       real (kind=dbl_kind), dimension (:,:,:,:), allocatable :: &
-         hfld              ! per grid cell hemispheric diagnostics
+         hdiag_fld         ! per grid cell hemispheric diagnostics
 
       real (kind=dbl_kind), dimension(n_hdiag) :: &
-         hvaln, hvals      ! hemispheric diagnostics, northern and southern hemisphere
+         hdiag_n, hdiag_s  ! hemispheric diagnostics, northern and southern hemisphere
 
       type (hdiag_global_values) :: &
          gn, gs            ! print_global diagnostics, northern and southern hemisphere
@@ -367,54 +367,54 @@
       ! area, extent, volume, kinetic energy, albedo and maxima are the
       ! hemispheric diagnostics also written to netcdf (hdiag_reduce)
       if (.not. hdiag_initialized) call init_hdiag()
-      allocate(hfld(nx_block,ny_block,max_blocks,n_hdiag))
-      call hdiag_cell_values(hfld)
-      call hdiag_reduce(hfld, c1, hvaln, hvals)
-      deallocate(hfld)
+      allocate(hdiag_fld(nx_block,ny_block,max_blocks,n_hdiag))
+      call hdiag_cell_values(hdiag_fld)
+      call hdiag_reduce(hdiag_fld, c1, hdiag_n, hdiag_s)
+      deallocate(hdiag_fld)
 
       ! total ice area
-      arean = hvaln(hd_aice)
-      areas = hvals(hd_aice)
+      arean = hdiag_n(hd_aice)
+      areas = hdiag_s(hd_aice)
       arean = arean * m2_to_km2
       areas = areas * m2_to_km2
 
       ! ice extent (= area of grid cells with aice > aice_extmin)
-      extentn = hvaln(hd_extent)
-      extents = hvals(hd_extent)
+      extentn = hdiag_n(hd_extent)
+      extents = hdiag_s(hd_extent)
       extentn = extentn * m2_to_km2
       extents = extents * m2_to_km2
 
       ! total ice volume
-      shmaxn = hvaln(hd_vice)
-      shmaxs = hvals(hd_vice)
+      shmaxn = hdiag_n(hd_vice)
+      shmaxs = hdiag_s(hd_vice)
 
       ! total snow volume
-      snwmxn = hvaln(hd_vsno)
-      snwmxs = hvals(hd_vsno)
+      snwmxn = hdiag_n(hd_vsno)
+      snwmxs = hdiag_s(hd_vsno)
 
       ! total pond volume
       ptotn = c0
       ptots = c0
       if (hd_ptot > 0) then
-         ptotn = hvaln(hd_ptot)
-         ptots = hvals(hd_ptot)
+         ptotn = hdiag_n(hd_ptot)
+         ptots = hdiag_s(hd_ptot)
       endif
 
       ! total ice-snow kinetic energy
-      ketotn = hvaln(hd_ke)
-      ketots = hvals(hd_ke)
+      ketotn = hdiag_n(hd_ke)
+      ketots = hdiag_s(hd_ke)
 
       ! rms ice speed, and average ice albedo over sunlit points
-      call hdiag_derived(hvaln, urmsn, albtotn)
-      call hdiag_derived(hvals, urmss, albtots)
+      call hdiag_derived(hdiag_n, urmsn, albtotn)
+      call hdiag_derived(hdiag_s, urmss, albtots)
 
       ! maximum ice volume (= mean thickness including open water)
-      hmaxn = hvaln(hd_vmax)
-      hmaxs = hvals(hd_vmax)
+      hmaxn = hdiag_n(hd_vmax)
+      hmaxs = hdiag_s(hd_vmax)
 
       ! maximum ice speed
-      umaxn = hvaln(hd_umax)
-      umaxs = hvals(hd_umax)
+      umaxn = hdiag_n(hd_umax)
+      umaxs = hdiag_s(hd_umax)
 
       ! Write warning message if ice speed is too big
       ! (Ice speeds of ~1 m/s or more usually indicate instability)
@@ -456,16 +456,16 @@
 
       ! maximum ice strength
 
-      pmaxn = hvaln(hd_pmax)
-      pmaxs = hvals(hd_pmax)
+      pmaxn = hdiag_n(hd_pmax)
+      pmaxs = hdiag_s(hd_pmax)
 
       pmaxn = pmaxn / c1000   ! convert to kN/m
       pmaxs = pmaxs / c1000
 
       if (print_global) then
          ! conservation diagnostics, the same as the netcdf diagnostics
-         call hdiag_global(hvaln, 1, dt, gn)
-         call hdiag_global(hvals, 2, dt, gs)
+         call hdiag_global(hdiag_n, 1, dt, gn)
+         call hdiag_global(hdiag_s, 2, dt, gs)
 
          etotn = gn%etot    ; etots = gs%etot
          stotn = gn%stot    ; stots = gs%stot
@@ -1894,7 +1894,7 @@
 ! Values to be summed are per unit area; they are multiplied by the cell
 ! area when reduced.
 
-      subroutine hdiag_cell_values(fld)
+      subroutine hdiag_cell_values(hdiag_fld)
 
       use ice_calendar, only: dt
       use ice_domain, only: nblocks
@@ -1907,7 +1907,7 @@
       use ice_state, only: aice, vice, vsno, strength, aice_init, aicen, trcr, trcrn
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_hdiag), intent(out) :: &
-         fld               ! per grid cell values
+         hdiag_fld         ! per grid cell values
 
       ! local variables
 
@@ -1943,24 +1943,24 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            fld(i,j,iblk,hd_aice) = aice(i,j,iblk)
-            fld(i,j,iblk,hd_extent) = c0
-            if (aice(i,j,iblk) >= aice_extmin) fld(i,j,iblk,hd_extent) = c1
-            fld(i,j,iblk,hd_vice) = vice(i,j,iblk)
-            fld(i,j,iblk,hd_vsno) = vsno(i,j,iblk)
-            fld(i,j,iblk,hd_ke  ) = work1(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_aice) = aice(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_extent) = c0
+            if (aice(i,j,iblk) >= aice_extmin) hdiag_fld(i,j,iblk,hd_extent) = c1
+            hdiag_fld(i,j,iblk,hd_vice) = vice(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_vsno) = vsno(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_ke  ) = work1(i,j,iblk)
             ! ice area weighted albedo, masked where the sun is below the horizon
             alb = alvdr(i,j,iblk)*awtvdr + alidr(i,j,iblk)*awtidr &
                 + alvdf(i,j,iblk)*awtvdf + alidf(i,j,iblk)*awtidf
-            fld(i,j,iblk,hd_albn) = c0
-            fld(i,j,iblk,hd_albd) = c0
+            hdiag_fld(i,j,iblk,hd_albn) = c0
+            hdiag_fld(i,j,iblk,hd_albd) = c0
             if (alb > puny) then
-               fld(i,j,iblk,hd_albn) = aice(i,j,iblk)*alb
-               fld(i,j,iblk,hd_albd) = aice(i,j,iblk)
+               hdiag_fld(i,j,iblk,hd_albn) = aice(i,j,iblk)*alb
+               hdiag_fld(i,j,iblk,hd_albd) = aice(i,j,iblk)
             endif
-            fld(i,j,iblk,hd_vmax) = vice(i,j,iblk)
-            fld(i,j,iblk,hd_umax) = work2(i,j,iblk)
-            fld(i,j,iblk,hd_pmax) = strength(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_vmax) = vice(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_umax) = work2(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_pmax) = strength(i,j,iblk)
          enddo
          enddo
       enddo
@@ -1972,12 +1972,12 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               fld(i,j,iblk,hd_ptot) = c0
+               hdiag_fld(i,j,iblk,hd_ptot) = c0
                do n = 1, ncat
-                  fld(i,j,iblk,hd_ptot) = fld(i,j,iblk,hd_ptot)  &
-                                        + aicen(i,j,n,iblk) &
-                                        * trcrn(i,j,nt_apnd,n,iblk) &
-                                        * trcrn(i,j,nt_hpnd,n,iblk)
+                  hdiag_fld(i,j,iblk,hd_ptot) = hdiag_fld(i,j,iblk,hd_ptot)  &
+                                              + aicen(i,j,n,iblk) &
+                                              * trcrn(i,j,nt_apnd,n,iblk) &
+                                              * trcrn(i,j,nt_hpnd,n,iblk)
                enddo
             enddo
             enddo
@@ -1994,18 +1994,18 @@
       !-----------------------------------------------------------------
 
       ! total ice/snow internal energy and salt
-      call total_energy (fld(:,:,:,hd_etot))
-      call total_salt   (fld(:,:,:,hd_stot))
+      call total_energy (hdiag_fld(:,:,:,hd_etot))
+      call total_salt   (hdiag_fld(:,:,:,hd_stot))
 
-      fld(:,:,:,hd_evp) = evap(:,:,:)*aice(:,:,:)
-      if (hd_brine > 0) fld(:,:,:,hd_brine) = vice(:,:,:)*trcr(:,:,nt_fbri,:)
-      fld(:,:,:,hd_sfsalt) = fsalt_ai(:,:,:)
-      fld(:,:,:,hd_sfresh) = fresh_ai(:,:,:)
-      if (hd_spond > 0) fld(:,:,:,hd_spond) = fpond(:,:,:)
+      hdiag_fld(:,:,:,hd_evp) = evap(:,:,:)*aice(:,:,:)
+      if (hd_brine > 0) hdiag_fld(:,:,:,hd_brine) = vice(:,:,:)*trcr(:,:,nt_fbri,:)
+      hdiag_fld(:,:,:,hd_sfsalt) = fsalt_ai(:,:,:)
+      hdiag_fld(:,:,:,hd_sfresh) = fresh_ai(:,:,:)
+      if (hd_spond > 0) hdiag_fld(:,:,:,hd_spond) = fpond(:,:,:)
 
       ! ocean heat
       ! Note: fswthru not included because it does not heat ice
-      fld(:,:,:,hd_fhocn) = fhocn_ai(:,:,:)
+      hdiag_fld(:,:,:,hd_fhocn) = fhocn_ai(:,:,:)
 
       ! atmo heat flux
       ! Note: flwout includes the reflected longwave down, needed by the
@@ -2017,7 +2017,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               fld(i,j,iblk,hd_fhatm) = &
+               hdiag_fld(i,j,iblk,hd_fhatm) = &
                   (fswabs(i,j,iblk) - fswthru(i,j,iblk) &
                  + fsens (i,j,iblk) + flwout (i,j,iblk)) &
                                     * aice      (i,j,iblk) &
@@ -2031,7 +2031,7 @@
          do iblk = 1, nblocks
             do j = 1, ny_block
             do i = 1, nx_block
-               fld(i,j,iblk,hd_fhatm) = &
+               hdiag_fld(i,j,iblk,hd_fhatm) = &
                           (fsurf(i,j,iblk) - flat(i,j,iblk)) &
                            * aice(i,j,iblk)
             enddo
@@ -2044,33 +2044,33 @@
       do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-            fld(i,j,iblk,hd_fswnet) = fswabs(i,j,iblk) * aice(i,j,iblk)
-            fld(i,j,iblk,hd_fswdn) = (aice_init(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
-                                   + (aice_init(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
-                                   + (aice_init(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
-                                   + (aice_init(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_fswnet) = fswabs(i,j,iblk) * aice(i,j,iblk)
+            hdiag_fld(i,j,iblk,hd_fswdn) = (aice_init(i,j,iblk)-alvdr_init(i,j,iblk))*swvdr(i,j,iblk) &
+                                         + (aice_init(i,j,iblk)-alidr_init(i,j,iblk))*swidr(i,j,iblk) &
+                                         + (aice_init(i,j,iblk)-alvdf_init(i,j,iblk))*swvdf(i,j,iblk) &
+                                         + (aice_init(i,j,iblk)-alidf_init(i,j,iblk))*swidf(i,j,iblk)
             ! freezing potential
-            fld(i,j,iblk,hd_fhfrz) = max(c0,frzmlt_init(i,j,iblk))
+            hdiag_fld(i,j,iblk,hd_fhfrz) = max(c0,frzmlt_init(i,j,iblk))
          enddo
          enddo
       enddo
       !$OMP END PARALLEL DO
 
-      fld(:,:,:,hd_rn) = frain(:,:,:)*aice_init(:,:,:)
-      fld(:,:,:,hd_sn) = fsnow(:,:,:)*aice_init(:,:,:)
+      hdiag_fld(:,:,:,hd_rn) = frain(:,:,:)*aice_init(:,:,:)
+      hdiag_fld(:,:,:,hd_sn) = fsnow(:,:,:)*aice_init(:,:,:)
 
       ! frazil ice growth !! should not be multiplied by aice
       ! m/step->kg/m^2/s
-      fld(:,:,:,hd_frz) = frazil(:,:,:)*rhoi/dt
+      hdiag_fld(:,:,:,hd_frz) = frazil(:,:,:)*rhoi/dt
       if (.not. update_ocn_f .and. ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
-         fld(:,:,:,hd_frz) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
+         hdiag_fld(:,:,:,hd_frz) = (frazil(:,:,:)-frazil_diag(:,:,:))*rhoi/dt
       endif
 
       ! isotopes
       do n = 1, n_iso
          if (hd_fisoa(n) == 0) cycle
-         fld(:,:,:,hd_fisoa(n)) = fiso_atm(:,:,n,:)*aice_init(:,:,:)
-         fld(:,:,:,hd_fisoo(n)) = fiso_ocn(:,:,n,:)*aice(:,:,:)
+         hdiag_fld(:,:,:,hd_fisoa(n)) = fiso_atm(:,:,n,:)*aice_init(:,:,:)
+         hdiag_fld(:,:,:,hd_fisoo(n)) = fiso_ocn(:,:,n,:)*aice(:,:,:)
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,k)
          do iblk = 1, nblocks
             do j = 1, ny_block
@@ -2085,15 +2085,15 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
-         fld(:,:,:,hd_isotot(n)) = work1(:,:,:)
-         fld(:,:,:,hd_isomx(n)) = work1(:,:,:)
+         hdiag_fld(:,:,:,hd_isotot(n)) = work1(:,:,:)
+         hdiag_fld(:,:,:,hd_isomx(n)) = work1(:,:,:)
       enddo
 
       ! aerosols
       do n = 1, n_aero
          if (hd_faeroa(n) == 0) cycle
-         fld(:,:,:,hd_faeroa(n)) = faero_atm(:,:,n,:)*aice_init(:,:,:)
-         fld(:,:,:,hd_faeroo(n)) = faero_ocn(:,:,n,:)*aice(:,:,:)
+         hdiag_fld(:,:,:,hd_faeroa(n)) = faero_atm(:,:,n,:)*aice_init(:,:,:)
+         hdiag_fld(:,:,:,hd_faeroo(n)) = faero_ocn(:,:,n,:)*aice(:,:,:)
          !$OMP PARALLEL DO PRIVATE(iblk,i,j)
          do iblk = 1, nblocks
             do j = 1, ny_block
@@ -2107,8 +2107,8 @@
             enddo
          enddo
          !$OMP END PARALLEL DO
-         fld(:,:,:,hd_aerotot(n)) = work1(:,:,:)
-         fld(:,:,:,hd_aeromx(n)) = work1(:,:,:)
+         hdiag_fld(:,:,:,hd_aerotot(n)) = work1(:,:,:)
+         hdiag_fld(:,:,:,hd_aeromx(n)) = work1(:,:,:)
       enddo
 
       end subroutine hdiag_cell_values
@@ -2118,7 +2118,7 @@
 ! hemisphere, before the scale is applied.  Sums are multiplied by rn
 ! (eg 1/number of accumulated steps).  Called on all tasks.
 
-      subroutine hdiag_reduce(fld, rn, valn, vals)
+      subroutine hdiag_reduce(hdiag_fld, rn, hdiag_n, hdiag_s)
 
       use ice_constants, only: field_loc_center
       use ice_domain, only: distrb_info
@@ -2127,13 +2127,13 @@
       use ice_grid, only: lmask_n, lmask_s, tarean, tareas
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks,n_hdiag), intent(in) :: &
-         fld               ! per grid cell values
+         hdiag_fld         ! per grid cell values
 
       real (kind=dbl_kind), intent(in) :: &
          rn                ! factor for sums
 
       real (kind=dbl_kind), dimension(n_hdiag), intent(out) :: &
-         valn, vals        ! northern and southern hemisphere values
+         hdiag_n, hdiag_s  ! northern and southern hemisphere values
 
       ! local variables
 
@@ -2144,13 +2144,13 @@
 
       do k = 1, n_hdiag
          if (hdiag(k)%reduce == 'max') then
-            valn(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_n)
-            vals(k) = global_maxval(fld(:,:,:,k), distrb_info, lmask_s)
-            if (valn(k) < maxval_spval) valn(k) = c0
-            if (vals(k) < maxval_spval) vals(k) = c0
+            hdiag_n(k) = global_maxval(hdiag_fld(:,:,:,k), distrb_info, lmask_n)
+            hdiag_s(k) = global_maxval(hdiag_fld(:,:,:,k), distrb_info, lmask_s)
+            if (hdiag_n(k) < maxval_spval) hdiag_n(k) = c0
+            if (hdiag_s(k) < maxval_spval) hdiag_s(k) = c0
          else
-            valn(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tarean)*rn
-            vals(k) = global_sum(fld(:,:,:,k), distrb_info, field_loc_center, tareas)*rn
+            hdiag_n(k) = global_sum(hdiag_fld(:,:,:,k), distrb_info, field_loc_center, tarean)*rn
+            hdiag_s(k) = global_sum(hdiag_fld(:,:,:,k), distrb_info, field_loc_center, tareas)*rn
          endif
       enddo
 
