@@ -53,6 +53,7 @@
       ! private functions
       private :: set_calendar          ! sets model calendar type (noleap, etc)
       private :: compute_relative_elapsed ! compute relative elapsed years, months, days, hours
+      private :: freq_now              ! whether output at a frequency is due now
 
       ! PUBLIC
 
@@ -102,7 +103,7 @@
          ndtd = 1 , & ! number of dynamics subcycles: dt_dyn=dt/ndtd
          stop_now     , & ! if 1, end program execution
          write_restart, & ! if 1, write restart now
-         diagfreq     , & ! diagnostic output frequency (10 = once per 10 dt)
+         diagfreq     , & ! diagnostic output frequency (10 = once per 10 diagfreq_unit)
          nstreams     , & ! number of history output streams
          dumpfreq_n(max_nstrm), & ! restart output frequency (10 = once per 10 d,m,y)
          histfreq_n(max_nstrm)    ! history output frequency
@@ -126,7 +127,16 @@
          write_histrest , & ! write history restarts if needed
          dump_last      , & ! write restart file on last time step
          force_restart_now, & ! force a restart now
+         write_diag     , & ! write diagnostics now
+         write_diag_netcdf , & ! write netcdf diagnostics now
          write_history(max_nstrm) ! write history now
+
+      character (len=1), public :: &
+         diagfreq_unit = '1'  , & ! diagnostic output frequency unit, 'y','m','d','h','1'
+         diag_netcdf_freq = 'x'   ! netcdf diagnostics frequency, 'y','m','d','h','1', 'x' off
+
+      integer (kind=int_kind), public :: &
+         diag_netcdf_freq_n = 1   ! netcdf diagnostics frequency (10 = once per 10 diag_netcdf_freq)
 
       character (len=2), public :: &
          npt_unit,            & ! run length unit, 'y', 'm', 'd', 'h', 's', '1'
@@ -394,6 +404,8 @@
       new_hour=.false.
       write_history(:)=.false.
       write_restart=0
+      write_diag=.false.
+      write_diag_netcdf=.false.
 
       call update_date(myear,mmonth,mday,msec)
       call set_calendar(myear)
@@ -503,7 +515,15 @@
 
       if (force_restart_now) write_restart = 1
 
-      if (my_task == master_task .and. mod(istep1,diagfreq) == 0 &
+      ! Diagnostics writing flags, always aligned with the calendar
+
+      call compute_relative_elapsed('zero', elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+      write_diag = freq_now(diagfreq_unit, diagfreq, &
+                            elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+      write_diag_netcdf = freq_now(diag_netcdf_freq, diag_netcdf_freq_n, &
+                            elapsed_years, elapsed_months, elapsed_days, elapsed_hours)
+
+      if (my_task == master_task .and. write_diag &
                                  .and. stop_now /= 1) then
         write(nu_diag,*) ' '
         write(nu_diag,'(a7,i10,4x,a6,i10,4x,a4,i10)') &
@@ -511,6 +531,38 @@
       endif
 
       end subroutine calendar
+
+!=======================================================================
+! Whether output with frequency unit and count is due at this timestep,
+! aligned with the calendar using relative elapsed time from 'zero'.
+! unit is 'y','m','d','h','1' (timesteps), anything else ('x') is never.
+
+      logical function freq_now(unit, n, ey, em, ed, eh)
+
+      character(len=*), intent(in) :: &
+         unit                      ! frequency unit
+
+      integer(kind=int_kind), intent(in) :: &
+         n                     , & ! frequency count, 0 is never
+         ey, em, ed, eh            ! relative elapsed year, month, day, hour
+
+      freq_now = .false.
+      if (n == 0) return
+
+      select case (unit)
+      case ("y", "Y")
+         if (new_year  .and. mod(ey, n)==0) freq_now = .true.
+      case ("m", "M")
+         if (new_month .and. mod(em, n)==0) freq_now = .true.
+      case ("d", "D")
+         if (new_day   .and. mod(ed, n)==0) freq_now = .true.
+      case ("h", "H")
+         if (new_hour  .and. mod(eh, n)==0) freq_now = .true.
+      case ("1")
+         if (mod(istep, n)==0) freq_now = .true.
+      end select
+
+      end function freq_now
 
 !=======================================================================
 ! Set the model calendar data for year

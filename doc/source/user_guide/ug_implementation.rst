@@ -1502,8 +1502,12 @@ for a restart run.
 Diagnostic Files
 ****************
 
-Like ``histfreq``, the parameter ``diagfreq`` can be used to regulate how often
-output is written to a log file. The log file unit to which diagnostic
+Like ``histfreq``, the parameters ``diagfreq`` and ``diagfreq_unit`` can be used to
+regulate how often output is written to a log file. ``diagfreq_unit`` can be
+``1`` (timesteps, the default), ``h``, ``d``, ``m`` or ``y``. Calendar units are
+aligned with the calendar, so ``diagfreq = 1`` and ``diagfreq_unit = 'd'`` writes
+diagnostics at the end of every day, and ``diagfreq_unit = 'm'`` at the end of every
+calendar month. The log file unit to which diagnostic
 output is written is set in **ice_fileunits.F90**. If ``diag_type`` =
 ‘stdout’, then it is written to standard out (or to **ice.log.[ID]** if
 you redirect standard out as in **cice.run**); otherwise it is written
@@ -1519,6 +1523,36 @@ useful for checking global conservation of mass and energy.
 input namelist ``lonpnt`` and ``latpnt``. By default, one
 point is near the North Pole and the other is in the Weddell Sea; these
 may be changed in **ice_in**.  
+
+If ``diag_netcdf_freq`` is not ``x``, hemispheric diagnostics are also written
+to a netcdf file every ``diag_netcdf_freq_n`` ``diag_netcdf_freq`` units, independent
+of the log diagnostics (``diagfreq``), and aligned with the calendar like ``diagfreq_unit``.  The file
+contains the CMIP sea-ice area, extent, volume and snow mass for each hemisphere
+(``siarean``, ``siareas``, ``siextentn``, ``siextents``, ``sivoln``, ``sivols``,
+``sisnmassn``, ``sisnmasss``, in CMIP units), and the kinetic energy, rms ice speed,
+albedo, and maximum ice volume, speed and strength for each hemisphere (suffixes
+``_nh`` and ``_sh``).
+The file also contains the conservation diagnostics that ``print_global`` adds to
+the log (``print_global`` only affects the log): ice, pond and total mass, energy,
+salt mass and brine volume, the water,
+salt, heat and shortwave fluxes as rates (kg s-1 or W), and isotope and aerosol
+fluxes and totals.  The changes and conservation errors are over a single
+timestep, so are only written when ``diag_netcdf_avg`` is false.
+If ``diag_netcdf_avg`` is true (the default), values are time averages
+over each interval, except the maxima, which are maxima over the interval.
+If ``write_histrest`` is true, the accumulated values are written to a restart file
+with the history restarts, in ``restart_dir`` and named from ``history_file``, for example
+**iceh_diag_r.2005-01-06-00000.nc**, and read at the start of the next run so the
+averaging continues across restarts.  Otherwise the averaging restarts at the start
+of each run, so a record that spans a restart only averages the part after the
+restart, as shown by its ``time_bounds``.
+If ``diag_netcdf_avg`` is false, the values are instantaneous.
+The file is in ``history_dir`` and named from ``history_file``, as
+**iceh_diag_avg.nc** for time averages or **iceh_diag_inst.nc** for instantaneous
+values.  If the file exists at the start of a run, records are appended to it,
+after the last record before the current model time, so records from a rerun
+are overwritten. The file format, compression and precision follow ``history_format``,
+``history_deflate`` and ``history_precision``.
 
 The namelist ``debug_model`` prints detailed
 debug diagnostics for a single point as the model advances.  The point is defined

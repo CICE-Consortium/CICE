@@ -1,0 +1,4 @@
+diagfreq       = 12
+diag_netcdf_freq = 'd'
+diag_netcdf_freq_n = 3
+write_histrest = .true.
