@@ -853,7 +853,7 @@
                  write(ncfile,'(a,a,i2.2,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_', &
                        histfreq_n(ns),'h.',iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == 'd'.or.histfreq(ns) == 'D') then ! daily
+              elseif (histfreq(ns) == 'd'.or.histfreq(ns) == 'D'.or.histfreq(ns) == 'n') then ! daily or day of month
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'-',iday,'.',trim(suffix)
