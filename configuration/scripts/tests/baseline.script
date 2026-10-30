@@ -124,12 +124,8 @@ endif
 #-----------------------------------------------------------
 
 # BFB Compare runs
-#
-# Shared with bfbcomp_update.csh, which redoes these comparisons once every
-# job in the suite has finished.  Keep the logic in one place so the two
-# passes cannot drift apart.
 
-source ${ICE_CASEDIR}/casescripts/comparecase.csh
+source ${ICE_CASEDIR}/bfbcomp_update.csh
 
 #-----------------------------------------------------------
 
@@ -145,5 +141,11 @@ if ($?ICE_MACHINE_ENVINFO) then
 endif
 echo "#machinfo = ${machinfo}" >> ${ICE_CASEDIR}/test_output
 echo "#envinfo ${ICE_ENVNAME} = ${envinfo}" >> ${ICE_CASEDIR}/test_output
+
+# Rearrange test_output, Put comments at top
+mv -f ${ICE_CASEDIR}/test_output ${ICE_CASEDIR}/test_output.prev
+cat ${ICE_CASEDIR}/test_output.prev | grep "#" >! ${ICE_CASEDIR}/test_output
+cat ${ICE_CASEDIR}/test_output.prev | grep -v "#" >> ${ICE_CASEDIR}/test_output
+rm -f ${ICE_CASEDIR}/test_output.prev
 
 #-----------------------------------------------------------

@@ -77,4 +77,8 @@ restart        gx3     8x4        isotope,histall,iopio2,iohdf5,precision8
 restart        gx3    12x2        fsd12,histall,iopio2,iocdf1,precision8
 restart        gx3    16x2        debug,histall,iopio2,iocdf2,histinst,precision8
 
+# other tests
+smoke          gx3     4x4        debug,histall,run2day
+smoke          gx3     4x4        debug,histall,run2day,evp1d     smoke_gx3_4x4_debug_histall_run2day
 restart        gx3    12x2        cmip,ionetcdf,iocdf2
+
