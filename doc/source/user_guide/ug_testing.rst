@@ -366,86 +366,13 @@ Lines that begin with # or are blank are ignored.  For example,
 ::
 
    #Test   Grid  PEs  Sets                Diff
-    smoke   col  1x1  diag1  
-    smoke   col  1x1  diag1,run1year  smoke_col_1x1_diag1
-    smoke   col  1x1  debug,run1year  
+   smoke    col  1x1  diag1  
+   smoke    col  1x1  diag1,run1year  smoke_col_1x1_diag1
+   smoke    col  1x1  debug,run1year  
    restart  col  1x1  debug  
    restart  col  1x1  diag1  
    restart  col  1x1  pondlvl  
    restart  col  1x1  pondtopo  
-
-.. _bfbcompmiss:
-
-A note on comparisons against an unfinished test
-    Each test runs its own bit-for-bit comparison at the end of its own batch
-    job.  It first waits for the queue job of the test named in the fifth
-    column, but only for a bounded time, because a compute node sitting in a
-    sleep loop costs allocation.  Listing the comparison target earlier in the
-    suite file does not avoid the wait: tests are submitted in order but run
-    concurrently, so a target slower than the test comparing against it can
-    still finish second.
-
-    When that wait expires the comparison runs against output that is still
-    being written, and reports one of
-
-    - ``MISS ... missing-data`` -- the restart directory is still empty,
-    - ``FAIL ... different-data`` -- the log is written only up to the point
-      the target had reached,
-    - ``FAIL ... usage-error`` -- the log exists but has not yet produced any
-      diagnostics, so there is nothing to compare.
-
-    None of the three says anything about the model.  **results.csh** therefore
-    redoes every fifth-column comparison before collecting results, by calling
-    **bfbcomp_redo.csh** in the suite directory.  That pass runs after all jobs
-    have completed, so it reads finished output; it is safe to run repeatedly
-    and can be run on its own at any time::
-
-      cd <suite_dir>
-      ./bfbcomp_redo.csh
-
-    It also works on a suite created before this script existed, installing
-    what it needs into each case from the sandbox that built it.  Should a
-    comparison still need checking by hand, compare the restart files
-    directly::
-
-      cmp <target_case>/restart/iced.* <test_case>/restart/iced.*
-
-    Silence means bit-for-bit.
-
-    The in-job wait is five one-minute polls by default.  Setting
-    ``ICE_BFBCOMP_MAXWAIT`` in **cice.settings** raises it, which is worth
-    doing only where the redo pass is not used.
-
-Recreating a baseline without rerunning the suite
-    ``--bgen`` is unchanged and remains the way to create a baseline: it is
-    written as the suite runs, and it refuses to overwrite one that already
-    exists, which is what stops a good baseline being clobbered by accident.
-    This section is only about *recreating* one.
-
-    Generating a baseline is only ``cp -p -r`` of each run directory, but it
-    happens inside the test job, so ``--bgen`` has to be chosen before the
-    suite runs.  Recreating a baseline therefore meant running everything
-    again, even when the runs already on disk were the ones wanted.
-
-    **baseline_snap.csh** in the suite directory does the same copy afterwards,
-    over a suite that has already finished, and replaces the whole baseline
-    instead of failing on what exists::
-
-      cd <suite_dir>
-      ./baseline_snap.csh <baseline_name>
-
-    So a suite can be run once and stamped as a baseline afterwards, and
-    stamped again later if the code moves on.  Each case records the outcome
-    in its own **test_output** as ``PASS ... generate`` or ``FAIL ... generate``,
-    the same lines ``--bgen`` writes, so **results.csh** reports a snapshot
-    exactly as it reports a generating run and counts a bad one under
-    ``failgen``.  Cases whose own run did not pass are skipped rather than
-    copied -- a baseline built from a partial run is worse than none, because
-    every later comparison against it is quietly wrong and reads as a code
-    regression -- and the per-case list is left in ``baseline_snap.log``.
-
-    It also works on a suite created before the script existed, installing
-    what it needs into each case from the sandbox that built it.
 
 The argument to ``--suite`` defines the test suite (.ts) filename and that argument 
 can contain a path.  
@@ -538,6 +465,44 @@ test suite::
 
   ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
 
+.. _bfbcompmiss:
+
+A note on comparisons against an unfinished test
+When using ``--diff`, the test with run a bit-for-bit comparison at the end of the
+run.  It may wait for the diff test job to finish, but only for a bounded time, because 
+a compute node sitting in a sleep loop costs allocation.  Listing the comparison target 
+earlier in the suite file does not avoid the wait: tests are submitted in order but run
+concurrently, so a target slower than the test comparing against it can still finish second.
+
+When that wait expires the comparison runs against output that is written, and reports one of
+
+    - ``PASS ... bfbcomp ...`` -- the diff directory is bit-for-bit identical with the case,
+    - ``FAIL ... bfbcomp ... different-data`` -- the diff directory is NOT bit-for-bit identical with the case,
+    - ``FAIL ... bfbcomp ... usage-error`` -- some files are missing,
+    - ``PEND ... bfbcomp ...`` -- the diff comparison is pending, results are not known yet,
+    - ``MISS ... bfbcomp ... missing-data`` -- the diff directory is not available yet,
+
+The first two results are complete.  The other three may or may not be caused by pending
+runs.  At the end of the test suite, **bfbcomp_update_tests.csh** is run to update
+the ``--diff`` (bfbcomp) results.  But even at that point, runs may be pending.  The results
+can be updated manually later by running **bfbcomp_update_tests.csh** from the testsuite directory,
+::
+
+  cd <suite_dir>
+  ./bfbcomp_update_tests.csh
+
+An individual ``--diff`` test result can also be updated from the individual test directory
+by runnning ``bfbcomp_update.csh``,
+::
+
+  cd <testcase_dir>
+  ./bfbcomp_update.csh
+
+The in-job wait is five one-minute polls by default in the **bfbcomp_update.csh** script.  This
+is overwritten by the ``ICE_BFBWAIT`` value in **cice.settings** which is set by default to zero.
+That means the testcase will not wait any extra time for the ``--diff`` case to finish to minimize
+batch time.  Again, **bfbcomp_update_tests.csh** will run at the end of a test suite to update
+the results.  And if needed, users can run that script manually to update those results.
 
 .. _examplesuites:
 

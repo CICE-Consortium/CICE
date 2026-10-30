@@ -54,7 +54,7 @@ cat >> ${jobfile} << EOFR
 EOFR
 else
 cat >> ${jobfile} << EOFR
-mpirun -n ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
+mpirun -n ${ntasks} --map-by slot:PE=${nthrds} --bind-to core ./cice >&! \$ICE_RUNLOG_FILE
 EOFR
 endif
 
