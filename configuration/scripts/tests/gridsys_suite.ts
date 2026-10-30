@@ -63,8 +63,8 @@ smoke          gx3     1x1x5x4    reprosum,run10day,gridcd             smoke_gx3
 smoke          gx1     32x1x16x16 reprosum,run10day,cmplogrest,dwblockall,gridcd   smoke_gx1_32x1x16x16_gridcd_reprosum_run10day
 smoke          gx1     32x1x16x12 reprosum,run10day,cmplogrest,dwblockall,gridcd   smoke_gx1_32x1x16x16_gridcd_reprosum_run10day
 smoke          gx1     32x1x16x12 reprosum,run10day,cmplogrest,gridcd              smoke_gx1_32x1x16x16_gridcd_reprosum_run10day
-smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,evp1d,gridcd smoke_gbox80_8x1_boxforcee_boxopen_debug_gridcd_kmtislands_run1day
-smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d,gridcd smoke_gbox80_8x1_boxforcee_boxopen_debug_gridcd_kmtislands_nghost2_run1day
+#smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,evp1d,gridcd smoke_gbox80_8x1_boxforcee_boxopen_debug_gridcd_kmtislands_run1day
+#smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d,gridcd smoke_gbox80_8x1_boxforcee_boxopen_debug_gridcd_kmtislands_nghost2_run1day
 
 smoke          gx3     8x2        diag1,run5day,gridc
 smoke          gx3     8x4        diag1,run5day,debug,gridc
@@ -94,6 +94,6 @@ smoke          gx1     32x1x16x16 reprosum,run10day,cmplogrest,dwblockall,gridc 
 smoke          gx1     32x1x16x12 reprosum,run10day,cmplogrest,dwblockall,gridc   smoke_gx1_32x1x16x16_gridc_reprosum_run10day
 smoke          gx1     32x1x16x12 reprosum,run10day,cmplogrest,gridc              smoke_gx1_32x1x16x16_gridc_reprosum_run10day 
 smoke          tx1m    16x1       reprosum,run10day,gridc  smoke_tx1m_32x1_gridc_reprosum_run10day
-smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,evp1d,gridc smoke_gbox80_8x1_boxforcee_boxopen_debug_gridc_kmtislands_run1day
-smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d,gridc smoke_gbox80_8x1_boxforcee_boxopen_debug_gridc_kmtislands_nghost2_run1day
+#smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,evp1d,gridc smoke_gbox80_8x1_boxforcee_boxopen_debug_gridc_kmtislands_run1day
+#smoke          gbox80  8x1        debug,boxopen,kmtislands,boxforcee,run1day,nghost2,evp1d,gridc smoke_gbox80_8x1_boxforcee_boxopen_debug_gridc_kmtislands_nghost2_run1day
 
