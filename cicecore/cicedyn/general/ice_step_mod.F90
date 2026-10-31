@@ -990,13 +990,14 @@
       subroutine step_dyn_horiz (dt)
 
       use ice_boundary, only: ice_HaloUpdate
-      use ice_dyn_evp, only: evp
+      use ice_dyn_evp, only: evp, aiE, aiN
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: strocnxU, strocnyU, strocnxT_iavg, strocnyT_iavg
+      use ice_flux, only: strocnxE, strocnyN
       use ice_flux, only: init_history_dyn
-      use ice_grid, only: grid_average_X2Y
+      use ice_grid, only: grid_average_X2Y, grid_ice
       use ice_state, only: aiU
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
@@ -1017,7 +1018,15 @@
          work1, &     ! temporary
          work2        ! temporary
 
+      real (kind=dbl_kind) :: &
+         puny               ! a very small number
+
       character(len=*), parameter :: subname = '(step_dyn_horiz)'
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call init_history_dyn     ! initialize dynamic history variables
 
@@ -1033,33 +1042,63 @@
       ! Compute strocnxT_iavg, strocnyT_iavg for thermo and coupling
       !-----------------------------------------------------------------
 
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! conservation requires aiU be divided before averaging
+      ! strocn computed on U, N, E as needed. Map strocn divided by ice area to T
+      ! conservation requires ice area be divided before averaging
+      ! B grid: use strocn U divided by aiU
+      ! C/CD grid: use strocnx E divided by aiE and strocny N divided by aiN.
       work1 = c0
       work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk), iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (aiU(i,j,iblk) /= c0) then
-               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
-            endif
-        enddo
-        enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (work2,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
-      call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
+      if (grid_ice == 'C' .or. grid_ice == 'CD') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk), iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (aiE(i,j,iblk) > puny) then
+                  work1(i,j,iblk) = strocnxE(i,j,iblk)/aiE(i,j,iblk)
+               endif
+               if (aiN(i,j,iblk) > puny) then
+                  work2(i,j,iblk) = strocnyN(i,j,iblk)/aiN(i,j,iblk)
+               endif
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call ice_HaloUpdate (work1,           halo_info, &
+                              field_loc_Eface, field_type_vector)
+         call ice_HaloUpdate (work2,           halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call grid_average_X2Y('F', work1, 'E', strocnxT_iavg, 'T')    ! shift
+         call grid_average_X2Y('F', work2, 'N', strocnyT_iavg, 'T')
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk), iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (aiU(i,j,iblk) /= c0) then
+                  work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+                  work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
+               endif
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call ice_HaloUpdate (work1,              halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+         call ice_HaloUpdate (work2,              halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+         call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
+         call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
+      endif
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport

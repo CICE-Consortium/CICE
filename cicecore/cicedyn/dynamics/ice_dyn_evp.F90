@@ -121,6 +121,7 @@
          rheofactU(:,:,:)     ! 1, except 0 where aiU <= rheo_area_min
 
       public :: evp, init_evp
+      public :: aiE, aiN  ! used to map strocn E/N to T for coupling
 
 !=======================================================================
 
