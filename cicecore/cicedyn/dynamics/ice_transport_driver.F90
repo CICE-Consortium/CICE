@@ -31,6 +31,7 @@
       implicit none
       private
       public :: init_transport, transport_remap, transport_upwind
+      public :: state_to_tracers, tracers_to_state  ! public for transportchk unit test
 
       character (len=char_len), public ::     &
          advection   ! type of advection scheme used
@@ -922,21 +923,13 @@
       integer (kind=int_kind) ::     &
          nt_qsno , & !
          i, j, n , & ! standard indices
-         it, kt  , & ! tracer indices
-         ij          ! combined i/j index
+         it, kt      ! tracer indices
 
       real (kind=dbl_kind) ::     &
          puny    , & !
          rhos    , & ! snow density (km/m^3)
          Lfresh  , & ! latent heat of melting fresh ice (J/kg)
          w1          ! work variable
-
-      integer (kind=int_kind), dimension(nx_block*ny_block,0:ncat) ::  &
-         indxi   , & ! compressed i/j indices
-         indxj
-
-      integer (kind=int_kind), dimension(0:ncat) ::     &
-         icells      ! number of cells with ice
 
       character(len=*), parameter :: subname = '(state_to_tracers)'
 
@@ -951,53 +944,48 @@
 
       do n = 1, ncat
 
-         trm(:,:,:,n) = c0
-
          !-------------------------------------------------------------------
-         ! Find grid cells where ice is present and fill area array.
-         !-------------------------------------------------------------------
-
-         icells(n) = 0
-         do j = 1, ny_block
-         do i = 1, nx_block
-            aim(i,j,n) = aicen(i,j,n)
-            if (aim(i,j,n) > puny) then
-               icells(n) = icells(n) + 1
-               ij = icells(n)
-               indxi(ij,n) = i
-               indxj(ij,n) = j
-            endif               ! aim > puny
-         enddo
-         enddo
-
-         !-------------------------------------------------------------------
-         ! Fill tracer array
+         ! Fill area and tracer arrays, tracers are zero where aim <= puny.
          ! Note: If aice > 0, then hice > 0, but we can have hsno = 0.
          ! Alse note: We transport qice*nilyr rather than qice, so as to
          !  avoid extra operations here and in tracers_to_state.
          !-------------------------------------------------------------------
 
-         do ij = 1, icells(n)
-            i = indxi(ij,n)
-            j = indxj(ij,n)
-            w1 = c1 / aim(i,j,n)
-            trm(i,j,1,n) = vicen(i,j,n) * w1 ! hice
-            trm(i,j,2,n) = vsnon(i,j,n) * w1 ! hsno
+         do j = 1, ny_block
+         do i = 1, nx_block
+            aim(i,j,n) = aicen(i,j,n)
+            if (aim(i,j,n) > puny) then
+               w1 = c1 / aim(i,j,n)
+               trm(i,j,1,n) = vicen(i,j,n) * w1 ! hice
+               trm(i,j,2,n) = vsnon(i,j,n) * w1 ! hsno
+            else
+               trm(i,j,1,n) = c0
+               trm(i,j,2,n) = c0
+            endif
+         enddo
          enddo
          kt = 2
 
          do it = 1, ntrcr
             if (it >= nt_qsno .and. it < nt_qsno+nslyr) then
-               do ij = 1, icells(n)
-                  i = indxi(ij,n)
-                  j = indxj(ij,n)
-                  trm(i,j,kt+it,n) = trcrn(i,j,it,n) + rhos*Lfresh ! snow enthalpy
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (aim(i,j,n) > puny) then
+                     trm(i,j,kt+it,n) = trcrn(i,j,it,n) + rhos*Lfresh ! snow enthalpy
+                  else
+                     trm(i,j,kt+it,n) = c0
+                  endif
+               enddo
                enddo
             else
-               do ij = 1, icells(n)
-                  i = indxi(ij,n)
-                  j = indxj(ij,n)
-                  trm(i,j,kt+it,n) = trcrn(i,j,it,n) ! other tracers
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (aim(i,j,n) > puny) then
+                     trm(i,j,kt+it,n) = trcrn(i,j,it,n) ! other tracers
+                  else
+                     trm(i,j,kt+it,n) = c0
+                  endif
+               enddo
                enddo
             endif
          enddo
@@ -1047,16 +1035,11 @@
       integer (kind=int_kind) ::     &
          nt_qsno    , & !
          i, j, n    , & ! standard indices
-         it, kt     , & ! tracer indices
-         icells     , & ! number of cells with ice
-         ij
+         it, kt         ! tracer indices
 
       real (kind=dbl_kind) :: &
          rhos       , & !
          Lfresh         !
-
-      integer (kind=int_kind), dimension (nx_block*ny_block) ::     &
-         indxi, indxj   ! compressed indices
 
       character(len=*), parameter :: subname = '(tracers_to_state)'
 
@@ -1070,42 +1053,42 @@
 
       do n = 1, ncat
 
-         icells = 0
+         !-------------------------------------------------------------------
+         ! Compute state variables
+         !-------------------------------------------------------------------
+
          do j = 1, ny_block
          do i = 1, nx_block
             if (aim(i,j,n) > c0) then
-               icells = icells + 1
-               indxi(icells) = i
-               indxj(icells) = j
+               aicen(i,j,n) = aim(i,j,n)
+               vicen(i,j,n) = aim(i,j,n)*trm(i,j,1,n) ! aice*hice
+               vsnon(i,j,n) = aim(i,j,n)*trm(i,j,2,n) ! aice*hsno
+            else
+               ! set to zero if no ice left in cell
+               aicen(i,j,n) = c0
+               vicen(i,j,n) = c0
+               vsnon(i,j,n) = c0
             endif
          enddo
          enddo
-
-         !-------------------------------------------------------------------
-         ! Compute state variables.
-         !-------------------------------------------------------------------
-
-         do ij = 1, icells
-            i = indxi(ij)
-            j = indxj(ij)
-            aicen(i,j,n) = aim(i,j,n)
-            vicen(i,j,n) = aim(i,j,n)*trm(i,j,1,n) ! aice*hice
-            vsnon(i,j,n) = aim(i,j,n)*trm(i,j,2,n) ! aice*hsno
-         enddo                  ! ij
          kt = 2
 
          do it = 1, ntrcr
             if (it >= nt_qsno .and. it < nt_qsno+nslyr) then
-               do ij = 1, icells
-                  i = indxi(ij)
-                  j = indxj(ij)
-                  trcrn(i,j,it,n) = trm(i,j,kt+it,n) - rhos*Lfresh ! snow enthalpy
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (aim(i,j,n) > c0) then
+                     trcrn(i,j,it,n) = trm(i,j,kt+it,n) - rhos*Lfresh ! snow enthalpy
+                  endif
+               enddo
                enddo
             else
-               do ij = 1, icells
-                  i = indxi(ij)
-                  j = indxj(ij)
-                  trcrn(i,j,it,n) = trm(i,j,kt+it,n)  ! other tracers
+               do j = 1, ny_block
+               do i = 1, nx_block
+                  if (aim(i,j,n) > c0) then
+                     trcrn(i,j,it,n) = trm(i,j,kt+it,n)  ! other tracers
+                  endif
+               enddo
                enddo
             endif
          enddo

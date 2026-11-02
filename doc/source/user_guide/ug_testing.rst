@@ -751,6 +751,9 @@ The following are brief descriptions of some of the current unit tests,
  - **sumchk** is a unit test that exercises the methods in ice_global_reductions.F90.  This test requires
    that a CICE grid and decomposition be initialized, so CICE_InitMod.F90 is leveraged to initialize
    the model prior to running a suite of unit validation tests to verify correctness.
+ - **transportchk** is a unit test that exercises state_to_tracers and tracers_to_state in
+   ice_transport_driver.F90, including the round trip and cells where ice is removed or added
+   during transport, and verifies results.
 
 
 .. _testreporting:
