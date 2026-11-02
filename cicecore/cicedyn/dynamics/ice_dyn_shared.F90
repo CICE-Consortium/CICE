@@ -11,8 +11,9 @@
 
       use ice_kinds_mod
       use ice_communicate, only: my_task, master_task, get_num_procs
-      use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5
-      use ice_constants, only: omega, spval_dbl, p01, p001, p5
+      use ice_constants, only: c0, c1, c2, c3, c4, c6, c1p5, p25, p5, eps13
+      use ice_constants, only: omega, spval_dbl, p01, p001
+      use ice_constants, only: field_loc_center, field_type_vector
       use ice_blocks, only: nx_block, ny_block
       use ice_domain_size, only: max_blocks
       use ice_fileunits, only: nu_diag
@@ -985,7 +986,6 @@
           stresspU, stressmU, stress12U
       use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
       use ice_grid, only: ULAT, NLAT, ELAT, tarea, HTE, HTN
-      use ice_constants, only: field_loc_center, field_type_vector
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -2922,6 +2922,14 @@
 ! author: Elizabeth C. Hunke, LANL
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
+! 2026: JF Lemieux added calculation of Deltapp
+
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! Delta and Deltapp are called Delta_FG and Delta_G 
+! in Lemieux et al. paper. 
 
       subroutine deformations (ncells,     skipme, &
                                nbr,        ijslot, &
@@ -2933,8 +2941,6 @@
                                tarear,     vort,   &
                                shear,      divu,   &
                                rdg_conv,   rdg_shear )
-
-      use ice_constants, only: p25, p5
 
       integer (kind=int_kind), intent(in) :: &
          ncells                ! slots held by this block
@@ -2990,7 +2996,10 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
-        tmp                                           ! useful combination
+
+        Deltappne, Deltappnw                      , & ! Deltapp
+        Deltappse, Deltappsw                      , & 
+        tmp, numetp, nume, deno                       ! useful combination
 
       real (kind=dbl_kind) :: &                       ! at edges for vorticity calc :
          dvdxn, dvdxs, dudye, dudyw                   ! dvdx and dudy terms on edges
@@ -3023,12 +3032,21 @@
                             shearne,    shearnw,   &
                             shearse,    shearsw,   &
                             Deltane,    Deltanw,   &
-                            Deltase,    Deltasw     )
+                            Deltase,    Deltasw,    &
+                            Deltappne,  Deltappnw,  &
+                            Deltappse,  Deltappsw   )
+
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
          divu(ijb) = p25*(divune + divunw + divuse + divusw) * tarear(is)
-         tmp = p25*(Deltane + Deltanw + Deltase + Deltasw)   * tarear(is)
+
+         numetp = p25*(Deltappne + Deltappnw + Deltappse + Deltappsw)
+         nume   = numetp**2
+         deno   = p25*(Deltane + Deltanw + Deltase + Deltasw)
+         deno   = max(deno,eps13) ! avoids div by zero
+         tmp    = nume*tarear(is)/deno
+
          rdg_conv(ijb)  = -min(divu(ijb),c0)
          rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
@@ -3064,8 +3082,6 @@
                                    tarear,     vort,   &
                                    shear,      divu,   &
                                    rdg_conv,   rdg_shear )
-
-      use ice_constants, only: p5
 
       integer (kind=int_kind), intent(in) :: &
          ncells                ! slots held by this block
@@ -3173,6 +3189,14 @@
 !
 ! author: JF Lemieux, ECCC
 ! Nov 2021
+! Sep 2026: added calculation of Deltapp
+
+! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
+! for multi-category sea ice models with modified viscous-plastic 
+! rheologies, under review.
+! 
+! DeltaT and DeltappT are called Delta_FG and Delta_G 
+! in Lemieux et al. paper. 
 
     subroutine deformationsC_T (ncells,     skipme,    &
                                    nbr,        ijslot, &
@@ -3185,8 +3209,6 @@
                                 shearU,     vort,      &
                                 shear,      divu,      &
                                 rdg_conv,   rdg_shear )
-
-      use ice_constants, only: p5
 
       integer (kind=int_kind), intent(in) :: &
          ncells                ! slots held by this block
@@ -3248,7 +3270,8 @@
 
       real (kind=dbl_kind) :: &
         tmp       , & ! useful combination
-        shearTsqr     ! strain rates squared at T point
+        shearTsqr , & ! strain rates squared at T point
+        DeltappTsqr   ! Deltapp squared at T point
 
       character(len=*), parameter :: subname = '(deformations_T2)'
 
@@ -3292,10 +3315,11 @@
                     + shearU(isW)**2 * uarea(isW))  &
                     / uareaavg(is)
 
-         DeltaT(is) = sqrt(divT(is)**2 + e_factor*(tensionT(is)**2 + shearTsqr))
+         DeltaT(is)  = sqrt(divT(is)**2 + e_factor*(tensionT(is)**2 + shearTsqr))
+         DeltappTsqr = divT(is)**2 + epp2i*(tensionT(is)**2 + shearTsqr)
 
          divu(ijb) = divT(is) * tarear(is)
-         tmp = DeltaT(is) * tarear(is)
+         tmp = ( DeltappTsqr/max(DeltaT(is),eps13) ) * tarear(is)
          rdg_conv(ijb)  = -min(divu(ijb),c0)
          rdg_shear(ijb) = p5*(tmp-abs(divu(ijb)))
 
@@ -3331,7 +3355,9 @@
                                shearne,    shearnw,    &
                                shearse,    shearsw,    &
                                Deltane,    Deltanw,    &
-                               Deltase,    Deltasw     )
+                               Deltase,    Deltasw,    &
+                               Deltappne,  Deltappnw,  &
+                               Deltappse,  Deltappsw   )
 
       ! Everything arrives as a VALUE, so this routine is independent of any
       ! layout: block, compressed or gathered 1-D callers all just read their
@@ -3375,6 +3401,12 @@
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw            ! Delta
 
+      ! Deltapp (Delta_G, Lemieux et al.) for mechanical redistribution.
+      ! Optional: only deformations wants it, and it reuses the strain
+      ! rates computed here rather than recomputing them.
+      real (kind=dbl_kind), intent(out), optional :: &
+        Deltappne, Deltappnw, Deltappse, Deltappsw
+
       character(len=*), parameter :: subname = '(strain_rates)'
 
       !-----------------------------------------------------------------
@@ -3417,6 +3449,13 @@
       Deltanw = sqrt(divunw**2 + e_factor*(tensionnw**2 + shearnw**2))
       Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
       Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
+
+      if (present(Deltappne)) then
+         Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
+         Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
+         Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
+         Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
+      endif
 
       end subroutine strain_rates
 
