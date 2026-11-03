@@ -777,6 +777,9 @@
          uee(:,:,:)=uvelE(:,:,:)
          vnn(:,:,:)=vvelN(:,:,:)
       else
+         uee(:,:,:) = c0
+         vnn(:,:,:) = c0
+
          !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block) SCHEDULE(runtime)
          do iblk = 1, nblocks
             this_block = get_block(blocks_ice(iblk),iblk)
