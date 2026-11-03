@@ -52,6 +52,7 @@
                 ice_write_ext,      &
                 ice_read_vec_nc,    &
                 ice_get_ncvarsize,  &
+                ice_read_nc_refdate,&
                 ice_check_nc,       &
                 ice_close_nc
 
@@ -2946,6 +2947,141 @@
       if (present(ndims_out)) ndims_out = n
 
       end subroutine ice_get_ncvarsize_array
+
+!=======================================================================
+! Read the reference date and the time unit of a time variable from its
+! netCDF "units" attribute, e.g. "days since 1900-12-31 00:00:00".
+!
+! Accepted:  <unit> since YYYY-MM-DD[ hh[:mm[:ss]]]
+!            also with 'T' between date and time, a trailing 'Z' or 'UTC',
+!            and single digit fields such as 1970-1-1.
+!            <unit> is days, hours, minutes or seconds, in any case.
+!
+! Returns the reference date, its time of day ref_sec (s) and the length of
+! one time unit ref_sec_per_unit (s).  Without a "units" attribute all are 0 and
+! the caller must assume a default.  Only set on master_task; callers
+! broadcast them.
+
+      subroutine ice_read_nc_refdate(fid, varname, ref_year, ref_month, ref_day, &
+                                     ref_sec, ref_sec_per_unit)
+
+      integer (kind=int_kind), intent(in) :: &
+         fid                 ! file id
+      character (len=*), intent(in) :: &
+         varname             ! name of the time variable
+      integer (kind=int_kind), intent(out) :: &
+         ref_year        , & ! reference date: year
+         ref_month       , & ! reference date: month
+         ref_day         , & ! reference date: day
+         ref_sec             ! reference date: seconds of the day
+      real (kind=dbl_kind), intent(out) :: &
+         ref_sec_per_unit    ! length of one time unit (s)
+
+      ! local variables
+
+#ifdef USE_NETCDF
+      integer (kind=int_kind) :: &
+         status, varid, attlen, isince, i, ntok, ios
+      character (char_len_long) :: &
+         units           , & ! the units attribute, lower case
+         rest            , & ! remaining part of the date string
+         token               ! one field of the date string
+      real (kind=dbl_kind) :: &
+         field(6)            ! year, month, day, hour, minute, second
+#endif
+      character(len=*), parameter :: subname = '(ice_read_nc_refdate)'
+
+      ! Default values
+      ref_year     = 0
+      ref_month    = 0
+      ref_day      = 0
+      ref_sec      = 0
+      ref_sec_per_unit = c0
+
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+
+         status = nf90_inq_varid(fid, trim(varname), varid)
+         call ice_check_nc(status, subname//' ERROR: Cannot find variable '//trim(varname), &
+                           file=__FILE__, line=__LINE__)
+
+         ! without a units attribute everything stays 0
+         status = nf90_inquire_attribute(fid, varid, 'units', len=attlen)
+         if (status == nf90_noerr) then
+
+            if (attlen > len(units)) then
+               call abort_ice(subname//' ERROR: units attribute too long for '//trim(varname), &
+                              file=__FILE__, line=__LINE__)
+            endif
+            units = ' '
+            status = nf90_get_att(fid, varid, 'units', units)
+            call ice_check_nc(status, subname//' ERROR: Cannot get units of '//trim(varname), &
+                              file=__FILE__, line=__LINE__)
+            do i = 1, len_trim(units)
+               if (units(i:i) >= 'A' .and. units(i:i) <= 'Z') &
+                  units(i:i) = achar(iachar(units(i:i)) + 32)
+            enddo
+
+            ! 1) the time unit, before "since"
+            isince = index(units, ' since ')
+            if (isince == 0) then
+               call abort_ice(subname//' ERROR: units of '//trim(varname)// &
+                              ' not "<unit> since <date>": '//trim(units), &
+                              file=__FILE__, line=__LINE__)
+            endif
+            select case (trim(adjustl(units(1:isince-1))))
+            case ('days', 'day', 'd')
+               ref_sec_per_unit = 86400.0_dbl_kind
+            case ('hours', 'hour', 'hrs', 'hr', 'h')
+               ref_sec_per_unit = 3600.0_dbl_kind
+            case ('minutes', 'minute', 'mins', 'min')
+               ref_sec_per_unit = 60.0_dbl_kind
+            case ('seconds', 'second', 'secs', 'sec', 's')
+               ref_sec_per_unit = 1.0_dbl_kind
+            case default
+               call abort_ice(subname//' ERROR: unknown time unit in units of '// &
+                              trim(varname)//': '//trim(units), &
+                              file=__FILE__, line=__LINE__)
+            end select
+
+            ! 2) the date after "since": '-', ':', 'T' and 'Z' separate the fields,
+            !    reading stops at the first non-numeric field, e.g. 'utc'
+            rest = units(isince+7:)
+            do i = 1, len_trim(rest)
+               if (index('-:tz', rest(i:i)) > 0) rest(i:i) = ' '
+            enddo
+            field(:) = c0
+            ntok = 0
+            rest = adjustl(rest)
+            do while (len_trim(rest) > 0 .and. ntok < 6)
+               i = index(rest, ' ')
+               token = rest(1:i-1)
+               if (verify(trim(token), '0123456789.') /= 0) exit
+               ntok = ntok + 1
+               read(token, *, iostat=ios) field(ntok)
+               if (ios /= 0) exit
+               rest = adjustl(rest(i:))
+            enddo
+
+            ref_year  = nint(field(1))
+            ref_month = nint(field(2))
+            ref_day   = nint(field(3))
+            ref_sec   = nint(field(4)*3600.0_dbl_kind + field(5)*60.0_dbl_kind + field(6))
+
+            if (ntok < 3 .or. ref_month < 1 .or. ref_month > 12 .or. &
+                ref_day < 1 .or. ref_day > 31 .or. ref_sec < 0 .or. ref_sec >= 86400) then
+               call abort_ice(subname//' ERROR: cannot read the date in units of '// &
+                              trim(varname)//': '//trim(units), &
+                              file=__FILE__, line=__LINE__)
+            endif
+         endif
+      endif
+#else
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+                     file=__FILE__, line=__LINE__)
+#endif
+
+      end subroutine ice_read_nc_refdate
 
 !=======================================================================
 
