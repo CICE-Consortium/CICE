@@ -990,7 +990,7 @@
       subroutine step_dyn_horiz (dt)
 
       use ice_boundary, only: ice_HaloUpdate
-      use ice_dyn_evp, only: evp, aiE, aiN
+      use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
@@ -998,7 +998,7 @@
       use ice_flux, only: strocnxE, strocnyN
       use ice_flux, only: init_history_dyn
       use ice_grid, only: grid_average_X2Y, grid_ice
-      use ice_state, only: aiU
+      use ice_state, only: aiU, aiN, aiE
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
