@@ -2972,7 +2972,7 @@
          endif
 
          if (f_sidmassgrowthsi(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassgrowthsi, iblk, rhoisnoice(:,:,iblk)/dt, a2D)
+           call accum_hist_field(n_sidmassgrowthsi, iblk, rhoi*snoice(:,:,iblk)/dt, a2D)
          endif
 
          if (f_sisndmasssi(1:1) /= 'x') then
