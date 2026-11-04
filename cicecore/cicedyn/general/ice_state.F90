@@ -54,9 +54,13 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          aice  , & ! concentration of ice on T grid
-         aiU   , & ! concentration of ice on U grid
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
+
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension(:,:), allocatable, target, public :: &
+         aiU       ! concentration of ice on U grid
 
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          trcr      ! ice tracers
@@ -101,24 +105,37 @@
       ! dynamic variables closely related to the state of the ice
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+      ! These have their i and j dimensions flattened: element (i,j,iblk)
+      ! lives at ((j-1)*nx_block + i, iblk), as aiU and aice_init below
+      ! already do.  divu, shear and vort joined them so the deformation
+      ! kernels can take a rank-1 (:,iblk) slice instead of relying on
+      ! sequence association from a rank-2 one.
+      real (kind=dbl_kind), dimension(:,:), allocatable, public :: &
          uvel     , & ! x-component of velocity on U grid (m/s)
          vvel     , & ! y-component of velocity on U grid (m/s)
+         divu     , & ! strain rate I component, velocity divergence (1/s)
+         shear    , & ! strain rate II component (1/s)
+         vort         ! vorticity (1/s)
+
+      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          uvelE    , & ! x-component of velocity on E grid (m/s)
          vvelE    , & ! y-component of velocity on E grid (m/s)
          uvelN    , & ! x-component of velocity on N grid (m/s)
          vvelN    , & ! y-component of velocity on N grid (m/s)
-         divu     , & ! strain rate I component, velocity divergence (1/s)
-         shear    , & ! strain rate II component (1/s)
-         vort     , & ! vorticity (1/s)
          strength     ! ice strength (N/m)
 
       !-----------------------------------------------------------------
       ! ice state at start of time step, saved for later in the step
       !-----------------------------------------------------------------
 
-      real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), dimension(:,:), allocatable, target, public :: &
          aice_init       ! initial concentration of ice, for diagnostics
+
+      ! rank-3 alias of aice_init, for routines that take (i,j,iblk) arrays
+      real (kind=dbl_kind), dimension(:,:,:), pointer, public :: &
+         aice_init3d => null()   ! initial concentration of ice, for diagnostics
 
       real (kind=dbl_kind), dimension(:,:,:,:), allocatable, public :: &
          aicen_init  , & ! initial ice concentration, for linear ITD
@@ -145,21 +162,21 @@
 
       allocate ( &
          aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
-         aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
+         aiU       (nx_block*ny_block,max_blocks) , & ! concentration of ice U grid
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
-         uvel      (nx_block,ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
-         vvel      (nx_block,ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
+         uvel      (nx_block*ny_block,max_blocks) , & ! x-component of velocity on U grid (m/s)
+         vvel      (nx_block*ny_block,max_blocks) , & ! y-component of velocity on U grid (m/s)
          uvelE     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on E grid (m/s)
          vvelE     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on E grid (m/s)
          uvelN     (nx_block,ny_block,max_blocks) , & ! x-component of velocity on N grid (m/s)
          vvelN     (nx_block,ny_block,max_blocks) , & ! y-component of velocity on N grid (m/s)
-         divu      (nx_block,ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
-         shear     (nx_block,ny_block,max_blocks) , & ! strain rate II component (1/s)
-         vort      (nx_block,ny_block,max_blocks) , & ! vorticity (1/s)
+         divu      (nx_block*ny_block,max_blocks) , & ! strain rate I component, velocity divergence (1/s)
+         shear     (nx_block*ny_block,max_blocks) , & ! strain rate II component (1/s)
+         vort      (nx_block*ny_block,max_blocks) , & ! vorticity (1/s)
          strength  (nx_block,ny_block,max_blocks) , & ! ice strength (N/m)
-         aice_init (nx_block,ny_block,max_blocks) , & ! initial concentration of ice, for diagnostics
+         aice_init (nx_block*ny_block,max_blocks) , & ! initial concentration of ice, for diagnostics
          aicen     (nx_block,ny_block,ncat,max_blocks) , & ! concentration of ice
          vicen     (nx_block,ny_block,ncat,max_blocks) , & ! volume per unit area of ice (m)
          vsnon     (nx_block,ny_block,ncat,max_blocks) , & ! volume per unit area of snow (m)
@@ -172,6 +189,9 @@
          stat=ierr)
       if (ierr/=0) call abort_ice(error_message=trim(subname)//' ERROR: Out of memory1', &
          file=__FILE__, line=__LINE__)
+
+      ! rank-3 view of the flattened array; no copy is made
+      aice_init3d(1:nx_block,1:ny_block,1:max_blocks) => aice_init
 
       aice  = c0
       aiU   = c0

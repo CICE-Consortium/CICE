@@ -931,7 +931,7 @@
 ! author Elizabeth C. Hunke, LANL
 
       use ice_arrays_column, only: first_ice, first_ice_real
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_fileunits, only: nu_dump_hbrine
       use ice_grid, only: tmask
@@ -972,7 +972,7 @@
         do i = ilo, ihi
            do n = 1, ncat
               ! zero out first_ice over land
-              if (tmask(i,j,iblk) .and. first_ice (i,j,n,iblk)) then
+              if (tmask((j-1)*nx_block+i,iblk) .and. first_ice (i,j,n,iblk)) then
                   first_ice_real(i,j,n,iblk) = c1
               else
                   first_ice_real(i,j,n,iblk) = c0
@@ -998,7 +998,7 @@
 
       subroutine write_restart_bgc()
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_domain, only: nblocks, blocks_ice
       use ice_domain_size, only: ncat, n_algae, n_doc, n_dic, &
           n_don, n_zaero, n_fed, n_fep
@@ -1093,7 +1093,7 @@
          jhi = this_block%jhi
          do j = jlo, jhi
          do i = ilo, ihi
-            if (.not. tmask(i,j,iblk)) then
+            if (.not. tmask((j-1)*nx_block+i,iblk)) then
                if (tr_bgc_N  ) algalN(i,j,:,iblk) = c0
                if (tr_bgc_C  ) doc   (i,j,:,iblk) = c0
                if (tr_bgc_C  ) dic   (i,j,:,iblk) = c0

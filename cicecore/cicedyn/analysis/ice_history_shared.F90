@@ -35,6 +35,8 @@
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
+      public :: hist_field_needed
+      public :: expand_a2D, compress_a2D
 
       integer (kind=int_kind), public :: history_precision
 
@@ -148,7 +150,10 @@
       character (len=char_len), public :: hist_time_axis
 
       real (kind=dbl_kind), allocatable, public :: &
-         a2D (:,:,:,:)    , & ! field accumulations/averages, 2D
+         a2D (:,:)        , & ! field accumulations/averages, 2D, COMPRESSED:
+                              ! (slot, field), this block's slice starting at
+                              ! dynOff(iblk).  Expanded to (x,y) at the writer
+                              ! only, so the I/O interface is unchanged.
          a3Dz(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical
          a3Db(:,:,:,:,:)  , & ! field accumulations/averages, 3D vertical biology
          a3Dc(:,:,:,:,:)  , & ! field accumulations/averages, 3D thickness categories
@@ -767,6 +772,8 @@
 
       interface accum_hist_field ! generic interface
            module procedure accum_hist_field_2D, &
+                            accum_hist_field_2D_flat, &
+                            accum_hist_field_2D_compressed, &
                             accum_hist_field_3D, &
                             accum_hist_field_4D
       end interface
@@ -774,6 +781,45 @@
 !=======================================================================
 
       contains
+
+!=======================================================================
+
+! Does any history stream need this field's value on THIS timestep?
+!
+! Pass the field's n_* index array -- the same one accum_hist_field takes.
+! A field no stream requests is never read, so whatever produces it need not
+! run at all.  A requested one still need not be produced every step: with
+! hist_avg the accumulator sums every timestep, so the value is needed every
+! time, but for snapshots accum_hist zeroes the accumulator at the start of
+! each step and only the write step's value survives.
+!
+! This exists for the dynamics diagnostics -- strintx/strinty and
+! taubx/tauby, which history is the sole consumer of -- so that the solvers
+! can skip building them.  Anything whose value feeds the solution must NOT
+! be gated on this.
+
+      logical function hist_field_needed (id)
+
+      use ice_calendar, only: nstreams, write_history, write_ic
+
+      integer (kind=int_kind), dimension(:), intent(in) :: &
+         id          ! per-stream history index, 0 where not requested
+
+      integer (kind=int_kind) :: ns
+
+      character(len=*), parameter :: subname = '(hist_field_needed)'
+
+      hist_field_needed = .false.
+      do ns = 1, nstreams
+         if (id(ns) > 0) then
+            if (hist_avg(ns) .or. write_history(ns) .or. write_ic) then
+               hist_field_needed = .true.
+               return
+            endif
+         endif
+      enddo
+
+      end function hist_field_needed
 
 !=======================================================================
 
@@ -1061,10 +1107,10 @@
 
       subroutine accum_hist_field_2D(id, iblk, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
-      use ice_grid, only: tmask
+      use ice_grid, only: tmask, dynMap, dynOff
 
       integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
          id                ! location in avail_fields array for use in
@@ -1075,13 +1121,19 @@
       real (kind=dbl_kind), intent(in) :: &
          field_accum(:,:)
 
+      ! (slot, field).  a2D is COMPRESSED: one entry per slot, not per block
+      ! cell, with this block's slice starting at dynOff(iblk).  It is
+      ! expanded to (x,y) only at the writer, so the I/O interface is
+      ! unchanged.  Every tmask cell has a slot by construction -- mask_any
+      ! includes tmask -- so the m > 0 test never rejects a cell this loop
+      ! would have accumulated; it guards against indexing element 0.
       real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:,:)
+         field(:,:)
 
       type (block) :: &
          this_block           ! block information for current block
 
-      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
 
       character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
@@ -1101,8 +1153,13 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
-             field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(i,j)
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = dynMap(ij,iblk)
+             if (m > 0) then
+                m = dynOff(iblk) + m
+                field(m,idns) = field(m,idns) + field_accum(i,j)
+             endif
           endif
        enddo
        enddo
@@ -1113,6 +1170,146 @@
       end subroutine accum_hist_field_2D
 
 !=======================================================================
+! As accum_hist_field_2D, for a field_accum whose i and j dimensions are
+! flattened, i.e. dimension(nx_block*ny_block), with element (i,j) at
+! (j-1)*nx_block + i
+
+      subroutine accum_hist_field_2D_flat(id, iblk, field_accum, field)
+
+      use ice_blocks, only: block, get_block, nx_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask, dynMap, dynOff
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array for use in
+                           ! later routines
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         field_accum(:)
+
+      ! (slot, field) -- see accum_hist_field_2D.
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_flat)'
+
+      !---------------------------------------------------------------
+      ! increment field
+      !---------------------------------------------------------------
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = dynMap(ij,iblk)
+             if (m > 0) then
+                m = dynOff(iblk) + m
+                field(m,idns) = field(m,idns) + field_accum(ij)
+             endif
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_flat
+
+!=======================================================================
+
+! Accumulate a field held in the COMPRESSED (slot) layout.
+!
+! The block and flat forms above stay: most history fields are block arrays
+! and the dynamics diagnostics that have slot forms are the exception, not
+! the rule.  This one exists so a field whose producer keeps it in slots does
+! not have to be expanded to a block array purely to be accumulated.
+!
+! field_accum is THIS BLOCK's slice, 1-based, and map is this block's
+! dynMap column -- the same pair every compressed kernel takes.  Only cells
+! with tmask are accumulated, exactly as the block forms do, and every tmask
+! cell has a slot by construction (mask_any includes tmask), so the m > 0
+! test below never actually rejects one.  It is there because a slot array
+! indexed at a cell that has none would otherwise read element 0.
+
+      subroutine accum_hist_field_2D_compressed(id, iblk, field_accum, map, field)
+
+      use ice_blocks, only: block, get_block, nx_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask, dynMap, dynOff
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array for use in
+                           ! later routines
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         field_accum(:)    ! this block's compressed slice
+
+      integer (kind=int_kind), intent(in) :: &
+         map(:)            ! this block's dynMap column
+
+      ! (slot, field) -- see accum_hist_field_2D.
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ij, m, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_compressed)'
+
+      !---------------------------------------------------------------
+      ! increment field
+      !---------------------------------------------------------------
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          ij = (j-1)*nx_block + i
+          if (tmask(ij,iblk)) then
+             m = map(ij)
+             if (m > 0) &
+                field(dynOff(iblk)+m,idns) = field(dynOff(iblk)+m,idns) + field_accum(m)
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_compressed
+
+!=======================================================================
 
 !     Accumulates a history field
 !
@@ -1121,7 +1318,7 @@
 
       subroutine accum_hist_field_3D(id, iblk, ndim, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
       use ice_grid, only: tmask
@@ -1165,7 +1362,7 @@
        do k = 1, ndim
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (tmask((j-1)*nx_block+i,iblk)) then
              field(i,j,k,idns,iblk) = field(i,j,k,idns,iblk) + field_accum(i,j,k)
           endif
        enddo
@@ -1186,7 +1383,7 @@
 
       subroutine accum_hist_field_4D(id, iblk, ndim3, ndim4, field_accum, field)
 
-      use ice_blocks, only: block, get_block
+      use ice_blocks, only: block, get_block, nx_block
       use ice_calendar, only: nstreams
       use ice_domain, only: blocks_ice
       use ice_grid, only: tmask
@@ -1232,7 +1429,7 @@
        do n = 1, ndim3
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (tmask((j-1)*nx_block+i,iblk)) then
              field(i,j,n,k,idns,iblk) = field(i,j,n,k,idns,iblk) + field_accum(i,j,n,k)
           endif
        enddo
@@ -1294,6 +1491,73 @@
          rho_ice = rho_ice / real(nzilyr,kind=dbl_kind)
 
       end subroutine ice_brine_density
+
+!=======================================================================
+! Expand one field of the COMPRESSED a2D into the block layout the writers
+! take, and its inverse.
+!
+! a2D holds one entry per slot.  Slots cover every tmask cell -- mask_any
+! includes tmask -- so nothing the accumulators wrote is lost.  What they do
+! not cover is land outside mask_any, and the normalisation pass fills land
+! with spval_dbl, so that is what those cells get here.  Ghost cells never
+! reach a history file, so their value is immaterial either way.
+!
+! ⚠ This is the ONLY place a2D becomes two-dimensional.  Keeping it here
+! means io_binary, io_netcdf and io_pio2 keep taking a block-shaped array
+! and the I/O interface is unchanged -- which also matters because netCDF is
+! not installed on the development machine, so those two writers cannot be
+! compiled there at all.
+
+      subroutine expand_a2D(n, work)
+
+      use ice_blocks, only: nx_block, ny_block
+      use ice_constants, only: spval_dbl
+      use ice_domain, only: nblocks
+      use ice_grid, only: dynMap, dynOff, dynCnt, unpack_from_slots
+
+      integer (kind=int_kind), intent(in) :: &
+         n                 ! which 2D field
+
+      ! (ij, block), i and j flattened -- the shape the writers pass on
+      real (kind=dbl_kind), dimension(:,:), intent(out) :: &
+         work
+
+      integer (kind=int_kind) :: iblk
+
+      character(len=*), parameter :: subname = '(expand_a2D)'
+
+      work(:,:) = spval_dbl
+      do iblk = 1, nblocks
+         call unpack_from_slots(a2D(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1,n), &
+                                dynMap(:,iblk), work(:,iblk))
+      enddo
+
+      end subroutine expand_a2D
+
+!=======================================================================
+
+      subroutine compress_a2D(n, work)
+
+      use ice_domain, only: nblocks
+      use ice_grid, only: dynMap, dynOff, dynCnt, pack_to_slots
+
+      integer (kind=int_kind), intent(in) :: &
+         n                 ! which 2D field
+
+      real (kind=dbl_kind), dimension(:,:), intent(in) :: &
+         work
+
+      integer (kind=int_kind) :: iblk
+
+      character(len=*), parameter :: subname = '(compress_a2D)'
+
+      do iblk = 1, nblocks
+         call pack_to_slots(work(:,iblk), dynMap(:,iblk), &
+                            a2D(dynOff(iblk)+1:dynOff(iblk)+dynCnt(iblk)+1,n))
+      enddo
+
+      end subroutine compress_a2D
+
 !=======================================================================
 
       end module ice_history_shared

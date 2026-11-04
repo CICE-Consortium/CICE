@@ -56,6 +56,7 @@
      module procedure global_sum_dbl,              &
                       global_sum_real,             &
                       global_sum_int,              &
+                      global_sum_dbl_mflat,        &
                       global_sum_scalar_dbl,       &
                       global_sum_scalar_real,      &
                       global_sum_scalar_int
@@ -64,13 +65,20 @@
    interface global_sum_prod
      module procedure global_sum_prod_dbl,         &
                       global_sum_prod_real,        &
-                      global_sum_prod_int
+                      global_sum_prod_int,         &
+                      global_sum_prod_dbl_mflat
    end interface
 
    interface global_maxval
      module procedure global_maxval_dbl,           &
                       global_maxval_real,          &
                       global_maxval_int,           &
+                      global_maxval_dbl_flat,      &
+                      global_maxval_real_flat,     &
+                      global_maxval_int_flat,      &
+                      global_maxval_dbl_lmask2,    &
+                      global_maxval_real_lmask2,   &
+                      global_maxval_int_lmask2,    &
                       global_maxval_scalar_dbl,    &
                       global_maxval_scalar_real,   &
                       global_maxval_scalar_int,    &
@@ -81,6 +89,12 @@
      module procedure global_minval_dbl,           &
                       global_minval_real,          &
                       global_minval_int,           &
+                      global_minval_dbl_flat,      &
+                      global_minval_real_flat,     &
+                      global_minval_int_flat,      &
+                      global_minval_dbl_lmask2,    &
+                      global_minval_real_lmask2,   &
+                      global_minval_int_lmask2,    &
                       global_minval_scalar_dbl,    &
                       global_minval_scalar_real,   &
                       global_minval_scalar_int,    &
@@ -246,6 +260,59 @@
 !-----------------------------------------------------------------------
 
  end function global_sum_dbl
+
+!***********************************************************************
+
+ function global_sum_dbl_mflat(array, dist, field_loc, mMask, lMask) &
+          result(globalSum)
+
+!  As global_sum_dbl, for a multiplicative mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  mMask is not optional
+!  here, so that this specific stays distinguishable from global_sum_dbl.
+
+   real (dbl_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array to be summed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   integer (int_kind), intent(in) :: &
+      field_loc            ! location of field on staggered grid
+
+   real (dbl_kind), dimension(:,:), intent(in), target, contiguous :: &
+      mMask                ! multiplicative mask
+
+   logical (log_kind), dimension(:,:,:), intent(in), optional :: &
+      lMask                ! optional logical mask
+
+   real (dbl_kind) :: &
+      globalSum            ! resulting global sum
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), pointer :: &
+      mMask3d(:,:,:)       ! rank-3 alias of mMask
+
+   character(len=*), parameter :: subname = '(global_sum_dbl_mflat)'
+
+!-----------------------------------------------------------------------
+
+   mMask3d(1:nx_block,1:ny_block,1:size(mMask,dim=2)) => mMask
+
+   if (present(lMask)) then
+      globalSum = global_sum_dbl(array, dist, field_loc, mMask3d, lMask)
+   else
+      globalSum = global_sum_dbl(array, dist, field_loc, mMask3d)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_sum_dbl_mflat
 
 !***********************************************************************
 
@@ -906,6 +973,62 @@
 
 !***********************************************************************
 
+ function global_sum_prod_dbl_mflat (array1, array2, dist, field_loc, &
+                                     mMask, lMask) &
+          result(globalSum)
+
+!  As global_sum_prod_dbl, for a multiplicative mask whose i and j dimensions
+!  are flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  mMask is not optional
+!  here, so that this specific stays distinguishable from global_sum_prod_dbl.
+
+   real (dbl_kind), dimension(:,:,:), intent(in) :: &
+      array1, array2       ! arrays whose product is to be summed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for arrays
+
+   integer (int_kind), intent(in) :: &
+      field_loc            ! location of field on staggered grid
+
+   real (dbl_kind), dimension(:,:), intent(in), target, contiguous :: &
+      mMask                ! multiplicative mask
+
+   logical (log_kind), dimension(:,:,:), intent(in), optional :: &
+      lMask                ! optional logical mask
+
+   real (dbl_kind) :: &
+      globalSum            ! resulting global sum
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), pointer :: &
+      mMask3d(:,:,:)       ! rank-3 alias of mMask
+
+   character(len=*), parameter :: subname = '(global_sum_prod_dbl_mflat)'
+
+!-----------------------------------------------------------------------
+
+   mMask3d(1:nx_block,1:ny_block,1:size(mMask,dim=2)) => mMask
+
+   if (present(lMask)) then
+      globalSum = global_sum_prod_dbl(array1, array2, dist, field_loc, &
+                                      mMask3d, lMask)
+   else
+      globalSum = global_sum_prod_dbl(array1, array2, dist, field_loc, &
+                                      mMask3d)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_sum_prod_dbl_mflat
+
+!***********************************************************************
+
  function global_sum_prod_real (array1, array2, dist, field_loc, &
                                 mMask, lMask) &
           result(globalSum)
@@ -1527,6 +1650,291 @@
 
 !***********************************************************************
 
+ function global_maxval_dbl_flat (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_dbl, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   real (dbl_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   real (dbl_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_dbl_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMaxval = global_maxval_dbl(array3d, dist, lMask3d)
+   else
+      globalMaxval = global_maxval_dbl(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_dbl_flat
+
+!***********************************************************************
+
+ function global_maxval_dbl_lmask2 (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_dbl, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_maxval_dbl, whose lMask is optional and rank 3.
+
+   real (dbl_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   real (dbl_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_dbl_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMaxval = global_maxval_dbl(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_dbl_lmask2
+
+!***********************************************************************
+
+ function global_maxval_real_flat (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_real, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   real (real_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   real (real_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (real_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_real_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMaxval = global_maxval_real(array3d, dist, lMask3d)
+   else
+      globalMaxval = global_maxval_real(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_real_flat
+
+!***********************************************************************
+
+ function global_maxval_real_lmask2 (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_real, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_maxval_real, whose lMask is optional and rank 3.
+
+   real (real_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   real (real_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_real_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMaxval = global_maxval_real(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_real_lmask2
+
+!***********************************************************************
+
+ function global_maxval_int_flat (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_int, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   integer (int_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   integer (int_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_int_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMaxval = global_maxval_int(array3d, dist, lMask3d)
+   else
+      globalMaxval = global_maxval_int(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_int_flat
+
+!***********************************************************************
+
+ function global_maxval_int_lmask2 (array, dist, lMask) &
+          result(globalMaxval)
+
+!  As global_maxval_int, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_maxval_int, whose lMask is optional and rank 3.
+
+   integer (int_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which max value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   integer (int_kind) :: &
+      globalMaxval         ! resulting maximum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_maxval_int_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMaxval = global_maxval_int(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_maxval_int_lmask2
+
+!***********************************************************************
+
  function global_maxval_scalar_dbl (scalar, dist) &
           result(globalMaxval)
 
@@ -2069,6 +2477,291 @@
 !-----------------------------------------------------------------------
 
  end function global_minval_int
+
+!***********************************************************************
+
+ function global_minval_dbl_flat (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_dbl, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   real (dbl_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   real (dbl_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (dbl_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_dbl_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMinval = global_minval_dbl(array3d, dist, lMask3d)
+   else
+      globalMinval = global_minval_dbl(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_dbl_flat
+
+!***********************************************************************
+
+ function global_minval_dbl_lmask2 (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_dbl, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_minval_dbl, whose lMask is optional and rank 3.
+
+   real (dbl_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   real (dbl_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_dbl_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMinval = global_minval_dbl(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_dbl_lmask2
+
+!***********************************************************************
+
+ function global_minval_real_flat (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_real, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   real (real_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   real (real_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   real (real_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_real_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMinval = global_minval_real(array3d, dist, lMask3d)
+   else
+      globalMinval = global_minval_real(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_real_flat
+
+!***********************************************************************
+
+ function global_minval_real_lmask2 (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_real, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_minval_real, whose lMask is optional and rank 3.
+
+   real (real_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   real (real_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_real_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMinval = global_minval_real(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_real_lmask2
+
+!***********************************************************************
+
+ function global_minval_int_flat (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_int, for an array whose i and j dimensions are flattened,
+!  i.e. dimension(nx_block*ny_block,max_blocks), with element (i,j,iblk)
+!  stored at ((j-1)*nx_block + i, iblk).  lMask, when present, is flattened
+!  the same way.
+
+   integer (int_kind), dimension(:,:), intent(in), target, contiguous :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), optional, target, contiguous :: &
+      lMask                ! optional logical mask
+
+   integer (int_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   integer (int_kind), pointer :: &
+      array3d(:,:,:)       ! rank-3 alias of array
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_int_flat)'
+
+!-----------------------------------------------------------------------
+
+   array3d(1:nx_block,1:ny_block,1:size(array,dim=2)) => array
+
+   if (present(lMask)) then
+      lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+      globalMinval = global_minval_int(array3d, dist, lMask3d)
+   else
+      globalMinval = global_minval_int(array3d, dist)
+   endif
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_int_flat
+
+!***********************************************************************
+
+ function global_minval_int_lmask2 (array, dist, lMask) &
+          result(globalMinval)
+
+!  As global_minval_int, for a logical mask whose i and j dimensions are
+!  flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+!  (i,j,iblk) stored at ((j-1)*nx_block + i, iblk).  lMask is NOT optional
+!  here; that is what keeps this specific distinguishable from
+!  global_minval_int, whose lMask is optional and rank 3.
+
+   integer (int_kind), dimension(:,:,:), intent(in) :: &
+      array                ! array for which min value needed
+
+   type (distrb), intent(in) :: &
+      dist                 ! block distribution for array X
+
+   logical (log_kind), dimension(:,:), intent(in), target, contiguous :: &
+      lMask                ! flattened logical mask
+
+   integer (int_kind) :: &
+      globalMinval         ! resulting minimum value of array
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+   logical (log_kind), pointer :: &
+      lMask3d(:,:,:)       ! rank-3 alias of lMask
+
+   character(len=*), parameter :: subname = '(global_minval_int_lmask2)'
+
+!-----------------------------------------------------------------------
+
+   lMask3d(1:nx_block,1:ny_block,1:size(lMask,dim=2)) => lMask
+
+   globalMinval = global_minval_int(array, dist, lMask3d)
+
+!-----------------------------------------------------------------------
+
+ end function global_minval_int_lmask2
 
 !***********************************************************************
 

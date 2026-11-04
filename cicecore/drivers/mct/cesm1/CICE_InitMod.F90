@@ -471,7 +471,7 @@
       do iblk = 1, nblocks
       do j = 1, ny_block
       do i = 1, nx_block
-         if (tmask(i,j,iblk)) then
+         if (tmask((j-1)*nx_block+i,iblk)) then
             call icepack_aggregate(aicen = aicen(i,j,:,iblk),     &
                                    trcrn = trcrn(i,j,:,:,iblk),   &
                                    vicen = vicen(i,j,:,iblk),     &

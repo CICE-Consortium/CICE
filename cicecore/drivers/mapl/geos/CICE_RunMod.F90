@@ -386,7 +386,7 @@
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask
       use ice_state, only: aicen, aice
-      use ice_state, only: aice_init
+      use ice_state, only: aice_init3d
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
@@ -564,7 +564,7 @@
             fsalt_ai  (i,j,iblk) = fsalt  (i,j,iblk)
             fhocn_ai  (i,j,iblk) = fhocn  (i,j,iblk)
             fswthru_ai(i,j,iblk) = fswthru(i,j,iblk)
-            fswup     (i,j,iblk) = aice_init(i,j,iblk) &
+            fswup     (i,j,iblk) = aice_init3d(i,j,iblk) &
                                  * fsw    (i,j,iblk) - fswabs(i,j,iblk)
 
             if (nbtrcr > 0) then
@@ -592,7 +592,7 @@
       !-----------------------------------------------------------------
 
          call scale_fluxes (nx_block,            ny_block,           &
-                            tmask    (:,:,iblk), nbtrcr,             &
+                            tmask    (:,  iblk), nbtrcr,             &
                             icepack_max_aero,                        &
                             aice     (:,:,iblk), Tf      (:,:,iblk), &
                             Tair     (:,:,iblk), Qa      (:,:,iblk), &
@@ -662,7 +662,7 @@
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
-      use ice_state, only: aicen, aice, aicen_init, aice_init
+      use ice_state, only: aicen, aice, aicen_init, aice_init3d
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
@@ -825,8 +825,8 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
-               ar                 = c1 / aice_init(i,j,iblk)
+             if ((tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) .and. aice_init3d(i,j,iblk) > c0) then
+               ar                 = c1 / aice_init3d(i,j,iblk)
                fsens   (i,j,iblk) = fsens   (i,j,iblk) * ar
                flat    (i,j,iblk) = flat    (i,j,iblk) * ar
                fswabs  (i,j,iblk) = fswabs  (i,j,iblk) * ar
@@ -898,7 +898,7 @@
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
-      use ice_state, only: aicen, aice, aicen_init, aice_init
+      use ice_state, only: aicen, aice, aicen_init, aice_init3d
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_timers, only: timer_couple, ice_timer_start, ice_timer_stop
 
@@ -973,7 +973,7 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice(i,j,iblk) > c0) then
+             if ((tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) .and. aice(i,j,iblk) > c0) then
                 ar                 = c1 / aice(i,j,iblk)
                 strairxT(i,j,iblk) = strairxT(i,j,iblk) * ar
                 strairyT(i,j,iblk) = strairyT(i,j,iblk) * ar
@@ -1215,7 +1215,7 @@
           fnit, fsil, famm, fdmsp, fdms, fhum, fdust, falgalN, &
           fdoc, fdic, fdon, ffep, ffed, bgcflux_ice_to_ocn
       use ice_grid, only: tmask, opmask
-      use ice_state, only: aicen, aice, aicen_init, aice_init
+      use ice_state, only: aicen, aice, aicen_init, aice_init3d
       use ice_flux, only: flatn_f, fsurfn_f
       use ice_step_mod, only: ocean_mixed_layer
 
@@ -1287,8 +1287,8 @@
          do iblk = 1, nblocks
          do j = 1, ny_block
          do i = 1, nx_block
-             if ((tmask(i,j,iblk) .or. opmask(i,j,iblk)) .and. aice_init(i,j,iblk) > c0) then
-               ar                 = c1 / aice_init(i,j,iblk)
+             if ((tmask((j-1)*nx_block+i,iblk) .or. opmask((j-1)*nx_block+i,iblk)) .and. aice_init3d(i,j,iblk) > c0) then
+               ar                 = c1 / aice_init3d(i,j,iblk)
                alvdr   (i,j,iblk) = alvdr   (i,j,iblk) * ar
                alidr   (i,j,iblk) = alidr   (i,j,iblk) * ar
                alvdf   (i,j,iblk) = alvdf   (i,j,iblk) * ar

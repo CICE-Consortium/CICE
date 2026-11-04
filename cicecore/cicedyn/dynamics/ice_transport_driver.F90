@@ -537,7 +537,7 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
           call horizontal_remap (dt,             ntrace,         &
-                                 uvel   (:,:,:), vvel   (:,:,:), &
+                                 uvel(:,:), vvel(:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
@@ -545,7 +545,7 @@
                                  uvelE  (:,:,:), vvelN  (:,:,:))
       else
           call horizontal_remap (dt,             ntrace,         &
-                                 uvel   (:,:,:), vvel   (:,:,:), &
+                                 uvel(:,:), vvel(:,:), &
                                  aim  (:,:,:,:), trm(:,:,:,:,:), &
                                  tracer_type,    depend,         &
                                  has_dependents, integral_order, &
@@ -787,8 +787,8 @@
 
             do j = jlo, jhi
             do i = ilo, ihi
-               uee(i,j,iblk) = p5*(uvel(i,j,iblk) + uvel(i  ,j-1,iblk))
-               vnn(i,j,iblk) = p5*(vvel(i,j,iblk) + vvel(i-1,j  ,iblk))
+               uee(i,j,iblk) = p5*(uvel((j-1)*nx_block+i,iblk) + uvel((j-1-1)*nx_block+i,iblk))
+               vnn(i,j,iblk) = p5*(vvel((j-1)*nx_block+i,iblk) + vvel((j-1)*nx_block+i-1,iblk))
             enddo
             enddo
          enddo
@@ -834,8 +834,8 @@
                             dt,                                     &
                             narr,           works(:,:,:,iblk),      &
                             uee (:,:,iblk), vnn    (:,:,iblk),      &
-                            HTE (:,:,iblk), HTN    (:,:,iblk),      &
-                            tarea(:,:,iblk))
+                            HTE (:, iblk), HTN    (:, iblk),      &
+                            tarea(:,  iblk))
 
          !-----------------------------------------------------------------
          ! convert work arrays back to state variables
@@ -845,7 +845,7 @@
                              ntrcr,               narr,                 &
                              trcr_depend(:),      trcr_base(:,:),       &
                              n_trcr_strata(:),    nt_strata(:,:),       &
-                             tmask(:,:,    iblk), Tf    (:,:,iblk),     &
+                             tmask(:,      iblk), Tf    (:,:,iblk),     &
                              aicen(:,:,  :,iblk), trcrn (:,:,:,:,iblk), &
                              vicen(:,:,  :,iblk), vsnon (:,:,  :,iblk), &
                              aice0(:,:,    iblk), works (:,:,  :,iblk))
@@ -1673,8 +1673,10 @@
       integer (kind=int_kind), dimension (ntrcr,2), intent(in) :: &
          nt_strata      ! indices of underlying tracer layers
 
-      logical (kind=log_kind), intent (in) :: &
-         tmask (nx_block,ny_block)
+      ! tmask is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      logical (kind=log_kind), dimension (:), intent (in) :: &
+         tmask
 
       real (kind=dbl_kind), intent (in) :: &
          Tf    (nx_block,ny_block), &
@@ -1757,7 +1759,7 @@
                                          Tf            = Tf(i,j))
 
             ! tcraig, don't let land points get non-zero Tsfc
-            if (.not.tmask(i,j)) then
+            if (.not.tmask((j-1)*nx_block+i)) then
                trcrn(i,j,nt_Tsfc,n) = c0
             endif
 

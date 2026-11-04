@@ -57,16 +57,19 @@
 
       interface ice_write
          module procedure ice_write_xyt,  &
+                          ice_write_xyt_flat, &
                           ice_write_xyzt
       end interface
 
       interface ice_read
          module procedure ice_read_xyt,  &
+                          ice_read_xyt_flat, &
                           ice_read_xyzt
       end interface
 
       interface ice_read_nc
          module procedure ice_read_nc_xy,  &
+                          ice_read_nc_xy_flat, &
                           ice_read_nc_xyz, &
                           !ice_read_nc_xyf, &
                           ice_read_nc_point, &
@@ -331,6 +334,46 @@
       deallocate(work_g1)
 
       end subroutine ice_read_xyt
+
+!=======================================================================
+
+! Flat-array form of ice_read_xyt.  work has its i and j dimensions
+! flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+! (i,j,iblk) at ((j-1)*nx_block + i, iblk).  The storage order is identical
+! to the rank-3 form, so the array is simply handed on.
+
+      subroutine ice_read_xyt_flat(nu, nrec, work, atype, diag, &
+                          field_loc, field_type, &
+                          ignore_eof, hit_eof)
+
+      integer (kind=int_kind), intent(in) :: &
+         nu            , & ! unit number
+         nrec              ! record number (0 for sequential access)
+
+      real (kind=dbl_kind), dimension(nx_block*ny_block,max_blocks), intent(out) :: &
+         work              ! output array (real, 8-byte)
+
+      character (len=4), intent(in) :: &
+         atype             ! format for input array
+                           ! (real/integer, 4-byte/8-byte)
+
+      logical (kind=log_kind), intent(in) :: &
+         diag              ! if true, write diagnostic output
+
+      integer (kind=int_kind), optional, intent(in) :: &
+         field_loc, &      ! location of field on staggered grid
+         field_type        ! type of field (scalar, vector, angle)
+
+      logical (kind=log_kind), optional, intent(in)  :: ignore_eof
+      logical (kind=log_kind), optional, intent(out) :: hit_eof
+
+      character(len=*), parameter :: subname = '(ice_read_xyt_flat)'
+
+      call ice_read_xyt(nu, nrec, work, atype, diag, &
+                        field_loc, field_type, &
+                        ignore_eof, hit_eof)
+
+      end subroutine ice_read_xyt_flat
 
 !=======================================================================
 ! Read an unformatted file and scatter to processors.
@@ -836,6 +879,36 @@
 
 !=======================================================================
 
+! Flat-array form of ice_write_xyt.  work has its i and j dimensions
+! flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+! (i,j,iblk) at ((j-1)*nx_block + i, iblk).  The storage order is identical
+! to the rank-3 form, so the array is simply handed on.
+
+      subroutine ice_write_xyt_flat(nu, nrec, work, atype, diag)
+
+      integer (kind=int_kind), intent(in) :: &
+         nu            , & ! unit number
+         nrec              ! record number (0 for sequential access)
+
+      real (kind=dbl_kind), dimension(nx_block*ny_block,max_blocks), intent(in) :: &
+         work              ! input array (real, 8-byte)
+
+      character (len=4), intent(in) :: &
+         atype             ! format for output array
+                           ! (real/integer, 4-byte/8-byte)
+
+      logical (kind=log_kind), intent(in) :: &
+         diag              ! if true, write diagnostic output
+
+      character(len=*), parameter :: subname = '(ice_write_xyt_flat)'
+
+      call ice_write_xyt(nu, nrec, work, atype, diag)
+
+      end subroutine ice_write_xyt_flat
+
+
+!=======================================================================
+
 ! Writes an unformatted file
 ! work is a real array, atype indicates the format of the data
 
@@ -1269,6 +1342,44 @@
          file=__FILE__, line=__LINE__)
 #endif
       end subroutine ice_read_nc_xy
+
+!=======================================================================
+
+! Flat-array form of ice_read_nc_xy.  work has its i and j dimensions
+! flattened, i.e. dimension(nx_block*ny_block,max_blocks), with element
+! (i,j,iblk) at ((j-1)*nx_block + i, iblk).  The storage order is identical
+! to the rank-3 form, so the array is simply handed on.
+
+      subroutine ice_read_nc_xy_flat(fid,  nrec,  varname, work,  diag, &
+                             field_loc, field_type, grid_ext)
+
+      integer (kind=int_kind), intent(in) :: &
+         fid           , & ! file id
+         nrec              ! record number
+
+      logical (kind=log_kind), intent(in) :: &
+         diag              ! if true, write diagnostic output
+
+      character (len=*), intent(in) :: &
+         varname           ! field name in netcdf file
+
+      real (kind=dbl_kind), dimension(nx_block*ny_block,max_blocks), intent(out) :: &
+         work              ! output array (real, 8-byte)
+
+      logical (kind=log_kind), optional, intent(in) :: &
+         grid_ext          ! if true, read extended grid
+
+      integer (kind=int_kind), optional, intent(in) :: &
+         field_loc, &      ! location of field on staggered grid
+         field_type        ! type of field (scalar, vector, angle)
+
+      character(len=*), parameter :: subname = '(ice_read_nc_xy_flat)'
+
+      call ice_read_nc_xy(fid, nrec, varname, work, diag, &
+                          field_loc, field_type, grid_ext)
+
+      end subroutine ice_read_nc_xy_flat
+
 
 !=======================================================================
 

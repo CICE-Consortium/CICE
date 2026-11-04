@@ -66,7 +66,7 @@
           hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
-      use ice_domain_size, only: nx_global, ny_global
+      use ice_domain_size, only: nx_global, ny_global, max_blocks
       use ice_flux, only: albcnt, snwcnt
       use ice_gather_scatter, only: gather_global
       use ice_grid, only: TLON, TLAT, ULON, ULAT, NLON, NLAT, ELON, ELAT, &
@@ -130,6 +130,10 @@
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
       real (kind=dbl_kind) , allocatable :: workd2(:,:,:)
+
+      ! One 2D field expanded back to the block layout.  a2D is compressed;
+      ! expand_a2D is the only place it becomes two-dimensional.
+      real (kind=dbl_kind) , allocatable :: worka2D(:,:)
       real (kind=dbl_kind) , allocatable :: workd3(:,:,:,:)
       real (kind=dbl_kind) , allocatable :: workd4(:,:,:,:,:)
       real (kind=dbl_kind) , allocatable :: workd3v(:,:,:,:)
@@ -757,21 +761,21 @@
             SELECT CASE (var_coord(i)%short_name)
                CASE ('TLON')
                  ! Convert T grid longitude from -180 -> 180 to 0 to 360
-                    workd2(:,:,:) = mod(tlon(:,:,1:nblocks)*rad_to_deg + c360, c360)
+                    workd2(:,:,:) = mod(reshape(tlon(:,1:nblocks), shape(workd2))*rad_to_deg + c360, c360)
                CASE ('TLAT')
-                 workd2(:,:,:) = tlat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(tlat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ULON')
-                 workd2(:,:,:) = ulon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(ulon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ULAT')
-                 workd2(:,:,:) = ulat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(ulat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('NLON')
-                 workd2(:,:,:) = nlon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(nlon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('NLAT')
-                 workd2(:,:,:) = nlat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(nlat(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ELON')
-                 workd2(:,:,:) = elon(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(elon(:,1:nblocks), shape(workd2))*rad_to_deg
                CASE ('ELAT')
-                 workd2(:,:,:) = elat(:,:,1:nblocks)*rad_to_deg
+                 workd2(:,:,:) = reshape(elat(:,1:nblocks), shape(workd2))*rad_to_deg
             END SELECT
             if (history_precision == 8) then
                call pio_write_darray(File, varid, iodesc2d, &
@@ -824,47 +828,47 @@
          if (igrd(i) .or. histfreq(ns)=='g') then
             SELECT CASE (var_grd(i)%req%short_name)
                CASE ('tmask')
-                  workd2 = hm(:,:,1:nblocks)
+                  workd2 = reshape(hm(:,1:nblocks), shape(workd2))
                CASE ('umask')
-                  workd2 = uvm(:,:,1:nblocks)
+                  workd2 = reshape(uvm(:,1:nblocks), shape(workd2))
                CASE ('nmask')
-                  workd2 = npm(:,:,1:nblocks)
+                  workd2 = reshape(npm(:,1:nblocks), shape(workd2))
                CASE ('emask')
-                  workd2 = epm(:,:,1:nblocks)
+                  workd2 = reshape(epm(:,1:nblocks), shape(workd2))
                CASE ('blkmask')
-                  workd2 = bm(:,:,1:nblocks)
+                  workd2 = reshape(bm(:,1:nblocks), shape(workd2))
                CASE ('tarea')
-                  workd2 = tarea(:,:,1:nblocks)
+                  workd2 = reshape(tarea(:,1:nblocks), shape(workd2))
                CASE ('uarea')
-                  workd2 = uarea(:,:,1:nblocks)
+                  workd2 = reshape(uarea(:,1:nblocks), shape(workd2))
                CASE ('narea')
-                  workd2 = narea(:,:,1:nblocks)
+                  workd2 = reshape(narea(:,1:nblocks), shape(workd2))
                CASE ('earea')
-                  workd2 = earea(:,:,1:nblocks)
+                  workd2 = reshape(earea(:,1:nblocks), shape(workd2))
                CASE ('dxt')
-                  workd2 = dxT(:,:,1:nblocks)
+                  workd2 = reshape(dxT(:,1:nblocks), shape(workd2))
                CASE ('dyt')
-                  workd2 = dyT(:,:,1:nblocks)
+                  workd2 = reshape(dyT(:,1:nblocks), shape(workd2))
                CASE ('dxu')
-                  workd2 = dxU(:,:,1:nblocks)
+                  workd2 = reshape(dxU(:,1:nblocks), shape(workd2))
                CASE ('dyu')
-                  workd2 = dyU(:,:,1:nblocks)
+                  workd2 = reshape(dyU(:,1:nblocks), shape(workd2))
                CASE ('dxn')
-                  workd2 = dxN(:,:,1:nblocks)
+                  workd2 = reshape(dxN(:,1:nblocks), shape(workd2))
                CASE ('dyn')
-                  workd2 = dyN(:,:,1:nblocks)
+                  workd2 = reshape(dyN(:,1:nblocks), shape(workd2))
                CASE ('dxe')
-                  workd2 = dxE(:,:,1:nblocks)
+                  workd2 = reshape(dxE(:,1:nblocks), shape(workd2))
                CASE ('dye')
-                  workd2 = dyE(:,:,1:nblocks)
+                  workd2 = reshape(dyE(:,1:nblocks), shape(workd2))
                CASE ('HTN')
-                  workd2 = HTN(:,:,1:nblocks)
+                  workd2 = reshape(HTN(:,1:nblocks), shape(workd2))
                CASE ('HTE')
-                  workd2 = HTE(:,:,1:nblocks)
+                  workd2 = reshape(HTE(:,1:nblocks), shape(workd2))
                CASE ('ANGLE')
-                  workd2 = ANGLE(:,:,1:nblocks)
+                  workd2 = reshape(ANGLE(:,1:nblocks), shape(workd2))
                CASE ('ANGLET')
-                  workd2 = ANGLET(:,:,1:nblocks)
+                  workd2 = reshape(ANGLET(:,1:nblocks), shape(workd2))
             END SELECT
             call ice_pio_check(pio_inq_varid(File, var_grd(i)%req%short_name, varid), &
                  subname//' ERROR: getting '//var_grd(i)%req%short_name,file=__FILE__,line=__LINE__)
@@ -894,35 +898,35 @@
             SELECT CASE (var_nverts(i)%short_name)
                CASE ('lont_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lont_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lont_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latt_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latt_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latt_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lonu_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lonu_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lonu_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latu_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latu_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latu_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lonn_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lonn_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lonn_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('latn_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = latn_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(latn_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('lone_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = lone_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(lone_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
                CASE ('late_bounds')
                   do ivertex = 1, nverts
-                     workd3v(ivertex,:,:,:) = late_bounds(ivertex,:,:,1:nblocks)
+                     workd3v(ivertex,:,:,:) = reshape(late_bounds(ivertex,:,1:nblocks), (/nx_block,ny_block,nblocks/))
                   enddo
             END SELECT
 
@@ -1022,11 +1026,13 @@
       endif
 
       ! 2D
+      allocate(worka2D(nx_block*ny_block,max_blocks))
       do n=1,num_avail_hist_fields_2D
          if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
             call ice_pio_check(pio_inq_varid(File,avail_hist_fields(n)%vname,varid), &
                  subname//' ERROR: getting varid for '//avail_hist_fields(n)%vname,file=__FILE__,line=__LINE__)
-            workd2(:,:,:) = a2D(:,:,n,1:nblocks)
+            call expand_a2D(n, worka2D)
+            workd2(:,:,:) = reshape(worka2D(:,1:nblocks), shape(workd2))
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
             call pio_setframe(varid, int(1,kind=PIO_OFFSET))
@@ -1047,6 +1053,7 @@
                                file=__FILE__,line=__LINE__)
          endif
       enddo ! num_avail_hist_fields_2D
+      deallocate(worka2D)
 
       deallocate(workd2)
       deallocate(workr2)
@@ -1410,6 +1417,7 @@
       ! local variables
 
       real (kind=dbl_kind), dimension(:,:,:),     allocatable :: work2
+      real (kind=dbl_kind), dimension(:,:),       allocatable :: worka2D
       real (kind=dbl_kind), dimension(:,:,:,:),   allocatable :: work3
       real (kind=dbl_kind), dimension(:,:,:,:,:), allocatable :: work4
 
@@ -1513,6 +1521,7 @@
             endif
 
             ! 2D
+            allocate(worka2D(nx_block*ny_block,max_blocks))
             do n=1,num_avail_hist_fields_2D
                if (avail_hist_fields(n)%vhistfreq == histfreq(ns)) then
                   readstr = readstrF
@@ -1521,7 +1530,8 @@
                   if (status == PIO_NOERR) call pio_read_darray(File, varid, iodesc2d, work2, status)
                   if (status == PIO_NOERR) then
                      readstr = readstrT
-                     a2D(:,:,n,:) = work2(:,:,:)
+                     worka2D(:,:) = reshape(work2, shape(worka2D))
+                     call compress_a2D(n, worka2D)
                   endif
                   if (my_task == master_task) then
                      write(nu_diag,*) subname,trim(readstr),trim(avail_hist_fields(n)%vname)
@@ -1529,6 +1539,7 @@
                endif
             enddo
 
+            deallocate(worka2D)
             deallocate(work2)
             allocate(work3(nx_block,ny_block,max_blocks,ncat_hist))
 

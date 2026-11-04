@@ -381,7 +381,7 @@ contains
           do j = jlo, jhi
              do i = ilo, ihi
                 n = n+1
-                model_areas(n) = tarea(i,j,iblk)/(radius*radius)
+                model_areas(n) = tarea((j-1)*nx_block+i,iblk)/(radius*radius)
                 mod2med_areacor(n) = model_areas(n) / mesh_areas(n)
                 med2mod_areacor(n) = mesh_areas(n) / model_areas(n)
              enddo
@@ -792,18 +792,18 @@ contains
              workx      = uocn  (i,j,iblk) ! currents, m/s
              worky      = vocn  (i,j,iblk)
 
-             uocn(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
-                            + worky*sin(ANGLET(i,j,iblk))
-             vocn(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                            - workx*sin(ANGLET(i,j,iblk))
+             uocn(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! rotate to align with model i,j
+                            + worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             vocn(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                            - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              workx      = ss_tltx  (i,j,iblk)           ! sea sfc tilt, m/m
              worky      = ss_tlty  (i,j,iblk)
 
-             ss_tltx(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! rotate to align with model i,j
-                               + worky*sin(ANGLET(i,j,iblk))
-             ss_tlty(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) &
-                               - workx*sin(ANGLET(i,j,iblk))
+             ss_tltx(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! rotate to align with model i,j
+                               + worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             ss_tlty(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) &
+                               - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              sst(i,j,iblk) = sst(i,j,iblk) - Tffresh       ! sea sfc temp (C)
 
@@ -857,10 +857,10 @@ contains
              ! atmosphere
              workx      = uatm(i,j,iblk) ! wind velocity, m/s
              worky      = vatm(i,j,iblk)
-             uatm (i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) & ! convert to POP grid
-                             + worky*sin(ANGLET(i,j,iblk))   ! note uatm, vatm, wind
-             vatm (i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) & ! are on the T-grid here
-                             - workx*sin(ANGLET(i,j,iblk))
+             uatm (i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! convert to POP grid
+                             + worky*sin(ANGLET((j-1)*nx_block+i,iblk))   ! note uatm, vatm, wind
+             vatm (i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) & ! are on the T-grid here
+                             - workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              wind (i,j,iblk) = sqrt(uatm(i,j,iblk)**2 + vatm(i,j,iblk)**2)
              fsw  (i,j,iblk) = swvdr(i,j,iblk) + swvdf(i,j,iblk) &
@@ -980,14 +980,14 @@ contains
              ! wind stress  (on POP T-grid:  convert to lat-lon)
              workx = strairxT(i,j,iblk)                             ! N/m^2
              worky = strairyT(i,j,iblk)                             ! N/m^2
-             tauxa(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
-             tauya(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
+             tauxa(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) - worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             tauya(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + workx*sin(ANGLET((j-1)*nx_block+i,iblk))
 
              ! ice/ocean stress (on POP T-grid:  convert to lat-lon)
              workx = -strocnxT_iavg(i,j,iblk)                       ! N/m^2
              worky = -strocnyT_iavg(i,j,iblk)                       ! N/m^2
-             tauxo(i,j,iblk) = workx*cos(ANGLET(i,j,iblk)) - worky*sin(ANGLET(i,j,iblk))
-             tauyo(i,j,iblk) = worky*cos(ANGLET(i,j,iblk)) + workx*sin(ANGLET(i,j,iblk))
+             tauxo(i,j,iblk) = workx*cos(ANGLET((j-1)*nx_block+i,iblk)) - worky*sin(ANGLET((j-1)*nx_block+i,iblk))
+             tauyo(i,j,iblk) = worky*cos(ANGLET((j-1)*nx_block+i,iblk)) + workx*sin(ANGLET((j-1)*nx_block+i,iblk))
           enddo
        enddo
     enddo
@@ -1002,7 +1002,7 @@ contains
        jhi = this_block%jhi
        do j = jlo,jhi
           do i = ilo,ihi
-             if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+             if (tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) < c0 ) then
                 flag = .true.
              endif
           end do
@@ -1017,7 +1017,7 @@ contains
           jhi = this_block%jhi
           do j = jlo,jhi
              do i = ilo,ihi
-                if (tmask(i,j,iblk) .and. ailohi(i,j,iblk) < c0 ) then
+                if (tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) < c0 ) then
                    write(nu_diag,*) &
                         ' (ice) send: ERROR ailohi < 0.0 ',i,j,ailohi(i,j,iblk)
                    call flush_fileunit(nu_diag)
@@ -1058,7 +1058,7 @@ contains
           jhi = this_block%jhi
           do j = jlo, jhi
              do i = ilo, ihi
-                tempfld(i,j,iblk) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
+                tempfld(i,j,iblk) = real(nint(hm((j-1)*nx_block+i,iblk)),kind=dbl_kind)
              end do
           end do
        end do
@@ -1120,7 +1120,7 @@ contains
        jhi = this_block%jhi
        do j = jlo, jhi
           do i = ilo, ihi
-             if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 ) then
+             if ( tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) > c0 ) then
                 tempfld(i,j,iblk) = vsno(i,j,iblk)/ailohi(i,j,iblk)
              end if
           end do
@@ -1169,7 +1169,7 @@ contains
          areacor=mod2med_areacor, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    ! Fix outgoing longwave if aice_init = 0, but aice > 0.
+    ! Fix outgoing longwave if aice_init3d = 0, but aice > 0.
     tempfld(:,:,:) = flwout(:,:,:)
     do iblk = 1, nblocks
        this_block = get_block(blocks_ice(iblk),iblk)
@@ -1179,7 +1179,7 @@ contains
        jhi = this_block%jhi
        do j = jlo, jhi
           do i = ilo, ihi
-             if ( tmask(i,j,iblk) .and. ailohi(i,j,iblk) > c0 .and. flwout(i,j,iblk) > -puny) then
+             if ( tmask((j-1)*nx_block+i,iblk) .and. ailohi(i,j,iblk) > c0 .and. flwout(i,j,iblk) > -puny) then
                  tempfld(i,j,iblk) = (-stefan_boltzmann *(Tf(i,j,iblk) + Tffresh)**4) / ailohi(i,j,iblk)
              end if
           end do
@@ -1701,7 +1701,9 @@ contains
     character(len=*)    ,           intent(in)    :: fldname
     real(kind=dbl_kind) ,           intent(in)    :: input(:,:,:,:)
     integer             ,           intent(in)    :: index
-    logical             , optional, intent(in)    :: lmask(:,:,:)
+    ! lmask has its i and j dimensions flattened, i.e. element (i,j,iblk)
+    ! lives at ((j-1)*nx_block + i, iblk)
+    logical             , optional, intent(in)    :: lmask(:,:)
     real(kind=dbl_kind) , optional, intent(in)    :: ifrac(:,:,:)
     integer             , optional, intent(in)    :: ungridded_index
     real(kind=dbl_kind) , optional, intent(in)    :: areacor(:)
@@ -1738,7 +1740,7 @@ contains
              do j = jlo, jhi
                 do i = ilo, ihi
                    n = n+1
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
+                   if ( lmask((j-1)*nx_block+i,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                       dataPtr2d(ungridded_index,n) = input(i,j,index,iblk)
                    else
                       dataPtr2d(ungridded_index,n) = c0
@@ -1773,7 +1775,7 @@ contains
              do j = jlo, jhi
                 do i = ilo, ihi
                    n = n+1
-                   if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
+                   if ( lmask((j-1)*nx_block+i,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                       dataPtr1d(n) = input(i,j,index,iblk)
                    end if
                 end do
@@ -1808,7 +1810,9 @@ contains
     type(ESMF_State)               , intent(inout) :: state
     character(len=*)               , intent(in)    :: fldname
     real(kind=dbl_kind)            , intent(in)    :: input(:,:,:)
-    logical             , optional , intent(in)    :: lmask(:,:,:)
+    ! lmask has its i and j dimensions flattened, i.e. element (i,j,iblk)
+    ! lives at ((j-1)*nx_block + i, iblk)
+    logical             , optional , intent(in)    :: lmask(:,:)
     real(kind=dbl_kind) , optional , intent(in)    :: ifrac(:,:,:)
     integer             , optional , intent(in)    :: ungridded_index
     real(kind=dbl_kind) , optional , intent(in)    :: areacor(:)
@@ -1849,7 +1853,7 @@ contains
           do i = ilo, ihi
              n = n+1
              if (present(lmask) .and. present(ifrac)) then
-                if ( lmask(i,j,iblk) .and. ifrac(i,j,iblk) > c0 ) then
+                if ( lmask((j-1)*nx_block+i,iblk) .and. ifrac(i,j,iblk) > c0 ) then
                    if (present(ungridded_index)) then
                       dataPtr2d(ungridded_index,n) = input(i,j,iblk)
                    else

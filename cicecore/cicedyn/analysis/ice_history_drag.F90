@@ -288,7 +288,7 @@
       if (f_Cdn_atm     (1:1) /= 'x') &
         call accum_hist_field(n_Cdn_atm, iblk, Cdn_atm(:,:,iblk), a2D)
       if (f_Cdn_ocn     (1:1) /= 'x') &
-        call accum_hist_field(n_Cdn_ocn, iblk, Cdn_ocn(:,:,iblk), a2D)
+        call accum_hist_field(n_Cdn_ocn, iblk, Cdn_ocn(:,iblk), a2D)
       if (f_drag     (1:1) /= 'x') then
         call accum_hist_field(n_hfreebd, iblk, hfreebd(:,:,iblk), a2D)
         call accum_hist_field(n_hdraft, iblk, hdraft(:,:,iblk), a2D)

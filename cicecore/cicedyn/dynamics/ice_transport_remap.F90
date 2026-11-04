@@ -355,7 +355,9 @@
       integer (kind=int_kind), intent(in) :: &
          ntrace   ! number of tracers in use
 
-      real (kind=dbl_kind), intent(in), dimension(nx_block,ny_block,max_blocks) :: &
+      ! uvel/vvel have their i and j dimensions flattened: element (i,j,iblk)
+      ! lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), intent(in), dimension(nx_block*ny_block,max_blocks) :: &
          uvel,  & ! x-component of velocity (m/s) ugrid
          vvel     ! y-component of velocity (m/s) ugrid
 
@@ -507,7 +509,7 @@
                                tracer_type,       depend,            &
                                has_dependents,    icellsnc(0,iblk),  &
                                indxinc(:,0),      indxjnc(:,0),      &
-                               hm     (:,:,iblk),                    &
+                               hm     (:, iblk),                    &
                                mm   (:,:,0,iblk), mc  (:,:,0,iblk),  &
                                mx   (:,:,0,iblk), my  (:,:,0,iblk),  &
                                mmask(:,:,0) )
@@ -522,7 +524,7 @@
                                   tracer_type,         depend,              &
                                   has_dependents,      icellsnc (n,iblk),   &
                                   indxinc  (:,n),      indxjnc(:,n),        &
-                                  hm       (:,:,iblk),                      &
+                                  hm       (:, iblk),                      &
                                   mm     (:,:,n,iblk),  mc  (:,:,n,iblk),    &
                                   mx     (:,:,n,iblk),  my  (:,:,n,iblk),    &
                                   mmask  (:,:,n),                            &
@@ -540,9 +542,9 @@
          call departure_points(nx_block,         ny_block,          &
                                ilo, ihi,         jlo, jhi,          &
                                nghost,           dt,                &
-                               uvel  (:,:,iblk), vvel(:,:,iblk),    &
-                               dxu   (:,:,iblk), dyu (:,:,iblk),    &
-                               HTN   (:,:,iblk), HTE (:,:,iblk),    &
+                               uvel(:,iblk), vvel(:,iblk),    &
+                               dxu   (:, iblk), dyu (:, iblk),    &
+                               HTN   (:, iblk), HTE (:, iblk),    &
                                dpx   (:,:,iblk), dpy (:,:,iblk),    &
                                l_dp_midpt,       l_stop,            &
                                istop,            jstop)
@@ -663,28 +665,28 @@
 
                do j = jlo, jhi
                do i = ilo-1, ihi
-                  edgearea_e(i,j) = uvelE(i,j,iblk) * HTE(i,j,iblk) * dt
+                  edgearea_e(i,j) = uvelE(i,j,iblk) * HTE((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
 
                do j = jlo-1, jhi
                do i = ilo, ihi
-                  edgearea_n(i,j) = vvelN(i,j,iblk)*HTN(i,j,iblk) * dt
+                  edgearea_n(i,j) = vvelN(i,j,iblk)*HTN((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
 
             else
                do j = jlo, jhi
                do i = ilo-1, ihi
-                  edgearea_e(i,j) = (uvel(i,j,iblk) + uvel(i,j-1,iblk)) &
-                                        * p5 * HTE(i,j,iblk) * dt
+                  edgearea_e(i,j) = (uvel((j-1)*nx_block+i,iblk) + uvel((j-1-1)*nx_block+i,iblk)) &
+                                        * p5 * HTE((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
 
                do j = jlo-1, jhi
                do i = ilo, ihi
-                  edgearea_n(i,j) = (vvel(i,j,iblk) + vvel(i-1,j,iblk)) &
-                                        * p5 * HTN(i,j,iblk) * dt
+                  edgearea_n(i,j) = (vvel((j-1)*nx_block+i,iblk) + vvel((j-1)*nx_block+i-1,iblk)) &
+                                        * p5 * HTN((j-1)*nx_block+i,iblk) * dt
                enddo
                enddo
             endif
@@ -705,8 +707,8 @@
                                icellsng(:,iblk),                      &
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy(:,:,iblk),      &
-                               dxu   (:,:,iblk),  dyu(:,:,iblk),      &
-                               earea (:,:,iblk),  narea (:,:,iblk),   &
+                               dxu   (:, iblk),  dyu(:, iblk),      &
+                               earea (:,  iblk),  narea (:,  iblk),   &
                                xp    (:,:,:,:),   yp (:,:,:,:),       &
                                iflux,             jflux,              &
                                triarea,           edgearea_e(:,:))
@@ -765,8 +767,8 @@
                                icellsng(:,iblk),                      &
                                indxing(:,:),      indxjng(:,:),       &
                                dpx   (:,:,iblk),  dpy (:,:,iblk),     &
-                               dxu   (:,:,iblk),  dyu (:,:,iblk),     &
-                               earea (:,:,iblk),  narea (:,:,iblk),   &
+                               dxu   (:, iblk),  dyu (:, iblk),     &
+                               earea (:,  iblk),  narea (:,  iblk),   &
                                xp    (:,:,:,:),   yp(:,:,:,:),        &
                                iflux,             jflux,              &
                                triarea,           edgearea_n(:,:))
@@ -813,7 +815,7 @@
                              ilo, ihi,           jlo, jhi,          &
                              ntrace,                                &
                              tracer_type,        depend,            &
-                             tarear(:,:,iblk),   l_stop,            &
+                             tarear(:,  iblk),   l_stop,            &
                              istop,              jstop,             &
                              mflxe(:,:,0),       mflxn(:,:,0),      &
                              mm   (:,:,0,iblk))
@@ -829,7 +831,7 @@
                                ilo, ihi,             jlo, jhi,         &
                                ntrace,                                 &
                                tracer_type,          depend,           &
-                               tarear    (:,:,iblk), l_stop,           &
+                               tarear    (:,  iblk), l_stop,           &
                                istop,                jstop,            &
                                mflxe (:,:,  n),      mflxn (:,:,  n),  &
                                mm    (:,:,  n,iblk),                   &
@@ -1482,9 +1484,13 @@
       real (kind=dbl_kind), intent(in) ::   &
          dt               ! time step (s)
 
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
+      real (kind=dbl_kind), dimension (nx_block*ny_block), intent(in) ::   &
          uvel         , & ! x-component of velocity (m/s)
-         vvel         , & ! y-component of velocity (m/s)
+         vvel             ! y-component of velocity (m/s)
+
+      ! these four are flat in the caller too, but this routine still indexes
+      ! them (i,j); left as they were so this change stays about uvel/vvel
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) ::   &
          dxu          , & ! E-W dimensions of U-cell (m)
          dyu          , & ! N-S dimensions of U-cell (m)
          HTN          , & ! length of north face of T-cell (m)
@@ -1531,8 +1537,8 @@
       do j = jlo-nghost+1, jhi+nghost-1
       do i = ilo-nghost+1, ihi+nghost-1
 
-         dpx(i,j) = -dt*uvel(i,j)
-         dpy(i,j) = -dt*vvel(i,j)
+         dpx(i,j) = -dt*uvel((j-1)*nx_block+i)
+         dpy(i,j) = -dt*vvel((j-1)*nx_block+i)
 
          ! Check for values out of bounds (more than one grid cell away)
          if ((dpx(i,j) > c0 .and. (dpx(i,j) < -HTN(i,j) .or. dpx(i,j) > HTN(i+1,j))) .or.   &
@@ -1562,7 +1568,7 @@
 
          do j = jlo-nghost+1, jhi+nghost-1
          do i = ilo-nghost+1, ihi+nghost-1
-            if (uvel(i,j)/=c0 .or. vvel(i,j)/=c0) then
+            if (uvel((j-1)*nx_block+i)/=c0 .or. vvel((j-1)*nx_block+i)/=c0) then
 
                !-------------------------------------------------------------------
                ! Scale departure points to coordinate system in which grid cells
@@ -1613,15 +1619,15 @@
                ! trajectory midpoint in the (i2,j2) reference frame.
                !-------------------------------------------------------------------
 
-               ump = uvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
-                   - uvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
-                   + uvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
-                   - uvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
+               ump = uvel((j2-1-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt-p5)     &
+                   - uvel((j2-1-1)*nx_block+i2)*(mpxt+p5)*(mpyt-p5)     &
+                   + uvel((j2-1)*nx_block+i2)*(mpxt+p5)*(mpyt+p5)     &
+                   - uvel((j2-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt+p5)
 
-               vmp = vvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
-                   - vvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
-                   + vvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
-                   - vvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
+               vmp = vvel((j2-1-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt-p5)     &
+                   - vvel((j2-1-1)*nx_block+i2)*(mpxt+p5)*(mpyt-p5)     &
+                   + vvel((j2-1)*nx_block+i2)*(mpxt+p5)*(mpyt+p5)     &
+                   - vvel((j2-1)*nx_block+i2-1)*(mpxt-p5)*(mpyt+p5)
 
                !-------------------------------------------------------------------
                ! Use the midpoint velocity to estimate the coordinates of the
@@ -3516,7 +3522,11 @@
          depend              ! tracer dependencies (see above)
 
       real (kind=dbl_kind), dimension (nx_block, ny_block), intent(in) ::   &
-         mflxe, mflxn   , & ! mass transport across east and north cell edges
+         mflxe, mflxn     ! mass transport across east and north cell edges
+
+      ! tarear is assumed shape, 1D over the block in Fortran storage order,
+      ! i.e. element (i,j) is stored at (j-1)*nx_block+i
+      real (kind=dbl_kind), dimension (:), intent(in) ::   &
          tarear           ! 1/tarea
 
       real (kind=dbl_kind), dimension (nx_block, ny_block), intent(inout) ::   &
@@ -3603,7 +3613,7 @@
 
          w1 = mflxe(i,j) - mflxe(i-1,j  )   &
             + mflxn(i,j) - mflxn(i  ,j-1)
-         mm(i,j) = mm(i,j) - w1*tarear(i,j)
+         mm(i,j) = mm(i,j) - w1*tarear((j-1)*nx_block+i)
 
          if (mm(i,j) < -puny) then    ! abort with negative value
             l_stop = .true.
@@ -3623,9 +3633,9 @@
             + mflxn(i,j) - mflxn(i  ,j-1)
          write (nu_diag,*) ' '
          write (nu_diag,*) 'New mass < 0, i, j =', i, j
-         write (nu_diag,*) 'Old mass =', mm(i,j) + w1*tarear(i,j)
+         write (nu_diag,*) 'Old mass =', mm(i,j) + w1*tarear((j-1)*nx_block+i)
          write (nu_diag,*) 'New mass =', mm(i,j)
-         write (nu_diag,*) 'Net transport =', -w1*tarear(i,j)
+         write (nu_diag,*) 'Net transport =', -w1*tarear((j-1)*nx_block+i)
          return
       endif
 
@@ -3662,7 +3672,7 @@
 
                   w1  = mtflxe(i,j,nt) - mtflxe(i-1,j  ,nt)   &
                       + mtflxn(i,j,nt) - mtflxn(i  ,j-1,nt)
-                  tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear(i,j))   &
+                  tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear((j-1)*nx_block+i))   &
                                 / mm(i,j)
                enddo            ! ij
 
@@ -3676,7 +3686,7 @@
                   if (abs(tm(i,j,nt1)) > c0) then
                      w1  = mtflxe(i,j,nt) - mtflxe(i-1,j  ,nt)   &
                          + mtflxn(i,j,nt) - mtflxn(i  ,j-1,nt)
-                     tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear(i,j))   &
+                     tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear((j-1)*nx_block+i))   &
                                  / (mm(i,j) * tm(i,j,nt1))
                   endif
 
@@ -3694,7 +3704,7 @@
                       abs(tm(i,j,nt2)) > c0) then
                      w1  = mtflxe(i,j,nt) - mtflxe(i-1,j  ,nt)   &
                          + mtflxn(i,j,nt) - mtflxn(i  ,j-1,nt)
-                     tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear(i,j))   &
+                     tm(i,j,nt) = (mtold(i,j,nt) - w1*tarear((j-1)*nx_block+i))   &
                               / (mm(i,j) * tm(i,j,nt2) * tm(i,j,nt1))
                   endif
                enddo            ! ij

@@ -26,9 +26,13 @@
 
       ! icepack_atmo.F90
       ! Cdn variables on the T-grid
+      ! the i and j dimensions are flattened: element (i,j,iblk) of the block
+      ! layout lives at ((j-1)*nx_block + i, iblk)
+      real (kind=dbl_kind), public, dimension (:,:), allocatable :: &
+         Cdn_ocn         ! ocn drag coefficient
+
       real (kind=dbl_kind), public, dimension (:,:,:), allocatable :: &
          Cdn_atm     , & ! atm drag coefficient
-         Cdn_ocn     , & ! ocn drag coefficient
                          ! form drag
          hfreebd,      & ! freeboard (m)
          hdraft,       & ! draft of ice + snow column (Stoessel1993)
@@ -282,7 +286,7 @@
 
       allocate(                                       &
          Cdn_atm      (nx_block,ny_block,max_blocks), & ! atm drag coefficient
-         Cdn_ocn      (nx_block,ny_block,max_blocks), & ! ocn drag coefficient
+         Cdn_ocn      (nx_block*ny_block,max_blocks), & ! ocn drag coefficient
          hfreebd      (nx_block,ny_block,max_blocks), & ! freeboard (m)
          hdraft       (nx_block,ny_block,max_blocks), & ! draft of ice + snow column (Stoessel1993)
          hridge       (nx_block,ny_block,max_blocks), & ! ridge height

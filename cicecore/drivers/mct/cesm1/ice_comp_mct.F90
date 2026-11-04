@@ -861,7 +861,7 @@ contains
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = TLON(i,j,iblk)*rad_to_deg
+          data(n) = TLON((j-1)*nx_block+i,iblk)*rad_to_deg
        enddo    !i
        enddo    !j
     enddo       !iblk
@@ -879,7 +879,7 @@ contains
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = TLAT(i,j,iblk)*rad_to_deg
+          data(n) = TLAT((j-1)*nx_block+i,iblk)*rad_to_deg
        enddo   !i
        enddo   !j
     enddo      !iblk
@@ -897,7 +897,7 @@ contains
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = tarea(i,j,iblk)/(radius*radius)
+          data(n) = tarea((j-1)*nx_block+i,iblk)/(radius*radius)
        enddo   !i
        enddo   !j
     enddo      !iblk
@@ -915,7 +915,7 @@ contains
        do j = jlo, jhi
        do i = ilo, ihi
           n = n+1
-          data(n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
+          data(n) = real(nint(hm((j-1)*nx_block+i,iblk)),kind=dbl_kind)
        enddo   !i
        enddo   !j
     enddo      !iblk
@@ -934,9 +934,9 @@ contains
        do i = ilo, ihi
           n = n+1
          if (trim(grid_type) == 'latlon') then
-             data(n) = ocn_gridcell_frac(i,j,iblk)
+             data(n) = ocn_gridcell_frac((j-1)*nx_block+i,iblk)
           else
-             data(n) = real(nint(hm(i,j,iblk)),kind=dbl_kind)
+             data(n) = real(nint(hm((j-1)*nx_block+i,iblk)),kind=dbl_kind)
           end if
        enddo   !i
        enddo   !j
