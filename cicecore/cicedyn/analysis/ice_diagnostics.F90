@@ -284,10 +284,8 @@
 
       ! hemispheric state quantities
       real (kind=dbl_kind) :: &
-         umaxn,   hmaxn,   shmaxn,    arean,   snwmxn, extentn, &
-         umaxs,   hmaxs,   shmaxs,    areas,   snwmxs, extents, &
-         pmaxn,   ketotn,  urmsn,     albtotn, ptotn, &
-         pmaxs,   ketots,  urmss,     albtots, ptots
+         umaxn,   urmsn,   albtotn, &
+         umaxs,   urmss,   albtots
 
       ! fields at diagnostic points
       real (kind=dbl_kind), dimension(npnt) :: &
@@ -344,45 +342,9 @@
       call hdiag_reduce(hdiag_fld, c1, hdiag_n, hdiag_s)
       deallocate(hdiag_fld)
 
-      ! total ice area
-      arean = hdiag_n(hd_aice)
-      areas = hdiag_s(hd_aice)
-      arean = arean * m2_to_km2
-      areas = areas * m2_to_km2
-
-      ! ice extent (= area of grid cells with aice > aice_extmin)
-      extentn = hdiag_n(hd_extent)
-      extents = hdiag_s(hd_extent)
-      extentn = extentn * m2_to_km2
-      extents = extents * m2_to_km2
-
-      ! total ice volume
-      shmaxn = hdiag_n(hd_vice)
-      shmaxs = hdiag_s(hd_vice)
-
-      ! total snow volume
-      snwmxn = hdiag_n(hd_vsno)
-      snwmxs = hdiag_s(hd_vsno)
-
-      ! total pond volume
-      ptotn = c0
-      ptots = c0
-      if (hd_ptot > 0) then
-         ptotn = hdiag_n(hd_ptot)
-         ptots = hdiag_s(hd_ptot)
-      endif
-
-      ! total ice-snow kinetic energy
-      ketotn = hdiag_n(hd_ke)
-      ketots = hdiag_s(hd_ke)
-
       ! rms ice speed, and average ice albedo over sunlit points
       call hdiag_derived(hdiag_n, urmsn, albtotn)
       call hdiag_derived(hdiag_s, urmss, albtots)
-
-      ! maximum ice volume (= mean thickness including open water)
-      hmaxn = hdiag_n(hd_vmax)
-      hmaxs = hdiag_s(hd_vmax)
 
       ! maximum ice speed
       umaxn = hdiag_n(hd_umax)
@@ -425,14 +387,6 @@
             !$OMP END PARALLEL DO
          endif   ! umax
       endif      ! check_umax
-
-      ! maximum ice strength
-
-      pmaxn = hdiag_n(hd_pmax)
-      pmaxs = hdiag_s(hd_pmax)
-
-      pmaxn = pmaxn / c1000   ! convert to kN/m
-      pmaxs = pmaxs / c1000
 
       if (print_global) then
          ! conservation diagnostics, the same as the netcdf diagnostics
@@ -587,16 +541,20 @@
 
         write(nu_diag,899) 'Arctic','Antarctic'
 
-        write(nu_diag,901) 'total ice area  (km^2) = ',arean,  areas
-        write(nu_diag,901) 'total ice extent(km^2) = ',extentn,extents
-        write(nu_diag,901) 'total ice volume (m^3) = ',shmaxn, shmaxs
-        write(nu_diag,901) 'total snw volume (m^3) = ',snwmxn, snwmxs
-        write(nu_diag,901) 'tot kinetic energy (J) = ',ketotn, ketots
+        ! area and extent (aice > aice_extmin) in km^2, max strength in kN/m
+        write(nu_diag,901) 'total ice area  (km^2) = ',hdiag_n(hd_aice)*m2_to_km2, &
+                                                       hdiag_s(hd_aice)*m2_to_km2
+        write(nu_diag,901) 'total ice extent(km^2) = ',hdiag_n(hd_extent)*m2_to_km2, &
+                                                       hdiag_s(hd_extent)*m2_to_km2
+        write(nu_diag,901) 'total ice volume (m^3) = ',hdiag_n(hd_vice), hdiag_s(hd_vice)
+        write(nu_diag,901) 'total snw volume (m^3) = ',hdiag_n(hd_vsno), hdiag_s(hd_vsno)
+        write(nu_diag,901) 'tot kinetic energy (J) = ',hdiag_n(hd_ke),   hdiag_s(hd_ke)
         write(nu_diag,900) 'rms ice speed    (m/s) = ',urmsn,  urmss
         write(nu_diag,900) 'average albedo         = ',albtotn,albtots
-        write(nu_diag,900) 'max ice volume     (m) = ',hmaxn,  hmaxs
+        write(nu_diag,900) 'max ice volume     (m) = ',hdiag_n(hd_vmax), hdiag_s(hd_vmax)
         write(nu_diag,900) 'max ice speed    (m/s) = ',umaxn,  umaxs
-        write(nu_diag,900) 'max strength    (kN/m) = ',pmaxn,  pmaxs
+        write(nu_diag,900) 'max strength    (kN/m) = ',hdiag_n(hd_pmax)/c1000, &
+                                                       hdiag_s(hd_pmax)/c1000
 
         if (print_global) then  ! global diags for conservations checks
 
