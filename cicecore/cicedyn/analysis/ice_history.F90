@@ -268,7 +268,7 @@
          call release_fileunit(nu_nml)
       endif
 
-      ! histfreq options ('1','h','d','m','y')
+      ! histfreq options ('1','h','d','m','y','n'), or 'x' for unused streams
       nstreams = 0
       do ns = 1, max_nstrm
          if (histfreq(ns) == '1' .or. histfreq(ns) == 'h' .or. &

@@ -493,6 +493,8 @@
 ! Whether output with frequency unit and count is due at this timestep,
 ! given the relative elapsed time since the frequency base.
 ! unit is 'y','m','d','h','1' (timesteps), anything else ('x') is never.
+! Upper case 'Y','M','D','H' are only reachable from dumpfreq.
+! histfreq, diagfreq_unit and diag_netcdf_freq only allow lower case.
 
       logical function freq_now(unit, n, step, ey, em, ed, eh)
 
