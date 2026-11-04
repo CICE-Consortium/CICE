@@ -2804,7 +2804,7 @@
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
-           call accum_hist_field(n_sisaltmass, iblk, rho_ice(:,:)*sal_ice(:,:)*vice(:,:,iblk), a2D)
+           call accum_hist_field(n_sisaltmass, iblk, rhoi*sal_ice(:,:)*vice(:,:,iblk), a2D)
          endif
 
          if (f_sisali(1:1) /= 'x') then
@@ -3069,7 +3069,7 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
                  worka(i,j) = max(((rho_ocn(i,j)-rho_ice(i,j))*vice(i,j,iblk)-rhos*vsno(i,j,iblk)) &
-                                  / rho_ocn(i,j), c0)
+                                  / rho_ocn(i,j),c0)
               endif
            enddo
            enddo
