@@ -366,9 +366,9 @@ Lines that begin with # or are blank are ignored.  For example,
 ::
 
    #Test   Grid  PEs  Sets                Diff
-    smoke   col  1x1  diag1  
-    smoke   col  1x1  diag1,run1year  smoke_col_1x1_diag1
-    smoke   col  1x1  debug,run1year  
+   smoke    col  1x1  diag1  
+   smoke    col  1x1  diag1,run1year  smoke_col_1x1_diag1
+   smoke    col  1x1  debug,run1year  
    restart  col  1x1  debug  
    restart  col  1x1  diag1  
    restart  col  1x1  pondlvl  
@@ -465,6 +465,44 @@ test suite::
 
   ./cice.setup --suite base_suite --mach wolf --env gnu --testid myid --tdir /scratch/$user/testsuite.myid
 
+.. _bfbcompmiss:
+
+A note on comparisons against an unfinished test
+When using ``--diff`, the test with run a bit-for-bit comparison at the end of the
+run.  It may wait for the diff test job to finish, but only for a bounded time, because 
+a compute node sitting in a sleep loop costs allocation.  Listing the comparison target 
+earlier in the suite file does not avoid the wait: tests are submitted in order but run
+concurrently, so a target slower than the test comparing against it can still finish second.
+
+When that wait expires the comparison runs against output that is written, and reports one of
+
+    - ``PASS ... bfbcomp ...`` -- the diff directory is bit-for-bit identical with the case,
+    - ``FAIL ... bfbcomp ... different-data`` -- the diff directory is NOT bit-for-bit identical with the case,
+    - ``FAIL ... bfbcomp ... usage-error`` -- some files are missing,
+    - ``PEND ... bfbcomp ...`` -- the diff comparison is pending, results are not known yet,
+    - ``MISS ... bfbcomp ... missing-data`` -- the diff directory is not available yet,
+
+The first two results are complete.  The other three may or may not be caused by pending
+runs.  At the end of the test suite, **bfbcomp_update_tests.csh** is run to update
+the ``--diff`` (bfbcomp) results.  But even at that point, runs may be pending.  The results
+can be updated manually later by running **bfbcomp_update_tests.csh** from the testsuite directory,
+::
+
+  cd <suite_dir>
+  ./bfbcomp_update_tests.csh
+
+An individual ``--diff`` test result can also be updated from the individual test directory
+by runnning ``bfbcomp_update.csh``,
+::
+
+  cd <testcase_dir>
+  ./bfbcomp_update.csh
+
+The in-job wait is five one-minute polls by default in the **bfbcomp_update.csh** script.  This
+is overwritten by the ``ICE_BFBWAIT`` value in **cice.settings** which is set by default to zero.
+That means the testcase will not wait any extra time for the ``--diff`` case to finish to minimize
+batch time.  Again, **bfbcomp_update_tests.csh** will run at the end of a test suite to update
+the results.  And if needed, users can run that script manually to update those results.
 
 .. _examplesuites:
 

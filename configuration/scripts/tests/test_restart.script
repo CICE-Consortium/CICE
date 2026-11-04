@@ -75,7 +75,7 @@ else
   echo "PASS ${ICE_TESTNAME} run ${ttimeloop} ${tdynamics} ${tcolumn}" >> ${ICE_CASEDIR}/test_output
 
   set restbfb = "PASS"
-  ${ICE_CASEDIR}/casescripts/comparebfb.csh ${ICE_RUNDIR}/restart
+  ${ICE_CASEDIR}/casescripts/comparerest.csh ${ICE_RUNDIR}/restart
   set bfbstatus = $status
   if (${bfbstatus} != 0) set restbfb = "FAIL"
 
@@ -91,7 +91,7 @@ else
         set file2m = `echo $file1 | sed -e 's|base_iceh|iceh_mod|g'`
         ncatted -h -a ,global,d,, ${file1} ${file1m}
         ncatted -h -a ,global,d,, ${file2} ${file2m}
-        ${ICE_CASEDIR}/casescripts/comparebfb.csh ${file1m} ${file2m}
+        ${ICE_CASEDIR}/casescripts/comparerest.csh ${file1m} ${file2m}
         set bfbstatus = $status
         if (${bfbstatus} != 0) set icehrbfb = "FAIL"
         rm ${file1m} ${file2m}
