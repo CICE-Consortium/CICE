@@ -186,7 +186,7 @@ section :ref:`tabnamelist`.
    "dt", "thermodynamics time step", "3600. s"
    "dt_dyn", "dynamics/ridging/transport time step", ""
    "dT_mlt", ":math:`\Delta` temperature per :math:`\Delta` snow grain radius", "1. deg"
-   "dt_wavefracture", "time interval between wave fracture computations of the floe size distribution (-1 = dt)", "s"
+   "dt_wavefracture", "time interval between wave fracture computations of the floe size distribution (-1 = dt, 0 = at wave forcing record times)", "s"
    "dte","subcycling time step for EVP dynamics (:math:`\Delta t_e`)", "s"
    "dte2T", "dte / 2(damping time scale)", ""
    "dtei", "1/dte, where dte is the EVP subcycling time step", "1/s"

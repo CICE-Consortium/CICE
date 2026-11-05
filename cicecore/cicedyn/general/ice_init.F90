@@ -100,7 +100,7 @@
           atm_data_format, ocn_data_format, atm_data_version, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir, wave_spec_file,  &
-          wave_spec_files, &
+          wave_spec_files, wave_spec_timefreq, &
           oceanmixed_file, restore_ocn, trestore, &
           ice_data_type, ice_data_conc, ice_data_dist, &
           snw_filename, &
@@ -1308,12 +1308,6 @@
          write(nu_diag,*) ' '
       endif
 
-      !-----------------------------------------------------------------
-      ! For wave_spec_type = 'WAM' the wave forcing file, not the namelist,
-      ! defines the number of wave frequencies (nfreq) and their values.
-      !-----------------------------------------------------------------
-      if (trim(wave_spec_type) == 'WAM') call wave_spec_files
-
       if (trim(runtype) == 'continue') then
          if (my_task == master_task) then
             write(nu_diag,*) subname//'NOTE: runtype=continue, setting restart=.true.'
@@ -1989,7 +1983,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
          file=__FILE__, line=__LINE__)
 
-      ! dt_wavefracture = -1 (the default) means wave fracture every timestep
+      ! dt_wavefracture = -1 : wave fracture every timestep (default)
+      ! dt_wavefracture =  0 : wave fracture at the wave forcing record times
       if (dt_wavefracture < c0) dt_wavefracture = dt
 
       wave_spec = .false.
@@ -2012,15 +2007,31 @@
                endif
             endif
          endif
-         ! dt_wavefracture must be a whole number of model timesteps
-         if (nint(dt_wavefracture/dt) < 1 .or. &
-             abs(dt_wavefracture - real(nint(dt_wavefracture/dt),kind=dbl_kind)*dt) > 1.0e-6_dbl_kind*dt) then
+         ! dt_wavefracture must be a whole number of model timesteps (or 0)
+         if (dt_wavefracture /= c0 .and. (nint(dt_wavefracture/dt) < 1 .or. &
+             abs(dt_wavefracture - real(nint(dt_wavefracture/dt),kind=dbl_kind)*dt) > 1.0e-6_dbl_kind*dt)) then
             if (my_task == master_task) then
-               write (nu_diag,*) 'ERROR: dt_wavefracture must be a positive multiple of dt'
+               write (nu_diag,*) 'ERROR: dt_wavefracture must be 0 or a positive multiple of dt'
                write (nu_diag,*) 'ERROR: dt_wavefracture, dt = ',dt_wavefracture, dt
             endif
             abort_list = trim(abort_list)//":69"
          endif
+      endif
+
+      !-----------------------------------------------------------------
+      ! A wave spectrum file with its own 'time' and 'wavefreq' variables
+      ! defines nfreq and the frequencies, so check the file here, before
+      ! any array dimensioned with nfreq is allocated.
+      !-----------------------------------------------------------------
+      if (wave_spec .and. (trim(wave_spec_type) == 'constant' .or. &
+                           trim(wave_spec_type) == 'random')) call wave_spec_files
+
+      ! dt_wavefracture = 0 needs a wave forcing time axis (checked in wave_spec_files)
+      if (tr_fsd .and. dt_wavefracture == c0 .and. .not. (wave_spec .and. wave_spec_timefreq)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: dt_wavefracture = 0 requires a wave_spec_file with time and wavefreq'
+         endif
+         abort_list = trim(abort_list)//":69"
       endif
 
       ! Check if wave_spec_type is set but no floe size distribution (tr_fsd)
@@ -2589,20 +2600,16 @@
                elseif (trim(wave_spec_type) == 'random') then
                   tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using '// &
                             'random number (multiple iterations of wave fracture to convergence)'
-               elseif (trim(wave_spec_type) == 'WAM') then
-                  tmpstr2 = ' : wave spectrum, frequencies, and times read from provided WAM forcing file,'// &
-                            'sea surface height generated using constant phase (1 iteration of wave fracture)'
                else
                   tmpstr2 = ' : unknown value'
                endif
                write(nu_diag,1030) ' wave_spec_type   = ', trim(wave_spec_type),trim(tmpstr2)
             endif
-            if (trim(wave_spec_type) == 'WAM') then
-               write(nu_diag,1020) ' nfreq            = ', nfreq,' : number of wave spectral forcing frequencies read from WAM forcing file'
-            else
-               write(nu_diag,1020) ' nfreq            = ', nfreq,' : number of wave spectral forcing frequencies'
-            endif
-            if (dt_wavefracture > dt) then
+            write(nu_diag,1020) ' nfreq            = ', nfreq,' : number of wave spectral forcing frequencies'
+            if (dt_wavefracture == c0) then
+               write(nu_diag,1002) ' dt_wavefracture  = ', dt_wavefracture, &
+                  ' : wave fracture at the wave forcing record times, interval-integrated'
+            elseif (dt_wavefracture > dt) then
                write(nu_diag,1002) ' dt_wavefracture  = ', dt_wavefracture, &
                   ' : seconds between wave fracture computations, interval-integrated'
             else
