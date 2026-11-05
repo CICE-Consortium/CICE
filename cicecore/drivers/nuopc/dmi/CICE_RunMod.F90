@@ -100,9 +100,8 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
-! wave_spectrum is time varying when it is read from a wave forcing file
-! (wave_spec_type = 'WAM'); for the other wave_spec_types this call simply
-! re-interpolates the same data.
+! wave_spectrum read from wave_spec_file varies in time, so it is updated
+! every step; the file is only re-read when a new record is needed.
          if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
 #ifndef  CICE_DMI

@@ -910,7 +910,7 @@
       subroutine step_dyn_wave (dt)
 
       use ice_arrays_column, only: wave_spectrum, wave_sig_ht, &
-          d_afsd_wave, wavefreq, dwavefreq
+          d_afsd_wave, wavefreq, dwavefreq, wavefrac_interval
       use ice_calendar, only: istep1, dt_wavefracture
       use ice_domain_size, only: nfreq
       use ice_state, only: trcrn, aicen, aice, vice
@@ -944,19 +944,31 @@
       !    dt_wavefracture > dt: fracture is computed every dt_wavefracture seconds
       !                      and applied over dt_wavefracture to conserve
       !                      total fracture
+      !    dt_wavefracture = 0: fracture is computed at the wave forcing record
+      !                      times and applied over the time since the previous
+      !                      record (allows an uneven time axis)
       !-----------------------------------------------------------------
 
-      nstep_wave = max(nint(dt_wavefracture/dt),1)
-
-      if (nstep_wave > 1) then
-         if (mod(istep1, nstep_wave) /= 0) then
-            ! not a fracture step: no change to the FSD this timestep
+      if (dt_wavefracture == c0) then
+         if (wavefrac_interval <= c0) then
+            ! no wave record reached: no change to the FSD this timestep
             d_afsd_wave(:,:,:,:) = c0
             return
          endif
-      endif
+         dt_wave = wavefrac_interval
+      else
+         nstep_wave = max(nint(dt_wavefracture/dt),1)
 
-      dt_wave = real(nstep_wave, dbl_kind) * dt
+         if (nstep_wave > 1) then
+            if (mod(istep1, nstep_wave) /= 0) then
+               ! not a fracture step: no change to the FSD this timestep
+               d_afsd_wave(:,:,:,:) = c0
+               return
+            endif
+         endif
+
+         dt_wave = real(nstep_wave, dbl_kind) * dt
+      endif
 
       call ice_timer_start(timer_column)
       call ice_timer_start(timer_fsd)
