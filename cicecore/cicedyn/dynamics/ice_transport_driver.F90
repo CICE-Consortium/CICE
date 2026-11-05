@@ -31,6 +31,7 @@
       implicit none
       private
       public :: init_transport, transport_remap, transport_upwind
+      public :: state_to_tracers, tracers_to_state  ! public for transportchk unit test
 
       character (len=char_len), public ::     &
          advection   ! type of advection scheme used
@@ -1077,6 +1078,11 @@
                icells = icells + 1
                indxi(icells) = i
                indxj(icells) = j
+            else
+               ! set to zero if no ice left in cell
+               aicen(i,j,n) = c0
+               vicen(i,j,n) = c0
+               vsnon(i,j,n) = c0
             endif
          enddo
          enddo
