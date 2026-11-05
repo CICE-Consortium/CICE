@@ -30,7 +30,7 @@
       use ice_exit, only: abort_ice
       use ice_read_write, only: ice_open, ice_read, ice_check_nc, &
                                 ice_get_ncvarsize, ice_read_vec_nc, &
-                                ice_read_nc_refdate, &
+                                ice_read_nc_refdate, ice_nc_has_var, &
                                 ice_open_nc, ice_read_nc, ice_close_nc
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_readwrite, &
                             timer_bound, timer_forcing
@@ -198,6 +198,10 @@
 
       logical (kind=log_kind) :: &
          wave_spec_initialized = .false.  ! true once the frequency grid is set
+
+      logical (kind=log_kind), public :: &
+         wave_spec_timefreq = .false.  ! wave_spec_file has its own 'time' and
+                                       ! 'wavefreq': read by wave_spec_data_timefreq
 
       real (dbl_kind) :: &
          frestore        ! restoring value based on trestore (0.-1.)
@@ -4609,7 +4613,7 @@
       if (debug_forcing) then
         if (my_task == master_task) then
            write(nu_diag,*)'CICE: Atm. interpolate: = ',&
-                                  hcdate,c1intp,c2intp
+                                  hcdate, c1intp, c2intp
         endif
       endif
       call interpolate_data (Tair_data, Tair)
@@ -5423,24 +5427,20 @@
       ! read more realistic data from a file
       if (wave_spec) then
 
-         if (trim(wave_spec_type) == 'WAM') then
-
-#ifdef USE_NETCDF
-            call wave_spec_data_WAM
-#else
-            call abort_ice (subname// &
-                  "ERROR: wave_spec_type='WAM' requires cpp USE_NETCDF", &
-                  file=__FILE__, line=__LINE__)
-#endif
-
-         elseif ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
+         if ((trim(wave_spec_type) == 'constant').OR.(trim(wave_spec_type) == 'random')) then
 
             if (trim(wave_spec_file(1:4)) == 'unkn') then
                call abort_ice (subname//'ERROR: wave_spec_file '//trim(wave_spec_file), &
                   file=__FILE__, line=__LINE__)
             else
 #ifdef USE_NETCDF
-               call wave_spec_data
+               if (wave_spec_timefreq) then
+                  ! NetCDF file contains its own 'time' and 'wavefreq' variables (see wave_spec_files)
+                  call wave_spec_data_timefreq
+               else
+                  ! Default 6-hourly records and hardwired wave frequencies
+                  call wave_spec_data
+               endif
 #else
                write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
                write (nu_diag,*) "wave spectrum file not available, using default profile"
@@ -5461,9 +5461,9 @@
 !   One-time initialization of the wave frequency grid.  It must run after
 !   alloc_arrays_column, where wavefreq and dwavefreq are allocated.
 !
-!   For wave_spec_type = 'WAM' the frequencies are read from the wave forcing
-!   file and the bin widths derived from them.  For every other wave_spec_type
-!   the hardwired icepack frequencies are used.
+!   If wave_spec_file has its own 'time' and 'wavefreq' (wave_spec_timefreq),
+!   the frequencies are read from it and the bin widths derived from them.
+!   Otherwise the hardwired icepack frequencies are used.
 !
       subroutine init_wave_spec
 
@@ -5487,20 +5487,14 @@
       real(kind=dbl_kind), dimension(nfreq) :: &
          wave_spectrum_profile  ! dummy wave spectrum, used if wave_spec_type = profile
 
-      character(char_len) :: wave_spec_type
       character(len=*), parameter :: subname = '(init_wave_spec)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
-      call icepack_query_parameters(wave_spec_type_out=wave_spec_type)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
-
       ! if no wave data is provided, wave_spectrum is zero everywhere
       wave_spectrum(:,:,:,:) = c0
 
-      if (trim(wave_spec_type) == 'WAM') then
+      if (wave_spec_timefreq) then
 
 #ifdef USE_NETCDF
 
@@ -5562,7 +5556,7 @@
 
 #else
          call abort_ice (subname// &
-            "ERROR: wave_spec_type='WAM' requires cpp USE_NETCDF", &
+            "ERROR: reading wave_spec_file requires cpp USE_NETCDF", &
             file=__FILE__, line=__LINE__)
 #endif
 
@@ -5583,15 +5577,18 @@
 
 !=======================================================================
 !
-!   Read from a WAM wave forcing file the number of wave frequencies and the
-!   forcing time axis.  The frequencies themselves are read later, by
-!   init_wave_spec, directly into the arrays that nfreq dimensions.
+!   Decide how wave_spec_file is read.  If it has its own 'time' and 'wavefreq'
+!   variables (wave_spec_timefreq), read the number of wave frequencies and the
+!   time axis here; the frequencies are read later by init_wave_spec, directly
+!   into the arrays that nfreq dimensions.  Otherwise the default
+!   wave_spec_data is used: 6-hourly records, icepack frequencies and nfreq
+!   from the namelist.
 !
 !   Inspired by subroutine hycom_atm_files, which reads the time axis of the
 !   HYCOM atmospheric forcing in the same way.
 !
 !   NOTE:
-!      For wave_spec_type = 'WAM' the file, not the namelist, defines nfreq.
+!      With wave_spec_timefreq the file, not the namelist, defines nfreq.
 !      This routine must therefore be called before anything dimensioned
 !        with nfreq is allocated (alloc_arrays_column, alloc_forcing); it is called
 !        from input_data in ice_init.F90.
@@ -5599,12 +5596,14 @@
       subroutine wave_spec_files
 
       use ice_broadcast, only: broadcast_array, broadcast_scalar
+      use ice_calendar, only: dt_wavefracture
 
       ! local variables
 
       integer (kind=int_kind) :: &
          fid     , & ! file id
-         ndims       ! number of dimensions of efreq
+         ndims   , & ! number of dimensions of efreq
+         n           ! record index
 
       integer (kind=int_kind), dimension(4) :: &
          dimlens     ! dimensions of efreq: nx, ny, nfreq, time
@@ -5613,6 +5612,10 @@
          ref_sec_per_unit, & ! length of one time unit in the file (s)
          secday              ! seconds per day
 
+      logical (kind=log_kind) :: &
+         has_time    , & ! wave_spec_file has a 'time' variable
+         has_wavefreq    ! wave_spec_file has a 'wavefreq' variable
+
       character(len=*), parameter :: subname = '(wave_spec_files)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
@@ -5620,11 +5623,32 @@
 #ifdef USE_NETCDF
 
       if (len_trim(wave_spec_file) == 0 .or. trim(wave_spec_file(1:4)) == 'unkn') then
-         call abort_ice (subname//"ERROR: wave_spec_file must be set for wave_spec_type='WAM'", &
+         call abort_ice (subname//"ERROR: wave_spec_file must be set for wave_spec_type constant or random", &
             file=__FILE__, line=__LINE__)
       endif
 
       call ice_open_nc(wave_spec_file, fid)
+
+      ! Does the file carry its own time and frequency axes?
+      has_time     = ice_nc_has_var(fid, 'time')
+      has_wavefreq = ice_nc_has_var(fid, 'wavefreq')
+      call broadcast_scalar(has_time,     master_task)
+      call broadcast_scalar(has_wavefreq, master_task)
+      wave_spec_timefreq = has_time .and. has_wavefreq
+
+      if (.not. wave_spec_timefreq) then
+         call ice_close_nc(fid)
+         if (my_task == master_task) then
+            write (nu_diag,*) ' '
+            if (has_time .or. has_wavefreq) then
+               write (nu_diag,*) subname,' WARNING: ',trim(wave_spec_file), &
+                  ' has only one of the variables time and wavefreq'
+            endif
+            write (nu_diag,*) 'CICE: Wave spectrum file     = ',trim(wave_spec_file)
+            write (nu_diag,*) 'CICE: no time and wavefreq variable: Assume 6-hourly records, icepack frequencies'
+         endif
+         return
+      endif
 
       ! Read efreq dimensions : nx, ny, nfreq, time
       call ice_get_ncvarsize(fid, 'efreq', dimlens, ndims)
@@ -5682,9 +5706,26 @@
          write (nu_diag,*) 'CICE: Total wave timesteps   = ',Njday_wave
       endif                     ! master_task
 
+      ! Wave fracture at the record times (dt_wavefracture = 0) needs an
+      ! increasing time axis with at least 2 records
+      if (dt_wavefracture == c0) then
+         if (Njday_wave < 2) then
+            call abort_ice (subname//'ERROR: dt_wavefracture = 0 needs at least 2 time records in '// &
+               trim(wave_spec_file), file=__FILE__, line=__LINE__)
+         endif
+         do n = 2, Njday_wave
+            if (jday_wave(n) <= jday_wave(n-1)) then
+               if (my_task == master_task) write (nu_diag,*) subname, &
+                  ' ERROR: wave time axis not increasing: ',jday_wave(n-1),jday_wave(n)
+               call abort_ice (subname//'ERROR: dt_wavefracture = 0 needs an increasing wave time axis', &
+                  file=__FILE__, line=__LINE__)
+            endif
+         enddo
+      endif
+
 #else
       call abort_ice (subname// &
-         "ERROR: wave_spec_type='WAM' requires cpp USE_NETCDF", &
+         "ERROR: reading wave_spec_file requires cpp USE_NETCDF", &
          file=__FILE__, line=__LINE__)
 #endif
 
@@ -5692,31 +5733,38 @@
 
 !=======================================================================
 !
-!   Read wave spectra from a WAM forcing file and interpolate them in time.
+!   Read wave spectra from a file with its own time and frequency axes, and
+!   interpolate them in time.
 !
 !   Inspired by subroutine hycom_atm_data: the time axis read by
 !   wave_spec_files is searched for the two records bracketing the current
 !   model time, and the two spectra are linearly interpolated between them.
 !
-      subroutine wave_spec_data_WAM
+      subroutine wave_spec_data_timefreq
 
-      use ice_arrays_column, only: wave_spectrum
+      use ice_arrays_column, only: wave_spectrum, wavefrac_interval
+      use ice_calendar, only: dt
       use ice_read_write, only: ice_read_nc_xyf
 
       ! local variables
 
       integer (kind=int_kind) :: &
          ncid    , & ! netcdf file id
-         recnum      ! record number
+         recnum  , & ! record number
+         n       , & ! record index
+         nfirst  , & ! first wave record reached this timestep
+         nlast       ! last wave record reached this timestep
 
       real (kind=dbl_kind) :: &
          hcdate  , & ! current time in the time units of the forcing file
+         tstart  , & ! time at the start of this timestep (days)
+         ttol    , & ! tolerance when matching record times (days)
          secday      ! number of seconds in a day
 
       logical (kind=log_kind) :: &
          read6
 
-      character(len=*), parameter :: subname = '(wave_spec_data_WAM)'
+      character(len=*), parameter :: subname = '(wave_spec_data_timefreq)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
 
@@ -5763,18 +5811,49 @@
                file=__FILE__, line=__LINE__)
          endif
 
-         ! Compute interpolation coefficients.
+         ! Compute interpolation coefficients. (c1intp, c2intp)
          call interp_coeff2 (hcdate, jday_wave(recnum), jday_wave(recnum+1) )
 
       endif
 
-      ! Read
+      !-----------------------------------------------------------------
+      ! dt_wavefracture = 0: fracture on the timestep reaching a record, over
+      ! the time since the previous record. Can not use recnum, as that misses
+      ! records if they are not on a CICE timestep (within ttol).
+      !-----------------------------------------------------------------
+      wavefrac_interval = c0
+      if (Njday_wave > 1) then
+         ! p001 as in the record search above, but at most half a timestep,
+         ! so a record never fires on an earlier timestep for small dt
+         ttol   = min(p001, p5*dt/secday)
+         tstart = hcdate - dt/secday
+         nfirst = 0
+         nlast  = 0
+         do n = 1, Njday_wave
+            if (jday_wave(n) > tstart+ttol .and. jday_wave(n) <= hcdate+ttol) then
+               if (nfirst == 0) nfirst = n
+               nlast = n
+            endif
+         enddo
+         if (nlast > 0) then
+            if (nfirst > 1) then
+               wavefrac_interval = (jday_wave(nlast) - jday_wave(nfirst-1))*secday
+            else
+               ! first record in the file: nothing before it
+               wavefrac_interval = (jday_wave(nlast) - tstart)*secday
+            endif
+            if (my_task == master_task .and. debug_forcing) &
+               write(nu_diag,*) 'CICE: Wave fracture at record: ',jday_wave(nlast), &
+                                ' over (s): ',wavefrac_interval
+         endif
+      endif
+
+      ! Read new data ?
       read6 = .false.
       if (istep==1 .or. oldrecnum_wave /= recnum) read6 = .true.
 
       if (read6) then
-
-         if (my_task == master_task .and. debug_forcing) then
+         if (my_task == master_task) then
             if (Njday_wave == 1) then
                ! Special case: one single wave field
                write(nu_diag,*) 'CICE: Wave read: = ',jday_wave(recnum)
@@ -5784,7 +5863,6 @@
          endif
 
          call ice_open_nc(wave_spec_file,ncid)
-
          call ice_read_nc_xyf(ncid,recnum  ,'efreq',wave_spectrum_data(:,:,:,1,:), &
               debug_forcing, field_loc=field_loc_center, &
               field_type=field_type_scalar)
@@ -5803,12 +5881,18 @@
       endif
 
       ! Interpolate
+      if (debug_forcing) then
+        if (my_task == master_task) then
+           write(nu_diag,*)'CICE: Wave interpolate: = ',&
+                                  hcdate, c1intp, c2intp
+        endif
+      endif
       call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
 
       ! Save record number for next time step
       oldrecnum_wave = recnum
 
-      end subroutine wave_spec_data_WAM
+      end subroutine wave_spec_data_timefreq
 
 !=======================================================================
 !
@@ -5902,6 +5986,9 @@
       ! Read
       read6 = .false.
       if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
+
+      ! only read when the record changes (read6 used to be computed and ignored)
+      if (read6) then
          !-------------------------------------------------------------------
          ! File is NETCDF
          ! file variable names are:
@@ -5916,6 +6003,7 @@
               field_loc=field_loc_center, &
               field_type=field_type_scalar)
          call ice_close_nc(ncid)
+      endif
 
 
       ! Interpolate
