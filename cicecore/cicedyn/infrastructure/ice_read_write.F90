@@ -53,6 +53,7 @@
                 ice_read_vec_nc,    &
                 ice_get_ncvarsize,  &
                 ice_read_nc_refdate,&
+                ice_nc_has_var,     &
                 ice_check_nc,       &
                 ice_close_nc
 
@@ -3082,6 +3083,39 @@
 #endif
 
       end subroutine ice_read_nc_refdate
+
+!=======================================================================
+! True if the netCDF file holds a variable called varname, else False.
+! Only set on master_task; callers broadcast it.
+
+      logical (kind=log_kind) function ice_nc_has_var(fid, varname)
+
+      integer (kind=int_kind), intent(in) :: &
+         fid                 ! file id
+      character (len=*), intent(in) :: &
+         varname             ! variable name
+
+      ! local variables
+
+#ifdef USE_NETCDF
+      integer (kind=int_kind) :: &
+         status, varid
+#endif
+      character(len=*), parameter :: subname = '(ice_nc_has_var)'
+
+      ice_nc_has_var = .false.
+
+#ifdef USE_NETCDF
+      if (my_task == master_task) then
+         status = nf90_inq_varid(fid, trim(varname), varid)
+         ice_nc_has_var = (status == nf90_noerr)
+      endif
+#else
+      call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
+                     file=__FILE__, line=__LINE__)
+#endif
+
+      end function ice_nc_has_var
 
 !=======================================================================
 
