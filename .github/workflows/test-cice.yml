@@ -2,7 +2,6 @@ name: GHActions
 
 # This workflow is triggered on pushes, pull-requeust, and releases
 # ghactions* branch names will trigger this to support development testing
-# To Do: get it working with bash and ubuntu
 
 on:
   push:
@@ -15,6 +14,10 @@ on:
     types:
       - created
 
+# Establish a secure, read-only baseline for the repository token
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: /bin/csh -e {0}
@@ -23,41 +26,37 @@ jobs:
   build:
     name: "CICETesting"
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }} 
     strategy:
       fail-fast: false   # <-- Keeps other matrix jobs running if one fails
       matrix:
-#        os: [macos-latest, ubuntu-latest]
-        os: [macos-latest]
-#        os: [macos-13]
+        os: [macos-latest, ubuntu-latest, macos-15]
+#        os: [macos-latest]
+#        os: [macos-15]
 #        os: [ubuntu-latest]
         include: 
-#          - os: macos-13
-#            envdef: macos
-#            minicond: Miniconda3-latest-MacOSX-x86_64.sh
-#            testsuites: "travis_suite"
           - os: macos-latest
             envdef: macos
-            minicond: Miniconda3-latest-MacOSX-arm64.sh
+            testid: M00
             testsuites: "travis_suite"
-#          - os: ubuntu-latest
-#            envdef: linux
-#            minicond: Miniconda3-latest-Linux-x86_64.sh
-#            testsuites: "travis_suite"
+            experimental: true
+          - os: macos-15
+            envdef: macos
+            testid: M15
+            testsuites: "travis_suite"
+            experimental: false
+          - os: ubuntu-latest
+            envdef: linux
+            testid: L00
+            testsuites: "travis_suite"
+            experimental: false
     steps:
-      - name: install macos xcode
-        shell: /bin/bash {0}
-        if: contains( matrix.envdef, 'macos')
-        run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
-          echo "xcrun --show-sdk-path: $(xcrun --show-sdk-path)"
-          echo "xcode-select -p: $(xcode-select -p)"
-      - name: install linux csh
+      - name: install linux tcsh
         shell: /bin/bash {0}
         if: contains( matrix.envdef, 'linux')
         run: |
           sudo apt-get update
-          sudo apt-get install -y csh
+          sudo apt-get install -y tcsh
       - name: system info
         shell: /bin/bash {0}
         run: |
@@ -71,23 +70,19 @@ jobs:
           echo "HOME: $HOME"
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
           echo "OS: ${{ matrix.os }}"
+          echo "TESTID: ${{ matrix.testid }}"
           echo "ENVDEF: ${{ matrix.envdef }}"
-          echo "MINICOND: ${{ matrix.minicond }}"
-      - name : install miniconda
-        shell: /bin/bash {0}
-        run: |
-          wget https://repo.anaconda.com/miniconda/${{ matrix.minicond }} -O ~/miniconda.sh
-          bash ~/miniconda.sh -b -p $HOME/miniconda
       - name: clone
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: 'recursive'
-      - name: link
+      - name: create directories
         shell: /bin/bash {0}
         run: |
-           ln -s "${GITHUB_WORKSPACE}/../CICE" "${HOME}/cice"
-#           ls -al ${HOME}/
-#           ls -al ${GITHUB_WORKSPACE}/
+          ln -s "${GITHUB_WORKSPACE}/../CICE" "${HOME}/cice"
+          mkdir -p ${HOME}/cice-dirs/runs ${HOME}/cice-dirs/baseline ${HOME}/cice-dirs/input
+#          ls -al ${HOME}/
+#          ls -al ${GITHUB_WORKSPACE}/
       - name: check for tabs
         shell: /bin/csh -e {0}
         run: |
@@ -104,19 +99,25 @@ jobs:
           end
           exit $cnt
       - name: setup conda env
+        id: micromamba
+        uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39 # v3.2.1
+        with:
+          environment-file: configuration/scripts/machines/environment.yml
+          cache-environment: true
+          cache-environment-key: env-${{ runner.os }}-${{ hashFiles('configuration/scripts/machines/environment.yml') }}
+          init-shell: none
+      - name: activate conda env
         shell: /bin/bash {0}
         run: |
-          cd $HOME && mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
-          source $HOME/miniconda/bin/activate
-          conda init tcsh
-          cd $HOME/cice
-          conda env create -f configuration/scripts/machines/environment.yml
+          echo "CONDA_PREFIX=${{ steps.micromamba.outputs.environment-path }}" >> $GITHUB_ENV
+          echo "${{ steps.micromamba.outputs.environment-path }}/bin" >> $GITHUB_PATH
       - name: check conda env
-        shell: /bin/csh -e {0}
+        shell: /bin/bash {0}
         run: |
-          conda activate cice
           which clang
           clang --version
+          which gcc
+          gcc --version
           which gfortran
           gfortran --version
           which mpicc
@@ -125,30 +126,16 @@ jobs:
           mpifort --version
           which make
           make --version
-#          echo "mpifort -v:"
-#          mpifort -v
-#          echo "mpifort --showme:compile:"
-#          mpifort --showme:compile
-#          echo "mpifort --showme:link:"
-#          mpifort --showme:link
-#          echo "mpifort --showme:command:"
-#          mpifort --showme:command
-#          echo "mpifort --showme:libdirs:"
-#          mpifort --showme:libdirs
-#          echo "mpifort --showme:libs:"
-#          mpifort --showme:libs
-#          echo "mpifort --showme:incdirs:"
-#          mpifort --showme:incdirs
       - name: check setup case
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0 --pes 1x1 -s diag1
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0{{ matrix.testid }} --pes 1x1 -s diag1
       - name: check setup test
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0{{ matrix.testid }}
       - name: run hello world unit test
         shell: /bin/csh -e {0}
         run: |
@@ -161,15 +148,29 @@ jobs:
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1 --pes 2x2 -s diag1
-          cd case1
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1{{ matrix.testid }} --pes 2x2 -s diag1
+          cd case1{{ matrix.testid }}
           ./cice.build
       - name: download input data
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice-dirs/input
-          wget --progress=dot:giga https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz && tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
-          wget --progress=dot:giga https://zenodo.org/records/10419929/files/CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz && tar xvfz CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
+          wget --progress=dot:giga https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz
+          set shaval = "bd46ec49580ab11b8d4b05e381f180f5d25c04c137430e0f69bfdd48a2d02485"
+          set shacmp = `sha256sum CICE_data_gx3_grid_ic-20200320.tar.gz | cut -f 1 -d " "`
+          if ( "${shaval}" != "${shacmp}" ) then
+            echo "Download sha256sum error"
+            exit 1
+          endif
+          tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
+          wget --progress=dot:giga https://zenodo.org/records/10419929/files/CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
+          set shaval = "9b6c3781b46017de6f4762a1ec5283ac47393de17f8bb9488738e470ac3263a8"
+          set shacmp = `sha256sum CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz | cut -f 1 -d " "`
+          if ( "${shaval}" != "${shacmp}" ) then
+            echo "Download sha256sum error"
+            exit 1
+          endif
+          tar xvfz CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
           pwd
           cd CICE_data/forcing/gx3/JRA55/8XDAILY
           ln -s JRA55_gx3_03hr_forcing_200501.nc JRA55_gx3_03hr_forcing_2005.nc
@@ -185,12 +186,13 @@ jobs:
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} --suite ${{ matrix.testsuites }} --testid ${{ matrix.os }}
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --suite ${{ matrix.testsuites }} --testid ${{ matrix.testid }}
       - name: write output
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
           ./.github/workflows/write_logfiles.csh
-          cd testsuite.${{ matrix.os }}
+          cd testsuite.${{ matrix.testid }}
           ./results.csh
       - name: successful run
         if: ${{ success() }}
