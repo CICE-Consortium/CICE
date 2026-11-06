@@ -287,6 +287,7 @@
     wave_spec_type  = 'none'
     wave_spec_file  = 'unknown_wave_spec_file'
     nfreq           = 25
+    dt_wavefracture = -1.0
     restart_coszen  = .false.
     restore_ice     = .false.
     restore_flds    = 'none'

@@ -74,6 +74,7 @@
           istep0, histfreq, histfreq_n, histfreq_base, &
           dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
           npt, dt, ndtd, days_per_year, use_leap_years, &
+          dt_wavefracture, &
           write_ic, dump_last, npt_unit, write_histrest
       use ice_arrays_column, only: oceanmixed_ice
       use ice_restart_column, only: &
@@ -99,6 +100,7 @@
           atm_data_format, ocn_data_format, atm_data_version, &
           bgc_data_type, &
           ocn_data_type, ocn_data_dir, wave_spec_file,  &
+          wave_spec_files, wave_spec_timefreq, &
           oceanmixed_file, restore_ocn, trestore, &
           ice_data_type, ice_data_conc, ice_data_dist, &
           snw_filename, &
@@ -295,6 +297,7 @@
         oceanmixed_ice, restore_ocn,     trestore,                      &
         precip_units,   default_season,                                 &
         wave_spec_type, nfreq,           wave_height_type,              &
+        dt_wavefracture,                                                 &
         atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
         ice_data_type,  ice_data_conc,   ice_data_dist,                 &
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
@@ -569,6 +572,7 @@
       ice_ref_salinity = 4.0_dbl_kind ! Ice reference salinity for coupling
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_height_type= 'internal'! type of wave height forcing
+      dt_wavefracture = -1.0_dbl_kind ! wave fracture interval (s), -1: every timestep (dt)
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
       nfreq           = 25        ! number of wave frequencies
       wave_spec_file  = ' '       ! wave forcing file name
@@ -1192,6 +1196,7 @@
       call broadcast_scalar(precip_units,         master_task)
       call broadcast_scalar(oceanmixed_ice,       master_task)
       call broadcast_scalar(wave_height_type,     master_task)
+      call broadcast_scalar(dt_wavefracture,      master_task)
       call broadcast_scalar(wave_spec_type,       master_task)
       call broadcast_scalar(wave_spec_file,       master_task)
       call broadcast_scalar(nfreq,                master_task)
@@ -1978,6 +1983,10 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort1', &
          file=__FILE__, line=__LINE__)
 
+      ! dt_wavefracture = -1 : wave fracture every timestep (default)
+      ! dt_wavefracture =  0 : wave fracture at the wave forcing record times
+      if (dt_wavefracture < c0) dt_wavefracture = dt
+
       wave_spec = .false.
       if (tr_fsd) then
          if (trim(wave_spec_type) /= 'none') then
@@ -1991,10 +2000,49 @@
             endif
          endif
          if (.not.(wave_spec)) then
-            write (nu_diag,*) 'WARNING: tr_fsd=T but wave_spec=F - not recommended'
-            if (trim(wave_height_type) /= 'none') then
-               write (nu_diag,*) 'WARNING: Wave_spec=F, wave_height_type/=none, wave_sig_ht = 0'
+            if (my_task == master_task) then
+               write (nu_diag,*) 'WARNING: tr_fsd=T but wave_spec=F - not recommended'
+               if (trim(wave_height_type) /= 'none') then
+                  write (nu_diag,*) 'WARNING: Wave_spec=F, wave_height_type/=none, wave_sig_ht = 0'
+               endif
             endif
+         endif
+         ! dt_wavefracture must be a whole number of model timesteps (or 0)
+         if (dt_wavefracture /= c0 .and. (nint(dt_wavefracture/dt) < 1 .or. &
+             abs(dt_wavefracture - real(nint(dt_wavefracture/dt),kind=dbl_kind)*dt) > 1.0e-6_dbl_kind*dt)) then
+            if (my_task == master_task) then
+               write (nu_diag,*) 'ERROR: dt_wavefracture must be 0 or a positive multiple of dt'
+               write (nu_diag,*) 'ERROR: dt_wavefracture, dt = ',dt_wavefracture, dt
+            endif
+            abort_list = trim(abort_list)//":69"
+         endif
+      endif
+
+      !-----------------------------------------------------------------
+      ! A wave spectrum file with its own 'time' and 'wavefreq' variables
+      ! defines nfreq and the frequencies, so check the file here, before
+      ! any array dimensioned with nfreq is allocated.
+      !-----------------------------------------------------------------
+      if (wave_spec .and. (trim(wave_spec_type) == 'constant' .or. &
+                           trim(wave_spec_type) == 'random')) call wave_spec_files
+
+      ! dt_wavefracture = 0 needs a wave forcing time axis (checked in wave_spec_files)
+      if (tr_fsd .and. dt_wavefracture == c0 .and. .not. (wave_spec .and. wave_spec_timefreq)) then
+         if (my_task == master_task) then
+            write (nu_diag,*) 'ERROR: dt_wavefracture = 0 requires a wave_spec_file with time and wavefreq'
+         endif
+         abort_list = trim(abort_list)//":69"
+      endif
+
+      ! Check if wave_spec_type is set but no floe size distribution (tr_fsd)
+      if (trim(wave_spec_type) /= 'none') then
+         if (.not.(tr_fsd)) then
+            if (my_task == master_task) then
+               write (nu_diag,*) &
+                  "WARNING: tr_fsd=F but wave_spec_type/=none " // &
+                  "- wave spectrum not used"
+            endif
+            abort_list = trim(abort_list)//":71"
          endif
       endif
 
@@ -2558,6 +2606,16 @@
                write(nu_diag,1030) ' wave_spec_type   = ', trim(wave_spec_type),trim(tmpstr2)
             endif
             write(nu_diag,1020) ' nfreq            = ', nfreq,' : number of wave spectral forcing frequencies'
+            if (dt_wavefracture == c0) then
+               write(nu_diag,1002) ' dt_wavefracture  = ', dt_wavefracture, &
+                  ' : wave fracture at the wave forcing record times, interval-integrated'
+            elseif (dt_wavefracture > dt) then
+               write(nu_diag,1002) ' dt_wavefracture  = ', dt_wavefracture, &
+                  ' : seconds between wave fracture computations, interval-integrated'
+            else
+               write(nu_diag,1002) ' dt_wavefracture  = ', dt_wavefracture,' : wave fracture computed every timestep'
+            endif
+
             if (trim(wave_height_type) == 'internal') then
                tmpstr2 = ' : use internally generated wave height'
             elseif (trim(wave_height_type) == 'coupled') then

@@ -727,6 +727,7 @@ forcing_nml
    "", "``internal``", "send full frazil water/salt fluxes for mushy physics", ""
    "``default_season``", "``summer``", "forcing initial summer values", "``winter``"
    "", "``winter``", "forcing initial winter values", ""
+   "``dt_wavefracture``", "real", "time interval in seconds between wave fracture computations of the floe size distribution, applied over that interval; must be a multiple of ``dt``, -1 means every timestep, 0 means at the time records of a ``wave_spec_file`` with ``time`` and ``wavefreq`` (time spacing may vary)", "-1.0"
    "``emissivity``", "real", "emissivity of snow and ice", "0.985"
    "``fbot_xfer_type``", "``Cdn_ocn``", "variable ocean heat transfer coefficient scheme", "``constant``"
    "", "``constant``", "constant ocean heat transfer coefficient", ""
