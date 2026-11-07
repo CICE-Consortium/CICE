@@ -73,7 +73,7 @@ Overall, CICE code should be implemented as follows,
 
        call icepack_physics()
        call icepack_warnings_flush(nu_diag)
-       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=\_\_FILE\_\_, line=\_\_LINE\_\_)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
     To identify the grid cell where Icepack fails, check **icepack_warnings_aborted** inside the
     i,j loop and call ``diagnostic_abort``, which writes the Icepack messages, the location (global
@@ -95,7 +95,7 @@ Overall, CICE code should be implemented as follows,
        enddo
        enddo
        call icepack_warnings_flush(nu_diag)
-       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=\_\_FILE\_\_, line=\_\_LINE\_\_)
+       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
   * Use ``ice_check_nc`` or ``ice_pio_check`` after netcdf or pio calls to check for return errors.
 

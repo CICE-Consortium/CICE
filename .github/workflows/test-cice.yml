@@ -126,16 +126,16 @@ jobs:
           mpifort --version
           which make
           make --version
-#      - name: check setup case
-#        shell: /bin/csh -e {0}
-#        run: |
-#          cd $HOME/cice
-#          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0{{ matrix.testid }} --pes 1x1 -s diag1
+      - name: check setup case
+        shell: /bin/csh -e {0}
+        run: |
+          cd $HOME/cice
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0${{ matrix.testid }} --pes 1x1 -s diag1
       - name: check setup test
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0{{ matrix.testid }}
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0${{ matrix.testid }}
       - name: run hello world unit test
         shell: /bin/csh -e {0}
         run: |
@@ -148,8 +148,8 @@ jobs:
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1{{ matrix.testid }} --pes 2x2 -s diag1
-          cd case1{{ matrix.testid }}
+          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1${{ matrix.testid }} --pes 2x2 -s diag1
+          cd case1${{ matrix.testid }}
           ./cice.build
       - name: download input data
         shell: /bin/csh -e {0}
