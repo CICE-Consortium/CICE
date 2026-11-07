@@ -140,8 +140,8 @@ jobs:
         shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} --test unittest --pes 2x1 -s helloworld --testid hw01
-          cd *helloworld*hw01
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --test unittest --pes 2x1 -s helloworld --testid hw${{ matrix.testid }}
+          cd *helloworld*hw${{ matrix.testid }}
           ./cice.build
           ./cice.run
       - name: check cice compile
