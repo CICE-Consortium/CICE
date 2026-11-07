@@ -411,7 +411,13 @@ set tsdir  = "."
 set tsfile = "caselist.${sdate}-${stime}"
 if ( ${dosuite} == 1 ) then
   set tsdir  = "testsuite.${testid}"
-  set tsfile = "testsuite.${testid}.${sdate}-${stime}.list"
+  set tsfile = "caselist.${testid}.${sdate}-${stime}.list"
+else if ( ${dotest} == 1 ) then
+  set tsdir  = "."
+  set tsfile = "caselist.${testid}.${sdate}-${stime}.list"
+else if ( ${docase} == 1 ) then
+  set tsdir  = "."
+  set tsfile = "caselist.${case:t}.${sdate}-${stime}.list"
 endif
 if ( ${tdir} != ${spval} ) then
   set tsdir = ${tdir}
