@@ -1,0 +1,65 @@
+name: Check Pinned Actions
+
+# This script checks that all github actions are pinned and will create
+# an error message if not.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  check-pins:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned checkout action to ensure the checker itself is secure
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run pin-github-action
+        env:
+          # Default token used only to query GitHub API for SHAs; no push access needed
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # 1. Print all workflow files currently being evaluated
+          echo ""
+          echo "Checking workflow files for 'uses:' directives..."
+          ls -1 .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true
+          echo ""
+
+          # 2. Find all workflow files that contain an active 'uses:' directive
+          FILES=$(grep -rl '^\s*uses:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
+
+          # 3. Execute pin-github-action only if action files exist
+          if [ -n "$FILES" ]; then
+            echo ""
+            echo "Found action steps in:"
+            echo "$FILES"
+            echo ""
+            # Explicitly pass file list; fails natively if unpinned actions are found
+            npx pin-github-action $FILES
+          else
+            echo "No third-party 'uses:' directives found across workflows. Skipping pin check."
+          fi
+
+      - name: Check for unpinned actions and print diff
+        run: |
+          if ! git diff --quiet; then
+            echo "::error title=Unpinned Actions Detected::You have unpinned GitHub Actions. Please run 'npx pin-github-action .github/workflows/' locally and push the changes."
+            echo "==================================================="
+            echo "The following changes are required:"
+            echo "==================================================="
+            
+            # Prints the exact YAML changes needed to the GitHub Actions logs
+            git diff
+            
+            # Fails the job, blocking the branch from passing CI
+            exit 1
+          else
+            echo "✅ All GitHub Actions are securely pinned."
+          fi
