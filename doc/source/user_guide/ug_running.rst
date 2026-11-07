@@ -468,8 +468,7 @@ hardwired into the **Macros.[machine]_[environment]** file.
 
 In general, ``-DFORTRANUNDERSCORE`` should always be set to support the Fortran/C
 interfaces in **ice_shr_reprosum.c**.  In addition, if NetCDF is used, ``-DUSE_NETCDF``
-should also be defined.  A list of available CPPs can be found in
-:ref:`tabcpps`.
+should also be defined.  A list of available CPPs can be found in :ref:`tabcpps`.
 
 .. _porting:
 
@@ -750,7 +749,7 @@ A few notes about the conda configuration:
 - You should not update the packages in the ``cice`` conda environment, nor install additional packages.
 - It is not recommended to run other test suites than ``travis_suite`` on a personal computer.
 - The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux,macos}``, which calls ``conda activate cice``.
- - Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
+- Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
 
     There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
     

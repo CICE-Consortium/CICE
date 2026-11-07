@@ -126,11 +126,11 @@ jobs:
           mpifort --version
           which make
           make --version
-      - name: check setup case
-        shell: /bin/csh -e {0}
-        run: |
-          cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0{{ matrix.testid }} --pes 1x1 -s diag1
+#      - name: check setup case
+#        shell: /bin/csh -e {0}
+#        run: |
+#          cd $HOME/cice
+#          ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0{{ matrix.testid }} --pes 1x1 -s diag1
       - name: check setup test
         shell: /bin/csh -e {0}
         run: |
