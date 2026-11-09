@@ -928,12 +928,16 @@ To use the python scripts, the following python packages are required:
 * netcdf4
 * basemap, basemap-data, basemap-data-hires
 
-The easist way to install the package is via the cice env file provided with CICE via conda:
+The easiest way to get these packages is the ``cice`` conda environment
+(see :ref:`create_conda_env`), which can be used for plotting even if CICE
+is built and run on an HPC system with its own compilers and libraries.
+Once the environment is created, activate it before running the plotting scripts:
 
   .. code-block:: bash
 
-    conda env create -f configuration/scripts/machines/environment.yml --force
     conda activate cice
+
+Alternatively, install the packages listed above into a Python environment of your choice.
 
 Then edit the ``ciceplots.csh`` script and run it.  ``ciceplots.csh`` also demonstrates
 how to call each python script separately.
