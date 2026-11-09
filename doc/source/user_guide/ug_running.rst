@@ -593,7 +593,7 @@ To get the required software necessary to build and run CICE, and use the plotti
 
 ``configuration/scripts/machines/environment.yml``.
 
-This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux, on both 
+This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux, on both
 Intel (x86_64) and ARM (arm64/aarch64) hardware.
 It is tested regularly with GitHub Actions on recent versions of macOS and Ubuntu.
 It is untested under Windows, but might work using the `Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
@@ -607,18 +607,18 @@ Installing conda
 
 If you already have a working conda installation (Miniforge, Miniconda, Anaconda, etc.), you can skip this step.
 
-Otherwise, we recommend `Miniforge <https://github.com/conda-forge/miniforge>`_, a minimal conda installer that 
+Otherwise, we recommend `Miniforge <https://github.com/conda-forge/miniforge>`_, a minimal conda installer that
 uses the community `conda-forge <https://conda-forge.org/>`_ channel by default.
 The ``environment.yml`` file only uses conda-forge packages.
 This process has to be done only once.
-The following commands detect your operating system and hardware and download the matching installer, so they are 
+The following commands detect your operating system and hardware and download the matching installer, so they are
 the same on every macOS or GNU/Linux computer:
 
 .. code-block:: bash
 
   curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
   bash Miniforge3-$(uname)-$(uname -m).sh
- 
+
   # Follow the prompts, and answer "yes" when asked whether to initialize conda
   # Close and reopen your terminal
 
@@ -626,19 +626,21 @@ Some additional system packages are needed, depending on your operating system.
 
 On macOS, install the Xcode Command Line Tools if you do not already have them. These provide the macOS SDK used by the conda compilers:
 
+.. code-block:: bash
+
   xcode-select --install
 
 On some GNU/Linux distributions (including Ubuntu and its derivatives), the csh shell that comes with the system is not compatible with conda.
 You will need to install the tcsh shell (which is backwards compatible with csh), and configure your system to use tcsh as csh:
- 
+
 .. code-block:: bash
- 
+
   # Install tcsh
   sudo apt-get install tcsh
   # Configure your system to use tcsh as csh
   sudo update-alternatives --set csh /bin/tcsh
- 
-  
+
+
 
 .. _init_shell:
 
@@ -649,7 +651,7 @@ The ``conda`` command must be available in your shell.
 If you answered "yes" when the installer asked whether to initialize conda, this is already done for your default shell.
 Otherwise, or to initialize a different shell, run:
 
- .. code-block:: bash
+.. code-block:: bash
 
   # Initialize your default shell (bash, zsh, tcsh, fish, ...) to use conda
   ~/miniforge3/bin/conda init "$(basename "$SHELL")"
@@ -658,10 +660,10 @@ Otherwise, or to initialize a different shell, run:
 
 If you installed conda somewhere other than ``~/miniforge3``, adjust the path.
 Run ``conda init --help`` to see the list of supported shells.
- 
+
 If you prefer not to modify your shell startup files, you can instead make conda available for the current session only, before using any conda command and before compiling and running CICE:
 
- .. code-block:: bash
+.. code-block:: bash
 
   # bash or zsh
   source ~/miniforge3/bin/activate
@@ -680,10 +682,10 @@ The conda configuration expects some directories and files to be present at ``$H
   mkdir -p ~/cice-dirs/runs ~/cice-dirs/baseline ~/cice-dirs/input
   cd ~/cice-dirs/input
   curl -L -O https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz
-  tar -xzfz CICE_data_gx3_grid_ic-20200320.tar.gz 
+  tar -xzf CICE_data_gx3_grid_ic-20200320.tar.gz
   curl -L -O https://zenodo.org/records/10419929/files/CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
-  tar -xzfz CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
- 
+  tar -xzf CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
+
 See https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data for more information about the input data.
 
 This step needs to be done only once.
@@ -692,11 +694,11 @@ If you prefer that some or all of the CICE directories be located somewhere else
 
 .. code-block:: bash
 
-  
+
   # Create the CICE directories at your preferred location
   mkdir -p ${somewhere}/cice-dirs/runs ${somewhere}/cice-dirs/baseline ${somewhere}/cice-dirs/input
   # Download and untar the input data in ${somewhere}/cice-dirs/input as above
-  
+
   # Create a symlink to cice-dirs in your $HOME
   cd $HOME
   ln -s ${somewhere}/cice-dirs ~/cice-dirs
@@ -714,7 +716,7 @@ This step needs to be done only once and will maintain a static conda environmen
 
 .. code-block:: bash
 
-  conda env create -f configuration/scripts/machines/environment.yml --prune
+  conda env update -f configuration/scripts/machines/environment.yml --prune
 
 
 .. _using_conda_env:
@@ -752,44 +754,43 @@ A few notes about the conda configuration:
 - Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
 
     There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
-    
+
   You can run CICE in serial mode by specifically requesting only one process:
-  
+
   .. code-block:: bash
-  
+
     ./cice.setup -m conda -e linux -p 1x1 ...
-  
+
   If you do want to run with more MPI processes than the number of available CPUs in your machine, you can add the ``--oversubscribe`` flag to the ``mpirun`` call in ``cice.run``:
-  
+
   .. code-block:: bash
-  
+
     # For a specific case:
     # Open cice.run and replace the line
     mpirun -np <num> ./cice >&! $ICE_RUNLOG_FILE
     # with
     mpirun -np <num> --oversubscribe ./cice >&! $ICE_RUNLOG_FILE
-  
+
     # For all future cases:
     # Open configuration/scripts/cice.launch.csh and replace the line
     mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
     # with
     mpirun -np ${ntasks} --oversubscribe ./cice >&! \$ICE_RUNLOG_FILE
-  
+
 .. _plot_tools:
 
 Plotting tools
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
+To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
 
-  .. code-block:: bash
-  
-    cd ~/cice-dirs/cases/case1
-    conda env create -f configuration/scripts/machines/environment.yml --force
-    conda activate cice
-    python timeseries.py ~/cice-dirs/cases/case1/logs
-    conda deactivate  # to deactivate the environment
-  
+.. code-block:: bash
+
+  cd ~/cice-dirs/cases/case1
+  conda activate cice
+  python timeseries.py ~/cice-dirs/cases/case1/logs
+  conda deactivate  # to deactivate the environment
+
 .. _build_docs:
 
 Building the documentation
@@ -816,7 +817,7 @@ This step needs to be done only once. Then, to build the documentation:
   make html
   # Open build/html/index.html in your browser
   conda deactivate  # to deactivate the environment
- 
+
 
 .. _force:
 
@@ -927,12 +928,16 @@ To use the python scripts, the following python packages are required:
 * netcdf4
 * basemap, basemap-data, basemap-data-hires
 
-The easist way to install the package is via the cice env file provided with CICE via conda:
+The easiest way to get these packages is the ``cice`` conda environment
+(see :ref:`create_conda_env`), which can be used for plotting even if CICE
+is built and run on an HPC system with its own compilers and libraries.
+Once the environment is created, activate it before running the plotting scripts:
 
   .. code-block:: bash
 
-    conda env create -f configuration/scripts/machines/environment.yml --force
     conda activate cice
+
+Alternatively, install the packages listed above into a Python environment of your choice.
 
 Then edit the ``ciceplots.csh`` script and run it.  ``ciceplots.csh`` also demonstrates
 how to call each python script separately.
