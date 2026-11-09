@@ -478,7 +478,7 @@
       call read_restart_field(nu_restart,0,stress12_1,'ruf8', &
            'stress12_1',1,diag,field_loc_center,field_type_scalar) ! stress12_1
       call read_restart_field(nu_restart,0,stress12_3,'ruf8', &
-           'stress12_3',1,diag,field_loc_center,field_type_scalar) ! stress12_1
+           'stress12_3',1,diag,field_loc_center,field_type_scalar) ! stress12_3
 
       call read_restart_field(nu_restart,0,stress12_2,'ruf8', &
            'stress12_2',1,diag,field_loc_center,field_type_scalar) ! stress12_2
@@ -1408,7 +1408,7 @@
                        endif    ! aice_i.gt.p001 and aice_i.lt.aicen
                     enddo       ! n
                  endif          ! aice_o.lt.p01
-              elseif (aice_o.gt.p01) then  ! .and. aice_o.gt.aicen
+              elseif (aice_o.gt.p01) then  ! .and. aice_m.gt.aicen
                  if     (aice_m.lt.edge_om) then
                     ! --- target ice conc. is obs.
                     aice_t = aice_o
