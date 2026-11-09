@@ -24,6 +24,7 @@ jobs:
     name: "CICETesting"
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false   # <-- Keeps other matrix jobs running if one fails
       matrix:
 #        os: [macos-latest, ubuntu-latest]
         os: [macos-latest]
@@ -33,21 +34,30 @@ jobs:
 #          - os: macos-13
 #            envdef: macos
 #            minicond: Miniconda3-latest-MacOSX-x86_64.sh
+#            testsuites: "travis_suite"
           - os: macos-latest
             envdef: macos
-            minicond: Miniconda3-latest-MacOSX-x86_64.sh
+            minicond: Miniconda3-latest-MacOSX-arm64.sh
+            testsuites: "travis_suite"
 #          - os: ubuntu-latest
 #            envdef: linux
 #            minicond: Miniconda3-latest-Linux-x86_64.sh
+#            testsuites: "travis_suite"
     steps:
-      - name: reset macos toolchain to commandlinetools
+      - name: install macos xcode
         shell: /bin/bash {0}
         if: contains( matrix.envdef, 'macos')
         run: |
-          sudo xcode-select -r
-          sudo xcode-select -s /Library/Developer/CommandLineTools
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          echo "SDKROOT=$(xcrun --sdk macosx --show-sdk-path)" >> $GITHUB_ENV
           echo "xcrun --show-sdk-path: $(xcrun --show-sdk-path)"
           echo "xcode-select -p: $(xcode-select -p)"
+      - name: install linux csh
+        shell: /bin/bash {0}
+        if: contains( matrix.envdef, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y csh
       - name: system info
         shell: /bin/bash {0}
         run: |
@@ -69,15 +79,17 @@ jobs:
           wget https://repo.anaconda.com/miniconda/${{ matrix.minicond }} -O ~/miniconda.sh
           bash ~/miniconda.sh -b -p $HOME/miniconda
       - name: clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: 'recursive'
       - name: link
+        shell: /bin/bash {0}
         run: |
-           ln -s ${GITHUB_WORKSPACE}/../CICE ${HOME}/cice
+           ln -s "${GITHUB_WORKSPACE}/../CICE" "${HOME}/cice"
 #           ls -al ${HOME}/
 #           ls -al ${GITHUB_WORKSPACE}/
       - name: check for tabs
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice/cicecore
           set cnt = 0
@@ -100,12 +112,18 @@ jobs:
           cd $HOME/cice
           conda env create -f configuration/scripts/machines/environment.yml
       - name: check conda env
+        shell: /bin/csh -e {0}
         run: |
-          conda activate cice && which clang && which gfortran && which mpicc && which mpifort && which make
+          conda activate cice
+          which clang
           clang --version
+          which gfortran
           gfortran --version
-          mpifort --version
+          which mpicc
           mpicc --version
+          which mpifort
+          mpifort --version
+          which make
           make --version
 #          echo "mpifort -v:"
 #          mpifort -v
@@ -122,14 +140,17 @@ jobs:
 #          echo "mpifort --showme:incdirs:"
 #          mpifort --showme:incdirs
       - name: check setup case
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} -c case0 --pes 1x1 -s diag1
       - name: check setup test
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --test smoke --testid c0
       - name: run hello world unit test
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} --test unittest --pes 2x1 -s helloworld --testid hw01
@@ -137,12 +158,14 @@ jobs:
           ./cice.build
           ./cice.run
       - name: check cice compile
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
           ./cice.setup -m conda -e ${{ matrix.envdef }} -c case1 --pes 2x2 -s diag1
           cd case1
           ./cice.build
       - name: download input data
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice-dirs/input
           wget --progress=dot:giga https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz && tar xvfz CICE_data_gx3_grid_ic-20200320.tar.gz
@@ -153,14 +176,16 @@ jobs:
           cd $HOME/cice-dirs/input
           ls -alR
 #      - name: run case
+#        shell: /bin/csh -e {0}
 #        run: |
 #          cd $HOME/cice
 #          cd case1
 #          ./cice.run
       - name: run suite
+        shell: /bin/csh -e {0}
         run: |
           cd $HOME/cice
-          ./cice.setup -m conda -e ${{ matrix.envdef }} --suite travis_suite --testid ${{ matrix.os }}
+          ./cice.setup -m conda -e ${{ matrix.envdef }} --suite ${{ matrix.testsuites }} --testid ${{ matrix.os }}
       - name: write output
         run: |
           cd $HOME/cice

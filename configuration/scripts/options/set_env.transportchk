@@ -1,0 +1,2 @@
+setenv ICE_DRVOPT     unittest/transportchk
+setenv ICE_TARGET     transportchk

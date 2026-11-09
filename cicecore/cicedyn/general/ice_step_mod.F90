@@ -22,6 +22,7 @@
       use ice_domain_size, only: max_blocks
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
+      use ice_diagnostics, only: diagnostic_abort
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_prep_radiation
       use icepack_intfc, only: icepack_step_therm1
@@ -201,6 +202,11 @@
                         fswthrun_idf = fswthrun_idf(i,j,  :,iblk), &
                         fswpenln = fswpenln(i,j,:,:,iblk), &
                         Sswabsn  = Sswabsn (i,j,:,:,iblk), Iswabsn  = Iswabsn (i,j,:,:,iblk))
+
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_prep_radiation aborted')
+            ! endif
 
          enddo               ! i
          enddo               ! j
@@ -619,6 +625,11 @@
             enddo
          endif ! tr_aero
 
+         if (icepack_warnings_aborted()) then
+            ! print location (global i/j, lat/lon) and ice state and abort
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_therm1 aborted')
+         endif
+
       enddo ! i
       enddo ! j
 
@@ -760,8 +771,13 @@
                       dpnd_melt   = dpnd_melt  (i,j,  iblk))
          endif ! tmask
 
-      enddo                     ! i
-      enddo                     ! j
+         if (icepack_warnings_aborted()) then
+            ! print location (global i/j, lat/lon) and ice state and abort
+            call diagnostic_abort(i, j, iblk, subname//' icepack_step_therm2 aborted')
+         endif
+
+      enddo ! i
+      enddo ! j
 
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -944,10 +960,18 @@
                                            trcrn       = trcrn          (i,j,:,:,iblk), &
                                            d_afsd_wave = d_afsd_wave    (i,j,:,  iblk), &
                                            wave_height = wave_sig_ht    (i,j,    iblk))
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_wavefracture aborted')
+            ! endif
          end do ! i
          end do ! j
       end do    ! iblk
       !$OMP END PARALLEL DO
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       call ice_timer_stop(timer_fsd)
       call ice_timer_stop(timer_column)
@@ -971,9 +995,10 @@
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
       use ice_flux, only: strocnxU, strocnyU, strocnxT_iavg, strocnyT_iavg
+      use ice_flux, only: strocnxE, strocnyN
       use ice_flux, only: init_history_dyn
-      use ice_grid, only: grid_average_X2Y
-      use ice_state, only: aiU
+      use ice_grid, only: grid_average_X2Y, grid_ice
+      use ice_state, only: aiU, aiN, aiE
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
@@ -993,7 +1018,15 @@
          work1, &     ! temporary
          work2        ! temporary
 
+      real (kind=dbl_kind) :: &
+         puny               ! a very small number
+
       character(len=*), parameter :: subname = '(step_dyn_horiz)'
+
+      call icepack_query_parameters(puny_out=puny)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
 
       call init_history_dyn     ! initialize dynamic history variables
 
@@ -1009,33 +1042,63 @@
       ! Compute strocnxT_iavg, strocnyT_iavg for thermo and coupling
       !-----------------------------------------------------------------
 
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! conservation requires aiU be divided before averaging
+      ! strocn computed on U, N, E as needed. Map strocn divided by ice area to T
+      ! conservation requires ice area be divided before averaging
+      ! B grid: use strocn U divided by aiU
+      ! C/CD grid: use strocnx E divided by aiE and strocny N divided by aiN.
       work1 = c0
       work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk), iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (aiU(i,j,iblk) /= c0) then
-               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
-            endif
-        enddo
-        enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (work2,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
-      call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
+      if (grid_ice == 'C' .or. grid_ice == 'CD') then
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk), iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (aiE(i,j,iblk) > puny) then
+                  work1(i,j,iblk) = strocnxE(i,j,iblk)/aiE(i,j,iblk)
+               endif
+               if (aiN(i,j,iblk) > puny) then
+                  work2(i,j,iblk) = strocnyN(i,j,iblk)/aiN(i,j,iblk)
+               endif
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call ice_HaloUpdate (work1,           halo_info, &
+                              field_loc_Eface, field_type_vector)
+         call ice_HaloUpdate (work2,           halo_info, &
+                              field_loc_Nface, field_type_vector)
+         call grid_average_X2Y('F', work1, 'E', strocnxT_iavg, 'T')    ! shift
+         call grid_average_X2Y('F', work2, 'N', strocnyT_iavg, 'T')
+      else
+         !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
+         do iblk = 1, nblocks
+            this_block = get_block(blocks_ice(iblk), iblk)
+            ilo = this_block%ilo
+            ihi = this_block%ihi
+            jlo = this_block%jlo
+            jhi = this_block%jhi
+            do j = jlo, jhi
+            do i = ilo, ihi
+               if (aiU(i,j,iblk) /= c0) then
+                  work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+                  work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
+               endif
+            enddo
+            enddo
+         enddo
+         !$OMP END PARALLEL DO
+         call ice_HaloUpdate (work1,              halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+         call ice_HaloUpdate (work2,              halo_info, &
+                              field_loc_NEcorner, field_type_vector)
+         call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
+         call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
+      endif
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
@@ -1159,6 +1222,11 @@
                          dpnd_ridge=dpnd_ridge(i,j,  iblk))
          endif ! tmask
 
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_ridge aborted')
+         ! endif
+
       enddo ! i
       enddo ! j
 
@@ -1262,8 +1330,18 @@
                      fhocn  = fhocn   (i,j,iblk),        &
                      fsloss = fsloss  (i,j,iblk),        &
                      fsnow  = fsnow   (i,j,iblk))
-      enddo
-      enddo
+
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_snow aborted')
+         ! endif
+
+      enddo ! i
+      enddo ! j
+
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+         file=__FILE__, line=__LINE__)
 
       ! increment counter for history averaging
       do j = jlo, jhi
@@ -1454,6 +1532,11 @@
            enddo
          endif
 
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_step_radiation aborted')
+         ! endif
+
       enddo ! i
       enddo ! j
 
@@ -1577,6 +1660,11 @@
                          shcoef  = shcoef     (i,j),      &
                          Cdn_atm = Cdn_atm    (i,j,iblk), &
                          Cdn_atm_ratio_n = Cdn_atm_ratio(i,j,iblk))
+
+            ! uncomment to print the location and ice state of the failing grid cell
+            ! if (icepack_warnings_aborted()) then
+            !    call diagnostic_abort(i, j, iblk, subname//' icepack_atm_boundary aborted')
+            ! endif
          enddo ! ij
 
          call icepack_warnings_flush(nu_diag)
@@ -1614,6 +1702,11 @@
                                       fswthru  =fswthru  (i,j,iblk), hmix  =hmix  (i,j,iblk), &
                                       Tf       =Tf       (i,j,iblk), qdp   =qdp   (i,j,iblk), &
                                       frzmlt   =frzmlt   (i,j,iblk), dt    =dt)
+
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_ocn_mixed_layer aborted')
+         ! endif
       enddo                    ! ij
 
       call icepack_warnings_flush(nu_diag)
@@ -1758,6 +1851,11 @@
                               aice0        = aice0       (i,j,          iblk), &
                               trcrn        = trcrn       (i,j,:,:,      iblk), &
                               vsnon_init   = vsnon_init  (i,j,:,        iblk))
+
+         ! uncomment to print the location and ice state of the failing grid cell
+         ! if (icepack_warnings_aborted()) then
+         !    call diagnostic_abort(i, j, iblk, subname//' icepack_biogeochemistry aborted')
+         ! endif
 
       enddo               ! i
       enddo               ! j

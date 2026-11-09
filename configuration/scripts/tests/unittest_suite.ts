@@ -119,6 +119,11 @@ unittest       gbox80  4x2x13x23x13  gathscatchk,bctripole,debug,nghost2
 unittest       tx1     4x2x50x50     gathscatchk,bctripole,debug,nghost2
 unittest       tx1     1x1x50x50     gathscatchk,bctripolet,nghost2
 #
+unittest       gx3     1x1           transportchk
+unittest       gx3     1x1           transportchk,debug
+unittest       gx3     1x1           transportchk,snwitdrdg,snwgrain,isotope,icdefault
+unittest       gx3     1x1           transportchk,bgcz,debug
+#
 unittest       gx3     1x1           optargs
 unittest       gx3     1x1           opticep
 unittest       gx3     4x2x25x29x4   debug,run2day,dslenderX2,opticep,cmplog  smoke_gx3_4x2x25x29x4_debug_dslenderX2_run2day

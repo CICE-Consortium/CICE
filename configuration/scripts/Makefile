@@ -155,6 +155,8 @@ halochk: $(EXEC)
 
 gathscatchk: $(EXEC)
 
+transportchk: $(EXEC)
+
 opticep: $(EXEC)
 
 # this builds just a subset of source code specified explicitly and requires a separate target

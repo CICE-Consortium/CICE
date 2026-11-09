@@ -55,6 +55,8 @@
       real (kind=dbl_kind), dimension(:,:,:), allocatable, public :: &
          aice  , & ! concentration of ice on T grid
          aiU   , & ! concentration of ice on U grid
+         aiN   , & ! concentration of ice on N grid
+         aiE   , & ! concentration of ice on E grid
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
@@ -146,6 +148,8 @@
       allocate ( &
          aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
          aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
+         aiN       (nx_block,ny_block,max_blocks) , & ! concentration of ice N grid
+         aiE       (nx_block,ny_block,max_blocks) , & ! concentration of ice E grid
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
@@ -175,6 +179,8 @@
 
       aice  = c0
       aiU   = c0
+      aiN   = c0
+      aiE   = c0
       vice  = c0
       vsno  = c0
       aice0 = c0

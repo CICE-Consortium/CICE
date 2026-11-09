@@ -535,6 +535,11 @@ endif
 
 EOF0
 
+  cat >! ${tsdir}/bfbcomp_update_tests.csh << EOF0
+#!/usr/bin/env -S csh -f
+
+EOF0
+
   cat >! ${tsdir}/results.csh << EOF0
 #!/usr/bin/env -S csh -f
 rm -f results.log
@@ -584,6 +589,7 @@ EOF0
   chmod +x ${tsdir}/suite.submit
   chmod +x ${tsdir}/results.csh
   chmod +x ${tsdir}/report_codecov.csh
+  chmod +x ${tsdir}/bfbcomp_update_tests.csh
   cp -p -f ${tsdir}/report_codecov.csh ${tsdir}/report_lcov.csh
 
 endif
@@ -855,6 +861,15 @@ EOF
       cp -f -p ${ICE_SCRIPTS}/machines/$file ${casedir}/
     end
 
+    # from tests dir to case
+    foreach file (bfbcomp_update.csh)
+      if !(-e ${ICE_SCRIPTS}/tests/$file) then
+        echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
+        exit -1
+      endif
+      cp -f -p ${ICE_SCRIPTS}/tests/$file ${casedir}/
+    end
+
     # from basic script dir to casescr
     foreach file (parse_namelist.sh parse_settings.sh parse_namelist_from_env.sh cice_decomp.csh cice.run.setup.csh cice.test.setup.csh)
       if !(-e ${ICE_SCRIPTS}/$file) then
@@ -865,7 +880,7 @@ EOF
     end
 
     # from tests dir to casescr
-    foreach file (cice.results.csh cice.codecov.csh cice.lcov.csh)
+    foreach file (cice.results.csh cice.codecov.csh cice.lcov.csh comparerest.csh comparelog.csh)
       if !(-e ${ICE_SCRIPTS}/tests/$file) then
         echo "${0}: ERROR, ${ICE_SCRIPTS}/$file not found"
         exit -1
@@ -1037,8 +1052,6 @@ EOF1
 
     if (${docase} == 0) then
       # from test options to casescr in case any test time changes are applied
-      cp -f -p ${ICE_SCRIPTS}/tests/comparebfb.csh ${casescr}
-      cp -f -p ${ICE_SCRIPTS}/tests/comparelog.csh ${casescr}
       if (-e ${ICE_SCRIPTS}/tests/test_${test}.files) then
         cp -f -p ${ICE_SCRIPTS}/tests/test_${test}.files ${casescr}
         foreach file (`cat ${casescr}/test_${test}.files`)
@@ -1162,6 +1175,12 @@ EOF2
       cd ${ICE_SANDBOX}
       # Write build and run commands to suite.submit
 
+      if ($bfbcomp != ${spval}) then
+         cat >> ${tsdir}/bfbcomp_update_tests.csh << EOF
+cd ${testname_base}; ./bfbcomp_update.csh; cd ../
+EOF
+      endif
+
       cat >> ${tsdir}/results.csh << EOF
 cat ${testname_base}/test_output >> results.log
 EOF
@@ -1235,8 +1254,14 @@ if ( ${dosuite} == 1 ) then
   # Delete reused ciceexe files at the end to save space
   cat >> ${tsdir}/suite.submit << EOF0
 
+# update bfbcomp
+./bfbcomp_update_tests.csh
+
+# clean up
 set nonomatch && rm -f ciceexe.* && unset nonomatch
 set nonomatch && rm -f ice_in_save* && unset nonomatch
+
+echo \${0}: done
 
 EOF0
 
