@@ -784,7 +784,7 @@ module ice_dyn_evp1d
 
      ! local variables
 
-     integer(kind=int_kind) :: iw, lo, up, j, i, ij, islot, ierr
+     integer(kind=int_kind) :: iw, lo, up, j, i, ij, islot
 
      character(len=*), parameter :: subname = '(convert_2d_1d_init)'
 
@@ -1272,8 +1272,8 @@ module ice_dyn_evp1d
      if (trim(ew_boundary_type) == 'cyclic') then
         do j = 1, ny
         do g = 1, nghost
-           call halo_point(g      , j, ihi-nghost+g, j, ihi-nghost+g, j, c0, domark)
-           call halo_point(ihi + g, j, ilo+g-1     , j, ilo+g-1     , j, c0, domark)
+           call halo_point(g      , j, ihi-nghost+g, j, ihi-nghost+g, j, 0, domark)
+           call halo_point(ihi + g, j, ilo+g-1     , j, ilo+g-1     , j, 0, domark)
         end do
         end do
      endif
@@ -1281,8 +1281,8 @@ module ice_dyn_evp1d
      if (trim(ns_boundary_type) == 'cyclic') then
         do i = 1, nx
         do g = 1, nghost
-           call halo_point(i, g      , i, jhi-nghost+g, i, jhi-nghost+g, c0, domark)
-           call halo_point(i, jhi + g, i, jlo+g-1     , i, jlo+g-1     , c0, domark)
+           call halo_point(i, g      , i, jhi-nghost+g, i, jhi-nghost+g, 0, domark)
+           call halo_point(i, jhi + g, i, jlo+g-1     , i, jlo+g-1     , 0, domark)
         end do
         end do
      endif
@@ -1292,11 +1292,11 @@ module ice_dyn_evp1d
          trim(ew_boundary_type) == 'linear_extrap') then
         do j = 1, ny
         do g = 1, nghost
-           w = c0
-           if (trim(ew_boundary_type) == 'linear_extrap') w = real(nghost-g+1, dbl_kind)
+           w = 0
+           if (trim(ew_boundary_type) == 'linear_extrap') w = nghost-g+1
            call halo_point(g      , j, ilo, j, ilo+1, j, w, domark)   ! west
-           w = c0
-           if (trim(ew_boundary_type) == 'linear_extrap') w = real(g, dbl_kind)
+           w = 0
+           if (trim(ew_boundary_type) == 'linear_extrap') w = g
            call halo_point(ihi + g, j, ihi, j, ihi-1, j, w, domark)   ! east
         end do
         end do
@@ -1306,11 +1306,11 @@ module ice_dyn_evp1d
          trim(ns_boundary_type) == 'linear_extrap') then
         do i = 1, nx
         do g = 1, nghost
-           w = c0
-           if (trim(ns_boundary_type) == 'linear_extrap') w = real(nghost-g+1, dbl_kind)
+           w = 0
+           if (trim(ns_boundary_type) == 'linear_extrap') w = nghost-g+1
            call halo_point(i, g      , i, jlo, i, jlo+1, w, domark)   ! south
-           w = c0
-           if (trim(ns_boundary_type) == 'linear_extrap') w = real(g, dbl_kind)
+           w = 0
+           if (trim(ns_boundary_type) == 'linear_extrap') w = g
            call halo_point(i, jhi + g, i, jhi, i, jhi-1, w, domark)   ! north
         end do
         end do
@@ -1331,8 +1331,7 @@ module ice_dyn_evp1d
 
      implicit none
 
-     integer(kind=int_kind), intent(in) :: id, jd, i1, j1, i2, j2
-     real   (kind=dbl_kind), intent(in) :: w
+     integer(kind=int_kind), intent(in) :: id, jd, i1, j1, i2, j2, w
      logical(kind=log_kind), intent(in) :: domark
 
      ! local variables
@@ -1344,7 +1343,7 @@ module ice_dyn_evp1d
      if (domark) then
         call mark_cell(id, jd)
         call mark_cell(i1, j1)
-        if (w /= c0) call mark_cell(i2, j2)
+        if (w /= 0) call mark_cell(i2, j2)
         return
      endif
 
@@ -1355,7 +1354,7 @@ module ice_dyn_evp1d
      s2 = ijslot(i2 + (j2 - 1) * nx)
      if (s2 == 0) then
         ! w == 0 does not read s2, so a missing one is no obstacle
-        if (w /= c0) return
+        if (w /= 0) return
         s2 = s1
      endif
 
@@ -1363,7 +1362,7 @@ module ice_dyn_evp1d
      halo_bc_dst(n_halo_bc) = sd
      halo_bc_s1 (n_halo_bc) = s1
      halo_bc_s2 (n_halo_bc) = s2
-     halo_bc_w  (n_halo_bc) = w
+     halo_bc_w  (n_halo_bc) = real(w, kind=dbl_kind)
 
   end subroutine halo_point
 
