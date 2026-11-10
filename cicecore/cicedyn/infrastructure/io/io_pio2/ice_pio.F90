@@ -29,6 +29,7 @@
   public ice_pio_initdecomp
   public ice_pio_finalize
   public ice_pio_check
+  public ice_pio_subsystem
 
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem

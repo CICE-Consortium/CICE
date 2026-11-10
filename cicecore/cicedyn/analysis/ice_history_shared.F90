@@ -60,6 +60,14 @@
       character (len=char_len), public :: &
          hist_suffix(max_nstrm)  ! appended to history_file in filename
 
+      character (len=char_len), public :: &
+         hist_file_period(max_nstrm) ! 'year' or 'month' to start a new history
+                                     ! file at each year or month boundary,
+                                     ! 'none' for one sample per file.
+                                     ! This groups samples into files and does
+                                     ! not change how often a sample is
+                                     ! written, which is histfreq.
+
       integer (kind=int_kind), public :: &
          history_iotasks     , & ! iotasks, root, stride defines io pes for pio
          history_root        , & ! iotasks, root, stride defines io pes for pio

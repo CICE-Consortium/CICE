@@ -26,6 +26,9 @@
       use icepack_intfc, only: icepack_query_parameters
       use ice_calendar, only: write_ic, histfreq
       use ice_pio
+      use pio, only: io_desc_t, pio_freedecomp, file_desc_t, pio_closefile, &
+                     pio_syncfile
+      use ice_domain_size, only: max_nstrm
 
       implicit none
       private
@@ -42,9 +45,57 @@
          character (len=20)   :: coordinates
       END TYPE req_attributes
 
-      public :: ice_write_hist, ice_read_hist
+      public :: ice_write_hist, ice_read_hist, ice_write_hist_free, &
+                ice_write_hist_close, ice_write_hist_sync, ice_hist_state_get, ice_hist_state_set, &
+                ice_hist_resume_disable
 
       integer (kind=int_kind) :: imtid,jmtid
+
+      ! PIO IO descriptors are created once and reused for every file
+      ! afterwards.  pio_initdecomp binds a decomposition to the
+      ! iosystem rather than to a file, so these stay valid across
+      ! files.  They are freed once in ice_write_hist_free.
+      !
+      ! Each PIO iodesc is cached twice, once for single precision and once
+      ! for double precision. Index 1 is single precision and index 2 is double.
+      !
+      ! The names without _c hold the decompositions in use for the current file.
+      type(io_desc_t)         :: iodesc2d, &
+                                 iodesc3dc, iodesc3dv, iodesc3di, iodesc3db, iodesc3da, &
+                                 iodesc3df, &
+                                 iodesc4di, iodesc4ds, iodesc4df
+      type(io_desc_t)         :: iodesc2d_c(2), &
+                                 iodesc3dc_c(2), iodesc3dv_c(2), iodesc3di_c(2), &
+                                 iodesc3db_c(2), iodesc3da_c(2), iodesc3df_c(2), &
+                                 iodesc4di_c(2), iodesc4ds_c(2), iodesc4df_c(2)
+      logical (kind=log_kind) :: iodesc_set(2) = .false.
+
+      ! The following specify the history file a stream has open,
+      ! together with its name, how many time samples have been
+      ! written to it, and which month or year those samples are from.
+      ! The file stays open until the month or year changes, so that
+      ! one file holds every sample from that month or year.
+      ! ice_write_hist_close closes whatever is still open when a run ends.
+      type(file_desc_t)             :: File_hist(max_nstrm)
+      integer (kind=int_kind)       :: nrec_hist(max_nstrm) = 0
+      logical (kind=log_kind)       :: file_open_hist(max_nstrm) = .false.
+      character (len=char_len_long) :: fname_hist(max_nstrm)
+      integer (kind=int_kind)       :: period_hist(max_nstrm) = -1
+
+      ! A history file that had not yet received all the samples for
+      ! its month or year when the restart was written is resumed
+      ! rather than replaced. The restart file records its name and
+      ! how many records it held at that point.
+      character (len=char_len_long) :: resume_fname(max_nstrm) = ''
+      integer (kind=int_kind)       :: resume_nrec(max_nstrm) = 0
+      integer (kind=int_kind)       :: resume_period(max_nstrm) = -1
+
+      ! Resuming is only applies to continuation runs not to branch
+      ! runs.  A branch run reads another case's restart and may
+      ! change the history frequencies and variable lists, so it must
+      ! start its own history files. Note that for branch runs, the
+      ! routine ice_hist_resume_disable is called from ice_comp_nuopc.F90
+      logical (kind=log_kind)       :: resume_allowed = .true.
 
 !=======================================================================
 
@@ -63,7 +114,8 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, &
           histfreq_n, days_per_year, use_leap_years, dayyr, &
-          hh_init, mm_init, ss_init
+          hh_init, mm_init, ss_init, &
+          myear, mmonth, new_year, new_month
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_domain_size, only: nx_global, ny_global
@@ -106,10 +158,6 @@
       character (len=char_len) :: start_time,current_date,current_time
 
       type(file_desc_t)     :: File
-      type(io_desc_t)       :: iodesc2d, &
-                               iodesc3dc, iodesc3dv, iodesc3di, iodesc3db, iodesc3da, &
-                               iodesc3df, &
-                               iodesc4di, iodesc4ds, iodesc4df
       type(var_desc_t)      :: varid
 
       ! time coord
@@ -149,6 +197,18 @@
 
       logical (kind=log_kind), save :: first_call = .true.
 
+      logical (kind=log_kind) :: use_period ! false for ic and histrest files
+      logical (kind=log_kind) :: period_ends ! sample is the last of its period
+      integer (kind=int_kind) :: nrec     ! record this call writes
+      logical (kind=log_kind) :: newfile  ! true if a file must be created
+      logical (kind=log_kind) :: resumed  ! true if an existing file reopened
+      logical (kind=log_kind) :: fexists  ! resumed file is on disk
+      integer (kind=int_kind) :: ntime    ! records already in a resumed file
+      integer (kind=int_kind) :: timdim   ! id of the unlimited dimension
+      integer (kind=int_kind) :: lperiod  ! identifies the file this sample goes in
+      integer (kind=int_kind) :: pyear, pmonth ! sample's own year and month
+      integer (kind=int_kind) :: iprec    ! which cached decomposition to use
+
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
       call icepack_query_parameters(secday_out=secday)
@@ -167,6 +227,175 @@
          history_precision = 8
       endif
 
+      ! Decide whether this call writes to the file already open for this
+      ! stream or creates a new one.  Initial condition and history restart
+      ! files always hold a single time sample, whatever hist_file_period says.
+      use_period = .not. (write_ic .or. write_histrest_now)
+
+      ! pyear and pmonth are the month and year this sample counts towards.
+      ! An average is written on the timestep after the last one it covers, so
+      ! at a month or year boundary it counts towards the one that just ended.
+      ! Hourly and instantaneous samples count towards the current date.
+      pyear  = myear
+      pmonth = mmonth
+      period_ends = .false.
+      if (hist_avg(ns) .and. histfreq(ns) /= '1' .and. &
+          histfreq(ns) /= 'h' .and. histfreq(ns) /= 'H') then
+         if (new_year) then
+            pyear  = myear - 1
+            pmonth = 12
+         elseif (new_month) then
+            pmonth = mmonth - 1
+         endif
+
+         ! If this is the last time sample of a month or a year then
+         ! close the file as soon as the sample is written, instead of
+         ! waiting for the next sample to show that the month has changed.
+         if (trim(hist_file_period(ns)) == 'month') then
+            period_ends = new_month .or. new_year
+         elseif (trim(hist_file_period(ns)) == 'year') then
+            period_ends = new_year
+         endif
+      endif
+
+      ! lperiod specifies which file this sample goes in.  A new file is started
+      ! when it changes.  hist_file_period sets it:
+      !    'year'    the year, so 1
+      !    'month'   year*100 + month, so 101 for January of year 1
+      !    'none'    -1, so every sample gets its own file
+      lperiod = -1
+      if (use_period) then
+         if (trim(hist_file_period(ns)) == 'year') then
+            lperiod = pyear
+         elseif (trim(hist_file_period(ns)) == 'month') then
+            lperiod = pyear*100 + pmonth
+         endif
+      endif
+
+      ! The sample goes either into the file this stream already has open or
+      ! into a new file.  With hist_file_period 'none' no file is ever left open.
+      newfile = .true.
+      resumed = .false.
+      if (use_period .and. file_open_hist(ns)) then
+         if (lperiod /= -1 .and. lperiod == period_hist(ns)) then
+            newfile = .false.
+         else
+            ! This sample is from a different month or year, so the open file
+            ! is closed before the new one is created.  An averaged daily or
+            ! monthly stream is normally closed earlier, when its last sample
+            ! is written.
+            call pio_closefile(File_hist(ns))
+            if (my_task == master_task) then
+               write(nu_diag,'(4a,i6,a)') subname,' Closed ', &
+                    trim(fname_hist(ns)),' with ',nrec_hist(ns),' time samples'
+            endif
+            file_open_hist(ns) = .false.
+            nrec_hist(ns)      = 0
+         endif
+      elseif (use_period .and. len_trim(resume_fname(ns)) > 0 .and. &
+              (.not. resume_allowed .or. &
+               index(trim(resume_fname(ns)), trim(history_file)) == 0 .or. &
+               resume_period(ns) /= lperiod)) then
+
+         ! The restart names a history file that must not be continued.
+         if (my_task == master_task) then
+            if (.not. resume_allowed) then
+               write(nu_diag,*) subname,' NOTE this is not a continue run, so ', &
+                  trim(resume_fname(ns)),' is not resumed; starting a new file'
+            elseif (index(trim(resume_fname(ns)), trim(history_file)) == 0) then
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' does not belong to this case, so it is not resumed;'// &
+                  ' starting a new file'
+            else
+               ! The file the restart names already holds its whole month or
+               ! year, and this sample is from the next one.
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' covers a period that has ended, so it is not resumed;'// &
+                  ' starting a new file'
+            endif
+         endif
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+
+      elseif (use_period .and. len_trim(resume_fname(ns)) > 0 .and. &
+              lperiod /= -1) then
+
+         ! The restart names a file that is not yet finished, so it is
+         ! reopened and added to.  Any reason not to is reported and a new
+         ! file is started instead.
+         fexists = .false.
+         if (my_task == master_task) then
+            inquire(file=trim(resume_fname(ns)), exist=fexists)
+         endif
+         call broadcast_scalar(fexists, master_task)
+
+         if (.not. fexists) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' named by the restart is not on disk, starting a new file'
+            endif
+         else
+            resumed = .true.
+            filename = resume_fname(ns)
+            ncfile   = resume_fname(ns)
+            File%fh  = -1
+            call ice_pio_init(mode='write', filename=trim(filename), File=File, &
+                 clobber=.false., fformat=trim(history_format), &
+                 rearr=trim(history_rearranger), iotasks=history_iotasks, &
+                 root=history_root, stride=history_stride, debug=first_call)
+
+            ! The count in the restart is the authority, not the length of
+            ! the file.  A run that got further than its restart before dying
+            ! left extra records, which are written again.
+            call pio_seterrorhandling(File, PIO_RETURN_ERROR)
+            status = pio_inq_dimid(File, 'time', timdim)
+            if (status == PIO_NOERR) then
+               status = pio_inq_dimlen(File, timdim, ntime)
+            endif
+            call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
+
+            if (status /= PIO_NOERR .or. ntime < resume_nrec(ns)) then
+               if (my_task == master_task) then
+                  write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                     ' holds ',ntime,' records but the restart accounts for ', &
+                     resume_nrec(ns),', starting a new file'
+               endif
+               call pio_closefile(File)
+               resumed = .false.
+            else
+               newfile         = .false.
+               nrec_hist(ns)   = resume_nrec(ns)
+               period_hist(ns) = resume_period(ns)
+               fname_hist(ns)  = resume_fname(ns)
+               if (my_task == master_task) then
+                  write(nu_diag,'(4a,i6,a)') subname,' Resuming ', &
+                     trim(ncfile),' after ',resume_nrec(ns),' samples'
+               endif
+            endif
+         endif
+
+         ! The restart's record is used once, whether or not it was resumed.
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+      endif
+
+      if (newfile) then
+         nrec = 1
+      else
+         if (.not. resumed) then
+            File   = File_hist(ns)
+            ncfile = fname_hist(ns)
+         endif
+         nrec = nrec_hist(ns) + 1
+      endif
+
+      ! option of turning on double precision history files
+      lprecision = pio_real
+      if (history_precision == 8) lprecision = pio_double
+
+      if (newfile) then
       if (my_task == master_task) then
         if (write_histrest_now) then
            call construct_filename(ncfile,'nc',ns,option='histrest')
@@ -186,26 +415,17 @@
       end if
       call broadcast_scalar(filename, master_task)
 
+      ! construct_filename runs on the master task alone.  Every task needs
+      ! the name, because the restart records it so that the file can be
+      ! resumed.
+      ncfile = filename
+
       ! create file
       File%fh=-1
       call ice_pio_init(mode='write', filename=trim(filename), File=File, &
            clobber=.true., fformat=trim(history_format), rearr=trim(history_rearranger), &
            iotasks=history_iotasks, root=history_root, stride=history_stride, debug=first_call)
 
-      call ice_pio_initdecomp(iodesc=iodesc2d, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nzilyr,    iodesc=iodesc3di, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv, inner_dim=.true., precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds, precision=history_precision)
-      call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df, precision=history_precision)
-
-      ! option of turning on double precision history files
-      lprecision = pio_real
-      if (history_precision == 8) lprecision = pio_double
 
       !-----------------------------------------------------------------
       ! define dimensions
@@ -296,6 +516,11 @@
          endif
 
       endif  ! histfreq(ns)/='g'
+
+      endif   ! newfile: the dimensions and coordinate variables are defined above
+
+      ! The names and attributes below are used both to define the file and to
+      ! write the time-invariant variables.
 
       !-----------------------------------------------------------------
       ! define information for required time-invariant variables
@@ -429,6 +654,8 @@
       var_nverts(n_latn_bnds) = coord_attributes('latn_bounds','latitude bounds (N-cell)','degrees_north','und')
       var_nverts(n_lone_bnds) = coord_attributes('lone_bounds','longitude bounds (E-cell)','degrees_east','und')
       var_nverts(n_late_bnds) = coord_attributes('late_bounds','latitude bounds (E-cell)','degrees_north','und')
+
+      if (newfile) then
 
       !-----------------------------------------------------------------
       ! define attributes for time-invariant variables
@@ -710,6 +937,41 @@
       call ice_pio_check(pio_enddef(File), &
            subname//' ERROR: ending pio definitions',file=__FILE__,line=__LINE__)
 
+      endif   ! newfile: everything above defines a newly created file
+
+      ! The iodesc are selected on every write and built on the first one.
+      ! This must come after ice_pio_init, which sets up ice_pio_subsystem.
+      if (history_precision == 8) then
+         iprec = 2
+      else
+         iprec = 1
+      endif
+
+      if (.not. iodesc_set(iprec)) then
+         call ice_pio_initdecomp(iodesc=iodesc2d_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=ncat_hist, iodesc=iodesc3dc_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nzilyr,    iodesc=iodesc3di_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nzblyr,    iodesc=iodesc3db_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nzalyr,    iodesc=iodesc3da_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nfsd_hist, iodesc=iodesc3df_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nverts,    iodesc=iodesc3dv_c(iprec), inner_dim=.true., precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nzilyr,    ndim4=ncat_hist, iodesc=iodesc4di_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nzslyr,    ndim4=ncat_hist, iodesc=iodesc4ds_c(iprec), precision=history_precision)
+         call ice_pio_initdecomp(ndim3=nfsd_hist, ndim4=ncat_hist, iodesc=iodesc4df_c(iprec), precision=history_precision)
+         iodesc_set(iprec) = .true.
+      endif
+
+      iodesc2d  = iodesc2d_c(iprec)
+      iodesc3dc = iodesc3dc_c(iprec)
+      iodesc3dv = iodesc3dv_c(iprec)
+      iodesc3di = iodesc3di_c(iprec)
+      iodesc3db = iodesc3db_c(iprec)
+      iodesc3da = iodesc3da_c(iprec)
+      iodesc3df = iodesc3df_c(iprec)
+      iodesc4di = iodesc4di_c(iprec)
+      iodesc4ds = iodesc4ds_c(iprec)
+      iodesc4df = iodesc4df_c(iprec)
+
       !-----------------------------------------------------------------
       ! write time and time bounds info
       !-----------------------------------------------------------------
@@ -728,7 +990,9 @@
 
          call ice_pio_check(pio_inq_varid(File,'time',varid), &
               subname//' ERROR: getting var time',file=__FILE__,line=__LINE__)
-         call ice_pio_check(pio_put_var(File,varid,(/1/),ltime2), &
+         ! pio_put_var takes an explicit start and is not affected by
+         ! pio_setframe, so the record index has to be given here.
+         call ice_pio_check(pio_put_var(File,varid,(/nrec/),ltime2), &
               subname//' ERROR: setting var time',file=__FILE__,line=__LINE__)
 
          ! History restarts are snapshots of accumulated data at current time, do not write time bounds
@@ -736,7 +1000,7 @@
             call ice_pio_check(pio_inq_varid(File,'time_bounds',varid), &
                  subname//' ERROR: getting time_bounds' ,file=__FILE__,line=__LINE__)
             time_bounds=(/time_beg(ns),time_end(ns)/)
-            bnd_start  = (/1,1/)
+            bnd_start  = (/1,nrec/)
             bnd_length = (/2,1/)
             call ice_pio_check(pio_put_var(File,varid,ival=time_bounds,start=bnd_start(:),count=bnd_length(:)), &
                  subname//' ERROR: setting time_bounds' ,file=__FILE__,line=__LINE__)
@@ -749,6 +1013,10 @@
 
       allocate(workd2(nx_block,ny_block,nblocks))
       allocate(workr2(nx_block,ny_block,nblocks))
+
+      ! The coordinates, the masks, the areas and the vertex bounds do not
+      ! change with time, so they are written once when the file is created.
+      if (newfile) then
 
       do i = 1,ncoord
          if(icoord(i) .or. histfreq(ns)=='g') then
@@ -782,7 +1050,7 @@
                     workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+            call ice_pio_check(status,subname//' ERROR: writing '//var_coord(i)%short_name, &
                                file=__FILE__,line=__LINE__)
          endif
       enddo
@@ -877,7 +1145,7 @@
                     workr2, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+            call ice_pio_check(status,subname//' ERROR: writing '//var_grd(i)%req%short_name, &
                                file=__FILE__,line=__LINE__)
          endif
       enddo
@@ -937,12 +1205,14 @@
                                      workr3v, status, fillval=spval)
             endif
 
-            call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
+            call ice_pio_check(status,subname//' ERROR: writing '//var_nverts(i)%short_name, &
                                file=__FILE__,line=__LINE__)
          enddo
          deallocate(workd3v)
          deallocate(workr3v)
       endif  ! f_bounds
+
+      endif   ! newfile: the time-invariant variables are written above
 
       !-----------------------------------------------------------------
       ! write variable data
@@ -954,12 +1224,12 @@
                             file=__FILE__, line=__LINE__)
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+         call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+         call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
          call pio_seterrorhandling(File, PIO_RETURN_ERROR)
-         call ice_pio_check(pio_put_var(File,varid,(/1/),time_beg(ns)), &
+         call ice_pio_check(pio_put_var(File,varid,(/nrec/),time_beg(ns)), &
                             subname// ' ERROR: writing variable '//'time_beg', &
                             file=__FILE__, line=__LINE__)
 
@@ -968,12 +1238,12 @@
                             file=__FILE__, line=__LINE__)
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+         call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+         call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
          call pio_seterrorhandling(File, PIO_RETURN_ERROR)
-         call ice_pio_check(pio_put_var(File,varid,(/1/),avgct(ns)), &
+         call ice_pio_check(pio_put_var(File,varid,(/nrec/),avgct(ns)), &
                             subname// ' ERROR: writing variable '//'avgct', &
                             file=__FILE__, line=__LINE__)
 
@@ -982,9 +1252,9 @@
          workd2(:,:,:) = albcnt(:,:,1:nblocks,ns)
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+         call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+         call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
          call pio_seterrorhandling(File, PIO_RETURN_ERROR)
          if (history_precision == 8) then
@@ -1003,9 +1273,9 @@
          workd2(:,:,:) = snwcnt(:,:,1:nblocks,ns)
          call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-         call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+         call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-         call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+         call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
          call pio_seterrorhandling(File, PIO_RETURN_ERROR)
          if (history_precision == 8) then
@@ -1029,9 +1299,9 @@
             workd2(:,:,:) = a2D(:,:,n,1:nblocks)
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1066,9 +1336,9 @@
             enddo
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1102,9 +1372,9 @@
             enddo
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1138,9 +1408,9 @@
             enddo
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1174,9 +1444,9 @@
             enddo
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1210,9 +1480,9 @@
             enddo
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1248,9 +1518,9 @@
             enddo ! j
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1285,9 +1555,9 @@
             enddo ! j
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1323,9 +1593,9 @@
             enddo ! j
             call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
 #ifdef CESM1_PIO
-            call pio_setframe(varid, int(1,kind=PIO_OFFSET))
+            call pio_setframe(varid, int(nrec,kind=PIO_OFFSET))
 #else
-            call pio_setframe(File, varid, int(1,kind=PIO_OFFSET_KIND))
+            call pio_setframe(File, varid, int(nrec,kind=PIO_OFFSET_KIND))
 #endif
             call pio_seterrorhandling(File, PIO_RETURN_ERROR)
             if (history_precision == 8) then
@@ -1346,28 +1616,46 @@
 !     similarly for num_avail_hist_fields_4Db (define workd4b, iodesc4db)
 
       !-----------------------------------------------------------------
-      ! clean-up PIO descriptors
+      ! The PIO decompositions are cached at module level and belong to the
+      ! iosystem, so they are kept for the next file and released by
+      ! ice_write_hist_free at the end of the run.
       !-----------------------------------------------------------------
       call pio_seterrorhandling(File, PIO_INTERNAL_ERROR)
-
-      call pio_freedecomp(File,iodesc2d)
-      call pio_freedecomp(File,iodesc3dv)
-      call pio_freedecomp(File,iodesc3dc)
-      call pio_freedecomp(File,iodesc3di)
-      call pio_freedecomp(File,iodesc3db)
-      call pio_freedecomp(File,iodesc3da)
-      call pio_freedecomp(File,iodesc3df)
-      call pio_freedecomp(File,iodesc4di)
-      call pio_freedecomp(File,iodesc4ds)
-      call pio_freedecomp(File,iodesc4df)
 
       !-----------------------------------------------------------------
       ! close output dataset
       !-----------------------------------------------------------------
 
-      call pio_closefile(File)
-      if (my_task == master_task) then
-         write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+      if (lperiod == -1) then
+         ! One sample per file, so there is nothing to keep open.
+         call pio_closefile(File)
+         file_open_hist(ns) = .false.
+         nrec_hist(ns)      = 0
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+         endif
+      elseif (period_ends) then
+         ! This was the last sample of the month or year.
+         call pio_closefile(File)
+         file_open_hist(ns) = .false.
+         nrec_hist(ns)      = 0
+         if (my_task == master_task) then
+            write(nu_diag,'(4a,i6,a)') subname,' Closed ',trim(ncfile), &
+                 ' with ',nrec,' time samples'
+         endif
+      else
+         ! The file is kept open for the next sample of this month or year.
+         ! PIO holds each sample on the io tasks and writes them all out when
+         ! the file is closed.
+         File_hist(ns)      = File
+         fname_hist(ns)     = ncfile
+         nrec_hist(ns)      = nrec
+         period_hist(ns)    = lperiod
+         file_open_hist(ns) = .true.
+         if (my_task == master_task) then
+            write(nu_diag,'(2a,i6,2a)') subname,' Wrote sample ',nrec, &
+                 ' to ',trim(ncfile)
+         endif
       endif
 
       !-----------------------------------------------------------------
@@ -1384,6 +1672,142 @@
       first_call = .false.
 
       end subroutine ice_write_hist
+
+!=======================================================================
+!
+! Flush any history file still open, so that what is on disk matches the record
+! count a restart is about to write.  Called when a restart is written.
+!
+      subroutine ice_write_hist_sync
+
+      integer (kind=int_kind) :: ns
+      character(len=*), parameter :: subname = '(ice_write_hist_sync)'
+
+      do ns = 1, max_nstrm
+         if (file_open_hist(ns)) call pio_syncfile(File_hist(ns))
+      enddo
+
+      end subroutine ice_write_hist_sync
+
+!=======================================================================
+!
+! Close any history file still open.  Called at the end of a run.
+!
+      subroutine ice_write_hist_close
+
+      use ice_communicate, only: my_task, master_task
+
+      integer (kind=int_kind) :: ns
+      character(len=*), parameter :: subname = '(ice_write_hist_close)'
+
+      do ns = 1, max_nstrm
+         if (file_open_hist(ns)) then
+            call pio_closefile(File_hist(ns))
+            file_open_hist(ns) = .false.
+            if (my_task == master_task) then
+               write(nu_diag,'(4a,i6,a)') subname,' Closed ', &
+                    trim(fname_hist(ns)),' with ',nrec_hist(ns),' time samples'
+            endif
+            nrec_hist(ns) = 0
+         endif
+      enddo
+
+      end subroutine ice_write_hist_close
+
+!=======================================================================
+!
+! Return the history file stream ns has open, for a restart to record.
+! fname is blank when no file is open.
+!
+      subroutine ice_hist_state_get(ns, fname, nrec, period)
+
+      integer (kind=int_kind), intent(in)  :: ns
+      character (len=*),       intent(out) :: fname
+      integer (kind=int_kind), intent(out) :: nrec
+      integer (kind=int_kind), intent(out) :: period
+
+      character(len=*), parameter :: subname = '(ice_hist_state_get)'
+
+      if (ns >= 1 .and. ns <= max_nstrm .and. file_open_hist(ns)) then
+         fname  = trim(fname_hist(ns))
+         nrec   = nrec_hist(ns)
+         period = period_hist(ns)
+      else
+         fname  = ''
+         nrec   = 0
+         period = -1
+      endif
+
+      end subroutine ice_hist_state_get
+
+!=======================================================================
+!
+! Record the history file named by a restart, for the next run to resume.
+! A blank fname clears it.
+!
+      subroutine ice_hist_state_set(ns, fname, nrec, period)
+
+      integer (kind=int_kind), intent(in) :: ns
+      character (len=*),       intent(in) :: fname
+      integer (kind=int_kind), intent(in) :: nrec
+      integer (kind=int_kind), intent(in) :: period
+
+      character(len=*), parameter :: subname = '(ice_hist_state_set)'
+
+      if (ns < 1 .or. ns > max_nstrm) return
+
+      if (len_trim(fname) == 0 .or. nrec < 1) then
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+      else
+         resume_fname(ns)  = trim(fname)
+         resume_nrec(ns)   = nrec
+         resume_period(ns) = period
+      endif
+
+      end subroutine ice_hist_state_set
+
+!=======================================================================
+!
+! Forbid resuming a history file recorded in a restart.  The driver calls this
+! for branch and hybrid runs, which read a restart but must start their own
+! history files because the history settings may differ.
+!
+      subroutine ice_hist_resume_disable
+
+      character(len=*), parameter :: subname = '(ice_hist_resume_disable)'
+
+      resume_allowed = .false.
+
+      end subroutine ice_hist_resume_disable
+
+!=======================================================================
+!
+! Release the cached history PIO decompositions.  Call once at the end of the
+! run; it is safe to call when no history file has been written.
+!
+      subroutine ice_write_hist_free
+
+      integer (kind=int_kind) :: n
+      character(len=*), parameter :: subname = '(ice_write_hist_free)'
+
+      do n = 1, 2
+         if (.not. iodesc_set(n)) cycle
+         call pio_freedecomp(ice_pio_subsystem, iodesc2d_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3dv_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3dc_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3di_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3db_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3da_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc3df_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc4di_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc4ds_c(n))
+         call pio_freedecomp(ice_pio_subsystem, iodesc4df_c(n))
+         iodesc_set(n) = .false.
+      enddo
+
+      end subroutine ice_write_hist_free
 
 
 !=======================================================================
@@ -1424,6 +1848,10 @@
       integer (kind=int_kind), parameter :: histprec=8  ! hardwired to double
 
       type(file_desc_t)     :: File
+
+      ! Local descriptors, deliberately separate from the cached ones at module
+      ! level: this routine reads at the precision of the file it is given,
+      ! which need not be history_precision.  They are freed below.
       type(io_desc_t)       :: iodesc2d, &
                                iodesc3dc, iodesc3di, iodesc3db, iodesc3da, iodesc3df, &
                                iodesc4di, iodesc4ds, iodesc4df

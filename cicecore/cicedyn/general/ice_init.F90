@@ -89,6 +89,7 @@
           history_precision, hist_avg, history_format, history_file, incond_file, &
           history_dir, incond_dir, version_name, history_rearranger, &
           hist_suffix, history_iotasks, history_root, history_stride, &
+          hist_file_period, &
           history_deflate, history_chunksize, hist_time_axis
       use ice_flux, only: update_ocn_f, cpl_frazil, l_mpond_fresh
       use ice_flux, only: default_season
@@ -205,6 +206,7 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
+        hist_file_period, &
         hist_time_axis,                                                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
@@ -355,6 +357,7 @@
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       hist_suffix(:) = 'x'   ! appended to 'history_file' in filename when not 'x'
       history_format = 'cdf1'! history file format
+      hist_file_period(:) = 'none' ! no calendar boundary for history files
       history_root = -99     ! history iotasks, root, stride sets pes for pio
       history_stride = -99   ! history iotasks, root, stride sets pes for pio
       history_iotasks = -99  ! history iotasks, root, stride sets pes for pio
@@ -993,6 +996,7 @@
          call broadcast_scalar(dumpfreq(n),       master_task)
          call broadcast_scalar(dumpfreq_base(n),  master_task)
          call broadcast_scalar(hist_suffix(n),    master_task)
+         call broadcast_scalar(hist_file_period(n), master_task)
       enddo
       call broadcast_array(hist_avg,              master_task)
       call broadcast_array(histfreq_n,            master_task)
