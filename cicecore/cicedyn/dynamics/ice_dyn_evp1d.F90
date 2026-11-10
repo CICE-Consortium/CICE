@@ -1254,8 +1254,7 @@ module ice_dyn_evp1d
 
      ! local variables
 
-     integer(kind=int_kind) :: i, j, g, ilo, ihi, jlo, jhi
-     real   (kind=dbl_kind) :: w
+     integer(kind=int_kind) :: i, j, g, ilo, ihi, jlo, jhi, w
 
      character(len=*), parameter :: subname = '(halo_sweep)'
 
