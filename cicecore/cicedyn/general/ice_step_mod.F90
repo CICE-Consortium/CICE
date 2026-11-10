@@ -1084,7 +1084,7 @@
             jhi = this_block%jhi
             do j = jlo, jhi
             do i = ilo, ihi
-               if (aiU(i,j,iblk) /= c0) then
+               if (aiU(i,j,iblk) > puny) then
                   work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
                   work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
                endif
