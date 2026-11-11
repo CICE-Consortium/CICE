@@ -12,7 +12,7 @@
 
       use ice_kinds_mod
       use ice_blocks, only: nx_block, ny_block
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task, master_task, send_to_master
       use ice_constants, only: c0, c1
       use ice_calendar, only: istep1
       use ice_domain_size, only: nslyr
@@ -239,7 +239,6 @@
       subroutine runtime_diags (dt)
 
       use ice_arrays_column, only: floe_rad_c
-      use ice_broadcast, only: broadcast_scalar
       use ice_constants, only: c1, c1000, c2, p001, p5, &
           field_loc_center, m2_to_km2
       use ice_domain, only: distrb_info, nblocks
@@ -490,45 +489,45 @@
 
             endif  ! my_task = pmloc
 
-            call broadcast_scalar(pTair    (n), pmloc(n))
-            call broadcast_scalar(pQa      (n), pmloc(n))
-            call broadcast_scalar(pfsnow   (n), pmloc(n))
-            call broadcast_scalar(pfrain   (n), pmloc(n))
-            call broadcast_scalar(pfsw     (n), pmloc(n))
-            call broadcast_scalar(pflw     (n), pmloc(n))
-            call broadcast_scalar(paice    (n), pmloc(n))
-            call broadcast_scalar(hsavg    (n), pmloc(n))
-            call broadcast_scalar(hiavg    (n), pmloc(n))
-            call broadcast_scalar(fsdavg   (n), pmloc(n))
-            call broadcast_scalar(psalt    (n), pmloc(n))
-            call broadcast_scalar(hbravg   (n), pmloc(n))
-            call broadcast_scalar(pTsfc    (n), pmloc(n))
-            call broadcast_scalar(pevap    (n), pmloc(n))
-            call broadcast_scalar(pfswabs  (n), pmloc(n))
-            call broadcast_scalar(pflwout  (n), pmloc(n))
-            call broadcast_scalar(pflat    (n), pmloc(n))
-            call broadcast_scalar(pfsens   (n), pmloc(n))
-            call broadcast_scalar(pfsurf   (n), pmloc(n))
-            call broadcast_scalar(pfcondtop(n), pmloc(n))
-            call broadcast_scalar(pmeltt   (n), pmloc(n))
-            call broadcast_scalar(pmeltb   (n), pmloc(n))
-            call broadcast_scalar(pmeltl   (n), pmloc(n))
-            call broadcast_scalar(psnoice  (n), pmloc(n))
-            call broadcast_scalar(pdsnow   (n), pmloc(n))
-            call broadcast_scalar(psmtot   (n), pmloc(n))
-            call broadcast_scalar(prsnwavg (n), pmloc(n))
-            call broadcast_scalar(prhosavg (n), pmloc(n))
-            call broadcast_scalar(psmicetot(n), pmloc(n))
-            call broadcast_scalar(psmliqtot(n), pmloc(n))
-            call broadcast_scalar(pfrazil  (n), pmloc(n))
-            call broadcast_scalar(pcongel  (n), pmloc(n))
-            call broadcast_scalar(pdhi     (n), pmloc(n))
-            call broadcast_scalar(pdhs     (n), pmloc(n))
-            call broadcast_scalar(pde      (n), pmloc(n))
-            call broadcast_scalar(psst     (n), pmloc(n))
-            call broadcast_scalar(psss     (n), pmloc(n))
-            call broadcast_scalar(pTf      (n), pmloc(n))
-            call broadcast_scalar(pfhocn   (n), pmloc(n))
+            call send_to_master(pTair    (n), pmloc(n))
+            call send_to_master(pQa      (n), pmloc(n))
+            call send_to_master(pfsnow   (n), pmloc(n))
+            call send_to_master(pfrain   (n), pmloc(n))
+            call send_to_master(pfsw     (n), pmloc(n))
+            call send_to_master(pflw     (n), pmloc(n))
+            call send_to_master(paice    (n), pmloc(n))
+            call send_to_master(hsavg    (n), pmloc(n))
+            call send_to_master(hiavg    (n), pmloc(n))
+            call send_to_master(fsdavg   (n), pmloc(n))
+            call send_to_master(psalt    (n), pmloc(n))
+            call send_to_master(hbravg   (n), pmloc(n))
+            call send_to_master(pTsfc    (n), pmloc(n))
+            call send_to_master(pevap    (n), pmloc(n))
+            call send_to_master(pfswabs  (n), pmloc(n))
+            call send_to_master(pflwout  (n), pmloc(n))
+            call send_to_master(pflat    (n), pmloc(n))
+            call send_to_master(pfsens   (n), pmloc(n))
+            call send_to_master(pfsurf   (n), pmloc(n))
+            call send_to_master(pfcondtop(n), pmloc(n))
+            call send_to_master(pmeltt   (n), pmloc(n))
+            call send_to_master(pmeltb   (n), pmloc(n))
+            call send_to_master(pmeltl   (n), pmloc(n))
+            call send_to_master(psnoice  (n), pmloc(n))
+            call send_to_master(pdsnow   (n), pmloc(n))
+            call send_to_master(psmtot   (n), pmloc(n))
+            call send_to_master(prsnwavg (n), pmloc(n))
+            call send_to_master(prhosavg (n), pmloc(n))
+            call send_to_master(psmicetot(n), pmloc(n))
+            call send_to_master(psmliqtot(n), pmloc(n))
+            call send_to_master(pfrazil  (n), pmloc(n))
+            call send_to_master(pcongel  (n), pmloc(n))
+            call send_to_master(pdhi     (n), pmloc(n))
+            call send_to_master(pdhs     (n), pmloc(n))
+            call send_to_master(pde      (n), pmloc(n))
+            call send_to_master(psst     (n), pmloc(n))
+            call send_to_master(psss     (n), pmloc(n))
+            call send_to_master(pTf      (n), pmloc(n))
+            call send_to_master(pfhocn   (n), pmloc(n))
 
          enddo                  ! npnt
       endif                     ! print_points

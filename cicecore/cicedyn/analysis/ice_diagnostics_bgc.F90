@@ -11,7 +11,7 @@
       module ice_diagnostics_bgc
 
       use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task
+      use ice_communicate, only: my_task, master_task, send_to_master
       use ice_constants, only: c0, mps_to_cmpdy, c100, p5, c1
       use ice_fileunits, only: nu_diag
       use ice_fileunits, only: flush_fileunit
@@ -43,7 +43,6 @@
       subroutine hbrine_diags
 
       use ice_arrays_column, only: darcy_V
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc
       use ice_domain_size, only: nilyr
       use ice_state, only: aice, aicen, vicen, vice, trcr, trcrn
@@ -100,12 +99,12 @@
                enddo
             endif                 ! my_task = pmloc
 
-            call broadcast_array (pSin    (n,:), pmloc(n))
-            call broadcast_array (pSin1   (n,:), pmloc(n))
-            call broadcast_scalar(pfbri   (n),   pmloc(n))
-            call broadcast_scalar(phinS1  (n),   pmloc(n))
-            call broadcast_scalar(phinS   (n),   pmloc(n))
-            call broadcast_scalar(pdarcy_V(n),   pmloc(n))
+            call send_to_master  (pSin    (n,:), pmloc(n))
+            call send_to_master  (pSin1   (n,:), pmloc(n))
+            call send_to_master  (pfbri   (n),   pmloc(n))
+            call send_to_master  (phinS1  (n),   pmloc(n))
+            call send_to_master  (phinS   (n),   pmloc(n))
+            call send_to_master  (pdarcy_V(n),   pmloc(n))
          enddo                  ! npnt
       endif                     ! print_points
 
@@ -159,7 +158,6 @@
 
       use ice_arrays_column, only: ocean_bio, zfswin, fbio_atmice, fbio_snoice, &
           Zoo, grow_net, ice_bio_net, trcrn_sw
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
       use ice_diagnostics, only: npnt, print_points, pmloc, piloc, pjloc, pbloc
       use ice_domain_size, only: ncat, nblyr, n_algae, n_zaero, &
           n_doc, n_don, n_fed, n_fep, nilyr, nslyr
@@ -563,72 +561,72 @@
                endif              ! dEdd_algae
             endif                 ! my_task = pmloc
 
-            call broadcast_scalar   (pNit_ac          (n),     pmloc(n))
-            call broadcast_scalar   (pAm_ac           (n),     pmloc(n))
-            call broadcast_scalar   (pSil_ac          (n),     pmloc(n))
-            call broadcast_scalar   (phum_ac          (n),     pmloc(n))
-            call broadcast_scalar   (pDMSP_ac         (n),     pmloc(n))
-            call broadcast_scalar   (pDMS_ac          (n),     pmloc(n))
-            call broadcast_scalar   (pflux_NO         (n),     pmloc(n))
-            call broadcast_scalar   (pflux_Am         (n),     pmloc(n))
-            call broadcast_scalar   (pflux_hum        (n),     pmloc(n))
-            call broadcast_array    (pN_ac            (n,:),   pmloc(n))
-            call broadcast_array    (pflux_N          (n,:),   pmloc(n))
-            call broadcast_array    (pDOC_ac          (n,:),   pmloc(n))
-            call broadcast_array    (pDON_ac          (n,:),   pmloc(n))
-            call broadcast_array    (pFed_ac          (n,:),   pmloc(n))
-            call broadcast_array    (pFep_ac          (n,:),   pmloc(n))
-            call broadcast_array    (pchlsw           (n,:),   pmloc(n))
-            call broadcast_array    (pzaerosw         (n,:,:), pmloc(n))
+            call send_to_master     (pNit_ac          (n),     pmloc(n))
+            call send_to_master     (pAm_ac           (n),     pmloc(n))
+            call send_to_master     (pSil_ac          (n),     pmloc(n))
+            call send_to_master     (phum_ac          (n),     pmloc(n))
+            call send_to_master     (pDMSP_ac         (n),     pmloc(n))
+            call send_to_master     (pDMS_ac          (n),     pmloc(n))
+            call send_to_master     (pflux_NO         (n),     pmloc(n))
+            call send_to_master     (pflux_Am         (n),     pmloc(n))
+            call send_to_master     (pflux_hum        (n),     pmloc(n))
+            call send_to_master     (pN_ac            (n,:),   pmloc(n))
+            call send_to_master     (pflux_N          (n,:),   pmloc(n))
+            call send_to_master     (pDOC_ac          (n,:),   pmloc(n))
+            call send_to_master     (pDON_ac          (n,:),   pmloc(n))
+            call send_to_master     (pFed_ac          (n,:),   pmloc(n))
+            call send_to_master     (pFep_ac          (n,:),   pmloc(n))
+            call send_to_master     (pchlsw           (n,:),   pmloc(n))
+            call send_to_master     (pzaerosw         (n,:,:), pmloc(n))
             if (skl_bgc) then              ! skl_bgc
-               call broadcast_array (pN_sk            (n,:),   pmloc(n))
-               call broadcast_array (pDOC_sk          (n,:),   pmloc(n))
-               call broadcast_array (pDON_sk          (n,:),   pmloc(n))
-               call broadcast_array (pFed_sk          (n,:),   pmloc(n))
-               call broadcast_array (pFep_sk          (n,:),   pmloc(n))
+               call send_to_master  (pN_sk            (n,:),   pmloc(n))
+               call send_to_master  (pDOC_sk          (n,:),   pmloc(n))
+               call send_to_master  (pDON_sk          (n,:),   pmloc(n))
+               call send_to_master  (pFed_sk          (n,:),   pmloc(n))
+               call send_to_master  (pFep_sk          (n,:),   pmloc(n))
 
-               call broadcast_scalar(pNit_sk          (n),     pmloc(n))
-               call broadcast_scalar(pAm_sk           (n),     pmloc(n))
-               call broadcast_scalar(pSil_sk          (n),     pmloc(n))
-               call broadcast_scalar(phum_sk          (n),     pmloc(n))
-               call broadcast_scalar(pDMSPp_sk        (n),     pmloc(n))
-               call broadcast_scalar(pDMSPd_sk        (n),     pmloc(n))
-               call broadcast_scalar(pDMS_sk          (n),     pmloc(n))
+               call send_to_master  (pNit_sk          (n),     pmloc(n))
+               call send_to_master  (pAm_sk           (n),     pmloc(n))
+               call send_to_master  (pSil_sk          (n),     pmloc(n))
+               call send_to_master  (phum_sk          (n),     pmloc(n))
+               call send_to_master  (pDMSPp_sk        (n),     pmloc(n))
+               call send_to_master  (pDMSPd_sk        (n),     pmloc(n))
+               call send_to_master  (pDMS_sk          (n),     pmloc(n))
             endif   !tr_bgc_sk
 
             if (z_tracers) then                   !  z_bgc
-               call broadcast_array (pN_tot           (n,:),   pmloc(n))
-               call broadcast_array (pflux_zaero      (n,:),   pmloc(n))
-               call broadcast_array (pflux_atm_zaero_s(n,:),   pmloc(n))
-               call broadcast_array (pflux_atm_zaero  (n,:),   pmloc(n))
-               call broadcast_array (pflux_snow_zaero (n,:),   pmloc(n))
-               call broadcast_scalar(pflux_atm_NO     (n),     pmloc(n))
-               call broadcast_scalar(pflux_atm_Am     (n),     pmloc(n))
-               call broadcast_scalar(pflux_snow_NO    (n),     pmloc(n))
-               call broadcast_scalar(pflux_snow_Am    (n),     pmloc(n))
-               call broadcast_scalar(pgrow_net        (n),     pmloc(n))
-               call broadcast_array (pzfswin          (n,:),   pmloc(n))
-               call broadcast_array (pZoo             (n,:),   pmloc(n))
-               call broadcast_array (pNO              (n,:),   pmloc(n))
-               call broadcast_array (pAm              (n,:),   pmloc(n))
-               call broadcast_array (pPON             (n,:),   pmloc(n))
-               call broadcast_array (phum             (n,:),   pmloc(n))
-               call broadcast_array (pN               (n,:,:), pmloc(n))
-               call broadcast_array (pDOC             (n,:,:), pmloc(n))
-               call broadcast_array (pDON             (n,:,:), pmloc(n))
-               call broadcast_array (pFed             (n,:,:), pmloc(n))
-               call broadcast_array (pFep             (n,:,:), pmloc(n))
-               call broadcast_array (pzaero           (n,:,:), pmloc(n))
-               call broadcast_array (pNOs             (n,:),   pmloc(n))
-               call broadcast_array (pAms             (n,:),   pmloc(n))
-               call broadcast_array (pPONs            (n,:),   pmloc(n))
-               call broadcast_array (phums            (n,:),   pmloc(n))
-               call broadcast_array (pNs              (n,:,:), pmloc(n))
-               call broadcast_array (pDOCs            (n,:,:), pmloc(n))
-               call broadcast_array (pDONs            (n,:,:), pmloc(n))
-               call broadcast_array (pFeds            (n,:,:), pmloc(n))
-               call broadcast_array (pFeps            (n,:,:), pmloc(n))
-               call broadcast_array (pzaeros          (n,:,:), pmloc(n))
+               call send_to_master  (pN_tot           (n,:),   pmloc(n))
+               call send_to_master  (pflux_zaero      (n,:),   pmloc(n))
+               call send_to_master  (pflux_atm_zaero_s(n,:),   pmloc(n))
+               call send_to_master  (pflux_atm_zaero  (n,:),   pmloc(n))
+               call send_to_master  (pflux_snow_zaero (n,:),   pmloc(n))
+               call send_to_master  (pflux_atm_NO     (n),     pmloc(n))
+               call send_to_master  (pflux_atm_Am     (n),     pmloc(n))
+               call send_to_master  (pflux_snow_NO    (n),     pmloc(n))
+               call send_to_master  (pflux_snow_Am    (n),     pmloc(n))
+               call send_to_master  (pgrow_net        (n),     pmloc(n))
+               call send_to_master  (pzfswin          (n,:),   pmloc(n))
+               call send_to_master  (pZoo             (n,:),   pmloc(n))
+               call send_to_master  (pNO              (n,:),   pmloc(n))
+               call send_to_master  (pAm              (n,:),   pmloc(n))
+               call send_to_master  (pPON             (n,:),   pmloc(n))
+               call send_to_master  (phum             (n,:),   pmloc(n))
+               call send_to_master  (pN               (n,:,:), pmloc(n))
+               call send_to_master  (pDOC             (n,:,:), pmloc(n))
+               call send_to_master  (pDON             (n,:,:), pmloc(n))
+               call send_to_master  (pFed             (n,:,:), pmloc(n))
+               call send_to_master  (pFep             (n,:,:), pmloc(n))
+               call send_to_master  (pzaero           (n,:,:), pmloc(n))
+               call send_to_master  (pNOs             (n,:),   pmloc(n))
+               call send_to_master  (pAms             (n,:),   pmloc(n))
+               call send_to_master  (pPONs            (n,:),   pmloc(n))
+               call send_to_master  (phums            (n,:),   pmloc(n))
+               call send_to_master  (pNs              (n,:,:), pmloc(n))
+               call send_to_master  (pDOCs            (n,:,:), pmloc(n))
+               call send_to_master  (pDONs            (n,:,:), pmloc(n))
+               call send_to_master  (pFeds            (n,:,:), pmloc(n))
+               call send_to_master  (pFeps            (n,:,:), pmloc(n))
+               call send_to_master  (pzaeros          (n,:,:), pmloc(n))
             endif    ! z_tracers
          enddo                  ! npnt
       endif                     ! print_points
