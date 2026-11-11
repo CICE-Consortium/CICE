@@ -1626,7 +1626,14 @@
       ! close output dataset
       !-----------------------------------------------------------------
 
-      if (lperiod == -1) then
+      if (.not. use_period) then
+         ! Initial condition and history restart files hold one sample and are
+         ! separate from any file this stream has open, which is left as it is.
+         call pio_closefile(File)
+         if (my_task == master_task) then
+            write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+         endif
+      elseif (lperiod == -1) then
          ! One sample per file, so there is nothing to keep open.
          call pio_closefile(File)
          file_open_hist(ns) = .false.
@@ -1658,11 +1665,8 @@
          endif
       endif
 
-      !-----------------------------------------------------------------
-      ! clean up PIO
-      !-----------------------------------------------------------------
-
-      call ice_pio_finalize()
+      ! The PIO iosystem is kept for the next file, because a file may still be
+      ! open; ice_write_hist_free releases it at the end of the run.
 
       ! reset history parameters
       if (write_histrest_now) then
@@ -1784,8 +1788,10 @@
 
 !=======================================================================
 !
-! Release the cached history PIO decompositions.  Call once at the end of the
-! run; it is safe to call when no history file has been written.
+! Release the cached history PIO decompositions and then the PIO iosystem.
+! Call once at the end of the run, after ice_write_hist_close and after the
+! last restart has been written; it is safe to call when no history file has
+! been written.  In CESM the iosystem belongs to the coupler and is not released.
 !
       subroutine ice_write_hist_free
 
@@ -1806,6 +1812,8 @@
          call pio_freedecomp(ice_pio_subsystem, iodesc4df_c(n))
          iodesc_set(n) = .false.
       enddo
+
+      call ice_pio_finalize()
 
       end subroutine ice_write_hist_free
 
@@ -2189,11 +2197,8 @@
                write(nu_diag,*) subname,' Finished reading ',trim(ncfile)
             endif
 
-            !-----------------------------------------------------------------
-            ! clean up PIO
-            !-----------------------------------------------------------------
-
-            call ice_pio_finalize()
+            ! The PIO iosystem is kept; ice_write_hist_free releases it at the
+            ! end of the run.
 
             first_call = .false.
 

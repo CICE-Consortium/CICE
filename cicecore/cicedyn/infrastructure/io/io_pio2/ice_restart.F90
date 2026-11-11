@@ -974,7 +974,8 @@
       call PIO_freeDecomp(File,iodesc2d)
       call PIO_freeDecomp(File,iodesc3d_ncat)
       call pio_closefile(File)
-      call ice_pio_finalize()
+      ! The PIO iosystem is kept, because history files may still be open on
+      ! it; it is released at the end of the run by ice_write_hist_free.
 
       if (my_task == master_task) then
          write(nu_diag,'(a,i8,4x,i4.4,a,i2.2,a,i2.2,a,i5.5)') &

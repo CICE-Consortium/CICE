@@ -1,6 +1,7 @@
     histfreq       = 'm','d','1','h','x'
     histfreq_n     =  1,1,1,1,1
     histfreq_base  =  'zero','zero','zero','zero','zero'
+    hist_file_period = 'none','month','month','month','none'
     write_ic       = .true.
     f_tmask        = .true.
     f_blkmask      = .true.

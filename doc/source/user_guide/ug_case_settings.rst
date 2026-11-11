@@ -234,6 +234,7 @@ setup_nml
    "``history_root``", "integer", "pe root task for history output with history_iotasks and history_stride (PIO only), -99=internal default", "-99"
    "``history_stride``", "integer", "pe stride for history output with history_iotasks and history_root (PIO only), -99=internal default", "-99"
    "``hist_avg``", "logical", "write time-averaged data", "``.true.,.true.,.true.,.true.,.true.``"
+   "``hist_file_period``", "character array", "frequency of files for time slices (none, month, year)", "``none,none,none,none,none``"
    "``hist_suffix``", "character array", "appended to history_file when not x", "``x,x,x,x,x``"
    "``hist_time_axis``","character","history file time axis interval location: begin, middle, end","end"
    "``ice_ic``", "``default``", "equal to internal", "``default``"

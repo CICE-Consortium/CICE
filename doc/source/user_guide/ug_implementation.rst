@@ -1319,8 +1319,11 @@ IO performance, see :ref:`iooverview`.
 The data is written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
 The files are written to binary or netCDF files prepended by the ``history_file``
-and ``history_suffix``
-namelist setting. The settings for history files are set in the 
+and ``history_suffix`` namelist setting. The frequency of files for a stream
+can be controlled through the ``hist_file_period`` namelist option. The options
+are ``none`` to write a file for each time slice, ``month`` to write slices into
+single months, or ``year`` to write slices into a single year.
+The settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
 The history filenames will have a form like
 **[history_file][history_suffix][_freq].[timeID].[nc,da]**

@@ -2742,6 +2742,7 @@
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(1:max_nstrm-1)
          write(nu_diag,1013) ' hist_avg         = ', hist_avg(1:max_nstrm-1)
          write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(1:max_nstrm-1)
+         write(nu_diag,1033) ' hist_file_period = ', hist_file_period(1:max_nstrm-1)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
