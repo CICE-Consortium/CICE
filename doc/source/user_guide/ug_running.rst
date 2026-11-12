@@ -468,8 +468,7 @@ hardwired into the **Macros.[machine]_[environment]** file.
 
 In general, ``-DFORTRANUNDERSCORE`` should always be set to support the Fortran/C
 interfaces in **ice_shr_reprosum.c**.  In addition, if NetCDF is used, ``-DUSE_NETCDF``
-should also be defined.  A list of available CPPs can be found in
-:ref:`tabcpps`.
+should also be defined.  A list of available CPPs can be found in :ref:`tabcpps`.
 
 .. _porting:
 
@@ -594,179 +593,82 @@ To get the required software necessary to build and run CICE, and use the plotti
 
 ``configuration/scripts/machines/environment.yml``.
 
-This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux. It is untested under Windows, but might work using the `Windows Subsystem for Linux <https://docs.microsoft.com/en-us/windows/wsl/install-win10>`_.
+This configuration is supported by the Consortium on a best-effort basis on macOS and GNU/Linux, on both
+Intel (x86_64) and ARM (arm64/aarch64) hardware.
+It is tested regularly with GitHub Actions on recent versions of macOS and Ubuntu.
+It is untested under Windows, but might work using the `Windows Subsystem for Linux <https://learn.microsoft.com/en-us/windows/wsl/install>`_.
 
-Once you have installed Miniconda and created the ``cice`` conda environment by following the procedures in this section, CICE should run on your machine without having to go through the formal :ref:`porting` process outlined above.
+Once you have installed conda and created the ``cice`` conda environment by following the procedures in this section, CICE should run on your machine without having to go through the formal :ref:`porting` process outlined above.
 
 .. _install_miniconda:
 
-Installing Miniconda
+Installing conda
 ~~~~~~~~~~~~~~~~~~~~
 
-We recommend the use of the `Miniconda distribution <https://docs.conda.io/en/latest/miniconda.html>`_ to create a self-contained conda environment from the ``environment.yml`` file.
+If you already have a working conda installation (Miniforge, Miniconda, Anaconda, etc.), you can skip this step.
+
+Otherwise, we recommend `Miniforge <https://github.com/conda-forge/miniforge>`_, a minimal conda installer that
+uses the community `conda-forge <https://conda-forge.org/>`_ channel by default.
+The ``environment.yml`` file only uses conda-forge packages.
 This process has to be done only once.
-If you do not have Miniconda or Anaconda installed, you can install Miniconda by following the `official instructions  <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_, or with these steps:
-
-On macOS:
-
-.. code-block:: bash
-
-  # Download the Miniconda installer to ~/miniconda.sh
-  curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -o ~/miniconda.sh
-  # Install Miniconda
-  bash ~/miniconda.sh
-  
-  # Follow the prompts
-  
-  # Close and reopen your shell
-
-
-On GNU/Linux:
+The following commands detect your operating system and hardware and download the matching installer, so they are
+the same on every macOS or GNU/Linux computer:
 
 .. code-block:: bash
 
-  # Download the Miniconda installer to ~/miniconda.sh
-  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
-  # Install Miniconda
-  bash ~/miniconda.sh
-  
-  # Follow the prompts
-  
-  # Close and reopen your shell
+  curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+  bash Miniforge3-$(uname)-$(uname -m).sh
 
-Note: on some Linux distributions (including Ubuntu and its derivatives), the csh shell that comes with the system is not compatible with conda.
+  # Follow the prompts, and answer "yes" when asked whether to initialize conda
+  # Close and reopen your terminal
+
+Some additional system packages are needed, depending on your operating system.
+
+On macOS, install the Xcode Command Line Tools if you do not already have them. These provide the macOS SDK used by the conda compilers:
+
+.. code-block:: bash
+
+  xcode-select --install
+
+On some GNU/Linux distributions (including Ubuntu and its derivatives), the csh shell that comes with the system is not compatible with conda.
 You will need to install the tcsh shell (which is backwards compatible with csh), and configure your system to use tcsh as csh:
- 
+
 .. code-block:: bash
- 
+
   # Install tcsh
   sudo apt-get install tcsh
   # Configure your system to use tcsh as csh
   sudo update-alternatives --set csh /bin/tcsh
- 
-  
+
+
 
 .. _init_shell:
 
 Initializing your shell for use with conda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We recommend initializing your default shell to use conda.
-This process has to be done only once.
-
-The Miniconda installer should ask you if you want to do that as part of the installation procedure.
-If you did not answer "yes", you can use one of the following procedures depending on your default shell.
-Bash should be your default shell if you are on macOS (10.14 and older) or GNU/Linux.
-
-Note: answering "yes" during the Miniconda installation procedure will only initialize the Bash shell for use with conda.
-
-If your Mac has macOS 10.15 or higher, your default shell is Zsh. 
-
-These instructions make sure that the ``conda`` command is available when you start your shell by modifying your shell's startup file.
-Also, they make sure not to activate the "base" conda environment when you start your shell.
-This conda environment is created during the Miniconda installation but is not used for CICE. 
-
-For Bash:
+The ``conda`` command must be available in your shell.
+If you answered "yes" when the installer asked whether to initialize conda, this is already done for your default shell.
+Otherwise, or to initialize a different shell, run:
 
 .. code-block:: bash
 
-  # Install miniconda as indicated above, then initialize your shell to use conda:
-  source $HOME/miniconda3/bin/activate
-  conda init bash
-  
-  # Don't activate the "base" conda environment on shell startup
-  conda config --set auto_activate_base false
-  
-  # Close and reopen your shell
+  # Initialize your default shell (bash, zsh, tcsh, fish, ...) to use conda
+  ~/miniforge3/bin/conda init "$(basename "$SHELL")"
 
-For Zsh (Z shell):
+  # Close and reopen your terminal
 
-.. code-block:: bash
+If you installed conda somewhere other than ``~/miniforge3``, adjust the path.
+Run ``conda init --help`` to see the list of supported shells.
 
-  # Initialize Zsh to use conda
-  source $HOME/miniconda3/bin/activate
-  conda init zsh
-  
-  # Don't activate the "base" conda environment on shell startup
-  conda config --set auto_activate_base false
-  
-  # Close and reopen your shell
-
-For tcsh:
-
-.. code-block:: bash
-  
-  # Install miniconda as indicated above, then initialize your shell to use conda:
-  source $HOME/miniconda3/etc/profile.d/conda.csh
-  conda init tcsh
-  
-  # Don't activate the "base" conda environment on shell startup
-  conda config --set auto_activate_base false
-  
-  # Close and reopen your shell
-
-For fish:
-
-.. code-block:: bash
-  
-  # Install miniconda as indicated above, then initialize your shell to use conda:
-  source $HOME/miniconda3/etc/fish/conf.d/conda.fish
-  conda init fish
-  
-  # Don't activate the "base" conda environment on shell startup
-  conda config --set auto_activate_base false
-  
-  # Close and reopen your shell
-
-For xonsh:
+If you prefer not to modify your shell startup files, you can instead make conda available for the current session only, before using any conda command and before compiling and running CICE:
 
 .. code-block:: bash
 
-  # Install miniconda as indicated above, then initialize your shell to use conda:
-  source-bash $HOME/miniconda3/bin/activate
-  conda init xonsh
-  
-  # Don't activate the "base" conda environment on shell startup
-  conda config --set auto_activate_base false
-  
-  # Close and reopen your shell
-
-.. _init_shell_manually:
-
-Initializing your shell for conda manually
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you prefer not to modify your shell startup files, you will need to run the appropriate ``source`` command below (depending on your default shell) before using any conda command, and before compiling and running CICE.
-These instructions make sure the ``conda`` command is available for the duration of your shell session.
-
-For Bash and Zsh:
-
-.. code-block:: bash
-
-  # Initialize your shell session to use conda:
-  source $HOME/miniconda3/bin/activate
-
-For tcsh:
-
-.. code-block:: bash
-  
-  # Initialize your shell session to use conda:
-  source $HOME/miniconda3/etc/profile.d/conda.csh
-
-
-For fish:
-
-.. code-block:: bash
-  
-  # Initialize your shell session to use conda:
-  source $HOME/miniconda3/etc/fish/conf.d/conda.fish
-
-For xonsh:
-
-.. code-block:: bash
-
-  # Initialize your shell session to use conda:
-  source-bash $HOME/miniconda3/bin/activate
+  # bash or zsh
+  source ~/miniforge3/bin/activate
+  # tcsh
+  source ~/miniforge3/etc/profile.d/conda.csh
 
 
 .. _create_conda_env:
@@ -777,10 +679,14 @@ The conda configuration expects some directories and files to be present at ``$H
 
 .. code-block:: bash
 
-  cd $HOME
-  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
-  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
-  # and untar it at $HOME/cice-dirs/input
+  mkdir -p ~/cice-dirs/runs ~/cice-dirs/baseline ~/cice-dirs/input
+  cd ~/cice-dirs/input
+  curl -L -O https://zenodo.org/record/3728358/files/CICE_data_gx3_grid_ic-20200320.tar.gz
+  tar -xzf CICE_data_gx3_grid_ic-20200320.tar.gz
+  curl -L -O https://zenodo.org/records/10419929/files/CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
+  tar -xzf CICE_data_gx3_forcing_JRA55_200501_20231220.tar.gz
+
+See https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data for more information about the input data.
 
 This step needs to be done only once.
 
@@ -788,32 +694,29 @@ If you prefer that some or all of the CICE directories be located somewhere else
 
 .. code-block:: bash
 
-  
+
   # Create the CICE directories at your preferred location
-  cd ${somewhere}
-  mkdir -p cice-dirs/runs cice-dirs/baseline cice-dirs/input
-  # Download the required forcing from https://github.com/CICE-Consortium/CICE/wiki/CICE-Input-Data
-  # and untar it at cice-dirs/input
-  
+  mkdir -p ${somewhere}/cice-dirs/runs ${somewhere}/cice-dirs/baseline ${somewhere}/cice-dirs/input
+  # Download and untar the input data in ${somewhere}/cice-dirs/input as above
+
   # Create a symlink to cice-dirs in your $HOME
   cd $HOME
-  ln -s ${somewhere}/cice-dirs cice-dirs
+  ln -s ${somewhere}/cice-dirs ~/cice-dirs
 
 Note: if you wish, you can also create a complete machine port for your computer by leveraging the conda configuration as a starting point. See :ref:`porting`.
 
-Next, create the "cice" conda environment from the ``environment.yml`` file in the CICE source code repository.  You will need to clone CICE to run the following command:
+Next, create the "cice" conda environment from the ``environment.yml`` file in the CICE source code repository.
+From the top directory of your CICE clone, run:
 
 .. code-block:: bash
 
   conda env create -f configuration/scripts/machines/environment.yml
 
-This step needs to be done only once and will maintain a static conda environment.  To update the conda environment later, use
+This step needs to be done only once and will maintain a static conda environment.  If you ever need to update the conda environment because the required packages change or packages are out of date, do
 
 .. code-block:: bash
 
-  conda env create -f configuration/scripts/machines/environment.yml --force
-
-This will update the conda environment to the latest software versions.
+  conda env update -f configuration/scripts/machines/environment.yml --prune
 
 
 .. _using_conda_env:
@@ -821,7 +724,8 @@ This will update the conda environment to the latest software versions.
 Using the conda configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Follow the general instructions in :ref:`overview`, using the ``conda`` machine name and ``macos`` or ``linux`` as compiler names.
+Follow the general instructions in :ref:`overview` using the ``conda`` machine name.
+The environment name is ``macos`` on macOS and ``linux`` on GNU/Linux, whatever the hardware.
 
 On macOS:
 
@@ -845,53 +749,74 @@ A few notes about the conda configuration:
 
 - This configuration always runs the model interactively, such that ``./cice.run`` and ``./cice.submit`` are the same.
 - You should not update the packages in the ``cice`` conda environment, nor install additional packages.
+- It is not recommended to run other test suites than ``travis_suite`` on a personal computer.
+- The conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux,macos}``, which calls ``conda activate cice``.
 - Depending on the numbers of CPUs in your machine, you might not be able to run with the default MPI configuration (``-p 4x1``). You likely will get an OpenMPI error such as:
 
     There are not enough slots available in the system to satisfy the 4 slots that were requested by the application:  ./cice
-    
+
   You can run CICE in serial mode by specifically requesting only one process:
-  
+
   .. code-block:: bash
-  
+
     ./cice.setup -m conda -e linux -p 1x1 ...
-  
+
   If you do want to run with more MPI processes than the number of available CPUs in your machine, you can add the ``--oversubscribe`` flag to the ``mpirun`` call in ``cice.run``:
-  
+
   .. code-block:: bash
-  
+
     # For a specific case:
     # Open cice.run and replace the line
     mpirun -np <num> ./cice >&! $ICE_RUNLOG_FILE
     # with
     mpirun -np <num> --oversubscribe ./cice >&! $ICE_RUNLOG_FILE
-  
+
     # For all future cases:
     # Open configuration/scripts/cice.launch.csh and replace the line
     mpirun -np ${ntasks} ./cice >&! \$ICE_RUNLOG_FILE
     # with
     mpirun -np ${ntasks} --oversubscribe ./cice >&! \$ICE_RUNLOG_FILE
-  
-- It is not recommeded to run other test suites than ``quick_suite`` or ``travis_suite`` on a personal computer.
-- If needed, the conda environment is automatically activated when compiling or running the model using the ``./cice.build`` and ``./cice.run`` scripts in the case directory. These scripts source the file ``env.conda_{linux.macos}``, which calls ``conda activate cice``.
-- To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
 
-  .. code-block:: bash
-  
-    cd ~/cice-dirs/cases/case1
-    conda env create -f configuration/scripts/machines/environment.yml --force
-    conda activate cice
-    python timeseries.py ~/cice-dirs/cases/case1/logs
-    conda deactivate  # to deactivate the environment
-  
-- The environment also contains the Sphinx package necessesary to build the HTML documentation :
+.. _plot_tools:
 
-  .. code-block:: bash
-  
-    cd doc
-    conda activate cice
-    make html
-    # Open build/html/index.html in your browser
-    conda deactivate  # to deactivate the environment
+Plotting tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To use the "cice" conda environment with the Python plotting (see :ref:`timeseries`) and quality control (QC) scripts (see :ref:`CodeValidation`), you must manually activate the environment:
+
+.. code-block:: bash
+
+  cd ~/cice-dirs/cases/case1
+  conda activate cice
+  python timeseries.py ~/cice-dirs/cases/case1/logs
+  conda deactivate  # to deactivate the environment
+
+.. _build_docs:
+
+Building the documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The HTML documentation is built with Sphinx.
+Its Python requirements are kept separate from the ``cice`` environment, in the ``docs-runtime`` dependency group of ``doc/pyproject.toml``.
+To build the documentation locally, create a separate ``cice-docs`` conda environment and install the requirements with pip (version 25.1 or later):
+
+.. code-block:: bash
+
+  # From the top directory of your CICE clone
+  cd doc
+  conda create -n cice-docs python=3.12 pip
+  conda activate cice-docs
+  pip install --group docs-runtime
+
+This step needs to be done only once. Then, to build the documentation:
+
+.. code-block:: bash
+
+  conda activate cice-docs
+  cd doc  # from the top directory of your CICE clone
+  make html
+  # Open build/html/index.html in your browser
+  conda deactivate  # to deactivate the environment
 
 
 .. _force:
@@ -1003,12 +928,16 @@ To use the python scripts, the following python packages are required:
 * netcdf4
 * basemap, basemap-data, basemap-data-hires
 
-The easist way to install the package is via the cice env file provided with CICE via conda:
+The easiest way to get these packages is the ``cice`` conda environment
+(see :ref:`create_conda_env`), which can be used for plotting even if CICE
+is built and run on an HPC system with its own compilers and libraries.
+Once the environment is created, activate it before running the plotting scripts:
 
   .. code-block:: bash
 
-    conda env create -f configuration/scripts/machines/environment.yml --force
     conda activate cice
+
+Alternatively, install the packages listed above into a Python environment of your choice.
 
 Then edit the ``ciceplots.csh`` script and run it.  ``ciceplots.csh`` also demonstrates
 how to call each python script separately.

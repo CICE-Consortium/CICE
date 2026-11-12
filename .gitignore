@@ -8,7 +8,16 @@ doc/build
 # Ignore macOS cache files
 .DS_Store
 
-
 # Ignore testsuite file/directories
 testsuite*
 caselist*
+
+# Ignore compiled .mod files
+*.mod
+
+# Ignore test case directories (no consistent name so we'll just ignore conda)
+conda_*
+
+# Ignore the uv lock file created when building the docs with uv
+uv.lock
+
