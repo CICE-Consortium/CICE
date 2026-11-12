@@ -1191,7 +1191,7 @@
             call ice_pio_check(status,subname//' ERROR: writing '//avail_hist_fields(n)%vname, &
                                file=__FILE__,line=__LINE__)
          endif
-      enddo ! num_avail_hist_fields_3Db
+      enddo ! num_avail_hist_fields_3Da
       deallocate(workd3)
       deallocate(workr3)
 

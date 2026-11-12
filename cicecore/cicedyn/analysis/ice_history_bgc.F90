@@ -944,17 +944,17 @@
         if (f_bgc_Sil(1:1) /= 'x') &
           call define_hist_field(n_bgc_Sil,"Sil","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (silicate)",                            &
-             "skelelal layer: bottom 3 cm", c1, c0,                &
+             "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_Sil)
         if (f_bgc_hum(1:1) /= 'x') &
           call define_hist_field(n_bgc_hum,"hum","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal humic material (carbon)",              &
-             "skelelal layer: bottom 3 cm", c1, c0,                &
+             "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_hum)
         if (f_bgc_PON(1:1) /= 'x') &
           call define_hist_field(n_bgc_PON,"PON","mmol/m^2",tstr2D, tcstr, &
              "Bulk skeletal nutrient (silicate)",                            &
-             "skelelal layer: bottom 3 cm", c1, c0,                &
+             "skeletal layer: bottom 3 cm", c1, c0,                &
              ns, f_bgc_PON)
         if (f_bgc_DMSPp(1:1) /= 'x') &
           call define_hist_field(n_bgc_DMSPp,"DMSPp","mmol/m^2",tstr2D, tcstr, &
@@ -1562,7 +1562,7 @@
           enddo
         endif !f_Fedsnow
         if (f_Fepsnow (1:1) /= 'x') then
-          do n = 1, n_fed
+          do n = 1, n_fep
             write(nchar,'(i3.3)') n
             write(vname_in,'(a,a)') 'pFe_snow', trim(nchar)
             call define_hist_field(n_Fepsnow (n,:),vname_in,"umol/m^2",tstr2D, tcstr, &
@@ -1995,7 +1995,7 @@
             call accum_hist_field(n_isosno(n,:), iblk, &
                                trcr(:,:,nt_isosno+n-1,iblk)/rhos, a2D)
             call accum_hist_field(n_isoice(n,:), iblk, &
-                               trcr(:,:,nt_isoice+n-1,iblk)/rhos, a2D)
+                               trcr(:,:,nt_isoice+n-1,iblk)/rhoi, a2D)
          enddo
       endif
 
@@ -2656,16 +2656,14 @@
       if (f_iDi   (1:1) /= 'x') then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
-            do k = 1,nzblyr-1
-              do j = jlo, jhi
-               do i = ilo, ihi
-                if (aicen(i,j,n,iblk) > c0) then
-                   workz(i,j,k) = workz(i,j,k) + iDi(i,j,k,n,iblk)*vicen(i,j,n,iblk)**2/aicen(i,j,n,iblk)
-                   workz(i,j,nzblyr)   = workz(i,j,nzblyr-1)
-                endif
-               enddo ! i
-              enddo  ! j
-            enddo    ! k
+            do j = jlo, jhi
+             do i = ilo, ihi
+              if (aicen(i,j,n,iblk) > c0) then
+                 workz(i,j,1:nblyr+1) = workz(i,j,1:nblyr+1) + iDi(i,j,1:nblyr+1,n,iblk) &
+                                       *vicen(i,j,n,iblk)**2/aicen(i,j,n,iblk)
+              endif
+             enddo ! i
+            enddo  ! j
           enddo      ! n
           call accum_hist_field(n_iDi-n3Dzcum, iblk, nzblyr, &
                                   workz(:,:,1:nzblyr), a3Db)
@@ -3361,7 +3359,7 @@
                 ns, f_bgc_Sil_cat1)
 
        if (f_bgc_hum_cat1(1:1) /= 'x') &
-            call define_hist_field(n_bgc_hum,"bgc_hum_cat1","mmol/m^3",tstr3Da, tcstr, &
+            call define_hist_field(n_bgc_hum_cat1,"bgc_hum_cat1","mmol/m^3",tstr3Da, tcstr, &
                 "bulk humic (carbon) material in cat 1", "snow+bio grid", c1, c0, &
                 ns, f_bgc_hum_cat1)
 
