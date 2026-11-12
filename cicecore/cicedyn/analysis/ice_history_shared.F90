@@ -34,7 +34,8 @@
       implicit none
 
       private
-      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
+      public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density, &
+                get_histfreq_file_period
 
       integer (kind=int_kind), public :: history_precision
 
@@ -59,6 +60,19 @@
 
       character (len=char_len), public :: &
          hist_suffix(max_nstrm)  ! appended to history_file in filename
+
+      character (len=char_len), public :: &
+         histfreq_file(max_nstrm)    ! 'x','1','h','d','m','y', same as histfreq.
+                                     ! A new history file is started every
+                                     ! histfreq_file_n timesteps, hours, days,
+                                     ! months or years; 'x' for one sample
+                                     ! per file.  This groups samples into
+                                     ! files and does not change how often a
+                                     ! sample is written, which is histfreq.
+
+      integer (kind=int_kind), public :: &
+         histfreq_file_n(max_nstrm)  ! number of histfreq_file intervals
+                                     ! in each history file
 
       integer (kind=int_kind), public :: &
          history_iotasks     , & ! iotasks, root, stride defines io pes for pio
@@ -776,6 +790,111 @@
       contains
 
 !=======================================================================
+! Identify the history file a time sample of stream ns belongs in, based
+! on histfreq_file(ns) and histfreq_file_n(ns).
+!
+! lperiod is the number of whole histfreq_file_n intervals of histfreq_file
+! (timesteps, hours, days, months or years) elapsed since the histfreq_base
+! reference time.  A new file is started when it changes.  It is -1 for
+! histfreq_file = 'x', so every sample gets its own file.
+!
+! An average is written on the timestep after the last one it covers, so
+! except for timestep and hourly streams an averaged sample counts towards
+! the time one timestep earlier.  At a file boundary it then belongs to the
+! interval that just ended, and period_ends is set so the file can be closed
+! as soon as the sample is written instead of waiting for the next sample
+! to show that the interval has changed.  Instantaneous, hourly and
+! timestep samples count towards the current time and period_ends is false.
+
+      subroutine get_histfreq_file_period(ns, lperiod, period_ends)
+
+      use ice_calendar, only: myear, mmonth, mday, msec, istep1, dt, &
+                              histfreq, histfreq_base, year_init, month_init, &
+                              day_init, months_per_year, hours_per_day, &
+                              seconds_per_hour, compute_days_between, update_date
+
+      integer (kind=int_kind), intent(in)  :: ns          ! history stream
+      integer (kind=int_kind), intent(out) :: lperiod     ! file identifier
+      logical (kind=log_kind), intent(out) :: period_ends ! last sample of its file
+
+      ! local variables
+      integer (kind=int_kind) :: pyear, pmonth, pday, psec, pstep
+      integer (kind=int_kind) :: nperiod  ! lperiod at the current time
+      logical (kind=log_kind) :: lagged   ! sample counts towards one step earlier
+      character (len=1) :: cfreq
+
+      character(len=*), parameter :: subname = '(get_histfreq_file_period)'
+
+      lperiod = -1
+      period_ends = .false.
+
+      cfreq = histfreq_file(ns)(1:1)
+      if (cfreq == 'x' .or. cfreq == 'X') return
+
+      lagged = hist_avg(ns) .and. histfreq(ns) /= '1' .and. &
+               histfreq(ns) /= 'h' .and. histfreq(ns) /= 'H'
+
+      nperiod = period_index(myear, mmonth, mday, msec, istep1)
+      lperiod = nperiod
+
+      if (lagged) then
+         pyear  = myear
+         pmonth = mmonth
+         pday   = mday
+         psec   = msec
+         call update_date(pyear, pmonth, pday, psec, dsec=-nint(dt))
+         pstep  = istep1 - 1
+         lperiod = period_index(pyear, pmonth, pday, psec, pstep)
+         period_ends = (lperiod /= nperiod)
+      endif
+
+      contains
+
+         integer function period_index(ayear, amonth, aday, asec, astep)
+
+         integer (kind=int_kind), intent(in) :: ayear, amonth, aday, asec, astep
+
+         integer (kind=int_kind) :: ey, em, ed, eh  ! elapsed years, months, days, hours
+
+         if (trim(histfreq_base(ns)) == 'init') then
+            ey = ayear - year_init
+            em = ey*months_per_year + (amonth - month_init)
+            ed = compute_days_between(year_init, month_init, day_init, ayear, amonth, aday)
+         else
+            ey = ayear
+            em = ey*months_per_year + amonth - 1
+            ed = compute_days_between(0, 1, 1, ayear, amonth, aday)
+         endif
+         eh = ed*hours_per_day + asec/seconds_per_hour
+
+         select case (cfreq)
+         case ('y', 'Y')
+            period_index = ey
+         case ('m', 'M')
+            period_index = em
+         case ('d', 'D')
+            period_index = ed
+         case ('h', 'H')
+            period_index = eh
+         case ('1')
+            period_index = astep
+         case default
+            write(nu_diag,*) subname,' ERROR: unknown histfreq_file ',trim(histfreq_file(ns))
+            call abort_ice(subname//' ERROR: unknown histfreq_file '//trim(histfreq_file(ns)), &
+                           file=__FILE__, line=__LINE__)
+            period_index = -1
+         end select
+
+         ! Floor division so a sample just before the reference time does not
+         ! land in the same file as one just after it.
+         period_index = (period_index - modulo(period_index, histfreq_file_n(ns))) &
+                        / histfreq_file_n(ns)
+
+         end function period_index
+
+      end subroutine get_histfreq_file_period
+
+!=======================================================================
 
       subroutine construct_filename(ncfile,suffix,ns,option)
 
@@ -793,6 +912,10 @@
       integer (kind=int_kind) :: iyear, imonth, iday, isec
       integer (kind=int_kind) :: n
       character (len=char_len) :: cstream, loption
+      character (len=5) :: cinst          ! '_inst' for instantaneous streams
+      character (len=char_len) :: cfreqn  ! '_' histfreq_n histfreq, e.g. '_1d'
+      character (len=1) :: cfile, cfreq   ! histfreq_file, histfreq (lower case)
+      logical (kind=log_kind) :: multi_sample ! file holds a histfreq_file interval
       character (len=char_len_long), save :: ncfile_last(max_nstrm) = 'UnDefineD'
       character(len=*), parameter :: subname = '(construct_filename)'
 
@@ -840,7 +963,57 @@
               endif
            endif
 
-           if (hist_avg(ns)) then    ! write averaged data
+           ! A file that groups several samples, because histfreq_file and
+           ! histfreq_file_n differ from histfreq and histfreq_n, is named
+           ! for the histfreq_file interval it holds rather than for a single
+           ! sample.  The date is that of the first sample in the file, the
+           ! one that creates it, given to the precision of histfreq_file.
+           cfile = histfreq_file(ns)(1:1)
+           cfreq = histfreq(ns)(1:1)
+           if (cfile == 'X') cfile = 'x'
+           if (cfile == 'Y') cfile = 'y'
+           if (cfile == 'M') cfile = 'm'
+           if (cfile == 'D') cfile = 'd'
+           if (cfile == 'H') cfile = 'h'
+           if (cfreq == 'Y') cfreq = 'y'
+           if (cfreq == 'M') cfreq = 'm'
+           if (cfreq == 'D') cfreq = 'd'
+           if (cfreq == 'H') cfreq = 'h'
+           multi_sample = cfile /= 'x' .and. cfreq /= 'g' .and. &
+                          (cfile /= cfreq .or. histfreq_file_n(ns) /= histfreq_n(ns))
+
+           cinst = ''
+           if (.not. hist_avg(ns)) cinst = '_inst'
+
+           ! Add the sample interval, histfreq_n and histfreq, to the stream
+           ! name so it is clear what each grouped file holds, e.g. _1d for
+           ! daily samples or _6h for six-hourly samples.
+           if (multi_sample) then
+              write(cfreqn,'(a,i0,a)') '_',histfreq_n(ns),trim(histfreq(ns))
+              cstream = trim(cstream)//trim(cfreqn)
+           endif
+
+           if (multi_sample) then
+              select case (cfile)
+              case ('y')
+                 write(ncfile,'(a,a,i4.4,a,a)') &
+                       history_file(1:lenstr(history_file))//trim(cstream)//trim(cinst),'.', &
+                       iyear,'.',trim(suffix)
+              case ('m')
+                 write(ncfile,'(a,a,i4.4,a,i2.2,a,a)')  &
+                       history_file(1:lenstr(history_file))//trim(cstream)//trim(cinst),'.', &
+                       iyear,'-',imonth,'.',trim(suffix)
+              case ('d')
+                 write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,a)')  &
+                       history_file(1:lenstr(history_file))//trim(cstream)//trim(cinst),'.', &
+                       iyear,'-',imonth,'-',iday,'.',trim(suffix)
+              case default   ! 'h' or '1'
+                 write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
+                       history_file(1:lenstr(history_file))//trim(cstream)//trim(cinst),'.', &
+                       iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
+              end select
+
+           elseif (hist_avg(ns)) then    ! write averaged data
               if (histfreq(ns) == '1' .and. histfreq_n(ns) == 1)  then ! timestep
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_inst.', &

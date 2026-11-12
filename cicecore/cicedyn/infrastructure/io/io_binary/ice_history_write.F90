@@ -25,7 +25,8 @@
 
       implicit none
       private
-      public :: ice_write_hist, ice_read_hist
+      public :: ice_write_hist, ice_read_hist, ice_write_hist_free, &
+                ice_write_hist_close, ice_hist_resume_disable
 
 !=======================================================================
 
@@ -421,6 +422,24 @@
       endif
 
       end subroutine ice_read_hist
+
+!=======================================================================
+!
+! The binary writer always puts one time sample in each file, so
+! histfreq_file is not supported and there is never a file left open.
+! These do nothing; they exist so the drivers can call them with any IO type.
+!
+      subroutine ice_write_hist_close
+      character(len=*), parameter :: subname = '(ice_write_hist_close)'
+      end subroutine ice_write_hist_close
+
+      subroutine ice_write_hist_free
+      character(len=*), parameter :: subname = '(ice_write_hist_free)'
+      end subroutine ice_write_hist_free
+
+      subroutine ice_hist_resume_disable
+      character(len=*), parameter :: subname = '(ice_hist_resume_disable)'
+      end subroutine ice_hist_resume_disable
 !=======================================================================
 
       end module ice_history_write

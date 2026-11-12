@@ -28,7 +28,8 @@
       use ice_read_write, only: ice_check_nc
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
       use icepack_intfc, only: icepack_query_parameters
-      use ice_kinds_mod, only: int_kind
+      use ice_kinds_mod, only: int_kind, log_kind, char_len_long
+      use ice_domain_size, only: max_nstrm
 #ifdef USE_NETCDF
       use netcdf
 #endif
@@ -48,9 +49,40 @@
         character (len=20)   :: coordinates
       END TYPE req_attributes
 
-      public :: ice_write_hist, ice_read_hist
+      public :: ice_write_hist, ice_read_hist, ice_write_hist_free, &
+                ice_write_hist_close, ice_write_hist_sync, ice_hist_state_get, ice_hist_state_set, &
+                ice_hist_resume_disable
 
       integer (kind=int_kind) :: imtid,jmtid
+
+      ! The following specify the history file a stream has open,
+      ! together with its name, how many time samples have been
+      ! written to it, and which histfreq_file interval those samples are from.
+      ! The file stays open until the histfreq_file interval changes, so that
+      ! one file holds every sample from that interval.
+      ! ice_write_hist_close closes whatever is still open when a run ends.
+      ! Only the master task does netcdf I/O, so ncid_hist is only
+      ! meaningful there; the other fields are kept on every task.
+      integer (kind=int_kind)       :: ncid_hist(max_nstrm) = -1
+      integer (kind=int_kind)       :: nrec_hist(max_nstrm) = 0
+      logical (kind=log_kind)       :: file_open_hist(max_nstrm) = .false.
+      character (len=char_len_long) :: fname_hist(max_nstrm)
+      integer (kind=int_kind)       :: period_hist(max_nstrm) = -1
+
+      ! A history file that had not yet received all the samples for
+      ! its histfreq_file interval when the restart was written is resumed
+      ! rather than replaced. The restart file records its name and
+      ! how many records it held at that point.
+      character (len=char_len_long) :: resume_fname(max_nstrm) = ''
+      integer (kind=int_kind)       :: resume_nrec(max_nstrm) = 0
+      integer (kind=int_kind)       :: resume_period(max_nstrm) = -1
+
+      ! Resuming is only applies to continuation runs not to branch
+      ! runs.  A branch run reads another case's restart and may
+      ! change the history frequencies and variable lists, so it must
+      ! start its own history files. Note that for branch runs, the
+      ! routine ice_hist_resume_disable is called from ice_comp_nuopc.F90
+      logical (kind=log_kind)       :: resume_allowed = .true.
 
 !=======================================================================
 
@@ -133,6 +165,16 @@
       TYPE(coord_attributes), dimension(nvar_grdz) :: var_grdz
       CHARACTER (char_len), dimension(ncoord) :: coord_bounds
 
+      logical (kind=log_kind) :: use_period ! false for ic and histrest files
+      logical (kind=log_kind) :: period_ends ! sample is the last of its period
+      integer (kind=int_kind) :: nrec     ! record this call writes
+      logical (kind=log_kind) :: newfile  ! true if a file must be created
+      logical (kind=log_kind) :: resumed  ! true if an existing file reopened
+      logical (kind=log_kind) :: fexists  ! resumed file is on disk
+      integer (kind=int_kind) :: ntime    ! records already in a resumed file
+      integer (kind=int_kind) :: timdim   ! id of the unlimited dimension
+      integer (kind=int_kind) :: lperiod  ! identifies the file this sample goes in
+
       character(len=*), parameter :: subname = '(ice_write_hist)'
 
 #ifdef USE_NETCDF
@@ -153,7 +195,141 @@
       lprecision = nf90_float
       if (history_precision == 8) lprecision = nf90_double
 
+      ! Decide whether this call writes to the file already open for this
+      ! stream or creates a new one.  Initial condition and history restart
+      ! files always hold a single time sample, whatever histfreq_file says.
+      use_period = .not. (write_ic .or. write_histrest_now)
+
+      ! lperiod specifies which file this sample goes in.  A new file is started
+      ! when it changes.  histfreq_file and histfreq_file_n set it, see
+      ! get_histfreq_file_period.  It is -1 for histfreq_file = 'x', so every
+      ! sample gets its own file.  period_ends is true if this is the last
+      ! sample of its file, which is then closed as soon as the sample is
+      ! written instead of waiting for the next sample.
+      lperiod = -1
+      period_ends = .false.
+      if (use_period) then
+         call get_histfreq_file_period(ns, lperiod, period_ends)
+      endif
+
+      ! The sample goes either into the file this stream already has open or
+      ! into a new file.  With histfreq_file 'x' no file is ever left open.
+      newfile = .true.
+      if (use_period .and. file_open_hist(ns)) then
+         if (lperiod /= -1 .and. lperiod == period_hist(ns)) then
+            newfile = .false.
+         else
+            ! This sample is from a different histfreq_file interval, so the open file
+            ! is closed before the new one is created.  An averaged stream
+            ! (other than timestep or hourly) is normally closed earlier, when its last sample
+            ! is written.
+            if (my_task == master_task) then
+               status = nf90_close(ncid_hist(ns))
+               call ice_check_nc(status, subname// ' ERROR: closing '//trim(fname_hist(ns)), &
+                                 file=__FILE__, line=__LINE__)
+               write(nu_diag,'(4a,i6,a)') subname,' Closed ', &
+                    trim(fname_hist(ns)),' with ',nrec_hist(ns),' time samples'
+            endif
+            ncid_hist(ns)      = -1
+            file_open_hist(ns) = .false.
+            nrec_hist(ns)      = 0
+         endif
+      elseif (use_period .and. len_trim(resume_fname(ns)) > 0 .and. &
+              (.not. resume_allowed .or. &
+               index(trim(resume_fname(ns)), trim(history_file)) == 0 .or. &
+               resume_period(ns) /= lperiod)) then
+
+         ! The restart names a history file that must not be continued.
+         if (my_task == master_task) then
+            if (.not. resume_allowed) then
+               write(nu_diag,*) subname,' NOTE this is not a continue run, so ', &
+                  trim(resume_fname(ns)),' is not resumed; starting a new file'
+            elseif (index(trim(resume_fname(ns)), trim(history_file)) == 0) then
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' does not belong to this case, so it is not resumed;'// &
+                  ' starting a new file'
+            else
+               ! The file the restart names already holds its whole histfreq_file
+               ! interval, and this sample is from the next one.
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' covers a period that has ended, so it is not resumed;'// &
+                  ' starting a new file'
+            endif
+         endif
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+
+      elseif (use_period .and. len_trim(resume_fname(ns)) > 0 .and. &
+              lperiod /= -1) then
+
+         ! The restart names a file that is not yet finished, so it is
+         ! reopened and added to.  Any reason not to is reported and a new
+         ! file is started instead.  Only the master task touches the file.
+         resumed = .false.
+         if (my_task == master_task) then
+            inquire(file=trim(resume_fname(ns)), exist=fexists)
+            if (.not. fexists) then
+               write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                  ' named by the restart is not on disk, starting a new file'
+            else
+               status = nf90_open(trim(resume_fname(ns)), nf90_write, ncid)
+               if (status /= nf90_noerr) then
+                  write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                     ' named by the restart could not be opened, starting a new file'
+               else
+                  ! The count in the restart is the authority, not the length of
+                  ! the file.  A run that got further than its restart before dying
+                  ! left extra records, which are written again.
+                  ntime = -1
+                  status = nf90_inq_dimid(ncid, 'time', timdim)
+                  if (status == nf90_noerr) then
+                     status = nf90_inquire_dimension(ncid, timdim, len=ntime)
+                  endif
+                  if (status /= nf90_noerr .or. ntime < resume_nrec(ns)) then
+                     write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
+                        ' holds ',ntime,' records but the restart accounts for ', &
+                        resume_nrec(ns),', starting a new file'
+                     status = nf90_close(ncid)
+                  else
+                     resumed = .true.
+                     write(nu_diag,'(3a,i6,a)') subname,' Resuming ', &
+                        trim(resume_fname(ns)),resume_nrec(ns),' samples already in file'
+                  endif
+               endif
+            endif
+         endif
+         call broadcast_scalar(resumed, master_task)
+
+         if (resumed) then
+            newfile            = .false.
+            ncid_hist(ns)      = ncid   ! only meaningful on the master task
+            nrec_hist(ns)      = resume_nrec(ns)
+            period_hist(ns)    = resume_period(ns)
+            fname_hist(ns)     = resume_fname(ns)
+            file_open_hist(ns) = .true.
+         endif
+
+         ! The restart's record is used once, whether or not it was resumed.
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+      endif
+
+      if (newfile) then
+         nrec = 1
+      else
+         ncid   = ncid_hist(ns)
+         ncfile = fname_hist(ns)
+         nrec   = nrec_hist(ns) + 1
+      endif
+
       if (my_task == master_task) then
+
+       if (.not. newfile) then
+         write(nu_diag,'(2a,i6,2a)') subname,' Adding sample ',nrec, &
+              ' to ',trim(ncfile)
+       else   ! newfile: create and define the file
 
          if (write_histrest_now) then
             call construct_filename(ncfile,'nc',ns, option='histrest')
@@ -615,10 +791,9 @@
 
          do n = n4Dscum + 1, n4Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
-               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, &
-                  ! dimidcz, ns)
-                  dimidcz(1:4),ns) ! ferret
-             endif
+               ! The time dimension is needed so that each sample has a record.
+               call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, dimidcz,ns)
+            endif
          enddo  ! num_avail_hist_fields_4Df
 
          !-----------------------------------------------------------------
@@ -732,6 +907,8 @@
          call ice_check_nc(status, subname// ' ERROR: in nf90_enddef', &
                            file=__FILE__, line=__LINE__)
 
+       endif   ! newfile: everything above defines a newly created file
+
          !-----------------------------------------------------------------
          ! write time variable and time bounds info
          !-----------------------------------------------------------------
@@ -752,7 +929,7 @@
             status = nf90_inq_varid(ncid,'time',varid)
             call ice_check_nc(status, subname// ' ERROR: getting time varid', &
                               file=__FILE__, line=__LINE__)
-            status = nf90_put_var(ncid,varid,ltime2)
+            status = nf90_put_var(ncid,varid,ltime2,start=(/nrec/))
             call ice_check_nc(status, subname// ' ERROR: writing time variable', &
                               file=__FILE__, line=__LINE__)
 
@@ -761,10 +938,10 @@
                status = nf90_inq_varid(ncid,'time_bounds',varid)
                call ice_check_nc(status, subname// ' ERROR: getting time_bounds id', &
                                  file=__FILE__, line=__LINE__)
-               status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1/))
+               status = nf90_put_var(ncid,varid,time_beg(ns),start=(/1,nrec/))
                call ice_check_nc(status, subname// ' ERROR: writing time_beg', &
                                  file=__FILE__, line=__LINE__)
-               status = nf90_put_var(ncid,varid,time_end(ns),start=(/2/))
+               status = nf90_put_var(ncid,varid,time_end(ns),start=(/2,nrec/))
                call ice_check_nc(status, subname// ' ERROR: writing time_end', &
                                  file=__FILE__, line=__LINE__)
             endif
@@ -773,6 +950,10 @@
 
       endif                     ! master_task
 
+      ! construct_filename runs on the master task alone.  Every task keeps
+      ! the name, so that the restart can record the open file.
+      call broadcast_scalar(ncfile, master_task)
+
       if (my_task==master_task) then
          allocate(work_g1(nx_global,ny_global))
       else
@@ -780,6 +961,10 @@
       endif
 
       work_g1(:,:) = c0
+
+      ! The coordinates, the masks, the areas and the vertex bounds do not
+      ! change with time, so they are written once when the file is created.
+      if (newfile) then
 
       !-----------------------------------------------------------------
       ! write coordinate variables
@@ -1000,6 +1185,8 @@
          deallocate(work1_3)
       endif
 
+      endif   ! newfile: the time-invariant variables are written above
+
       !-----------------------------------------------------------------
       ! write variable data
       !-----------------------------------------------------------------
@@ -1025,7 +1212,8 @@
             call ice_check_nc(status, subname// ' ERROR: getting varid for '//'albcnt'//cns, &
                               file=__FILE__, line=__LINE__)
             status  = nf90_put_var(ncid,varid,work_g1, &
-                                   count=(/nx_global,ny_global/))
+                                   start=(/        1,        1,nrec/), &
+                                   count=(/nx_global,ny_global,   1/))
             call ice_check_nc(status, subname// ' ERROR: writing variable '//'albcnt'//cns, &
                               file=__FILE__, line=__LINE__)
          endif
@@ -1035,7 +1223,8 @@
             call ice_check_nc(status, subname// ' ERROR: getting varid for '//'snwcnt'//cns, &
                               file=__FILE__, line=__LINE__)
             status  = nf90_put_var(ncid,varid,work_g1, &
-                                   count=(/nx_global,ny_global/))
+                                   start=(/        1,        1,nrec/), &
+                                   count=(/nx_global,ny_global,   1/))
             call ice_check_nc(status, subname// ' ERROR: writing variable '//'snwcnt'//cns, &
                               file=__FILE__, line=__LINE__)
          endif
@@ -1051,7 +1240,8 @@
                call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
                                  file=__FILE__, line=__LINE__)
                status  = nf90_put_var(ncid,varid,work_g1, &
-                                      count=(/nx_global,ny_global/))
+                                      start=(/        1,        1,nrec/), &
+                                      count=(/nx_global,ny_global,   1/))
                call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                  file=__FILE__, line=__LINE__)
             endif
@@ -1076,8 +1266,8 @@
                   call ice_check_nc(status, subname// ' ERROR: getting varid for '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k/), &
-                                         count=(/nx_global,ny_global,1/))
+                                         start=(/        1,        1,k,nrec/), &
+                                         count=(/nx_global,ny_global,1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1099,8 +1289,8 @@
                call gather_global(work_g1, a3Dz(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k/), &
-                                         count=(/nx_global,ny_global,1/))
+                                         start=(/        1,        1,k,nrec/), &
+                                         count=(/nx_global,ny_global,1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1122,8 +1312,8 @@
                call gather_global(work_g1, a3Db(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k/), &
-                                         count=(/nx_global,ny_global,1/))
+                                         start=(/        1,        1,k,nrec/), &
+                                         count=(/nx_global,ny_global,1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1145,8 +1335,8 @@
                call gather_global(work_g1, a3Da(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k/), &
-                                         count=(/nx_global,ny_global,1/))
+                                         start=(/        1,        1,k,nrec/), &
+                                         count=(/nx_global,ny_global,1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1168,8 +1358,8 @@
                call gather_global(work_g1, a3Df(:,:,k,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k/), &
-                                         count=(/nx_global,ny_global,1/))
+                                         start=(/        1,        1,k,nrec/), &
+                                         count=(/nx_global,ny_global,1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1192,8 +1382,8 @@
                call gather_global(work_g1, a4Di(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k,ic/), &
-                                         count=(/nx_global,ny_global,1, 1/))
+                                         start=(/        1,        1,k,ic,nrec/), &
+                                         count=(/nx_global,ny_global,1, 1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1217,8 +1407,8 @@
                call gather_global(work_g1, a4Ds(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k,ic/), &
-                                         count=(/nx_global,ny_global,1, 1/))
+                                         start=(/        1,        1,k,ic,nrec/), &
+                                         count=(/nx_global,ny_global,1, 1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1240,8 +1430,8 @@
                call gather_global(work_g1, a4Df(:,:,k,ic,nn,:), master_task, distrb_info)
                if (my_task == master_task) then
                   status  = nf90_put_var(ncid,varid,work_g1, &
-                                         start=(/        1,        1,k,ic/), &
-                                         count=(/nx_global,ny_global,1, 1/))
+                                         start=(/        1,        1,k,ic,nrec/), &
+                                         count=(/nx_global,ny_global,1, 1,   1/))
                   call ice_check_nc(status, subname// ' ERROR: writing variable '//avail_hist_fields(n)%vname, &
                                     file=__FILE__, line=__LINE__)
                endif
@@ -1256,11 +1446,43 @@
       ! close output dataset
       !-----------------------------------------------------------------
 
-      if (my_task == master_task) then
-         status = nf90_close(ncid)
-         call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
-                           file=__FILE__, line=__LINE__)
-         write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+      if (.not. use_period) then
+         ! Initial condition and history restart files hold one sample and are
+         ! separate from any file this stream has open, which is left as it is.
+         if (my_task == master_task) then
+            status = nf90_close(ncid)
+            call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
+                              file=__FILE__, line=__LINE__)
+            write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+         endif
+      elseif (lperiod == -1 .or. period_ends) then
+         ! Either one sample per file, so there is nothing to keep open, or
+         ! this was the last sample of its histfreq_file interval.
+         if (my_task == master_task) then
+            status = nf90_close(ncid)
+            call ice_check_nc(status, subname// ' ERROR: closing netCDF history file', &
+                              file=__FILE__, line=__LINE__)
+            if (lperiod == -1) then
+               write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
+            else
+               write(nu_diag,'(4a,i6,a)') subname,' Closed ',trim(ncfile), &
+                    ' with ',nrec,' time samples'
+            endif
+         endif
+         ncid_hist(ns)      = -1
+         file_open_hist(ns) = .false.
+         nrec_hist(ns)      = 0
+      else
+         ! The file is kept open for the next sample of this histfreq_file interval.
+         if (my_task == master_task) then
+            write(nu_diag,'(2a,i6,2a)') subname,' Wrote sample ',nrec, &
+                 ' to ',trim(ncfile)
+         endif
+         ncid_hist(ns)      = ncid   ! only meaningful on the master task
+         fname_hist(ns)     = ncfile
+         nrec_hist(ns)      = nrec
+         period_hist(ns)    = lperiod
+         file_open_hist(ns) = .true.
       endif
 
       ! reset history parameters
@@ -1273,6 +1495,143 @@
 #endif
 
       end subroutine ice_write_hist
+
+!=======================================================================
+!
+! Flush any history file still open, so that what is on disk matches the record
+! count a restart is about to write.  Called when a restart is written.
+! Only the master task holds open files, so other tasks do nothing.
+!
+      subroutine ice_write_hist_sync
+
+      use ice_communicate, only: my_task, master_task
+
+      integer (kind=int_kind) :: ns, status
+      character(len=*), parameter :: subname = '(ice_write_hist_sync)'
+
+#ifdef USE_NETCDF
+      if (my_task /= master_task) return
+      do ns = 1, max_nstrm
+         if (file_open_hist(ns)) then
+            status = nf90_sync(ncid_hist(ns))
+            call ice_check_nc(status, subname// ' ERROR: syncing '//trim(fname_hist(ns)), &
+                              file=__FILE__, line=__LINE__)
+         endif
+      enddo
+#endif
+
+      end subroutine ice_write_hist_sync
+
+!=======================================================================
+!
+! Close any history file still open.  Called at the end of a run.
+!
+      subroutine ice_write_hist_close
+
+      use ice_communicate, only: my_task, master_task
+
+      integer (kind=int_kind) :: ns, status
+      character(len=*), parameter :: subname = '(ice_write_hist_close)'
+
+#ifdef USE_NETCDF
+      do ns = 1, max_nstrm
+         if (file_open_hist(ns)) then
+            if (my_task == master_task) then
+               status = nf90_close(ncid_hist(ns))
+               call ice_check_nc(status, subname// ' ERROR: closing '//trim(fname_hist(ns)), &
+                                 file=__FILE__, line=__LINE__)
+               write(nu_diag,'(4a,i6,a)') subname,' Closed ', &
+                    trim(fname_hist(ns)),' with ',nrec_hist(ns),' time samples'
+            endif
+            ncid_hist(ns)      = -1
+            file_open_hist(ns) = .false.
+            nrec_hist(ns)      = 0
+         endif
+      enddo
+#endif
+
+      end subroutine ice_write_hist_close
+
+!=======================================================================
+!
+! Return the history file stream ns has open, for a restart to record.
+! fname is blank when no file is open.
+!
+      subroutine ice_hist_state_get(ns, fname, nrec, period)
+
+      integer (kind=int_kind), intent(in)  :: ns
+      character (len=*),       intent(out) :: fname
+      integer (kind=int_kind), intent(out) :: nrec
+      integer (kind=int_kind), intent(out) :: period
+
+      character(len=*), parameter :: subname = '(ice_hist_state_get)'
+
+      if (ns >= 1 .and. ns <= max_nstrm) then
+         if (file_open_hist(ns)) then
+            fname  = trim(fname_hist(ns))
+            nrec   = nrec_hist(ns)
+            period = period_hist(ns)
+            return
+         endif
+      endif
+      fname  = ''
+      nrec   = 0
+      period = -1
+
+      end subroutine ice_hist_state_get
+
+!=======================================================================
+!
+! Record the history file named by a restart, for the next run to resume.
+! A blank fname clears it.  Must be called with the same values on every task.
+!
+      subroutine ice_hist_state_set(ns, fname, nrec, period)
+
+      integer (kind=int_kind), intent(in) :: ns
+      character (len=*),       intent(in) :: fname
+      integer (kind=int_kind), intent(in) :: nrec
+      integer (kind=int_kind), intent(in) :: period
+
+      character(len=*), parameter :: subname = '(ice_hist_state_set)'
+
+      if (ns < 1 .or. ns > max_nstrm) return
+
+      if (len_trim(fname) == 0 .or. nrec < 1) then
+         resume_fname(ns)  = ''
+         resume_nrec(ns)   = 0
+         resume_period(ns) = -1
+      else
+         resume_fname(ns)  = trim(fname)
+         resume_nrec(ns)   = nrec
+         resume_period(ns) = period
+      endif
+
+      end subroutine ice_hist_state_set
+
+!=======================================================================
+!
+! Forbid resuming a history file recorded in a restart.  The driver calls this
+! for branch and hybrid runs, which read a restart but must start their own
+! history files because the history settings may differ.
+!
+      subroutine ice_hist_resume_disable
+
+      character(len=*), parameter :: subname = '(ice_hist_resume_disable)'
+
+      resume_allowed = .false.
+
+      end subroutine ice_hist_resume_disable
+
+!=======================================================================
+!
+! Counterpart of the pio2 routine that frees cached decompositions.  The netcdf
+! writer caches nothing, so there is nothing to free.
+!
+      subroutine ice_write_hist_free
+
+      character(len=*), parameter :: subname = '(ice_write_hist_free)'
+
+      end subroutine ice_write_hist_free
 
 !=======================================================================
 !

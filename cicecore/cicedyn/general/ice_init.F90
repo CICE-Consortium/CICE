@@ -89,7 +89,7 @@
           history_precision, hist_avg, history_format, history_file, incond_file, &
           history_dir, incond_dir, version_name, history_rearranger, &
           hist_suffix, history_iotasks, history_root, history_stride, &
-          history_deflate, history_chunksize, hist_time_axis
+          histfreq_file, histfreq_file_n, history_deflate, history_chunksize, hist_time_axis
       use ice_flux, only: update_ocn_f, cpl_frazil, l_mpond_fresh
       use ice_flux, only: default_season
       use ice_flux_bgc, only: cpl_bgc
@@ -205,7 +205,7 @@
         pointer_file,   dumpfreq,       dumpfreq_n,      dump_last,     &
         diagfreq,       diag_type,      diag_file,       history_format,&
         history_root,   history_stride, history_iotasks, history_rearranger, &
-        hist_time_axis,                                                 &
+        histfreq_file,  histfreq_file_n,hist_time_axis,                 &
         print_global,   print_points,   latpnt,          lonpnt,        &
         debug_forcing,  histfreq,       histfreq_n,      hist_avg,      &
         hist_suffix,    history_deflate, history_chunksize,             &
@@ -355,6 +355,8 @@
       hist_avg(:) = .true.   ! if true, write time-averages (not snapshots)
       hist_suffix(:) = 'x'   ! appended to 'history_file' in filename when not 'x'
       history_format = 'cdf1'! history file format
+      histfreq_file(:) = 'x' ! history file frequency for different streams
+      histfreq_file_n(:) = 1 ! history file number of histfreq_file
       history_root = -99     ! history iotasks, root, stride sets pes for pio
       history_stride = -99   ! history iotasks, root, stride sets pes for pio
       history_iotasks = -99  ! history iotasks, root, stride sets pes for pio
@@ -993,6 +995,8 @@
          call broadcast_scalar(dumpfreq(n),       master_task)
          call broadcast_scalar(dumpfreq_base(n),  master_task)
          call broadcast_scalar(hist_suffix(n),    master_task)
+         call broadcast_scalar(histfreq_file(n), master_task)
+         call broadcast_scalar(histfreq_file_n(n), master_task)
       enddo
       call broadcast_array(hist_avg,              master_task)
       call broadcast_array(histfreq_n,            master_task)
@@ -1849,6 +1853,34 @@
          if (histfreq_base(n) /= 'init' .and. histfreq_base(n) /= 'zero') then
             write (nu_diag,*) subname//' ERROR: bad value for histfreq_base, allowed values: init, zero: '//trim(histfreq_base(n))
             abort_list = trim(abort_list)//":24"
+         endif
+
+         if (.not.(scan(histfreq_file(n)(1:1),'ymdhx1YMDHX') == 1 .and. len_trim(histfreq_file(n)) == 1)) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: bad value for histfreq_file, allowed values: y,m,d,h,1,x: ', &
+                                trim(histfreq_file(n))
+            endif
+            abort_list = trim(abort_list)//":71"
+         endif
+
+         if (histfreq_file_n(n) < 1) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' ERROR: histfreq_file_n must be at least 1: ',histfreq_file_n(n)
+            endif
+            abort_list = trim(abort_list)//":71"
+         endif
+
+         if (.not. histfreq_file_consistent(n)) then
+            abort_list = trim(abort_list)//":72"
+         endif
+
+         if (history_format == 'binary' .and. histfreq_file(n) /= 'x' .and. histfreq_file(n) /= 'X') then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: histfreq_file not supported with binary history,'// &
+                                ' one time sample per file is written for stream ',n
+            endif
+            ! Reset so filenames are per sample and files are not overwritten.
+            histfreq_file(n) = 'x'
          endif
 
          if (dumpfreq_base(n) /= 'init' .and. dumpfreq_base(n) /= 'zero') then
@@ -2738,6 +2770,8 @@
          write(nu_diag,1033) ' histfreq_base    = ', histfreq_base(1:max_nstrm-1)
          write(nu_diag,1013) ' hist_avg         = ', hist_avg(1:max_nstrm-1)
          write(nu_diag,1033) ' hist_suffix      = ', hist_suffix(1:max_nstrm-1)
+         write(nu_diag,1033) ' histfreq_file    = ', histfreq_file(1:max_nstrm-1)
+         write(nu_diag,1023) ' histfreq_file_n  = ', histfreq_file_n(1:max_nstrm-1)
          write(nu_diag,1031) ' history_dir      = ', trim(history_dir)
          write(nu_diag,1031) ' history_file     = ', trim(history_file)
          write(nu_diag,1021) ' history_precision= ', history_precision
@@ -2988,6 +3022,148 @@
  1039    format (a,1x,a,1x,a,1x,a)
 
       end subroutine input_data
+
+!=======================================================================
+
+! Check that the history file interval of stream ns, histfreq_file and
+! histfreq_file_n, is consistent with how often samples are written,
+! histfreq and histfreq_n.  Each file must span a whole number of sample
+! intervals, so the file interval can be no shorter than the sample
+! interval and every file holds the same number of samples.
+!
+! Timestep, hourly and daily intervals have a fixed length and are compared
+! in seconds; monthly and yearly intervals are compared in months.  A
+! timestep, hourly or daily sample interval with monthly or yearly files is
+! consistent if the sample interval divides a day, otherwise samples can
+! straddle a file boundary and a warning is written.  Monthly or yearly
+! samples cannot go in timestep, hourly or daily files.
+! Returns false, after writing an error message, if inconsistent.
+
+      logical function histfreq_file_consistent(ns)
+
+      use ice_calendar, only: histfreq, histfreq_n, dt
+      use ice_history_shared, only: histfreq_file, histfreq_file_n
+
+      integer (kind=int_kind), intent(in) :: ns   ! history stream
+
+      ! local variables
+      character (len=1) :: cfreq, cfile      ! histfreq, histfreq_file (lower case)
+      logical (kind=log_kind) :: sfixed, ffixed ! interval has a fixed length
+      real (kind=dbl_kind) :: ssec, fsec     ! sample, file interval (s)
+      integer (kind=int_kind) :: smon, fmon  ! sample, file interval (months)
+      real (kind=dbl_kind) :: secday         ! seconds per day
+      real (kind=dbl_kind) :: tol            ! tolerance on interval ratio
+      character (len=char_len_long) :: cstr  ! settings, for messages
+
+      character(len=*), parameter :: subname='(histfreq_file_consistent)'
+
+      histfreq_file_consistent = .true.
+
+      cfreq = histfreq(ns)(1:1)
+      cfile = histfreq_file(ns)(1:1)
+      if (cfreq >= 'A' .and. cfreq <= 'Z') cfreq = achar(iachar(cfreq) + 32)
+      if (cfile >= 'A' .and. cfile <= 'Z') cfile = achar(iachar(cfile) + 32)
+
+      ! One sample per file, an unused stream, or an invalid value, which
+      ! is reported elsewhere.
+      if (cfile == 'x' .or. cfreq == 'x' .or. cfreq == 'g') return
+      if (histfreq_n(ns) <= 0 .or. histfreq_file_n(ns) <= 0) return
+      if (scan(cfreq,'1hdmyn') /= 1 .or. scan(cfile,'1hdmy') /= 1) return
+
+      call icepack_query_parameters(secday_out=secday)
+      call icepack_warnings_flush(nu_diag)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+          file=__FILE__, line=__LINE__)
+
+      write(cstr,'(a,i0,3a,i0,3a,i0)') 'stream ',ns, &
+         ': histfreq=',trim(histfreq(ns)),' histfreq_n=',histfreq_n(ns), &
+         ' histfreq_file=',trim(histfreq_file(ns)),' histfreq_file_n=',histfreq_file_n(ns)
+
+      sfixed = (scan(cfreq,'1hd') == 1)
+      ffixed = (scan(cfile,'1hd') == 1)
+      ssec = interval_sec(cfreq, histfreq_n(ns))
+      fsec = interval_sec(cfile, histfreq_file_n(ns))
+      smon = interval_mon(cfreq, histfreq_n(ns))
+      fmon = interval_mon(cfile, histfreq_file_n(ns))
+      tol  = 1.0e-6_dbl_kind
+
+      if (sfixed .and. ffixed) then
+         if (fsec < ssec*(c1 - tol)) then
+            histfreq_file_consistent = .false.
+            call error_msg('histfreq_file interval is shorter than the histfreq interval')
+         elseif (abs(fsec/ssec - real(nint(fsec/ssec),dbl_kind)) > tol) then
+            histfreq_file_consistent = .false.
+            call error_msg('histfreq_file interval is not a whole multiple of the histfreq interval')
+         endif
+
+      elseif (.not. sfixed .and. .not. ffixed) then
+         if (fmon < smon) then
+            histfreq_file_consistent = .false.
+            call error_msg('histfreq_file interval is shorter than the histfreq interval')
+         elseif (mod(fmon, smon) /= 0) then
+            histfreq_file_consistent = .false.
+            call error_msg('histfreq_file interval is not a whole multiple of the histfreq interval')
+         endif
+
+      elseif (.not. sfixed .and. ffixed) then
+         histfreq_file_consistent = .false.
+         call error_msg('monthly or yearly samples cannot go in timestep, hourly or daily files')
+
+      else  ! fixed length samples in monthly or yearly files
+         if (abs(secday/ssec - real(nint(secday/ssec),dbl_kind)) > tol .or. ssec > secday*(c1 + tol)) then
+            if (my_task == master_task) then
+               write(nu_diag,*) subname//' WARNING: histfreq interval does not divide a day,'// &
+                  ' so samples can straddle histfreq_file boundaries; each sample goes in'// &
+                  ' the file containing the end of its interval'
+               write(nu_diag,*) subname//' WARNING:   '//trim(cstr)
+            endif
+         endif
+      endif
+
+      contains
+
+         real (kind=dbl_kind) function interval_sec(cf, nf)
+         ! length in seconds of nf intervals of cf, for fixed length intervals
+         character (len=1), intent(in) :: cf
+         integer (kind=int_kind), intent(in) :: nf
+         select case (cf)
+         case ('1')
+            interval_sec = dt*real(nf,dbl_kind)
+         case ('h')
+            interval_sec = secday/24.0_dbl_kind*real(nf,dbl_kind)
+         case ('d')
+            interval_sec = secday*real(nf,dbl_kind)
+         case default
+            interval_sec = c0
+         end select
+         end function interval_sec
+
+         integer (kind=int_kind) function interval_mon(cf, nf)
+         ! length in months of nf intervals of cf, for monthly or yearly intervals
+         ! 'n' writes once a month, on day histfreq_n
+         character (len=1), intent(in) :: cf
+         integer (kind=int_kind), intent(in) :: nf
+         select case (cf)
+         case ('m')
+            interval_mon = nf
+         case ('y')
+            interval_mon = 12*nf
+         case ('n')
+            interval_mon = 1
+         case default
+            interval_mon = 0
+         end select
+         end function interval_mon
+
+         subroutine error_msg(msg)
+         character (len=*), intent(in) :: msg
+         if (my_task == master_task) then
+            write(nu_diag,*) subname//' ERROR: '//trim(msg)
+            write(nu_diag,*) subname//' ERROR:   '//trim(cstr)
+         endif
+         end subroutine error_msg
+
+      end function histfreq_file_consistent
 
 !=======================================================================
 

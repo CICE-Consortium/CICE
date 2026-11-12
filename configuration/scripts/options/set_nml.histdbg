@@ -1,6 +1,8 @@
     histfreq       = 'm','d','1','h','x'
     histfreq_n     =  1,1,1,1,1
     histfreq_base  =  'zero','zero','zero','zero','zero'
+    histfreq_file  = 'x','m','m','m','x'
+    histfreq_file_n =  1,1,1,1,1
     write_ic       = .true.
     f_tmask        = .true.
     f_blkmask      = .true.

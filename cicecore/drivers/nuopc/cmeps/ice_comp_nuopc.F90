@@ -33,7 +33,8 @@ module ice_comp_nuopc
   use ice_restart_shared , only : runid, runtype, restart, use_restart_time, restart_dir, restart_file, &
                                   restart_format, restart_chunksize, pointer_date
   use ice_history        , only : accum_hist
-  use ice_history_write  , only : ice_read_hist
+  use ice_history_write  , only : ice_read_hist, ice_write_hist_close, &
+                                  ice_write_hist_free, ice_hist_resume_disable
   use ice_history_shared , only : history_format, history_chunksize
   use ice_exit           , only : abort_ice
   use icepack_intfc      , only : icepack_warnings_flush, icepack_warnings_aborted
@@ -478,6 +479,11 @@ contains
           runtype = "continue"
           restart = .true.
           use_restart_time = .true.
+          ! A branch run reads another case's restart and may change the
+          ! history frequencies and variable lists, so it must start its own
+          ! history files rather than continue those the restart names.  This
+          ! has to be said explicitly because runtype is 'continue' here.
+          call ice_hist_resume_disable()
        else
           call abort_ice( subname//' ERROR: unknown starttype' )
        end if
@@ -1491,6 +1497,14 @@ contains
 #endif
     call ufs_settimer(wtime)
     if (dbug > 5) call ESMF_LogWrite(subname//' called', ESMF_LOGMSG_INFO)
+
+    ! A history file collecting samples for the current month or year is still
+    ! open at this point; close it so its samples are flushed to disk.  History
+    ! files are not referenced by the restart, so the order relative to the
+    ! restart write does not matter.
+    call ice_write_hist_close()
+    call ice_write_hist_free()
+
     if (my_task == master_task) then
        write(nu_diag,F91)
        write(nu_diag,'(a)') 'CICE: end of main integration loop'
