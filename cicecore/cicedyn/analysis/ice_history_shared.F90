@@ -766,8 +766,11 @@
            n_yieldstress22
 
       interface accum_hist_field ! generic interface
-           module procedure accum_hist_field_2D, &
-                            accum_hist_field_3D, &
+           module procedure accum_hist_field_2D,      &
+                            accum_hist_field_2D_prod, &
+                            accum_hist_field_2D_mul,  &
+                            accum_hist_field_2D_smul, &
+                            accum_hist_field_3D,      &
                             accum_hist_field_4D
       end interface
 
@@ -1118,6 +1121,181 @@
 !
 !     2009 Created by D. Bailey following POP
 !     2010 Generalized dimension of variables by N. Jeffery, E. Hunke
+
+! Accumulate the product of two fields without building it first.
+!
+! Writing the product as an actual argument -- accum_hist_field(n, iblk,
+! a(:,:,iblk)*b(:,:,iblk), a2D) -- makes the compiler evaluate it into a
+! temporary over the WHOLE block, nx_block by ny_block, pass that, and
+! discard it.  The loop below reads only ilo:ihi by jlo:jhi under tmask, so
+! most of that temporary is computed and never used: for a 10x12 block with
+! nghost=2 it is 224 products to read 120.
+!
+! Taking the two factors instead costs one extra argument and removes the
+! temporary, the fill loop and the wasted ghost-region arithmetic.
+
+      subroutine accum_hist_field_2D_prod(id, iblk, a, b, field)
+
+      use ice_blocks, only: block, get_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         a(:,:), b(:,:)    ! the two factors, block shaped
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_prod)'
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          if (tmask(i,j,iblk)) then
+             field(i,j,idns, iblk) = field(i,j,idns, iblk) + a(i,j)*b(i,j)
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_prod
+
+!=======================================================================
+!
+! The same for a field scaled by a constant.  Distinguished from the
+! two-field form by the rank of the second factor.
+
+      subroutine accum_hist_field_2D_mul(id, iblk, a, s, field)
+
+      use ice_blocks, only: block, get_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         a(:,:)            ! the field, block shaped
+
+      real (kind=dbl_kind), intent(in) :: &
+         s                 ! the scale
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_mul)'
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          if (tmask(i,j,iblk)) then
+             field(i,j,idns, iblk) = field(i,j,idns, iblk) + a(i,j)*s
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_mul
+
+!=======================================================================
+
+! The scale on the left.  A separate specific rather than swapping the
+! arguments at the call site, so that converting a caller is a one-character
+! change and a reviewer never has to check that a reordering was safe.
+
+      subroutine accum_hist_field_2D_smul(id, iblk, sfac, afld, field)
+
+      use ice_blocks, only: block, get_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         sfac              ! the scale
+
+      real (kind=dbl_kind), intent(in) :: &
+         afld(:,:)         ! the field, block shaped
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_smul)'
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          if (tmask(i,j,iblk)) then
+             field(i,j,idns, iblk) = field(i,j,idns, iblk) + sfac*afld(i,j)
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_smul
+
+!=======================================================================
 
       subroutine accum_hist_field_3D(id, iblk, ndim, field_accum, field)
 

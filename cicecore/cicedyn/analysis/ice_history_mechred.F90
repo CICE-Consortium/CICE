@@ -388,16 +388,16 @@
 
          if (f_alvl(1:1)/= 'x') &
              call accum_hist_field(n_alvl,   iblk, &
-                                   aice(:,:,iblk) * trcr(:,:,nt_alvl,iblk), a2D)
+                                   aice(:,:,iblk) , trcr(:,:,nt_alvl,iblk), a2D)
          if (f_vlvl(1:1)/= 'x') &
              call accum_hist_field(n_vlvl,   iblk, &
-                                   vice(:,:,iblk) * trcr(:,:,nt_vlvl,iblk), a2D)
+                                   vice(:,:,iblk) , trcr(:,:,nt_vlvl,iblk), a2D)
          if (f_ardg(1:1)/= 'x') &
              call accum_hist_field(n_ardg,   iblk, &
-                             aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+                             aice(:,:,iblk) , (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
          if (f_vrdg(1:1)/= 'x') &
              call accum_hist_field(n_vrdg,   iblk, &
-                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+                             vice(:,:,iblk) , (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          if (f_dardg1dt(1:1)/= 'x') &
              call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
          if (f_dardg2dt(1:1)/= 'x') &
@@ -409,11 +409,11 @@
 
          if (f_sirdgconc(1:1)/= 'x') &
              call accum_hist_field(n_sirdgconc,   iblk, &
-                             aice(:,:,iblk) * (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+                             aice(:,:,iblk) , (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
 
          if (f_sirdgthick(1:1)/= 'x') then
              call accum_hist_field(n_sirdgthick,  iblk, &
-                             vice(:,:,iblk) * (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+                             vice(:,:,iblk) , (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
          endif
 
          endif ! allocated(a2D)

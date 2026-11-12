@@ -516,13 +516,13 @@
          if (f_apond(1:1)/= 'x') &
              call accum_hist_field(n_apond, iblk, worka(:,:), a2D)
          if (f_apond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_apond_ai, iblk, aice_init(:,:,iblk)*worka(:,:), a2D)
+             call accum_hist_field(n_apond_ai, iblk, aice_init(:,:,iblk),worka(:,:), a2D)
          if (f_hpond(1:1)/= 'x') &
-             call accum_hist_field(n_hpond, iblk, worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_hpond, iblk, worka(:,:),trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_hpond_ai(1:1)/= 'x') &
              call accum_hist_field(n_hpond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
          if (f_ipond(1:1)/= 'x') &
-             call accum_hist_field(n_ipond, iblk, worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_ipond, iblk, worka(:,:),trcr(:,:,nt_ipnd,iblk), a2D)
          if (f_ipond_ai(1:1)/= 'x') &
              call accum_hist_field(n_ipond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
 

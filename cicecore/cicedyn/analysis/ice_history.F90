@@ -2504,11 +2504,11 @@
          if (f_snow   (1:1) /= 'x') &
              call accum_hist_field(n_snow,   iblk, fsnow(:,:,iblk), a2D)
          if (f_snow_ai(1:1) /= 'x') &
-             call accum_hist_field(n_snow_ai,iblk, fsnow(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_snow_ai,iblk, fsnow(:,:,iblk),workb(:,:), a2D)
          if (f_rain   (1:1) /= 'x') &
              call accum_hist_field(n_rain,   iblk, frain(:,:,iblk), a2D)
          if (f_rain_ai(1:1) /= 'x') &
-             call accum_hist_field(n_rain_ai,iblk, frain(:,:,iblk)*workb(:,:), a2D)
+             call accum_hist_field(n_rain_ai,iblk, frain(:,:,iblk),workb(:,:), a2D)
 
          if (f_sst    (1:1) /= 'x') &
              call accum_hist_field(n_sst,    iblk, sst(:,:,iblk), a2D)
@@ -2549,7 +2549,7 @@
              call accum_hist_field(n_fswint_ai, iblk, fswint_ai(:,:,iblk), a2D)
 
          if (f_fswabs_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk),aice(:,:,iblk), a2D)
 
          if (f_albsni(1:1) /= 'x') then
              call accum_hist_field(n_albsni, iblk, &
@@ -2588,19 +2588,19 @@
          if (f_flat   (1:1) /= 'x') &
              call accum_hist_field(n_flat,   iblk, flat(:,:,iblk), a2D)
          if (f_flat_ai(1:1) /= 'x') &
-             call accum_hist_field(n_flat_ai,iblk, flat(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_flat_ai,iblk, flat(:,:,iblk),aice(:,:,iblk), a2D)
          if (f_fsens  (1:1) /= 'x') &
              call accum_hist_field(n_fsens,   iblk, fsens(:,:,iblk), a2D)
          if (f_fsens_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fsens_ai,iblk, fsens(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_fsens_ai,iblk, fsens(:,:,iblk),aice(:,:,iblk), a2D)
          if (f_flwup  (1:1) /= 'x') &
              call accum_hist_field(n_flwup,   iblk, flwout(:,:,iblk), a2D)
          if (f_flwup_ai(1:1)/= 'x') &
-             call accum_hist_field(n_flwup_ai,iblk, flwout(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_flwup_ai,iblk, flwout(:,:,iblk),aice(:,:,iblk), a2D)
          if (f_evap   (1:1) /= 'x') &
              call accum_hist_field(n_evap,   iblk, evap(:,:,iblk), a2D)
          if (f_evap_ai(1:1) /= 'x') &
-             call accum_hist_field(n_evap_ai,iblk, evap(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_evap_ai,iblk, evap(:,:,iblk),aice(:,:,iblk), a2D)
 
          if (f_Tair   (1:1) /= 'x') &
              call accum_hist_field(n_Tair,   iblk, Tair(:,:,iblk), a2D)
@@ -2654,7 +2654,7 @@
          if (f_strtlty(1:1) /= 'x') &
              call accum_hist_field(n_strtlty, iblk, strtltyU(:,:,iblk), a2D)
          if (f_strcorx(1:1) /= 'x') &
-             call accum_hist_field(n_strcorx, iblk, fmU(:,:,iblk)*vvel(:,:,iblk), a2D)
+             call accum_hist_field(n_strcorx, iblk, fmU(:,:,iblk),vvel(:,:,iblk), a2D)
          if (f_strcory(1:1) /= 'x') &
              call accum_hist_field(n_strcory, iblk,-fmU(:,:,iblk)*uvel(:,:,iblk), a2D)
          if (f_strocnx(1:1) /= 'x') &
@@ -2686,11 +2686,11 @@
          if (f_strtltyE(1:1) /= 'x') &
              call accum_hist_field(n_strtltyE, iblk, strtltyE(:,:,iblk), a2D)
          if (f_strcorxN(1:1) /= 'x') &
-             call accum_hist_field(n_strcorxN, iblk, fmN(:,:,iblk)*vvelN(:,:,iblk), a2D)
+             call accum_hist_field(n_strcorxN, iblk, fmN(:,:,iblk),vvelN(:,:,iblk), a2D)
          if (f_strcoryN(1:1) /= 'x') &
              call accum_hist_field(n_strcoryN, iblk,-fmN(:,:,iblk)*uvelN(:,:,iblk), a2D)
          if (f_strcorxE(1:1) /= 'x') &
-             call accum_hist_field(n_strcorxE, iblk, fmE(:,:,iblk)*vvelE(:,:,iblk), a2D)
+             call accum_hist_field(n_strcorxE, iblk, fmE(:,:,iblk),vvelE(:,:,iblk), a2D)
          if (f_strcoryE(1:1) /= 'x') &
              call accum_hist_field(n_strcoryE, iblk,-fmE(:,:,iblk)*uvelE(:,:,iblk), a2D)
          if (f_strocnxN(1:1) /= 'x') &
@@ -2751,10 +2751,10 @@
              call accum_hist_field(n_dagedtd, iblk, dagedtd(:,:,iblk), a2D)
 
          if (f_fsurf_ai(1:1)/= 'x') &
-             call accum_hist_field(n_fsurf_ai,iblk, fsurf(:,:,iblk)*aice(:,:,iblk), a2D)
+             call accum_hist_field(n_fsurf_ai,iblk, fsurf(:,:,iblk),aice(:,:,iblk), a2D)
          if (f_fcondtop_ai(1:1)/= 'x') &
              call accum_hist_field(n_fcondtop_ai, iblk, &
-                                                 fcondtop(:,:,iblk)*aice(:,:,iblk), a2D)
+                                                 fcondtop(:,:,iblk),aice(:,:,iblk), a2D)
 
          if (f_icepresent(1:1) /= 'x') then
            worka(:,:) = c0
@@ -2800,7 +2800,7 @@
          endif
 
          if (f_simass(1:1) /= 'x') then
-           call accum_hist_field(n_simass, iblk, rho_ice(:,:)*vice(:,:,iblk), a2D)
+           call accum_hist_field(n_simass, iblk, rho_ice(:,:),vice(:,:,iblk), a2D)
          endif
 
          if (f_sisaltmass(1:1) /= 'x') then
@@ -2808,7 +2808,7 @@
          endif
 
          if (f_sisali(1:1) /= 'x') then
-           call accum_hist_field(n_sisali, iblk, aice(:,:,iblk)*sal_ice(:,:), a2D)
+           call accum_hist_field(n_sisali, iblk, aice(:,:,iblk),sal_ice(:,:), a2D)
          endif
 
          if (f_siconc(1:1) /= 'x') then
@@ -2820,11 +2820,11 @@
          endif
 
          if (f_sisnmass(1:1) /= 'x') then
-           call accum_hist_field(n_sisnmass, iblk, rhos*vsno(:,:,iblk), a2D)
+           call accum_hist_field(n_sisnmass, iblk, rhos,vsno(:,:,iblk), a2D)
          endif
 
          if (f_siage(1:1) /= 'x') then
-           call accum_hist_field(n_siage, iblk, aice(:,:,iblk)*trcr(:,:,nt_iage,iblk), a2D)
+           call accum_hist_field(n_siage, iblk, aice(:,:,iblk),trcr(:,:,nt_iage,iblk), a2D)
          endif
 
          if (f_sisnthick(1:1) /= 'x') then
@@ -2832,7 +2832,7 @@
          endif
 
          if (f_sitemptop(1:1) /= 'x') then
-           call accum_hist_field(n_sitemptop, iblk, aice(:,:,iblk)*trcr(:,:,nt_Tsfc,iblk), a2D)
+           call accum_hist_field(n_sitemptop, iblk, aice(:,:,iblk),trcr(:,:,nt_Tsfc,iblk), a2D)
          endif
 
          ! Tsnice is already multiplied by aicen in icepack.
@@ -2841,15 +2841,15 @@
          endif
 
          if (f_sitempbot(1:1) /= 'x') then
-           call accum_hist_field(n_sitempbot, iblk, aice_init(:,:,iblk)*Tbot(:,:,iblk), a2D)
+           call accum_hist_field(n_sitempbot, iblk, aice_init(:,:,iblk),Tbot(:,:,iblk), a2D)
          endif
 
          if (f_siu(1:1) /= 'x') then
-           call accum_hist_field(n_siu, iblk, aice(:,:,iblk)*uvel(:,:,iblk), a2D)
+           call accum_hist_field(n_siu, iblk, aice(:,:,iblk),uvel(:,:,iblk), a2D)
          endif
 
          if (f_siv(1:1) /= 'x') then
-           call accum_hist_field(n_siv, iblk, aice(:,:,iblk)*vvel(:,:,iblk), a2D)
+           call accum_hist_field(n_siv, iblk, aice(:,:,iblk),vvel(:,:,iblk), a2D)
          endif
 
          if (f_sispeed(1:1) /= 'x') then
@@ -2904,23 +2904,23 @@
          endif
 
          if (f_sistrxdtop(1:1) /= 'x') then
-           call accum_hist_field(n_sistrxdtop, iblk, aice(:,:,iblk)*strairxU(:,:,iblk), a2D)
+           call accum_hist_field(n_sistrxdtop, iblk, aice(:,:,iblk),strairxU(:,:,iblk), a2D)
          endif
 
          if (f_sistrydtop(1:1) /= 'x') then
-           call accum_hist_field(n_sistrydtop, iblk, aice(:,:,iblk)*strairyU(:,:,iblk), a2D)
+           call accum_hist_field(n_sistrydtop, iblk, aice(:,:,iblk),strairyU(:,:,iblk), a2D)
          endif
 
          if (f_sistrxubot(1:1) /= 'x') then
-           call accum_hist_field(n_sistrxubot, iblk, aice(:,:,iblk)*strocnxU(:,:,iblk), a2D)
+           call accum_hist_field(n_sistrxubot, iblk, aice(:,:,iblk),strocnxU(:,:,iblk), a2D)
          endif
 
          if (f_sistryubot(1:1) /= 'x') then
-           call accum_hist_field(n_sistryubot, iblk, aice(:,:,iblk)*strocnyU(:,:,iblk), a2D)
+           call accum_hist_field(n_sistryubot, iblk, aice(:,:,iblk),strocnyU(:,:,iblk), a2D)
          endif
 
          if (f_sicompstren(1:1) /= 'x') then
-           call accum_hist_field(n_sicompstren, iblk, aice(:,:,iblk)*strength(:,:,iblk), a2D)
+           call accum_hist_field(n_sicompstren, iblk, aice(:,:,iblk),strength(:,:,iblk), a2D)
          endif
 
          if (f_sihc(1:1) /= 'x') then
@@ -2956,11 +2956,11 @@
          endif
 
          if (f_sidmassth(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassth, iblk, rho_ice(:,:)*dvidtt(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassth, iblk, rho_ice(:,:),dvidtt(:,:,iblk), a2D)
          endif
 
          if (f_sidmassdyn(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassdyn, iblk, rho_ice(:,:)*dvidtd(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassdyn, iblk, rho_ice(:,:),dvidtd(:,:,iblk), a2D)
          endif
 
          if (f_sidmassgrowthwat(1:1) /= 'x') then
@@ -2980,7 +2980,7 @@
          endif
 
          if (f_sidmassevapsubl(1:1) /= 'x') then
-           call accum_hist_field(n_sidmassevapsubl, iblk, rho_ice(:,:)*evapi(:,:,iblk), a2D)
+           call accum_hist_field(n_sidmassevapsubl, iblk, rho_ice(:,:),evapi(:,:,iblk), a2D)
          endif
 
          if (f_sidmassmelttop(1:1) /= 'x') then
@@ -3008,11 +3008,11 @@
          endif
 
          if (f_sisndmassdyn(1:1) /= 'x') then
-           call accum_hist_field(n_sisndmassdyn, iblk, dvsdtd(:,:,iblk)*rhos, a2D)
+           call accum_hist_field(n_sisndmassdyn, iblk, dvsdtd(:,:,iblk),rhos, a2D)
          endif
 
          if (f_siflswdtop(1:1) /= 'x') then
-           call accum_hist_field(n_siflswdtop, iblk, aice_init(:,:,iblk)*fsw(:,:,iblk), a2D)
+           call accum_hist_field(n_siflswdtop, iblk, aice_init(:,:,iblk),fsw(:,:,iblk), a2D)
          endif
 
          if (f_siflswutop(1:1) /= 'x') then
@@ -3020,15 +3020,15 @@
          endif
 
          if (f_siflswdbot(1:1) /= 'x') then
-           call accum_hist_field(n_siflswdbot, iblk, aice_init(:,:,iblk)*fswthru(:,:,iblk), a2D)
+           call accum_hist_field(n_siflswdbot, iblk, aice_init(:,:,iblk),fswthru(:,:,iblk), a2D)
          endif
 
          if (f_sifllwdtop(1:1) /= 'x') then
-           call accum_hist_field(n_sifllwdtop, iblk, aice_init(:,:,iblk)*flw(:,:,iblk), a2D)
+           call accum_hist_field(n_sifllwdtop, iblk, aice_init(:,:,iblk),flw(:,:,iblk), a2D)
          endif
 
          if (f_sifllwutop(1:1) /= 'x') then
-           call accum_hist_field(n_sifllwutop, iblk, aice(:,:,iblk)*flwout(:,:,iblk), a2D)
+           call accum_hist_field(n_sifllwutop, iblk, aice(:,:,iblk),flwout(:,:,iblk), a2D)
          endif
 
          if (f_siflsenstop(1:1) /= 'x') then
@@ -3038,23 +3038,23 @@
               worka(i,j) = aice(i,j,iblk)*fsens(i,j,iblk)
            enddo
            enddo
-           call accum_hist_field(n_siflsenstop, iblk, aice(:,:,iblk)*fsens(:,:,iblk), a2D)
+           call accum_hist_field(n_siflsenstop, iblk, aice(:,:,iblk),fsens(:,:,iblk), a2D)
          endif
 
          if (f_siflsensbot(1:1) /= 'x') then
-           call accum_hist_field(n_siflsensbot, iblk, aice(:,:,iblk)*fhocn(:,:,iblk), a2D)
+           call accum_hist_field(n_siflsensbot, iblk, aice(:,:,iblk),fhocn(:,:,iblk), a2D)
          endif
 
          if (f_sifllattop(1:1) /= 'x') then
-           call accum_hist_field(n_sifllattop, iblk, aice(:,:,iblk)*flat(:,:,iblk), a2D)
+           call accum_hist_field(n_sifllattop, iblk, aice(:,:,iblk),flat(:,:,iblk), a2D)
          endif
 
          if (f_siflcondtop(1:1) /= 'x') then
-           call accum_hist_field(n_siflcondtop, iblk, aice(:,:,iblk)*fcondtop(:,:,iblk), a2D)
+           call accum_hist_field(n_siflcondtop, iblk, aice(:,:,iblk),fcondtop(:,:,iblk), a2D)
          endif
 
          if (f_siflcondbot(1:1) /= 'x') then
-           call accum_hist_field(n_siflcondbot, iblk, aice(:,:,iblk)*fcondbot(:,:,iblk), a2D)
+           call accum_hist_field(n_siflcondbot, iblk, aice(:,:,iblk),fcondbot(:,:,iblk), a2D)
          endif
 
          if (f_sipr(1:1) /= 'x') then
@@ -3137,19 +3137,19 @@
          endif
 
          if (f_sidragtop(1:1) /= 'x') then
-           call accum_hist_field(n_sidragtop, iblk, aice_init(:,:,iblk)*Cdn_atm(:,:,iblk), a2D)
+           call accum_hist_field(n_sidragtop, iblk, aice_init(:,:,iblk),Cdn_atm(:,:,iblk), a2D)
          endif
 
          if (f_sidragbot(1:1) /= 'x') then
-           call accum_hist_field(n_sidragbot, iblk, aice_init(:,:,iblk)*Cdn_ocn(:,:,iblk), a2D)
+           call accum_hist_field(n_sidragbot, iblk, aice_init(:,:,iblk),Cdn_ocn(:,:,iblk), a2D)
          endif
 
          if (f_siforcetiltx(1:1) /= 'x') then
-           call accum_hist_field(n_siforcetiltx, iblk, aice_init(:,:,iblk)*strtltxU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforcetiltx, iblk, aice_init(:,:,iblk),strtltxU(:,:,iblk), a2D)
          endif
 
          if (f_siforcetilty(1:1) /= 'x') then
-           call accum_hist_field(n_siforcetilty, iblk, aice_init(:,:,iblk)*strtltyU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforcetilty, iblk, aice_init(:,:,iblk),strtltyU(:,:,iblk), a2D)
          endif
 
          if (f_siforcecoriolx(1:1) /= 'x') then
@@ -3173,11 +3173,11 @@
          endif
 
          if (f_siforceintstrx(1:1) /= 'x') then
-           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk)*strintxU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforceintstrx, iblk, aice(:,:,iblk),strintxU(:,:,iblk), a2D)
          endif
 
          if (f_siforceintstry(1:1) /= 'x') then
-           call accum_hist_field(n_siforceintstry, iblk, aice(:,:,iblk)*strintyU(:,:,iblk), a2D)
+           call accum_hist_field(n_siforceintstry, iblk, aice(:,:,iblk),strintyU(:,:,iblk), a2D)
          endif
 
          endif ! if (allocated(a2D))
