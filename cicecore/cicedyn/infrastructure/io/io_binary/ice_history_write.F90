@@ -426,7 +426,7 @@
 !=======================================================================
 !
 ! The binary writer always puts one time sample in each file, so
-! hist_file_period is not supported and there is never a file left open.
+! histfreq_file is not supported and there is never a file left open.
 ! These do nothing; they exist so the drivers can call them with any IO type.
 !
       subroutine ice_write_hist_close

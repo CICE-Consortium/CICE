@@ -1320,14 +1320,36 @@ The data is written at the period(s) given by ``histfreq`` and
 ``histfreq_n`` relative to a reference date specified by ``histfreq_base``.  
 The files are written to binary or netCDF files prepended by the ``history_file``
 and ``history_suffix`` namelist setting. The frequency of files for a stream
-can be controlled through the ``hist_file_period`` namelist option. The options
-are ``none`` to write a file for each time slice, ``month`` to write slices into
-single months, or ``year`` to write slices into a single year.
+can be controlled through the ``histfreq_file`` and ``histfreq_file_n`` namelist
+options, which take the same values as ``histfreq`` and ``histfreq_n``.
+``histfreq_file`` set to ``x`` writes a file for each time slice, while ``1``,
+``h``, ``d``, ``m``, or ``y`` groups all time slices from each ``histfreq_file_n``
+timesteps, hours, days, months, or years into a single file.  For example,
+``histfreq = 'd'`` with ``histfreq_file = 'm'`` and ``histfreq_file_n = 1`` writes
+daily samples into monthly files, and ``histfreq_file = 'y'`` with
+``histfreq_file_n = 5`` writes them into five-year files.  The file intervals are
+relative to the same reference date as the stream, ``histfreq_base``.  Each file
+must span a whole number of ``histfreq`` intervals, so ``histfreq_file`` and
+``histfreq_file_n`` can be no shorter than ``histfreq`` and ``histfreq_n``, and the
+model aborts otherwise.  Monthly or yearly samples cannot be grouped in timestep,
+hourly or daily files.  Timestep, hourly or daily samples may be grouped in
+monthly or yearly files, but a warning is written if the sample interval does
+not divide a day, since samples could then straddle a file boundary.  These
+options are supported by the netCDF and PIO interfaces only.
 The settings for history files are set in the 
 **setup_nml** section of **ice_in** (see :ref:`tabnamelist`). 
 The history filenames will have a form like
 **[history_file][history_suffix][_freq].[timeID].[nc,da]**
-depending on the namelist options chosen.  With binary files, a separate header
+depending on the namelist options chosen.  When ``histfreq_file`` and
+``histfreq_file_n`` differ from ``histfreq`` and ``histfreq_n``, so that a file
+holds several samples, the timeID is the date of the first sample in the file
+given to the precision of ``histfreq_file``: ``yyyy`` for ``y``, ``yyyy-mm`` for
+``m``, ``yyyy-mm-dd`` for ``d``, and ``yyyy-mm-dd-sssss`` for ``h`` and ``1``.
+``histfreq_n`` and ``histfreq`` are added after ``history_suffix`` to show
+the sample interval.  For example, daily samples in monthly files are written to
+**[history_file][history_suffix]_1d.yyyy-mm.nc**, and monthly samples in yearly
+files to **[history_file][history_suffix]_1m.yyyy.nc**.  Instantaneous streams add
+``_inst`` before the timeID.  With binary files, a separate header
 file is written with equivalent information. Standard fields are output
 according to settings in the **icefields_nml** section of **ice_in** 
 (see :ref:`tabnamelist`).

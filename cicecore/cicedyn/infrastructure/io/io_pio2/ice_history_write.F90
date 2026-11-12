@@ -72,9 +72,9 @@
 
       ! The following specify the history file a stream has open,
       ! together with its name, how many time samples have been
-      ! written to it, and which month or year those samples are from.
-      ! The file stays open until the month or year changes, so that
-      ! one file holds every sample from that month or year.
+      ! written to it, and which histfreq_file interval those samples are from.
+      ! The file stays open until the histfreq_file interval changes, so that
+      ! one file holds every sample from that interval.
       ! ice_write_hist_close closes whatever is still open when a run ends.
       type(file_desc_t)             :: File_hist(max_nstrm)
       integer (kind=int_kind)       :: nrec_hist(max_nstrm) = 0
@@ -83,7 +83,7 @@
       integer (kind=int_kind)       :: period_hist(max_nstrm) = -1
 
       ! A history file that had not yet received all the samples for
-      ! its month or year when the restart was written is resumed
+      ! its histfreq_file interval when the restart was written is resumed
       ! rather than replaced. The restart file records its name and
       ! how many records it held at that point.
       character (len=char_len_long) :: resume_fname(max_nstrm) = ''
@@ -114,8 +114,7 @@
       use ice_broadcast, only: broadcast_scalar
       use ice_calendar, only: msec, timesecs, idate, idate0, &
           histfreq_n, days_per_year, use_leap_years, dayyr, &
-          hh_init, mm_init, ss_init, &
-          myear, mmonth, new_year, new_month
+          hh_init, mm_init, ss_init
       use ice_communicate, only: my_task, master_task
       use ice_domain, only: nblocks
       use ice_domain_size, only: nx_global, ny_global
@@ -206,7 +205,6 @@
       integer (kind=int_kind) :: ntime    ! records already in a resumed file
       integer (kind=int_kind) :: timdim   ! id of the unlimited dimension
       integer (kind=int_kind) :: lperiod  ! identifies the file this sample goes in
-      integer (kind=int_kind) :: pyear, pmonth ! sample's own year and month
       integer (kind=int_kind) :: iprec    ! which cached decomposition to use
 
       character(len=*), parameter :: subname = '(ice_write_hist)'
@@ -229,60 +227,32 @@
 
       ! Decide whether this call writes to the file already open for this
       ! stream or creates a new one.  Initial condition and history restart
-      ! files always hold a single time sample, whatever hist_file_period says.
+      ! files always hold a single time sample, whatever histfreq_file says.
       use_period = .not. (write_ic .or. write_histrest_now)
 
-      ! pyear and pmonth are the month and year this sample counts towards.
-      ! An average is written on the timestep after the last one it covers, so
-      ! at a month or year boundary it counts towards the one that just ended.
-      ! Hourly and instantaneous samples count towards the current date.
-      pyear  = myear
-      pmonth = mmonth
-      period_ends = .false.
-      if (hist_avg(ns) .and. histfreq(ns) /= '1' .and. &
-          histfreq(ns) /= 'h' .and. histfreq(ns) /= 'H') then
-         if (new_year) then
-            pyear  = myear - 1
-            pmonth = 12
-         elseif (new_month) then
-            pmonth = mmonth - 1
-         endif
-
-         ! If this is the last time sample of a month or a year then
-         ! close the file as soon as the sample is written, instead of
-         ! waiting for the next sample to show that the month has changed.
-         if (trim(hist_file_period(ns)) == 'month') then
-            period_ends = new_month .or. new_year
-         elseif (trim(hist_file_period(ns)) == 'year') then
-            period_ends = new_year
-         endif
-      endif
-
       ! lperiod specifies which file this sample goes in.  A new file is started
-      ! when it changes.  hist_file_period sets it:
-      !    'year'    the year, so 1
-      !    'month'   year*100 + month, so 101 for January of year 1
-      !    'none'    -1, so every sample gets its own file
+      ! when it changes.  histfreq_file and histfreq_file_n set it, see
+      ! get_histfreq_file_period.  It is -1 for histfreq_file = 'x', so every
+      ! sample gets its own file.  period_ends is true if this is the last
+      ! sample of its file, which is then closed as soon as the sample is
+      ! written instead of waiting for the next sample.
       lperiod = -1
+      period_ends = .false.
       if (use_period) then
-         if (trim(hist_file_period(ns)) == 'year') then
-            lperiod = pyear
-         elseif (trim(hist_file_period(ns)) == 'month') then
-            lperiod = pyear*100 + pmonth
-         endif
+         call get_histfreq_file_period(ns, lperiod, period_ends)
       endif
 
       ! The sample goes either into the file this stream already has open or
-      ! into a new file.  With hist_file_period 'none' no file is ever left open.
+      ! into a new file.  With histfreq_file 'x' no file is ever left open.
       newfile = .true.
       resumed = .false.
       if (use_period .and. file_open_hist(ns)) then
          if (lperiod /= -1 .and. lperiod == period_hist(ns)) then
             newfile = .false.
          else
-            ! This sample is from a different month or year, so the open file
-            ! is closed before the new one is created.  An averaged daily or
-            ! monthly stream is normally closed earlier, when its last sample
+            ! This sample is from a different histfreq_file interval, so the open file
+            ! is closed before the new one is created.  An averaged stream
+            ! (other than timestep or hourly) is normally closed earlier, when its last sample
             ! is written.
             call pio_closefile(File_hist(ns))
             if (my_task == master_task) then
@@ -307,8 +277,8 @@
                   ' does not belong to this case, so it is not resumed;'// &
                   ' starting a new file'
             else
-               ! The file the restart names already holds its whole month or
-               ! year, and this sample is from the next one.
+               ! The file the restart names already holds its whole histfreq_file
+               ! interval, and this sample is from the next one.
                write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
                   ' covers a period that has ended, so it is not resumed;'// &
                   ' starting a new file'
@@ -1642,7 +1612,7 @@
             write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
          endif
       elseif (period_ends) then
-         ! This was the last sample of the month or year.
+         ! This was the last sample of its histfreq_file interval.
          call pio_closefile(File)
          file_open_hist(ns) = .false.
          nrec_hist(ns)      = 0
@@ -1651,7 +1621,7 @@
                  ' with ',nrec,' time samples'
          endif
       else
-         ! The file is kept open for the next sample of this month or year.
+         ! The file is kept open for the next sample of this histfreq_file interval.
          ! PIO holds each sample on the io tasks and writes them all out when
          ! the file is closed.
          File_hist(ns)      = File
