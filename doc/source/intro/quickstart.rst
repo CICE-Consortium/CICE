@@ -22,17 +22,21 @@ is in the :ref:`laptops` section.
 
 From your main CICE directory, execute::
 
-  ./cice.setup -c ~/mycase1 -g gx3 -m testmachine -s diag1,thread -p 8x1
+  ./cice.setup -c ~/mycase1 -g gx3 -m MACHINE -e ENVIRONMENT -s diag1,thread -p 8x1
   cd ~/mycase1
   ./cice.build
   ./cice.submit
 
-``testmachine`` is a generic machine name included with the cice scripts.
-The local machine name will have to be substituted for ``testmachine`` and
-there are working ports for several different machines.  If you need to
-port, see the :ref:`porting` section as noted above.
-:ref:`scripts` provides more information about 
-how to use the cice.setup and cice.submit scripts.
+where ``MACHINE`` is the machine name and ``ENVIRONMENT`` is the compiler environment,
+for example ``-m derecho -e intel``.
+The supported combinations are the **env.[machine]_[environment]** files in
+**configuration/scripts/machines/**, and ``./cice.setup --help`` lists the setup options.
+See :ref:`scripts` for more information about how to use the cice.setup and cice.submit scripts.
+
+To run CICE on a laptop or personal computer, use the conda configuration
+(``-m conda -e macos`` or ``-m conda -e linux``), see :ref:`laptops`.
+To run on another HPC system, the model has to be ported first, see :ref:`porting`.
+In both cases the input data must also be downloaded, see :ref:`force`.
 
 Please cite any use of the CICE code. More information can be found at :ref:`citing`.
 

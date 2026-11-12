@@ -67,7 +67,6 @@
          wateryN  (:,:,:) , & ! for ocean stress calculation, y (m/s)
          forcexN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyN  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         aiN      (:,:,:) , & ! ice fraction on N-grid
          rheofactN(:,:,:) , & ! 1, except 0 where aiN <= rheo_area_min
          nmass    (:,:,:) , & ! total mass of ice and snow (N grid)
          nmassdti (:,:,:)     ! mass of N-cell/dte (kg/m^2 s)
@@ -82,7 +81,6 @@
          wateryE  (:,:,:) , & ! for ocean stress calculation, y (m/s)
          forcexE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, x
          forceyE  (:,:,:) , & ! work array: combined atm stress and ocn tilt, y
-         aiE      (:,:,:) , & ! ice fraction on E-grid
          rheofactE(:,:,:) , & ! 1, except 0 where aiE <= rheo_area_min
          emass    (:,:,:) , & ! total mass of ice and snow (E grid)
          emassdti (:,:,:)     ! mass of E-cell/dte (kg/m^2 s)
@@ -198,7 +196,6 @@
                    wateryN  (nx_block,ny_block,max_blocks), &
                    forcexN  (nx_block,ny_block,max_blocks), &
                    forceyN  (nx_block,ny_block,max_blocks), &
-                   aiN      (nx_block,ny_block,max_blocks), &
                    nmass    (nx_block,ny_block,max_blocks), &
                    nmassdti (nx_block,ny_block,max_blocks), &
                    rheofactN(nx_block,ny_block,max_blocks), &
@@ -216,7 +213,6 @@
                    wateryE  (nx_block,ny_block,max_blocks), &
                    forcexE  (nx_block,ny_block,max_blocks), &
                    forceyE  (nx_block,ny_block,max_blocks), &
-                   aiE      (nx_block,ny_block,max_blocks), &
                    emass    (nx_block,ny_block,max_blocks), &
                    emassdti (nx_block,ny_block,max_blocks), &
                    rheofactE(nx_block,ny_block,max_blocks), &
@@ -295,7 +291,7 @@
           tarear, uarear, earear, narear, grid_average_X2Y, uarea, &
           grid_ice, grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
       use ice_restoring, only: ice_restoring_halo
-      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, uvelN, vvelN, &
+      use ice_state, only: aice, aiU, aiN, aiE, vice, vsno, uvel, vvel, uvelN, vvelN, &
           uvelE, vvelE, divu, shear, vort, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
