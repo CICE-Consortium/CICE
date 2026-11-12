@@ -8,7 +8,8 @@ please refer to: <https://github.com/CICE-Consortium/About-Us/wiki/Resource-Inde
     ENTER INFORMATION HERE
 - [ ] Developer(s): 
     ENTER INFORMATION HERE
-- [ ] Suggest PR reviewers from list in the column to the right.
+- [ ] Suggest PR reviewers from list in the column to the right.  Add and remove reviewers with /review "$reviewer" and /unreview "$reviewer" in comments
+- [ ] Suggest labels from the list in the column to the right.  Add and remove labels using /label "$label" and /unlabel "$label" in comments.  Please set and keep the "PR:" labels up to date as the PR moves forward.
 - [ ] Please copy the PR test results link or provide a summary of testing completed below.
     ENTER INFORMATION HERE 
 - How much do the PR code changes differ from the unmodified code? 
