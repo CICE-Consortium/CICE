@@ -97,7 +97,10 @@
          hd_vmax   = 8   , & ! max ice volume per unit area
          hd_umax   = 9   , & ! max ice speed
          hd_pmax   = 10  , & ! max ice strength
-         n_hdiag_core = 10   ! number of hemispheric diagnostics always computed
+         n_hdiag_core = 10 , & ! number of hemispheric diagnostics always computed
+         n_hdiag_opt  = 16 , & ! max number of optional diagnostics, hd_ptot to hd_frz below
+         n_hdiag_tr   = 4      ! optional diagnostics per isotope and per aerosol, hd_fisoa
+                               ! to hd_isomx and hd_faeroa to hd_aeromx below
 
       ! optional hemispheric diagnostics, index 0 if not used
       integer (kind=int_kind), public :: &
@@ -1617,7 +1620,8 @@
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
-      allocate(hdiag(n_hdiag_core + 16 + 4*n_iso + 4*n_aero))
+      ! maximum number of diagnostics, the optional ones are added below
+      allocate(hdiag(n_hdiag_core + n_hdiag_opt + n_hdiag_tr*(n_iso + n_aero)))
       n_hdiag = n_hdiag_core
 
       ! conservation diagnostics for the log (print_global) and always for netcdf
