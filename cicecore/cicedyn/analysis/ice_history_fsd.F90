@@ -471,21 +471,26 @@
          call accum_hist_field(n_afsd-n3Dacum, iblk, nfsd_hist, worke, a3Df)
       endif
 
-      if (f_dafsd_newi(1:1)/= 'x') &
-             call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_newi(:,:,1:nfsd_hist,iblk)/dt, a3Df)
-      if (f_dafsd_latg(1:1)/= 'x') &
-             call accum_hist_field(n_dafsd_latg-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_latg(:,:,1:nfsd_hist,iblk)/dt, a3Df)
-      if (f_dafsd_latm(1:1)/= 'x') &
-             call accum_hist_field(n_dafsd_latm-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_latm(:,:,1:nfsd_hist,iblk)/dt, a3Df)
-      if (f_dafsd_wave(1:1)/= 'x') &
-             call accum_hist_field(n_dafsd_wave-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_wave(:,:,1:nfsd_hist,iblk)/dt, a3Df)
-      if (f_dafsd_weld(1:1)/= 'x') &
-             call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, &
-                                    d_afsd_weld(:,:,1:nfsd_hist,iblk)/dt, a3Df)
+      if (f_dafsd_newi(1:1)/= 'x') then
+         worke(:,:,1:nfsd_hist) = d_afsd_newi(:,:,1:nfsd_hist,iblk)/dt
+         call accum_hist_field(n_dafsd_newi-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
+      if (f_dafsd_latg(1:1)/= 'x') then
+         worke(:,:,1:nfsd_hist) = d_afsd_latg(:,:,1:nfsd_hist,iblk)/dt
+         call accum_hist_field(n_dafsd_latg-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
+      if (f_dafsd_latm(1:1)/= 'x') then
+         worke(:,:,1:nfsd_hist) = d_afsd_latm(:,:,1:nfsd_hist,iblk)/dt
+         call accum_hist_field(n_dafsd_latm-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
+      if (f_dafsd_wave(1:1)/= 'x') then
+         worke(:,:,1:nfsd_hist) = d_afsd_wave(:,:,1:nfsd_hist,iblk)/dt
+         call accum_hist_field(n_dafsd_wave-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
+      if (f_dafsd_weld(1:1)/= 'x') then
+         worke(:,:,1:nfsd_hist) = d_afsd_weld(:,:,1:nfsd_hist,iblk)/dt
+         call accum_hist_field(n_dafsd_weld-n3Dacum, iblk, nfsd_hist, worke, a3Df)
+      endif
       endif ! a3Df allocated
 
       ! 4D floe size, thickness category fields

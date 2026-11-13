@@ -358,6 +358,7 @@
 
       subroutine accum_hist_mechred (iblk)
 
+      use ice_blocks, only: nx_block, ny_block
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
@@ -372,6 +373,8 @@
 
       integer (kind=int_kind) :: &
            nt_alvl, nt_vlvl
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat_hist) :: workc
+
       character(len=*), parameter :: subname = '(accum_hist_mechred)'
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
@@ -421,14 +424,16 @@
          ! 3D category fields
          if (allocated(a3Dc)) then
 
-         if (f_ardgn(1:1)/= 'x') &
-             call accum_hist_field(n_ardgn-n2D, iblk, ncat_hist, &
-                                   aicen(:,:,1:ncat_hist,iblk) &
-                                 * (c1 - trcrn(:,:,nt_alvl,1:ncat_hist,iblk)), a3Dc)
-         if (f_vrdgn(1:1)/= 'x') &
-             call accum_hist_field(n_vrdgn-n2D, iblk, ncat_hist, &
-                                   vicen(:,:,1:ncat_hist,iblk) &
-                                 * (c1 - trcrn(:,:,nt_vlvl,1:ncat_hist,iblk)), a3Dc)
+         if (f_ardgn(1:1)/= 'x') then
+            workc(:,:,1:ncat_hist) = aicen(:,:,1:ncat_hist,iblk) &
+            * (c1 - trcrn(:,:,nt_alvl,1:ncat_hist,iblk))
+            call accum_hist_field(n_ardgn-n2D, iblk, ncat_hist, workc, a3Dc)
+         endif
+         if (f_vrdgn(1:1)/= 'x') then
+            workc(:,:,1:ncat_hist) = vicen(:,:,1:ncat_hist,iblk) &
+            * (c1 - trcrn(:,:,nt_vlvl,1:ncat_hist,iblk))
+            call accum_hist_field(n_vrdgn-n2D, iblk, ncat_hist, workc, a3Dc)
+         endif
          if (f_dardg1ndt(1:1)/= 'x') &
              call accum_hist_field(n_dardg1ndt-n2D, iblk, ncat_hist, &
                                    dardg1ndt(:,:,1:ncat_hist,iblk), a3Dc)

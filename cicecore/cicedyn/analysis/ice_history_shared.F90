@@ -769,7 +769,6 @@
            module procedure accum_hist_field_2D,      &
                             accum_hist_field_2D_prod, &
                             accum_hist_field_2D_mul,  &
-                            accum_hist_field_2D_smul, &
                             accum_hist_field_3D,      &
                             accum_hist_field_4D
       end interface
@@ -1184,8 +1183,11 @@
 
 !=======================================================================
 !
-! The same for a field scaled by a constant.  Distinguished from the
-! two-field form by the rank of the second factor.
+! The same for a field scaled by a constant, distinguished from the
+! two-field form by the rank of the second factor.  There is deliberately
+! no mirror form taking the scale first: a caller whose scale is on the
+! left swaps its two actuals, which is bit-for-bit because floating
+! multiplication is commutative and exactly rounded.
 
       subroutine accum_hist_field_2D_mul(id, iblk, a, s, field)
 
@@ -1237,63 +1239,6 @@
        enddo
 
       end subroutine accum_hist_field_2D_mul
-
-!=======================================================================
-
-! The scale on the left.  A separate specific rather than swapping the
-! arguments at the call site, so that converting a caller is a one-character
-! change and a reviewer never has to check that a reordering was safe.
-
-      subroutine accum_hist_field_2D_smul(id, iblk, sfac, afld, field)
-
-      use ice_blocks, only: block, get_block
-      use ice_calendar, only: nstreams
-      use ice_domain, only: blocks_ice
-      use ice_grid, only: tmask
-
-      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
-         id                ! location in avail_fields array
-
-      integer (kind=int_kind), intent(in) :: iblk
-
-      real (kind=dbl_kind), intent(in) :: &
-         sfac              ! the scale
-
-      real (kind=dbl_kind), intent(in) :: &
-         afld(:,:)         ! the field, block shaped
-
-      real (kind=dbl_kind), intent(inout) :: &
-         field(:,:,:,:)
-
-      type (block) :: &
-         this_block           ! block information for current block
-
-      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
-
-      character(len=*), parameter :: subname = '(accum_hist_field_2D_smul)'
-
-       do ns = 1, nstreams
-       idns = id(ns)
-       if (idns > 0) then
-
-       this_block = get_block(blocks_ice(iblk),iblk)
-       ilo = this_block%ilo
-       ihi = this_block%ihi
-       jlo = this_block%jlo
-       jhi = this_block%jhi
-
-       do j = jlo, jhi
-       do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
-             field(i,j,idns, iblk) = field(i,j,idns, iblk) + sfac*afld(i,j)
-          endif
-       enddo
-       enddo
-
-       endif
-       enddo
-
-      end subroutine accum_hist_field_2D_smul
 
 !=======================================================================
 
