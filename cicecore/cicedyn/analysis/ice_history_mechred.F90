@@ -373,6 +373,7 @@
 
       integer (kind=int_kind) :: &
            nt_alvl, nt_vlvl
+      real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka
       real (kind=dbl_kind), dimension(nx_block,ny_block,ncat_hist) :: workc
 
       character(len=*), parameter :: subname = '(accum_hist_mechred)'
@@ -396,11 +397,11 @@
              call accum_hist_field(n_vlvl,   iblk, &
                                    vice(:,:,iblk) , trcr(:,:,nt_vlvl,iblk), a2D)
          if (f_ardg(1:1)/= 'x') &
-             call accum_hist_field(n_ardg,   iblk, &
-                             aice(:,:,iblk) , (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+             worka(:,:) = c1 - trcr(:,:,nt_alvl,iblk)
+             call accum_hist_field(n_ardg, iblk, aice(:,:,iblk), worka, a2D)
          if (f_vrdg(1:1)/= 'x') &
-             call accum_hist_field(n_vrdg,   iblk, &
-                             vice(:,:,iblk) , (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+             worka(:,:) = c1 - trcr(:,:,nt_vlvl,iblk)
+             call accum_hist_field(n_vrdg, iblk, vice(:,:,iblk), worka, a2D)
          if (f_dardg1dt(1:1)/= 'x') &
              call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
          if (f_dardg2dt(1:1)/= 'x') &
@@ -411,12 +412,12 @@
              call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
 
          if (f_sirdgconc(1:1)/= 'x') &
-             call accum_hist_field(n_sirdgconc,   iblk, &
-                             aice(:,:,iblk) , (c1 - trcr(:,:,nt_alvl,iblk)), a2D)
+             worka(:,:) = c1 - trcr(:,:,nt_alvl,iblk)
+             call accum_hist_field(n_sirdgconc, iblk, aice(:,:,iblk), worka, a2D)
 
          if (f_sirdgthick(1:1)/= 'x') then
-             call accum_hist_field(n_sirdgthick,  iblk, &
-                             vice(:,:,iblk) , (c1 - trcr(:,:,nt_vlvl,iblk)), a2D)
+             worka(:,:) = c1 - trcr(:,:,nt_vlvl,iblk)
+             call accum_hist_field(n_sirdgthick, iblk, vice(:,:,iblk), worka, a2D)
          endif
 
          endif ! allocated(a2D)

@@ -2552,11 +2552,11 @@
              call accum_hist_field(n_fswabs_ai, iblk, fswabs(:,:,iblk),aice(:,:,iblk), a2D)
 
          if (f_albsni(1:1) /= 'x') then
-             call accum_hist_field(n_albsni, iblk, &
-                                  (awtvdr*alvdr_ai(:,:,iblk) &
-                                 + awtidr*alidr_ai(:,:,iblk) &
-                                 + awtvdf*alvdf_ai(:,:,iblk) &
-                                 + awtidf*alidf_ai(:,:,iblk)), a2D)
+             worka(:,:) = awtvdr*alvdr_ai(:,:,iblk) &
+                        + awtidr*alidr_ai(:,:,iblk) &
+                        + awtvdf*alvdf_ai(:,:,iblk) &
+                        + awtidf*alidf_ai(:,:,iblk)
+             call accum_hist_field(n_albsni, iblk, worka, a2D)
          endif
 
          if (f_alvdr  (1:1) /= 'x') &
