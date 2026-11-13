@@ -489,6 +489,9 @@
       type (block) :: &
          this_block           ! block information for current block
 
+      real (kind=dbl_kind), dimension(nx_block,ny_block) :: workb
+      real (kind=dbl_kind), dimension(nx_block,ny_block,ncat_hist) :: workc
+
       character(len=*), parameter :: subname = '(accum_hist_pond)'
 
       !---------------------------------------------------------------
@@ -506,25 +509,37 @@
 
          if (allocated(a2D)) then
 
-         worka(:,:) = c0
+         ! ⚠ Bounds BEFORE first use: the work arrays below are scoped to the
+         ! physical domain, so these must be set first.
+         this_block = get_block(blocks_ice(iblk),iblk)
+         ilo = this_block%ilo
+         ihi = this_block%ihi
+         jlo = this_block%jlo
+         jhi = this_block%jhi
+
+         worka(ilo:ihi,jlo:jhi) = c0
          if (tr_pond_lvl) then
-            worka(:,:) = trcr(:,:,nt_alvl,iblk) * trcr(:,:,nt_apnd,iblk)
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk) * trcr(ilo:ihi,jlo:jhi,nt_apnd,iblk)
          elseif (tr_pond_sealvl .or. tr_pond_topo) then
-            worka(:,:) = trcr(:,:,nt_apnd,iblk)
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_apnd,iblk)
          endif
 
          if (f_apond(1:1)/= 'x') &
              call accum_hist_field(n_apond, iblk, worka(:,:), a2D)
          if (f_apond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_apond_ai, iblk, aice_init(:,:,iblk)*worka(:,:), a2D)
+             call accum_hist_field(n_apond_ai, iblk, aice_init(:,:,iblk),worka(:,:), a2D)
          if (f_hpond(1:1)/= 'x') &
-             call accum_hist_field(n_hpond, iblk, worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
-         if (f_hpond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_hpond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
+             call accum_hist_field(n_hpond, iblk, worka(:,:),trcr(:,:,nt_hpnd,iblk), a2D)
+         if (f_hpond_ai(1:1)/= 'x') then
+            workb(ilo:ihi,jlo:jhi) = aice_init(ilo:ihi,jlo:jhi,iblk)*worka(ilo:ihi,jlo:jhi)*trcr(ilo:ihi,jlo:jhi,nt_hpnd,iblk)
+            call accum_hist_field(n_hpond_ai, iblk, workb, a2D)
+         endif
          if (f_ipond(1:1)/= 'x') &
-             call accum_hist_field(n_ipond, iblk, worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
-         if (f_ipond_ai(1:1)/= 'x') &
-             call accum_hist_field(n_ipond_ai, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+             call accum_hist_field(n_ipond, iblk, worka(:,:),trcr(:,:,nt_ipnd,iblk), a2D)
+         if (f_ipond_ai(1:1)/= 'x') then
+            workb(ilo:ihi,jlo:jhi) = aice_init(ilo:ihi,jlo:jhi,iblk)*worka(ilo:ihi,jlo:jhi)*trcr(ilo:ihi,jlo:jhi,nt_ipnd,iblk)
+            call accum_hist_field(n_ipond_ai, iblk, workb, a2D)
+         endif
 
          ! CMIP pond related variables
          if (f_simpeffconc (1:1) /= 'x') &
@@ -533,20 +548,19 @@
          if (f_simpconc(1:1)/= 'x') &
              call accum_hist_field(n_simpconc, iblk, worka(:,:), a2D)
 
-         if (f_simpthick(1:1)/= 'x') &
-             call accum_hist_field(n_simpthick, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_hpnd,iblk), a2D)
+         if (f_simpthick(1:1)/= 'x') then
+            workb(ilo:ihi,jlo:jhi) = aice_init(ilo:ihi,jlo:jhi,iblk)*worka(ilo:ihi,jlo:jhi)*trcr(ilo:ihi,jlo:jhi,nt_hpnd,iblk)
+            call accum_hist_field(n_simpthick, iblk, workb, a2D)
+         endif
 
-         if (f_simprefrozen(1:1)/= 'x') &
-             call accum_hist_field(n_simprefrozen, iblk, aice_init(:,:,iblk)*worka(:,:)*trcr(:,:,nt_ipnd,iblk), a2D)
+         if (f_simprefrozen(1:1)/= 'x') then
+            workb(ilo:ihi,jlo:jhi) = aice_init(ilo:ihi,jlo:jhi,iblk)*worka(ilo:ihi,jlo:jhi)*trcr(ilo:ihi,jlo:jhi,nt_ipnd,iblk)
+            call accum_hist_field(n_simprefrozen, iblk, workb, a2D)
+         endif
 
-         this_block = get_block(blocks_ice(iblk),iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
 
          if (f_apeff (1:1) /= 'x') then
-             worka(:,:) = c0
+             worka(ilo:ihi,jlo:jhi) = c0
              do j = jlo, jhi
              do i = ilo, ihi
                 if (aice(i,j,iblk) > puny) worka(i,j) = apeff_ai(i,j,iblk) &
@@ -583,10 +597,11 @@
          if (f_apeffn (1:1) /= 'x') &
              call accum_hist_field(n_apeffn-n2D,  iblk, ncat_hist, &
                   apeffn(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_hpondn   (1:1) /= 'x') &
-             call accum_hist_field(n_hpondn-n2D, iblk, ncat_hist, &
-                    trcrn(:,:,nt_apnd,1:ncat_hist,iblk) &
-                  * trcrn(:,:,nt_hpnd,1:ncat_hist,iblk), a3Dc)
+         if (f_hpondn   (1:1) /= 'x') then
+            workc(:,:,1:ncat_hist) = trcrn(:,:,nt_apnd,1:ncat_hist,iblk) &
+            * trcrn(:,:,nt_hpnd,1:ncat_hist,iblk)
+            call accum_hist_field(n_hpondn-n2D, iblk, ncat_hist, workc, a3Dc)
+         endif
 
          if (f_dpnd_flushn (1:1) /= 'x') &
              call accum_hist_field(n_dpnd_flushn-n2D  , iblk, ncat_hist, dpnd_flushn  (:,:,1:ncat_hist,iblk), a3Dc)

@@ -298,7 +298,8 @@
       subroutine accum_hist_snow (iblk)
 
       use ice_arrays_column, only: meltsliq
-      use ice_blocks, only: block, nx_block, ny_block
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_domain, only: blocks_ice
       use ice_flux, only: fsloss
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field, nzslyr
@@ -323,7 +324,22 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block,ncat_hist) :: &
          workb
 
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: &
+         ilo, ihi, jlo, jhi   ! physical domain of this block
+
       character(len=*), parameter :: subname = '(accum_hist_snow)'
+
+      ! ⚠ Compute over the PHYSICAL domain only.  A full-array expression
+      ! evaluates across the halo, where a value may be uninitialised --
+      ! and the accumulators read jlo..jhi x ilo..ihi regardless.
+      this_block = get_block(blocks_ice(iblk),iblk)
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       !---------------------------------------------------------------
       ! increment field
@@ -340,49 +356,49 @@
       if (tr_snow) then
 
          if (f_smassice(1:1)/= 'x') then
-            worka(:,:) = c0
+            worka(ilo:ihi,jlo:jhi) = c0
             do k = 1, nzslyr
-               worka(:,:) = worka(:,:) &
-                          + trcr(:,:,nt_smice+k-1,iblk)
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk)
             enddo
-            worka(:,:) = worka(:,:) * vsno(:,:,iblk) / real(nslyr,kind=dbl_kind)
+            worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) * vsno(ilo:ihi,jlo:jhi,iblk) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_smassice, iblk, worka, a2D)
          endif
          if (f_smassliq(1:1)/= 'x') then
-            worka(:,:) = c0
+            worka(ilo:ihi,jlo:jhi) = c0
             do k = 1, nzslyr
-               worka(:,:) = worka(:,:) &
-                          + trcr(:,:,nt_smliq+k-1,iblk)
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_smliq+k-1,iblk)
             enddo
-            worka(:,:) = worka(:,:) * vsno(:,:,iblk) / real(nslyr,kind=dbl_kind)
+            worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) * vsno(ilo:ihi,jlo:jhi,iblk) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_smassliq, iblk, worka, a2D)
          endif
          if (f_rhos_cmp(1:1)/= 'x') then
-            worka(:,:) = c0
+            worka(ilo:ihi,jlo:jhi) = c0
             do k = 1, nzslyr
-               worka(:,:) = worka(:,:) &
-                          + trcr(:,:,nt_rhos+k-1,iblk)
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_rhos+k-1,iblk)
             enddo
-            worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
+            worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rhos_cmp, iblk, worka, a2D)
          endif
          if (f_rhos_cnt(1:1)/= 'x') then
-            worka(:,:) = c0
+            worka(ilo:ihi,jlo:jhi) = c0
             do k = 1, nzslyr
-               worka(:,:) = worka(:,:) &
-                          + trcr(:,:,nt_smice+k-1,iblk) &
-                          + trcr(:,:,nt_smliq+k-1,iblk)
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_smliq+k-1,iblk)
             enddo
-            worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
+            worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rhos_cnt, iblk, worka, a2D)
          endif
          if (f_rsnw(1:1)/= 'x') then
-            worka(:,:) = c0
+            worka(ilo:ihi,jlo:jhi) = c0
             do k = 1, nzslyr
-               worka(:,:) = worka(:,:) &
-                          + trcr(:,:,nt_rsnw+k-1,iblk)
+               worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
+                          + trcr(ilo:ihi,jlo:jhi,nt_rsnw+k-1,iblk)
             enddo
-            worka(:,:) = worka(:,:) / real(nslyr,kind=dbl_kind)
+            worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) / real(nslyr,kind=dbl_kind)
             call accum_hist_field(n_rsnw, iblk, worka, a2D)
          endif
          if (f_meltsliq(1:1)/= 'x') &
