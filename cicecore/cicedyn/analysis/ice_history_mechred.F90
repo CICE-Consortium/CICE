@@ -358,7 +358,8 @@
 
       subroutine accum_hist_mechred (iblk)
 
-      use ice_blocks, only: nx_block, ny_block
+      use ice_blocks, only: block, get_block, nx_block, ny_block
+      use ice_domain, only: blocks_ice
       use ice_history_shared, only: n2D, a2D, a3Dc, ncat_hist, &
           accum_hist_field
       use ice_state, only: aice, vice, trcr, aicen, vicen, trcrn
@@ -376,7 +377,22 @@
       real (kind=dbl_kind), dimension(nx_block,ny_block) :: worka
       real (kind=dbl_kind), dimension(nx_block,ny_block,ncat_hist) :: workc
 
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: &
+         ilo, ihi, jlo, jhi   ! physical domain of this block
+
       character(len=*), parameter :: subname = '(accum_hist_mechred)'
+
+      ! ⚠ Compute over the PHYSICAL domain only.  A full-array expression
+      ! evaluates across the halo, where a value may be uninitialised --
+      ! and the accumulators read jlo..jhi x ilo..ihi regardless.
+      this_block = get_block(blocks_ice(iblk),iblk)
+      ilo = this_block%ilo
+      ihi = this_block%ihi
+      jlo = this_block%jlo
+      jhi = this_block%jhi
 
       call icepack_query_tracer_indices(nt_alvl_out=nt_alvl, nt_vlvl_out=nt_vlvl)
       call icepack_warnings_flush(nu_diag)
@@ -397,10 +413,10 @@
              call accum_hist_field(n_vlvl,   iblk, &
                                    vice(:,:,iblk) , trcr(:,:,nt_vlvl,iblk), a2D)
          if (f_ardg(1:1)/= 'x') &
-             worka(:,:) = c1 - trcr(:,:,nt_alvl,iblk)
+             worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk)
              call accum_hist_field(n_ardg, iblk, aice(:,:,iblk), worka, a2D)
          if (f_vrdg(1:1)/= 'x') &
-             worka(:,:) = c1 - trcr(:,:,nt_vlvl,iblk)
+             worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_vlvl,iblk)
              call accum_hist_field(n_vrdg, iblk, vice(:,:,iblk), worka, a2D)
          if (f_dardg1dt(1:1)/= 'x') &
              call accum_hist_field(n_dardg1dt,iblk, dardg1dt(:,:,iblk), a2D)
@@ -412,11 +428,11 @@
              call accum_hist_field(n_opening, iblk, opening(:,:,iblk), a2D)
 
          if (f_sirdgconc(1:1)/= 'x') &
-             worka(:,:) = c1 - trcr(:,:,nt_alvl,iblk)
+             worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk)
              call accum_hist_field(n_sirdgconc, iblk, aice(:,:,iblk), worka, a2D)
 
          if (f_sirdgthick(1:1)/= 'x') then
-             worka(:,:) = c1 - trcr(:,:,nt_vlvl,iblk)
+             worka(ilo:ihi,jlo:jhi) = c1 - trcr(ilo:ihi,jlo:jhi,nt_vlvl,iblk)
              call accum_hist_field(n_sirdgthick, iblk, vice(:,:,iblk), worka, a2D)
          endif
 

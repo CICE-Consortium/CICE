@@ -1994,9 +1994,9 @@
       endif
       if (f_iso(1:1) /= 'x') then
          do n=1,n_iso
-            worka(:,:) = trcr(:,:,nt_isosno+n-1,iblk)/rhos
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_isosno+n-1,iblk)/rhos
             call accum_hist_field(n_isosno(n,:), iblk, worka, a2D)
-            worka(:,:) = trcr(:,:,nt_isoice+n-1,iblk)/rhos
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_isoice+n-1,iblk)/rhos
             call accum_hist_field(n_isoice(n,:), iblk, worka, a2D)
          enddo
       endif
@@ -2016,13 +2016,13 @@
       endif
       if (f_aero(1:1) /= 'x') then
          do n=1,n_aero
-            worka(:,:) = trcr(:,:,nt_aero  +4*(n-1),iblk)/rhos
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero  +4*(n-1),iblk)/rhos
             call accum_hist_field(n_aerosn1(n,:), iblk, worka, a2D)
-            worka(:,:) = trcr(:,:,nt_aero+1+4*(n-1),iblk)/rhos
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+1+4*(n-1),iblk)/rhos
             call accum_hist_field(n_aerosn2(n,:), iblk, worka, a2D)
-            worka(:,:) = trcr(:,:,nt_aero+2+4*(n-1),iblk)/rhoi
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+2+4*(n-1),iblk)/rhoi
             call accum_hist_field(n_aeroic1(n,:), iblk, worka, a2D)
-            worka(:,:) = trcr(:,:,nt_aero+3+4*(n-1),iblk)/rhoi
+            worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_aero+3+4*(n-1),iblk)/rhoi
             call accum_hist_field(n_aeroic2(n,:), iblk, worka, a2D)
          enddo
       endif
@@ -2038,7 +2038,7 @@
       endif
       if (f_bgc_C(1:1)/= 'x') then
          do n=1,n_algae
-            worka(:,:) = sk_l*R_C2N(n)*trcr(:,:,nt_bgc_N(n), iblk)
+            worka(ilo:ihi,jlo:jhi) = sk_l*R_C2N(n)*trcr(ilo:ihi,jlo:jhi,nt_bgc_N(n), iblk)
             call accum_hist_field(n_bgc_C(n,:), iblk, worka, a2D)
          enddo
       endif
