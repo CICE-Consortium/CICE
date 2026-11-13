@@ -1,0 +1,2 @@
+diag_netcdf_freq = '1'
+diag_netcdf_avg = .false.
