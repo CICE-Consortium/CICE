@@ -28,7 +28,7 @@
                 principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
                 deformations, deformationsC_T, deformationsCD_T, &
-                strain_rates, strain_rates_T, strain_rates_U, &
+                strain_rates, strain_rates_scalar, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
                 dyn_haloUpdate, &
                 stack_fields, unstack_fields
@@ -1840,19 +1840,9 @@
                             shearne,    shearnw,    &
                             shearse,    shearsw,    &
                             Deltane,    Deltanw,    &
-                            Deltase,    Deltasw     )
-
-         !-----------------------------------------------------------------
-         ! Deltapp is also required for mechanical redistribution
-         !-----------------------------------------------------------------
-         call strain_rates_Deltapp (nx_block,     ny_block,     &
-                                       i,            j,         &
-                                       uvel,         vvel,      &
-                                       dxT,          dyT,       &
-                                       cxp,          cyp,       &
-                                       cxm,          cym,       &
-                                       Deltappne,    Deltappnw, &
-                                       Deltappse,    Deltappsw  )
+                            Deltase,    Deltasw,    &
+                            Deltappne,  Deltappnw,  &
+                            Deltappse,  Deltappsw   )
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
@@ -2112,44 +2102,51 @@
 !
 ! 2019: subroutine created by Philippe Blain, ECCC
 
-      subroutine strain_rates (nx_block,   ny_block,   &
-                               i,          j,          &
-                               uvel,       vvel,       &
-                               dxT,        dyT,        &
-                               cxp,        cyp,        &
-                               cxm,        cym,        &
-                               divune,     divunw,     &
-                               divuse,     divusw,     &
-                               tensionne,  tensionnw,  &
-                               tensionse,  tensionsw,  &
-                               shearne,    shearnw,    &
-                               shearse,    shearsw,    &
-                               Deltane,    Deltanw,    &
-                               Deltase,    Deltasw     )
+!=======================================================================
+! Strain rates at the four corners of a T cell, from the fourteen numbers
+! the stencil actually reads.
+!
+! The arithmetic lives here and nowhere else.  Taking VALUES rather than
+! arrays is what makes that possible: a block caller indexes at the call
+! site, and a gathered 1-D caller passes its own neighbours, so both reach
+! the same code.  ice_dyn_core1d used to carry strain_rates_1d, a second
+! copy of these expressions differing only in how its stencil was named,
+! and it had already drifted out of step with this one.
+!
+! authors: Elizabeth C. Hunke, LANL
 
-      integer (kind=int_kind), intent(in) :: &
-         nx_block, ny_block    ! block dimensions
+      subroutine strain_rates_scalar (uvel00   , uvelW,      &
+                                      uvelS    , uvelSW,     &
+                                      vvel00   , vvelW,      &
+                                      vvelS    , vvelSW,     &
+                                      dxT      , dyT,        &
+                                      cxp      , cyp,        &
+                                      cxm      , cym,        &
+                                      divune   , divunw,     &
+                                      divuse   , divusw,     &
+                                      tensionne, tensionnw,  &
+                                      tensionse, tensionsw,  &
+                                      shearne  , shearnw,    &
+                                      shearse  , shearsw,    &
+                                      Deltane  , Deltanw,    &
+                                      Deltase  , Deltasw,    &
+                                      Deltappne, Deltappnw,  &
+                                      Deltappse, Deltappsw   )
 
-      integer (kind=int_kind), intent(in) :: &
-         i, j                  ! indices
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         uvel     , & ! x-component of velocity (m/s)
-         vvel     , & ! y-component of velocity (m/s)
-         dxT      , & ! width of T-cell through the middle (m)
-         dyT      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTW
-         cxp      , & ! 1.5*HTN - 0.5*HTS
-         cym      , & ! 0.5*HTE - 1.5*HTW
-         cxm          ! 0.5*HTN - 1.5*HTS
+      real (kind=dbl_kind), intent(in) :: &
+        uvel00, uvelW, uvelS, uvelSW              , & ! x-velocity, this corner's 2x2
+        vvel00, vvelW, vvelS, vvelSW              , & ! y-velocity, likewise
+        dxT, dyT                                  , & ! T-cell width and height (m)
+        cxp, cyp, cxm, cym                            ! metric terms
 
       real (kind=dbl_kind), intent(out):: &           ! at each corner :
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw            ! Delta
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
+        Deltappne, Deltappnw, Deltappse, Deltappsw    ! Delta_G, for ridging
 
-      character(len=*), parameter :: subname = '(strain_rates)'
+      character(len=*), parameter :: subname = '(strain_rates_scalar)'
 
       !-----------------------------------------------------------------
       ! strain rates
@@ -2157,34 +2154,34 @@
       !-----------------------------------------------------------------
 
       ! divergence  =  e_11 + e_22
-      divune    = cyp(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                + cxp(i,j)*vvel(i  ,j  ) - dxT(i,j)*vvel(i  ,j-1)
-      divunw    = cym(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                + cxp(i,j)*vvel(i-1,j  ) - dxT(i,j)*vvel(i-1,j-1)
-      divusw    = cym(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                + cxm(i,j)*vvel(i-1,j-1) + dxT(i,j)*vvel(i-1,j  )
-      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                + cxm(i,j)*vvel(i  ,j-1) + dxT(i,j)*vvel(i  ,j  )
+      divune    = cyp*uvel00 - dyT*uvelW &
+                + cxp*vvel00 - dxT*vvelS
+      divunw    = cym*uvelW + dyT*uvel00 &
+                + cxp*vvelW - dxT*vvelSW
+      divusw    = cym*uvelSW + dyT*uvelS &
+                + cxm*vvelSW + dxT*vvelW
+      divuse    = cyp*uvelS - dyT*uvelSW &
+                + cxm*vvelS + dxT*vvel00
 
       ! tension strain rate  =  e_11 - e_22
-      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                +  cxm(i,j)*vvel(i  ,j  ) + dxT(i,j)*vvel(i  ,j-1)
-      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                +  cxm(i,j)*vvel(i-1,j  ) + dxT(i,j)*vvel(i-1,j-1)
-      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                +  cxp(i,j)*vvel(i-1,j-1) - dxT(i,j)*vvel(i-1,j  )
-      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                +  cxp(i,j)*vvel(i  ,j-1) - dxT(i,j)*vvel(i  ,j  )
+      tensionne = -cym*uvel00 - dyT*uvelW &
+                +  cxm*vvel00 + dxT*vvelS
+      tensionnw = -cyp*uvelW + dyT*uvel00 &
+                +  cxm*vvelW + dxT*vvelSW
+      tensionsw = -cyp*uvelSW + dyT*uvelS &
+                +  cxp*vvelSW - dxT*vvelW
+      tensionse = -cym*uvelS - dyT*uvelSW &
+                +  cxp*vvelS - dxT*vvel00
 
       ! shearing strain rate  =  2*e_12
-      shearne = -cym(i,j)*vvel(i  ,j  ) - dyT(i,j)*vvel(i-1,j  ) &
-              -  cxm(i,j)*uvel(i  ,j  ) - dxT(i,j)*uvel(i  ,j-1)
-      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyT(i,j)*vvel(i  ,j  ) &
-              -  cxm(i,j)*uvel(i-1,j  ) - dxT(i,j)*uvel(i-1,j-1)
-      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyT(i,j)*vvel(i  ,j-1) &
-              -  cxp(i,j)*uvel(i-1,j-1) + dxT(i,j)*uvel(i-1,j  )
-      shearse = -cym(i,j)*vvel(i  ,j-1) - dyT(i,j)*vvel(i-1,j-1) &
-              -  cxp(i,j)*uvel(i  ,j-1) + dxT(i,j)*uvel(i  ,j  )
+      shearne = -cym*vvel00 - dyT*vvelW &
+              -  cxm*uvel00 - dxT*uvelS
+      shearnw = -cyp*vvelW + dyT*vvel00 &
+              -  cxm*uvelW - dxT*uvelSW
+      shearsw = -cyp*vvelSW + dyT*vvelS &
+              -  cxp*uvelSW + dxT*uvelW
+      shearse = -cym*vvelS - dyT*vvelSW &
+              -  cxp*uvelS + dxT*uvel00
 
       ! Delta (in the denominator of zeta, eta)
       Deltane = sqrt(divune**2 + e_factor*(tensionne**2 + shearne**2))
@@ -2192,28 +2189,41 @@
       Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
       Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
-      end subroutine strain_rates
+      ! Delta_G (Lemieux et al.), for mechanical redistribution.  Computed
+      ! unconditionally: the strain rates are already in registers, so four
+      ! square roots cost less than the branch that would skip them -- and
+      ! far less than strain_rates_Deltapp did, which recomputed every
+      ! divergence, tension and shear to reach exactly these four numbers.
+      Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
+      Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
+      Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
+      Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
+
+      end subroutine strain_rates_scalar
 
 !=======================================================================
-! Compute strain rates Deltapp for mechanical redistribution
+! The block form: reads the stencil out of the arrays and defers to
+! strain_rates_scalar.  Kept so block callers need not spell out fourteen
+! index expressions apiece.
 !
-! author: JF Lemieux, ECCC
-! Sept 2026
-!
-! Lemieux, J. F. et al. Consistent ridging and opening coefficients 
-! for multi-category sea ice models with modified viscous-plastic 
-! rheologies, under review.
-! 
-! Deltapp is called Delta_G in Lemieux et al. paper.
+! authors: Elizabeth C. Hunke, LANL
 
-      subroutine strain_rates_Deltapp (nx_block,     ny_block,     &
-                                       i,            j,            &
-                                       uvel,         vvel,         &
-                                       dxT,          dyT,          &
-                                       cxp,          cyp,          &
-                                       cxm,          cym,          &
-                                       Deltappne,    Deltappnw,    &
-                                       Deltappse,    Deltappsw  )
+      subroutine strain_rates (nx_block , ny_block ,  &
+                               i        , j        ,  &
+                               uvel     , vvel     ,  &
+                               dxT      , dyT      ,  &
+                               cxp      , cyp      ,  &
+                               cxm      , cym      ,  &
+                               divune   , divunw   ,  &
+                               divuse   , divusw   ,  &
+                               tensionne, tensionnw,  &
+                               tensionse, tensionsw,  &
+                               shearne  , shearnw  ,  &
+                               shearse  , shearsw  ,  &
+                               Deltane  , Deltanw  ,  &
+                               Deltase  , Deltasw  ,  &
+                               Deltappne, Deltappnw,  &
+                               Deltappse, Deltappsw   )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block    ! block dimensions
@@ -2226,65 +2236,39 @@
          vvel     , & ! y-component of velocity (m/s)
          dxT      , & ! width of T-cell through the middle (m)
          dyT      , & ! height of T-cell through the middle (m)
-         cyp      , & ! 1.5*HTE - 0.5*HTW
-         cxp      , & ! 1.5*HTN - 0.5*HTS
-         cym      , & ! 0.5*HTE - 1.5*HTW
-         cxm          ! 0.5*HTN - 1.5*HTS
+         cyp      , & ! 1.5*HTE - 0.5*HTE
+         cxp      , & ! 1.5*HTN - 0.5*HTN
+         cym      , & ! 0.5*HTE - 1.5*HTE
+         cxm          ! 0.5*HTN - 1.5*HTN
 
-      real (kind=dbl_kind), intent(out):: &                    ! at each corner:
-        Deltappne, Deltappnw, Deltappse, Deltappsw ! Deltapp
+      real (kind=dbl_kind), intent(out)::           & ! at each corner :
+        divune, divunw, divuse, divusw            , & ! divergence
+        tensionne, tensionnw, tensionse, tensionsw, & ! tension
+        shearne, shearnw, shearse, shearsw        , & ! shearing
+        Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
+        Deltappne, Deltappnw, Deltappse, Deltappsw    ! Delta_G, for ridging
 
       character(len=*), parameter :: subname = '(strain_rates)'
 
-      ! local variables
-      
-      real (kind=dbl_kind) :: &                       ! at each corner :
-        divune, divunw, divuse, divusw            , & ! divergence
-        tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw            ! shearing      
+      call strain_rates_scalar (uvel(i  ,j  ), uvel(i-1,j  ), &
+                                uvel(i  ,j-1), uvel(i-1,j-1), &
+                                vvel(i  ,j  ), vvel(i-1,j  ), &
+                                vvel(i  ,j-1), vvel(i-1,j-1), &
+                                dxT (i  ,j  ), dyT (i  ,j  ), &
+                                cxp (i  ,j  ), cyp (i  ,j  ), &
+                                cxm (i  ,j  ), cym (i  ,j  ), &
+                                divune       , divunw       , &
+                                divuse       , divusw       , &
+                                tensionne    , tensionnw    , &
+                                tensionse    , tensionsw    , &
+                                shearne      , shearnw      , &
+                                shearse      , shearsw      , &
+                                Deltane      , Deltanw      , &
+                                Deltase      , Deltasw      , &
+                                Deltappne    , Deltappnw    , &
+                                Deltappse    , Deltappsw    )
 
-      !-----------------------------------------------------------------
-      ! strain rates
-      ! NOTE these are actually strain rates * area  (m^2/s)
-      !-----------------------------------------------------------------
-
-      ! divergence  =  e_11 + e_22
-      divune    = cyp(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                + cxp(i,j)*vvel(i  ,j  ) - dxT(i,j)*vvel(i  ,j-1)
-      divunw    = cym(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                + cxp(i,j)*vvel(i-1,j  ) - dxT(i,j)*vvel(i-1,j-1)
-      divusw    = cym(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                + cxm(i,j)*vvel(i-1,j-1) + dxT(i,j)*vvel(i-1,j  )
-      divuse    = cyp(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                + cxm(i,j)*vvel(i  ,j-1) + dxT(i,j)*vvel(i  ,j  )
-
-      ! tension strain rate  =  e_11 - e_22
-      tensionne = -cym(i,j)*uvel(i  ,j  ) - dyT(i,j)*uvel(i-1,j  ) &
-                +  cxm(i,j)*vvel(i  ,j  ) + dxT(i,j)*vvel(i  ,j-1)
-      tensionnw = -cyp(i,j)*uvel(i-1,j  ) + dyT(i,j)*uvel(i  ,j  ) &
-                +  cxm(i,j)*vvel(i-1,j  ) + dxT(i,j)*vvel(i-1,j-1)
-      tensionsw = -cyp(i,j)*uvel(i-1,j-1) + dyT(i,j)*uvel(i  ,j-1) &
-                +  cxp(i,j)*vvel(i-1,j-1) - dxT(i,j)*vvel(i-1,j  )
-      tensionse = -cym(i,j)*uvel(i  ,j-1) - dyT(i,j)*uvel(i-1,j-1) &
-                +  cxp(i,j)*vvel(i  ,j-1) - dxT(i,j)*vvel(i  ,j  )
-
-      ! shearing strain rate  =  2*e_12
-      shearne = -cym(i,j)*vvel(i  ,j  ) - dyT(i,j)*vvel(i-1,j  ) &
-              -  cxm(i,j)*uvel(i  ,j  ) - dxT(i,j)*uvel(i  ,j-1)
-      shearnw = -cyp(i,j)*vvel(i-1,j  ) + dyT(i,j)*vvel(i  ,j  ) &
-              -  cxm(i,j)*uvel(i-1,j  ) - dxT(i,j)*uvel(i-1,j-1)
-      shearsw = -cyp(i,j)*vvel(i-1,j-1) + dyT(i,j)*vvel(i  ,j-1) &
-              -  cxp(i,j)*uvel(i-1,j-1) + dxT(i,j)*uvel(i-1,j  )
-      shearse = -cym(i,j)*vvel(i  ,j-1) - dyT(i,j)*vvel(i-1,j-1) &
-              -  cxp(i,j)*uvel(i  ,j-1) + dxT(i,j)*uvel(i  ,j  )
-
-      ! Deltapp
-      Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
-      Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
-      Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
-      Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
-
-    end subroutine strain_rates_Deltapp
+      end subroutine strain_rates
 
 !=======================================================================
 ! Compute dtsd (div, tension, shear, delta) strain rates at the T point

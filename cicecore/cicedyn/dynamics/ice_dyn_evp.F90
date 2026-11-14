@@ -1520,6 +1520,7 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
+        Deltappne, Deltappnw, Deltappse, Deltappsw, & ! Delta_G (ridging)
         zetax2ne, zetax2nw, zetax2se, zetax2sw    , & ! 2 x zeta (bulk visc)
         etax2ne, etax2nw, etax2se, etax2sw        , & ! 2 x eta (shear visc)
         rep_prsne, rep_prsnw, rep_prsse, rep_prssw, & ! replacement pressure
@@ -1564,7 +1565,9 @@
                             shearne,    shearnw,    &
                             shearse,    shearsw,    &
                             Deltane,    Deltanw,    &
-                            Deltase,    Deltasw     )
+                            Deltase,    Deltasw, &
+                            Deltappne, Deltappnw, &
+                            Deltappse, Deltappsw  )
 
          !-----------------------------------------------------------------
          ! viscosities and replacement pressure
