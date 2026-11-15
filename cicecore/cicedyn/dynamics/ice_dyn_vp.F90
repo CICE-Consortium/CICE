@@ -1170,7 +1170,6 @@
         tensionne, tensionnw, tensionse, tensionsw    , & ! tension
         shearne, shearnw, shearse, shearsw            , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw            , & ! Delt
-        Deltappne, Deltappnw, Deltappse, Deltappsw, & ! Delta_G (ridging)
         ssigpn, ssigps, ssigpe, ssigpw, ssigp1, ssigp2, &
         csigpne, csigpnw, csigpsw, csigpse            , &
         stressp_1, stressp_2, stressp_3, stressp_4    , &
@@ -1205,9 +1204,7 @@
                             shearne  , shearnw  , &
                             shearse  , shearsw  , &
                             Deltane  , Deltanw  , &
-                            Deltase  , Deltasw, &
-                            Deltappne, Deltappnw, &
-                            Deltappse, Deltappsw  )
+                            Deltase  , Deltasw     )
 
       !-----------------------------------------------------------------
       ! viscosities and replacement pressure
@@ -1364,8 +1361,7 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
-        Deltappne, Deltappnw, Deltappse, Deltappsw    ! Delta_G (ridging)
+        Deltane, Deltanw, Deltase, Deltasw            ! Delta
 
       character(len=*), parameter :: subname = '(stress_vp)'
 
@@ -1390,9 +1386,7 @@
                             shearne  , shearnw  , &
                             shearse  , shearsw  , &
                             Deltane  , Deltanw  , &
-                            Deltase  , Deltasw, &
-                            Deltappne, Deltappnw, &
-                            Deltappse, Deltappsw  )
+                            Deltase  , Deltasw     )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1606,7 +1600,6 @@
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
         Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
-        Deltappne, Deltappnw, Deltappse, Deltappsw, & ! Delta_G (ridging)
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1651,9 +1644,7 @@
                             shearne  , shearnw  , &
                             shearse  , shearsw  , &
                             Deltane  , Deltanw  , &
-                            Deltase  , Deltasw, &
-                            Deltappne, Deltappnw, &
-                            Deltappse, Deltappsw  )
+                            Deltase  , Deltasw     )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2

@@ -115,7 +115,6 @@ module ice_dyn_core1d
       tensionne, tensionnw, tensionse, tensionsw,       & ! tension
       shearne, shearnw, shearse, shearsw        ,       & ! shearing
       Deltane, Deltanw, Deltase, Deltasw        ,       & ! Delta
-      Deltappne, Deltappnw, Deltappse, Deltappsw,       & ! Delta_G (unused here)
       zetax2ne, zetax2nw, zetax2se, zetax2sw    ,       & ! 2 x zeta (bulk visc)
       etax2ne, etax2nw, etax2se, etax2sw        ,       & ! 2 x eta (shear visc)
       rep_prsne, rep_prsnw, rep_prsse, rep_prssw,       & ! replacement pressure
@@ -148,7 +147,6 @@ module ice_dyn_core1d
     !$omp         tensionne, tensionnw, tensionse, tensionsw , &
     !$omp         shearne, shearnw, shearse, shearsw         , &
     !$omp         Deltane, Deltanw, Deltase, Deltasw         , &
-    !$omp         Deltappne, Deltappnw, Deltappse, Deltappsw , &
     !$omp         zetax2ne, zetax2nw, zetax2se, zetax2sw     , &
     !$omp         etax2ne, etax2nw, etax2se, etax2sw         , &
     !$omp         rep_prsne, rep_prsnw, rep_prsse, rep_prssw , &
@@ -221,9 +219,7 @@ module ice_dyn_core1d
                             shearne    , shearnw    , &
                             shearse,    shearsw     , &
                             Deltane,    Deltanw     , &
-                            Deltase,    Deltasw     , &
-                            Deltappne,  Deltappnw   , &
-                            Deltappse,  Deltappsw )
+                            Deltase,    Deltasw          )
 
       !--------------------------------------------------------------------------
       ! viscosities and replacement pressure

@@ -1840,14 +1840,21 @@
                             shearne,    shearnw,    &
                             shearse,    shearsw,    &
                             Deltane,    Deltanw,    &
-                            Deltase,    Deltasw,    &
-                            Deltappne,  Deltappnw,  &
-                            Deltappse,  Deltappsw   )
+                            Deltase,    Deltasw     )
 
          !-----------------------------------------------------------------
          ! deformations for mechanical redistribution
          !-----------------------------------------------------------------
          divu(i,j) = p25*(divune + divunw + divuse + divusw) * tarear(i,j)
+
+         ! Delta_G, for mechanical redistribution.  Everything it needs is
+         ! intent(out) from the call above, so it is formed here rather than
+         ! carried through strain_rates -- the stress path runs ndte times a
+         ! step and never uses it.
+         Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
+         Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
+         Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
+         Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
 
          numetp=p25*(Deltappne + Deltappnw + Deltappse + Deltappsw)
          nume=numetp**2
@@ -2129,9 +2136,7 @@
                                       shearne  , shearnw,    &
                                       shearse  , shearsw,    &
                                       Deltane  , Deltanw,    &
-                                      Deltase  , Deltasw,    &
-                                      Deltappne, Deltappnw,  &
-                                      Deltappse, Deltappsw   )
+                                      Deltase  , Deltasw     )
 
       real (kind=dbl_kind), intent(in) :: &
         uvel00, uvelW, uvelS, uvelSW              , & ! x-velocity, this corner's 2x2
@@ -2143,8 +2148,7 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
-        Deltappne, Deltappnw, Deltappse, Deltappsw    ! Delta_G, for ridging
+        Deltane, Deltanw, Deltase, Deltasw            ! Delta
 
       character(len=*), parameter :: subname = '(strain_rates_scalar)'
 
@@ -2189,16 +2193,6 @@
       Deltasw = sqrt(divusw**2 + e_factor*(tensionsw**2 + shearsw**2))
       Deltase = sqrt(divuse**2 + e_factor*(tensionse**2 + shearse**2))
 
-      ! Delta_G (Lemieux et al.), for mechanical redistribution.  Computed
-      ! unconditionally: the strain rates are already in registers, so four
-      ! square roots cost less than the branch that would skip them -- and
-      ! far less than strain_rates_Deltapp did, which recomputed every
-      ! divergence, tension and shear to reach exactly these four numbers.
-      Deltappne = sqrt(divune**2 + epp2i*(tensionne**2 + shearne**2))
-      Deltappnw = sqrt(divunw**2 + epp2i*(tensionnw**2 + shearnw**2))
-      Deltappsw = sqrt(divusw**2 + epp2i*(tensionsw**2 + shearsw**2))
-      Deltappse = sqrt(divuse**2 + epp2i*(tensionse**2 + shearse**2))
-
       end subroutine strain_rates_scalar
 
 !=======================================================================
@@ -2221,9 +2215,7 @@
                                shearne  , shearnw  ,  &
                                shearse  , shearsw  ,  &
                                Deltane  , Deltanw  ,  &
-                               Deltase  , Deltasw  ,  &
-                               Deltappne, Deltappnw,  &
-                               Deltappse, Deltappsw   )
+                               Deltase  , Deltasw       )
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block    ! block dimensions
@@ -2245,8 +2237,7 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delta
-        Deltappne, Deltappnw, Deltappse, Deltappsw    ! Delta_G, for ridging
+        Deltane, Deltanw, Deltase, Deltasw            ! Delta
 
       character(len=*), parameter :: subname = '(strain_rates)'
 
@@ -2264,9 +2255,7 @@
                                 shearne      , shearnw      , &
                                 shearse      , shearsw      , &
                                 Deltane      , Deltanw      , &
-                                Deltase      , Deltasw      , &
-                                Deltappne    , Deltappnw    , &
-                                Deltappse    , Deltappsw    )
+                                Deltase      , Deltasw           )
 
       end subroutine strain_rates
 
