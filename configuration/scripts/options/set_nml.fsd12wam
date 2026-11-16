@@ -1,0 +1,6 @@
+tr_fsd = .true.
+nfsd = 12
+wave_spec_type = 'constant'
+wave_height_type = 'internal'
+wave_spec_file  = 'ICE_MACHINE_INPUTDATA/CICE_data/forcing/gx3/wam.20100101_efreq_wavefreq_time_remapgx3.nc'
+dt_wavefracture = 0
