@@ -2019,7 +2019,7 @@
       endif
 
       !-----------------------------------------------------------------
-      ! A wave spectrum file with its own 'time' and 'wavefreq' variables
+      ! A wave spectrum file with its own 'time' and 'f' variables
       ! defines nfreq and the frequencies, so check the file here, before
       ! any array dimensioned with nfreq is allocated.
       !-----------------------------------------------------------------

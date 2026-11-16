@@ -200,8 +200,8 @@
          wave_spec_initialized = .false.  ! true once the frequency grid is set
 
       logical (kind=log_kind), public :: &
-         wave_spec_timefreq = .false.  ! wave_spec_file has its own 'time' and
-                                       ! 'wavefreq': read by wave_spec_data_timefreq
+         wave_spec_timefreq = .false.  ! wave_spec_file has its own 'time' and 'f'
+                                       ! 'f': Wave frequencies read by wave_spec_data_timefreq
 
       real (dbl_kind) :: &
          frestore        ! restoring value based on trestore (0.-1.)
@@ -4488,12 +4488,12 @@
       ! Write diag info
       if (my_task == master_task) then
          write (nu_diag,*) ' '
-         write (nu_diag,'(a,i4.4,a,i2.2,a,i2.2,a,i5,a)') ' CICE: Atm. time reference    = ', &
+         write (nu_diag,'(a,i4.4,a,i2.2,a,i2.2,a,i5,a)') ' Atm. time reference    = ', &
             refdate_atm(1),'-',refdate_atm(2),'-',refdate_atm(3),' ',refdate_atm(4),' s'
-         write (nu_diag,*) 'CICE: Atm. Start (days)      = ',jday_atm(1)
-         write (nu_diag,*) 'CICE: Atm. End (days)        = ',jday_atm(Njday_atm)
-         write (nu_diag,*) 'CICE: Total Atm timesteps    = ',Njday_atm
-         write (nu_diag,*) 'CICE: Atmospheric forcing files:'
+         write (nu_diag,*) 'Atm. Start (days)      = ',jday_atm(1)
+         write (nu_diag,*) 'Atm. End (days)        = ',jday_atm(Njday_atm)
+         write (nu_diag,*) 'Total Atm timesteps    = ',Njday_atm
+         write (nu_diag,*) 'Atmospheric forcing files:'
          write (nu_diag,*) trim(fsw_file)
          write (nu_diag,*) trim(flw_file)
          write (nu_diag,*) trim(rain_file)
@@ -4558,9 +4558,9 @@
       ! + check forcing is available before (or at) current forcing time
       if ( hcdate>jday_atm(recnum+1)+p001 .or. hcdate<jday_atm(recnum)-p001) then
          write (nu_diag,*) &
-         'ERROR: CICE: Atm forcing not available at hcdate =', hcdate
+         'ERROR: Atm forcing not available at hcdate =', hcdate
          write (nu_diag,*) &
-         'ERROR: CICE: myear, yday ,msec = ', myear, yday, msec
+         'ERROR: myear, yday, msec = ', myear, yday, msec
          call abort_ice ('ERROR: CICE stopped')
       endif
 
@@ -4574,7 +4574,7 @@
       if (trim(atm_data_format) == 'nc') then
 
          if (read6 .and. my_task == master_task) write(nu_diag,*) &
-           'CICE: Atm. read: = ',jday_atm(recnum), jday_atm(recnum+1)
+           'Atm. read = ',jday_atm(recnum), jday_atm(recnum+1)
 
          fieldname = 'airtmp'
          call read_data_nc_hycom (read6, recnum, &
@@ -4612,8 +4612,7 @@
       ! Interpolate
       if (debug_forcing) then
         if (my_task == master_task) then
-           write(nu_diag,*)'CICE: Atm. interpolate: = ',&
-                                  hcdate, c1intp, c2intp
+           write(nu_diag,*)'Atm. interpolate = ',hcdate, c1intp, c2intp
         endif
       endif
       call interpolate_data (Tair_data, Tair)
@@ -5435,7 +5434,7 @@
             else
 #ifdef USE_NETCDF
                if (wave_spec_timefreq) then
-                  ! NetCDF file contains its own 'time' and 'wavefreq' variables (see wave_spec_files)
+                  ! NetCDF file contains its own 'time' and 'f' (wave frequencies) variables (see wave_spec_files)
                   call wave_spec_data_timefreq
                else
                   ! Default 6-hourly records and hardwired wave frequencies
@@ -5461,8 +5460,8 @@
 !   One-time initialization of the wave frequency grid.  It must run after
 !   alloc_arrays_column, where wavefreq and dwavefreq are allocated.
 !
-!   If wave_spec_file has its own 'time' and 'wavefreq' (wave_spec_timefreq),
-!   the frequencies are read from it and the bin widths derived from them.
+!   If wave_spec_file has its own 'time' and 'f' (wave_spec_timefreq),
+!   the frequencies (f) are read from it and the bin widths derived from them.
 !   Otherwise the hardwired icepack frequencies are used.
 !
       subroutine init_wave_spec
@@ -5500,7 +5499,7 @@
 
          call ice_open_nc(wave_spec_file, fid)
          call ice_get_ncvarsize(fid, 'efreq', dimlens)
-         call ice_get_ncvarsize(fid, 'wavefreq', nfreq_file)
+         call ice_get_ncvarsize(fid, 'f', nfreq_file)
          call broadcast_array(dimlens, master_task)
          call broadcast_scalar(nfreq_file, master_task)
 
@@ -5518,13 +5517,13 @@
          if (dimlens(3) /= nfreq .or. nfreq_file /= nfreq) then
             if (my_task == master_task) then
                write (nu_diag,*) subname,' ERROR: nfreq = ',nfreq,' but in ',trim(wave_spec_file), &
-                  ' efreq has ',dimlens(3),' and wavefreq ',nfreq_file,' wave frequencies'
+                  ' efreq has ',dimlens(3),' and f ',nfreq_file,' wave frequencies'
             endif
-            call abort_ice (subname//'ERROR: nfreq does not match efreq and wavefreq in '// &
+            call abort_ice (subname//'ERROR: nfreq does not match efreq and f in '// &
                trim(wave_spec_file), file=__FILE__, line=__LINE__)
          endif
 
-         call ice_read_vec_nc(fid, nfreq, 'wavefreq', wavefreq, local_debug)
+         call ice_read_vec_nc(fid, nfreq, 'f', wavefreq, local_debug)
          call ice_close_nc(fid)
 
          call broadcast_array(wavefreq, master_task)
@@ -5550,8 +5549,8 @@
          ! Write diag info
          if (my_task == master_task) then
             write (nu_diag,*) ' '
-            write (nu_diag,*) 'CICE: wavefreq  = ',wavefreq (:)
-            write (nu_diag,*) 'CICE: dwavefreq = ',dwavefreq(:)
+            write (nu_diag,*) 'wavefreq  = ',wavefreq (:)
+            write (nu_diag,*) 'dwavefreq = ',dwavefreq(:)
          endif                  ! master_task
 
 #else
@@ -5577,7 +5576,7 @@
 
 !=======================================================================
 !
-!   Decide how wave_spec_file is read.  If it has its own 'time' and 'wavefreq'
+!   Decide how wave_spec_file is read.  If it has its own 'time' and 'f'
 !   variables (wave_spec_timefreq), read the number of wave frequencies and the
 !   time axis here; the frequencies are read later by init_wave_spec, directly
 !   into the arrays that nfreq dimensions.  Otherwise the default
@@ -5613,8 +5612,8 @@
          secday              ! seconds per day
 
       logical (kind=log_kind) :: &
-         has_time    , & ! wave_spec_file has a 'time' variable
-         has_wavefreq    ! wave_spec_file has a 'wavefreq' variable
+         has_time , & ! wave_spec_file has a 'time' variable
+         has_f        ! wave_spec_file has a 'f' variable (wave frequencies)
 
       character(len=*), parameter :: subname = '(wave_spec_files)'
 
@@ -5630,22 +5629,22 @@
       call ice_open_nc(wave_spec_file, fid)
 
       ! Does the file carry its own time and frequency axes?
-      has_time     = ice_nc_has_var(fid, 'time')
-      has_wavefreq = ice_nc_has_var(fid, 'wavefreq')
-      call broadcast_scalar(has_time,     master_task)
-      call broadcast_scalar(has_wavefreq, master_task)
-      wave_spec_timefreq = has_time .and. has_wavefreq
+      has_time = ice_nc_has_var(fid, 'time')
+      has_f    = ice_nc_has_var(fid, 'f')    ! wave frequencies
+      call broadcast_scalar(has_time, master_task)
+      call broadcast_scalar(has_f,    master_task)
+      wave_spec_timefreq = has_time .and. has_f
 
       if (.not. wave_spec_timefreq) then
          call ice_close_nc(fid)
          if (my_task == master_task) then
             write (nu_diag,*) ' '
-            if (has_time .or. has_wavefreq) then
+            if (has_time .or. has_f) then
                write (nu_diag,*) subname,' WARNING: ',trim(wave_spec_file), &
-                  ' has only one of the variables time and wavefreq'
+                  ' has only one of the variables time and f'
             endif
-            write (nu_diag,*) 'CICE: Wave spectrum file     = ',trim(wave_spec_file)
-            write (nu_diag,*) 'CICE: no time and wavefreq variable: Assume 6-hourly records, icepack frequencies'
+            write (nu_diag,*) 'Wave spectrum file     = ',trim(wave_spec_file)
+            write (nu_diag,*) '  no time and f variable: Assume 6-hourly records, icepack frequencies'
          endif
          return
       endif
@@ -5697,13 +5696,13 @@
       ! Write diag info
       if (my_task == master_task) then
          write (nu_diag,*) ' '
-         write (nu_diag,*) 'CICE: Wave spectrum file     = ',trim(wave_spec_file)
-         write (nu_diag,*) 'CICE: Wave freq. (nfreq)     = ',nfreq
-         write (nu_diag,'(a,i4.4,a,i2.2,a,i2.2,a,i5,a)') ' CICE: Wave time reference    = ', &
+         write (nu_diag,*) 'Wave spectrum file     = ',trim(wave_spec_file)
+         write (nu_diag,*) 'Wave freq. (nfreq)     = ',nfreq
+         write (nu_diag,'(a,i4.4,a,i2.2,a,i2.2,a,i5,a)') ' Wave time reference    = ', &
             refdate_wave(1),'-',refdate_wave(2),'-',refdate_wave(3),' ',refdate_wave(4),' s'
-         write (nu_diag,*) 'CICE: Wave Start (days)      = ',jday_wave(1)
-         write (nu_diag,*) 'CICE: Wave End (days)        = ',jday_wave(Njday_wave)
-         write (nu_diag,*) 'CICE: Total wave timesteps   = ',Njday_wave
+         write (nu_diag,*) 'Wave Start (days)      = ',jday_wave(1)
+         write (nu_diag,*) 'Wave End (days)        = ',jday_wave(Njday_wave)
+         write (nu_diag,*) 'Total wave timesteps   = ',Njday_wave
       endif                     ! master_task
 
       ! Wave fracture at the record times (dt_wavefracture = 0) needs an
@@ -5805,8 +5804,8 @@
 
          ! Check that the current time is covered by the forcing
          if ( hcdate>jday_wave(recnum+1)+p001 .or. hcdate<jday_wave(recnum)-p001) then
-            write (nu_diag,*)'ERROR: CICE: Wave forcing not available at hcdate =',hcdate
-            write (nu_diag,*)'ERROR: CICE: myear, yday ,msec = ',myear, yday, msec
+            write (nu_diag,*)'ERROR: Wave forcing not available at hcdate = ',hcdate
+            write (nu_diag,*)'ERROR: myear, yday, msec = ',myear, yday, msec
             call abort_ice (subname//'ERROR: wave forcing time out of range', &
                file=__FILE__, line=__LINE__)
          endif
@@ -5843,7 +5842,7 @@
                wavefrac_interval = (jday_wave(nlast) - tstart)*secday
             endif
             if (my_task == master_task .and. debug_forcing) &
-               write(nu_diag,*) 'CICE: Wave fracture at record: ',jday_wave(nlast), &
+               write(nu_diag,*) 'Wave fracture at record: ',jday_wave(nlast), &
                                 ' over (s): ',wavefrac_interval
          endif
       endif
@@ -5856,9 +5855,9 @@
          if (my_task == master_task) then
             if (Njday_wave == 1) then
                ! Special case: one single wave field
-               write(nu_diag,*) 'CICE: Wave read: = ',jday_wave(recnum)
+               write(nu_diag,*) 'Wave read = ',jday_wave(recnum)
             else
-               write(nu_diag,*) 'CICE: Wave read: = ',jday_wave(recnum), jday_wave(recnum+1)
+               write(nu_diag,*) 'Wave read = ',jday_wave(recnum), jday_wave(recnum+1)
             endif
          endif
 
@@ -5883,8 +5882,7 @@
       ! Interpolate
       if (debug_forcing) then
         if (my_task == master_task) then
-           write(nu_diag,*)'CICE: Wave interpolate: = ',&
-                                  hcdate, c1intp, c2intp
+           write(nu_diag,*)'Wave interpolate: = ',hcdate, c1intp, c2intp
         endif
       endif
       call interpolate_wavespec_data (wave_spectrum_data, wave_spectrum)
