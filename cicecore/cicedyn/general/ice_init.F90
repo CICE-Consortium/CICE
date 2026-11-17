@@ -2019,7 +2019,7 @@
       endif
 
       !-----------------------------------------------------------------
-      ! A wave spectrum file with its own 'time' and 'f' variables
+      ! A wave spectrum file with its own 'time' and 'wavefreq' variables
       ! defines nfreq and the frequencies, so check the file here, before
       ! any array dimensioned with nfreq is allocated.
       !-----------------------------------------------------------------
@@ -2029,7 +2029,7 @@
       ! dt_wavefracture = 0 needs a wave forcing time axis (checked in wave_spec_files)
       if (tr_fsd .and. dt_wavefracture == c0 .and. .not. (wave_spec .and. wave_spec_timefreq)) then
          if (my_task == master_task) then
-            write (nu_diag,*) 'ERROR: dt_wavefracture = 0 requires a wave_spec_file with time and wavefreq'
+            write (nu_diag,*) 'ERROR: dt_wavefracture = 0 requires a wave_spec_file with time and wavefreq variables'
          endif
          abort_list = trim(abort_list)//":69"
       endif
@@ -2042,7 +2042,6 @@
                   "WARNING: tr_fsd=F but wave_spec_type/=none " // &
                   "- wave spectrum not used"
             endif
-            abort_list = trim(abort_list)//":71"
          endif
       endif
 
