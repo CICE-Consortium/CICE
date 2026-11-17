@@ -164,8 +164,8 @@
          debug_forcing               ! prints forcing debugging output if true
 
       real (dbl_kind), dimension(:), allocatable, public :: &
-         jday_atm   , & ! time vector from atm forcing files (days since 1900-12-31 like HYCOM)
-         jday_wave      ! time vector from wave forcing file (days since 1900-12-31 like HYCOM)
+         jday_atm   , & ! time vector from atm forcing file  (days since refdate_atm)
+         jday_wave      ! time vector from wave forcing file (days since refdate_wave)
 
       integer (kind=int_kind), public :: &
          Njday_atm  = 0 , & ! Number of atm forcing timesteps
@@ -189,19 +189,21 @@
            oldrecnum4X = 0 , & !
            oldrecnum_wave = 0  ! old record number in the wave forcing file
 
-      ! Reference dates of the atm and wave forcing time axes, from the 'units'
-      ! attribute of the time variable: year, month, day, seconds of the day.
-      ! jday_atm and jday_wave are held in days since these dates.
+      ! Reference dates for the atm and wave forcing time axes
+      ! jday_atm and jday_wave are days since refdate_atm and refdate_wave
       integer (kind=int_kind), dimension(4) :: &
-           refdate_atm  = 0, &
-           refdate_wave = 0
+           refdate_atm  = 0, & ! refdate_atm(1:4) = year, month, day, seconds
+           refdate_wave = 0    ! as for refdate_atm
 
       logical (kind=log_kind) :: &
          wave_spec_initialized = .false.  ! true once the frequency grid is set
 
+      logical (kind=log_kind) :: &
+         wave_spec_legacy_read = .false.  ! true once wave_spec_data has been called
+
       logical (kind=log_kind), public :: &
-         wave_spec_timefreq = .false.  ! wave_spec_file has its own 'time' and 'f'
-                                       ! 'f': Wave frequencies read by wave_spec_data_timefreq
+         wave_spec_timefreq = .false.  ! wave_spec_file has its own 'time' and 'wavefreq'
+                                       ! 'wavefreq': wave frequencies read by wave_spec_data_timefreq
 
       real (dbl_kind) :: &
          frestore        ! restoring value based on trestore (0.-1.)
@@ -1120,7 +1122,7 @@
 !  It is not bounded by start of year nor end of year
 !  Data must be accesible both before and after (or on) the point in time
 !    Assume increasing timeaxis within the forcing files, but they do not
-!      have to be equal spaced. Read time vector from "MT" in "init_hycom"
+!      have to be equal spaced. Read time vector from "MT"/"time" in "init_hycom"
 !
 ! Adapted by Mads Hvid Ribergaard, DMI from read_data_nc
 
@@ -4445,6 +4447,8 @@
       real (kind=dbl_kind) :: &
             ref_sec_per_unit, & ! length of one time unit in the file (s)
             secday              ! seconds per day
+      character(len=char_len) :: &
+            timevar             ! time variable (MT or time)
       character(len=*), parameter :: subname = '(hycom_atm_files)'
 
       if (local_debug .and. my_task == master_task) write(nu_diag,*) subname,'fdbg start'
@@ -4459,7 +4463,12 @@
 
       ! Read time vector from "tair_file"
       call ice_open_nc(tair_file, fid)
-      call ice_get_ncvarsize(fid,'MT',Njday_atm)
+      if (ice_nc_has_var(fid, 'MT')) then
+        timevar = 'MT'
+      else
+        timevar = 'time'
+      endif
+      call ice_get_ncvarsize(fid,trim(timevar),Njday_atm)
       call broadcast_scalar(Njday_atm,master_task)
 
       if (Njday_atm < 2) then
@@ -4469,8 +4478,8 @@
       endif
 
       allocate(jday_atm(Njday_atm))
-      call ice_read_vec_nc(fid,Njday_atm,'MT',jday_atm, .true.)
-      call ice_read_nc_refdate(fid,'MT',refdate_atm(1),refdate_atm(2),refdate_atm(3), &
+      call ice_read_vec_nc(fid,Njday_atm,trim(timevar),jday_atm, .true.)
+      call ice_read_nc_refdate(fid,trim(timevar),refdate_atm(1),refdate_atm(2),refdate_atm(3), &
                                refdate_atm(4),ref_sec_per_unit)
       call ice_close_nc(fid)
       call broadcast_array(jday_atm, master_task)
@@ -5434,11 +5443,14 @@
             else
 #ifdef USE_NETCDF
                if (wave_spec_timefreq) then
-                  ! NetCDF file contains its own 'time' and 'f' (wave frequencies) variables (see wave_spec_files)
+                  ! NetCDF file contains its own 'time' and 'wavefreq' variables (see wave_spec_files)
                   call wave_spec_data_timefreq
-               else
-                  ! Default 6-hourly records and hardwired wave frequencies
+               elseif (.not. wave_spec_legacy_read) then
+                  ! Default 6-hourly records and hardwired wave frequencies.
+                  ! Read on the first call only, so the spectrum stays constant
+                  ! in time as before, although the drivers now call get_wave_spec every step
                   call wave_spec_data
+                  wave_spec_legacy_read = .true.
                endif
 #else
                write (nu_diag,*) "wave spectrum file not available, requires cpp USE_NETCDF"
@@ -5460,8 +5472,8 @@
 !   One-time initialization of the wave frequency grid.  It must run after
 !   alloc_arrays_column, where wavefreq and dwavefreq are allocated.
 !
-!   If wave_spec_file has its own 'time' and 'f' (wave_spec_timefreq),
-!   the frequencies (f) are read from it and the bin widths derived from them.
+!   If wave_spec_file has its own 'time' and 'wavefreq' (wave_spec_timefreq),
+!   the frequencies (wavefreq) are read from it and the bin widths derived from them.
 !   Otherwise the hardwired icepack frequencies are used.
 !
       subroutine init_wave_spec
@@ -5499,7 +5511,7 @@
 
          call ice_open_nc(wave_spec_file, fid)
          call ice_get_ncvarsize(fid, 'efreq', dimlens)
-         call ice_get_ncvarsize(fid, 'f', nfreq_file)
+         call ice_get_ncvarsize(fid, 'wavefreq', nfreq_file)
          call broadcast_array(dimlens, master_task)
          call broadcast_scalar(nfreq_file, master_task)
 
@@ -5517,13 +5529,13 @@
          if (dimlens(3) /= nfreq .or. nfreq_file /= nfreq) then
             if (my_task == master_task) then
                write (nu_diag,*) subname,' ERROR: nfreq = ',nfreq,' but in ',trim(wave_spec_file), &
-                  ' efreq has ',dimlens(3),' and f ',nfreq_file,' wave frequencies'
+                  ' efreq has ',dimlens(3),' and wavefreq ',nfreq_file,' wave frequencies'
             endif
-            call abort_ice (subname//'ERROR: nfreq does not match efreq and f in '// &
+            call abort_ice (subname//'ERROR: nfreq does not match efreq and wavefreq in '// &
                trim(wave_spec_file), file=__FILE__, line=__LINE__)
          endif
 
-         call ice_read_vec_nc(fid, nfreq, 'f', wavefreq, local_debug)
+         call ice_read_vec_nc(fid, nfreq, 'wavefreq', wavefreq, local_debug)
          call ice_close_nc(fid)
 
          call broadcast_array(wavefreq, master_task)
@@ -5576,7 +5588,7 @@
 
 !=======================================================================
 !
-!   Decide how wave_spec_file is read.  If it has its own 'time' and 'f'
+!   Decide how wave_spec_file is read.  If it has its own 'time' and 'wavefreq'
 !   variables (wave_spec_timefreq), read the number of wave frequencies and the
 !   time axis here; the frequencies are read later by init_wave_spec, directly
 !   into the arrays that nfreq dimensions.  Otherwise the default
@@ -5613,7 +5625,7 @@
 
       logical (kind=log_kind) :: &
          has_time , & ! wave_spec_file has a 'time' variable
-         has_f        ! wave_spec_file has a 'f' variable (wave frequencies)
+         has_wavefreq ! wave_spec_file has a 'wavefreq' variable
 
       character(len=*), parameter :: subname = '(wave_spec_files)'
 
@@ -5629,22 +5641,20 @@
       call ice_open_nc(wave_spec_file, fid)
 
       ! Does the file carry its own time and frequency axes?
-      has_time = ice_nc_has_var(fid, 'time')
-      has_f    = ice_nc_has_var(fid, 'f')    ! wave frequencies
-      call broadcast_scalar(has_time, master_task)
-      call broadcast_scalar(has_f,    master_task)
-      wave_spec_timefreq = has_time .and. has_f
+      has_time     = ice_nc_has_var(fid, 'time')
+      has_wavefreq = ice_nc_has_var(fid, 'wavefreq')
+      call broadcast_scalar(has_time,     master_task)
+      call broadcast_scalar(has_wavefreq, master_task)
+      wave_spec_timefreq = has_time .and. has_wavefreq
 
       if (.not. wave_spec_timefreq) then
          call ice_close_nc(fid)
          if (my_task == master_task) then
-            write (nu_diag,*) ' '
-            if (has_time .or. has_f) then
-               write (nu_diag,*) subname,' WARNING: ',trim(wave_spec_file), &
-                  ' has only one of the variables time and f'
-            endif
             write (nu_diag,*) 'Wave spectrum file     = ',trim(wave_spec_file)
-            write (nu_diag,*) '  no time and f variable: Assume 6-hourly records, icepack frequencies'
+            write (nu_diag,*) '  time and/or wavefreq variable not found: icepack wave frequencies used'
+            write (nu_diag,*) 'WARNING: wave spectrum read ONCE, at the start time,', &
+               ' and kept constant during the run'
+            write (nu_diag,*) ' '
          endif
          return
       endif
@@ -5852,12 +5862,12 @@
       if (istep==1 .or. oldrecnum_wave /= recnum) read6 = .true.
 
       if (read6) then
-         if (my_task == master_task) then
+         if (my_task == master_task .and. debug_forcing) then
             if (Njday_wave == 1) then
                ! Special case: one single wave field
-               write(nu_diag,*) 'Wave read = ',jday_wave(recnum)
+               write(nu_diag,*)subname,' Wave read = ',jday_wave(recnum)
             else
-               write(nu_diag,*) 'Wave read = ',jday_wave(recnum), jday_wave(recnum+1)
+               write(nu_diag,*)subname,' Wave read = ',jday_wave(recnum), jday_wave(recnum+1)
             endif
          endif
 
@@ -5985,7 +5995,7 @@
       read6 = .false.
       if (istep==1 .or. oldrecnum .ne. recnum) read6 = .true.
 
-      ! only read when the record changes (read6 used to be computed and ignored)
+      ! only read when the record changes
       if (read6) then
          !-------------------------------------------------------------------
          ! File is NETCDF
