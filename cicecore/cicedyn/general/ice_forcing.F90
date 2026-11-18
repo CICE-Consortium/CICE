@@ -5865,9 +5865,9 @@
          if (my_task == master_task .and. debug_forcing) then
             if (Njday_wave == 1) then
                ! Special case: one single wave field
-               write(nu_diag,*)' Wave read = ',jday_wave(recnum)
+               write(nu_diag,*)'Wave read = ',jday_wave(recnum)
             else
-               write(nu_diag,*)' Wave read = ',jday_wave(recnum), jday_wave(recnum+1)
+               write(nu_diag,*)'Wave read = ',jday_wave(recnum), jday_wave(recnum+1)
             endif
          endif
 
