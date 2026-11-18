@@ -198,7 +198,7 @@ The mean tracer value in sea ice is
 Thus, volume content variables are extensive, while the tracers themselves are intensive.
 
 Surface quantities
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Surface quantities such as temperature are intensive and treated similarly to volume tracers, with integrals taken over
 the desired surface area rather than the volume.  For example,
@@ -229,7 +229,7 @@ later divided by the accumulated ice area fraction (or volume) in CICE.
 
 
 Tracer hierarchies
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 For tracers that are carried on other tracers, such as melt ponds, averages over different areas of a given cell differ in the denominator.
 For melt ponds not carried on the level-ice area, for example, the average pond depths over the grid cell area, the ice area, and the ponded
