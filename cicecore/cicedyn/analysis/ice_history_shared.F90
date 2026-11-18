@@ -35,7 +35,7 @@
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density, &
-                get_histfreq_file_period
+                get_histfile_freq_period
 
       integer (kind=int_kind), public :: history_precision
 
@@ -62,16 +62,16 @@
          hist_suffix(max_nstrm)  ! appended to history_file in filename
 
       character (len=char_len), public :: &
-         histfreq_file(max_nstrm)    ! 'x','1','h','d','m','y', same as histfreq.
+         histfile_freq(max_nstrm)    ! 'x','1','h','d','m','y', same as histfreq.
                                      ! A new history file is started every
-                                     ! histfreq_file_n timesteps, hours, days,
+                                     ! histfile_freq_n timesteps, hours, days,
                                      ! months or years; 'x' for one sample
                                      ! per file.  This groups samples into
                                      ! files and does not change how often a
                                      ! sample is written, which is histfreq.
 
       integer (kind=int_kind), public :: &
-         histfreq_file_n(max_nstrm)  ! number of histfreq_file intervals
+         histfile_freq_n(max_nstrm)  ! number of histfile_freq intervals
                                      ! in each history file
 
       integer (kind=int_kind), public :: &
@@ -791,12 +791,12 @@
 
 !=======================================================================
 ! Identify the history file a time sample of stream ns belongs in, based
-! on histfreq_file(ns) and histfreq_file_n(ns).
+! on histfile_freq(ns) and histfile_freq_n(ns).
 !
-! lperiod is the number of whole histfreq_file_n intervals of histfreq_file
+! lperiod is the number of whole histfile_freq_n intervals of histfile_freq
 ! (timesteps, hours, days, months or years) elapsed since the histfreq_base
 ! reference time.  A new file is started when it changes.  It is -1 for
-! histfreq_file = 'x', so every sample gets its own file.
+! histfile_freq = 'x', so every sample gets its own file.
 !
 ! An average is written on the timestep after the last one it covers, so
 ! except for timestep and hourly streams an averaged sample counts towards
@@ -806,7 +806,7 @@
 ! to show that the interval has changed.  Instantaneous, hourly and
 ! timestep samples count towards the current time and period_ends is false.
 
-      subroutine get_histfreq_file_period(ns, lperiod, period_ends)
+      subroutine get_histfile_freq_period(ns, lperiod, period_ends)
 
       use ice_calendar, only: myear, mmonth, mday, msec, istep1, dt, &
                               histfreq, histfreq_base, year_init, month_init, &
@@ -823,12 +823,12 @@
       logical (kind=log_kind) :: lagged   ! sample counts towards one step earlier
       character (len=1) :: cfreq
 
-      character(len=*), parameter :: subname = '(get_histfreq_file_period)'
+      character(len=*), parameter :: subname = '(get_histfile_freq_period)'
 
       lperiod = -1
       period_ends = .false.
 
-      cfreq = histfreq_file(ns)(1:1)
+      cfreq = histfile_freq(ns)(1:1)
       if (cfreq == 'x' .or. cfreq == 'X') return
 
       lagged = hist_avg(ns) .and. histfreq(ns) /= '1' .and. &
@@ -879,20 +879,20 @@
          case ('1')
             period_index = astep
          case default
-            write(nu_diag,*) subname,' ERROR: unknown histfreq_file ',trim(histfreq_file(ns))
-            call abort_ice(subname//' ERROR: unknown histfreq_file '//trim(histfreq_file(ns)), &
+            write(nu_diag,*) subname,' ERROR: unknown histfile_freq ',trim(histfile_freq(ns))
+            call abort_ice(subname//' ERROR: unknown histfile_freq '//trim(histfile_freq(ns)), &
                            file=__FILE__, line=__LINE__)
             period_index = -1
          end select
 
          ! Floor division so a sample just before the reference time does not
          ! land in the same file as one just after it.
-         period_index = (period_index - modulo(period_index, histfreq_file_n(ns))) &
-                        / histfreq_file_n(ns)
+         period_index = (period_index - modulo(period_index, histfile_freq_n(ns))) &
+                        / histfile_freq_n(ns)
 
          end function period_index
 
-      end subroutine get_histfreq_file_period
+      end subroutine get_histfile_freq_period
 
 !=======================================================================
 
@@ -914,8 +914,8 @@
       character (len=char_len) :: cstream, loption
       character (len=5) :: cinst          ! '_inst' for instantaneous streams
       character (len=char_len) :: cfreqn  ! '_' histfreq_n histfreq, e.g. '_1d'
-      character (len=1) :: cfile, cfreq   ! histfreq_file, histfreq (lower case)
-      logical (kind=log_kind) :: multi_sample ! file holds a histfreq_file interval
+      character (len=1) :: cfile, cfreq   ! histfile_freq, histfreq (lower case)
+      logical (kind=log_kind) :: multi_sample ! file holds a histfile_freq interval
       character (len=char_len_long), save :: ncfile_last(max_nstrm) = 'UnDefineD'
       character(len=*), parameter :: subname = '(construct_filename)'
 
@@ -963,12 +963,12 @@
               endif
            endif
 
-           ! A file that groups several samples, because histfreq_file and
-           ! histfreq_file_n differ from histfreq and histfreq_n, is named
-           ! for the histfreq_file interval it holds rather than for a single
+           ! A file that groups several samples, because histfile_freq and
+           ! histfile_freq_n differ from histfreq and histfreq_n, is named
+           ! for the histfile_freq interval it holds rather than for a single
            ! sample.  The date is that of the first sample in the file, the
-           ! one that creates it, given to the precision of histfreq_file.
-           cfile = histfreq_file(ns)(1:1)
+           ! one that creates it, given to the precision of histfile_freq.
+           cfile = histfile_freq(ns)(1:1)
            cfreq = histfreq(ns)(1:1)
            if (cfile == 'X') cfile = 'x'
            if (cfile == 'Y') cfile = 'y'
@@ -980,7 +980,7 @@
            if (cfreq == 'D') cfreq = 'd'
            if (cfreq == 'H') cfreq = 'h'
            multi_sample = cfile /= 'x' .and. cfreq /= 'g' .and. &
-                          (cfile /= cfreq .or. histfreq_file_n(ns) /= histfreq_n(ns))
+                          (cfile /= cfreq .or. histfile_freq_n(ns) /= histfreq_n(ns))
 
            cinst = ''
            if (.not. hist_avg(ns)) cinst = '_inst'

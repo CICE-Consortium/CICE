@@ -72,8 +72,8 @@
 
       ! The following specify the history file a stream has open,
       ! together with its name, how many time samples have been
-      ! written to it, and which histfreq_file interval those samples are from.
-      ! The file stays open until the histfreq_file interval changes, so that
+      ! written to it, and which histfile_freq interval those samples are from.
+      ! The file stays open until the histfile_freq interval changes, so that
       ! one file holds every sample from that interval.
       ! ice_write_hist_close closes whatever is still open when a run ends.
       type(file_desc_t)             :: File_hist(max_nstrm)
@@ -83,7 +83,7 @@
       integer (kind=int_kind)       :: period_hist(max_nstrm) = -1
 
       ! A history file that had not yet received all the samples for
-      ! its histfreq_file interval when the restart was written is resumed
+      ! its histfile_freq interval when the restart was written is resumed
       ! rather than replaced. The restart file records its name and
       ! how many records it held at that point.
       character (len=char_len_long) :: resume_fname(max_nstrm) = ''
@@ -227,30 +227,30 @@
 
       ! Decide whether this call writes to the file already open for this
       ! stream or creates a new one.  Initial condition and history restart
-      ! files always hold a single time sample, whatever histfreq_file says.
+      ! files always hold a single time sample, whatever histfile_freq says.
       use_period = .not. (write_ic .or. write_histrest_now)
 
       ! lperiod specifies which file this sample goes in.  A new file is started
-      ! when it changes.  histfreq_file and histfreq_file_n set it, see
-      ! get_histfreq_file_period.  It is -1 for histfreq_file = 'x', so every
+      ! when it changes.  histfile_freq and histfile_freq_n set it, see
+      ! get_histfile_freq_period.  It is -1 for histfile_freq = 'x', so every
       ! sample gets its own file.  period_ends is true if this is the last
       ! sample of its file, which is then closed as soon as the sample is
       ! written instead of waiting for the next sample.
       lperiod = -1
       period_ends = .false.
       if (use_period) then
-         call get_histfreq_file_period(ns, lperiod, period_ends)
+         call get_histfile_freq_period(ns, lperiod, period_ends)
       endif
 
       ! The sample goes either into the file this stream already has open or
-      ! into a new file.  With histfreq_file 'x' no file is ever left open.
+      ! into a new file.  With histfile_freq 'x' no file is ever left open.
       newfile = .true.
       resumed = .false.
       if (use_period .and. file_open_hist(ns)) then
          if (lperiod /= -1 .and. lperiod == period_hist(ns)) then
             newfile = .false.
          else
-            ! This sample is from a different histfreq_file interval, so the open file
+            ! This sample is from a different histfile_freq interval, so the open file
             ! is closed before the new one is created.  An averaged stream
             ! (other than timestep or hourly) is normally closed earlier, when its last sample
             ! is written.
@@ -277,7 +277,7 @@
                   ' does not belong to this case, so it is not resumed;'// &
                   ' starting a new file'
             else
-               ! The file the restart names already holds its whole histfreq_file
+               ! The file the restart names already holds its whole histfile_freq
                ! interval, and this sample is from the next one.
                write(nu_diag,*) subname,' NOTE ',trim(resume_fname(ns)), &
                   ' covers a period that has ended, so it is not resumed;'// &
@@ -1612,7 +1612,7 @@
             write(nu_diag,*) subname,' Finished writing ',trim(ncfile)
          endif
       elseif (period_ends) then
-         ! This was the last sample of its histfreq_file interval.
+         ! This was the last sample of its histfile_freq interval.
          call pio_closefile(File)
          file_open_hist(ns) = .false.
          nrec_hist(ns)      = 0
@@ -1621,7 +1621,7 @@
                  ' with ',nrec,' time samples'
          endif
       else
-         ! The file is kept open for the next sample of this histfreq_file interval.
+         ! The file is kept open for the next sample of this histfile_freq interval.
          ! PIO holds each sample on the io tasks and writes them all out when
          ! the file is closed.
          File_hist(ns)      = File
