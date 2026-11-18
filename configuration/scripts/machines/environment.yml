@@ -3,6 +3,8 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
+# Core Runtime Environment
+  - python=3.12
 # Build dependencies
   - compilers
   - netcdf-fortran
@@ -18,6 +20,3 @@ dependencies:
   - basemap=1.4.1
   - basemap-data
   - basemap-data-hires
-# Python dependencies for building the HTML documentation
-  - sphinx
-  - sphinxcontrib-bibtex
