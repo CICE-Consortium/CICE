@@ -2014,7 +2014,7 @@
                write (nu_diag,*) 'ERROR: dt_wavefracture must be 0 or a positive multiple of dt'
                write (nu_diag,*) 'ERROR: dt_wavefracture, dt = ',dt_wavefracture, dt
             endif
-            abort_list = trim(abort_list)//":69"
+            abort_list = trim(abort_list)//":71"
          endif
       endif
 
@@ -2031,7 +2031,7 @@
          if (my_task == master_task) then
             write (nu_diag,*) 'ERROR: dt_wavefracture = 0 requires a wave_spec_file with time and wavefreq variables'
          endif
-         abort_list = trim(abort_list)//":69"
+         abort_list = trim(abort_list)//":72"
       endif
 
       ! Check if wave_spec_type is set but no floe size distribution (tr_fsd)
@@ -2075,7 +2075,7 @@
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: unknown grid_ice: '//trim(grid_ice)
          endif
-         abort_list = trim(abort_list)//":64"
+         abort_list = trim(abort_list)//":73"
       endif
 
       grid_atm_thrm = 'T'
