@@ -35,6 +35,9 @@
 
       private
       public :: define_hist_field, accum_hist_field, icefields_nml, construct_filename, ice_brine_density
+      ! ⚠ by name, not through the generic interface: its argument list is the
+      ! same shape as accum_hist_field_2D_prod's and the two cannot be resolved apart
+      public :: accum_hist_field_2D_speed
 
       integer (kind=int_kind), public :: history_precision
 
@@ -1061,7 +1064,7 @@
 !     2009 Created by D. Bailey following POP
 !     2010 Generalized dimension of variables by N. Jeffery, E. Hunke
 
-      subroutine accum_hist_field_2D(id, iblk, field_accum, field)
+      subroutine accum_hist_field_2D(id, iblk, field_accum, field, mask)
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1085,6 +1088,13 @@
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
+      logical (kind=log_kind) :: wet
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
       character(len=*), parameter :: subname = '(accum_hist_field_2D)'
 
       !---------------------------------------------------------------
@@ -1103,7 +1113,12 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
              field(i,j,idns, iblk) = field(i,j,idns, iblk) + field_accum(i,j)
           endif
        enddo
@@ -1133,7 +1148,7 @@
 ! Taking the two factors instead costs one extra argument and removes the
 ! temporary, the fill loop and the wasted ghost-region arithmetic.
 
-      subroutine accum_hist_field_2D_prod(id, iblk, a, b, field)
+      subroutine accum_hist_field_2D_prod(id, iblk, a, b, field, mask)
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1156,6 +1171,13 @@
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
+      logical (kind=log_kind) :: wet
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
       character(len=*), parameter :: subname = '(accum_hist_field_2D_prod)'
 
        do ns = 1, nstreams
@@ -1170,7 +1192,12 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
              field(i,j,idns, iblk) = field(i,j,idns, iblk) + a(i,j)*b(i,j)
           endif
        enddo
@@ -1189,7 +1216,76 @@
 ! left swaps its two actuals, which is bit-for-bit because floating
 ! multiplication is commutative and exactly rounded.
 
-      subroutine accum_hist_field_2D_mul(id, iblk, a, s, field)
+      subroutine accum_hist_field_2D_speed(id, iblk, a, b, field, mask)
+
+      ! sqrt(a*a + b*b), accumulated without building it first.
+      !
+      ! ⚠ NOT in the generic interface: the argument list is the same shape as
+      ! accum_hist_field_2D_prod's, so the two cannot be resolved apart.  Call
+      ! it by name.
+
+      use ice_blocks, only: block, get_block
+      use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
+      use ice_grid, only: tmask
+
+      integer (int_kind), dimension(:), intent(in) :: &  ! max_nstrm
+         id                ! location in avail_fields array
+
+      integer (kind=int_kind), intent(in) :: iblk
+
+      real (kind=dbl_kind), intent(in) :: &
+         a(:,:), b(:,:)    ! the two components, block shaped
+
+      real (kind=dbl_kind), intent(inout) :: &
+         field(:,:,:,:)
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
+      type (block) :: &
+         this_block           ! block information for current block
+
+      integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
+
+      logical (kind=log_kind) :: wet
+
+      character(len=*), parameter :: subname = '(accum_hist_field_2D_speed)'
+
+       do ns = 1, nstreams
+       idns = id(ns)
+       if (idns > 0) then
+
+       this_block = get_block(blocks_ice(iblk),iblk)
+       ilo = this_block%ilo
+       ihi = this_block%ihi
+       jlo = this_block%jlo
+       jhi = this_block%jhi
+
+       do j = jlo, jhi
+       do i = ilo, ihi
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
+             field(i,j,idns, iblk) = field(i,j,idns, iblk) + &
+                sqrt((a(i,j)*a(i,j)) + (b(i,j)*b(i,j)))
+          endif
+       enddo
+       enddo
+
+       endif
+       enddo
+
+      end subroutine accum_hist_field_2D_speed
+
+!=======================================================================
+
+      subroutine accum_hist_field_2D_mul(id, iblk, a, s, field, mask)
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1215,6 +1311,13 @@
 
       integer (kind=int_kind) :: i,j, ilo, ihi, jlo, jhi, ns, idns
 
+      logical (kind=log_kind) :: wet
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
       character(len=*), parameter :: subname = '(accum_hist_field_2D_mul)'
 
        do ns = 1, nstreams
@@ -1229,7 +1332,12 @@
 
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
              field(i,j,idns, iblk) = field(i,j,idns, iblk) + a(i,j)*s
           endif
        enddo
@@ -1242,7 +1350,7 @@
 
 !=======================================================================
 
-      subroutine accum_hist_field_3D(id, iblk, ndim, field_accum, field)
+      subroutine accum_hist_field_3D(id, iblk, ndim, field_accum, field, mask)
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1269,6 +1377,13 @@
 
       integer (kind=int_kind) :: i,j,k, ilo, ihi, jlo, jhi, ns, idns
 
+      logical (kind=log_kind) :: wet
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
       character(len=*), parameter :: subname = '(accum_hist_field_3D)'
 
       !---------------------------------------------------------------
@@ -1288,7 +1403,12 @@
        do k = 1, ndim
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
              field(i,j,k,idns,iblk) = field(i,j,k,idns,iblk) + field_accum(i,j,k)
           endif
        enddo
@@ -1307,7 +1427,7 @@
 !     2009 Created by D. Bailey following POP
 !     2010 Generalized dimension of variables by N. Jeffery, E. Hunke
 
-      subroutine accum_hist_field_4D(id, iblk, ndim3, ndim4, field_accum, field)
+      subroutine accum_hist_field_4D(id, iblk, ndim3, ndim4, field_accum, field, mask)
 
       use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
@@ -1335,6 +1455,13 @@
 
       integer (kind=int_kind) :: i,j,k,n,ilo, ihi, jlo, jhi, ns, idns
 
+      logical (kind=log_kind) :: wet
+
+      ! Where to accumulate.  Absent means tmask, which is what every caller
+      ! wanted before this argument existed.
+      logical (kind=log_kind), intent(in), optional :: &
+         mask(:,:)
+
       character(len=*), parameter :: subname = '(accum_hist_field_4D)'
 
       !---------------------------------------------------------------
@@ -1355,7 +1482,12 @@
        do n = 1, ndim3
        do j = jlo, jhi
        do i = ilo, ihi
-          if (tmask(i,j,iblk)) then
+          if (present(mask)) then
+             wet = mask(i,j)
+          else
+             wet = tmask(i,j,iblk)
+          endif
+          if (wet) then
              field(i,j,n,k,idns,iblk) = field(i,j,n,k,idns,iblk) + field_accum(i,j,n,k)
           endif
        enddo

@@ -517,7 +517,8 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
-         worka(ilo:ihi,jlo:jhi) = c0
+         worka(:,:) = c0
+         workb(:,:) = c0
          if (tr_pond_lvl) then
             worka(ilo:ihi,jlo:jhi) = trcr(ilo:ihi,jlo:jhi,nt_alvl,iblk) * trcr(ilo:ihi,jlo:jhi,nt_apnd,iblk)
          elseif (tr_pond_sealvl .or. tr_pond_topo) then
@@ -560,7 +561,7 @@
 
 
          if (f_apeff (1:1) /= 'x') then
-             worka(ilo:ihi,jlo:jhi) = c0
+             worka(:,:) = c0
              do j = jlo, jhi
              do i = ilo, ihi
                 if (aice(i,j,iblk) > puny) worka(i,j) = apeff_ai(i,j,iblk) &

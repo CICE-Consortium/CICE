@@ -2388,6 +2388,9 @@
          jlo = this_block%jlo
          jhi = this_block%jhi
 
+         worka(:,:) = c0
+         workb(:,:) = c0
+
          if (allocated(a2D)) then
 
          workb(ilo:ihi,jlo:jhi) = aice_init(ilo:ihi,jlo:jhi,iblk)
@@ -2411,11 +2414,11 @@
          if (f_vvel   (1:1) /= 'x') &
              call accum_hist_field(n_vvel,   iblk, vvel(:,:,iblk), a2D)
          if (f_icespd   (1:1) /= 'x') then
-            worka(ilo:ihi,jlo:jhi) = sqrt( (uvel(ilo:ihi,jlo:jhi,iblk)*uvel(ilo:ihi,jlo:jhi,iblk)) + (vvel(ilo:ihi,jlo:jhi,iblk)*vvel(ilo:ihi,jlo:jhi,iblk)))
-            call accum_hist_field(n_icespd, iblk, worka, a2D)
+            call accum_hist_field_2D_speed(n_icespd, iblk, &
+                                           uvel(:,:,iblk), vvel(:,:,iblk), a2D)
          endif
          if (f_icedir(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
@@ -2430,11 +2433,11 @@
          if (f_vvelN   (1:1) /= 'x') &
              call accum_hist_field(n_vvelN,  iblk, vvelN(:,:,iblk), a2D)
          if (f_icespdN  (1:1) /= 'x') then
-            worka(ilo:ihi,jlo:jhi) = sqrt( (uvelN(ilo:ihi,jlo:jhi,iblk)*uvelN(ilo:ihi,jlo:jhi,iblk)) + (vvelN(ilo:ihi,jlo:jhi,iblk)*vvelN(ilo:ihi,jlo:jhi,iblk)))
-            call accum_hist_field(n_icespdN, iblk, worka, a2D)
+            call accum_hist_field_2D_speed(n_icespdN, iblk, &
+                                           uvelN(:,:,iblk), vvelN(:,:,iblk), a2D)
          endif
          if (f_icedirN(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uvelN(i,j,iblk)) > puny .or. abs(vvelN(i,j,iblk)) > puny) &
@@ -2449,11 +2452,11 @@
          if (f_vvelE   (1:1) /= 'x') &
              call accum_hist_field(n_vvelE,  iblk, vvelE(:,:,iblk), a2D)
          if (f_icespdE  (1:1) /= 'x') then
-            worka(ilo:ihi,jlo:jhi) = sqrt( (uvelE(ilo:ihi,jlo:jhi,iblk)*uvelE(ilo:ihi,jlo:jhi,iblk)) + (vvelE(ilo:ihi,jlo:jhi,iblk)*vvelE(ilo:ihi,jlo:jhi,iblk)))
-            call accum_hist_field(n_icespdE, iblk, worka, a2D)
+            call accum_hist_field_2D_speed(n_icespdE, iblk, &
+                                           uvelE(:,:,iblk), vvelE(:,:,iblk), a2D)
          endif
          if (f_icedirE(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uvelE(i,j,iblk)) > puny .or. abs(vvelE(i,j,iblk)) > puny) &
@@ -2468,11 +2471,11 @@
          if (f_vatm   (1:1) /= 'x') &
              call accum_hist_field(n_vatm,   iblk, vatm(:,:,iblk), a2D)
          if (f_atmspd   (1:1) /= 'x') then
-            worka(ilo:ihi,jlo:jhi) = sqrt( (uatm(ilo:ihi,jlo:jhi,iblk)*uatm(ilo:ihi,jlo:jhi,iblk)) + (vatm(ilo:ihi,jlo:jhi,iblk)*vatm(ilo:ihi,jlo:jhi,iblk)))
-            call accum_hist_field(n_atmspd, iblk, worka, a2D)
+            call accum_hist_field_2D_speed(n_atmspd, iblk, &
+                                           uatm(:,:,iblk), vatm(:,:,iblk), a2D)
          endif
          if (f_atmdir(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uatm(i,j,iblk)) > puny .or. abs(vatm(i,j,iblk)) > puny) &
@@ -2519,11 +2522,11 @@
          if (f_vocn   (1:1) /= 'x') &
              call accum_hist_field(n_vocn,   iblk, vocn(:,:,iblk), a2D)
          if (f_ocnspd   (1:1) /= 'x') then
-            worka(ilo:ihi,jlo:jhi) = sqrt( (uocn(ilo:ihi,jlo:jhi,iblk)*uocn(ilo:ihi,jlo:jhi,iblk)) + (vocn(ilo:ihi,jlo:jhi,iblk)*vocn(ilo:ihi,jlo:jhi,iblk)))
-            call accum_hist_field(n_ocnspd, iblk, worka, a2D)
+            call accum_hist_field_2D_speed(n_ocnspd, iblk, &
+                                           uocn(:,:,iblk), vocn(:,:,iblk), a2D)
          endif
          if (f_ocndir(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (abs(uocn(i,j,iblk)) > puny .or. abs(vocn(i,j,iblk)) > puny) &
@@ -2763,7 +2766,7 @@
                                                  fcondtop(:,:,iblk),aice(:,:,iblk), a2D)
 
          if (f_icepresent(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) worka(i,j) = c1
@@ -2775,7 +2778,7 @@
          ! 2D CMIP fields
 
          if (f_sitimefrac(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) worka(i,j) = c1
@@ -2860,7 +2863,7 @@
          endif
 
          if (f_sispeed(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk) &
@@ -2887,7 +2890,7 @@
 !        endif
 
          if (f_sidmasstranx(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = (rho_ice(i,j)*p5*(vice(i+1,j,iblk)+vice(i,j,iblk))*dyU(i,j,iblk) &
@@ -2899,7 +2902,7 @@
          endif
 
          if (f_sidmasstrany(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = (rho_ice(i,j)*p5*(vice(i,j+1,iblk)+vice(i,j,iblk))*dxU(i,j,iblk) &
@@ -2931,7 +2934,7 @@
          endif
 
          if (f_sihc(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do k = 1,nzilyr
            do j = jlo, jhi
            do i = ilo, ihi
@@ -2943,7 +2946,7 @@
          endif
 
          if (f_sisnhc(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do k = 1,nzslyr
            do j = jlo, jhi
            do i = ilo, ihi
@@ -3047,7 +3050,7 @@
          endif
 
          if (f_siflsenstop(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk)*fsens(i,j,iblk)
@@ -3073,13 +3076,13 @@
          endif
 
          if (f_sipr(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            if (tr_pond_topo) worka(:,:) = aice_init(:,:,iblk)*frain(:,:,iblk)
            call accum_hist_field(n_sipr, iblk, worka(:,:), a2D)
          endif
 
          if (f_sifb(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
@@ -3092,7 +3095,7 @@
          endif
 
          if (f_siflsaltbot(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
@@ -3122,7 +3125,7 @@
          endif
 
          if (f_siflfwbot(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
@@ -3142,7 +3145,7 @@
          endif
 
          if (f_siflfwdrain(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk)*(melts(i,j,iblk)+meltt(i,j,iblk))
@@ -3168,7 +3171,7 @@
          endif
 
          if (f_siforcecoriolx(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = aice(i,j,iblk)*fmU(i,j,iblk)*vvel(i,j,iblk)
@@ -3178,7 +3181,7 @@
          endif
 
          if (f_siforcecorioly(1:1) /= 'x') then
-           worka(ilo:ihi,jlo:jhi) = c0
+           worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
               worka(i,j) = -aice(i,j,iblk)*fmU(i,j,iblk)*uvel(i,j,iblk)
@@ -3327,7 +3330,7 @@
          if (f_fmeltt_ai(1:1) /= 'x') then
           do ns = 1, nstreams
             if (n_fmeltt_ai(ns) /= 0) then
-               worka(ilo:ihi,jlo:jhi) = c0
+               worka(:,:) = c0
                do j = jlo, jhi
                do i = ilo, ihi
                 if (tmask(i,j,iblk)) then

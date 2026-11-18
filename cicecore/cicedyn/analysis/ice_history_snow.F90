@@ -356,7 +356,7 @@
       if (tr_snow) then
 
          if (f_smassice(1:1)/= 'x') then
-            worka(ilo:ihi,jlo:jhi) = c0
+            worka(:,:) = c0
             do k = 1, nzslyr
                worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
                           + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk)
@@ -365,7 +365,7 @@
             call accum_hist_field(n_smassice, iblk, worka, a2D)
          endif
          if (f_smassliq(1:1)/= 'x') then
-            worka(ilo:ihi,jlo:jhi) = c0
+            worka(:,:) = c0
             do k = 1, nzslyr
                worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
                           + trcr(ilo:ihi,jlo:jhi,nt_smliq+k-1,iblk)
@@ -374,7 +374,7 @@
             call accum_hist_field(n_smassliq, iblk, worka, a2D)
          endif
          if (f_rhos_cmp(1:1)/= 'x') then
-            worka(ilo:ihi,jlo:jhi) = c0
+            worka(:,:) = c0
             do k = 1, nzslyr
                worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
                           + trcr(ilo:ihi,jlo:jhi,nt_rhos+k-1,iblk)
@@ -383,7 +383,7 @@
             call accum_hist_field(n_rhos_cmp, iblk, worka, a2D)
          endif
          if (f_rhos_cnt(1:1)/= 'x') then
-            worka(ilo:ihi,jlo:jhi) = c0
+            worka(:,:) = c0
             do k = 1, nzslyr
                worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
                           + trcr(ilo:ihi,jlo:jhi,nt_smice+k-1,iblk) &
@@ -393,7 +393,7 @@
             call accum_hist_field(n_rhos_cnt, iblk, worka, a2D)
          endif
          if (f_rsnw(1:1)/= 'x') then
-            worka(ilo:ihi,jlo:jhi) = c0
+            worka(:,:) = c0
             do k = 1, nzslyr
                worka(ilo:ihi,jlo:jhi) = worka(ilo:ihi,jlo:jhi) &
                           + trcr(ilo:ihi,jlo:jhi,nt_rsnw+k-1,iblk)
