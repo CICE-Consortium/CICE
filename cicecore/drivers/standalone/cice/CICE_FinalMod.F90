@@ -32,8 +32,16 @@
 
       use ice_timers, only: ice_timer_stop, ice_timer_print_all, timer_total, &
                             timer_stats
+      use ice_history_write, only: ice_write_hist_close, ice_write_hist_free
 
       character(len=*), parameter :: subname = '(CICE_Finalize)'
+
+   ! A history file collecting samples for the current month or year is still
+   ! open at this point; close it so its samples are flushed to disk.  History
+   ! files are not referenced by the restart, so the order relative to the
+   ! restart write does not matter.
+      call ice_write_hist_close()
+      call ice_write_hist_free()
 
    !-------------------------------------------------------------------
    ! stop timers and print timer info

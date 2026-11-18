@@ -29,12 +29,19 @@
   public ice_pio_initdecomp
   public ice_pio_finalize
   public ice_pio_check
+  public ice_pio_subsystem
 
 #ifdef CESMCOUPLED
   type(iosystem_desc_t), pointer :: ice_pio_subsystem
 #else
   type(iosystem_desc_t)          :: ice_pio_subsystem
 #endif
+
+  ! In standalone runs ice_pio_subsystem is created by the first call to
+  ! ice_pio_init and kept for the rest of the run, because a history file can
+  ! stay open across many calls and the cached history decompositions belong
+  ! to it.  ice_pio_finalize releases it.
+  logical :: iosys_initialized = .false.
 
 !===============================================================================
 
@@ -89,8 +96,10 @@
 
 #ifdef GPTL
    !--- initialize gptl
-   call t_initf('undefined_NLFileName', LogPrint=.false., mpicom=MPI_COMM_ICE, &
-         MasterTask=.true.)
+   if (.not. iosys_initialized) then
+      call t_initf('undefined_NLFileName', LogPrint=.false., mpicom=MPI_COMM_ICE, &
+            MasterTask=.true.)
+   endif
 #endif
 
    !--- initialize type of io
@@ -167,6 +176,11 @@
 !   liotasks = max(1,min(liotasks, 1 + (nprocs-lroot-1)/lstride))  ! optimal
 
    !--- initialize ice_pio_subsystem
+   ! This is done once.  The io tasks, root, stride and rearranger requested by
+   ! the first caller are used for every file after that; the iotype and file
+   ! format above are still set per file.
+
+   if (.not. iosys_initialized) then
 
    if (ldebug .and. my_task == master_task) then
       write(nu_diag,*) subname,' nprocs     = ',nprocs
@@ -179,6 +193,10 @@
 
    call pio_init(my_task, MPI_COMM_ICE, liotasks, master_task, lstride, &
                  rearranger, ice_pio_subsystem, base=lroot)
+
+   iosys_initialized = .true.
+
+   endif ! .not. iosys_initialized
 
    call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
 
@@ -538,6 +556,8 @@
 
       status = PIO_NOERR
 #ifndef CESMCOUPLED
+      if (.not. iosys_initialized) return
+      iosys_initialized = .false.
       call pio_seterrorhandling(ice_pio_subsystem, PIO_RETURN_ERROR)
       call pio_finalize(ice_pio_subsystem,status)
       call ice_pio_check( status, subname//' ERROR: Failed to finalize ', &

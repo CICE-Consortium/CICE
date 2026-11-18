@@ -48,6 +48,8 @@
 
       use ice_calendar, only: msec, mmonth, mday, myear, &
                              istep0, istep1, npt
+      use ice_domain_size, only: max_nstrm
+      use ice_history_write, only: ice_hist_state_set
 
       character(len=char_len_long), intent(in), optional :: ice_ic
 
@@ -57,6 +59,11 @@
          filename, filename0
 
       integer (kind=int_kind) :: status
+
+      ! history file left open when this restart was written
+      integer (kind=int_kind)       :: ns, hist_nrec, hist_period
+      character(len=char_len_long)  :: hist_fname
+      character(len=char_len)       :: hist_attname
 
       character(len=*), parameter :: subname = '(init_restart_read)'
 
@@ -116,6 +123,38 @@
       call broadcast_scalar(mday,master_task)
       call broadcast_scalar(msec,master_task)
 
+      ! Pick up any history file that was open when this restart was written.
+      ! Absent attributes mean there was none, or that the restart predates
+      ! this capability, so a failed read is not an error.  The master task
+      ! reads them and every task records them, since every task takes part
+      ! in deciding whether the file is resumed.
+      do ns = 1, max_nstrm
+         hist_fname  = ''
+         hist_nrec   = 0
+         hist_period = -1
+         if (my_task == master_task) then
+            write(hist_attname,'(a,i1.1)') 'hist_file_', ns
+            status = nf90_get_att(ncid, nf90_global, trim(hist_attname), hist_fname)
+            if (status == nf90_noerr) then
+               write(hist_attname,'(a,i1.1)') 'hist_nrec_', ns
+               status = nf90_get_att(ncid, nf90_global, trim(hist_attname), hist_nrec)
+            endif
+            if (status == nf90_noerr) then
+               write(hist_attname,'(a,i1.1)') 'hist_period_', ns
+               status = nf90_get_att(ncid, nf90_global, trim(hist_attname), hist_period)
+            endif
+            if (status /= nf90_noerr) then
+               hist_fname  = ''
+               hist_nrec   = 0
+               hist_period = -1
+            endif
+         endif
+         call broadcast_scalar(hist_fname,  master_task)
+         call broadcast_scalar(hist_nrec,   master_task)
+         call broadcast_scalar(hist_period, master_task)
+         call ice_hist_state_set(ns, trim(hist_fname), hist_nrec, hist_period)
+      enddo
+
       istep1 = istep0
 
       ! if runid is bering then need to correct npt for istep0
@@ -140,12 +179,18 @@
       use ice_calendar, only: msec, mmonth, mday, myear, istep1
       use ice_domain_size, only: nx_global, ny_global, ncat, nilyr, nslyr, &
                                  n_iso, n_aero, nblyr, n_zaero, n_algae, n_doc,   &
-                                 n_dic, n_don, n_fed, n_fep, nfsd
+                                 n_dic, n_don, n_fed, n_fep, nfsd, max_nstrm
       use ice_arrays_column, only: oceanmixed_ice
       use ice_dyn_shared, only: kdyn
       use ice_grid, only: grid_ice
+      use ice_history_write, only: ice_hist_state_get, ice_write_hist_sync
 
       character(len=*), intent(in), optional :: filename_spec
+
+      ! history file still open for more time samples
+      integer (kind=int_kind)      :: ns, hist_nrec, hist_period
+      character(len=char_len_long) :: hist_fname
+      character(len=char_len)      :: hist_attname
 
       ! local variables
 
@@ -264,6 +309,31 @@
          call ice_check_nc(status, subname//' ERROR: writing att day', file=__FILE__, line=__LINE__)
          status = nf90_put_att(ncid,nf90_global,'msec',msec)
          call ice_check_nc(status, subname//' ERROR: writing att sec', file=__FILE__, line=__LINE__)
+
+         ! Record any history file still open, so that the next run resumes it.
+         ! Each one is flushed first, so that what is on disk matches the count
+         ! recorded here even if this run does not reach its own end.
+         call ice_write_hist_sync()
+
+         do ns = 1, max_nstrm
+            call ice_hist_state_get(ns, hist_fname, hist_nrec, hist_period)
+            if (len_trim(hist_fname) > 0) then
+               write(hist_attname,'(a,i1.1)') 'hist_file_', ns
+               status = nf90_put_att(ncid,nf90_global,trim(hist_attname),trim(hist_fname))
+               call ice_check_nc(status, subname//' ERROR: writing open history file name', &
+                                 file=__FILE__, line=__LINE__)
+               write(hist_attname,'(a,i1.1)') 'hist_nrec_', ns
+               status = nf90_put_att(ncid,nf90_global,trim(hist_attname),hist_nrec)
+               call ice_check_nc(status, subname//' ERROR: writing open history record count', &
+                                 file=__FILE__, line=__LINE__)
+               ! The period the file covers, so that a run resuming from this
+               ! restart does not append the next month's samples to it.
+               write(hist_attname,'(a,i1.1)') 'hist_period_', ns
+               status = nf90_put_att(ncid,nf90_global,trim(hist_attname),hist_period)
+               call ice_check_nc(status, subname//' ERROR: writing open history period', &
+                                 file=__FILE__, line=__LINE__)
+            endif
+         enddo
 
          nx = nx_global
          ny = ny_global
