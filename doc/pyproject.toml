@@ -1,0 +1,12 @@
+[project]
+name = "cice-docs"
+version = "0"
+description = "Environment for CICE documentation"
+requires-python = ">=3.12,<3.15" 
+
+[dependency-groups]
+docs-runtime = [
+    "sphinx>=7.4.0,<9.2.0",
+    "sphinxcontrib-bibtex>=2.7.0,<3.0.0"
+]
+

@@ -3765,7 +3765,8 @@
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
+               if (tmask(i,j) .and. &
+                   jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4) then
                   icells = icells + 1
                   indxi(icells) = i
                   indxj(icells) = j
@@ -3780,7 +3781,8 @@
             jedge = int(real(ny_global,kind=dbl_kind) * 0.25) + 1
             do j = jlo, jhi
             do i = ilo, ihi
-               if ((iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
+               if (tmask(i,j) .and. &
+                   (iglob(i) > iedge .and. iglob(i) < nx_global-iedge+1) .and. &
                    (jglob(j) > jedge .and. jglob(j) < ny_global-jedge+1)) then
                   icells = icells + 1
                   indxi(icells) = i
@@ -3794,7 +3796,8 @@
             icells = 0
             do j = jlo, jhi
             do i = ilo, ihi
-               if (jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4 .and. &
+               if (tmask(i,j) .and. &
+                   jglob(j) > ny_global/4 .and. jglob(j) < 3*nx_global/4 .and. &
                    iglob(i) >= nx_global/2) then
                   icells = icells + 1
                   indxi(icells) = i

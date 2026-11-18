@@ -1143,7 +1143,9 @@ To install the necessary Python packages, the ``pip`` Python utility can be used
   pip install --user matplotlib
   pip install --user cartopy
 
-You can also setup a conda env with the same utitities
+If you have already created the ``cice`` conda environment (see :ref:`create_conda_env`),
+it includes these packages and you can use it by running ``conda activate cice``.
+Otherwise, you can create a minimal conda environment with the same utilities:
 
 .. code-block:: bash
 
