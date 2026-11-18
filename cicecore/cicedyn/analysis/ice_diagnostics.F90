@@ -472,7 +472,8 @@
                enddo
             enddo
             !$OMP END PARALLEL DO
-         elseif (umaxs > umax_stab) then
+         endif   ! umax
+         if (umaxs > umax_stab) then
             !$OMP PARALLEL DO PRIVATE(iblk,i,j)
             do iblk = 1, nblocks
                do j = 1, ny_block

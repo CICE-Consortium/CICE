@@ -2418,9 +2418,10 @@
            worka(:,:) = c0
            do j = jlo, jhi
            do i = ilo, ihi
-              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) &
+              if (abs(uvel(i,j,iblk)) > puny .or. abs(vvel(i,j,iblk)) > puny) then
                  worka(i,j) = atan2(uvel(i,j,iblk),vvel(i,j,iblk))*rad_to_deg
                  worka(i,j) = worka(i,j) + c180
+              endif
            enddo
            enddo
            call accum_hist_field(n_icedir, iblk, worka(:,:), a2D)
@@ -3082,6 +3083,7 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
 !                Add in frazil flux
+                 dfresh = c0
                  if (.not. update_ocn_f) then
                     if ( ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
                        dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
@@ -3112,6 +3114,7 @@
            do i = ilo, ihi
               if (aice(i,j,iblk) > puny) then
 !                Add in frazil flux
+                 dfresh = c0
                  if (.not. update_ocn_f) then
                     if ( ktherm == 2 .and. cpl_frazil == 'fresh_ice_correction') then
                        dfresh = -rhoi*(frazil(i,j,iblk)-frazil_diag(i,j,iblk))/dt
@@ -3194,9 +3197,6 @@
          if (f_vsnon   (1:1) /= 'x') &
              call accum_hist_field(n_vsnon-n2D, iblk, ncat_hist, &
                                    vsnon(:,:,1:ncat_hist,iblk), a3Dc)
-         if (f_snowfracn(1:1) /= 'x') &
-             call accum_hist_field(n_snowfracn-n2D, iblk, ncat_hist, &
-                                   snowfracn(:,:,1:ncat_hist,iblk), a3Dc)
          if (f_snowfracn(1:1) /= 'x') &
              call accum_hist_field(n_snowfracn-n2D, iblk, ncat_hist, &
                                    snowfracn(:,:,1:ncat_hist,iblk), a3Dc)

@@ -164,7 +164,7 @@
          f_sirdgconc  = 'x'
          f_sirdgthick = 'x'
       endif
-      if (f_araftn /= 'x' .or. f_vraftn /= 'x') f_ardgn = f_araftn
+      if (f_araftn(1:1) /= 'x' .or. f_vraftn(1:1) /= 'x') f_ardgn = f_araftn
 
       call broadcast_scalar (f_ardg, master_task)
       call broadcast_scalar (f_vrdg, master_task)
