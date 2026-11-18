@@ -616,8 +616,7 @@
          do n = n4Dscum + 1, n4Dfcum
             if (avail_hist_fields(n)%vhistfreq == histfreq(ns) .or. write_ic) then
                call ice_hist_field_def(ncid, avail_hist_fields(n),lprecision, &
-                  ! dimidcz, ns)
-                  dimidcz(1:5),ns) ! ferret
+                                       dimidcz, ns)
              endif
          enddo  ! num_avail_hist_fields_4Df
 
