@@ -7,12 +7,14 @@
 !   divu, shear, vort, sig1, sig2, sigP, trsig, mlt_onset,
 !   frz_onset, hisnap, aisnap
 !
-! Options for histfreq: '1','h','d','m','y','x', where x means that
-!   output stream will not be used (recommended for efficiency).
+! Options for histfreq: '1','h','d','m','y','n','x', where n means
+!   day histfreq_n of each month and x means that the output stream
+!   will not be used (recommended for efficiency).  Other values,
+!   including upper case, abort in init_hist (ice_history.F90).
 ! histfreq_n can be any nonnegative integer, where 0 means that the
 !   corresponding histfreq frequency will not be used.
-! The flags (f_<field>) can be set to '1','h','d','m','y' or 'x', where
-!   n means the field will not be written.  To output the same field at
+! The flags (f_<field>) can be set to '1','h','d','m','y','n' or 'x', where
+!   x means the field will not be written.  To output the same field at
 !   more than one frequency, for instance monthy and daily, set
 !   f_<field> = 'md'.
 !
@@ -826,7 +828,7 @@
         else
 
            if (hist_avg(ns)) then
-              if (histfreq(ns) == '1' .or. histfreq(ns) == 'h'.or.histfreq(ns) == 'H') then
+              if (histfreq(ns) == '1' .or. histfreq(ns) == 'h') then
                  ! do nothing
               elseif (new_year) then
                  iyear = iyear - 1
@@ -849,19 +851,19 @@
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == 'h'.or.histfreq(ns) == 'H') then ! hourly
+              elseif (histfreq(ns) == 'h') then ! hourly
                  write(ncfile,'(a,a,i2.2,a,i4.4,a,i2.2,a,i2.2,a,i5.5,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'_', &
                        histfreq_n(ns),'h.',iyear,'-',imonth,'-',iday,'-',msec,'.',trim(suffix)
-              elseif (histfreq(ns) == 'd'.or.histfreq(ns) == 'D') then ! daily
+              elseif (histfreq(ns) == 'd' .or. histfreq(ns) == 'n') then ! daily or day of month
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,i2.2,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'-',iday,'.',trim(suffix)
-              elseif (histfreq(ns) == 'm'.or.histfreq(ns) == 'M') then ! monthly
+              elseif (histfreq(ns) == 'm') then ! monthly
                  write(ncfile,'(a,a,i4.4,a,i2.2,a,a)')  &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'-',imonth,'.',trim(suffix)
-              elseif (histfreq(ns) == 'y'.or.histfreq(ns) == 'Y') then ! yearly
+              elseif (histfreq(ns) == 'y') then ! yearly
                  write(ncfile,'(a,a,i4.4,a,a)') &
                        history_file(1:lenstr(history_file))//trim(cstream),'.', &
                        iyear,'.',trim(suffix)

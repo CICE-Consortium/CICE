@@ -22,7 +22,20 @@
               get_num_procs,             &
               get_rank,                  &
               ice_barrier,               &
-              create_communicator
+              create_communicator,       &
+              send_to_master
+
+!-----------------------------------------------------------------------
+!
+!  generic interfaces for module procedures
+!
+!-----------------------------------------------------------------------
+
+   interface send_to_master
+     module procedure send_to_master_dbl,    &
+                      send_to_master_dbl_1d, &
+                      send_to_master_dbl_2d
+   end interface
 
    integer (int_kind), public :: &
       MPI_COMM_ICE,             &! MPI communicator for ice comms
@@ -37,7 +50,8 @@
 #ifndef NO_MPI
    integer (int_kind), parameter, public :: &
       mpitagHalo            = 1,    &! MPI tags for various
-      mpitag_gs             = 1000   ! communication patterns
+      mpitag_gs             = 1000, &! communication patterns
+      mpitag_master         = 2000   ! send_to_master
 #endif
 
    logical (log_kind), public :: &
@@ -254,6 +268,138 @@
 !-----------------------------------------------------------------------
 
  end subroutine create_communicator
+
+!***********************************************************************
+
+ subroutine send_to_master_dbl(scalar, src_pe)
+
+!  Sends a dbl scalar from one processor (src_pe) to the master task.
+!  Unlike broadcast_scalar, only the master task receives the value and
+!  other tasks do not wait.  This is a specific instance of the generic
+!  send_to_master interface.
+
+   integer (int_kind), intent(in) :: &
+     src_pe            ! processor number to send from
+
+   real (dbl_kind), intent(inout) :: &
+     scalar            ! scalar to be sent
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   integer (int_kind) :: ierr
+   integer (int_kind) :: status(MPI_STATUS_SIZE)
+#endif
+   character(len=*), parameter :: subname = '(send_to_master_dbl)'
+
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   if (src_pe == master_task) return
+
+   if (my_task == src_pe) then
+      call MPI_SEND(scalar, 1, mpiR8, master_task, mpitag_master, &
+                    MPI_COMM_ICE, ierr)
+   elseif (my_task == master_task) then
+      call MPI_RECV(scalar, 1, mpiR8, src_pe, mpitag_master, &
+                    MPI_COMM_ICE, status, ierr)
+   endif
+#endif
+
+!-----------------------------------------------------------------------
+
+ end subroutine send_to_master_dbl
+
+!***********************************************************************
+
+ subroutine send_to_master_dbl_1d(array, src_pe)
+
+!  Sends a vector dbl variable from one processor (src_pe) to the master
+!  task.  This is a specific instance of the generic send_to_master
+!  interface.
+
+   integer (int_kind), intent(in) :: &
+     src_pe            ! processor number to send from
+
+   real (dbl_kind), dimension(:), intent(inout) :: &
+     array             ! array to be sent
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   integer (int_kind) :: ierr
+   integer (int_kind) :: status(MPI_STATUS_SIZE)
+#endif
+   character(len=*), parameter :: subname = '(send_to_master_dbl_1d)'
+
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   if (src_pe == master_task) return
+
+   if (my_task == src_pe) then
+      call MPI_SEND(array, size(array), mpiR8, master_task, mpitag_master, &
+                    MPI_COMM_ICE, ierr)
+   elseif (my_task == master_task) then
+      call MPI_RECV(array, size(array), mpiR8, src_pe, mpitag_master, &
+                    MPI_COMM_ICE, status, ierr)
+   endif
+#endif
+
+!-----------------------------------------------------------------------
+
+ end subroutine send_to_master_dbl_1d
+
+!***********************************************************************
+
+ subroutine send_to_master_dbl_2d(array, src_pe)
+
+!  Sends a 2d dbl array from one processor (src_pe) to the master task.
+!  This is a specific instance of the generic send_to_master interface.
+
+   integer (int_kind), intent(in) :: &
+     src_pe            ! processor number to send from
+
+   real (dbl_kind), dimension(:,:), intent(inout) :: &
+     array             ! array to be sent
+
+!-----------------------------------------------------------------------
+!
+!  local variables
+!
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   integer (int_kind) :: ierr
+   integer (int_kind) :: status(MPI_STATUS_SIZE)
+#endif
+   character(len=*), parameter :: subname = '(send_to_master_dbl_2d)'
+
+!-----------------------------------------------------------------------
+
+#ifndef NO_MPI
+   if (src_pe == master_task) return
+
+   if (my_task == src_pe) then
+      call MPI_SEND(array, size(array), mpiR8, master_task, mpitag_master, &
+                    MPI_COMM_ICE, ierr)
+   elseif (my_task == master_task) then
+      call MPI_RECV(array, size(array), mpiR8, src_pe, mpitag_master, &
+                    MPI_COMM_ICE, status, ierr)
+   endif
+#endif
+
+!-----------------------------------------------------------------------
+
+ end subroutine send_to_master_dbl_2d
 
 !***********************************************************************
 

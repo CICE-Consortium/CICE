@@ -65,7 +65,7 @@
       subroutine ice_checkpoint(time_stamp)
 
       use ice_boundary, only: ice_HaloUpdate
-      use ice_calendar, only: dt, dt_dyn, ndtd, diagfreq, write_restart, istep
+      use ice_calendar, only: dt, dt_dyn, ndtd, write_diag, write_restart
       use ice_calendar, only: idate, msec
       use ice_domain, only: halo_info, nblocks
       use ice_dyn_shared, only: kdyn, kridge

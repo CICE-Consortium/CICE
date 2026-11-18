@@ -32,7 +32,7 @@ module ice_import_export
   use ice_grid          , only: grid_average_X2Y
   use ice_boundary      , only: ice_HaloUpdate
   use ice_communicate   , only: my_task, master_task, MPI_COMM_ICE, get_num_procs
-  use ice_calendar      , only: istep, istep1, diagfreq
+  use ice_calendar      , only: istep, istep1, write_diag
   use ice_fileunits     , only: nu_diag
   use ice_prescribed_mod
   use ice_cpl_indices
@@ -706,7 +706,7 @@ contains
        icnt1 = icnt1 + icnt
     enddo        !iblk
 
-    if (mod(istep,diagfreq) == 0) then
+    if (write_diag) then
 !tcx    write(1000+my_task,'(a,5i8)') 'ice count1: ',my_task,istep1,nblocks,iblk1,icnt1
        call shr_mpi_max(icnt1,icnt1max,MPI_COMM_ICE,'icnt1max',all=.false.)
        call shr_mpi_sum(icnt1,icnt1sum,MPI_COMM_ICE,'icnt1sum',all=.false.)
