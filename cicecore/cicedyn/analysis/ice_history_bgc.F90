@@ -2661,6 +2661,8 @@
               if (aicen(i,j,n,iblk) > c0) then
                  workz(i,j,1:nblyr+1) = workz(i,j,1:nblyr+1) + iDi(i,j,1:nblyr+1,n,iblk) &
                                        *vicen(i,j,n,iblk)**2/aicen(i,j,n,iblk)
+                 workz(i,j,nzblyr) = workz(i,j,nzblyr) + iDi(i,j,nblyr+1,n,iblk) &
+                                    *vicen(i,j,n,iblk)**2/aicen(i,j,n,iblk)
               endif
              enddo ! i
             enddo  ! j
@@ -2672,18 +2674,16 @@
       if (f_iki   (1:1) /= 'x') then
          workz(:,:,:) = c0
          do n = 1, ncat_hist
-            do k = 1,nzblyr-1
             do j = jlo, jhi
                do i = ilo, ihi
                 if (aicen(i,j,n,iblk) > c0) then
-                   workz(i,j,k) = workz(i,j,k) + iki(i,j,k,n,iblk)*&
+                   workz(i,j,1:nblyr+1) = workz(i,j,1:nblyr+1) + iki(i,j,1:nblyr+1,n,iblk)*&
                        aicen(i,j,n,iblk)
                    workz(i,j,nzblyr)   = workz(i,j,nzblyr) + iki(i,j,nblyr+1,n,iblk)*&
                        aicen(i,j,n,iblk)
                 endif
                enddo ! i
             enddo    ! j
-            enddo    ! k
          enddo       ! n
          call accum_hist_field(n_iki-n3Dzcum, iblk, nzblyr,  &
                                   workz(:,:,1:nzblyr), a3Db)
