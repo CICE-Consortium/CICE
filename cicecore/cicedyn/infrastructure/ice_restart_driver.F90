@@ -1408,7 +1408,7 @@
                        endif    ! aice_i.gt.p001 and aice_i.lt.aicen
                     enddo       ! n
                  endif          ! aice_o.lt.p01
-              elseif (aice_o.gt.p01) then  ! .and. aice_m.gt.aicen
+              elseif (aice_o.gt.p01) then  ! .and. aice_o.gt.aice_m
                  if     (aice_m.lt.edge_om) then
                     ! --- target ice conc. is obs.
                     aice_t = aice_o
