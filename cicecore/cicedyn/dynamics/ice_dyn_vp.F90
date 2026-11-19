@@ -46,6 +46,7 @@
       use ice_domain, only: nblocks, distrb_info
       use ice_domain_size, only: max_blocks
       use ice_dyn_shared, only: dyn_prep1, dyn_prep2, dyn_finish, &
+          strain_rates_scalar, &
           cosw, sinw, fcor_blk, uvel_init, vvel_init, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, seabed_stress_method, &
           seabed_stress, Ktens, stack_fields,  unstack_fields, fld2, fld3, fld4
@@ -1204,7 +1205,7 @@
                             shearne  , shearnw  , &
                             shearse  , shearsw  , &
                             Deltane  , Deltanw  , &
-                            Deltase  , Deltasw)
+                            Deltase  , Deltasw     )
 
       !-----------------------------------------------------------------
       ! viscosities and replacement pressure
@@ -1360,8 +1361,7 @@
       real (kind=dbl_kind) :: &
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw            ! Delt
+        shearne, shearnw, shearse, shearsw            ! shearing
 
       character(len=*), parameter :: subname = '(stress_vp)'
 
@@ -1373,20 +1373,19 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            i        , j        , &
-                            uvel     , vvel     , &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
-                            divune   , divunw   , &
-                            divuse   , divusw   , &
-                            tensionne, tensionnw, &
-                            tensionse, tensionsw, &
-                            shearne  , shearnw  , &
-                            shearse  , shearsw  , &
-                            Deltane  , Deltanw  , &
-                            Deltase  , Deltasw)
+         call strain_rates_scalar (uvel(i  ,j  ), uvel(i-1,j  ), &
+                                   uvel(i  ,j-1), uvel(i-1,j-1), &
+                                   vvel(i  ,j  ), vvel(i-1,j  ), &
+                                   vvel(i  ,j-1), vvel(i-1,j-1), &
+                                   dxT (i  ,j  ), dyT (i  ,j  ), &
+                                   cxp (i  ,j  ), cyp (i  ,j  ), &
+                                   cxm (i  ,j  ), cym (i  ,j  ), &
+                                   divune       , divunw       , &
+                                   divuse       , divusw       , &
+                                   tensionne    , tensionnw    , &
+                                   tensionse    , tensionsw    , &
+                                   shearne      , shearnw      , &
+                                   shearse      , shearsw          )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -1599,7 +1598,6 @@
         divune, divunw, divuse, divusw            , & ! divergence
         tensionne, tensionnw, tensionse, tensionsw, & ! tension
         shearne, shearnw, shearse, shearsw        , & ! shearing
-        Deltane, Deltanw, Deltase, Deltasw        , & ! Delt
         ssigpn, ssigps, ssigpe, ssigpw            , &
         ssigmn, ssigms, ssigme, ssigmw            , &
         ssig12n, ssig12s, ssig12e, ssig12w        , &
@@ -1631,20 +1629,19 @@
       ! strain rates
       ! NOTE these are actually strain rates * area  (m^2/s)
       !-----------------------------------------------------------------
-         call strain_rates (nx_block , ny_block , &
-                            i        , j        , &
-                            uvel     , vvel     , &
-                            dxT      , dyT      , &
-                            cxp      , cyp      , &
-                            cxm      , cym      , &
-                            divune   , divunw   , &
-                            divuse   , divusw   , &
-                            tensionne, tensionnw, &
-                            tensionse, tensionsw, &
-                            shearne  , shearnw  , &
-                            shearse  , shearsw  , &
-                            Deltane  , Deltanw  , &
-                            Deltase  , Deltasw)
+         call strain_rates_scalar (uvel(i  ,j  ), uvel(i-1,j  ), &
+                                   uvel(i  ,j-1), uvel(i-1,j-1), &
+                                   vvel(i  ,j  ), vvel(i-1,j  ), &
+                                   vvel(i  ,j-1), vvel(i-1,j-1), &
+                                   dxT (i  ,j  ), dyT (i  ,j  ), &
+                                   cxp (i  ,j  ), cyp (i  ,j  ), &
+                                   cxm (i  ,j  ), cym (i  ,j  ), &
+                                   divune       , divunw       , &
+                                   divuse       , divusw       , &
+                                   tensionne    , tensionnw    , &
+                                   tensionse    , tensionsw    , &
+                                   shearne      , shearnw      , &
+                                   shearse      , shearsw          )
 
       !-----------------------------------------------------------------
       ! the stresses                            ! kg/s^2
@@ -2017,13 +2014,9 @@
       ! local variables
 
       integer (kind=int_kind) :: &
-         i, j, ij, iu, ju, di, dj, cc
+         i, j, ij, iu, ju
 
       real (kind=dbl_kind) :: &
-        divune, divunw, divuse, divusw            , & ! divergence
-        tensionne, tensionnw, tensionse, tensionsw, & ! tension
-        shearne, shearnw, shearse, shearsw        , & ! shearing
-        uij,ui1j,uij1,ui1j1,vij,vi1j,vij1,vi1j1   , & ! == c0 or c1
         stressp_1, stressp_2, stressp_3, stressp_4, &
         stressm_1, stressm_2, stressm_3, stressm_4, &
         stress12_1,stress12_2,stress12_3,stress12_4,&
@@ -2058,205 +2051,166 @@
       ! Drheo(i,j,7) corresponds to str(i+1,j,7)
       ! Drheo(i,j,8) corresponds to str(i+1,j+1,8))
 
-      do cc = 1, 8 ! 4 for u and 4 for v
 
-         if (cc == 1) then     ! u comp, T cell i,j
-            uij   = c1
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c0
-            di    = 0
-            dj    = 0
-         elseif (cc == 2) then ! u comp, T cell i+1,j
-            uij   = c0
-            ui1j  = c1
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c0
-            di    = 1
-            dj    = 0
-         elseif (cc == 3) then ! u comp, T cell i,j+1
-            uij   = c0
-            ui1j  = c0
-            uij1  = c1
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c0
-            di    = 0
-            dj    = 1
-         elseif (cc == 4) then ! u comp, T cell i+1,j+1
-            uij   = c0
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c1
-            vij   = c0
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c0
-            di    = 1
-            dj    = 1
-         elseif (cc == 5) then ! v comp, T cell i,j
-            uij   = c0
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c1
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c0
-            di    = 0
-            dj    = 0
-         elseif (cc == 6) then ! v comp, T cell i,j+1
-            uij   = c0
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c0
-            vij1  = c1
-            vi1j1 = c0
-            di    = 0
-            dj    = 1
-         elseif (cc == 7) then ! v comp, T cell i+1,j
-            uij   = c0
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c1
-            vij1  = c0
-            vi1j1 = c0
-            di    = 1
-            dj    = 0
-         elseif (cc == 8) then ! v comp, T cell i+1,j+1
-            uij   = c0
-            ui1j  = c0
-            uij1  = c0
-            ui1j1 = c0
-            vij   = c0
-            vi1j  = c0
-            vij1  = c0
-            vi1j1 = c1
-            di    = 1
-            dj    = 1
-         endif
-
+      !-----------------------------------------------------------------
+      ! Term 1: u component, T cell i,j.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
          do ij = 1, icellU
 
-            iu = indxUi(ij)
-            ju = indxUj(ij)
-            i  = iu + di
-            j  = ju + dj
+            i  = indxUi(ij)
+            j  = indxUj(ij)
 
          !-----------------------------------------------------------------
          ! strain rates
          ! NOTE these are actually strain rates * area  (m^2/s)
          !-----------------------------------------------------------------
-            ! divergence  =  e_11 + e_22
-            divune    = cyp(i,j)*uij   - dyT(i,j)*ui1j  &
-                      + cxp(i,j)*vij   - dxT(i,j)*vij1
-            divunw    = cym(i,j)*ui1j  + dyT(i,j)*uij   &
-                      + cxp(i,j)*vi1j  - dxT(i,j)*vi1j1
-            divusw    = cym(i,j)*ui1j1 + dyT(i,j)*uij1  &
-                      + cxm(i,j)*vi1j1 + dxT(i,j)*vi1j
-            divuse    = cyp(i,j)*uij1  - dyT(i,j)*ui1j1 &
-                      + cxm(i,j)*vij1  + dxT(i,j)*vij
-
-            ! tension strain rate  =  e_11 - e_22
-            tensionne = -cym(i,j)*uij   - dyT(i,j)*ui1j  &
-                      +  cxm(i,j)*vij   + dxT(i,j)*vij1
-            tensionnw = -cyp(i,j)*ui1j  + dyT(i,j)*uij   &
-                      +  cxm(i,j)*vi1j  + dxT(i,j)*vi1j1
-            tensionsw = -cyp(i,j)*ui1j1 + dyT(i,j)*uij1  &
-                      +  cxp(i,j)*vi1j1 - dxT(i,j)*vi1j
-            tensionse = -cym(i,j)*uij1  - dyT(i,j)*ui1j1 &
-                      +  cxp(i,j)*vij1  - dxT(i,j)*vij
-
-            ! shearing strain rate  =  2*e_12
-            shearne = -cym(i,j)*vij   - dyT(i,j)*vi1j  &
-                    -  cxm(i,j)*uij   - dxT(i,j)*uij1
-            shearnw = -cyp(i,j)*vi1j  + dyT(i,j)*vij   &
-                    -  cxm(i,j)*ui1j  - dxT(i,j)*ui1j1
-            shearsw = -cyp(i,j)*vi1j1 + dyT(i,j)*vij1  &
-                    -  cxp(i,j)*ui1j1 + dxT(i,j)*ui1j
-            shearse = -cym(i,j)*vij1  - dyT(i,j)*vi1j1 &
-                    -  cxp(i,j)*uij1  + dxT(i,j)*uij
-
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
          !-----------------------------------------------------------------
          ! the stresses                            ! kg/s^2
          ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
          !-----------------------------------------------------------------
 
-            stressp_1 = zetax2(i,j,1)*divune
-            stressp_2 = zetax2(i,j,2)*divunw
-            stressp_3 = zetax2(i,j,3)*divusw
-            stressp_4 = zetax2(i,j,4)*divuse
+            stressp_1  = zetax2(i,j,1)*cyp(i,j)
+            stressp_2  = zetax2(i,j,2)*dyT(i,j)
 
-            stressm_1 = etax2(i,j,1)*tensionne
-            stressm_2 = etax2(i,j,2)*tensionnw
-            stressm_3 = etax2(i,j,3)*tensionsw
-            stressm_4 = etax2(i,j,4)*tensionse
+            stressm_1  = etax2(i,j,1)*(-cym(i,j))
+            stressm_2  = etax2(i,j,2)*dyT(i,j)
 
-            stress12_1 = etax2(i,j,1)*shearne*p5
-            stress12_2 = etax2(i,j,2)*shearnw*p5
-            stress12_3 = etax2(i,j,3)*shearsw*p5
-            stress12_4 = etax2(i,j,4)*shearse*p5
+            stress12_1 = etax2(i,j,1)*(-cxm(i,j))*p5
+            stress12_4 = etax2(i,j,4)*dxT(i,j)*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn   = stressp_1 + stressp_2
+            ssigpe   = stressp_1
+            ssigpw   = stressp_2
+
+            ssigp1   = (stressp_1)*p055
+            ssigp2   = (stressp_2)*p055
+
+            ssigmn   = stressm_1 + stressm_2
+            ssigme   = stressm_1
+            ssigmw   = stressm_2
+
+            ssigm1   = (stressm_1)*p055
+            ssigm2   = (stressm_2)*p055
+
+            ssig12n  = stress12_1
+            ssig12s  = stress12_4
+            ssig12e  = stress12_1 + stress12_4
+
+            ssig121  = (stress12_1)*p111
+            ssig122  = (stress12_4)*p111
+
+            csigpne  = p111*stressp_1 + ssigp2
+            csigpnw  = p111*stressp_2 + ssigp1
+            csigpsw  = ssigp2 + p027*stressp_1
+            csigpse  = ssigp1 + p027*stressp_2
+
+            csigmne  = p111*stressm_1 + ssigm2
+            csigmnw  = p111*stressm_2 + ssigm1
+            csigmsw  = ssigm2 + p027*stressm_1
+            csigmse  = ssigm1 + p027*stressm_2
+
+            csig12ne = p222*stress12_1 + ssig122
+            csig12nw = ssig121 + p055*stress12_4
+            csig12sw = ssig122 + p055*stress12_1
+            csig12se = p222*stress12_4 + ssig121
+
+            str12ew  = p5*dxT(i,j)*(p333*ssig12e)
+            str12we  = p5*dxT(i,j)*(p166*ssig12e)
+            str12ns  = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+            str12sn  = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+            strp_tmp = p25*dyT(i,j)*(p333*ssigpn)
+            strm_tmp = p25*dyT(i,j)*(p333*ssigmn)
+
+               ! northeast (i,j)
+            Drheo(i,j,1) = -strp_tmp - strm_tmp - str12ew &
+              + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
+
+
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 2: u component, T cell i+1,j.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu + 1
+            j  = ju
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_1 = zetax2(i,j,1)*(-dyT(i,j))
+            stressp_2 = zetax2(i,j,2)*cym(i,j)
+
+            stressm_1 = etax2(i,j,1)*(-dyT(i,j))
+            stressm_2 = etax2(i,j,2)*(-cyp(i,j))
+
+            stress12_2 = etax2(i,j,2)*(-cxm(i,j))*p5
+            stress12_3 = etax2(i,j,3)*dxT(i,j)*p5
 
          !-----------------------------------------------------------------
          ! combinations of the stresses for the momentum equation ! kg/s^2
          !-----------------------------------------------------------------
 
             ssigpn  = stressp_1 + stressp_2
-            ssigps  = stressp_3 + stressp_4
-            ssigpe  = stressp_1 + stressp_4
-            ssigpw  = stressp_2 + stressp_3
-            ssigp1  =(stressp_1 + stressp_3)*p055
-            ssigp2  =(stressp_2 + stressp_4)*p055
+            ssigpe     = stressp_1
+            ssigpw     = stressp_2
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_2)*p055
 
             ssigmn  = stressm_1 + stressm_2
-            ssigms  = stressm_3 + stressm_4
-            ssigme  = stressm_1 + stressm_4
-            ssigmw  = stressm_2 + stressm_3
-            ssigm1  =(stressm_1 + stressm_3)*p055
-            ssigm2  =(stressm_2 + stressm_4)*p055
+            ssigme     = stressm_1
+            ssigmw     = stressm_2
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_2)*p055
 
-            ssig12n = stress12_1 + stress12_2
-            ssig12s = stress12_3 + stress12_4
-            ssig12e = stress12_1 + stress12_4
+            ssig12n    = stress12_2
+            ssig12s    = stress12_3
             ssig12w = stress12_2 + stress12_3
-            ssig121 =(stress12_1 + stress12_3)*p111
-            ssig122 =(stress12_2 + stress12_4)*p111
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_2)*p111
 
-            csigpne = p111*stressp_1 + ssigp2 + p027*stressp_3
-            csigpnw = p111*stressp_2 + ssigp1 + p027*stressp_4
-            csigpsw = p111*stressp_3 + ssigp2 + p027*stressp_1
-            csigpse = p111*stressp_4 + ssigp1 + p027*stressp_2
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = ssigp1 + p027*stressp_2
 
-            csigmne = p111*stressm_1 + ssigm2 + p027*stressm_3
-            csigmnw = p111*stressm_2 + ssigm1 + p027*stressm_4
-            csigmsw = p111*stressm_3 + ssigm2 + p027*stressm_1
-            csigmse = p111*stressm_4 + ssigm1 + p027*stressm_2
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = ssigm1 + p027*stressm_2
 
-            csig12ne = p222*stress12_1 + ssig122 &
-                     + p055*stress12_3
-            csig12nw = p222*stress12_2 + ssig121 &
-                     + p055*stress12_4
-            csig12sw = p222*stress12_3 + ssig122 &
-                     + p055*stress12_1
-            csig12se = p222*stress12_4 + ssig121 &
-                     + p055*stress12_2
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = ssig121 + p055*stress12_2
 
-            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
-            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ew    = p5*dxT(i,j)*(p166*ssig12w)
+            str12we    = p5*dxT(i,j)*(p333*ssig12w)
             str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
             str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
 
@@ -2264,37 +2218,185 @@
          ! for dF/dx (u momentum)
          !-----------------------------------------------------------------
 
-            if (cc == 1) then ! T cell i,j
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
-
-               ! northeast (i,j)
-               Drheo(iu,ju,1) = -strp_tmp - strm_tmp - str12ew &
-                  + dxhy(i,j)*(-csigpne + csigmne) + dyhx(i,j)*csig12ne
-
-            elseif (cc == 2) then ! T cell i+1,j
-
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigpn  + p166*ssigps)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigmn  + p166*ssigms)
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigpn)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigmn)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,2) = strp_tmp + strm_tmp - str12we &
                   + dxhy(i,j)*(-csigpnw + csigmnw) + dyhx(i,j)*csig12nw
 
-            elseif (cc == 3) then ! T cell i,j+1
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 3: u component, T cell i,j+1.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu
+            j  = ju + 1
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_3 = zetax2(i,j,3)*dyT(i,j)
+            stressp_4 = zetax2(i,j,4)*cyp(i,j)
+
+            stressm_3 = etax2(i,j,3)*dyT(i,j)
+            stressm_4 = etax2(i,j,4)*(-cym(i,j))
+
+            stress12_1 = etax2(i,j,1)*(-dxT(i,j))*p5
+            stress12_4 = etax2(i,j,4)*(-cxp(i,j))*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigps  = stressp_3 + stressp_4
+            ssigpe     = stressp_4
+            ssigpw     = stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_4)*p055
+
+            ssigms  = stressm_3 + stressm_4
+            ssigme     = stressm_4
+            ssigmw     = stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_4)*p055
+
+            ssig12n    = stress12_1
+            ssig12s    = stress12_4
+            ssig12e = stress12_1 + stress12_4
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_4)*p111
+
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = p111*stressp_4 + ssigp1
+
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = p111*stressm_4 + ssigm1
+
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = p222*stress12_4 + ssig121
+
+            str12ew    = p5*dxT(i,j)*(p333*ssig12e)
+            str12we    = p5*dxT(i,j)*(p166*ssig12e)
+            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigps)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigms)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,3) = -strp_tmp - strm_tmp + str12ew &
                   + dxhy(i,j)*(-csigpse + csigmse) + dyhx(i,j)*csig12se
 
-            elseif (cc == 4) then ! T cell i+1,j+1
 
-               strp_tmp  = p25*dyT(i,j)*(p333*ssigps  + p166*ssigpn)
-               strm_tmp  = p25*dyT(i,j)*(p333*ssigms  + p166*ssigmn)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 4: u component, T cell i+1,j+1.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu + 1
+            j  = ju + 1
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_3 = zetax2(i,j,3)*cym(i,j)
+            stressp_4 = zetax2(i,j,4)*(-dyT(i,j))
+
+            stressm_3 = etax2(i,j,3)*(-cyp(i,j))
+            stressm_4 = etax2(i,j,4)*(-dyT(i,j))
+
+            stress12_2 = etax2(i,j,2)*(-dxT(i,j))*p5
+            stress12_3 = etax2(i,j,3)*(-cxp(i,j))*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigps  = stressp_3 + stressp_4
+            ssigpe     = stressp_4
+            ssigpw     = stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_4)*p055
+
+            ssigms  = stressm_3 + stressm_4
+            ssigme     = stressm_4
+            ssigmw     = stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_4)*p055
+
+            ssig12n    = stress12_2
+            ssig12s    = stress12_3
+            ssig12w = stress12_2 + stress12_3
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_2)*p111
+
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = p111*stressp_4 + ssigp1
+
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = p111*stressm_4 + ssigm1
+
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = ssig121 + p055*stress12_2
+
+            str12ew    = p5*dxT(i,j)*(p166*ssig12w)
+            str12we    = p5*dxT(i,j)*(p333*ssig12w)
+            str12ns = p5*dyT(i,j)*(p333*ssig12n + p166*ssig12s)
+            str12sn = p5*dyT(i,j)*(p333*ssig12s + p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dyT(i,j)*(p333*ssigps)
+               strm_tmp   = p25*dyT(i,j)*(p333*ssigms)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,4) = strp_tmp + strm_tmp + str12we &
@@ -2304,47 +2406,358 @@
          ! for dF/dy (v momentum)
          !-----------------------------------------------------------------
 
-            elseif (cc == 5) then ! T cell i,j
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 5: v component, T cell i,j.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            i  = indxUi(ij)
+            j  = indxUj(ij)
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_1 = zetax2(i,j,1)*cxp(i,j)
+            stressp_4 = zetax2(i,j,4)*dxT(i,j)
+
+            stressm_1 = etax2(i,j,1)*cxm(i,j)
+            stressm_4 = etax2(i,j,4)*(-dxT(i,j))
+
+            stress12_1 = etax2(i,j,1)*(-cym(i,j))*p5
+            stress12_2 = etax2(i,j,2)*dyT(i,j)*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn     = stressp_1
+            ssigps     = stressp_4
+            ssigpe  = stressp_1 + stressp_4
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_4)*p055
+
+            ssigmn     = stressm_1
+            ssigms     = stressm_4
+            ssigme  = stressm_1 + stressm_4
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_4)*p055
+
+            ssig12n = stress12_1 + stress12_2
+            ssig12e    = stress12_1
+            ssig12w    = stress12_2
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_2)*p111
+
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = p111*stressp_4 + ssigp1
+
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = p111*stressm_4 + ssigm1
+
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = ssig121 + p055*stress12_2
+
+            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns    = p5*dyT(i,j)*(p333*ssig12n)
+            str12sn    = p5*dyT(i,j)*(p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpe)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigme)
 
                ! northeast (i,j)
-               Drheo(iu,ju,5) = -strp_tmp + strm_tmp - str12ns &
+               Drheo(i,j,5) = -strp_tmp + strm_tmp - str12ns &
                   - dyhx(i,j)*(csigpne + csigmne) + dxhy(i,j)*csig12ne
 
-            elseif (cc == 6) then ! T cell i,j+1
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpe  + p166*ssigpw)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigme  + p166*ssigmw)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 6: v component, T cell i,j+1.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu
+            j  = ju + 1
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_1 = zetax2(i,j,1)*(-dxT(i,j))
+            stressp_4 = zetax2(i,j,4)*cxm(i,j)
+
+            stressm_1 = etax2(i,j,1)*dxT(i,j)
+            stressm_4 = etax2(i,j,4)*cxp(i,j)
+
+            stress12_3 = etax2(i,j,3)*dyT(i,j)*p5
+            stress12_4 = etax2(i,j,4)*(-cym(i,j))*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn     = stressp_1
+            ssigps     = stressp_4
+            ssigpe  = stressp_1 + stressp_4
+            ssigp1     = (stressp_1)*p055
+            ssigp2     = (stressp_4)*p055
+
+            ssigmn     = stressm_1
+            ssigms     = stressm_4
+            ssigme  = stressm_1 + stressm_4
+            ssigm1     = (stressm_1)*p055
+            ssigm2     = (stressm_4)*p055
+
+            ssig12s = stress12_3 + stress12_4
+            ssig12e    = stress12_4
+            ssig12w    = stress12_3
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_4)*p111
+
+            csigpne    = p111*stressp_1 + ssigp2
+            csigpnw    = ssigp1 + p027*stressp_4
+            csigpsw    = ssigp2 + p027*stressp_1
+            csigpse    = p111*stressp_4 + ssigp1
+
+            csigmne    = p111*stressm_1 + ssigm2
+            csigmnw    = ssigm1 + p027*stressm_4
+            csigmsw    = ssigm2 + p027*stressm_1
+            csigmse    = p111*stressm_4 + ssigm1
+
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = p222*stress12_4 + ssig121
+
+            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns    = p5*dyT(i,j)*(p166*ssig12s)
+            str12sn    = p5*dyT(i,j)*(p333*ssig12s)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpe)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigme)
 
                ! southeast (i,j+1)
                Drheo(iu,ju,6) = strp_tmp - strm_tmp - str12sn &
                   - dyhx(i,j)*(csigpse + csigmse) + dxhy(i,j)*csig12se
 
-            elseif (cc == 7) then ! T cell i,j+1
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 7: v component, T cell i+1,j.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu + 1
+            j  = ju
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_2 = zetax2(i,j,2)*cxp(i,j)
+            stressp_3 = zetax2(i,j,3)*dxT(i,j)
+
+            stressm_2 = etax2(i,j,2)*cxm(i,j)
+            stressm_3 = etax2(i,j,3)*(-dxT(i,j))
+
+            stress12_1 = etax2(i,j,1)*(-dyT(i,j))*p5
+            stress12_2 = etax2(i,j,2)*(-cyp(i,j))*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn     = stressp_2
+            ssigps     = stressp_3
+            ssigpw  = stressp_2 + stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_2)*p055
+
+            ssigmn     = stressm_2
+            ssigms     = stressm_3
+            ssigmw  = stressm_2 + stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_2)*p055
+
+            ssig12n = stress12_1 + stress12_2
+            ssig12e    = stress12_1
+            ssig12w    = stress12_2
+            ssig121    = (stress12_1)*p111
+            ssig122    = (stress12_2)*p111
+
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = ssigp1 + p027*stressp_2
+
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = ssigm1 + p027*stressm_2
+
+            csig12ne   = p222*stress12_1 + ssig122
+            csig12nw   = p222*stress12_2 + ssig121
+            csig12sw   = ssig122 + p055*stress12_1
+            csig12se   = ssig121 + p055*stress12_2
+
+            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns    = p5*dyT(i,j)*(p333*ssig12n)
+            str12sn    = p5*dyT(i,j)*(p166*ssig12n)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpw)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigmw)
 
                ! northwest (i+1,j)
                Drheo(iu,ju,7) = -strp_tmp + strm_tmp + str12ns &
                   - dyhx(i,j)*(csigpnw + csigmnw) + dxhy(i,j)*csig12nw
 
-            elseif (cc == 8) then ! T cell i+1,j+1
 
-               strp_tmp  = p25*dxT(i,j)*(p333*ssigpw  + p166*ssigpe)
-               strm_tmp  = p25*dxT(i,j)*(p333*ssigmw  + p166*ssigme)
+         enddo                     ! ij
+
+      !-----------------------------------------------------------------
+      ! Term 8: v component, T cell i+1,j+1.  The perturbing velocity is one-hot,
+      ! so each strain rate is a single grid metric or exactly zero.
+      !-----------------------------------------------------------------
+         do ij = 1, icellU
+
+            iu = indxUi(ij)
+            ju = indxUj(ij)
+            i  = iu + 1
+            j  = ju + 1
+
+         !-----------------------------------------------------------------
+         ! strain rates
+         ! NOTE these are actually strain rates * area  (m^2/s)
+         !-----------------------------------------------------------------
+            ! strain rates reduce to a single metric or exactly zero,
+            ! because the velocity is one-hot (see the commit message)
+         !-----------------------------------------------------------------
+         ! the stresses                            ! kg/s^2
+         ! (1) northeast, (2) northwest, (3) southwest, (4) southeast
+         !-----------------------------------------------------------------
+
+            stressp_2 = zetax2(i,j,2)*(-dxT(i,j))
+            stressp_3 = zetax2(i,j,3)*cxm(i,j)
+
+            stressm_2 = etax2(i,j,2)*dxT(i,j)
+            stressm_3 = etax2(i,j,3)*cxp(i,j)
+
+            stress12_3 = etax2(i,j,3)*(-cyp(i,j))*p5
+            stress12_4 = etax2(i,j,4)*(-dyT(i,j))*p5
+
+         !-----------------------------------------------------------------
+         ! combinations of the stresses for the momentum equation ! kg/s^2
+         !-----------------------------------------------------------------
+
+            ssigpn     = stressp_2
+            ssigps     = stressp_3
+            ssigpw  = stressp_2 + stressp_3
+            ssigp1     = (stressp_3)*p055
+            ssigp2     = (stressp_2)*p055
+
+            ssigmn     = stressm_2
+            ssigms     = stressm_3
+            ssigmw  = stressm_2 + stressm_3
+            ssigm1     = (stressm_3)*p055
+            ssigm2     = (stressm_2)*p055
+
+            ssig12s = stress12_3 + stress12_4
+            ssig12e    = stress12_4
+            ssig12w    = stress12_3
+            ssig121    = (stress12_3)*p111
+            ssig122    = (stress12_4)*p111
+
+            csigpne    = ssigp2 + p027*stressp_3
+            csigpnw    = p111*stressp_2 + ssigp1
+            csigpsw    = p111*stressp_3 + ssigp2
+            csigpse    = ssigp1 + p027*stressp_2
+
+            csigmne    = ssigm2 + p027*stressm_3
+            csigmnw    = p111*stressm_2 + ssigm1
+            csigmsw    = p111*stressm_3 + ssigm2
+            csigmse    = ssigm1 + p027*stressm_2
+
+            csig12ne   = ssig122 + p055*stress12_3
+            csig12nw   = ssig121 + p055*stress12_4
+            csig12sw   = p222*stress12_3 + ssig122
+            csig12se   = p222*stress12_4 + ssig121
+
+            str12ew = p5*dxT(i,j)*(p333*ssig12e + p166*ssig12w)
+            str12we = p5*dxT(i,j)*(p333*ssig12w + p166*ssig12e)
+            str12ns    = p5*dyT(i,j)*(p166*ssig12s)
+            str12sn    = p5*dyT(i,j)*(p333*ssig12s)
+
+         !-----------------------------------------------------------------
+         ! for dF/dx (u momentum)
+         !-----------------------------------------------------------------
+
+
+               strp_tmp   = p25*dxT(i,j)*(p333*ssigpw)
+               strm_tmp   = p25*dxT(i,j)*(p333*ssigmw)
 
                ! southwest (i+1,j+1)
                Drheo(iu,ju,8) = strp_tmp - strm_tmp + str12sn &
                   - dyhx(i,j)*(csigpsw + csigmsw) + dxhy(i,j)*csig12sw
 
-            endif
 
          enddo                     ! ij
-
-      enddo                     ! cc
 
       end subroutine formDiag_step1
 
