@@ -100,8 +100,9 @@
 
 #ifndef coupled
 #ifndef CESMCOUPLED
-! for now, wave_spectrum is constant in time
-!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+! wave_spectrum read from wave_spec_file varies in time, so it is updated
+! every step; the file is only re-read when a new record is needed.
+         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
          call get_forcing_atmo     ! atmospheric forcing from data
 #ifndef  CICE_DMI
          call get_forcing_ocn(dt)  ! ocean forcing from data

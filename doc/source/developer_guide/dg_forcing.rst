@@ -207,3 +207,52 @@ Other Ocean Forcing
 There are a few other ocean forcing modes, as defined by ``ocn_data_type``, but
 they are not tested by the Consortium on a regular basis.
 
+
+.. _WAVEforcing:
+
+WW3 and WAM Wave Forcing
+------------------------
+
+The joint floe size and thickness distribution (FSD and FSTD) is enabled with the namelist
+setting ``tr_fsd``. Because it is not recommended to use the FSD without ocean surface waves,
+input data on ocean surface wave spectra is provided for testing. As with the other CICE
+datasets, this data should not be used for production runs or publications.
+
+The namelist setting ``wave_spec_type`` sets how Icepack builds a sea surface height
+realization from the wave spectrum (wave energy as a function of frequency in each grid cell):
+
+- ``constant``: the realization uses constant phases. It does not mean that the wave spectrum
+  is constant in time. The fracture calculation is deterministic and bit-for-bit reproducible,
+  with one realization per wave fracture calculation.
+- ``random``: the realization uses random phases, and is repeated until the fracture histogram
+  converges. This may be statistically more accurate, but is computationally more expensive,
+  and the results may not be bit-for-bit reproducible.
+
+Time-varying ocean surface wave spectra can be read from a NetCDF ``wave_spec_file``
+that holds its own time axis ``time`` and wave frequencies ``wavefreq`` (1/s), together with
+the directionally integrated wave spectral density ``efreq`` (m\ :sup:`2` s) on the CICE grid,
+dimensioned (nx, ny, nfreq, time). The frequencies and their number (``nfreq``) are taken from
+the file instead of the namelist, and the reference date is read from the ``units`` attribute of
+``time`` (days, hours, minutes or seconds since yyyy-mm-dd HH:MM:SS). The record
+spacing may vary, and the spectrum is interpolated linearly in time between the two records
+bracketing the model time. This requires ``wave_spec_type`` = ``constant`` or ``random``.
+A ``wave_spec_file`` without ``time`` and/or ``wavefreq`` is read once, from the 6-hourly record
+at the start time, with the hardwired Icepack frequencies, and kept constant during the run.
+
+Wave fracture is the computationally expensive part of the FSD. How often it is computed is set
+by the namelist variable ``dt_wavefracture`` (in seconds):
+
+- ``-1`` (default): every timestep.
+- ``>0``: every ``dt_wavefracture`` seconds (has to be a multiple of ``dt``), on the last timestep
+  of each interval, using the wave spectrum at that time. The fracture is applied over the whole
+  interval, so the total fracture is conserved while the cost is reduced accordingly.
+- ``0``: at the time records of the ``wave_spec_file`` (requires ``time`` and ``wavefreq`` in the file).
+  The fracture is computed on the timestep that reaches a record, using that record's spectrum, and
+  applied over the time since the previous record. Every interval between records is fractured exactly
+  once, also with uneven record spacing and across restarts.
+
+Forcing files processed from WAM (WAve Model) or WW3 (WAVEWATCH III) output can be used.
+Processed WAM files already use the variable names above, so their spectra vary in time.
+WW3 names the frequencies ``f``; to use time-varying spectra, rename it to ``wavefreq``,
+e.g. with the NCO command ``ncrename -v f,wavefreq <file>``. Without this change, a single
+wave spectrum is used, constant throughout the simulation.
